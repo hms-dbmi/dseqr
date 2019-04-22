@@ -1,7 +1,13 @@
 packrat/lib*/
 .Rproj.user
+.Rhistory
 
 # contains raw IBD FASTQ files for dev purposes
 data-raw/example-data
 
+# salmon indices
 inst/indices
+
+# ensdb annotation
+inst/EnsDb
+packrat/src/

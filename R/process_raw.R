@@ -3,10 +3,13 @@
 #' @param species The species. Default is \code{homo_sapiens.}
 #' @param version ensembl version. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).
 #'
-#' @return
+#' @return NULL
 #' @export
 #'
 #' @examples
+#' # build salmon index for humans
+#' build_index()
+#'
 build_index <- function(species = 'homo_sapiens', version = '94') {
 
   indices_dir <- system.file('indices', package = 'drugseqr')
