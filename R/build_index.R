@@ -31,7 +31,12 @@ build_index <- function(species = 'homo_sapiens', version = '96') {
   curl::curl_download(ensembl_url, ensembl_all)
 
   # build index
-  system(paste('salmon index -t', ensembl_all, '-i', ensembl_species))
+  tryCatch(system2(paste('salmon index -t', ensembl_all, '-i', ensembl_species), stdout=TRUE, stderr=TRUE),
+           error = function(e) stop('Is salmon installed and on the PATH?'))
+
   unlink(ensembl_all)
   setwd(work_dir)
 }
+
+
+
