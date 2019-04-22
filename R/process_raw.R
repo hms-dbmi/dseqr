@@ -1,13 +1,13 @@
 #' Download ensembl transcriptome and build index for salmon quantification
 #'
 #' @param species The species. Default is \code{homo_sapiens.}
-#' @param version ensembl version. Default is \code{96} (latest as of 04-22-2019).
+#' @param version ensembl version. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).
 #'
 #' @return
 #' @export
 #'
 #' @examples
-build_index <- function(species = 'homo_sapiens', version = '96') {
+build_index <- function(species = 'homo_sapiens', version = '94') {
 
   indices_dir <- system.file('indices', package = 'drugseqr')
 
@@ -31,7 +31,9 @@ build_index <- function(species = 'homo_sapiens', version = '96') {
   curl::curl_download(ensembl_url, ensembl_all)
 
   # build index
-  tryCatch(system2(paste('salmon index -t', ensembl_all, '-i', ensembl_species), stdout=TRUE, stderr=TRUE),
+  tryCatch(system2('salmon', args=c('index',
+                                    '-t', ensembl_all,
+                                    '-i', ensembl_species)),
            error = function(e) stop('Is salmon installed and on the PATH?'))
 
   unlink(ensembl_all)
