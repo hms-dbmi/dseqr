@@ -38,5 +38,49 @@ build_index <- function(species = 'homo_sapiens', version = '96') {
   setwd(work_dir)
 }
 
+#' Runs salmon quantification.
+#'
+#' @param data_dir Directory with .fastq.gz RNA-Seq files.
+#' @param species Species name. Default is \code{homo_sapiens}.
+#' Used to determine transcriptome index to use.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+run_salmon <- function(data_dir, species = 'homo_sapiens') {
+  # TODO: make it handle single and paired-end data
+  # now assumes single end
+
+  # location of index
+  salmon_idx <- system.file('indices', species, package = 'drugseqr')
+  if (!dir.exists(salmon_idx)) stop('No index found. See ?build_index')
+
+  # save quants here
+  quants_dir <- file.path(data_dir, 'quants')
+  dir.create(quants_dir)
+
+  # loop through fastq files and quantify
+  fastq_files <- list.files(data_dir, '.fastq.gz$')
+  for (fastq_file in fastq_files) {
+    fastq_path <- shQuote(file.path(data_dir, fastq_file))
+
+    # save each sample in it's own folder
+    sample_name <- gsub('.fastq.gz$', '', fastq_file)
+    out_dir <- file.path(quants_dir, sample_name)
+    dir.create(out_dir)
+
+    # run salmon
+    system2('salmon',
+            args=c('quant',
+                   '-i', salmon_idx,
+                   '-l', 'A',
+                   '--validateMappings',
+                   '-r', fastq_path, # single-end flag
+                   '--gcBias',
+                   '-o', out_dir))
+  }
+}
+
 
 
