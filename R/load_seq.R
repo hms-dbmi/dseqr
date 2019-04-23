@@ -7,14 +7,14 @@
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
 #'
-#' @return \code{\link[Biobase{ExpressionSet}} with \code{attributes}/accessors:
+#' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
 #'   \item \code{sampleNames} from names of raw RNA-Seq files (excluding .fastq.gz suffix).
 #'   \item \code{annotation} Character vector of annotation package used.
 #'   \item \code{exprs} Length scaled counts generated from abundances for use in
-#'   \item \code{phenoData} from \code{pdata_path} annotation file with added columns:
 #'     \code{\link[limma]{voom}} (see \code{vignette("tximport", package = "tximport")}).
-#'     \itemize {
+#'   \item \code{phenoData} from \code{pdata_path} annotation file with added columns:
+#'     \itemize{
 #'       \item \code{quants_dir} directory within '\code{data_dir}/quants' containing salmon quantification results.
 #'       \item \code{lib.size} library size from \code{\link[edgeR]{calcNormFactors}}.
 #'       \item \code{norm.factors} library normalization factors from \code{\link[edgeR]{calcNormFactors}}.
@@ -108,7 +108,7 @@ construct_eset <- function(quants, fdata, pdata, annot) {
 setup_fdata <- function(tx2gene) {
 
   # unlist entrezids
-  fdata <- data.table(tx2gene)
+  fdata <- data.table::data.table(tx2gene)
   fdata <- fdata[, list(ENTREZID_HS = as.character(unlist(entrezid)))
                  , by = c('tx_id', 'gene_name')]
 
@@ -164,7 +164,7 @@ import_quants <- function(data_dir, tx2gene) {
 #'
 get_ensdb_package <- function(species, release) {
   ensdb_species    <- strsplit(species, ' ')[[1]]
-  ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
+  ensdb_species[1] <- toupper(substr(ensdb_species[1], 1, 1))
 
   ensdb_package <- paste('EnsDb', paste0(ensdb_species, collapse = ''), paste0('v', release), sep='.')
   return(ensdb_package)
