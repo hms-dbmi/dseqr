@@ -53,6 +53,11 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' @export
 #'
 #' @examples
+#'
+#' # first place IBD data in data-raw/example-data
+#' data_dir <- file.path('data-raw', 'example-data')
+#' run_salmon(data_dir)
+#'
 run_salmon <- function(data_dir, species = 'homo_sapiens') {
   # TODO: make it handle single and paired-end data
   # now assumes single end
@@ -83,7 +88,7 @@ run_salmon <- function(data_dir, species = 'homo_sapiens') {
                    '--validateMappings',
                    '-r', fastq_path, # single-end flag
                    '--gcBias',
-                   '-o', out_dir))
+                   '-o', shQuote(out_dir)))
   }
 }
 
