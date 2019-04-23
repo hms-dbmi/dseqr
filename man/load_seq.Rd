@@ -5,17 +5,42 @@
 \title{Load raw RNA-Seq data into an ExpressionSet.}
 \usage{
 load_seq(data_dir, pdata_path, species = "Homo sapiens",
-  release = "94")
+  release = "94", overwrite = FALSE)
 }
 \arguments{
-\item{data_dir}{Directory with raw RNA-Seq files.}
+\item{data_dir}{Directory with raw and quantified RNA-Seq files.}
 
-\item{pdata_path}{Path to text file with sample annotations.}
+\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
+The first column should contain sample ids that match a single raw rna-seq data file name.}
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
 \item{release}{EnsemblDB release. Should be same as used in \code{\link{build_index}}.}
+
+\item{overwrite}{If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
+}
+\value{
+\code{\link[Biobase{ExpressionSet}} with \code{attributes}/accessors:
+\itemize{
+  \item \code{sampleNames} from names of raw RNA-Seq files (excluding .fastq.gz suffix).
+  \item \code{annotation} Character vector of annotation package used.
+  \item \code{exprs} Length scaled counts generated from abundances for use in
+  \item \code{phenoData} from \code{pdata_path} annotation file with added columns:
+    \code{\link[limma]{voom}} (see \code{vignette("tximport", package = "tximport")}).
+    \itemize {
+      \item \code{quants_dir} directory within '\code{data_dir}/quants' containing salmon quantification results.
+      \item \code{lib.size} library size from \code{\link[edgeR]{calcNormFactors}}.
+      \item \code{norm.factors} library normalization factors from \code{\link[edgeR]{calcNormFactors}}.
+    }
+}
 }
 \description{
 Load raw RNA-Seq data into an ExpressionSet.
+}
+\examples{
+
+data_dir <- 'data-raw/example-data'
+pdata_path <- 'data-raw/example-data/Phenotypes.csv'
+eset <- load_seq(data_dir, pdata_path)
+
 }

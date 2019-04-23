@@ -49,7 +49,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #'
-#' @return
+#' @return NULL
 #' @export
 #'
 #' @examples

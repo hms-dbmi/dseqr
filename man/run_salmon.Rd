@@ -15,3 +15,10 @@ Used to determine transcriptome index to use.}
 \description{
 Runs salmon quantification.
 }
+\examples{
+
+# first place IBD data in data-raw/example-data
+data_dir <- file.path('data-raw', 'example-data')
+run_salmon(data_dir)
+
+}
