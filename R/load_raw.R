@@ -45,26 +45,50 @@ build_ensdb <- function(species = 'Homo sapiens', release = '94') {
 
 #' Load raw RNA-Seq data into an ExpressionSet.
 #'
-#' @param data_dir Directory with raw RNA-Seq files.
+#' @param data_dir Directory with raw and quantified RNA-Seq files.
 #' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 #' The first column should contain sample ids that match a single raw rna-seq data file name.
+#' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
 #' @inheritParams build_ensdb
 #'
-#' @return
+#' @return \code{\link[Biobase{ExpressionSet}} with \code{attributes}/accessors:
+#' \itemize{
+#'   \item \code{sampleNames} from names of raw RNA-Seq files (excluding .fastq.gz suffix).
+#'   \item \code{annotation} Character vector of annotation package used.
+#'   \item \code{exprs} Length scaled counts generated from abundances for use in
+#'   \item \code{phenoData} from \code{pdata_path} annotation file with added columns:
+#'     \code{\link[limma]{voom}} (see \code{vignette("tximport", package = "tximport")}).
+#'     \itemize {
+#'       \item \code{quants_dir} directory within '\code{data_dir}/quants' containing salmon quantification results.
+#'       \item \code{lib.size} library size from \code{\link[edgeR]{calcNormFactors}}.
+#'       \item \code{norm.factors} library normalization factors from \code{\link[edgeR]{calcNormFactors}}.
+#'     }
+#' }
+#'
 #' @export
 #'
 #' @examples
 #'
 #' data_dir <- 'data-raw/example-data'
+#' pdata_path <- 'data-raw/example-data/Phenotypes.csv'
+#' eset <- load_seq(data_dir, pdata_path)
 #'
-load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '94') {
+load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '94', overwrite = FALSE) {
+
+  # check if already have
+  eset_path  <- file.path(data_dir, 'eset.rds')
+  if (!overwrite & file.exists(eset_path))
+    return(readRDS(eset_path))
+
+  if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
   # load pdata and determine row to file correspondence
-  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE),
+  # needs to be data.frame for ExpressionSet construction
+  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE, data.table = FALSE),
                     error = function(e) stop("Couldn't read pdata"))
 
-  files <- list.files(file.path(data_dir, 'quants'))
-  pdata <- match_pdata(pdata, files)
+  qdirs <- list.files(file.path(data_dir, 'quants'))
+  pdata <- match_pdata(pdata, qdirs)
 
   # transcript to gene map
   tx2gene <- get_tx2gene(species, release)
@@ -75,6 +99,42 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
   # add library normalization
   pdata <- add_norms(quants, pdata)
 
+  # remove duplicate rows of counts
+  rn <- row.names(quants$counts)
+  mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
+
+  # merge exprs and fdata
+  fdata <- setup_fdata(tx2gene)
+  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL_9606', all.y = TRUE, sort = FALSE)
+  dt <- as.data.frame(dt)
+  row.names(dt) <- make.unique(dt[[1]])
+
+  # seperate fdata and exprs and transfer to eset
+  ensdb_package <- get_ensdb_package(species, release)
+  row.names(pdata) <- pdata$quants_dir
+  eset <- Biobase::ExpressionSet(as.matrix(dt[, row.names(pdata), drop=FALSE]),
+                                            phenoData=Biobase::AnnotatedDataFrame(pdata),
+                                            featureData=Biobase::AnnotatedDataFrame(dt[, colnames(fdata), drop=FALSE]),
+                                            annotation=ensdb_package)
+
+
+  # save eset and return
+  saveRDS(eset, eset_path)
+  return(eset)
+}
+
+setup_fdata <- function(tx2gene) {
+
+  # unlist entrezids
+  fdata <- data.table(tx2gene)
+  fdata <- fdata[, list(ENTREZID_HS = as.character(unlist(entrezid)))
+                 , by = c('tx_id', 'gene_name')]
+
+  fdata[, tx_id := NULL]
+  fdata <- unique(fdata)
+
+  # setup so that will work with crossmeta
+  fdata <- fdata[, .(SYMBOL_9606 = gene_name, ENTREZID_HS)]
 }
 
 import_quants <- function(data_dir, tx2gene) {
@@ -85,30 +145,34 @@ import_quants <- function(data_dir, tx2gene) {
 
   # import quants using tximport
   # using limma::voom for differential expression (see tximport vignette)
-  quants_dirs   <- list.files(file.path(data_dir, 'quants'))
-  quants_paths <- file.path(data_dir, 'quants', quants_dirs, 'quant.sf')
+  qdirs   <- list.files(file.path(data_dir, 'quants'))
+  quants_paths <- file.path(data_dir, 'quants', qdirs, 'quant.sf')
 
   # use folders as names (used as sample names)
-  names(quants_paths) <- quants_dirs
+  names(quants_paths) <- qdirs
 
   txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = "salmon",
                             ignoreTxVersion = ignore, countsFromAbundance = "lengthScaledTPM", importer=utils::read.delim)
 
-  y <- edgeR::DGEList(txi$counts)
+  quants <- edgeR::DGEList(txi$counts)
 
   # filtering low counts (as in tximport vignette)
-  keep <- edgeR::filterByExpr(y)
-  y <- y[keep, ]
-  return(y)
+  keep <- edgeR::filterByExpr(quants)
+  quants <- quants[keep, ]
+  return(quants)
 }
 
-get_tx2gene <- function(species, release) {
-  # load EnsDb package
+get_ensdb_package <- function(species, release) {
   ensdb_species    <- strsplit(species, ' ')[[1]]
   ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
 
   ensdb_package <- paste('EnsDb', paste0(ensdb_species, collapse = ''), paste0('v', release), sep='.')
+  return(ensdb_package)
+}
 
+get_tx2gene <- function(species, release) {
+  # load EnsDb package
+  ensdb_package <- get_ensdb_package(species, release)
   if (!require(ensdb_package, character.only = TRUE)) {
     build_ensdb(species, release)
     require(ensdb_package, character.only = TRUE)
@@ -118,12 +182,13 @@ get_tx2gene <- function(species, release) {
   tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=c("tx_id", "gene_name", "entrezid"),
                                     return.type='data.frame')
   tx2gene[tx2gene == ""] <- NA
-  tx2gene <- tx2gene[!is.na(tx2gene$gene_name),]
+  tx2gene <- tx2gene[!is.na(tx2gene$gene_name), ]
+  return(tx2gene)
 }
 
 add_norms <- function(quants, pdata) {
   quants <- edgeR::calcNormFactors(quants)
-  idxs <- match(colnames(quants), pdata$file)
+  idxs <- match(colnames(quants), pdata$quants_dir)
   pdata <- pdata[idxs,, drop=FALSE]
   pdata <- cbind(pdata, quants$samples[, c('lib.size', 'norm.factors')])
   return(pdata)
@@ -135,37 +200,37 @@ add_norms <- function(quants, pdata) {
 #' If an exact match is not possible, \code{grep} is used to search for a unique substring.
 #'
 #' @param pdata \code{data.table} with sample annotations.
-#' @param files Character vector of file names to find matches for.
+#' @param qdirs Character vector of quantification directories to find matches for.
 #'
 #' @return \code{pdata} with \code{file} column identifying file for each sample (row).
 #' @export
 #'
 #' @examples
-match_pdata <- function(pdata, files) {
+match_pdata <- function(pdata, qdirs) {
   ids <- pdata[[1]]
 
-  if (length(ids) != length(files)) stop('Must be one row in sample annotation per raw data file.')
+  if (length(ids) != length(qdirs)) stop('Must be one row in sample annotation per quantification directory.')
 
-  # check if every id has a perfect match in files without fastq.gz suffix
-  idxs <- match(ids, gsub('.fastq.gz$', '', files))
+  # check if every id has a perfect match in quants dirs without fastq.gz suffix
+  idxs <- match(ids, gsub('.fastq.gz$', '', qdirs))
 
   # otherwise try unique grep
   if (sum(is.na(idxs)) != 0) {
 
     # remove _ and - as word seperation (for grep below)
     spaced_ids <- gsub('_|-', ' ', ids)
-    spaced_files <- gsub('_|-', ' ', files)
+    spaced_qdirs <- gsub('_|-', ' ', qdirs)
 
     tomatch <- spaced_ids[is.na(idxs)]
     gmatch  <- sapply(tomatch, function(id) {
 
-      res <- grep(paste0('\\b', id, '\\b'), spaced_files, ignore.case = TRUE)
+      res <- grep(paste0('\\b', id, '\\b'), spaced_qdirs, ignore.case = TRUE)
 
       if (length(res) > 1)
-        stop(shQuote(id), ' is a substring of more than one raw rna-seq data file. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is a substring of more than one quantification directory. Fix in first column of sample annotation file.')
 
       if (!length(res))
-        stop(shQuote(id), ' is not a substring of a raw rna-seq data file. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is not a substring of a quantification directory. Fix in first column of sample annotation file.')
 
       return(res)
     })
@@ -175,6 +240,6 @@ match_pdata <- function(pdata, files) {
   }
 
   # append file names to pdata
-  pdata$file <- files[idxs]
+  pdata$quants_dir <- qdirs[idxs]
   return(pdata)
 }
