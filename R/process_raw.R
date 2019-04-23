@@ -1,7 +1,7 @@
 #' Download ensembl transcriptome and build index for salmon quantification
 #'
 #' @param species The species. Default is \code{homo_sapiens.}
-#' @param version ensembl version. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).
+#' @param release ensembl release. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).
 #'
 #' @return NULL
 #' @export
@@ -10,14 +10,14 @@
 #' # build salmon index for humans
 #' build_index()
 #'
-build_index <- function(species = 'homo_sapiens', version = '94') {
+build_index <- function(species = 'homo_sapiens', release = '94') {
 
   indices_dir <- system.file('indices', package = 'drugseqr')
 
   # construct ensembl url for transcriptome
   ensembl_species <- gsub(' ', '_', tolower(species))
-  ensembl_version <- paste0('release-', version)
-  ensembl_url <- paste0('ftp://ftp.ensembl.org/pub/', ensembl_version, '/fasta/', ensembl_species, '/cdna/')
+  ensembl_release <- paste0('release-', release)
+  ensembl_url <- paste0('ftp://ftp.ensembl.org/pub/', ensembl_release, '/fasta/', ensembl_species, '/cdna/')
 
   # get list of all files
   handle <- curl::new_handle(dirlistonly=TRUE)
@@ -45,7 +45,7 @@ build_index <- function(species = 'homo_sapiens', version = '94') {
 
 #' Runs salmon quantification.
 #'
-#' @param data_dir Directory with .fastq.gz RNA-Seq files.
+#' @param data_dir Directory with raw RNA-Seq files.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #'

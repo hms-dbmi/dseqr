@@ -1,7 +1,7 @@
 #' Build ensembldb annotation package.
 #'
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
-#' @param version EnsemblDB version. Should be same as used in \code{\link{build_index}}.
+#' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #'
 #' @return NULL
 #' @export
@@ -11,7 +11,7 @@
 #' # build ensembldb annotation package for human
 #' build_ensdb()
 #'
-build_ensdb <- function(species = 'Homo sapiens', version = '94') {
+build_ensdb <- function(species = 'Homo sapiens', release = '94') {
   # store ensembl databases in built package
   ensdb_dir <- 'EnsDb'
   unlink('EnsDb', recursive = TRUE)
@@ -20,11 +20,11 @@ build_ensdb <- function(species = 'Homo sapiens', version = '94') {
   # format is genus_species in multiple other functions but not here
   species <- gsub('_', ' ', species)
 
-  # generate new ensembl database from specified version
+  # generate new ensembl database from specified release
   ah <- AnnotationHub::AnnotationHub()
-  ahDb <- AnnotationHub::query(ah, pattern = c(species, "EnsDb", version))
+  ahDb <- AnnotationHub::query(ah, pattern = c(species, "EnsDb", release))
 
-  if (!length(ahDb)) stop('Specified ensemble species/version not found in AnnotationHub.')
+  if (!length(ahDb)) stop('Specified ensemble species/release not found in AnnotationHub.')
 
   ahEdb <- ahDb[[1]]
 
@@ -53,16 +53,16 @@ build_ensdb <- function(species = 'Homo sapiens', version = '94') {
 #' @export
 #'
 #' @examples
-load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', version = '94') {
+load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '94') {
 
   # load EnsDb package
   ensdb_species    <- strsplit(species, ' ')[[1]]
   ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
 
-  ensdb_package <- paste('EnsDb', paste0(ensdb_species, collapse = ''), paste0('v', version), sep='.')
+  ensdb_package <- paste('EnsDb', paste0(ensdb_species, collapse = ''), paste0('v', release), sep='.')
 
   if (!require(ensdb_package, character.only = TRUE)) {
-    build_ensdb(species, version)
+    build_ensdb(species, release)
     require(ensdb_package, character.only = TRUE)
   }
 

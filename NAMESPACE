@@ -2,5 +2,6 @@
 
 export(build_ensdb)
 export(build_index)
+export(load_seq)
 export(run_drugseqr)
 export(run_salmon)

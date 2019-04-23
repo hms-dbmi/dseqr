@@ -7,7 +7,7 @@
 run_salmon(data_dir, species = "homo_sapiens")
 }
 \arguments{
-\item{data_dir}{Directory with .fastq.gz RNA-Seq files.}
+\item{data_dir}{Directory with raw RNA-Seq files.}
 
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}

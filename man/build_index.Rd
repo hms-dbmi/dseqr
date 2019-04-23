@@ -4,12 +4,12 @@
 \alias{build_index}
 \title{Download ensembl transcriptome and build index for salmon quantification}
 \usage{
-build_index(species = "homo_sapiens", version = "94")
+build_index(species = "homo_sapiens", release = "94")
 }
 \arguments{
 \item{species}{The species. Default is \code{homo_sapiens.}}
 
-\item{version}{ensembl version. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).}
+\item{release}{ensembl release. Default is \code{94} (latest in release for AnnotationHub - needs to match with \code{\link{build_ensdb}}).}
 }
 \description{
 Download ensembl transcriptome and build index for salmon quantification
