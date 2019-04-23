@@ -1,5 +1,6 @@
-^packrat/
 ^\.Rprofile$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+
+inst/indices
