@@ -67,3 +67,55 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
   }
 
 }
+
+#' Match and add file names for pdata rows.
+#'
+#' Attempts to find exact match between file names (excluding fastq.gz suffix) and first pdata column.
+#' If an exact match is not possible, \code{grep} is used to search for a unique substring.
+#'
+#' @param pdata \code{data.table} with sample annotations.
+#' @param files Character vector of file names to find matches for.
+#'
+#' @return \code{pdata} with \code{file} column identifying file for each sample (row).
+#' @export
+#'
+#' @examples
+match_pdata <- function(pdata, files) {
+  # TODO: write some unit tests
+
+  ids <- pdata[[1]]
+
+  if (length(ids) != length(files)) stop('Must be one row in sample annotation per raw data file.')
+
+  # check if every id has a perfect match in files without fastq.gz suffix
+  idxs <- match(ids, gsub('.fastq.gz$', '', files))
+
+  # otherwise try unique grep
+  if (sum(is.na(idxs)) != 0) {
+
+    # remove _ and - as word seperation (for grep below)
+    spaced_ids <- gsub('_|-', ' ', ids)
+    spaced_files <- gsub('_|-', ' ', files)
+
+    tomatch <- spaced_ids[is.na(idxs)]
+    gmatch  <- sapply(tomatch, function(id) {
+
+      res <- grep(paste0('\\b', id, '\\b'), spaced_files, ignore.case = TRUE)
+
+      if (length(res) > 1)
+        stop(shQuote(id), ' is a substring of more than one raw rna-seq data file. Fix in first column of sample annotation file.')
+
+      if (!length(res))
+        stop(shQuote(id), ' is not a substring of a raw rna-seq data file. Fix in first column of sample annotation file.')
+
+      return(res)
+    })
+
+    # fill in grep result where NA in idxs
+    idxs[is.na(idxs)] <- gmatch[is.na(idxs)]
+  }
+
+  # append file names to pdata
+  pdata$file <- files[idxs]
+  return(pdata)
+}
