@@ -46,15 +46,63 @@ build_ensdb <- function(species = 'Homo sapiens', release = '94') {
 #' Load raw RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations.
+#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
+#' The first column should contain sample ids that match a single raw rna-seq data file name.
 #' @inheritParams build_ensdb
 #'
 #' @return
 #' @export
 #'
 #' @examples
+#'
+#' data_dir <- 'data-raw/example-data'
+#'
 load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '94') {
 
+  # load pdata and determine row to file correspondence
+  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE),
+                    error = function(e) stop("Couldn't read pdata"))
+
+  files <- list.files(file.path(data_dir, 'quants'))
+  pdata <- match_pdata(pdata, files)
+
+  # transcript to gene map
+  tx2gene <- get_tx2gene(species, release)
+
+  # import quant.sf files and filter low counts
+  quants <- import_quants(data_dir, tx2gene)
+
+  # add library normalization
+  pdata <- add_norms(quants, pdata)
+
+}
+
+import_quants <- function(data_dir, tx2gene) {
+
+  # don't ignoreTxVersion if dots in tx2gene
+  ignore <- TRUE
+  if (any(grepl('[.]', tx2gene$tx_id))) ignore <- FALSE
+
+  # import quants using tximport
+  # using limma::voom for differential expression (see tximport vignette)
+  quants_dirs   <- list.files(file.path(data_dir, 'quants'))
+  quants_paths <- file.path(data_dir, 'quants', quants_dirs, 'quant.sf')
+
+  # use folders as names (used as sample names)
+  names(quants_paths) <- quants_dirs
+
+  txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = "salmon",
+                            ignoreTxVersion = ignore, countsFromAbundance = "lengthScaledTPM", importer=utils::read.delim)
+
+  y <- edgeR::DGEList(txi$counts)
+
+  # filtering low counts (as in tximport vignette)
+  keep <- edgeR::filterByExpr(y)
+  y <- y[keep, ]
+  return(y)
+}
+
+get_tx2gene <- function(species, release) {
   # load EnsDb package
   ensdb_species    <- strsplit(species, ' ')[[1]]
   ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
@@ -66,6 +114,19 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
     require(ensdb_package, character.only = TRUE)
   }
 
+  # map from transcripts to genes
+  tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=c("tx_id", "gene_name", "entrezid"),
+                                    return.type='data.frame')
+  tx2gene[tx2gene == ""] <- NA
+  tx2gene <- tx2gene[!is.na(tx2gene$gene_name),]
+}
+
+add_norms <- function(quants, pdata) {
+  quants <- edgeR::calcNormFactors(quants)
+  idxs <- match(colnames(quants), pdata$file)
+  pdata <- pdata[idxs,, drop=FALSE]
+  pdata <- cbind(pdata, quants$samples[, c('lib.size', 'norm.factors')])
+  return(pdata)
 }
 
 #' Match and add file names for pdata rows.
@@ -81,8 +142,6 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
 #'
 #' @examples
 match_pdata <- function(pdata, files) {
-  # TODO: write some unit tests
-
   ids <- pdata[[1]]
 
   if (length(ids) != length(files)) stop('Must be one row in sample annotation per raw data file.')
