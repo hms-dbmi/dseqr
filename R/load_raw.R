@@ -1,6 +1,6 @@
 #' Build ensembldb annotation package.
 #'
-#' @param species Character vector indicating species. Should be space seperated, not underscore. Default is \code{Homo sapiens}.
+#' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param version EnsemblDB version. Should be same as used in \code{\link{build_index}}.
 #'
 #' @return NULL
@@ -13,7 +13,9 @@
 #'
 build_ensdb <- function(species = 'Homo sapiens', version = '94') {
   # store ensembl databases in built package
-  ensdb_dir <- system.file('EnsDb', package = 'drugseqr')
+  ensdb_dir <- 'EnsDb'
+  unlink('EnsDb', recursive = TRUE)
+  dir.create(ensdb_dir)
 
   # format is genus_species in multiple other functions but not here
   species <- gsub('_', ' ', species)
@@ -31,19 +33,37 @@ build_ensdb <- function(species = 'Homo sapiens', version = '94') {
                                   'Alex Pickering',
                                   ensdb_dir)
 
-  # build new ensemble database
+  # install new ensemble database
   ensdb_name <- list.files(ensdb_dir)
   ensdb_path <- file.path(ensdb_dir, ensdb_name)
+  install.packages(ensdb_path, repos = NULL)
 
-  work_dir <- getwd()
-  setwd(ensdb_dir)
-  system(paste('R CMD build', ensdb_name))
-
-  # install new ensemble database
-  ensdb_build <- paste0(ensdb_name, '_0.0.1.tar.gz')
-  system(paste('R CMD INSTALL', ensdb_build))
-
-  # remove build file
-  setwd(work_dir)
+  # remove source files
   unlink(ensdb_dir, recursive = TRUE)
+}
+
+
+#' Load raw RNA-Seq data into an ExpressionSet.
+#'
+#' @param data_dir Directory with raw RNA-Seq files.
+#' @param pdata_path Path to text file with sample annotations.
+#' @inheritParams build_ensdb
+#'
+#' @return
+#' @export
+#'
+#' @examples
+load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', version = '94') {
+
+  # load EnsDb package
+  ensdb_species    <- strsplit(species, ' ')[[1]]
+  ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
+
+  ensdb_package <- paste('EnsDb', paste0(ensdb_species, collapse = ''), paste0('v', version), sep='.')
+
+  if (!require(ensdb_package, character.only = TRUE)) {
+    build_ensdb(species, version)
+    require(ensdb_package, character.only = TRUE)
+  }
+
 }
