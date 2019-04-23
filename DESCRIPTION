@@ -20,5 +20,5 @@ Imports:
   AnnotationDbi (>= 1.44.0),
   ensembldb (>= 2.6.8),
   data.table (>= 1.12.0),
-  
-  
+Suggests: 
+    testthat
