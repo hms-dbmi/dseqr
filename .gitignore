@@ -2,7 +2,9 @@
 .Rhistory
 
 # contains raw IBD FASTQ files for dev purposes
-data-raw/example-data
+data-raw/example-data/*.fastq.gz
+data-raw/example-data/quants
+
 
 # salmon indices
 inst/indices
