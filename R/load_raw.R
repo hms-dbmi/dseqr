@@ -1,55 +1,11 @@
-#' Build ensembldb annotation package.
-#'
-#' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
-#' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
-#'
-#' @return NULL
-#' @export
-#'
-#' @examples
-#'
-#' # build ensembldb annotation package for human
-#' build_ensdb()
-#'
-build_ensdb <- function(species = 'Homo sapiens', release = '94') {
-  # store ensembl databases in built package
-  ensdb_dir <- 'EnsDb'
-  unlink('EnsDb', recursive = TRUE)
-  dir.create(ensdb_dir)
-
-  # format is genus_species in multiple other functions but not here
-  species <- gsub('_', ' ', species)
-
-  # generate new ensembl database from specified release
-  ah <- AnnotationHub::AnnotationHub()
-  ahDb <- AnnotationHub::query(ah, pattern = c(species, "EnsDb", release))
-
-  if (!length(ahDb)) stop('Specified ensemble species/release not found in AnnotationHub.')
-
-  ahEdb <- ahDb[[1]]
-
-  ensembldb::makeEnsembldbPackage(AnnotationDbi::dbfile(ensembldb::dbconn(ahEdb)),
-                                  '0.0.1', 'Alex Pickering <alexvpickering@gmail.com>',
-                                  'Alex Pickering',
-                                  ensdb_dir)
-
-  # install new ensemble database
-  ensdb_name <- list.files(ensdb_dir)
-  ensdb_path <- file.path(ensdb_dir, ensdb_name)
-  install.packages(ensdb_path, repos = NULL)
-
-  # remove source files
-  unlink(ensdb_dir, recursive = TRUE)
-}
-
-
 #' Load raw RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
 #' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 #' The first column should contain sample ids that match a single raw rna-seq data file name.
+#' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
+#' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
-#' @inheritParams build_ensdb
 #'
 #' @return \code{\link[Biobase{ExpressionSet}} with \code{attributes}/accessors:
 #' \itemize{
@@ -99,30 +55,56 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
   # add library normalization
   pdata <- add_norms(quants, pdata)
 
-  # remove duplicate rows of counts
-  rn <- row.names(quants$counts)
-  mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
-
-  # merge exprs and fdata
+  # construct eset
+  annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(tx2gene)
-  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL_9606', all.y = TRUE, sort = FALSE)
-  dt <- as.data.frame(dt)
-  row.names(dt) <- make.unique(dt[[1]])
-
-  # seperate fdata and exprs and transfer to eset
-  ensdb_package <- get_ensdb_package(species, release)
-  row.names(pdata) <- pdata$quants_dir
-  eset <- Biobase::ExpressionSet(as.matrix(dt[, row.names(pdata), drop=FALSE]),
-                                            phenoData=Biobase::AnnotatedDataFrame(pdata),
-                                            featureData=Biobase::AnnotatedDataFrame(dt[, colnames(fdata), drop=FALSE]),
-                                            annotation=ensdb_package)
-
+  eset <- construct_eset(quants, fdata, pdata, annot)
 
   # save eset and return
   saveRDS(eset, eset_path)
   return(eset)
 }
 
+#' Construct expression set
+#'
+#' @param quants \code{DGEList} with RNA-seq counts.
+#' @param fdata \code{data.table} returned from \code{\link{setup_fdata}}.
+#' @param pdata \code{data.frame} of sample annotation data processed by \code{\link{match_pdata}} followed by \code{\link{add_norms}}.
+#' @param annot Character vector with ensembldb package name. e.g. \code{'EnsDb.Hsapiens.v94'}. Returned from \code{\link{get_ensdb_package}}.
+#'
+#' @return \code{ExpressionSet} with input arguments are in corresponding atributes.
+#' @keywords internal
+#' @export
+#'
+construct_eset <- function(quants, fdata, pdata, annot) {
+  # remove duplicate rows of counts
+  rn <- row.names(quants$counts)
+  mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
+
+  # merge exprs and fdata
+  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL_9606', all.y = TRUE, sort = FALSE)
+  dt <- as.data.frame(dt)
+  row.names(dt) <- make.unique(dt[[1]])
+
+  # seperate fdata and exprs and transfer to eset
+  row.names(pdata) <- pdata$quants_dir
+  eset <- Biobase::ExpressionSet(as.matrix(dt[, row.names(pdata), drop=FALSE]),
+                                 phenoData=Biobase::AnnotatedDataFrame(pdata),
+                                 featureData=Biobase::AnnotatedDataFrame(dt[, colnames(fdata), drop=FALSE]),
+                                 annotation=annot)
+
+  return(eset)
+}
+
+#' Setup feature annotation data
+#'
+#' @param tx2gene \code{data.frame} mapping transcripts to gene names. Returned from from \code{\link{get_tx2gene}}.
+#'
+#' @return \code{data.table} with columns \code{SYMBOL_9606} and \code{ENTREZID_HS} corresponding to
+#'   HGNC symbols and human entrez ids respectively.
+#' @keywords internal
+#' @export
+#'
 setup_fdata <- function(tx2gene) {
 
   # unlist entrezids
@@ -135,8 +117,18 @@ setup_fdata <- function(tx2gene) {
 
   # setup so that will work with crossmeta
   fdata <- fdata[, .(SYMBOL_9606 = gene_name, ENTREZID_HS)]
+  return(fdata)
 }
 
+#' Import salmon quant.sf files
+#'
+#' @param data_dir Directory with a folder named 'quants' that contains salmon quantification folders for each sample.
+#' @inheritParams setup_fdata
+#'
+#' @return \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
+#' @keywords internal
+#' @export
+#'
 import_quants <- function(data_dir, tx2gene) {
 
   # don't ignoreTxVersion if dots in tx2gene
@@ -162,6 +154,14 @@ import_quants <- function(data_dir, tx2gene) {
   return(quants)
 }
 
+#' Get ensembldb package name
+#'
+#' @inheritParams load_seq
+#'
+#' @keywords internal
+#' @return Character vector with ensembldb package name. e.g. \code{'EnsDb.Hsapiens.v94'}.
+#' @export
+#'
 get_ensdb_package <- function(species, release) {
   ensdb_species    <- strsplit(species, ' ')[[1]]
   ensdb_species[1] <- substr(ensdb_species[1], 1, 1)
@@ -170,6 +170,15 @@ get_ensdb_package <- function(species, release) {
   return(ensdb_package)
 }
 
+#' Get transcript to gene map.
+#'
+#' @inheritParams load_seq
+#'
+#' @return \code{data.frame} with columns \code{tx_id}, \code{gene_name}, and \code{entrezid}
+#' @export
+#'
+#' @keywords internal
+#'
 get_tx2gene <- function(species, release) {
   # load EnsDb package
   ensdb_package <- get_ensdb_package(species, release)
@@ -186,6 +195,15 @@ get_tx2gene <- function(species, release) {
   return(tx2gene)
 }
 
+#' Add edgeR normalization factors to pdata.
+#'
+#' @inheritParams construct_eset
+#' @param pdata \code{data.frame} with sample annotations.
+#'
+#' @return \code{pdata} with \code{lib.size} and \code{norm.factors} columns added.
+#' @export
+#' @keywords internal
+#'
 add_norms <- function(quants, pdata) {
   quants <- edgeR::calcNormFactors(quants)
   idxs <- match(colnames(quants), pdata$quants_dir)
@@ -204,8 +222,8 @@ add_norms <- function(quants, pdata) {
 #'
 #' @return \code{pdata} with \code{file} column identifying file for each sample (row).
 #' @export
+#' @keywords internal
 #'
-#' @examples
 match_pdata <- function(pdata, qdirs) {
   ids <- pdata[[1]]
 
@@ -242,4 +260,47 @@ match_pdata <- function(pdata, qdirs) {
   # append file names to pdata
   pdata$quants_dir <- qdirs[idxs]
   return(pdata)
+}
+
+#' Build ensembldb annotation package.
+#'
+#' @inheritParams load_seq
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+#'
+#' # build ensembldb annotation package for human
+#' build_ensdb()
+#'
+build_ensdb <- function(species = 'Homo sapiens', release = '94') {
+  # store ensembl databases in built package
+  ensdb_dir <- 'EnsDb'
+  unlink('EnsDb', recursive = TRUE)
+  dir.create(ensdb_dir)
+
+  # format is genus_species in multiple other functions but not here
+  species <- gsub('_', ' ', species)
+
+  # generate new ensembl database from specified release
+  ah <- AnnotationHub::AnnotationHub()
+  ahDb <- AnnotationHub::query(ah, pattern = c(species, "EnsDb", release))
+
+  if (!length(ahDb)) stop('Specified ensemble species/release not found in AnnotationHub.')
+
+  ahEdb <- ahDb[[1]]
+
+  ensembldb::makeEnsembldbPackage(AnnotationDbi::dbfile(ensembldb::dbconn(ahEdb)),
+                                  '0.0.1', 'Alex Pickering <alexvpickering@gmail.com>',
+                                  'Alex Pickering',
+                                  ensdb_dir)
+
+  # install new ensemble database
+  ensdb_name <- list.files(ensdb_dir)
+  ensdb_path <- file.path(ensdb_dir, ensdb_name)
+  install.packages(ensdb_path, repos = NULL)
+
+  # remove source files
+  unlink(ensdb_dir, recursive = TRUE)
 }
