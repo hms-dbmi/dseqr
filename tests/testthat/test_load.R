@@ -33,13 +33,10 @@ test_that("setup_fdata removes rows with duplicate gene_name and entrezid", {
 })
 
 
-test_that("get_ensdb_package gets appropriate package name", {
+test_that("get_fastq_id1s returns sequence ids (starts with @)", {
 
-  ensdb_package <- get_ensdb_package('Homo sapiens', '94')
-  expect_equal(ensdb_package, 'EnsDb.Hsapiens.v94')
-
-  # handles lowercase genus name
-  ensdb_package <- get_ensdb_package('homo sapiens', '94')
-  expect_equal(ensdb_package, 'EnsDb.Hsapiens.v94')
+  fastq_paths <- list.files(system.file('extdata', 'IBD', package='drugseqr'), '.fastq.gz$', full.names = TRUE)
+  fastq_id1s <- get_fastq_id1s(fastq_paths)
+  expect_true(all(grepl('^@', fastq_id1s)))
 
 })

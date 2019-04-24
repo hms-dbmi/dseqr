@@ -121,9 +121,9 @@ get_fastq_id1s <- function(fastq_paths) {
         break
       }
     }
+    close(incon)
     return(line)
   })
-  close(incon)
   return(fastq_id1s)
 }
 
