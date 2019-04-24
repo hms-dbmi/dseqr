@@ -7,13 +7,13 @@
 run_salmon(data_dir, species = "homo_sapiens")
 }
 \arguments{
-\item{data_dir}{Directory with raw RNA-Seq files.}
+\item{data_dir}{Directory with raw RNA-Seq fastq.gz files.}
 
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}
 }
 \description{
-Runs salmon quantification.
+For pair-ended experiments, reads for each pair should be in a seperate file.
 }
 \examples{
 
