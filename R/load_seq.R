@@ -151,6 +151,8 @@ import_quants <- function(data_dir, tx2gene) {
   # filtering low counts (as in tximport vignette)
   keep <- edgeR::filterByExpr(quants)
   quants <- quants[keep, ]
+  if (!nrow(quants)) stop("No genes with reads after filtering")
+
   return(quants)
 }
 
