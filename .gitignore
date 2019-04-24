@@ -2,8 +2,8 @@
 .Rhistory
 
 # contains raw IBD FASTQ files for dev purposes
-data-raw/example-data/*.fastq.gz
-data-raw/example-data/quants
+data-raw/example-data/*
+!generate_examples.R
 
 
 # salmon indices
