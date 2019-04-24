@@ -19,7 +19,11 @@ Imports:
     edgeR (>= 3.24.3),
     AnnotationDbi (>= 1.44.0),
     ensembldb (>= 2.6.8),
-    Biobase (>= 2.42.0)
+    Biobase (>= 2.42.0),
+    shiny (>= 1.2.0),
+    miniUI (>= 0.1.1.1),
+    DT (> = 0.5),
+    tibble (> = 2.0.1)
 Suggests: 
     testthat
 Depends: 
