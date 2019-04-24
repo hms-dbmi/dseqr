@@ -45,3 +45,22 @@ build_index()
 build_ensdb()
 ```
 
+## Run Salmon, Load ExpressionSet, and Annotate
+
+After building and index and ensembldb annotation package, you are ready to run salmon quantification and load/annotate the results. To do so:
+
+```R
+# replace with path to folder with your raw fastq.gz files
+data_dir <- system.file('extdata',  'IBD', package='drugseqr')
+
+# replace with path to text file with sample annotations
+# see pdata_path argument in ?load_seq for specifications
+pdata_path <- system.file('extdata',  'IBD', 'Phenotypes.csv', package='drugseqr')
+
+# run transcript quantification using salmon
+run_salmon(data_dir)
+
+# load and annotate RNA-seq quants
+eset <- load_seq(data_dir, pdata_path)
+```
+
