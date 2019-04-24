@@ -10,10 +10,9 @@ select_contrast <- function(eset) {
   previous <- list()
 
   pdata <- Biobase::pData(eset)
-  pdata <- tibble::add_column(pdata, Group = c(rep('A', 6), rep('B', 6)), Title = row.names(pdata), .before = 1)
+  pdata <- tibble::add_column(pdata, Group = NA, Title = row.names(pdata), .before = 1)
 
-  contrasts <- data.frame(Control = character(0),
-                          Test = character(0), stringsAsFactors = FALSE)
+  contrast <- c()
 
 
 
@@ -53,7 +52,7 @@ select_contrast <- function(eset) {
     output$pdata <- DT::renderDataTable({
 
       dt <- DT::datatable(
-        pdata,
+        pdata_r(),
         class = 'cell-border',
         rownames = FALSE,
         options = list(
@@ -64,18 +63,22 @@ select_contrast <- function(eset) {
       )
 
       # color control/test group for easy identification
-      groups <- unique(pdata$Group)
       dt <- DT::formatStyle(dt, 'Group', target = 'cell',
-                            backgroundColor = DT::styleEqual(c(NA, groups),
+                            backgroundColor = DT::styleEqual(c(NA, contrast),
                                                              c('#FFFFFF',
-                                                               group_colors[seq_along(groups)])))
+                                                               group_colors[seq_along(contrast)])))
 
       return(dt)
     })
 
+    # pdata reactive so that will update group column
+    pdata_r <- shiny::eventReactive(state$pdata, {
+      return(pdata)
+    })
+
 
     # make reactive state value to keep track of ctrl vs test group
-    state <- shiny::reactiveValues(ctrl = 1, contrast = 0)
+    state <- shiny::reactiveValues(ctrl = 1, pdata = 0)
 
 
 
@@ -83,11 +86,9 @@ select_contrast <- function(eset) {
 
     shiny::observeEvent(input$add, {
 
-      # construct group data
+      # get group name
       rows  <- input$pdata_rows_selected
       group <- input$group
-      group_data <- list()
-      group_data[[group]] <- rows
 
 
       # check for incomplete/wrong input
@@ -110,42 +111,37 @@ select_contrast <- function(eset) {
 
 
       } else if (state$ctrl == 1) {
-        # add ctrl group data to previous and contrasts
-        if (!group %in% names(previous))
-          previous <<- c(previous, group_data)
-        contrasts[nrow(contrasts) + 1, ] <<- c(group, NA)
+        # add ctrl group data to contrast
+          contrast <<- group
 
-        # update inputs
-        shiny::updateTextInput(session, "group",
-                        label = "Test group name:", value = "")
-        shiny::updateSelectInput(session, "prev",
-                          choices = c("", names(previous)))
+        # update group name prompt
+        shiny::updateTextInput(session, "group", label = "Test group name:", value = "")
 
-        # update states
+        # update pdata Group column
+        pdata[rows, 'Group'] <<- group
+
+        # update states to trigger updates
         state$ctrl <- 0
-        state$contrast <- state$contrast + 1
-
+        state$pdata <- state$pdata + 1
 
       } else {
 
-        if (group == contrasts[nrow(contrasts), "Control"]) {
+        if (group %in% contrast) {
           message("Group name in use for control group.")
 
         } else {
-          # add test group data to previous and contrasts
-          if (!group %in% names(previous))
-            previous <<- c(previous, group_data)
-          contrasts[nrow(contrasts), "Test"] <<- group
+          # add test group to contrast
+          contrast <<- c(contrast, group)
 
           # update inputs
-          shiny::updateTextInput(session, "group",
-                                 label = "Control group name:", value = "")
-          shiny::updateSelectInput(session, "prev",
-                                   choices = c("", names(previous)))
+          shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
+
+          # update pdata Group column
+          pdata[rows, 'Group'] <<- group
 
           #update states
           state$ctrl <- 1
-          state$contrast <- state$contrast + 1
+          state$pdata <- state$pdata + 1
         }
       }
     })
