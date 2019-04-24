@@ -45,7 +45,9 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 
 #' Runs salmon quantification.
 #'
-#' @param data_dir Directory with raw RNA-Seq files.
+#' For pair-ended experiments, reads for each pair should be in a seperate file.
+#'
+#' @param data_dir Directory with raw RNA-Seq fastq.gz files.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #'
@@ -90,6 +92,78 @@ run_salmon <- function(data_dir, species = 'homo_sapiens') {
                    '--gcBias',
                    '-o', shQuote(out_dir)))
   }
+}
+
+#' Get first sequence identifiers for fastq.gz files
+#'
+#' Function is used to determine if an experiment is single or paired.
+#'
+#' @param fastq_paths Character vector of paths to fastq.gz files
+#'
+#' @return Named character vector of first sequence id lines (start with @) in \code{fastq_paths}.
+#'   Names are the \code{fastq_paths}.
+#' @keywords internal
+#' @export
+#'
+#' @example
+#' # required fastq.gz files in data-raw/example-data (e.g. IBD example)
+#' fastq_paths <- list.files(file.path('data-raw', 'example-data'), '.fastq.gz$', full.names = TRUE)
+#' fastq_id1s <- get_fastq_id1s(fastq_paths)
+#'
+get_fastq_id1s <- function(fastq_paths) {
+
+  # get first line with @ symbol (sequence identifier)
+  fastq_id1s <- sapply(fastq_paths, function(f) {
+    incon <- gzfile(f)
+    while (TRUE) {
+      line = readLines(incon, n = 1)
+      if (grepl('^@', line)) {
+        break
+      }
+    }
+    return(line)
+  })
+  close(incon)
+  return(fastq_id1s)
+}
+
+#' Detect if experiment is pair-ended.
+#'
+#' @param fastq_id1s Character vector of first sequence identifiers from fastq.gz files. Returned from \code{\link{get_fastq_id1s}}.
+#'
+#' @return boolean indicating if experiement is pair-ended (\code{TRUE}) or single-ended (\code{FALSE}).
+#' @export
+#'
+#' @examples
+detect_paired <- function(fastq_id1s) {
+
+  # TODO: handle SRA fastq files
+  # for now not implemented
+  if (any(grepl('^@SRR\\d+', fastq_id1s)))
+    stop('Detecting if SRA fastq files are paired is not yet implemented.')
+
+  # older illumina sequence identifiers have 1 part
+  # newer illumina sequence identifiers have 2 space-seperated parts
+  id_parts <- strsplit(fastq_id1s, ' ')
+  older <- all(length(sapply(id_parts, length)) == 1)
+  newer <- all(length(sapply(id_parts, length)) == 2)
+
+  if (older) {
+    # pair is 1 or 2 at end of sequence id after /
+    pairs <- gsub('^.+?/([12])$', '\\1', fastq_id1s)
+
+  } else if (newer) {
+    # pair is 1 or 2 followed by : followed by N or Y at beginning of second part
+    id_parts2 <- sapply(id_parts, `[`, 2)
+    pairs <- gsub('^([12]):[YN]:.+$', '\\1', id_parts2)
+
+  } else {
+    stop("fastq.gz files don't appear to be from older/newer Illumina software. Please contact package author.")
+  }
+
+  # paired experiments will have '1' and '2'
+  paired <- length(unique(pairs)) == 2
+  return(paired)
 }
 
 
