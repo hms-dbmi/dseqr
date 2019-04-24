@@ -72,8 +72,16 @@ run_salmon <- function(data_dir, species = 'homo_sapiens') {
   quants_dir <- file.path(data_dir, 'quants')
   dir.create(quants_dir)
 
-  # loop through fastq files and quantify
   fastq_files <- list.files(data_dir, '.fastq.gz$')
+
+  # check if pair-ended
+  fastq_paths <- file.path(data_dir, fastq_files)
+  fastq_id1s <- get_fastq_id1s(fastq_paths)
+  paired <- detect_paired(fastq_id1s)
+  if (paired) stop('Have not yet implemented pair-ended experiments. Please contact author.')
+
+
+  # loop through fastq files and quantify
   for (fastq_file in fastq_files) {
     fastq_path <- shQuote(file.path(data_dir, fastq_file))
 
@@ -145,8 +153,8 @@ detect_paired <- function(fastq_id1s) {
   # older illumina sequence identifiers have 1 part
   # newer illumina sequence identifiers have 2 space-seperated parts
   id_parts <- strsplit(fastq_id1s, ' ')
-  older <- all(length(sapply(id_parts, length)) == 1)
-  newer <- all(length(sapply(id_parts, length)) == 2)
+  older <- all(sapply(id_parts, length) == 1)
+  newer <- all(sapply(id_parts, length) == 2)
 
   if (older) {
     # pair is 1 or 2 at end of sequence id after /
