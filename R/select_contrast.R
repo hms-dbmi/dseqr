@@ -18,7 +18,7 @@ select_contrast <- function(eset) {
   # ------------------- Setup
 
   # stores group names and selected rows
-  # used for validating selections
+  # used for validating selections and retuned when complete
   previous <- list()
 
   pdata <- Biobase::pData(eset)
@@ -29,18 +29,31 @@ select_contrast <- function(eset) {
 
   # javascript function to add group name and color to table
   addGroup <- "shinyjs.addGroup = function(params){
+
+     // DT first table is header, second is data
+     var pdata = $('#pdata table:eq(1)')
+
+     // setup default params (used for Reset)
+     var nrow = $('tr', pdata).length
+
+
+     var allRows = [];
+     for (var i = 1; i <= nrow; i++) {
+       allRows.push(i);
+     }
+
      var defaultParams = {
-      rows : null,
-      group : '',
-      color : 'white'
+      rows: allRows,
+      group: '',
+      color: 'transparent'
     };
+
     params = shinyjs.getParams(params, defaultParams);
 
+    // add group name and color to selected rows
     for (var i = 0; i < params.rows.length; i++) {
-      var row = params.rows[i];
 
-      // DT first table is header, second is data
-      $('#pdata table:eq(1) tr:eq('+row+') td:eq(0)')
+      $('tr:eq('+ params.rows[i] +') td:eq(0)', pdata)
         .text(params.group)
         .css('background-color', params.color);
     }
@@ -183,12 +196,11 @@ select_contrast <- function(eset) {
     shiny::observeEvent(input$done, {
       if (state$ctrl == 0) {
         message("Need to add test group.")
-      } else if (nrow(contrasts) == 0) {
-        message("No contrasts selected.")
-        stopApp(NULL)
+      } else if (length(previous) == 0) {
+        message("No contrast selected.")
       } else {
         # TODO: implement return value
-        stopApp(NULL)
+        stopApp(previous)
       }
     })
 
@@ -197,6 +209,12 @@ select_contrast <- function(eset) {
 
 
     shiny::observeEvent(input$reset, {
+      previous <<- list()
+
+      # remove groups from table and reset control
+      shinyjs::js$addGroup()
+      state$ctrl <- 1
+      shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
       # TODO: handle reset
     })
 
