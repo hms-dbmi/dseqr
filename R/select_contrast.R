@@ -1,8 +1,10 @@
-#' Select contrast for expression set
+#' Select contrast for an experiment.
+#'
+#' Used to select a contrast (control and test group samples) for an experiment.
 #'
 #' @param eset \code{ExpressionSet}
 #'
-#' @return
+#' @return Named list of length two. In order, list items contain rows corresponding to control and test group. Names are specified group names.
 #' @export
 #'
 #' @examples
@@ -15,19 +17,19 @@
 #'
 select_contrast <- function(eset) {
 
-  # ------------------- Setup
+  # setup ----
 
   # stores group names and selected rows
   # used for validating selections and retuned when complete
   previous <- list()
 
+  # Group column is populated by user selections
   pdata <- Biobase::pData(eset)
   pdata <- tibble::add_column(pdata, Group = NA, Title = row.names(pdata), .before = 1)
 
 
-  # ------------------- user interface
+  # js to update table ----
 
-  # javascript function to add group name and color to table
   addGroup <- "shinyjs.addGroup = function(params){
 
      // DT first table is header, second is data
@@ -59,6 +61,9 @@ select_contrast <- function(eset) {
     }
   }"
 
+
+  #  user interface ----
+
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
     shinyjs::extendShinyjs(text = addGroup, functions = c('addGroup')),
@@ -83,13 +88,9 @@ select_contrast <- function(eset) {
     )
   )
 
-
-
-  # ------------------------- server
-
+  # server ----
 
   server <- function(input, output, session) {
-
 
     # show phenotype data
     output$pdata <- DT::renderDataTable({
@@ -114,8 +115,7 @@ select_contrast <- function(eset) {
     state <- shiny::reactiveValues(ctrl = 1)
 
 
-
-    # ------------------- click 'Add'
+    # click 'Add' ----
 
     shiny::observeEvent(input$add, {
 
@@ -149,7 +149,6 @@ select_contrast <- function(eset) {
       } else if (Position(function(x) setequal(x, rows), previous, nomatch = 0) > 0 &&
                  !group %in% names(previous)) {
         message("Selection in use for control group.")
-
 
       } else if (state$ctrl == 1) {
         # add ctrl group data to previous
@@ -186,12 +185,7 @@ select_contrast <- function(eset) {
       }
     })
 
-
-
-
-
-    # ------------------- click 'Done'
-
+    # click 'Done' ----
 
     shiny::observeEvent(input$done, {
       if (state$ctrl == 0) {
@@ -205,8 +199,7 @@ select_contrast <- function(eset) {
     })
 
 
-    # ------------------- click 'Reset'
-
+    # click 'Reset' ----
 
     shiny::observeEvent(input$reset, {
       previous <<- list()
@@ -217,7 +210,6 @@ select_contrast <- function(eset) {
       shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
       # TODO: handle reset
     })
-
   }
 
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::paneViewer())
