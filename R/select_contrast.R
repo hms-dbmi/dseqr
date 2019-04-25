@@ -17,18 +17,17 @@ select_contrast <- function(eset) {
 
   # ------------------- Setup
 
-  # objects we will update
+  # stores group names and selected rows
+  # used for validating selections
   previous <- list()
 
   pdata <- Biobase::pData(eset)
   pdata <- tibble::add_column(pdata, Group = NA, Title = row.names(pdata), .before = 1)
 
-  contrast <- c()
-
-
 
   # ------------------- user interface
 
+  # javascript function to add group name and color to table
   addGroup <- "shinyjs.addGroup = function(params){
      var defaultParams = {
       rows : null,
@@ -94,11 +93,12 @@ select_contrast <- function(eset) {
       )
     })
 
+    # proxy is used to deselect rows after adding a group
     pdata_proxy <- DT::dataTableProxy("pdata")
 
 
     # make reactive state value to keep track of ctrl vs test group
-    state <- shiny::reactiveValues(ctrl = 1, pdata = 0)
+    state <- shiny::reactiveValues(ctrl = 1)
 
 
 
@@ -109,10 +109,18 @@ select_contrast <- function(eset) {
       # get group name
       rows  <- input$pdata_rows_selected
       group <- input$group
+      group_data <- list()
+      group_data[[group]] <- rows
+
+      print(group_data)
+      print(previous)
 
 
       # check for incomplete/wrong input
-      if (group == "") {
+      if (length(previous) == 2) {
+        message("Contrast is fully specified. Click 'Reset' to clear selections or 'Done' to exit.")
+
+      } else if (group == "") {
         message("Enter group name.")
 
       } else if (length(rows) == 0) {
@@ -127,12 +135,12 @@ select_contrast <- function(eset) {
 
       } else if (Position(function(x) setequal(x, rows), previous, nomatch = 0) > 0 &&
                  !group %in% names(previous)) {
-        message("Selection in use with different group name.")
+        message("Selection in use for control group.")
 
 
       } else if (state$ctrl == 1) {
-        # add ctrl group data to contrast
-          contrast <<- group
+        # add ctrl group data to previous
+        previous <<- c(previous, group_data)
 
         # update group name prompt
         shiny::updateTextInput(session, "group", label = "Test group name:", value = "")
@@ -144,28 +152,23 @@ select_contrast <- function(eset) {
 
         # update states to trigger updates
         state$ctrl <- 0
-        state$pdata <- state$pdata + 1
 
       } else {
 
-        if (group %in% contrast) {
+        if (group %in% names(previous)) {
           message("Group name in use for control group.")
 
         } else {
-          # add test group to contrast
-          contrast <<- c(contrast, group)
+          # add test group data to previous
+          previous <<- c(previous, group_data)
 
           # update inputs
           shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
 
-          # update pdata Group column
-          pdata[rows, 'Group'] <<- group
-
-          #update states
+          # add group to table
           shinyjs::js$addGroup(rows, group, "#1F78B4")
           DT::selectRows(pdata_proxy, NULL)
           state$ctrl <- 1
-          state$pdata <- state$pdata + 1
         }
       }
     })
