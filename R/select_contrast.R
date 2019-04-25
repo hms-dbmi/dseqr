@@ -1,10 +1,21 @@
+#' Select contrast for expression set
+#'
+#' @param eset \code{ExpressionSet}
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' eset_path <- system.file('extdata', 'IBD', 'eset.rds', package='drugseqr')
+#' eset <- readRDS(eset_path)
+#'
+#' select_contrast(eset)
+#'
+#'
 select_contrast <- function(eset) {
 
   # ------------------- Setup
-
-  # striped background for test group
-  group_colors <- c("#A6CEE3", "#1F78B4")
-  background <- '#51bd64 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
   # objects we will update
   previous <- list()
@@ -18,7 +29,27 @@ select_contrast <- function(eset) {
 
   # ------------------- user interface
 
+  addGroup <- "shinyjs.addGroup = function(params){
+     var defaultParams = {
+      rows : null,
+      group : '',
+      color : 'white'
+    };
+    params = shinyjs.getParams(params, defaultParams);
+
+    for (var i = 0; i < params.rows.length; i++) {
+      var row = params.rows[i];
+
+      // DT first table is header, second is data
+      $('#pdata table:eq(1) tr:eq('+row+') td:eq(0)')
+        .text(params.group)
+        .css('background-color', params.color);
+    }
+  }"
+
   ui <- miniUI::miniPage(
+    shinyjs::useShinyjs(),
+    shinyjs::extendShinyjs(text = addGroup, functions = c('addGroup')),
     shiny::tags$head(
       shiny::tags$style("#pdata {white-space: nowrap;}") # table text on 1 line
     ),
@@ -52,7 +83,7 @@ select_contrast <- function(eset) {
     output$pdata <- DT::renderDataTable({
 
       dt <- DT::datatable(
-        pdata_r(),
+        pdata,
         class = 'cell-border',
         rownames = FALSE,
         options = list(
@@ -61,20 +92,9 @@ select_contrast <- function(eset) {
           bInfo = 0
         )
       )
-
-      # color control/test group for easy identification
-      dt <- DT::formatStyle(dt, 'Group', target = 'cell',
-                            backgroundColor = DT::styleEqual(c(NA, contrast),
-                                                             c('#FFFFFF',
-                                                               group_colors[seq_along(contrast)])))
-
-      return(dt)
     })
 
-    # pdata reactive so that will update group column
-    pdata_r <- shiny::eventReactive(state$pdata, {
-      return(pdata)
-    })
+    pdata_proxy <- DT::dataTableProxy("pdata")
 
 
     # make reactive state value to keep track of ctrl vs test group
@@ -119,6 +139,8 @@ select_contrast <- function(eset) {
 
         # update pdata Group column
         pdata[rows, 'Group'] <<- group
+        shinyjs::js$addGroup(rows, group, "#A6CEE3")
+        DT::selectRows(pdata_proxy, NULL)
 
         # update states to trigger updates
         state$ctrl <- 0
@@ -140,6 +162,8 @@ select_contrast <- function(eset) {
           pdata[rows, 'Group'] <<- group
 
           #update states
+          shinyjs::js$addGroup(rows, group, "#1F78B4")
+          DT::selectRows(pdata_proxy, NULL)
           state$ctrl <- 1
           state$pdata <- state$pdata + 1
         }
