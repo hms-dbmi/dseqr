@@ -50,6 +50,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' @param data_dir Directory with raw RNA-Seq fastq.gz files.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
+#' @params flags Character vector of flags to pass to salmon.
 #'
 #' @return NULL
 #' @export
@@ -60,7 +61,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' data_dir <- file.path('data-raw', 'example-data')
 #' run_salmon(data_dir)
 #'
-run_salmon <- function(data_dir, species = 'homo_sapiens') {
+run_salmon <- function(data_dir, species = 'homo_sapiens', flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
@@ -80,6 +81,9 @@ run_salmon <- function(data_dir, species = 'homo_sapiens') {
   paired <- detect_paired(fastq_id1s)
   if (paired) stop('Have not yet implemented pair-ended experiments. Please contact author.')
 
+  # gcBias is experimental for single-end experiments
+  if (!paired) flags <- setdiff(flags, '--gcBias')
+
 
   # loop through fastq files and quantify
   for (fastq_file in fastq_files) {
@@ -95,9 +99,8 @@ run_salmon <- function(data_dir, species = 'homo_sapiens') {
             args=c('quant',
                    '-i', salmon_idx,
                    '-l', 'A',
-                   '--validateMappings',
                    '-r', fastq_path, # single-end flag
-                   '--gcBias',
+                   flags,
                    '-o', shQuote(out_dir)))
   }
 }
