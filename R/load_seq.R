@@ -29,12 +29,14 @@
 #' pdata_path <- 'data-raw/example-data/Phenotypes.csv'
 #' eset <- load_seq(data_dir, pdata_path)
 #'
-load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '94', overwrite = FALSE) {
+load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', release = '94', overwrite = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
   if (!overwrite & file.exists(eset_path))
     return(readRDS(eset_path))
+
+  if (is.null(pdata_path)) stop('pdata_path must be supplied when eset has not been previously saved.')
 
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
