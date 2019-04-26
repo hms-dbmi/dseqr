@@ -80,18 +80,18 @@ diff_expr <- function (eset, data_dir = getwd(), annot = "SYMBOL", svanal = TRUE
 # ------------------------
 
 
-# Generate model matrix with surrogate variables.
-#
-# Used by \code{diff_expr} to create model matrix with surrogate variables
-# in order to run \code{diff_anal}.
-#
-# @param eset Annotated eset with samples selected during \code{add_contrasts}.
-# @param group_levels Character vector of unique group names created by
-#    \code{add_contrasts}.
-#
-# @seealso \code{\link{add_contrasts}}, \code{\link{diff_expr}}.
-# @return List with model matrix(mod), model matrix with surrogate
-#         variables(modsv), and result of \code{sva} function.
+#' Generate model matrix with surrogate variables.
+#'
+#' Used by \code{diff_expr} to create model matrix with surrogate variables
+#' in order to run \code{diff_anal}.
+#'
+#' @param eset Annotated eset with samples selected during \code{add_contrasts}.
+#' @param group_levels Character vector of unique group names created by
+#'    \code{add_contrasts}.
+#'
+#' @seealso \code{\link{add_contrasts}}, \code{\link{diff_expr}}.
+#' @return List with model matrix(mod), model matrix with surrogate
+#'         variables(modsv), and result of \code{sva} function.
 
 diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 
