@@ -35,7 +35,11 @@ select_contrast <- function(eset) {
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
     shiny::tags$head(
-      shiny::tags$style("#pdata {white-space: nowrap;}") # table text on 1 line
+      shiny::tags$style("#pdata {white-space: nowrap;}"), # table text on 1 line
+      shiny::tags$style(".dt-fake-height {height: 1px;}"), # to make 100% height div work
+      shiny::tags$style("td.dt-nopad {padding: 0px !important; height: 100%;}"), # td for bg color group column
+      shiny::tags$style("td.dt-nopad div {height: 100%; width: 100%; text-align: center;}"), # div inside td for bg color group column
+      shiny::tags$style("td.dt-nopad span {display: inline-block; padding: 8px 10px;}") # span inside div inside td for bg color group column
     ),
     # title bar
     miniUI::gadgetTitleBar(shiny::textOutput('title', inline=TRUE), left = miniUI::miniTitleBarButton("reset", "Reset")),
@@ -75,9 +79,11 @@ select_contrast <- function(eset) {
 
       DT::datatable(
         isolate(pdata_r()),
-        class = 'cell-border',
+        class = 'cell-border dt-fake-height',
         rownames = FALSE,
+        escape = FALSE, # to allow HTML in table
         options = list(
+          columnDefs = list(list(className = 'dt-nopad', targets = 0)),
           scrollY = FALSE,
           paging = FALSE,
           bInfo = 0
@@ -119,7 +125,7 @@ select_contrast <- function(eset) {
         sels <<- c(sels, list(ctrl = rows))
 
         # update pdata Group column
-        pdata[rows, 'Group'] <<- 'control'
+        pdata[rows, 'Group'] <<- '<div style="background-color: #A6CEE3;"><span>control</span></div>'
 
         # update states to trigger updates
         state$ctrl <- 0
@@ -130,7 +136,7 @@ select_contrast <- function(eset) {
           sels <<- c(sels, list(test = rows))
 
           # add group to table
-          pdata[rows, 'Group'] <<- 'test'
+          pdata[rows, 'Group'] <<- '<div style="background-color: #1F78B4;"><span>test</span></div>'
           state$pdata <- state$pdata + 1
           state$ctrl <- 3
           shinyjs::disable("add")
@@ -145,7 +151,11 @@ select_contrast <- function(eset) {
       } else if (length(sels) == 0) {
         message("No contrast selected.")
       } else {
-        Biobase::pData(eset)$group <- pdata$Group
+        group <- rep(NA, ncol(eset))
+        group[sels$test] <- 'test'
+        group[sels$ctrl] <- 'control'
+        Biobase::pData(eset)$group <- group
+
         stopApp(eset)
       }
     })
