@@ -41,7 +41,7 @@ load_seq <- function(data_dir, pdata_path, species = 'Homo sapiens', release = '
   # load pdata and determine row to file correspondence
   # needs to be data.frame for ExpressionSet construction
   pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE, data.table = FALSE),
-                    error = function(e) stop("Couldn't read pdata"))
+                    error = function(err) {err$message <- "Couldn't read pdata"; stop(err)})
 
   qdirs <- list.files(file.path(data_dir, 'quants'))
   pdata <- match_pdata(pdata, qdirs)

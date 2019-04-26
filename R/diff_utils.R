@@ -66,7 +66,7 @@ diff_expr <- function (eset, data_dir = getwd(), annot = "SYMBOL", svanal = TRUE
   dups <- tryCatch ({
     iqr_replicates(eset, setup$mod, setup$svobj, annot)
 
-    }, error = function(c) stop("Couldn't fit model."))
+    }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
 
   # differential expression
   anal <- diff_anal(dups$eset, dups$exprs_sva, cons$contrasts, cons$levels,

@@ -37,7 +37,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
   tryCatch(system2('salmon', args=c('index',
                                     '-t', ensembl_all,
                                     '-i', ensembl_species)),
-           error = function(e) stop('Is salmon installed and on the PATH?'))
+           error = function(err) {err$message <- 'Is salmon installed and on the PATH?'; stop(err)})
 
   unlink(ensembl_all)
   setwd(work_dir)
