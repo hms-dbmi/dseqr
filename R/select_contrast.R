@@ -1,3 +1,5 @@
+
+
 #' Select contrast for an experiment.
 #'
 #' Used to select a contrast (control and test group samples) for an experiment.
@@ -21,64 +23,24 @@ select_contrast <- function(eset) {
 
   # stores group names and selected rows
   # used for validating selections and retuned when complete
-  previous <- list()
+  sels <- list()
 
   # Group column is populated by user selections
   pdata <- Biobase::pData(eset)
   pdata <- tibble::add_column(pdata, Group = NA, Title = row.names(pdata), .before = 1)
 
 
-  # js to update table ----
-
-  addGroup <- "shinyjs.addGroup = function(params){
-
-     // DT first table is header, second is data
-     var pdata = $('#pdata table:eq(1)')
-
-     // setup default params (used for Reset)
-     var nrow = $('tr', pdata).length
-
-
-     var allRows = [];
-     for (var i = 1; i <= nrow; i++) {
-       allRows.push(i);
-     }
-
-     var defaultParams = {
-      rows: allRows,
-      group: '',
-      color: 'transparent'
-    };
-
-    params = shinyjs.getParams(params, defaultParams);
-
-    // add group name and color to selected rows
-    for (var i = 0; i < params.rows.length; i++) {
-
-      $('tr:eq('+ params.rows[i] +') td:eq(0)', pdata)
-        .text(params.group)
-        .css('background-color', params.color);
-    }
-  }"
-
-
   #  user interface ----
 
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
-    shinyjs::extendShinyjs(text = addGroup, functions = c('addGroup')),
     shiny::tags$head(
       shiny::tags$style("#pdata {white-space: nowrap;}") # table text on 1 line
     ),
     # title bar
-    miniUI::gadgetTitleBar("Select Contrast", left = miniUI::miniTitleBarButton("reset", "Reset")),
+    miniUI::gadgetTitleBar(shiny::textOutput('title', inline=TRUE), left = miniUI::miniTitleBarButton("reset", "Reset")),
     miniUI::miniContentPanel(
-      shiny::fillCol(flex = c(NA, NA, 1),
-                     shiny::textInput(
-                       "group",
-                       "Control group name:",
-                       width = "200px"
-                     ),
+      shiny::fillCol(flex = c(.15, 1),
                      shiny::hr(),
                      DT::dataTableOutput("pdata")
       )
@@ -92,11 +54,27 @@ select_contrast <- function(eset) {
 
   server <- function(input, output, session) {
 
+    # make reactive state value to keep track of ctrl vs test group
+    state <- shiny::reactiveValues(ctrl = 1, pdata = 0)
+
+    output$title <- renderText((
+      if (state$ctrl == 1) {
+        return('Select Control Rows')
+
+      } else if (state$ctrl == 0) {
+        return('Select Test Rows')
+
+      } else if (state$ctrl == 3) {
+        return('Click Reset or Done')
+      }
+    ))
+
+
     # show phenotype data
     output$pdata <- DT::renderDataTable({
 
-      dt <- DT::datatable(
-        pdata,
+      DT::datatable(
+        isolate(pdata_r()),
         class = 'cell-border',
         rownames = FALSE,
         options = list(
@@ -107,81 +85,55 @@ select_contrast <- function(eset) {
       )
     })
 
-    # proxy is used to deselect rows after adding a group
+    # pdata reactive so that will update group column
+    pdata_r <- shiny::eventReactive(state$pdata, {
+      return(pdata)
+    })
+
+    # proxy used to replace data
     pdata_proxy <- DT::dataTableProxy("pdata")
-
-
-    # make reactive state value to keep track of ctrl vs test group
-    state <- shiny::reactiveValues(ctrl = 1)
+    shiny::observe({
+      DT::replaceData(pdata_proxy, pdata_r(), rownames = FALSE)
+    })
 
 
     # click 'Add' ----
 
     shiny::observeEvent(input$add, {
 
-      # get group name
+      # get rows
       rows  <- input$pdata_rows_selected
-      group <- input$group
-      group_data <- list()
-      group_data[[group]] <- rows
-
-      print(group_data)
-      print(previous)
-
 
       # check for incomplete/wrong input
-      if (length(previous) == 2) {
+      if (length(sels) == 2) {
         message("Contrast is fully specified. Click 'Reset' to clear selections or 'Done' to exit.")
-
-      } else if (group == "") {
-        message("Enter group name.")
 
       } else if (length(rows) == 0) {
         message("Select rows.")
 
-      } else if (make.names(group) != group) {
-        message("Group name invalid.")
-
-      } else if (group %in% names(previous) &&
-                 !setequal(previous[[group]], rows)) {
-        message("Group name in use with different samples.")
-
-      } else if (Position(function(x) setequal(x, rows), previous, nomatch = 0) > 0 &&
-                 !group %in% names(previous)) {
+      } else if (Position(function(x) setequal(x, rows), sels, nomatch = 0) > 0) {
         message("Selection in use for control group.")
 
       } else if (state$ctrl == 1) {
-        # add ctrl group data to previous
-        previous <<- c(previous, group_data)
-
-        # update group name prompt
-        shiny::updateTextInput(session, "group", label = "Test group name:", value = "")
+        # add ctrl group data to sels
+        sels <<- c(sels, list(ctrl = rows))
 
         # update pdata Group column
-        pdata[rows, 'Group'] <<- group
-        shinyjs::js$addGroup(rows, group, "#A6CEE3")
-        DT::selectRows(pdata_proxy, NULL)
+        pdata[rows, 'Group'] <<- 'control'
 
         # update states to trigger updates
         state$ctrl <- 0
+        state$pdata <- state$pdata + 1
 
       } else {
-
-        if (group %in% names(previous)) {
-          message("Group name in use for control group.")
-
-        } else {
-          # add test group data to previous
-          previous <<- c(previous, group_data)
-
-          # update inputs
-          shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
+          # add test group data to sels
+          sels <<- c(sels, list(test = rows))
 
           # add group to table
-          shinyjs::js$addGroup(rows, group, "#1F78B4")
-          DT::selectRows(pdata_proxy, NULL)
-          state$ctrl <- 1
-        }
+          pdata[rows, 'Group'] <<- 'test'
+          state$pdata <- state$pdata + 1
+          state$ctrl <- 3
+          shinyjs::disable("add")
       }
     })
 
@@ -190,11 +142,11 @@ select_contrast <- function(eset) {
     shiny::observeEvent(input$done, {
       if (state$ctrl == 0) {
         message("Need to add test group.")
-      } else if (length(previous) == 0) {
+      } else if (length(sels) == 0) {
         message("No contrast selected.")
       } else {
-        # TODO: implement return value
-        stopApp(previous)
+        Biobase::pData(eset)$group <- pdata$Group
+        stopApp(eset)
       }
     })
 
@@ -202,13 +154,13 @@ select_contrast <- function(eset) {
     # click 'Reset' ----
 
     shiny::observeEvent(input$reset, {
-      previous <<- list()
+      sels <<- list()
+      pdata$Group <<- NA
 
       # remove groups from table and reset control
-      shinyjs::js$addGroup()
       state$ctrl <- 1
-      shiny::updateTextInput(session, "group", label = "Control group name:", value = "")
-      # TODO: handle reset
+      state$pdata <- 0
+      shinyjs::enable("add")
     })
   }
 
