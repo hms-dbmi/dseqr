@@ -21,6 +21,8 @@ select_contrast <- function(eset) {
 
   # setup ----
 
+  background <- '#e9305d url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
+
   # stores group names and selected rows
   # used for validating selections and retuned when complete
   sels <- list()
@@ -39,7 +41,7 @@ select_contrast <- function(eset) {
       shiny::tags$style(".dt-fake-height {height: 1px;}"), # to make 100% height div work
       shiny::tags$style("td.dt-nopad {padding: 0px !important; height: 100%;}"), # td for bg color group column
       shiny::tags$style("td.dt-nopad div {height: 100%; width: 100%; text-align: center;}"), # div inside td for bg color group column
-      shiny::tags$style("td.dt-nopad span {display: inline-block; padding: 8px 10px;}") # span inside div inside td for bg color group column
+      shiny::tags$style("td.dt-nopad span {display: inline-block; padding: 8px 10px; color: white;}") # span inside div inside td for bg color group column
     ),
     # title bar
     miniUI::gadgetTitleBar(shiny::textOutput('title', inline=TRUE), left = miniUI::miniTitleBarButton("reset", "Reset")),
@@ -50,7 +52,7 @@ select_contrast <- function(eset) {
       )
     ),
     miniUI::miniButtonBlock(
-      shiny::actionButton("add", "Add Group")
+      shiny::actionButton("add", "Add Control Group", class = "btn-primary")
     )
   )
 
@@ -61,17 +63,28 @@ select_contrast <- function(eset) {
     # make reactive state value to keep track of ctrl vs test group
     state <- shiny::reactiveValues(ctrl = 1, pdata = 0)
 
-    output$title <- renderText((
+    # reactive label based on ctrl vs test state
+    label_r <- shiny::eventReactive(state$ctrl, {
       if (state$ctrl == 1) {
-        return('Select Control Rows')
+        return('Add Control Rows')
 
       } else if (state$ctrl == 0) {
-        return('Select Test Rows')
+        return('Add Test Rows')
 
       } else if (state$ctrl == 3) {
         return('Click Reset or Done')
       }
+    })
+
+    # title is dynamic label
+    output$title <- shiny::renderText((
+      gsub('^Add', 'Select', label_r())
     ))
+
+    # label updates should update add button
+    shiny::observe({
+      updateActionButton(session, "add", label = label_r())
+    })
 
 
     # show phenotype data
@@ -125,7 +138,7 @@ select_contrast <- function(eset) {
         sels <<- c(sels, list(ctrl = rows))
 
         # update pdata Group column
-        pdata[rows, 'Group'] <<- '<div style="background-color: #A6CEE3;"><span>control</span></div>'
+        pdata[rows, 'Group'] <<- paste0('<div style="background: ', background, ';"><span>control</span></div>')
 
         # update states to trigger updates
         state$ctrl <- 0
@@ -136,7 +149,7 @@ select_contrast <- function(eset) {
           sels <<- c(sels, list(test = rows))
 
           # add group to table
-          pdata[rows, 'Group'] <<- '<div style="background-color: #1F78B4;"><span>test</span></div>'
+          pdata[rows, 'Group'] <<- '<div style="background-color: #e6194b;"><span>test</span></div>'
           state$pdata <- state$pdata + 1
           state$ctrl <- 3
           shinyjs::disable("add")
