@@ -169,7 +169,8 @@ select_contrast <- function(eset) {
         group[sels$ctrl] <- 'control'
         Biobase::pData(eset)$group <- group
 
-        stopApp(eset)
+        # retain selected samples only
+        stopApp(eset[, !is.na(group)])
       }
     })
 

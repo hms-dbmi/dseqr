@@ -124,7 +124,7 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
       {utils::capture.output(svobj <- sva_fun(as.matrix(expr), mod, mod0)); svobj},
 
       error = function(cond) {
-        message(gse_name, ": sva failed - continuing without.")
+        message("sva failed - continuing without.")
         return(list("sv" = NULL))
       })
   }
