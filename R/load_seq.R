@@ -82,7 +82,7 @@ construct_eset <- function(quants, fdata, pdata, annot) {
   mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
 
   # merge exprs and fdata
-  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL_9606', all.y = TRUE, sort = FALSE)
+  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL', all.y = TRUE, sort = FALSE)
   dt <- as.data.frame(dt)
   row.names(dt) <- make.unique(dt[[1]])
 
@@ -100,7 +100,7 @@ construct_eset <- function(quants, fdata, pdata, annot) {
 #'
 #' @param tx2gene \code{data.frame} mapping transcripts to gene names. Returned from from \code{\link{get_tx2gene}}.
 #'
-#' @return \code{data.table} with columns \code{SYMBOL_9606} and \code{ENTREZID_HS} corresponding to
+#' @return \code{data.table} with columns \code{SYMBOL} and \code{ENTREZID_HS} corresponding to
 #'   HGNC symbols and human entrez ids respectively.
 #' @keywords internal
 #' @export
@@ -116,7 +116,7 @@ setup_fdata <- function(tx2gene) {
   fdata <- unique(fdata)
 
   # setup so that will work with crossmeta
-  fdata <- fdata[, .(SYMBOL_9606 = gene_name, ENTREZID_HS)]
+  fdata <- fdata[, .(SYMBOL = gene_name, ENTREZID_HS)]
   return(fdata)
 }
 
