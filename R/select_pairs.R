@@ -5,7 +5,7 @@
 #' Used to select a pairs for paired-end experiments and replicate samples. Please follow prompt, ensuring correct file name matching and
 #' end-type experiment identification.
 #'
-#' @param data_dir Directory with raw and quantified RNA-Seq files.
+#' @param data_dir Directory with raw fastq.gz RNA-Seq files.
 #' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 #' The first column should contain sample ids that match a single raw rna-seq data file name.
 #'
@@ -23,6 +23,7 @@
 select_pairs <- function(data_dir, pdata_path) {
 
   # TODO: validate that e.g. 2 samples selected as replicates are not also paired
+  # TODO: will pdata be 1 row per file for pair-ended or 1 row per sample?
 
   # setup ----
 
@@ -49,6 +50,8 @@ select_pairs <- function(data_dir, pdata_path) {
   # auto-detect if paired
   fastq_id1s <- get_fastq_id1s(file.path(data_dir, fastqs))
   paired <- detect_paired(fastq_id1s)
+
+  if (paired) stop ('pair-ended experiments not yet implemented.')
 
   # select and mark auto-detected pair type
   end_types <- c('single-ended', 'pair-ended')

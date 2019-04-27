@@ -47,7 +47,9 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #'
 #' For pair-ended experiments, reads for each pair should be in a seperate file.
 #'
-#' @param data_dir Directory with raw RNA-Seq fastq.gz files.
+#' @param data_dir Directory with raw fastq.gz RNA-Seq files.
+#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
+#' The first column should contain sample ids that match a single raw rna-seq data file name.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #' @params flags Character vector of flags to pass to salmon.
@@ -59,9 +61,10 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #'
 #' # first place IBD data in data-raw/example-data
 #' data_dir <- file.path('data-raw', 'example-data')
+#' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_salmon(data_dir)
 #'
-run_salmon <- function(data_dir, species = 'homo_sapiens', flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
+run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
@@ -69,28 +72,45 @@ run_salmon <- function(data_dir, species = 'homo_sapiens', flags = c('--validate
   salmon_idx <- system.file('indices', species, package = 'drugseqr')
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_index')
 
+  # prompt user to select pairs/validate file names etc
+  pdata <- select_pairs(data_dir, pdata_path)
+
+  # save selections
+  saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
+
   # save quants here
   quants_dir <- file.path(data_dir, 'quants')
+  unlink(quants_dir, recursive = TRUE)
   dir.create(quants_dir)
 
-  fastq_files <- list.files(data_dir, '.fastq.gz$')
-
-  # check if pair-ended
-  fastq_paths <- file.path(data_dir, fastq_files)
-  fastq_id1s <- get_fastq_id1s(fastq_paths)
-  paired <- detect_paired(fastq_id1s)
-  if (paired) stop('Have not yet implemented pair-ended experiments. Please contact author.')
-
   # gcBias is experimental for single-end experiments
+  paired <- 'Pair' %in% colnames(pdata)
   if (!paired) flags <- setdiff(flags, '--gcBias')
 
-
   # loop through fastq files and quantify
-  for (fastq_file in fastq_files) {
-    fastq_path <- shQuote(file.path(data_dir, fastq_file))
+  fastq_files <- pdata$`File Name`
+
+  while (length(fastq_files)) {
+
+    # grab next
+    fastq_file <-fastq_files[1]
+    row_num <- which(pdata$`File Name` == fastq_file)
+
+    # include any replicates
+    rep_num <- pdata$Replicate[row_num]
+    if (!is.na(rep_num)) {
+      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name']
+    }
+
+    # remove fastq_files for next quant loop
+    fastq_files <- setdiff(fastq_files, fastq_file)
+
+    # possibly spaces in file names
+    fastq_path <- paste(shQuote(file.path(data_dir, fastq_file)), collapse = ' ')
 
     # save each sample in it's own folder
-    sample_name <- gsub('.fastq.gz$', '', fastq_file)
+    # use the first file name in any replicates
+    sample_name <- gsub('.fastq.gz$', '', fastq_file[1])
     out_dir <- file.path(quants_dir, sample_name)
     dir.create(out_dir)
 
