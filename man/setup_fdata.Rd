@@ -10,7 +10,7 @@ setup_fdata(tx2gene)
 \item{tx2gene}{\code{data.frame} mapping transcripts to gene names. Returned from from \code{\link{get_tx2gene}}.}
 }
 \value{
-\code{data.table} with columns \code{SYMBOL_9606} and \code{ENTREZID_HS} corresponding to
+\code{data.table} with columns \code{SYMBOL} and \code{ENTREZID_HS} corresponding to
   HGNC symbols and human entrez ids respectively.
 }
 \description{

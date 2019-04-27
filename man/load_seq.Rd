@@ -4,8 +4,8 @@
 \alias{load_seq}
 \title{Load raw RNA-Seq data into an ExpressionSet.}
 \usage{
-load_seq(data_dir, pdata_path, species = "Homo sapiens",
-  release = "94", overwrite = FALSE)
+load_seq(data_dir, pdata_path = NULL, species = "Homo sapiens",
+  release = "94", overwrite = FALSE, dgel = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -18,6 +18,8 @@ The first column should contain sample ids that match a single raw rna-seq data 
 \item{release}{EnsemblDB release. Should be same as used in \code{\link{build_index}}.}
 
 \item{overwrite}{If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
+
+\item{dgel}{If TRUE, will also save the \code{DGEList} object. Used for testing purposes.}
 }
 \value{
 \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:

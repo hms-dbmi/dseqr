@@ -116,7 +116,7 @@ run_salmon <- function(data_dir, species = 'homo_sapiens', flags = c('--validate
 #' @keywords internal
 #' @export
 #'
-#' @example
+#' @examples
 #' # required fastq.gz files in data-raw/example-data (e.g. IBD example)
 #' fastq_paths <- list.files(file.path('data-raw', 'example-data'), '.fastq.gz$', full.names = TRUE)
 #' fastq_id1s <- get_fastq_id1s(fastq_paths)

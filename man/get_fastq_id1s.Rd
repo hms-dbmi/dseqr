@@ -16,4 +16,10 @@ Named character vector of first sequence id lines (start with @) in \code{fastq_
 \description{
 Function is used to determine if an experiment is single or paired.
 }
+\examples{
+# required fastq.gz files in data-raw/example-data (e.g. IBD example)
+fastq_paths <- list.files(file.path('data-raw', 'example-data'), '.fastq.gz$', full.names = TRUE)
+fastq_id1s <- get_fastq_id1s(fastq_paths)
+
+}
 \keyword{internal}

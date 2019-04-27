@@ -4,7 +4,8 @@
 \alias{run_salmon}
 \title{Runs salmon quantification.}
 \usage{
-run_salmon(data_dir, species = "homo_sapiens")
+run_salmon(data_dir, species = "homo_sapiens",
+  flags = c("--validateMappings", "--posBias", "--seqBias", "--gcBias"))
 }
 \arguments{
 \item{data_dir}{Directory with raw RNA-Seq fastq.gz files.}
