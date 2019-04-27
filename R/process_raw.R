@@ -50,11 +50,12 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
 #' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 #' The first column should contain sample ids that match a single raw rna-seq data file name.
+#' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #' @params flags Character vector of flags to pass to salmon.
 #'
-#' @return NULL
+#' @return data.frame of sample annotations modified by \code{\link{select_pairs}}.
 #' @export
 #'
 #' @examples
@@ -62,9 +63,10 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' # first place IBD data in data-raw/example-data
 #' data_dir <- file.path('data-raw', 'example-data')
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-#' run_salmon(data_dir)
+#' run_salmon(data_dir, pdata_path)
 #'
-run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
+run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens',
+                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
@@ -72,8 +74,10 @@ run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c
   salmon_idx <- system.file('indices', species, package = 'drugseqr')
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_index')
 
+  if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
+
   # prompt user to select pairs/validate file names etc
-  pdata <- select_pairs(data_dir, pdata_path)
+  if (is.null(pdata)) pdata <- select_pairs(data_dir, pdata_path)
 
   # save selections
   saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
@@ -89,6 +93,7 @@ run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c
 
   # loop through fastq files and quantify
   fastq_files <- pdata$`File Name`
+  if (is.null(fastq_files)) stop("File names should be in 'File Name' column")
 
   while (length(fastq_files)) {
 
@@ -98,7 +103,7 @@ run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c
 
     # include any replicates
     rep_num <- pdata$Replicate[row_num]
-    if (!is.na(rep_num)) {
+    if (!is.null(rep_num) && !is.na(rep_num)) {
       fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name']
     }
 
@@ -123,6 +128,8 @@ run_salmon <- function(data_dir, pdata_path, species = 'homo_sapiens', flags = c
                    flags,
                    '-o', shQuote(out_dir)))
   }
+
+  return(pdata)
 }
 
 #' Get first sequence identifiers for fastq.gz files
