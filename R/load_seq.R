@@ -6,6 +6,7 @@
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
+#' @param dgel If TRUE, will also save the \code{DGEList} object. Used for testing purposes.
 #'
 #' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
@@ -29,7 +30,7 @@
 #' pdata_path <- 'data-raw/example-data/Phenotypes.csv'
 #' eset <- load_seq(data_dir, pdata_path)
 #'
-load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', release = '94', overwrite = FALSE) {
+load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
@@ -61,6 +62,11 @@ load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', rele
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(tx2gene)
   eset <- construct_eset(quants, fdata, pdata, annot)
+
+  if (dgel) {
+    dgel_path <- gsub('eset', 'dgel', eset_path)
+    saveRDS(quants, dgel_path)
+  }
 
   # save eset and return
   saveRDS(eset, eset_path)
@@ -151,10 +157,12 @@ import_quants <- function(data_dir, tx2gene) {
   quants <- edgeR::DGEList(txi$counts)
 
   # filtering low counts (as in tximport vignette)
+
   keep <- edgeR::filterByExpr(quants)
   quants <- quants[keep, ]
   if (!nrow(quants)) stop("No genes with reads after filtering")
 
+  quants <- edgeR::calcNormFactors(quants)
   return(quants)
 }
 
@@ -209,7 +217,6 @@ get_tx2gene <- function(species, release) {
 #' @keywords internal
 #'
 add_norms <- function(quants, pdata) {
-  quants <- edgeR::calcNormFactors(quants)
   idxs <- match(colnames(quants), pdata$quants_dir)
   pdata <- pdata[idxs,, drop=FALSE]
   pdata <- cbind(pdata, quants$samples[, c('lib.size', 'norm.factors')])

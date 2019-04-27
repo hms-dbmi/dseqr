@@ -27,4 +27,5 @@ for (inf in fastq_files) {
 
 # also move over phenotype annotation and ExpressionSet from full IBD dataset
 file.copy('data-raw/example-data/Phenotypes.csv', 'inst/extdata/IBD/Phenotypes.csv')
-file.copy('data-raw/example-data/eset.rds', 'inst/extdata/IBD/eset.rds')
+file.copy('data-raw/example-data/eset.rds', 'inst/extdata/IBD/eset.rds', overwrite = TRUE)
+file.copy('data-raw/example-data/dgel.rds', 'inst/extdata/IBD/dgel.rds', overwrite = TRUE)

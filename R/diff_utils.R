@@ -44,11 +44,11 @@
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr')
 #' eset <- load_seq(data_dir)
 #'
-#' anal <- diff_expr(eset, data_dir)
+#' anal <- diff_expr(eset, data_dir, svanal=FALSE)
 
 
 
-diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE) {
+diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
 
   # check for annot column
   if (!annot %in% colnames(fData(eset)))
@@ -57,8 +57,16 @@ diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE) {
   # determine if this is rna seq data
   rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
 
-  # select/add contrast
-  eset <- select_contrast(eset)
+  # are we re-using selections from previous analysis?
+  if (!is.null(prev_anal)) {
+    # retain selected only and add group to pdata
+    eset <- eset[, row.names(anal$pdata)]
+    Biobase::pData(eset)$group <- anal$pdata$group
+
+  } else {
+    # select/add contrast
+    eset <- select_contrast(eset)
+  }
 
   # setup for differential expression
   setup <- diff_setup(eset, svanal, rna_seq)
@@ -67,7 +75,7 @@ diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE) {
   dups <- tryCatch ({
     iqr_replicates(eset, setup$mod, setup$svobj, annot)
 
-    }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
+  }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
 
   # differential expression
   anal <- diff_anal(dups$eset, dups$exprs_sva, setup$modsv, data_dir, annot, rna_seq)
@@ -232,7 +240,7 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
 #'   meta-analysis.
 
 
-diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = FALSE){
+diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = TRUE){
 
   group_levels <- c('control', 'test')
   contrasts <- 'test-control'
@@ -240,10 +248,17 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
   # differential expression (surrogate variables modeled and not)
   ebayes_sv <- fit_ebayes(eset, contrasts, modsv, rna_seq)
 
-  # annotate/store results
+  # get results
   top_table <- limma::topTable(ebayes_sv, coef = 1, n = Inf)
   num_sig <- sum(top_table$adj.P.Val < 0.05)
   cat(contrasts, "(# p < 0.05):", num_sig, "\n")
+
+  # voom (normalize/log) on exprs_sva
+  if (rna_seq) {
+    lib.size <- pData(eset)$lib.size * pData(eset)$norm.factors
+    exprs_sva <- exprs_sva[edgeR::filterByExpr(exprs_sva), ]
+    exprs_sva <- limma::voom(exprs_sva, modsv, lib.size)$E
+  }
 
   # setup plot items
   group <- factor(pData(eset)$group, levels = group_levels)
@@ -288,13 +303,13 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 #
 # @return result from call to limma \code{eBayes}.
 
-fit_ebayes <- function(eset, contrasts, mod, rna_seq = FALSE) {
+fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 
   if (rna_seq) {
-    # get normalize lib size and voom
+    # get normalized lib size and voom
     lib.size <- pData(eset)$lib.size * pData(eset)$norm.factors
-    voom <- limma::voom(exprs(eset), mod, lib.size)
-    fit  <- limma::lmFit(voom)
+    v <- limma::voom(exprs(eset), mod, lib.size)
+    fit  <- limma::lmFit(v)
 
   } else {
     fit <- limma::lmFit(exprs(eset), mod)
@@ -331,40 +346,5 @@ clean_y <- function(y, mod, svs) {
   gc()
   P = ncol(mod)
   return(y - t(as.matrix(X[,-c(1:P)]) %*% beta[-c(1:P),]))
-}
-
-
-# ------------------------
-
-
-
-#' Loads previous differential expression analyses.
-#'
-#' @param gse_names Character vector specifying GSE names to be loaded.
-#' @param data_dir String specifying directory of GSE folders.
-#' @param annot Level of previous analysis (e.g. "SYMBOL" or "PROBE").
-#'
-#' @export
-#' @return Result of previous call to \code{\link{diff_expr}}.
-#' @examples
-#' library(lydata)
-#'
-#' data_dir <- system.file("extdata", package = "lydata")
-#' gse_names <- c("GSE9601", "GSE34817")
-#' prev <- load_diff(gse_names, data_dir)
-
-load_diff <- function(gse_name, data_dir = getwd(), annot = "SYMBOL") {
-
-  anal    <- list()
-  gse_dir <- file.path(data_dir, gse_name)
-
-  pattern <- paste0(gse_name, "_diff_expr_", tolower(annot), '.rds')
-
-  # get paths
-  path <- list.files(gse_dir, pattern, full.names = TRUE)
-  if (length(path))
-    anal[[gse_name]] <- readRDS(path)
-
-  return (anal)
 }
 
