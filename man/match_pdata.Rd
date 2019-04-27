@@ -4,12 +4,12 @@
 \alias{match_pdata}
 \title{Match and add file names for pdata rows.}
 \usage{
-match_pdata(pdata, qdirs)
+match_pdata(pdata, fastqs)
 }
 \arguments{
 \item{pdata}{\code{data.table} with sample annotations.}
 
-\item{qdirs}{Character vector of quantification directories to find matches for.}
+\item{fastqs}{Character vector of fastq.gz files to find matches for.}
 }
 \value{
 \code{pdata} with \code{file} column identifying file for each sample (row).

@@ -6,7 +6,7 @@
 #'
 #' @param eset \code{ExpressionSet}
 #'
-#' @return Named list of length two. In order, list items contain rows corresponding to control and test group. Names are specified group names.
+#' @return \code{eset} with selected samples retained and column \code{group} with values \code{'control'} and \code{'test'}.
 #' @export
 #'
 #' @examples
