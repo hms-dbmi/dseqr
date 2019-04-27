@@ -51,8 +51,8 @@ diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE, prev_ana
   # are we re-using selections from previous analysis?
   if (!is.null(prev_anal)) {
     # retain selected only and add group to pdata
-    eset <- eset[, row.names(anal$pdata)]
-    Biobase::pData(eset)$group <- anal$pdata$group
+    eset <- eset[, row.names(prev_anal$pdata)]
+    Biobase::pData(eset)$group <- prev_anal$pdata$group
 
   } else {
     # select/add contrast

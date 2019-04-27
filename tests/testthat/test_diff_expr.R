@@ -2,6 +2,41 @@ context("sanity check diff_expr")
 library(Biobase)
 library(limma)
 
+test_that("diff_expr run without sva", {
+
+  # load ExpressionSet
+  data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+  eset <- readRDS(file.path(data_dir, 'eset.rds'))
+  group <- factor(pData(eset)$`Binary Affected`, level = c('Normal', 'Abnormal'))
+
+  # run diff_expr without sva
+  # mock previous analysis (to skip UI)
+  prev_anal <- list(pdata = data.frame(group = c('control', 'test')[group], row.names = sampleNames(eset)))
+  expect_error(diff_expr(eset, data_dir, svanal = FALSE, prev_anal = prev_anal), NA)
+
+  # cleanup
+  unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))
+  unlink(system.file('tests', 'testthat', 'Rplots.pdf', package='drugseqr'))
+
+})
+
+test_that("diff_expr run with sva", {
+
+  # load ExpressionSet
+  data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+  eset <- readRDS(file.path(data_dir, 'eset.rds'))
+  group <- factor(pData(eset)$`Binary Affected`, level = c('Normal', 'Abnormal'))
+
+  # run diff_expr without sva
+  # mock previous analysis (to skip UI)
+  prev_anal <- list(pdata = data.frame(group = c('control', 'test')[group], row.names = sampleNames(eset)))
+  expect_error(diff_expr(eset, data_dir, svanal = TRUE, prev_anal = prev_anal), NA)
+
+  # cleanup
+  unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))
+  unlink(system.file('tests', 'testthat', 'Rplots.pdf', package='drugseqr'))
+})
+
 test_that("diff_expr produces similar results to tximport vignette limma-voom section", {
 
   # tximport vignette: see https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html#limma-voom
@@ -40,4 +75,8 @@ test_that("diff_expr produces similar results to tximport vignette limma-voom se
 
   cat('logFC correlation (sva vs not):', logFC_cor)
   expect_equal(logFC_cor, 0.6215673, tolerance=1e-3)
+
+  # cleanup
+  unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))
+  unlink(system.file('tests', 'testthat', 'Rplots.pdf', package='drugseqr'))
 })
