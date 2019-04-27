@@ -41,13 +41,6 @@ load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', rele
 
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
-  # load pdata and determine row to file correspondence
-  # needs to be data.frame for ExpressionSet construction
-  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE, data.table = FALSE),
-                    error = function(err) {err$message <- "Couldn't read pdata"; stop(err)})
-
-  qdirs <- list.files(file.path(data_dir, 'quants'))
-  pdata <- match_pdata(pdata, qdirs)
 
   # transcript to gene map
   tx2gene <- get_tx2gene(species, release)
@@ -229,26 +222,26 @@ add_norms <- function(quants, pdata) {
 #' If an exact match is not possible, \code{grep} is used to search for a unique substring.
 #'
 #' @param pdata \code{data.table} with sample annotations.
-#' @param qdirs Character vector of quantification directories to find matches for.
+#' @param fastqs Character vector of fastq.gz files to find matches for.
 #'
 #' @return \code{pdata} with \code{file} column identifying file for each sample (row).
 #' @export
 #' @keywords internal
 #'
-match_pdata <- function(pdata, qdirs) {
+match_pdata <- function(pdata, fastqs) {
   ids <- pdata[[1]]
 
-  if (length(ids) != length(qdirs)) stop('Must be one row in sample annotation per quantification directory.')
+  if (length(ids) != length(fastqs)) stop('Must be one row in sample annotation per fastq.gz file.')
 
-  # check if every id has a perfect match in quants dirs without fastq.gz suffix
-  idxs <- match(ids, gsub('.fastq.gz$', '', qdirs))
+  # check if every id has a perfect match in fastq.gz prefixes
+  idxs <- match(ids, gsub('.fastq.gz$', '', fastqs))
 
   # otherwise try unique grep
   if (sum(is.na(idxs)) != 0) {
 
     # remove _ and - as word seperation (for grep below)
     spaced_ids <- gsub('_|-', ' ', ids)
-    spaced_qdirs <- gsub('_|-', ' ', qdirs)
+    spaced_qdirs <- gsub('_|-', ' ', fastqs)
 
     tomatch <- spaced_ids[is.na(idxs)]
     gmatch  <- sapply(tomatch, function(id) {
@@ -256,10 +249,10 @@ match_pdata <- function(pdata, qdirs) {
       res <- grep(paste0('\\b', id, '\\b'), spaced_qdirs, ignore.case = TRUE)
 
       if (length(res) > 1)
-        stop(shQuote(id), ' is a substring of more than one quantification directory. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is a substring of more than one fastq.gz file. Fix in first column of sample annotation file.')
 
       if (!length(res))
-        stop(shQuote(id), ' is not a substring of a quantification directory. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is not a substring of a fastq.gz file. Fix in first column of sample annotation file.')
 
       return(res)
     })
@@ -269,7 +262,7 @@ match_pdata <- function(pdata, qdirs) {
   }
 
   # append file names to pdata
-  pdata$quants_dir <- qdirs[idxs]
+  pdata <- tibble::add_column(pdata, 'File Name' = fastqs[idxs], .after = 1)
   return(pdata)
 }
 
