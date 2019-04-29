@@ -33,9 +33,18 @@ To install drugseqr clone the repo then install from source code:
 install.packages('path/to/drugseqr', repos=NULL)
 ```
 
+## Download CMAP02 and LINCS L1000 Data
+
+The CMAP02 and LINCS L1000 data will be used to search for small molecules that oppose your query gene expression signature. To download this data (only has to be performed once):
+
+```R
+library(drugseqr)
+dl_drug_es()
+```
+
 ## Build Salmon Index and Ensembl Annotation Package
 
-Salmon requires an index built on a target transcriptome for quantification. For mapping counts from transcripts to genes, `drugseqr` requires an Ensembl annotation package. 
+[Salmon](https://combine-lab.github.io/salmon/) requires an index built on a target transcriptome for quantification. For mapping counts from transcripts to genes, `drugseqr` requires an Ensembl annotation package. This step only has to be performed once.
 
 To download a transcriptome, build an index, and build an Ensembl annotation package for homo sapiens (default):
 
@@ -50,6 +59,7 @@ build_ensdb()
 After building and index and ensembldb annotation package, you are ready to run salmon quantification and load/annotate the results. To do so:
 
 ```R
+library(drugseqr)
 # replace with path to folder with your raw fastq.gz files
 data_dir <- system.file('extdata',  'IBD', package='drugseqr')
 
@@ -58,9 +68,30 @@ data_dir <- system.file('extdata',  'IBD', package='drugseqr')
 pdata_path <- system.file('extdata',  'IBD', 'Phenotypes.csv', package='drugseqr')
 
 # run transcript quantification using salmon
+# this will load a GUI and prompt for various checks/annotations
 run_salmon(data_dir, pdata_path)
 
 # load and annotate RNA-seq quants
 eset <- load_seq(data_dir)
 ```
+
+## Run Differential Expression Analysis
+
+
+After loading and annotating the raw RNA-seq data, you are ready to run differential expression analysis. To do so:
+
+```R
+library(drugseqr)
+
+# replace with path to folder with your raw fastq.gz files
+data_dir <- system.file('extdata',  'IBD', package='drugseqr')
+
+# load eset saved from previous call to load_seq
+eset <- readRDS(file.path(data_dir, 'eset.rds))
+
+# run differential expression analysis
+# this will load a GUI and prompt you to select samples (rows) belonging to the control and test groups
+anal <- diff_expr(eset)
+```
+
 
