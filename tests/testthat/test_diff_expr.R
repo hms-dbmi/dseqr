@@ -15,7 +15,6 @@ test_that("diff_expr run without sva", {
   expect_error(diff_expr(eset, data_dir, svanal = FALSE, prev_anal = prev_anal), NA)
 
   # cleanup
-  unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))
   unlink(system.file('tests', 'testthat', 'Rplots.pdf', package='drugseqr'))
 
 })
@@ -33,7 +32,6 @@ test_that("diff_expr run with sva", {
   expect_error(diff_expr(eset, data_dir, svanal = TRUE, prev_anal = prev_anal), NA)
 
   # cleanup
-  unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))
   unlink(system.file('tests', 'testthat', 'Rplots.pdf', package='drugseqr'))
 })
 
@@ -74,7 +72,7 @@ test_that("diff_expr produces similar results to tximport vignette limma-voom se
   logFC_cor <- cor(sva_anal$top_table$logFC, top_table$logFC)
 
   cat('logFC correlation (sva vs not):', logFC_cor)
-  expect_equal(logFC_cor, 0.6215673, tolerance=1e-3)
+  expect_equal(logFC_cor, 0.9690821, tolerance=1e-3)
 
   # cleanup
   unlink(system.file('extdata', 'IBD', 'diff_expr_symbol.rds', package='drugseqr'))

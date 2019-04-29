@@ -88,6 +88,10 @@ construct_eset <- function(quants, fdata, pdata, annot) {
 
   # seperate fdata and exprs and transfer to eset
   row.names(pdata) <- pdata$quants_dir
+
+  # Replicate column no longer needed (one row kept per replicate)
+  pdata$Replicate <- NULL
+
   eset <- Biobase::ExpressionSet(as.matrix(dt[, row.names(pdata), drop=FALSE]),
                                  phenoData=Biobase::AnnotatedDataFrame(pdata),
                                  featureData=Biobase::AnnotatedDataFrame(dt[, colnames(fdata), drop=FALSE]),
