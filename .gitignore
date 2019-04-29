@@ -11,5 +11,9 @@ data-raw/example-data/*
 # salmon indices
 inst/indices
 
+# drug effect size data (new users dl from s3)
+inst/extdata/cmap_es_ind.rds
+inst/extdata/l1000_es.rds
+
 # ensdb annotation
 inst/EnsDb
