@@ -55,7 +55,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' Used to determine transcriptome index to use.
 #' @params flags Character vector of flags to pass to salmon.
 #'
-#' @return data.frame of sample annotations modified by \code{\link{select_pairs}}.
+#' @return NULL
 #' @export
 #'
 #' @examples
@@ -78,6 +78,7 @@ run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'hom
 
   # prompt user to select pairs/validate file names etc
   if (is.null(pdata)) pdata <- select_pairs(data_dir, pdata_path)
+  pdata$quants_dir <- gsub('.fastq.gz$', '', pdata$`File Name`)
 
   # save selections
   saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
@@ -128,8 +129,7 @@ run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'hom
                    flags,
                    '-o', shQuote(out_dir)))
   }
-
-  return(pdata)
+  return(NULL)
 }
 
 #' Get first sequence identifiers for fastq.gz files

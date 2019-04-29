@@ -1,8 +1,6 @@
 #' Load raw RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-#' The first column should contain sample ids that match a single raw rna-seq data file name.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
@@ -27,17 +25,18 @@
 #' @examples
 #'
 #' data_dir <- 'data-raw/example-data'
-#' pdata_path <- 'data-raw/example-data/Phenotypes.csv'
-#' eset <- load_seq(data_dir, pdata_path)
+#' eset <- load_seq(data_dir, overwrite = TRUE)
 #'
-load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
+load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
   if (!overwrite & file.exists(eset_path))
     return(readRDS(eset_path))
 
-  if (is.null(pdata_path)) stop('pdata_path must be supplied when eset has not been previously saved.')
+  pdata_path <- file.path(data_dir, 'pdata.rds')
+  if (!file.exists(pdata_path)) stop("No 'pdata.rds' file found in data_dir. Did you run_salmon first?")
+  pdata <- readRDS(pdata_path)
 
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
@@ -211,6 +210,7 @@ get_tx2gene <- function(species, release) {
 #'
 add_norms <- function(quants, pdata) {
   idxs <- match(colnames(quants), pdata$quants_dir)
+  if (any(is.na(idxs))) stop("add_norms failed to match quant directory names and file names")
   pdata <- pdata[idxs,, drop=FALSE]
   pdata <- cbind(pdata, quants$samples[, c('lib.size', 'norm.factors')])
   return(pdata)

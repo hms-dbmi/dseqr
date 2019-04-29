@@ -40,3 +40,11 @@ test_that("get_fastq_id1s returns sequence ids (starts with @)", {
   expect_true(all(grepl('^@', fastq_id1s)))
 
 })
+
+test_that("add_norms fails if it can't match file names with quant folders", {
+  quants <- data.frame(file1 = 1, file2 = 2)
+  pdata <- data.frame('File Name' = c('file-1.fastq.gz', 'file-2.fastq.gz'), check.names = FALSE, stringsAsFactors = FALSE)
+
+  expect_error(add_norms(quants, pdata), 'failed to match')
+
+})
