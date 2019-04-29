@@ -54,13 +54,13 @@ After building and index and ensembldb annotation package, you are ready to run 
 data_dir <- system.file('extdata',  'IBD', package='drugseqr')
 
 # replace with path to text file with sample annotations
-# see pdata_path argument in ?load_seq for specifications
+# see pdata_path argument in ?run_salmon for specifications
 pdata_path <- system.file('extdata',  'IBD', 'Phenotypes.csv', package='drugseqr')
 
 # run transcript quantification using salmon
-run_salmon(data_dir)
+run_salmon(data_dir, pdata_path)
 
 # load and annotate RNA-seq quants
-eset <- load_seq(data_dir, pdata_path)
+eset <- load_seq(data_dir)
 ```
 

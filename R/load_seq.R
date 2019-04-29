@@ -1,8 +1,6 @@
 #' Load raw RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-#' The first column should contain sample ids that match a single raw rna-seq data file name.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
 #' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
@@ -27,27 +25,21 @@
 #' @examples
 #'
 #' data_dir <- 'data-raw/example-data'
-#' pdata_path <- 'data-raw/example-data/Phenotypes.csv'
-#' eset <- load_seq(data_dir, pdata_path)
+#' eset <- load_seq(data_dir, overwrite = TRUE)
 #'
-load_seq <- function(data_dir, pdata_path = NULL, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
+load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
   if (!overwrite & file.exists(eset_path))
     return(readRDS(eset_path))
 
-  if (is.null(pdata_path)) stop('pdata_path must be supplied when eset has not been previously saved.')
+  pdata_path <- file.path(data_dir, 'pdata.rds')
+  if (!file.exists(pdata_path)) stop("No 'pdata.rds' file found in data_dir. Did you run_salmon first?")
+  pdata <- readRDS(pdata_path)
 
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
-  # load pdata and determine row to file correspondence
-  # needs to be data.frame for ExpressionSet construction
-  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE, data.table = FALSE),
-                    error = function(err) {err$message <- "Couldn't read pdata"; stop(err)})
-
-  qdirs <- list.files(file.path(data_dir, 'quants'))
-  pdata <- match_pdata(pdata, qdirs)
 
   # transcript to gene map
   tx2gene <- get_tx2gene(species, release)
@@ -218,6 +210,7 @@ get_tx2gene <- function(species, release) {
 #'
 add_norms <- function(quants, pdata) {
   idxs <- match(colnames(quants), pdata$quants_dir)
+  if (any(is.na(idxs))) stop("add_norms failed to match quant directory names and file names")
   pdata <- pdata[idxs,, drop=FALSE]
   pdata <- cbind(pdata, quants$samples[, c('lib.size', 'norm.factors')])
   return(pdata)
@@ -229,26 +222,26 @@ add_norms <- function(quants, pdata) {
 #' If an exact match is not possible, \code{grep} is used to search for a unique substring.
 #'
 #' @param pdata \code{data.table} with sample annotations.
-#' @param qdirs Character vector of quantification directories to find matches for.
+#' @param fastqs Character vector of fastq.gz files to find matches for.
 #'
 #' @return \code{pdata} with \code{file} column identifying file for each sample (row).
 #' @export
 #' @keywords internal
 #'
-match_pdata <- function(pdata, qdirs) {
+match_pdata <- function(pdata, fastqs) {
   ids <- pdata[[1]]
 
-  if (length(ids) != length(qdirs)) stop('Must be one row in sample annotation per quantification directory.')
+  if (length(ids) != length(fastqs)) stop('Must be one row in sample annotation per fastq.gz file.')
 
-  # check if every id has a perfect match in quants dirs without fastq.gz suffix
-  idxs <- match(ids, gsub('.fastq.gz$', '', qdirs))
+  # check if every id has a perfect match in fastq.gz prefixes
+  idxs <- match(ids, gsub('.fastq.gz$', '', fastqs))
 
   # otherwise try unique grep
   if (sum(is.na(idxs)) != 0) {
 
     # remove _ and - as word seperation (for grep below)
     spaced_ids <- gsub('_|-', ' ', ids)
-    spaced_qdirs <- gsub('_|-', ' ', qdirs)
+    spaced_qdirs <- gsub('_|-', ' ', fastqs)
 
     tomatch <- spaced_ids[is.na(idxs)]
     gmatch  <- sapply(tomatch, function(id) {
@@ -256,10 +249,10 @@ match_pdata <- function(pdata, qdirs) {
       res <- grep(paste0('\\b', id, '\\b'), spaced_qdirs, ignore.case = TRUE)
 
       if (length(res) > 1)
-        stop(shQuote(id), ' is a substring of more than one quantification directory. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is a substring of more than one fastq.gz file. Fix in first column of sample annotation file.')
 
       if (!length(res))
-        stop(shQuote(id), ' is not a substring of a quantification directory. Fix in first column of sample annotation file.')
+        stop(shQuote(id), ' is not a substring of a fastq.gz file. Fix in first column of sample annotation file.')
 
       return(res)
     })
@@ -269,7 +262,7 @@ match_pdata <- function(pdata, qdirs) {
   }
 
   # append file names to pdata
-  pdata$quants_dir <- qdirs[idxs]
+  pdata <- tibble::add_column(pdata, 'File Name' = fastqs[idxs], .after = 1)
   return(pdata)
 }
 
