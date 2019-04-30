@@ -4,14 +4,11 @@
 \alias{load_seq}
 \title{Load raw RNA-Seq data into an ExpressionSet.}
 \usage{
-load_seq(data_dir, pdata_path = NULL, species = "Homo sapiens",
-  release = "94", overwrite = FALSE, dgel = FALSE)
+load_seq(data_dir, species = "Homo sapiens", release = "94",
+  overwrite = FALSE, dgel = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
-
-\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-The first column should contain sample ids that match a single raw rna-seq data file name.}
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
@@ -42,7 +39,6 @@ Load raw RNA-Seq data into an ExpressionSet.
 \examples{
 
 data_dir <- 'data-raw/example-data'
-pdata_path <- 'data-raw/example-data/Phenotypes.csv'
-eset <- load_seq(data_dir, pdata_path)
+eset <- load_seq(data_dir, overwrite = TRUE)
 
 }

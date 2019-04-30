@@ -7,7 +7,7 @@
 select_pairs(data_dir, pdata_path)
 }
 \arguments{
-\item{data_dir}{Directory with raw and quantified RNA-Seq files.}
+\item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
 
 \item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 The first column should contain sample ids that match a single raw rna-seq data file name.}

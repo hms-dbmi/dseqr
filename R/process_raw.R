@@ -53,7 +53,7 @@ build_index <- function(species = 'homo_sapiens', release = '94') {
 #' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
-#' @params flags Character vector of flags to pass to salmon.
+#' @param flags Character vector of flags to pass to salmon.
 #'
 #' @return NULL
 #' @export
