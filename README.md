@@ -56,7 +56,7 @@ build_ensdb()
 
 ## Run Salmon, Load ExpressionSet, and Annotate
 
-After building and index and ensembldb annotation package, you are ready to run salmon quantification and load/annotate the results. To do so:
+After building an index and ensembldb annotation package, you are ready to run salmon quantification and load/annotate the results. To do so:
 
 ```R
 library(drugseqr)
