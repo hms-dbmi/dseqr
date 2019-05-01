@@ -11,18 +11,26 @@ cmap_eset <- readRDS('/home/alex/Documents/Batcave/GEO/GEOdb/data-raw/avpick/dat
 cmap_pdata <- pData(cmap_eset[[1]])
 
 # setup so that matches drug_es
-cmap_es <- readRDS('/home/alex/Documents/Batcave/GEO/ccdata/data-raw/cmap_es/cmap_es_ind.rds')
+cmap_es_path <- '/home/alex/Documents/Batcave/GEO/ccdata/data-raw/cmap_es/cmap_es_ind.rds'
+cmap_es <- readRDS(cmap_es_path)
 
 # remove columns that don't need right now
 # smiles and trt_nums (from rnama.com to match GSE1_p1-p2 contrasts from predicted groups)
 cmap_pdata$trt_nums <- cmap_pdata$characteristics_ch1.3 <- NULL
 
+# pretty up pubchem cids
+cmap_pdata$`Pubchem CID` <- gsub('^cid: ', '', cmap_pdata$characteristics_ch1.2)
+cmap_pdata$characteristics_ch1.2 <- NULL
+
 # remove columns that can reconstruct from title (reduces package memory)
 cmap_nsamp <- gsub('^nsamples: (\\d+)$', '\\1', cmap_pdata$characteristics_ch1.4)
 cmap_title_nsamp <- gsub('^.+?_(\\d+)$', '\\1', cmap_pdata$title)
 
-if (all(cmap_nsamp == cmap_title_nsamp)) cat('nsamples are correct\n')
-
+if (all(cmap_nsamp == cmap_title_nsamp))  {
+  cat('nsamples are correct\n')
+  cmap_pdata$`Samples(n)` <- cmap_nsamp
+  cmap_pdata$characteristics_ch1.4 <- NULL
+}
 
 cmap_cmp <- gsub('^compound: (.+?)$', '\\1', cmap_pdata$characteristics_ch1.1)
 cmap_title_cmp <- gsub('^([^_]+)_.+?$', '\\1', cmap_pdata$title)
@@ -43,11 +51,10 @@ all(cmap_pdata$title == colnames(cmap_es))
 row.names(cmap_pdata) <- NULL
 
 # save
-saveRDS(cmap_es, file.path(data_dir, 'cmap_es_ind.rds'))
+file.copy(cmap_es_path, file.path(data_dir, 'cmap_es_ind.rds'))
 saveRDS(cmap_pdata, file.path(data_dir, 'CMAP02_pdata.rds'))
 
 # setup pdata for L1000 ------
-
 
 l1000_eset <- readRDS('/home/alex/Documents/Batcave/GEO/GEOdb/data-raw/avpick/data_dir/L1000/L1000_eset.rds')
 l1000_pdata <- pData(l1000_eset[[1]])
@@ -59,6 +66,10 @@ l1000_es <- readRDS('/home/alex/Documents/Batcave/GEO/l1000/level1/6-limma/l1000
 # smiles and trt_nums (from rnama.com to match GSE1_p1-p2 contrasts from predicted groups)
 l1000_pdata$trt_nums <- l1000_pdata$characteristics_ch1.3 <- NULL
 
+# pretty up pubchem cids
+l1000_pdata$`Pubchem CID` <- gsub('^cid: ', '', l1000_pdata$characteristics_ch1.2)
+l1000_pdata$characteristics_ch1.2 <- NULL
+
 # remove columns that can reconstruct from title (reduces package memory)
 if (all(row.names(l1000_pdata) == l1000_pdata$title)) {
   cat('Removing row.names\n')
@@ -66,8 +77,12 @@ if (all(row.names(l1000_pdata) == l1000_pdata$title)) {
 }
 
 l1000_title_nsamp <- gsub('^.+?_(\\d+)$', '\\1', l1000_pdata$title)
-l1000_nsamp <- gsub('nsamples: (\\d+)$', '\\1', l1000_pdata$characteristics_ch1.4)
-if (all(l1000_title_nsamp == l1000_nsamp)) cat('nsamples are correct\n')
+l1000_nsamp <- gsub('^nsamples: ', '', l1000_pdata$characteristics_ch1.4)
+if (all(l1000_title_nsamp == l1000_nsamp)) {
+  cat('nsamples are correct\n')
+  l1000_pdata$`Samples(n)` <- l1000_nsamp
+  l1000_pdata$characteristics_ch1.4 <- NULL
+}
 
 # make l1000_es column names match l1000_pdata titles
 l1000_titles_no_nsamp <-  gsub('^(.+?)_\\d+$', '\\1', l1000_pdata$title)
