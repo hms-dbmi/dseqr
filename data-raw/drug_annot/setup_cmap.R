@@ -27,18 +27,20 @@ annot$pubchem_cid <- as.character(annot$pubchem_cid)
 
 
 # CMAP02 pdata
-cmap_pdata_orig <- readRDS('inst/extdata/CMAP02_pdata.rds')
-cmap_pdata_orig <- destructure_title(cmap_pdata_orig, drop=FALSE, .after=1)
+cmap_pdata <- readRDS('inst/extdata/CMAP02_pdata.rds')
+cmap_pdata <- destructure_title(cmap_pdata, drop=FALSE, .after=1)
 
 # pubchem CID seems to have the most matches
-table(unique(cmap_pdata_orig$Compound) %in% annot$pert_iname)
-table(unique(cmap_pdata_orig$`Pubchem CID`) %in% annot$pubchem_cid)
+table(unique(cmap_pdata$Compound) %in% annot$pert_iname)
+table(unique(cmap_pdata$`Pubchem CID`) %in% annot$pubchem_cid)
 
 # use cmap_pdata compound names
-cmap_pdata <- left_join(cmap_pdata_orig, annot, by = c('Pubchem CID' = 'pubchem_cid'))
+cmap_annot <-  cmap_pdata %>%
+  select(title, 'Pubchem CID') %>%
+  left_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
 
 # merge rows that have the same treatment
-cmap_pdata <- cmap_pdata %>%
+cmap_annot <- cmap_annot %>%
   group_by(title) %>%
   summarise_all(function(x)  {
     unqx <- unique(na.omit(x))
@@ -49,7 +51,11 @@ cmap_pdata <- cmap_pdata %>%
     # collapse distinct non-NA entries
     return(paste(unqx, collapse = ' // '))
   }) %>%
-  arrange(match(title, cmap_pdata_orig$title))
+  arrange(match(title, cmap_pdata$title))
 
+# check that annot and pdata are in same order
+all.equal(cmap_annot$title, cmap_pdata$title)
 
-all.equal(cmap_pdata$title, cmap_pdata_orig$title)
+# save as seperate annotation, removing what pdata already has
+cmap_annot <- cmap_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
+saveRDS(cmap_annot, 'inst/extdata/cmap_annot.rds')
