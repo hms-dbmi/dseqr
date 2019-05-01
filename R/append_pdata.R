@@ -36,11 +36,11 @@ append_pdata <- function(query_res, study) {
     stop("Query results and pdata titles don't match.")
 
   # add result
-  pdata <- tibble::add_column(pdata, Correlation = query_res, .before=0)
+  query_res <- tibble::add_column(pdata, Correlation = query_res, .before=0)
 
   # destructure title and return
-  pdata <- destructure_title(pdata)
-  return(pdata)
+  query_res <- destructure_title(query_res)
+  return(query_res)
 }
 
 #' Split CMAP02/L1000 title into multiple columns.

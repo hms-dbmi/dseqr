@@ -83,7 +83,7 @@ select_contrast <- function(eset) {
 
     # label updates should update add button
     shiny::observe({
-      updateActionButton(session, "add", label = label_r())
+      shiny::updateActionButton(session, "add", label = label_r())
     })
 
 
@@ -170,7 +170,7 @@ select_contrast <- function(eset) {
         Biobase::pData(eset)$group <- group
 
         # retain selected samples only
-        stopApp(eset[, !is.na(group)])
+        shiny::stopApp(eset[, !is.na(group)])
       }
     })
 

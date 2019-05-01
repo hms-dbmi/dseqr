@@ -225,7 +225,7 @@ select_pairs <- function(data_dir, pdata_path) {
           pdata$Replicate <<- reps
         }
 
-        stopApp(pdata)
+        shiny::stopApp(pdata)
       }
     })
 
