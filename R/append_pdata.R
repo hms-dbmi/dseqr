@@ -36,6 +36,35 @@ append_pdata <- function(query_res, study) {
     stop("Query results and pdata titles don't match.")
 
   # add result
-  query_res <- tibble::add_column(pdata, correlation = query_res, .before=0)
-  return(query_res)
+  pdata <- tibble::add_column(pdata, Correlation = query_res, .before=0)
+
+  # destructure title and return
+  pdata <- destructure_title(pdata)
+  return(pdata)
+}
+
+#' Split CMAP02/L1000 title into multiple columns.
+#'
+#' Function used by \code{\link{append_pdata}}.
+#'
+#' @param pdata \code{data.frame} with \code{'Correlation'} and \code{'title'} columns. \code{'title'} column
+#'   should contain 4 underscore seperated parts (e.g. \code{'10-DEBC_A375_20um_24h'}).
+#'
+#' @return \code{pdata} without \code{'title'} column and 4 new columns: \code{'Compound'}, \code{'Cell Line'}, \code{'Dose'},
+#'   and \code{'Duration'}.
+#' @export
+#'
+#' @examples
+destructure_title <- function(pdata) {
+  title_split <- strsplit(pdata$title, '_')
+
+  pdata <- tibble::add_column(pdata,
+                              'Compound'  = sapply(title_split, `[`, 1),
+                              'Cell Line' = sapply(title_split, `[`, 2),
+                              'Dose'      = sapply(title_split, `[`, 3),
+                              'Duration'  = sapply(title_split, `[`, 4),
+                              .after = 'Correlation')
+
+  pdata$title <- NULL
+  return(pdata)
 }
