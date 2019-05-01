@@ -4,11 +4,15 @@
 \alias{destructure_title}
 \title{Split CMAP02/L1000 title into multiple columns.}
 \usage{
-destructure_title(pdata)
+destructure_title(pdata, drop = TRUE, ...)
 }
 \arguments{
-\item{pdata}{\code{data.frame} with \code{'Correlation'} and \code{'title'} columns. \code{'title'} column
+\item{pdata}{\code{data.frame} with and \code{'title'} columns. \code{'title'} column
 should contain 4 underscore seperated parts (e.g. \code{'10-DEBC_A375_20um_24h'}).}
+
+\item{drop}{Should the \code{'title} column be droped? Default is \code{TRUE}.}
+
+\item{...}{Additional arguments to \code{\link[tibble]{add_column}} (e.g. \code{.before} or \code{.after}).}
 }
 \value{
 \code{pdata} without \code{'title'} column and 4 new columns: \code{'Compound'}, \code{'Cell Line'}, \code{'Dose'},

@@ -39,7 +39,7 @@ append_pdata <- function(query_res, study) {
   query_res <- tibble::add_column(pdata, Correlation = query_res, .before=0)
 
   # destructure title and return
-  query_res <- destructure_title(query_res)
+  query_res <- destructure_title(query_res, .after = 'Correlation')
   return(query_res)
 }
 
@@ -47,24 +47,25 @@ append_pdata <- function(query_res, study) {
 #'
 #' Function used by \code{\link{append_pdata}}.
 #'
-#' @param pdata \code{data.frame} with \code{'Correlation'} and \code{'title'} columns. \code{'title'} column
+#' @param pdata \code{data.frame} with and \code{'title'} columns. \code{'title'} column
 #'   should contain 4 underscore seperated parts (e.g. \code{'10-DEBC_A375_20um_24h'}).
+#' @param drop Should the \code{'title} column be droped? Default is \code{TRUE}.
+#' @param ... Additional arguments to \code{\link[tibble]{add_column}} (e.g. \code{.before} or \code{.after}).
 #'
 #' @return \code{pdata} without \code{'title'} column and 4 new columns: \code{'Compound'}, \code{'Cell Line'}, \code{'Dose'},
 #'   and \code{'Duration'}.
 #' @export
 #'
 #' @examples
-destructure_title <- function(pdata) {
+destructure_title <- function(pdata, drop = TRUE, ...) {
   title_split <- strsplit(pdata$title, '_')
 
   pdata <- tibble::add_column(pdata,
                               'Compound'  = sapply(title_split, `[`, 1),
                               'Cell Line' = sapply(title_split, `[`, 2),
                               'Dose'      = sapply(title_split, `[`, 3),
-                              'Duration'  = sapply(title_split, `[`, 4),
-                              .after = 'Correlation')
+                              'Duration'  = sapply(title_split, `[`, 4), ...)
 
-  pdata$title <- NULL
+  if (drop) pdata$title <- NULL
   return(pdata)
 }
