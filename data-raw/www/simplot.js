@@ -33,7 +33,7 @@ svg
   .attr("y", height)
   .attr("class", "x text")
   .attr("dy", -2)
-  .style("fill", "#ddd")
+  .style("fill", "#888")
   .style("font", "11px Arial, sans-serif")
   .style("text-anchor", "middle")
   .text(data);
