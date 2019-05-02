@@ -33,7 +33,10 @@ explore_results <- function(query_res) {
 
   # order by increasing correlation
   query_res <- query_res[order(query_res$Correlation), ]
-  # query_res <- query_res[1:5,]
+
+  # add linkout to pubchem
+  cids <- query_res$`Pubchem CID`
+  query_res$`Pubchem CID` <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',  cids, '" target="_blank">', cids, '</a>')
 
   # replace correlation with svg element
   cors <- query_res$Correlation
@@ -85,6 +88,7 @@ explore_results <- function(query_res) {
         selection = 'none',
         escape = FALSE, # to allow HTML in table
         options = list(
+          ordering=FALSE,
           columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0)),
           scrollY = TRUE,
           pageLength = 20,
