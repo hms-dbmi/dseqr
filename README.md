@@ -87,11 +87,37 @@ library(drugseqr)
 data_dir <- system.file('extdata',  'IBD', package='drugseqr')
 
 # load eset saved from previous call to load_seq
-eset <- readRDS(file.path(data_dir, 'eset.rds))
+eset <- readRDS(file.path(data_dir, 'eset.rds'))
 
 # run differential expression analysis
 # this will load a GUI and prompt you to select samples (rows) belonging to the control and test groups
-anal <- diff_expr(eset)
+anal <- diff_expr(eset, data_dir)
+```
+
+## Query CMAP02/L1000 Data
+
+After running the differential expression analysis, you are ready to query against CMAP02 and L1000 signatures. To do so:
+
+```R
+library(drugseqr)
+
+# load previous differential expression analysis
+data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
+
+# extract effect size values used for query signature
+dprimes <- get_dprimes(anal)
+
+# load CMAP02 and L1000 datasets
+cmap_es <- readRDS(system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr'))
+l1000_es <- readRDS(system.file('extdata', 'l1000_es.rds', package = 'drugseqr'))
+
+# run queries
+cmap_res <- query_drugs(dprimes, cmap_es)
+l1000_res <- query_drugs(dprimes, l1000_es)
+
+# explore results
+explore_results(cmap_res, l1000_res)
 ```
 
 
