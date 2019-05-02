@@ -4,10 +4,12 @@
 \alias{explore_results}
 \title{Explore query results}
 \usage{
-explore_results(query_res)
+explore_results(cmap_res = NULL, l1000_res = NULL)
 }
 \arguments{
-\item{query_res}{\code{data.frame} returned from \code{\link{append_pdata}}}
+\item{cmap_res}{Named numeric vector returned from \code{\link{query_drugs}} using CMAP02 data.}
+
+\item{l1000_res}{Named numeric vector returned from \code{\link{query_drugs}} using L1000 data.}
 }
 \description{
 Explore query results
@@ -26,11 +28,8 @@ anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
 dprimes <- get_dprimes(anal)
 
 # get correlations between query and drug signatures
-res <- query_drugs(dprimes, cmap_es)
+cmap_res <- query_drugs(dprimes, cmap_es)
 
-# append drug pdata
-res <- append_pdata(res, 'CMAP02')
-
-explore_results(res)
+explore_results(cmap_res)
 
 }

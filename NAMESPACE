@@ -2,6 +2,7 @@
 
 export(add_es)
 export(add_norms)
+export(add_table_html)
 export(append_pdata)
 export(build_ensdb)
 export(build_index)

@@ -1,7 +1,8 @@
 
 #' Explore query results
 #'
-#' @param query_res \code{data.frame} returned from \code{\link{append_pdata}}
+#' @param cmap_res Named numeric vector returned from \code{\link{query_drugs}} using CMAP02 data.
+#' @param l1000_res Named numeric vector returned from \code{\link{query_drugs}} using L1000 data.
 #'
 #' @return NULL
 #' @export
@@ -20,33 +21,41 @@
 #' dprimes <- get_dprimes(anal)
 #'
 #' # get correlations between query and drug signatures
-#' res <- query_drugs(dprimes, cmap_es)
+#' cmap_res <- query_drugs(dprimes, cmap_es)
 #'
-#' # append drug pdata
-#' res <- append_pdata(res, 'CMAP02')
+#' explore_results(cmap_res)
 #'
-#' explore_results(res)
-#'
-explore_results <- function(query_res) {
+explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
+
 
   # setup ----
+  null_cmap <- is.null(cmap_res)
+  null_l1000 <- is.null(l1000_res)
 
-  # order by increasing correlation
-  query_res <- query_res[order(query_res$Correlation), ]
+  if (null_cmap & null_l1000)
+    stop('Must provide one of cmap_res or l1000_res')
 
-  # add linkout to pubchem
-  cids <- query_res$`Pubchem CID`
-  query_res$`Pubchem CID` <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',  cids, '" target="_blank">', cids, '</a>')
+  # append pdata to results and add html for correlation plots
+  study_tables <- list()
+  study_choices <- c()
+  if (!null_cmap) {
+    cmap_res <- append_pdata(cmap_res, 'CMAP02')
+    cmap_res <- add_table_html(cmap_res)
 
-  # replace correlation with svg element
-  cors <- query_res$Correlation
-  query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
-                            <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>
-                            <g><text x="', calcx(cors, range(cors)), '" y="38" class="x text" dy="-2">', signif(cors, 3), '</text></g>
-                            <g><circle cx="', calcx(cors, range(cors)), '" cy="19" r="5" class="cor"></circle></g>
-                            </svg>')
+    study_tables[['CMAP02']] <- cmap_res
+    study_choices <- c(study_choices, 'CMAP02')
+  }
 
+  if (!null_l1000) {
+    l1000_res <- append_pdata(l1000_res, 'L1000')
+    l1000_res <- add_table_html(l1000_res)
 
+    study_tables[['L1000']] <- l1000_res
+    study_choices <- c(study_choices, 'L1000')
+  }
+
+  # initial query_res
+  query_res <- study_tables[[1]]
 
   #  user interface ----
 
@@ -67,7 +76,7 @@ explore_results <- function(query_res) {
       shiny::fillCol(flex = c(NA, NA, 1),
                      shiny::selectizeInput('study',
                                            'Select study:',
-                                           choices = c('CMAP02', 'L1000')),
+                                           choices = study_choices),
                      shiny::hr(),
                      DT::dataTableOutput("query_res")
       )
@@ -82,7 +91,7 @@ explore_results <- function(query_res) {
     output$query_res <- DT::renderDataTable({
 
       DT::datatable(
-        query_res,
+        query_res(),
         class = 'cell-border',
         rownames = FALSE,
         selection = 'none',
@@ -99,6 +108,10 @@ explore_results <- function(query_res) {
       )
     }, server = TRUE)
 
+    # query_res reactive to study choice
+    query_res <- shiny::reactive({
+      study_tables[[input$study]]
+    })
 
     # click 'Done' ----
 
@@ -110,6 +123,36 @@ explore_results <- function(query_res) {
 
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
 }
+
+#' Add HTML to query results table
+#'
+#' @param query_res \code{data.frame} returned by \code{\link{append_pdata}}
+#'
+#' @return \code{query_res} with pubchem cid links and correlation plot html.
+#' @export
+#'
+#' @examples
+add_table_html <- function(query_res) {
+  # order by increasing correlation
+  query_res <- query_res[order(query_res$Correlation), ]
+
+  # add linkout to pubchem
+  cids <- query_res$`Pubchem CID`
+  query_res$`Pubchem CID` <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',  cids, '" target="_blank">', cids, '</a>')
+
+  # replace correlation with svg element
+  cors <- query_res$Correlation
+  query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
+                            <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>
+                            <g><text x="', calcx(cors, range(cors)), '" y="38" class="x text" dy="-2">', signif(cors, 3), '</text></g>
+                            <g><circle cx="', calcx(cors, range(cors)), '" cy="19" r="5" class="cor"></circle></g>
+                            </svg>')
+
+  return(query_res)
+}
+
+
+
 
 #' Calculate x position for correlation plot
 #'
