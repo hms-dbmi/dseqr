@@ -5,7 +5,7 @@
 \title{Load raw RNA-Seq data into an ExpressionSet.}
 \usage{
 load_seq(data_dir, species = "Homo sapiens", release = "94",
-  overwrite = FALSE, dgel = FALSE)
+  load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -14,9 +14,12 @@ load_seq(data_dir, species = "Homo sapiens", release = "94",
 
 \item{release}{EnsemblDB release. Should be same as used in \code{\link{build_index}}.}
 
-\item{overwrite}{If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
+\item{load_saved}{If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
 
-\item{dgel}{If TRUE, will also save the \code{DGEList} object. Used for testing purposes.}
+\item{save_eset}{If TRUE (default) and either \code{load_saved} is \code{FALSE} or a saved \code{ExpressionSet} does not exist,
+then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
+
+\item{save_dgel}{If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.}
 }
 \value{
 \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
@@ -39,6 +42,6 @@ Load raw RNA-Seq data into an ExpressionSet.
 \examples{
 
 data_dir <- 'data-raw/example-data'
-eset <- load_seq(data_dir, overwrite = TRUE)
+eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
 
 }

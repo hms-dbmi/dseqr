@@ -3,8 +3,10 @@
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
-#' @param overwrite If FALSE (default) and a saved \code{ExpressionSet} exists, will load from disk.
-#' @param dgel If TRUE, will also save the \code{DGEList} object. Used for testing purposes.
+#' @param load_saved If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.
+#' @param save_eset If TRUE (default) and either \code{load_saved} is \code{FALSE} or a saved \code{ExpressionSet} does not exist,
+#'   then an ExpressionSet will be saved to disk. Will overwrite if already exists.
+#' @param save_dgel If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.
 #'
 #' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
@@ -25,13 +27,13 @@
 #' @examples
 #'
 #' data_dir <- 'data-raw/example-data'
-#' eset <- load_seq(data_dir, overwrite = TRUE)
+#' eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
 #'
-load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', overwrite = FALSE, dgel = FALSE) {
+load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
-  if (!overwrite & file.exists(eset_path))
+  if (load_saved & file.exists(eset_path))
     return(readRDS(eset_path))
 
   pdata_path <- file.path(data_dir, 'pdata.rds')
@@ -55,13 +57,13 @@ load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', overwri
   fdata <- setup_fdata(tx2gene)
   eset <- construct_eset(quants, fdata, pdata, annot)
 
-  if (dgel) {
+  if (save_dgel) {
     dgel_path <- gsub('eset', 'dgel', eset_path)
     saveRDS(quants, dgel_path)
   }
 
   # save eset and return
-  saveRDS(eset, eset_path)
+  if (save_eset) saveRDS(eset, eset_path)
   return(eset)
 }
 
