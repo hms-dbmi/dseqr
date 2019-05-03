@@ -7,6 +7,7 @@
 #' @param save_eset If TRUE (default) and either \code{load_saved} is \code{FALSE} or a saved \code{ExpressionSet} does not exist,
 #'   then an ExpressionSet will be saved to disk. Will overwrite if already exists.
 #' @param save_dgel If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.
+#' @param filter if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.
 #'
 #' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
@@ -29,7 +30,7 @@
 #' data_dir <- 'data-raw/example-data'
 #' eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
 #'
-load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE) {
+load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
@@ -47,7 +48,7 @@ load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_sa
   tx2gene <- get_tx2gene(species, release)
 
   # import quant.sf files and filter low counts
-  quants <- import_quants(data_dir, tx2gene)
+  quants <- import_quants(data_dir, tx2gene, filter)
 
   # add library normalization
   pdata <- add_norms(quants, pdata)
@@ -128,14 +129,14 @@ setup_fdata <- function(tx2gene) {
 
 #' Import salmon quant.sf files
 #'
-#' @param data_dir Directory with a folder named 'quants' that contains salmon quantification folders for each sample.
 #' @inheritParams setup_fdata
+#' @inheritParams load_seq
 #'
 #' @return \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, tx2gene) {
+import_quants <- function(data_dir, tx2gene, filter) {
 
   # don't ignoreTxVersion if dots in tx2gene
   ignore <- TRUE
@@ -155,10 +156,11 @@ import_quants <- function(data_dir, tx2gene) {
   quants <- edgeR::DGEList(txi$counts)
 
   # filtering low counts (as in tximport vignette)
-
-  keep <- edgeR::filterByExpr(quants)
-  quants <- quants[keep, ]
-  if (!nrow(quants)) stop("No genes with reads after filtering")
+  if (filter) {
+    keep <- edgeR::filterByExpr(quants)
+    quants <- quants[keep, ]
+    if (!nrow(quants)) stop("No genes with reads after filtering")
+  }
 
   quants <- edgeR::calcNormFactors(quants)
   return(quants)

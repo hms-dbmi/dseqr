@@ -5,7 +5,8 @@
 \title{Load raw RNA-Seq data into an ExpressionSet.}
 \usage{
 load_seq(data_dir, species = "Homo sapiens", release = "94",
-  load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE)
+  load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE,
+  filter = TRUE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -20,6 +21,8 @@ load_seq(data_dir, species = "Homo sapiens", release = "94",
 then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
 
 \item{save_dgel}{If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.}
+
+\item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
 }
 \value{
 \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:

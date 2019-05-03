@@ -4,12 +4,14 @@
 \alias{import_quants}
 \title{Import salmon quant.sf files}
 \usage{
-import_quants(data_dir, tx2gene)
+import_quants(data_dir, tx2gene, filter)
 }
 \arguments{
-\item{data_dir}{Directory with a folder named 'quants' that contains salmon quantification folders for each sample.}
+\item{data_dir}{Directory with raw and quantified RNA-Seq files.}
 
 \item{tx2gene}{\code{data.frame} mapping transcripts to gene names. Returned from from \code{\link{get_tx2gene}}.}
+
+\item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
 }
 \value{
 \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
