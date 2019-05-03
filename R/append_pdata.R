@@ -32,6 +32,9 @@ append_pdata <- function(query_res, study) {
   pdata_path <- system.file('extdata', pdata_fname, package = 'drugseqr')
   pdata <- readRDS(pdata_path)
 
+  # append BRH annotation
+  pdata <- append_annot(pdata, study)
+
   if (!all(pdata$title == names(query_res)))
     stop("Query results and pdata titles don't match.")
 
@@ -41,6 +44,26 @@ append_pdata <- function(query_res, study) {
   # destructure title and return
   query_res <- destructure_title(query_res, .after = 'Correlation')
   return(query_res)
+}
+
+#' Bind annotation data to pdata
+#'
+#' For the moment, annotation data is Broad Repurposing Hub data.
+#'
+#' @param pdata \code{data.frame} of pdata for either CMAP02 or L1000.
+#' @param study Character identifying study. Either \code{'CMAP02'} or \code{'L1000'}.
+#'
+#' @return \code{pdata} with bound annotation columns.
+#' @export
+#'
+#' @examples
+append_annot <- function(pdata, study) {
+  annot_fname <- paste0(study, '_annot.rds')
+  annot_path <- system.file('extdata', annot_fname, package = 'drugseqr')
+
+  annot <- readRDS(annot_path)
+  pdata <- cbind(pdata, annot)
+  return(pdata)
 }
 
 #' Split CMAP02/L1000 title into multiple columns.
