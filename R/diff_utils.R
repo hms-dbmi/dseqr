@@ -42,7 +42,7 @@
 diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
 
   # check for annot column
-  if (!annot %in% colnames(fData(eset)))
+  if (!annot %in% colnames(Biobase::fData(eset)))
     stop(annot, " column in fData(eset) is missing.")
 
   # determine if this is rna seq data
@@ -98,7 +98,7 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 
   # make full and null model matrix
   group_levels = c('control', 'test')
-  group <- factor(pData(eset)$group, levels = group_levels)
+  group <- factor(Biobase::pData(eset)$group, levels = group_levels)
 
   mod <- stats::model.matrix(~0 + group)
   mod0 <- stats::model.matrix(~1, data = group)
@@ -113,7 +113,7 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
     } else {
       PROBE <- Biobase::fData(eset)$PROBE
     }
-    expr <- unique(data.table::data.table(exprs(eset), PROBE))[, PROBE := NULL]
+    expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
 
     # sva or svaseq
     sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
@@ -165,16 +165,16 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
 
   if (length(svobj) > 0) {
     # get eset with surrogate variables modeled out
-    exprs_sva <- clean_y(exprs(eset), mod, svobj$sv)
+    exprs_sva <- clean_y(Biobase::exprs(eset), mod, svobj$sv)
   } else {
-    exprs_sva <- exprs(eset)
+    exprs_sva <- Biobase::exprs(eset)
   }
 
   # add inter-quartile ranges, row, and feature data to exprs data
   data <- as.data.frame(exprs_sva)
   data$iqrange <- matrixStats::rowIQRs(exprs_sva)
   data$row <- 1:nrow(data)
-  data[, colnames(fData(eset))] <- fData(eset)
+  data[, colnames(Biobase::fData(eset))] <- Biobase::fData(eset)
 
   # remove rows with NA annot (occurs if annot is SYMBOL)
   data <- data[!is.na(data[, annot]), ]
@@ -188,8 +188,8 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
   exprs_sva <- exprs_sva[data$row, ]
 
   # use annot for feature names
-  featureNames(eset) <- fData(eset)[, annot]
-  row.names(exprs_sva)   <- fData(eset)[, annot]
+  Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
+  row.names(exprs_sva)   <- Biobase::fData(eset)[, annot]
 
   if (rm.dup) {
     not.dup <- !duplicated(exprs_sva)
@@ -242,13 +242,13 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 
   # voom (normalize/log) on exprs_sva
   if (rna_seq) {
-    lib.size <- pData(eset)$lib.size * pData(eset)$norm.factors
+    lib.size <- Biobase::pData(eset)$lib.size * Biobase::pData(eset)$norm.factors
     exprs_sva <- exprs_sva[edgeR::filterByExpr(exprs_sva), ]
     exprs_sva <- limma::voom(exprs_sva, modsv, lib.size)$E
   }
 
   # setup plot items
-  group <- factor(pData(eset)$group, levels = group_levels)
+  group <- factor(Biobase::pData(eset)$group, levels = group_levels)
   palette <- RColorBrewer::brewer.pal(12, "Paired")
   colours <- palette[group]
 
@@ -294,12 +294,12 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 
   if (rna_seq) {
     # get normalized lib size and voom
-    lib.size <- pData(eset)$lib.size * pData(eset)$norm.factors
-    v <- limma::voom(exprs(eset), mod, lib.size)
+    lib.size <- Biobase::pData(eset)$lib.size * Biobase::pData(eset)$norm.factors
+    v <- limma::voom(Biobase::exprs(eset), mod, lib.size)
     fit  <- limma::lmFit(v)
 
   } else {
-    fit <- limma::lmFit(exprs(eset), mod)
+    fit <- limma::lmFit(Biobase::exprs(eset), mod)
   }
 
   contrast_matrix <- limma::makeContrasts(contrasts = contrasts, levels = mod)
