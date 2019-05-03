@@ -98,7 +98,12 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
         escape = FALSE, # to allow HTML in table
         options = list(
           ordering=FALSE,
-          columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0)),
+          columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
+                            list(targets = 8:14, render = DT::JS(
+                              "function(data, type, row, meta) {",
+                              "return type === 'display' && data !== null && data.length > 12 ?",
+                              "'<span title=\"' + data + '\">' + data.substr(0, 12) + '...</span>' : data;",
+                              "}"))),
           scrollY = TRUE,
           scrollX = TRUE,
           pageLength = 50,
