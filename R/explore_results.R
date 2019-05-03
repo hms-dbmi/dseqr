@@ -138,7 +138,11 @@ add_table_html <- function(query_res) {
 
   # add linkout to pubchem
   cids <- query_res$`Pubchem CID`
-  query_res$`Pubchem CID` <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',  cids, '" target="_blank">', cids, '</a>')
+  have_cid <- !is.na(cids)
+  query_res$`Pubchem CID`[have_cid] <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',
+                                                  cids[have_cid],
+                                                  '" target="_blank">',
+                                                  cids[have_cid], '</a>')
 
   # replace correlation with svg element
   cors <- query_res$Correlation
