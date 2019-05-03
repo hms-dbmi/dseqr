@@ -98,6 +98,7 @@ select_contrast <- function(eset) {
         options = list(
           columnDefs = list(list(className = 'dt-nopad', targets = 0)),
           scrollY = FALSE,
+          scrollX = TRUE,
           paging = FALSE,
           bInfo = 0
         )
