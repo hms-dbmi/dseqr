@@ -100,7 +100,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
           ordering=FALSE,
           columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0)),
           scrollY = TRUE,
-          pageLength = 20,
+          scrollX = TRUE,
+          pageLength = 50,
           paging = TRUE,
           bInfo = 0,
           dom = 'ftp'
