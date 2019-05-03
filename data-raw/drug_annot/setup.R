@@ -1,6 +1,16 @@
 library(data.table)
 library(dplyr)
 
+# non UTF-8 encoded character cause DT alerts on filtering
+remove_non_utf8 <- function(df) {
+  df[] <- lapply(df, function(x) {
+    Encoding(x) <- "UTF-8"
+    iconv(x, "UTF-8", "UTF-8",sub='')
+  })
+
+  return(df)
+}
+
 drugs <- fread('data-raw/drug_annot/repurposing_drugs_20180907.txt', skip = 'pert_iname')
 samples <- fread('data-raw/drug_annot/repurposing_samples_20180907.txt', skip = 'pert_iname')
 
@@ -58,7 +68,8 @@ all.equal(cmap_annot$title, cmap_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
 cmap_annot <- cmap_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
-saveRDS(cmap_annot, 'inst/extdata/cmap_annot.rds')
+cmap_annot <- remove_non_utf8(cmap_annot)
+saveRDS(cmap_annot, 'inst/extdata/CMAP02_annot.rds')
 
 
 # L1000 setup -----
@@ -94,4 +105,7 @@ all.equal(l1000_annot$title, l1000_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
 l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
-saveRDS(l1000_annot, 'inst/extdata/l1000_annot.rds')
+
+# remove non-utf8 and save
+l1000_annot <- remove_non_utf8(l1000_annot)
+saveRDS(l1000_annot, 'inst/extdata/L1000_annot.rds')
