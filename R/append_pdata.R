@@ -47,9 +47,9 @@ append_pdata <- function(query_res, study) {
 #'
 #' Function used by \code{\link{append_pdata}}.
 #'
-#' @param pdata \code{data.frame} with and \code{'title'} columns. \code{'title'} column
+#' @param pdata \code{data.frame} with \code{'title'} column. \code{'title'} column
 #'   should contain 4 underscore seperated parts (e.g. \code{'10-DEBC_A375_20um_24h'}).
-#' @param drop Should the \code{'title} column be droped? Default is \code{TRUE}.
+#' @param drop Should the \code{'title'} column be droped? Default is \code{TRUE}.
 #' @param ... Additional arguments to \code{\link[tibble]{add_column}} (e.g. \code{.before} or \code{.after}).
 #'
 #' @return \code{pdata} without \code{'title'} column and 4 new columns: \code{'Compound'}, \code{'Cell Line'}, \code{'Dose'},

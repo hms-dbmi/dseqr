@@ -7,10 +7,10 @@
 destructure_title(pdata, drop = TRUE, ...)
 }
 \arguments{
-\item{pdata}{\code{data.frame} with and \code{'title'} columns. \code{'title'} column
+\item{pdata}{\code{data.frame} with \code{'title'} column. \code{'title'} column
 should contain 4 underscore seperated parts (e.g. \code{'10-DEBC_A375_20um_24h'}).}
 
-\item{drop}{Should the \code{'title} column be droped? Default is \code{TRUE}.}
+\item{drop}{Should the \code{'title'} column be droped? Default is \code{TRUE}.}
 
 \item{...}{Additional arguments to \code{\link[tibble]{add_column}} (e.g. \code{.before} or \code{.after}).}
 }
