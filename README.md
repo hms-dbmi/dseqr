@@ -69,10 +69,13 @@ pdata_path <- system.file('extdata',  'IBD', 'Phenotypes.csv', package='drugseqr
 
 # run transcript quantification using salmon
 # this will load a GUI and prompt for various checks/annotations
+# NOTE: the example data only contains the first 1000 sequences for each file (expect warnings from salmon)
 run_salmon(data_dir, pdata_path)
 
 # load and annotate RNA-seq quants
-eset <- load_seq(data_dir)
+# NOTE: to load a pre-saved ExpressionSet from the original full dataset, set load_saved = TRUE (default)
+# NOTE: filter should generally be TRUE. It is set to FALSE only to prevent filtering all genes for this small example data set.
+eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE, filter = FALSE)
 ```
 
 ## Run Differential Expression Analysis
