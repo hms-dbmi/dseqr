@@ -62,6 +62,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
     shiny::tags$head(
+      shiny::tags$style("#clinical {margin-top: -26px;}"), # to align button and input
       shiny::tags$style("#query_res {white-space: nowrap;}"), # table text on 1 line
       shiny::tags$style("td.sim-cell {min-width: 180px !important; padding: 0px !important; !important; position: relative;}"),
       shiny::tags$style(".simplot {position: absolute; z-index: 1, top: 0; left: 0; right: 0; bottom: 0;}"),
@@ -74,9 +75,10 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
     miniUI::gadgetTitleBar("Explore Results"),
     miniUI::miniContentPanel(
       shiny::fillCol(flex = c(NA, NA, 1),
-                     shiny::selectizeInput('study',
-                                           'Select study:',
-                                           choices = study_choices),
+                     shiny::tags$div(
+                       shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('study', 'Select study:', choices = study_choices)),
+                       shinyBS::bsButton("clinical", label = '', icon = shiny::icon('pills'), block = F, style="default")
+                     ),
                      shiny::hr(),
                      DT::dataTableOutput("query_res")
       )
@@ -119,6 +121,12 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       study_tables[[input$study]]
     })
 
+    # click 'Clinical' ----
+    observeEvent(input$clinical,{
+      style <- c('default', 'primary')[(input$clinical %% 2) + 1]
+      shinyBS::updateButton(session, "clinical", block = F, style = style)
+    })
+
     # click 'Done' ----
 
     shiny::observeEvent(input$done, {
@@ -146,9 +154,9 @@ add_table_html <- function(query_res) {
   cids <- query_res$`Pubchem CID`
   have_cid <- !is.na(cids)
   query_res$`Pubchem CID`[have_cid] <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',
-                                                  cids[have_cid],
-                                                  '" target="_blank">',
-                                                  cids[have_cid], '</a>')
+                                              cids[have_cid],
+                                              '" target="_blank">',
+                                              cids[have_cid], '</a>')
 
   # replace correlation with svg element
   cors <- query_res$Correlation
