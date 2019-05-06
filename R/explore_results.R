@@ -29,6 +29,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
 
   # setup ----
+
   null_cmap <- is.null(cmap_res)
   null_l1000 <- is.null(l1000_res)
 
@@ -57,19 +58,24 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   # initial query_res
   query_res <- study_tables[[1]]
 
+
   #  user interface ----
 
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
     shiny::tags$head(
-      shiny::tags$style("#clinical {margin-top: -26px;}"), # to align button and input
+      shiny::tags$style("#clinical {margin-top: -26px;}"), # to align clinical button and study selection
       shiny::tags$style("#query_res {white-space: nowrap;}"), # table text on 1 line
+
+      # css for correlation plots
       shiny::tags$style("td.sim-cell {min-width: 180px !important; padding: 0px !important; !important; position: relative;}"),
       shiny::tags$style(".simplot {position: absolute; z-index: 1, top: 0; left: 0; right: 0; bottom: 0;}"),
       shiny::tags$style("text.x {fill: #ddd; font: 10px Arial, sans-serif; text-anchor: middle;}"),
       shiny::tags$style(".simplot circle {fill: transparent; stroke-width: 1.1px; stroke: rgba(0, 0, 0, 0.75);}"),
       shiny::tags$style(".simplot:hover text.x {fill: #443;}"),
-      shiny::tags$style(".simplot:hover circle {fill: red; stroke: #443;}")
+      shiny::tags$style(".simplot:hover circle {fill: red; stroke: #443;}"),
+
+      shiny::includeScript(system.file("js/toggleClinicalTitle.js", package = "drugseqr"))
     ),
     # title bar
     miniUI::gadgetTitleBar("Explore Results"),
@@ -77,7 +83,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       shiny::fillCol(flex = c(NA, NA, 1),
                      shiny::tags$div(
                        shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('study', 'Select study:', choices = study_choices)),
-                       shinyBS::bsButton("clinical", label = '', icon = shiny::icon('pills'), block = F, style="default")
+                       shinyBS::bsButton('clinical', label = '', icon = shiny::icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase')
                      ),
                      shiny::hr(),
                      DT::dataTableOutput("query_res")
@@ -123,8 +129,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
     # click 'Clinical' ----
     observeEvent(input$clinical,{
-      style <- c('default', 'primary')[(input$clinical %% 2) + 1]
-      shinyBS::updateButton(session, "clinical", block = F, style = style)
+      toggle <- (input$clinical %% 2) + 1
+      shinyBS::updateButton(session, 'clinical', style = c('default', 'primary')[toggle])
     })
 
     # click 'Done' ----
