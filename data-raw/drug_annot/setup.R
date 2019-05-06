@@ -1,6 +1,6 @@
 library(data.table)
 library(dplyr)
-library(purrr)
+library(drugseqr)
 
 # non UTF-8 encoded character cause DT alerts on filtering
 remove_non_utf8 <- function(df) {

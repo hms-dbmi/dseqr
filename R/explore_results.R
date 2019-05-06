@@ -37,27 +37,18 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
     stop('Must provide one of cmap_res or l1000_res')
 
   # append pdata to results and add html for correlation plots
+  study_choices <- c('CMAP02', 'L1000')[!is.null(c(cmap_res, l1000_res))]
   study_tables <- list()
-  study_choices <- c()
-  if (!null_cmap) {
-    cmap_res <- append_pdata(cmap_res, 'CMAP02')
-    cmap_res <- add_table_html(cmap_res)
 
-    study_tables[['CMAP02']] <- cmap_res
-    study_choices <- c(study_choices, 'CMAP02')
-  }
+  if (!null_cmap)
+    study_tables[['CMAP02']] <- study_table(cmap_res, 'CMAP02')
 
-  if (!null_l1000) {
-    l1000_res <- append_pdata(l1000_res, 'L1000')
-    l1000_res <- add_table_html(l1000_res)
-
-    study_tables[['L1000']] <- l1000_res
-    study_choices <- c(study_choices, 'L1000')
-  }
+  # if cmap, don't setup l1000 until selection (for initial load speed)
+  if (!null_l1000 & null_cmap)
+    study_tables[['L1000']] <- study_table(l1000_res, 'L1000')
 
   # initial query_res
   query_res <- study_tables[[1]]
-
 
   #  user interface ----
 
@@ -70,10 +61,10 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       # css for correlation plots
       shiny::tags$style("td.sim-cell {min-width: 180px !important; padding: 0px !important; !important; position: relative;}"),
       shiny::tags$style(".simplot {position: absolute; z-index: 1, top: 0; left: 0; right: 0; bottom: 0;}"),
-      shiny::tags$style("text.x {fill: #ddd; font: 10px Arial, sans-serif; text-anchor: middle;}"),
-      shiny::tags$style(".simplot circle {fill: transparent; stroke-width: 1.1px; stroke: rgba(0, 0, 0, 0.75);}"),
-      shiny::tags$style(".simplot:hover text.x {fill: #443;}"),
-      shiny::tags$style(".simplot:hover circle {fill: red; stroke: #443;}"),
+      shiny::tags$style(".simplot text.x {fill: transparent; font: 10px Arial, sans-serif; text-anchor: middle;}"),
+      shiny::tags$style(".simplot circle {fill: transparent; stroke-width: 1.1px; stroke: rgba(0, 0, 0, 0.35);}"),
+      shiny::tags$style(".cor-point:hover text.x {fill: #443;}"),
+      shiny::tags$style(".cor-point:hover circle {fill: red; stroke: #443;}"),
 
       shiny::includeScript(system.file("js/toggleClinicalTitle.js", package = "drugseqr"))
     ),
@@ -125,12 +116,16 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
     # query_res reactive to study choice
     query_res <- shiny::reactive({
-      query_res <- study_tables[[input$study]]
-      # browser()
+      # initial setup for l1000 only after selection
+      if (input$study == 'L1000' && !'L1000' %in% names(study_tables))
+        study_tables[['L1000']] <<- study_table(l1000_res, 'L1000')
 
+      query_res <- study_tables[[input$study]]
+
+      # for removing entries without a clinical phase
       if (isClinical()) {
-        query_res <- tibble::as_tibble(query_res, )
-        query_res <- dplyr::filter(query_res, !is.na(.data$clinical_phase))
+        query_res <- tibble::as_tibble(query_res)
+        query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
       }
 
       return(query_res)
@@ -159,6 +154,77 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
 }
 
+#' Title
+#'
+#' @param query_res
+#' @param study
+#'
+#' @return
+#' @export
+#'
+#' @examples
+study_table <- function(query_res, study) {
+  query_res <- append_pdata(query_res, study)
+  query_res <- summarize_compound(query_res)
+  query_res <- add_table_html(query_res)
+  return(query_res)
+}
+
+
+#' Title
+#'
+#' @param query_res
+#'
+#' @return
+#' @export
+#'
+#' @importFrom magrittr "%>%"
+#'
+#' @examples
+summarize_compound <- function(query_res) {
+
+  # group by compound
+  query_res <- query_res %>%
+    dplyr::group_by(Compound)
+
+  # put all correlations together in list
+  # keep minimum correlation for sorting
+  query_cors <- query_res %>%
+    dplyr::select(Correlation, Compound) %>%
+    dplyr::summarise(min_cor = min(Correlation), Correlation = I(list(Correlation))) %>%
+    dplyr::select(Correlation, min_cor)
+
+  # keep furthest clinical phase
+  query_phase <- query_res %>%
+    dplyr::select(clinical_phase, Compound) %>%
+    dplyr::summarise(clinical_phase = max(clinical_phase)) %>%
+    dplyr::pull(clinical_phase)
+
+
+  # summarize cell lines etc
+  query_rest <- query_res %>%
+    dplyr::select(-Correlation, -clinical_phase) %>%
+    dplyr::summarize_all(function(x) {
+      unqx <- na.omit(x)
+      unqx <- as.character(unqx)
+      unqx <- unlist(strsplit(unqx, '|', fixed = TRUE))
+      unqx <- unique(unqx)
+
+      # keep as NA if they all are
+      if (!length(unqx)) return(NA_character_)
+
+      # collapse distinct non-NA entries
+      return(paste(unqx, collapse = ' | '))
+    }) %>%
+    tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
+
+  query_res <- dplyr::bind_cols(query_cors, query_rest) %>%
+    dplyr::arrange(min_cor) %>%
+    dplyr::select(-min_cor)
+
+  return(query_res)
+}
+
 #' Add HTML to query results table
 #'
 #' @param query_res \code{data.frame} returned by \code{\link{append_pdata}}
@@ -168,8 +234,6 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 #'
 #' @examples
 add_table_html <- function(query_res) {
-  # order by increasing correlation
-  query_res <- query_res[order(query_res$Correlation), ]
 
   # add linkout to pubchem
   cids <- query_res$`Pubchem CID`
@@ -181,13 +245,25 @@ add_table_html <- function(query_res) {
 
   # replace correlation with svg element
   cors <- query_res$Correlation
+  cors_range <- range(unlist(cors))
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
-                            <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>
-                            <g><text x="', calcx(cors, range(cors)), '" y="38" class="x text" dy="-2">', signif(cors, 3), '</text></g>
-                            <g><circle cx="', calcx(cors, range(cors)), '" cy="19" r="5" class="cor"></circle></g>
-                            </svg>')
+                            <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
+                            add_cors_html(cors, cors_range),
+                            '</svg>')
 
   return(query_res)
+}
+
+add_cors_html <- function(cors, cors_range) {
+
+  cors_html <- sapply(cors, function(x) {
+    paste0('<g class="cor-point">
+              <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
+              <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor"></circle></g>
+            </g>', collapse = '\n')
+  })
+
+  return(cors_html)
 }
 
 
