@@ -63,6 +63,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       shiny::tags$style(".simplot {position: absolute; z-index: 1, top: 0; left: 0; right: 0; bottom: 0;}"),
       shiny::tags$style(".simplot text.x {fill: transparent; font: 10px Arial, sans-serif; text-anchor: middle;}"),
       shiny::tags$style(".simplot circle {fill: transparent; stroke-width: 1.1px; stroke: rgba(0, 0, 0, 0.35);}"),
+      shiny::tags$style(".cor-point:hover {cursor: crosshair;}"),
       shiny::tags$style(".cor-point:hover text.x {fill: #443;}"),
       shiny::tags$style(".cor-point:hover circle {fill: red; stroke: #443;}"),
 
@@ -86,18 +87,25 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   server <- function(input, output, session) {
 
+
     # show query data
     output$query_res <- DT::renderDataTable({
 
+
+      query_res <- query_res()
+      wide_cols <- c('moa', 'target', 'disease_area', 'indication', 'vendor', 'catalog_no', 'vendor_name')
+      # -1 needed with rownames = FALSE
+      elipsis_targets <- which(colnames(query_res) %in% wide_cols) - 1
+
       DT::datatable(
-        query_res(),
+        query_res,
         class = 'cell-border',
         rownames = FALSE,
         selection = 'none',
         escape = FALSE, # to allow HTML in table
         options = list(
           columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
-                            list(targets = 8:14, render = DT::JS(
+                            list(targets = elipsis_targets, render = DT::JS(
                               "function(data, type, row, meta) {",
                               "return type === 'display' && data !== null && data.length > 12 ?",
                               "'<span title=\"' + data + '\">' + data.substr(0, 12) + '...</span>' : data;",
@@ -187,6 +195,15 @@ summarize_compound <- function(query_res) {
   query_res <- query_res %>%
     dplyr::group_by(Compound)
 
+  # merge cell line, dose, and duration and samples for correlation titles
+  query_res <- query_res %>%
+    tidyr::unite(title, 'Cell Line', 'Dose', 'Duration', 'Samples(n)')
+
+  query_title <- query_res %>%
+    dplyr::select(title, Compound) %>%
+    dplyr::summarize(title = I(list(title))) %>%
+    dplyr::select(title)
+
   # put all correlations together in list
   # keep minimum correlation for sorting
   query_cors <- query_res %>%
@@ -200,10 +217,9 @@ summarize_compound <- function(query_res) {
     dplyr::summarise(clinical_phase = max(clinical_phase)) %>%
     dplyr::pull(clinical_phase)
 
-
-  # summarize cell lines etc
+  # summarize rest
   query_rest <- query_res %>%
-    dplyr::select(-Correlation, -clinical_phase) %>%
+    dplyr::select(-Correlation, -clinical_phase, -title) %>%
     dplyr::summarize_all(function(x) {
       unqx <- na.omit(x)
       unqx <- as.character(unqx)
@@ -218,7 +234,7 @@ summarize_compound <- function(query_res) {
     }) %>%
     tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
 
-  query_res <- dplyr::bind_cols(query_cors, query_rest) %>%
+  query_res <- dplyr::bind_cols(query_cors, query_rest, query_title) %>%
     dplyr::arrange(min_cor) %>%
     dplyr::select(-min_cor)
 
@@ -245,19 +261,27 @@ add_table_html <- function(query_res) {
 
   # replace correlation with svg element
   cors <- query_res$Correlation
+
+  # move titles to plots
+  titles <- query_res$title
+  query_res$title <- NULL
+
   cors_range <- range(unlist(cors))
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
                             <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
-                            add_cors_html(cors, cors_range),
+                            add_cors_html(cors, titles, cors_range),
                             '</svg>')
 
   return(query_res)
 }
 
-add_cors_html <- function(cors, cors_range) {
+add_cors_html <- function(cors, titles, cors_range) {
 
-  cors_html <- sapply(cors, function(x) {
+  cors_html <- sapply(seq_along(cors), function(i) {
+    x <- cors[[i]]
+    xtitle <- titles[[i]]
     paste0('<g class="cor-point">
+              <title>', xtitle, '</title>
               <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
               <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor"></circle></g>
             </g>', collapse = '\n')
