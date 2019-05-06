@@ -105,7 +105,6 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
         selection = 'none',
         escape = FALSE, # to allow HTML in table
         options = list(
-          ordering=FALSE,
           columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
                             list(targets = 8:14, render = DT::JS(
                               "function(data, type, row, meta) {",
@@ -122,15 +121,31 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       )
     }, server = TRUE)
 
+    isClinical <- shiny::reactiveVal(FALSE)
+
     # query_res reactive to study choice
     query_res <- shiny::reactive({
-      study_tables[[input$study]]
+      query_res <- study_tables[[input$study]]
+      # browser()
+
+      if (isClinical()) {
+        query_res <- tibble::as_tibble(query_res, )
+        query_res <- dplyr::filter(query_res, !is.na(.data$clinical_phase))
+      }
+
+      return(query_res)
+
     })
 
     # click 'Clinical' ----
     observeEvent(input$clinical,{
       toggle <- (input$clinical %% 2) + 1
+
+      # update clinical button styling
       shinyBS::updateButton(session, 'clinical', style = c('default', 'primary')[toggle])
+
+      # update boolean reactiveVal
+      isClinical(toggle - 1)
     })
 
     # click 'Done' ----
