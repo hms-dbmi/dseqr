@@ -75,7 +75,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       shiny::fillCol(flex = c(NA, NA, 1),
                      shiny::tags$div(
                        shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('study', 'Select study:', choices = study_choices)),
-                       shinyBS::bsButton('clinical', label = '', icon = shiny::icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase')
+                       shinyBS::bsButton('clinical', label = '', icon = shiny::icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                       shiny::plotOutput(outputId = "histPlot", width = 800)
                      ),
                      shiny::hr(),
                      DT::dataTableOutput("query_res")
@@ -87,10 +88,19 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   server <- function(input, output, session) {
 
+    output$histPlot <- shiny::renderPlot({
+
+      if (input$study == 'CMAP02') x <- cmap_res else x <- l1000_res
+      bins <- seq(min(x), max(x), length.out = 51)
+
+      hist(x, breaks = bins, col = "#75AADB", border = "white",
+           xlab = "Pearson correlations", main = "", xlim = c(min(x) - 0.1, max(x) + 0.1))
+
+    })
+
 
     # show query data
     output$query_res <- DT::renderDataTable({
-
 
       query_res <- query_res()
       wide_cols <- c('moa', 'target', 'disease_area', 'indication', 'vendor', 'catalog_no', 'vendor_name')
@@ -107,8 +117,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
           columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
                             list(targets = elipsis_targets, render = DT::JS(
                               "function(data, type, row, meta) {",
-                              "return type === 'display' && data !== null && data.length > 12 ?",
-                              "'<span title=\"' + data + '\">' + data.substr(0, 12) + '...</span>' : data;",
+                              "return type === 'display' && data !== null && data.length > 17 ?",
+                              "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
                               "}"))),
           scrollY = TRUE,
           scrollX = TRUE,
