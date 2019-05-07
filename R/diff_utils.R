@@ -237,8 +237,6 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 
   # get results
   top_table <- limma::topTable(ebayes_sv, coef = 1, n = Inf)
-  num_sig <- sum(top_table$adj.P.Val < 0.05)
-  cat(contrasts, "(# p < 0.05):", num_sig, "\n")
 
   # voom (normalize/log) on exprs_sva
   if (rna_seq) {
@@ -247,21 +245,11 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
     exprs_sva <- limma::voom(exprs_sva, modsv, lib.size)$E
   }
 
-  # setup plot items
-  group <- factor(Biobase::pData(eset)$group, levels = group_levels)
-  palette <- RColorBrewer::brewer.pal(12, "Paired")
-  colours <- palette[group]
-
-  # Add extra space to right of plot area
-  graphics::par(mai = c(1, 1, 1, 1.4))
-
-  # plot MDS
-  limma::plotMDS(exprs_sva, pch = 19, main='MDS plot (after sva)', col = colours)
-  graphics::legend("topright", inset = c(-0.18, 0), legend = group_levels,
-                   fill = unique(colours), xpd = TRUE, bty = "n", cex = 0.65)
-
   # only store phenoData (exprs and fData large)
   pdata <- Biobase::pData(eset)
+
+  # MDS plot
+  plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
 
   # save to disk
   diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot)
@@ -271,6 +259,67 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
   saveRDS(diff_expr, file.path(data_dir, save_name))
   return(diff_expr)
 }
+
+#' Plot sammon MDS with and without SVA
+#'
+#' Plots interactive MDS plot of expression values with and without surrogate variable analysis.
+#'
+#' @param exprs \code{matrix} of expression values.
+#' @param exprs_sva \code{matrix} of expression values with surrogate variables regressed out.
+#' @param group Character vector with values \code{'control'} and \code{'test'} indicating group membership.
+#' @importFrom magrittr "%>%"
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+plotMDS <- function(exprs, exprs_sva, group) {
+
+  # get_dist acts on rows
+  exprs <- t(exprs)
+  exprs_sva <- t(exprs_sva)
+
+  dist <- factoextra::get_dist(exprs, method = 'spearman')
+  dist_sva <- factoextra::get_dist(exprs_sva, method = 'spearman')
+
+  # sammon scaling for dimensionality reduction
+  capture.output({
+    scaling <- tibble::as_tibble(MASS::sammon(dist, k = 2)$points)
+    scaling_sva <- tibble::as_tibble(MASS::sammon(dist_sva, k = 2)$points)
+  })
+
+  # setup for ggplot
+  scaling <- dplyr::bind_rows(scaling, scaling_sva) %>%
+    dplyr::rename('MDS_dimension_1' = V1,'MDS_dimension_2' = V2) %>%
+    dplyr::mutate(Sample = rep(row.names(exprs), 2)) %>%
+    dplyr::mutate(Group = rep(factor(group, levels = c('control', 'test')), 2)) %>%
+    dplyr::mutate(SVA = rep(c('Without Surrogate Variable Analysis', 'With Surrogate Variable Analysis'), each = nrow(exprs)))
+
+  # jitter by 2% of range
+  jitter <- ggplot2::position_jitter(width = diff(range(scaling$MDS_dimension_1))*.02,
+                                     height = diff(range(scaling$MDS_dimension_2))*.02,
+                                     seed = 0)
+
+  mds_plot <- ggplot2::ggplot(scaling) +
+    ggplot2::aes(MDS_dimension_1, MDS_dimension_2, color = Group, label = Sample, alpha = 0.7) +
+    ggplot2::facet_wrap( ~ SVA, ncol=1) +
+    ggplot2::geom_point(position = jitter, size = 3) +
+    ggplot2::ggtitle("Sammon MDS plots") +
+    ggplot2::xlab('MDS dimension 1') +
+    ggplot2::ylab('MDS dimension 2') +
+    ggplot2::scale_color_brewer(palette = 'Set1', direction = -1) +
+    ggplot2::theme_light() +
+    ggplot2::coord_equal() +
+    ggplot2::guides(alpha = FALSE, size = FALSE)
+
+  p <- plotly::ggplotly(mds_plot, tooltip = "Sample") %>%
+    plotly::config(displayModeBar = FALSE)
+
+
+  print(p)
+}
+
+
 
 
 # ------------------------
