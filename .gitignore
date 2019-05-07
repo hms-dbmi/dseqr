@@ -7,6 +7,9 @@ data-raw/example-data/*
 !mds-sva.R
 !mds-sva.png
 
+# contains PUG-View files from Pubchem
+data-raw/drug_annot/pug_view/views/*
+
 
 # salmon indices
 inst/indices

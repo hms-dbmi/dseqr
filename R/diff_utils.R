@@ -304,9 +304,9 @@ plotMDS <- function(exprs, exprs_sva, group) {
     ggplot2::aes(MDS_dimension_1, MDS_dimension_2, color = Group, label = Sample, alpha = 0.7) +
     ggplot2::facet_wrap( ~ SVA, ncol=1) +
     ggplot2::geom_point(position = jitter, size = 3) +
-    ggplot2::ggtitle("Sammon MDS plots") +
-    ggplot2::xlab('MDS dimension 1') +
-    ggplot2::ylab('MDS dimension 2') +
+    ggplot2::ggtitle("Sammon MDS Plots") +
+    ggplot2::xlab('MDS Dimension 1') +
+    ggplot2::ylab('MDS Dimension 2') +
     ggplot2::scale_color_brewer(palette = 'Set1', direction = -1) +
     ggplot2::theme_light() +
     ggplot2::coord_equal() +
