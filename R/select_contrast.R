@@ -29,7 +29,8 @@ select_contrast <- function(eset) {
 
   # Group column is populated by user selections
   pdata <- Biobase::pData(eset)
-  pdata <- tibble::add_column(pdata, Group = NA, Title = row.names(pdata), .before = 1)
+  pdata <- tibble::add_column(pdata, Group = '<div><span style="opacity: 0;">NA</span></div>',
+                              Title = row.names(pdata), .before = 1)
 
 
   #  user interface ----
@@ -180,7 +181,7 @@ select_contrast <- function(eset) {
 
     shiny::observeEvent(input$reset, {
       sels <<- list()
-      pdata$Group <<- NA
+      pdata$Group <<- '<div><span style="opacity: 0;">NA</span></div>'
 
       # remove groups from table and reset control
       state$ctrl <- 1
