@@ -7,10 +7,10 @@
 add_table_html(query_res)
 }
 \arguments{
-\item{query_res}{\code{data.frame} returned by \code{\link{append_pdata}}}
+\item{query_res}{\code{data.frame} returned by \code{\link{summarize_compound}}}
 }
 \value{
-\code{query_res} with pubchem cid links and correlation plot html.
+\code{query_res} with pubchem cid links and correlation plot HTML.
 }
 \description{
 Add HTML to query results table

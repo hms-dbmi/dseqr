@@ -2,13 +2,24 @@
 % Please edit documentation in R/explore_results.R
 \name{summarize_compound}
 \alias{summarize_compound}
-\title{Title}
+\title{Summarize query results and annotations by perturbation}
 \usage{
 summarize_compound(query_res)
 }
 \arguments{
-\item{query_res}{}
+\item{query_res}{\code{data.frame} of perturbation correlations and annotations returned by \code{\link{append_pdata}}.}
+}
+\value{
+\code{data.frame} of perturbation correlations and annotations summarized by perturbation.
 }
 \description{
-Title
+Takes a \code{data.frame} with one row per signatures and summarizes to one row per compound.
+}
+\details{
+Variables related to individual signatures (cell line, dose, duration, and sample number) are
+pasted together and added as a list to \code{'title'} column. Query correlation values are also added as a list to
+the \code{'Correlation'} column.
+
+Clinical status is summarized by keeping the most advanced phase only (e.g. Launched > Phase 3). For all other variables,
+all unique entries are paste together seperated by \code{'|'}.
 }

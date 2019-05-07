@@ -2,13 +2,19 @@
 % Please edit documentation in R/explore_results.R
 \name{study_table}
 \alias{study_table}
-\title{Title}
+\title{Set up DT for explore_results}
 \usage{
 study_table(query_res, study)
 }
 \arguments{
-\item{study}{}
+\item{query_res}{Named numeric vector returned from \code{\link{query_drugs}}.}
+
+\item{study}{Character vector. Either \code{'CMAP02'} or \code{'L1000'}.}
+}
+\value{
+\code{data.frame} of perturbation correlations and annotations.
 }
 \description{
-Title
+Appends perturbation annotations, summarizes by perturbation, and adds HTML for
+correlation plots and hyperlinks.
 }

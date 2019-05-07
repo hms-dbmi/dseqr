@@ -172,12 +172,15 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
 }
 
-#' Title
+#' Set up DT for explore_results
 #'
-#' @param query_res
-#' @param study
+#' Appends perturbation annotations, summarizes by perturbation, and adds HTML for
+#' correlation plots and hyperlinks.
 #'
-#' @return
+#' @param query_res Named numeric vector returned from \code{\link{query_drugs}}.
+#' @param study Character vector. Either \code{'CMAP02'} or \code{'L1000'}.
+#'
+#' @return \code{data.frame} of perturbation correlations and annotations.
 #' @export
 #'
 #' @examples
@@ -189,11 +192,22 @@ study_table <- function(query_res, study) {
 }
 
 
-#' Title
+#' Summarize query results and annotations by perturbation
 #'
-#' @param query_res
+#' Takes a \code{data.frame} with one row per signatures and summarizes to one row per compound.
 #'
-#' @return
+#' Variables related to individual signatures (cell line, dose, duration, and sample number) are
+#' pasted together and added as a list to \code{'title'} column. Query correlation values are also added as a list to
+#' the \code{'Correlation'} column.
+#'
+#' Clinical status is summarized by keeping the most advanced phase only (e.g. Launched > Phase 3). For all other variables,
+#' all unique entries are paste together seperated by \code{'|'}.
+#'
+#'
+#'
+#' @param query_res \code{data.frame} of perturbation correlations and annotations returned by \code{\link{append_pdata}}.
+#'
+#' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
 #' @export
 #'
 #' @importFrom magrittr "%>%"
@@ -253,9 +267,9 @@ summarize_compound <- function(query_res) {
 
 #' Add HTML to query results table
 #'
-#' @param query_res \code{data.frame} returned by \code{\link{append_pdata}}
+#' @param query_res \code{data.frame} returned by \code{\link{summarize_compound}}
 #'
-#' @return \code{query_res} with pubchem cid links and correlation plot html.
+#' @return \code{query_res} with pubchem cid links and correlation plot HTML.
 #' @export
 #'
 #' @examples
@@ -279,13 +293,23 @@ add_table_html <- function(query_res) {
   cors_range <- range(unlist(cors))
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
                             <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
-                            add_cors_html(cors, titles, cors_range),
+                            get_cors_html(cors, titles, cors_range),
                             '</svg>')
 
   return(query_res)
 }
 
-add_cors_html <- function(cors, titles, cors_range) {
+#' Get HTML for correlation values.
+#'
+#' @param cors List of numeric vectors of pearson correlations.
+#' @param titles List of character vectors of treatment titles for pearson correlations (e.g. MCF7_1e-05M_6h_3).
+#' @param cors_range Numeric vector of length two specifying the range of correlation values.
+#'
+#' @return Character vector of HTML markup for the title/circle/text for a correlation plot.
+#' @export
+#'
+#' @examples
+get_cors_html <- function(cors, titles, cors_range) {
 
   cors_html <- sapply(seq_along(cors), function(i) {
     x <- cors[[i]]
