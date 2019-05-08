@@ -6,6 +6,9 @@
 #' @export
 #'
 #' @examples
+#'
+#' pug_view <- fromJSON(file='/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view/views/4091.json')
+#'
 check_gras <- function(pug_view) {
 
   # default
@@ -25,4 +28,33 @@ check_gras <- function(pug_view) {
   }
 
   return(is_gras)
+}
+
+#' Extract DrugBank URL from PUG-View
+#'
+#' @inheritParams check_gras
+#'
+#' @return Character vector with DrugBank URL or NA if none exists
+#' @export
+#'
+#' @examples
+get_drugbank <- function(pug_view) {
+
+  # default
+  db_url <- NA_character_
+
+  # get reference source names
+  refs <- pug_view$Record$Reference
+  sources <- sapply(refs, `[[`, 'SourceName')
+
+  # get first drugbank index
+  dbi <- which(sources == 'DrugBank')[1]
+
+  if (!is.na(dbi)) {
+    # get base url
+    db_url <- refs[[dbi]]$URL
+    db_url <- gsub('^([^#]+/DB[0-9]+)#.+?$', '\\1', db_url)
+  }
+
+  return(db_url)
 }

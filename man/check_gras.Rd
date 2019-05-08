@@ -15,3 +15,8 @@ Boolean indicating if \code{pug_view} has a GRAS notice.
 \description{
 Check Pubchem PUG-View for GRAS notice
 }
+\examples{
+
+pug_view <- fromJSON(file='/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view/views/4091.json')
+
+}
