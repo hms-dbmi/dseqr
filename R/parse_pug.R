@@ -55,6 +55,5 @@ get_drugbank <- function(pug_view) {
     db_url <- refs[[dbi]]$URL
     db_url <- gsub('^([^#]+/DB[0-9]+)#.+?$', '\\1', db_url)
   }
-
   return(db_url)
 }
