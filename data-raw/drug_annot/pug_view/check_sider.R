@@ -15,8 +15,11 @@ for (i in 1:length(cids)) {
   cid <- cids[i]
   sider[cid] <- check_sider(cid)
 
-  if (i %% 100 == 0) {
+  if (i %% 100 == 0 | i == length(cids)) {
     cat('Working on', i, 'of', length(cids), '\n')
     saveRDS(sider, 'sider.rds')
   }
 }
+
+sum(sider)
+# 465
