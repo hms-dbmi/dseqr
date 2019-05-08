@@ -116,6 +116,6 @@ row.names(l1000_pdata) <- l1000_pdata$characteristics_ch1.1 <- NULL
 l1000_pdata$`Pubchem CID`[l1000_pdata$`Pubchem CID` == 'NA'] <- NA
 
 # save pdata and overwrite existing l1000_es data with fixed names
-# ALSO UPDATE S3 DATA in drugseqr BUCKET IF ANYTHING CHANGES
+# ALSO UPDATE S3 DATA for l1000_es in drugseqr BUCKET IF ANYTHING CHANGES
 saveRDS(l1000_es, file.path(data_dir, 'l1000_es.rds'))
 saveRDS(l1000_pdata, file.path(data_dir, 'L1000_pdata.rds'))
