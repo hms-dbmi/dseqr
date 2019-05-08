@@ -51,9 +51,26 @@ annot$pubchem_cid <- as.character(annot$pubchem_cid)
 # use most advanced phase
 annot$clinical_phase <- gsub('^Phase \\d/', '', annot$clinical_phase)
 unique(annot$clinical_phase)
-increasing_phases <- c('Withdrawn', 'Preclinical', 'Phase 1', 'Phase 2', 'Phase 3', 'Launched')
+increasing_phases <- c('Withdrawn', 'Preclinical', 'Phase 1', 'Phase 2', 'Phase 2 | GRAS', 'Phase 3', 'Launched', 'Launched | GRAS')
 
 annot <- remove_non_utf8(annot)
+
+
+# add SIDER, DrugBank, and GRAS ----
+sider <- readRDS('data-raw/drug_annot/pug_view/sider.rds')
+sider <- tibble(pubchem_cid = names(sider), sider) %>%
+  mutate(sider = ifelse(sider, paste0('http://sideeffects.embl.de/drugs/', pubchem_cid, '/'), NA))
+
+pug_annot <- readRDS('data-raw/drug_annot/pug_view/pug_annot.rds')
+pug_annot <- pug_annot %>%
+  mutate(drugbank = ifelse(is.na(drugbank), NA, paste0('https://www.drugbank.ca/drugs/', drugbank)))
+
+annot <- annot %>%
+  left_join(pug_annot, by = 'pubchem_cid') %>%
+  left_join(sider, by = 'pubchem_cid') %>%
+  mutate(clinical_phase = ifelse(gras, paste0(clinical_phase, ' | GRAS'), clinical_phase)) %>%
+  select(-gras)
+
 
 # CMAP02 setup ----
 cmap_pdata <- readRDS('inst/extdata/CMAP02_pdata.rds')
@@ -128,6 +145,4 @@ all.equal(l1000_annot$title, l1000_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
 l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
-
-# remove non-utf8 and save
 saveRDS(l1000_annot, 'inst/extdata/L1000_annot.rds')
