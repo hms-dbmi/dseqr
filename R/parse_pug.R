@@ -34,14 +34,14 @@ check_gras <- function(pug_view) {
 #'
 #' @inheritParams check_gras
 #'
-#' @return Character vector with DrugBank URL or NA if none exists
+#' @return Character vector with DrugBank ID or NA if none exists
 #' @export
 #'
 #' @examples
 get_drugbank <- function(pug_view) {
 
   # default
-  db_url <- NA_character_
+  db_id <- NA_character_
 
   # get reference source names
   refs <- pug_view$Record$Reference
@@ -53,7 +53,7 @@ get_drugbank <- function(pug_view) {
   if (!is.na(dbi)) {
     # get base url
     db_url <- refs[[dbi]]$URL
-    db_url <- gsub('^([^#]+/DB[0-9]+)#.+?$', '\\1', db_url)
+    db_id <- gsub('^[^#]+/(DB[0-9]+)', '\\1', db_url)
   }
-  return(db_url)
+  return(db_id)
 }

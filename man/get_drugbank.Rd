@@ -10,7 +10,7 @@ get_drugbank(pug_view)
 \item{pug_view}{List from reading PUG-View JSON data with \code{\link[rjson]{fromJSON}}}
 }
 \value{
-Character vector with DrugBank URL or NA if none exists
+Character vector with DrugBank ID or NA if none exists
 }
 \description{
 Extract DrugBank URL from PUG-View
