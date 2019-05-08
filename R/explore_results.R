@@ -120,9 +120,9 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
                               "return type === 'display' && data !== null && data.length > 17 ?",
                               "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
                               "}"))),
-          scrollY = TRUE,
           scrollX = TRUE,
           pageLength = 50,
+          scrollY = TRUE,
           paging = TRUE,
           bInfo = 0,
           dom = 'ftp'
@@ -169,7 +169,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   }
 
-  shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
+  shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::paneViewer())
 }
 
 #' Set up DT for explore_results
@@ -265,6 +265,30 @@ summarize_compound <- function(query_res) {
   return(query_res)
 }
 
+#' Add linkout HTML
+#'
+#' @param query_res
+#' @param id_col
+#' @param pre
+#' @param post
+#'
+#' @return
+#' @export
+#'
+#' @examples
+add_linkout <- function(query_res, id_col, pre, post = NULL) {
+
+  ids <- query_res[[id_col]]
+  have_ids <- !is.na(ids)
+  query_res[[id_col]][have_ids] <- paste0('<a href="',
+                                          pre, ids[have_ids], post,
+                                          '" target="_blank">',
+                                          ids[have_ids],
+                                          '</a>')
+
+  return(query_res)
+}
+
 #' Add HTML to query results table
 #'
 #' @param query_res \code{data.frame} returned by \code{\link{summarize_compound}}
@@ -275,13 +299,11 @@ summarize_compound <- function(query_res) {
 #' @examples
 add_table_html <- function(query_res) {
 
-  # add linkout to pubchem
-  cids <- query_res$`Pubchem CID`
-  have_cid <- !is.na(cids)
-  query_res$`Pubchem CID`[have_cid] <- paste0('<a href="https://pubchem.ncbi.nlm.nih.gov/compound/',
-                                              cids[have_cid],
-                                              '" target="_blank">',
-                                              cids[have_cid], '</a>')
+
+  # add linkout to Pubchem, SIDER, and DrugBank
+  query_res <- add_linkout(query_res, 'Pubchem CID', 'https://pubchem.ncbi.nlm.nih.gov/compound/')
+  query_res <- add_linkout(query_res, 'sider', 'http://sideeffects.embl.de/drugs/')
+  query_res <- add_linkout(query_res, 'drugbank', 'https://www.drugbank.ca/drugs/')
 
   # replace correlation with svg element
   cors <- query_res$Correlation

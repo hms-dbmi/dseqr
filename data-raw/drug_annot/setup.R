@@ -59,11 +59,9 @@ annot <- remove_non_utf8(annot)
 # add SIDER, DrugBank, and GRAS ----
 sider <- readRDS('data-raw/drug_annot/pug_view/sider.rds')
 sider <- tibble(pubchem_cid = names(sider), sider) %>%
-  mutate(sider = ifelse(sider, paste0('http://sideeffects.embl.de/drugs/', pubchem_cid, '/'), NA))
+  mutate(sider = ifelse(sider, pubchem_cid, NA))
 
 pug_annot <- readRDS('data-raw/drug_annot/pug_view/pug_annot.rds')
-pug_annot <- pug_annot %>%
-  mutate(drugbank = ifelse(is.na(drugbank), NA, paste0('https://www.drugbank.ca/drugs/', drugbank)))
 
 annot <- annot %>%
   left_join(pug_annot, by = 'pubchem_cid') %>%
