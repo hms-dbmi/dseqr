@@ -292,7 +292,7 @@ add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, ti
   query_res[[id_col]][have_ids] <- paste0('<a href="',
                                           pre_url, ids[have_ids], post_url,
                                           '" target="_blank" title="', paste('Go to', title), '">',
-                                          '<img src="', img_url, '" height="22px"></img>',
+                                          '<img src="', img_url, '" height="22px" hspace="4px"></img>',
                                           # ids[have_ids],
                                           '</a>')
 
@@ -323,6 +323,9 @@ add_table_html <- function(query_res) {
   query_res <- add_linkout(query_res, 'SIDER', img_urls[2], pre_urls[2])
   query_res <- add_linkout(query_res, 'DrugBank', img_urls[3], pre_urls[3])
 
+  # merge linkouts into single column
+  query_res <- merge_linkouts(query_res, c('Pubchem CID', 'DrugBank', 'SIDER'))
+
   # replace correlation with svg element
   cors <- query_res$Correlation
 
@@ -335,6 +338,31 @@ add_table_html <- function(query_res) {
                             <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
                             get_cors_html(cors, titles, cors_range),
                             '</svg>')
+
+  return(query_res)
+}
+
+#' Merge columns with image links
+#'
+#' @param query_res \code{data.frame} after calling \code{\link{add_linkout}} to \code{cols}.
+#' @param cols Character vector of columns in \code{query_res} that \code{\link{add_linkout}} has been called on.
+#
+#' @importFrom magrittr "%>%"
+#'
+#' @return \code{query_res} with column \code{'External Links'} formed from pasting \code{cols} together. \code{cols} are removed.
+#' @export
+#'
+#' @examples
+merge_linkouts <- function(query_res, cols) {
+
+  # paste cols with non-NA values
+  paste.na <- function(x) paste(x[!is.na(x)], collapse = '')
+  new_vals <- apply(query_res[ ,cols] , 1, paste.na)
+
+  # remove cols that pasted
+  query_res <- query_res %>%
+    tibble::add_column(`External Links` = new_vals, .before = cols[1]) %>%
+    select(-cols)
 
   return(query_res)
 }
