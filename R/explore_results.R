@@ -95,9 +95,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
       hist(x, breaks = bins, col = "#75AADB", border = "white",
            xlab = "Pearson correlations", main = "", xlim = c(min(x) - 0.1, max(x) + 0.1))
-
     })
-
 
     # show query data
     output$query_res <- DT::renderDataTable({
@@ -204,8 +202,6 @@ study_table <- function(query_res, study) {
 #' Clinical status is summarized by keeping the most advanced phase only (e.g. Launched > Phase 3). For all other variables,
 #' all unique entries are paste together seperated by \code{'|'}.
 #'
-#'
-#'
 #' @param query_res \code{data.frame} of perturbation correlations and annotations returned by \code{\link{append_pdata}}.
 #'
 #' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
@@ -214,6 +210,8 @@ study_table <- function(query_res, study) {
 #' @importFrom magrittr "%>%"
 #'
 #' @examples
+#'
+#'
 summarize_compound <- function(query_res) {
 
   # group by compound
