@@ -37,7 +37,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
     stop('Must provide one of cmap_res or l1000_res')
 
   # append pdata to results and add html for correlation plots
-  study_choices <- c('CMAP02', 'L1000')[!is.null(c(cmap_res, l1000_res))]
+  study_choices <- c('CMAP02', 'L1000')[!c(is.null(cmap_res), is.null(l1000_res))]
+  print(study_choices)
   study_tables <- list()
 
   if (!null_cmap)
