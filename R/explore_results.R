@@ -268,21 +268,27 @@ summarize_compound <- function(query_res) {
 
 #' Add linkout HTML
 #'
-#' @param query_res
-#' @param id_col
-#' @param pre
-#' @param post
+#' Non \code{NA} values in \code{id_col} of \code{query_res} are inserted between
+#' \code{pre_url} and \code{post_url} to form hyperlinks. Relevant HTML markup is also added.
 #'
-#' @return
+#'
+#' @param query_res \code{data.frame} returned by \code{\link{summarize_compound}}.
+#' @param id_col Character with column in \code{query_res} that contains ids to
+#'   be inserted between \code{pre_url} and \code{post_url} to form the link. \code{NA}
+#'   values will be ignored.
+#' @param pre_url Character with url portion to paste before \code{id_col} column values.
+#' @param post_url Character with url portion to paste before \code{id_col} column values.
+#'
+#' @return \code{query_res} with HTML for hyperlinks in \code{id_col}.
 #' @export
 #'
 #' @examples
-add_linkout <- function(query_res, id_col, pre, post = NULL) {
+add_linkout <- function(query_res, id_col, pre_url, post_url = NULL) {
 
   ids <- query_res[[id_col]]
   have_ids <- !is.na(ids)
   query_res[[id_col]][have_ids] <- paste0('<a href="',
-                                          pre, ids[have_ids], post,
+                                          pre_url, ids[have_ids], post_url,
                                           '" target="_blank">',
                                           ids[have_ids],
                                           '</a>')

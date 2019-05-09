@@ -4,11 +4,23 @@
 \alias{add_linkout}
 \title{Add linkout HTML}
 \usage{
-add_linkout(query_res, id_col, pre, post = NULL)
+add_linkout(query_res, id_col, pre_url, post_url = NULL)
 }
 \arguments{
-\item{post}{}
+\item{query_res}{\code{data.frame} returned by \code{\link{summarize_compound}}.}
+
+\item{id_col}{Character with column in \code{query_res} that contains ids to
+be inserted between \code{pre_url} and \code{post_url} to form the link. \code{NA}
+values will be ignored.}
+
+\item{pre_url}{Character with url portion to paste before \code{id_col} column values.}
+
+\item{post_url}{Character with url portion to paste before \code{id_col} column values.}
+}
+\value{
+\code{query_res} with HTML for hyperlinks in \code{id_col}.
 }
 \description{
-Add linkout HTML
+Non \code{NA} values in \code{id_col} of \code{query_res} are inserted between
+\code{pre_url} and \code{post_url} to form hyperlinks. Relevant HTML markup is also added.
 }
