@@ -278,18 +278,19 @@ summarize_compound <- function(query_res) {
 #'   values will be ignored.
 #' @param pre_url Character with url portion to paste before \code{id_col} column values.
 #' @param post_url Character with url portion to paste before \code{id_col} column values.
+#' @param title Character that will be added to hyperlink title attribute. Default is \code{id_col}.
 #'
 #' @return \code{query_res} with HTML for hyperlinks in \code{id_col}.
 #' @export
 #'
 #' @examples
-add_linkout <- function(query_res, id_col, pre_url, post_url = NULL) {
+add_linkout <- function(query_res, id_col, pre_url, post_url = NULL, title = id_col) {
 
   ids <- query_res[[id_col]]
   have_ids <- !is.na(ids)
   query_res[[id_col]][have_ids] <- paste0('<a href="',
                                           pre_url, ids[have_ids], post_url,
-                                          '" target="_blank">',
+                                          '" target="_blank" title="', paste('Go to', title), '">',
                                           ids[have_ids],
                                           '</a>')
 
@@ -308,7 +309,7 @@ add_table_html <- function(query_res) {
 
 
   # add linkout to Pubchem, SIDER, and DrugBank
-  query_res <- add_linkout(query_res, 'Pubchem CID', 'https://pubchem.ncbi.nlm.nih.gov/compound/')
+  query_res <- add_linkout(query_res, 'Pubchem CID', 'https://pubchem.ncbi.nlm.nih.gov/compound/', title = 'Pubchem')
   query_res <- add_linkout(query_res, 'SIDER', 'http://sideeffects.embl.de/drugs/')
   query_res <- add_linkout(query_res, 'DrugBank', 'https://www.drugbank.ca/drugs/')
 
