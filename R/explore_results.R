@@ -276,6 +276,7 @@ summarize_compound <- function(query_res) {
 #' @param id_col Character with column in \code{query_res} that contains ids to
 #'   be inserted between \code{pre_url} and \code{post_url} to form the link. \code{NA}
 #'   values will be ignored.
+#' @param img_url Character with url to an image to display as hyperlink.
 #' @param pre_url Character with url portion to paste before \code{id_col} column values.
 #' @param post_url Character with url portion to paste before \code{id_col} column values.
 #' @param title Character that will be added to hyperlink title attribute. Default is \code{id_col}.
@@ -284,14 +285,15 @@ summarize_compound <- function(query_res) {
 #' @export
 #'
 #' @examples
-add_linkout <- function(query_res, id_col, pre_url, post_url = NULL, title = id_col) {
+add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, title = id_col) {
 
   ids <- query_res[[id_col]]
   have_ids <- !is.na(ids)
   query_res[[id_col]][have_ids] <- paste0('<a href="',
                                           pre_url, ids[have_ids], post_url,
                                           '" target="_blank" title="', paste('Go to', title), '">',
-                                          ids[have_ids],
+                                          '<img src="', img_url, '" height="22px"></img>',
+                                          # ids[have_ids],
                                           '</a>')
 
   return(query_res)
@@ -307,11 +309,19 @@ add_linkout <- function(query_res, id_col, pre_url, post_url = NULL, title = id_
 #' @examples
 add_table_html <- function(query_res) {
 
+  pre_urls <- c('https://pubchem.ncbi.nlm.nih.gov/compound/',
+                'http://sideeffects.embl.de/drugs/',
+                'https://www.drugbank.ca/drugs/')
+
+  img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
+                'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
+                'https://www.drugbank.ca/favicons/favicon.ico')
+
 
   # add linkout to Pubchem, SIDER, and DrugBank
-  query_res <- add_linkout(query_res, 'Pubchem CID', 'https://pubchem.ncbi.nlm.nih.gov/compound/', title = 'Pubchem')
-  query_res <- add_linkout(query_res, 'SIDER', 'http://sideeffects.embl.de/drugs/')
-  query_res <- add_linkout(query_res, 'DrugBank', 'https://www.drugbank.ca/drugs/')
+  query_res <- add_linkout(query_res, 'Pubchem CID', img_urls[1], pre_urls[1], title = 'Pubchem')
+  query_res <- add_linkout(query_res, 'SIDER', img_urls[2], pre_urls[2])
+  query_res <- add_linkout(query_res, 'DrugBank', img_urls[3], pre_urls[3])
 
   # replace correlation with svg element
   cors <- query_res$Correlation

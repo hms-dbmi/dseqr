@@ -4,7 +4,8 @@
 \alias{add_linkout}
 \title{Add linkout HTML}
 \usage{
-add_linkout(query_res, id_col, pre_url, post_url = NULL)
+add_linkout(query_res, id_col, img_url, pre_url, post_url = NULL,
+  title = id_col)
 }
 \arguments{
 \item{query_res}{\code{data.frame} returned by \code{\link{summarize_compound}}.}
@@ -13,9 +14,13 @@ add_linkout(query_res, id_col, pre_url, post_url = NULL)
 be inserted between \code{pre_url} and \code{post_url} to form the link. \code{NA}
 values will be ignored.}
 
+\item{img_url}{Character with url to an image to display as hyperlink.}
+
 \item{pre_url}{Character with url portion to paste before \code{id_col} column values.}
 
 \item{post_url}{Character with url portion to paste before \code{id_col} column values.}
+
+\item{title}{Character that will be added to hyperlink title attribute. Default is \code{id_col}.}
 }
 \value{
 \code{query_res} with HTML for hyperlinks in \code{id_col}.
