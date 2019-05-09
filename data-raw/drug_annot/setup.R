@@ -24,6 +24,20 @@ summarise_func <- function(x) {
   return(paste(unqx, collapse = ' | '))
 }
 
+rename_cols <- function(annot) {
+  annot <- rename(annot,
+                  `Clinical Phase` = clinical_phase,
+                  MOA = moa,
+                  Target = target,
+                  `Disease Area` = disease_area,
+                  Indication = indication,
+                  Vendor = vendor,
+                  `Catalog #` = catalog_no,
+                  `Vendor Name` = vendor_name)
+
+  return(annot)
+}
+
 drugs <- fread('data-raw/drug_annot/repurposing_drugs_20180907.txt', skip = 'pert_iname')
 samples <- fread('data-raw/drug_annot/repurposing_samples_20180907.txt', skip = 'pert_iname')
 
@@ -58,16 +72,19 @@ annot <- remove_non_utf8(annot)
 
 # add SIDER, DrugBank, and GRAS ----
 sider <- readRDS('data-raw/drug_annot/pug_view/sider.rds')
-sider <- tibble(pubchem_cid = names(sider), sider) %>%
-  mutate(sider = ifelse(sider, pubchem_cid, NA))
+sider <- tibble(pubchem_cid = names(sider), SIDER = sider) %>%
+  mutate(SIDER = ifelse(sider, pubchem_cid, NA))
 
 pug_annot <- readRDS('data-raw/drug_annot/pug_view/pug_annot.rds')
+pug_annot <- rename(pug_annot, DrugBank = drugbank)
 
 annot <- annot %>%
   left_join(pug_annot, by = 'pubchem_cid') %>%
   left_join(sider, by = 'pubchem_cid') %>%
   mutate(clinical_phase = ifelse(gras, paste0(clinical_phase, ' | GRAS'), clinical_phase)) %>%
-  select(-gras)
+  select(-gras) %>%
+  select(clinical_phase, DrugBank, SIDER, everything())
+
 
 
 # CMAP02 setup ----
@@ -103,7 +120,7 @@ cmap_annot <- cmap_annot %>%
 all.equal(cmap_annot$title, cmap_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
-cmap_annot <- cmap_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
+cmap_annot <- cmap_annot %>% select(-c(title, `Pubchem CID`, pert_iname)) %>% rename_cols()
 saveRDS(cmap_annot, 'inst/extdata/CMAP02_annot.rds')
 
 
@@ -142,5 +159,5 @@ l1000_annot <- l1000_annot %>%
 all.equal(l1000_annot$title, l1000_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
-l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname))
+l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname)) %>% rename_cols()
 saveRDS(l1000_annot, 'inst/extdata/L1000_annot.rds')

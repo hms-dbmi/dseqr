@@ -103,7 +103,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
     output$query_res <- DT::renderDataTable({
 
       query_res <- query_res()
-      wide_cols <- c('moa', 'target', 'disease_area', 'indication', 'vendor', 'catalog_no', 'vendor_name')
+      wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
       # -1 needed with rownames = FALSE
       elipsis_targets <- which(colnames(query_res) %in% wide_cols) - 1
 
@@ -120,6 +120,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
                               "return type === 'display' && data !== null && data.length > 17 ?",
                               "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
                               "}"))),
+          ordering=FALSE,
           scrollX = TRUE,
           pageLength = 50,
           scrollY = TRUE,
@@ -169,7 +170,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   }
 
-  shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::paneViewer())
+  shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
 }
 
 #' Set up DT for explore_results
@@ -237,13 +238,13 @@ summarize_compound <- function(query_res) {
 
   # keep furthest clinical phase
   query_phase <- query_res %>%
-    dplyr::select(clinical_phase, Compound) %>%
-    dplyr::summarise(clinical_phase = max(clinical_phase)) %>%
-    dplyr::pull(clinical_phase)
+    dplyr::select(`Clinical Phase`, Compound) %>%
+    dplyr::summarise(`Clinical Phase` = max(`Clinical Phase`)) %>%
+    dplyr::pull(`Clinical Phase`)
 
   # summarize rest
   query_rest <- query_res %>%
-    dplyr::select(-Correlation, -clinical_phase, -title) %>%
+    dplyr::select(-Correlation, -`Clinical Phase`, -title) %>%
     dplyr::summarize_all(function(x) {
       unqx <- na.omit(x)
       unqx <- as.character(unqx)
@@ -302,8 +303,8 @@ add_table_html <- function(query_res) {
 
   # add linkout to Pubchem, SIDER, and DrugBank
   query_res <- add_linkout(query_res, 'Pubchem CID', 'https://pubchem.ncbi.nlm.nih.gov/compound/')
-  query_res <- add_linkout(query_res, 'sider', 'http://sideeffects.embl.de/drugs/')
-  query_res <- add_linkout(query_res, 'drugbank', 'https://www.drugbank.ca/drugs/')
+  query_res <- add_linkout(query_res, 'SIDER', 'http://sideeffects.embl.de/drugs/')
+  query_res <- add_linkout(query_res, 'DrugBank', 'https://www.drugbank.ca/drugs/')
 
   # replace correlation with svg element
   cors <- query_res$Correlation
