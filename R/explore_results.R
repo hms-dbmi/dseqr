@@ -13,8 +13,12 @@
 #' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
 #' cmap_es <- readRDS(cmap_path)
 #'
-#' # load previous differential expression analysis
+#' # run differential expression analysis
 #' data_dir <- 'data-raw/example-data'
+#' eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
+#' anal <- diff_expr(eset, data_dir)
+#'
+#' # alternatively load previous analysis
 #' anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
 #'
 #' # get dprime effect size values for analysis
@@ -38,7 +42,6 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   # append pdata to results and add html for correlation plots
   study_choices <- c('CMAP02', 'L1000')[!c(is.null(cmap_res), is.null(l1000_res))]
-  print(study_choices)
   study_tables <- list()
 
   if (!null_cmap)
@@ -361,7 +364,7 @@ merge_linkouts <- function(query_res, cols) {
   # remove cols that pasted
   query_res <- query_res %>%
     tibble::add_column(`External Links` = new_vals, .before = cols[1]) %>%
-    select(-cols)
+    dplyr::select(-cols)
 
   return(query_res)
 }
