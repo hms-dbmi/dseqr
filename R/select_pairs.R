@@ -279,10 +279,10 @@ validate_pairs <- function(pairs, rows, reps) {
   all_rep_rows <- all(rep_rows %in% rows, na.rm = TRUE)
 
   if (length(rows) < 2) {
-    message("Select at least two rows to mark as replicates.")
+    message("Select at least two rows to mark as pairs.")
 
   } else if (!anyNA(rep_rows) && length(unique(rep_rows)) < 2) {
-    message("Select at least two non-replicate rows to mark as replicates.")
+    message("Select at least two non-replicate rows to mark as pairs.")
 
   } else if (!anyNA(rep_rows) && !all_rep_rows) {
     message("All replicates must be included in the same pair.")
@@ -294,8 +294,38 @@ validate_pairs <- function(pairs, rows, reps) {
     message("Selected row(s) already belong to a pair. Click 'Reset' if you need to start over.")
 
   } else {
-
     valid <- TRUE
   }
+
   return(valid)
 }
+
+#' Validate sample replicates for RNA seq
+#'
+#' @inheritParams validate_pairs
+#'
+#' @return \code{TRUE} if the replicate is valid, otherwise \code{FALSE}.
+#' @export
+#'
+#' @examples
+validate_reps <- function(pairs, rows, reps) {
+  valid <- FALSE
+
+  rep_rows <- reps[rows]
+
+  if (length(rows) < 2) {
+    message("Select at least two rows to mark as replicates.")
+
+  } else if (!all(is.na(reps[rows]))) {
+    message("Selected row(s) already belong to a replicate. Click 'Reset' if you need to start over.")
+
+  } else if (!all(is.na(pairs[rows]))) {
+    message("Replicates must be specified first for paired samples that include replicates. Click 'Reset' if you need to start over.")
+
+  } else {
+    valid <- TRUE
+  }
+
+  return(valid)
+}
+
