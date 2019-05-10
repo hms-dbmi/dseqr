@@ -185,12 +185,7 @@ select_pairs <- function(data_dir, pdata_path) {
 
       # get rows
       rows  <- input$pdata_rows_selected
-
-      # check for incomplete/wrong input
-      if (length(rows) < 2) {
-        message("Select at least two rows to mark as replicates.")
-
-      } else {
+      if (validate_reps(pairs, rows, reps)) {
         # add rows as replicates
         rep_num <- length(unique(setdiff(reps, NA))) + 1
         reps[rows] <<- rep_num
@@ -246,13 +241,13 @@ select_pairs <- function(data_dir, pdata_path) {
     # click 'Reset' ----
 
     shiny::observeEvent(input$reset, {
-      pairs <<- c()
-      reps <<- c()
-      pdata$Pairs <<- NA
+      pairs <<- rep(NA, nrow(pdata))
+      reps <<- rep(NA, nrow(pdata))
+      pdata$Pair <<- NA
       pdata$Replicate <<- NA
 
       # remove groups from table and reset control
-      state$pdata <- 0
+      state$pdata <- state$pdata + 1
     })
   }
 
