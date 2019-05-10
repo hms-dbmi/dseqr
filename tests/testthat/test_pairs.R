@@ -62,4 +62,16 @@ test_that("validate_pairs doesn't allow overwriting of existing pairs", {
   expect_true(validate_pairs(pairs, rows2, reps))
 })
 
+test_that("validate_pairs won't allow one non-paired row", {
+  rows <- c(3, 4)
+  reps <- rep(NA, 5)
+  pairs <- c(1, 1, NA, NA, NA)
+
+  expect_message(validate_pairs(pairs, rows, reps), 'already belong to a pair')
+  expect_false(validate_pairs(pairs, rows, reps))
+
+  rows2 <- c(3, 4)
+  expect_true(validate_pairs(pairs, rows2, reps))
+})
+
 
