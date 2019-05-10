@@ -96,12 +96,14 @@ select_contrast <- function(eset) {
         class = 'cell-border dt-fake-height',
         rownames = FALSE,
         escape = FALSE, # to allow HTML in table
+        extensions = 'FixedColumns',
         options = list(
           columnDefs = list(list(className = 'dt-nopad', targets = 0)),
           scrollY = FALSE,
           scrollX = TRUE,
           paging = FALSE,
-          bInfo = 0
+          bInfo = 0,
+          fixedColumns = TRUE
         )
       )
     })
