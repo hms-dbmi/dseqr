@@ -168,13 +168,8 @@ select_pairs <- function(data_dir, pdata_path) {
       rows  <- input$pdata_rows_selected
 
       # check for incomplete/wrong input
-      if (length(rows) < 2) {
-        message("Select at least two rows to pair.")
+      if (validate_pairs(pairs, rows, reps)) {
 
-      } else if (!all(is.na(pairs[rows]))) {
-        message("Selected row(s) already belong to a pair. Click 'Reset' if you need to start over.")
-
-      } else {
         # add rows as a pair
         pair_num <- length(unique(setdiff(pairs, NA))) + 1
         pairs[rows] <<- pair_num
@@ -262,4 +257,45 @@ select_pairs <- function(data_dir, pdata_path) {
   }
 
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::paneViewer())
+}
+
+
+#' Validate sample pairing for pair-ended RNA seq
+#'
+#' @param pairs Numeric vector of integers and/or \code{NA}. Positions with the same integer
+#'   value indicate samples that are paired in a pair-ended experiment.
+#' @param rows Numeric vector of integers indicating selected rows.
+#' @param reps Numeric vector of integers and/or \code{NA}. Positions with the same integer
+#'   value indicate samples that replicates.
+#'
+#' @return \code{TRUE} if the pairing is valid, otherwise \code{FALSE}.
+#' @export
+#'
+validate_pairs <- function(pairs, rows, reps) {
+
+  valid <- FALSE
+
+  rep_rows <- reps[rows]
+  all_rep_rows <- all(rep_rows %in% rows, na.rm = TRUE)
+
+  if (length(rows) < 2) {
+    message("Select at least two rows to mark as replicates.")
+
+  } else if (!anyNA(rep_rows) && length(unique(rep_rows)) < 2) {
+    message("Select at least two non-replicate rows to mark as replicates.")
+
+  } else if (!anyNA(rep_rows) && !all_rep_rows) {
+    message("All replicates must be included in the same pair.")
+
+  } else if (length(unique(rep_rows)) > 2) {
+    message("A pair must include exactly two replicate groups or one replicate group and one additional sample.")
+
+  } else if (!all(is.na(pairs[rows]))) {
+    message("Selected row(s) already belong to a pair. Click 'Reset' if you need to start over.")
+
+  } else {
+
+    valid <- TRUE
+  }
+  return(valid)
 }
