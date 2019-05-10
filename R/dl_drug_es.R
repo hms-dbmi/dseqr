@@ -14,13 +14,13 @@ dl_drug_es <- function(files = c('cmap_es_ind.rds', 'l1000_es.rds'), check = FAL
   if (!dir.exists(dest_dir)) stop('Make sure you build drugseqr first.')
 
 
-  exist_files <- file.exists(file.path(dl_dir, files))
+  can_load <- c()
+  exist_files <- file.exists(file.path(dest_dir, files))
   exist_files <- files[exist_files]
   if (length(exist_files) & check) {
     message(paste(exist_files, collapse = ' and '), ' already exists.')
 
     # check that can load
-    can_load <- c()
     for (exist_file in exist_files) {
       message('Checking that ', exist_file, ' can be loaded.')
 
