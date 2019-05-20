@@ -191,7 +191,7 @@ get_ensdb_package <- function(species, release) {
 #'
 #' @keywords internal
 #'
-get_tx2gene <- function(species, release) {
+get_tx2gene <- function(species = 'Homo sapiens', release = '94') {
   # load EnsDb package
   ensdb_package <- get_ensdb_package(species, release)
   if (!require(ensdb_package, character.only = TRUE)) {
