@@ -13,6 +13,9 @@
 #' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
 #' cmap_es <- readRDS(cmap_path)
 #'
+#' l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr')
+#' l1000_es <- readRDS(l1000_path)
+#'
 #' # run differential expression analysis
 #' data_dir <- 'data-raw/example-data'
 #' eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
@@ -26,8 +29,9 @@
 #'
 #' # get correlations between query and drug signatures
 #' cmap_res <- query_drugs(dprimes, cmap_es)
+#' l1000_res <- query_drugs(dprimes, l1000_es)
 #'
-#' explore_results(cmap_res)
+#' explore_results(cmap_res, l1000_res)
 #'
 explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
