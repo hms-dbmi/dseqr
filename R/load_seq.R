@@ -43,10 +43,6 @@ load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_sa
 
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
-
-  # transcript to gene map
-  tx2gene <- get_tx2gene(species, release)
-
   # import quant.sf files and filter low counts
   quants <- import_quants(data_dir, tx2gene, filter)
 

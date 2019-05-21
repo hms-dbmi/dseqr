@@ -2,6 +2,7 @@
 library(drugseqr)
 library(tidyr)
 library(dplyr)
+library(tibble)
 
 tx2gene <- get_tx2gene()
 
@@ -13,19 +14,23 @@ hs$ENTREZID <- as.integer(hs$ENTREZID)
 tx2gene_unnest <- unnest(tx2gene, entrezid)
 tx2gene_unnest <- left_join(tx2gene_unnest, hs, by = c('entrezid' = 'ENTREZID'))
 
-summarise_symbol <- function(gnames, syms) {
-  # use SYMBOL_9606 if available
-  syms <- unique(na.omit(syms))
-  if (length(syms)) return(list(syms))
 
-  # otherwise use gene_name
-  gnames <- unique(na.omit(gnames))
-  return(list(gnames))
+
+summarise_symbol <- function(gnames, syms, entrezid) {
+
+  # use SYMBOL_9606 if available
+  syms <- unique(toupper(na.omit(syms)))
+  if (length(syms) == 1) return(syms)
+
+  # otherwise gene_name
+  gnames <- unique(toupper(na.omit(gnames)))
+  return(gnames)
 }
 
 
 # re-nest
 tx2gene_nest <- group_by(tx2gene_unnest, tx_id) %>%
-  summarise(entrezid = list(unique(entrezid)),
-            gene_name = unique(gene_name),
-            SYMBOL_9606 = summarise_symbol(gene_name, SYMBOL_9606))
+  summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606, entrezid),
+            entrezid = list(unique(entrezid)))
+
+saveRDS(tx2gene_nest, 'data-raw/sysdata/tx2gene.rds')
