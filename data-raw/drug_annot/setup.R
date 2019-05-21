@@ -13,6 +13,7 @@ remove_non_utf8 <- function(df) {
 }
 
 summarise_func <- function(x) {
+
   unqx <- na.omit(x)
   unqx <- unlist(strsplit(unqx, '|', fixed = TRUE))
   unqx <- unique(unqx)
@@ -129,14 +130,22 @@ saveRDS(cmap_annot, 'inst/extdata/CMAP02_annot.rds')
 l1000_pdata <- readRDS('inst/extdata/L1000_pdata.rds')
 l1000_pdata <- destructure_title(l1000_pdata, drop=FALSE, .after=1)
 
-# pubchem_cid has the most matches
-sum(unique(l1000_pdata$Compound) %in% tolower(annot$pert_iname))
-sum(unique(l1000_pdata$`Pubchem CID`) %in% annot$pubchem_cid)
+# pubchem_cid and pert_iname together have the most matches
+sum(l1000_pdata$Compound %in% tolower(annot$pert_iname))
+sum(l1000_pdata$`Pubchem CID` %in% annot$pubchem_cid)
+sum(l1000_pdata$`Pubchem CID` %in% annot$pubchem_cid | l1000_pdata$Compound %in% tolower(annot$pert_iname))
 
-# use cmap_pdata compound names
-l1000_annot <-  l1000_pdata %>%
+# first get matches on cid
+l1000_annot_cids <-  l1000_pdata %>%
   select(title, 'Pubchem CID') %>%
-  left_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
+  inner_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
+
+# where there wasn't a cid match try on pert_iname
+l1000_annot <- l1000_pdata %>%
+  select(title, 'Pubchem CID', 'Compound') %>%
+  anti_join(annot, by = c('Pubchem CID' = 'pubchem_cid')) %>%
+  left_join(annot, by = c('Compound' = 'pert_iname')) %>%
+  bind_rows(l1000_annot_cids)
 
 # use most advanced phase if same CID has multiple phases
 l1000_phase <- l1000_annot %>%
@@ -144,7 +153,6 @@ l1000_phase <- l1000_annot %>%
   mutate(clinical_phase = factor(clinical_phase, increasing_phases, ordered = TRUE)) %>%
   group_by(title) %>%
   summarise(clinical_phase = max(clinical_phase))
-
 
 # merge rows that have the same treatment
 l1000_annot <- l1000_annot %>%
@@ -159,5 +167,5 @@ l1000_annot <- l1000_annot %>%
 all.equal(l1000_annot$title, l1000_pdata$title)
 
 # save as seperate annotation, removing what pdata already has
-l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname)) %>% rename_cols()
+l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname, pubchem_cid, Compound)) %>% rename_cols()
 saveRDS(l1000_annot, 'inst/extdata/L1000_annot.rds')
