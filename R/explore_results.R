@@ -31,7 +31,7 @@
 #' cmap_res <- query_drugs(dprimes, cmap_es)
 #' l1000_res <- query_drugs(dprimes, l1000_es)
 #'
-#' explore_results(cmap_res, l1000_res_thp1)
+#' explore_results(cmap_res, l1000_res)
 #'
 explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
@@ -462,20 +462,23 @@ add_table_html <- function(query_res) {
 
   pre_urls <- c('https://pubchem.ncbi.nlm.nih.gov/compound/',
                 'http://sideeffects.embl.de/drugs/',
-                'https://www.drugbank.ca/drugs/')
+                'https://www.drugbank.ca/drugs/',
+                'https://en.wikipedia.org/wiki/')
 
   img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
                 'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
-                'https://www.drugbank.ca/favicons/favicon.ico')
+                'https://www.drugbank.ca/favicons/favicon.ico',
+                'https://en.wikipedia.org/static/favicon/wikipedia.ico')
 
 
   # add linkout to Pubchem, SIDER, and DrugBank
   query_res <- add_linkout(query_res, 'Pubchem CID', img_urls[1], pre_urls[1], title = 'Pubchem')
   query_res <- add_linkout(query_res, 'SIDER', img_urls[2], pre_urls[2])
   query_res <- add_linkout(query_res, 'DrugBank', img_urls[3], pre_urls[3])
+  query_res <- add_linkout(query_res, 'Wikipedia', img_urls[4], pre_urls[4])
 
   # merge linkouts into single column
-  query_res <- merge_linkouts(query_res, c('Pubchem CID', 'DrugBank', 'SIDER'))
+  query_res <- merge_linkouts(query_res, c('Pubchem CID', 'Wikipedia', 'DrugBank', 'SIDER'))
 
   # replace correlation with svg element
   cors <- query_res$Correlation
