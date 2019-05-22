@@ -46,6 +46,13 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
   study_choices <- c('CMAP02', 'L1000')[!c(is.null(cmap_res), is.null(l1000_res))]
 
+  # available cell lines
+  if (!null_cmap)
+    cmap_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', names(cmap_res)))
+
+  if (!null_l1000)
+    l1000_cells <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', names(l1000_res)))
+
   #  user interface ----
 
   ui <- miniUI::miniPage(
@@ -78,8 +85,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
                        shiny::tags$div(
                          id = 'advanced-panel',
                          shiny::hr(),
-                         shiny::selectizeInput('cells', 'Select cell lines:', choices = c('MCF7', 'THP1'), multiple = TRUE, options = list(placeholder="showing all")),
-                         shiny::checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
+                         shiny::selectizeInput('cells', 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder="showing all")),
+                         # shiny::checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
                          shiny::plotOutput(outputId = "histPlot", width = 800))
                      ),
                      shiny::hr(),
@@ -137,6 +144,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
     isClinical <- shiny::reactiveVal(FALSE)
 
+    # generate table to display
     query_res <- shiny::reactive({
       if (input$study == 'L1000') {
         query_res <- study_table(l1000_res, 'L1000', input$cells)
@@ -152,6 +160,17 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       }
 
       return(query_res)
+    })
+
+    # get choices for cell lines
+    shiny::observe({
+      if (input$study == 'L1000') {
+        cell_choices <- l1000_cells
+
+      } else if (input$study == 'CMAP02') {
+        cell_choices <- cmap_cells
+      }
+      shiny::updateSelectizeInput(session, 'cells', choices = cell_choices, selected = NULL)
     })
 
 
