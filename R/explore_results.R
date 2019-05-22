@@ -220,6 +220,7 @@ study_table <- function(query_res, study) {
 #' @examples
 #'
 #'
+
 summarize_compound <- function(query_res) {
 
   # group by compound
@@ -245,7 +246,7 @@ summarize_compound <- function(query_res) {
   # keep furthest clinical phase
   query_phase <- query_res %>%
     dplyr::select(`Clinical Phase`, Compound) %>%
-    dplyr::summarise(`Clinical Phase` = max(`Clinical Phase`)) %>%
+    dplyr::summarise(`Clinical Phase` = max(`Clinical Phase`, na.rm = TRUE)) %>%
     dplyr::pull(`Clinical Phase`)
 
   # summarize rest
