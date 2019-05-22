@@ -63,7 +63,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   ui <- miniUI::miniPage(
     shinyjs::useShinyjs(),
     shiny::tags$head(
-      shiny::tags$style("#clinical {margin-top: -26px;}"), # to align clinical button and study selection
+      shiny::tags$style("#clinical {margin-top: -26px;} #advanced {margin-top: -26px;}"), # to align clinical button and study selection
       shiny::tags$style("#query_res {white-space: nowrap;}"), # table text on 1 line
 
       # css for correlation plots
@@ -80,10 +80,17 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
     # title bar
     miniUI::gadgetTitleBar("Explore Results"),
     miniUI::miniContentPanel(
-      shiny::fillCol(flex = c(NA, NA, 1),
+      shiny::fillCol(flex = c(NA, NA, NA, 1),
                      shiny::tags$div(
                        shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('study', 'Select study:', choices = study_choices)),
                        shinyBS::bsButton('clinical', label = '', icon = shiny::icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                       shinyBS::bsButton('advanced', label = '', icon = shiny::icon('cogs'), style='default', title = 'toggle advanced options')
+                     ),
+                     shiny::tags$div(
+                       id = 'advanced-panel',
+                       shiny::hr(),
+                       shiny::selectizeInput('cells', 'Select cell lines:', choices = c('MCF7', 'THP1'), multiple = TRUE),
+                       shiny::checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
                        shiny::plotOutput(outputId = "histPlot", width = 800)
                      ),
                      shiny::hr(),
@@ -95,6 +102,8 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   # server ----
 
   server <- function(input, output, session) {
+
+    shinyjs::hide('histPlot')
 
     output$histPlot <- shiny::renderPlot({
 
@@ -152,9 +161,14 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
         query_res <- tibble::as_tibble(query_res)
         query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
       }
-
       return(query_res)
+    })
 
+    #  toggle advanced options
+    isAdvanced <- shiny::reactiveVal(FALSE)
+    shiny::observe({
+      # toggle panel
+      shinyjs::toggle('advanced-panel', condition = isAdvanced())
     })
 
     # click 'Clinical' ----
@@ -166,6 +180,17 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
       # update boolean reactiveVal
       isClinical(toggle - 1)
+    })
+
+    # click 'Advanced' ----
+    observeEvent(input$advanced,{
+      toggle <- (input$advanced %% 2) + 1
+
+      # update clinical button styling
+      shinyBS::updateButton(session, 'advanced', style = c('default', 'primary')[toggle])
+
+      # update boolean reactiveVal
+      isAdvanced(toggle - 1)
     })
 
     # click 'Done' ----
@@ -430,8 +455,8 @@ add_table_html <- function(query_res) {
   cors_range <- range(unlist(cors))
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
                             <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
-                            get_cors_html(cors, titles, cors_range),
-                            '</svg>')
+                                  get_cors_html(cors, titles, cors_range),
+                                  '</svg>')
 
   return(query_res)
 }
