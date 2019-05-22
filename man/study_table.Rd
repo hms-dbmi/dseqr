@@ -4,7 +4,7 @@
 \alias{study_table}
 \title{Set up DT for explore_results}
 \usage{
-study_table(query_res, study)
+study_table(query_res, study, cells = NULL)
 }
 \arguments{
 \item{query_res}{Named numeric vector returned from \code{\link{query_drugs}}.}

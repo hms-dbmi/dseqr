@@ -38,6 +38,6 @@ dprimes <- get_dprimes(anal)
 cmap_res <- query_drugs(dprimes, cmap_es)
 l1000_res <- query_drugs(dprimes, l1000_es)
 
-explore_results(cmap_res, l1000_res_thp1)
+explore_results(cmap_res, l1000_res)
 
 }
