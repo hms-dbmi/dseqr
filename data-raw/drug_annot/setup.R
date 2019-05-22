@@ -1,5 +1,6 @@
 library(data.table)
 library(dplyr)
+library(tidyr)
 library(drugseqr)
 
 # non UTF-8 encoded character cause DT alerts on filtering
@@ -137,7 +138,7 @@ sum(l1000_pdata$`Pubchem CID` %in% annot$pubchem_cid | l1000_pdata$Compound %in%
 
 # first get matches on cid
 l1000_annot_cids <-  l1000_pdata %>%
-  select(title, 'Pubchem CID') %>%
+  select(title, Compound, 'Pubchem CID') %>%
   inner_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
 
 # where there wasn't a cid match try on pert_iname
@@ -147,14 +148,25 @@ l1000_annot <- l1000_pdata %>%
   left_join(annot, by = c('Compound' = 'pert_iname')) %>%
   bind_rows(l1000_annot_cids)
 
-# use most advanced phase if same CID has multiple phases
+# fill in na values with non-na value by cid and name
+l1000_annot <- l1000_annot %>%
+  group_by(`Pubchem CID`) %>%
+  fill(everything()) %>%
+  fill(everything(), .direction = 'up') %>%
+  ungroup() %>%
+  group_by(Compound) %>%
+  fill(everything()) %>%
+  fill(everything(), .direction = 'up') %>%
+  ungroup()
+
+# use most advanced phase if same title has multiple phases
 l1000_phase <- l1000_annot %>%
   select(title, clinical_phase) %>%
   mutate(clinical_phase = factor(clinical_phase, increasing_phases, ordered = TRUE)) %>%
   group_by(title) %>%
   summarise(clinical_phase = max(clinical_phase))
 
-# merge rows that have the same treatment
+# merge rows that have the same title
 l1000_annot <- l1000_annot %>%
   select(-clinical_phase) %>%
   group_by(title) %>%
@@ -165,6 +177,9 @@ l1000_annot <- l1000_annot %>%
 
 # check that annot and pdata are in same order
 all.equal(l1000_annot$title, l1000_pdata$title)
+
+# check that have clinical status for all drugbank
+sum(is.na(l1000_annot[!is.na(l1000_annot$DrugBank), 'Clinical Phase']))
 
 # save as seperate annotation, removing what pdata already has
 l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname, pubchem_cid, Compound)) %>% rename_cols()
