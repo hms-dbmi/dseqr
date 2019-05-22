@@ -44,19 +44,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
   if (null_cmap & null_l1000)
     stop('Must provide one of cmap_res or l1000_res')
 
-  # append pdata to results and add html for correlation plots
   study_choices <- c('CMAP02', 'L1000')[!c(is.null(cmap_res), is.null(l1000_res))]
-  study_tables <- list()
-
-  if (!null_cmap)
-    study_tables[['CMAP02']] <- study_table(cmap_res, 'CMAP02')
-
-  # if cmap, don't setup l1000 until selection (for initial load speed)
-  if (!null_l1000 & null_cmap)
-    study_tables[['L1000']] <- study_table(l1000_res, 'L1000')
-
-  # initial query_res
-  query_res <- study_tables[[1]]
 
   #  user interface ----
 
@@ -86,12 +74,13 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
                        shinyBS::bsButton('clinical', label = '', icon = shiny::icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
                        shinyBS::bsButton('advanced', label = '', icon = shiny::icon('cogs'), style='default', title = 'toggle advanced options')
                      ),
-                     shiny::tags$div(
-                       id = 'advanced-panel',
-                       shiny::hr(),
-                       shiny::selectizeInput('cells', 'Select cell lines:', choices = c('MCF7', 'THP1'), multiple = TRUE),
-                       shiny::checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
-                       shiny::plotOutput(outputId = "histPlot", width = 800)
+                     shinyjs::hidden(
+                       shiny::tags$div(
+                         id = 'advanced-panel',
+                         shiny::hr(),
+                         shiny::selectizeInput('cells', 'Select cell lines:', choices = c('MCF7', 'THP1'), multiple = TRUE, options = list(placeholder="showing all")),
+                         shiny::checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
+                         shiny::plotOutput(outputId = "histPlot", width = 800))
                      ),
                      shiny::hr(),
                      DT::dataTableOutput("query_res")
@@ -148,21 +137,23 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
     isClinical <- shiny::reactiveVal(FALSE)
 
-    # query_res reactive to study choice
     query_res <- shiny::reactive({
-      # initial setup for l1000 only after selection
-      if (input$study == 'L1000' && !'L1000' %in% names(study_tables))
-        study_tables[['L1000']] <<- study_table(l1000_res, 'L1000')
+      if (input$study == 'L1000') {
+        query_res <- study_table(l1000_res, 'L1000', input$cells)
 
-      query_res <- study_tables[[input$study]]
+      } else if (input$study == 'CMAP02') {
+        query_res <- study_table(cmap_res, 'CMAP02', input$cells)
+      }
 
       # for removing entries without a clinical phase
       if (isClinical()) {
         query_res <- tibble::as_tibble(query_res)
         query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
       }
+
       return(query_res)
     })
+
 
     #  toggle advanced options
     isAdvanced <- shiny::reactiveVal(FALSE)
@@ -216,12 +207,34 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 #' @export
 #'
 #' @examples
-study_table <- function(query_res, study) {
+study_table <- function(query_res, study, cells = NULL) {
   query_res <- append_pdata(query_res, study)
+  query_res <- limit_cells(query_res, cells)
   query_res <- get_top(query_res)
   query_res <- destructure_title(query_res, .after = 'Correlation')
   query_res <- summarize_compound(query_res)
   query_res <- add_table_html(query_res)
+  return(query_res)
+}
+
+#' Limit Query Results to Specific Cell Lines
+#'
+#' @param query_res \code{data.frame} returned by \code{\link{append_pdata}}.
+#' @param cells Character vector of cell lines to limit \code{query_res} by.
+#' @importFrom magrittr "%>%"
+#'
+#' @return
+#' @export
+#'
+#' @examples
+limit_cells <- function(query_res, cells) {
+  if (is.null(cells)) return(query_res)
+
+  query_res <- query_res %>%
+    dplyr::mutate(cell_line = gsub('^[^_]+_([^_]+)_.+?$', '\\1', title)) %>%
+    dplyr::filter(cell_line %in% cells) %>%
+    dplyr::select(-cell_line)
+
   return(query_res)
 }
 
