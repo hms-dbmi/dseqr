@@ -41,8 +41,6 @@ append_pdata <- function(query_res, study) {
   # add result
   query_res <- tibble::add_column(pdata, Correlation = query_res, .before=0)
 
-  # destructure title and return
-  query_res <- destructure_title(query_res, .after = 'Correlation')
   return(query_res)
 }
 

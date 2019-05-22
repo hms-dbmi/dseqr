@@ -193,8 +193,58 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 #' @examples
 study_table <- function(query_res, study) {
   query_res <- append_pdata(query_res, study)
+  query_res <- get_top(query_res)
+  query_res <- destructure_title(query_res, .after = 'Correlation')
   query_res <- summarize_compound(query_res)
   query_res <- add_table_html(query_res)
+  return(query_res)
+}
+
+
+#' Reduce entries in query results
+#'
+#' Gets all entries for compounds that have a correlation less than the top entries with a clinical phase.
+#'
+#'
+#' @param query_res \code{data.frame} returned by \code{\link{append_pdata}}.
+#' @param nclinic Integer indicating the number of entries with a clinical phase that should be included.
+#'
+#' @return \code{query_res} including only compounds that have a correlation less than the top entries with a clinical phase.
+#' @export
+#'
+#' @importFrom magrittr "%>%"
+#'
+#' @examples
+get_top <- function(query_res, nclinic = 100) {
+
+  # arrange by correlation
+  query_res <- query_res %>%
+    dplyr::as_tibble() %>%
+    dplyr::arrange(Correlation) %>%
+    dplyr::mutate(Compound = gsub('^([^_]+)_.+?$', '\\1', title))
+
+  # add index to unique compounds
+  with_idx <- query_res %>%
+    dplyr::select(Compound, `Clinical Phase`) %>%
+    dplyr::distinct() %>%
+    dplyr::mutate(idx = 1:dplyr::n())
+
+  # get index to keep up to (n with clinical phase)
+  last_idx <- with_idx %>%
+    dplyr::filter(!is.na(`Clinical Phase`)) %>%
+    dplyr::pull(idx) %>%
+    nth(nclinic)
+
+  # all compounds up to last
+  keep_compounds <- with_idx %>%
+    dplyr::filter(idx <= last_idx) %>%
+    dplyr::pull(Compound)
+
+  # keep all entries of keep_compounds
+  query_res <- query_res %>%
+    dplyr::filter(Compound %in% keep_compounds) %>%
+    select(-Compound)
+
   return(query_res)
 }
 
@@ -243,10 +293,16 @@ summarize_compound <- function(query_res) {
     dplyr::summarise(min_cor = min(Correlation), Correlation = I(list(Correlation))) %>%
     dplyr::select(Correlation, min_cor)
 
+  summarise_phase <- function(phases) {
+    if (all(is.na(phases))) return(phases[1])
+    max(phases, na.rm = TRUE)
+  }
+
+
   # keep furthest clinical phase
   query_phase <- query_res %>%
     dplyr::select(`Clinical Phase`, Compound) %>%
-    dplyr::summarise(`Clinical Phase` = max(`Clinical Phase`, na.rm = TRUE)) %>%
+    dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
     dplyr::pull(`Clinical Phase`)
 
   # summarize rest
