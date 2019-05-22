@@ -3,6 +3,8 @@ library(dplyr)
 library(tidyr)
 library(drugseqr)
 
+# function definitions ----
+
 # non UTF-8 encoded character cause DT alerts on filtering
 remove_non_utf8 <- function(df) {
   df[] <- lapply(df, function(x) {
@@ -40,6 +42,75 @@ rename_cols <- function(annot) {
   return(annot)
 }
 
+setup_annot <- function(annot, study) {
+
+  increasing_phases <- c('Withdrawn', 'Preclinical', 'Phase 1', 'Phase 2', 'Phase 2 | GRAS', 'Phase 3', 'Launched', 'Launched | GRAS')
+
+  pdata <- readRDS(paste0('inst/extdata/', study, '_pdata.rds'))
+  pdata <- destructure_title(pdata, drop=FALSE, .after=1)
+
+  # pubchem_cid and pert_iname together have the most matches
+  sum(pdata$Compound %in% tolower(annot$pert_iname))
+  sum(pdata$`Pubchem CID` %in% annot$pubchem_cid)
+  sum(pdata$`Pubchem CID` %in% annot$pubchem_cid | pdata$Compound %in% tolower(annot$pert_iname))
+
+  # first get matches on cid
+  cat('Matching on cids ... \n')
+  annot_cids <-  pdata %>%
+    select(title, Compound, 'Pubchem CID') %>%
+    inner_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
+
+  # where there wasn't a cid match try on pert_iname
+  cat('Matching on Broad internal names ... \n')
+  study_annot <- pdata %>%
+    select(title, 'Pubchem CID', 'Compound') %>%
+    anti_join(annot, by = c('Pubchem CID' = 'pubchem_cid')) %>%
+    left_join(annot, by = c('Compound' = 'pert_iname')) %>%
+    bind_rows(annot_cids)
+
+
+  # fill in na values with non-na value by cid and name
+  cat('Filling in NA by CIDs and compound names ... \n')
+  study_annot <- study_annot %>%
+    group_by(`Pubchem CID`) %>%
+    fill(everything()) %>%
+    fill(everything(), .direction = 'up') %>%
+    ungroup() %>%
+    group_by(Compound) %>%
+    fill(everything()) %>%
+    fill(everything(), .direction = 'up') %>%
+    ungroup()
+
+  # use most advanced phase if same title has multiple phases
+  cat('Selecting most advanced clinical phase for each title ... \n')
+  phase <- study_annot %>%
+    select(title, clinical_phase) %>%
+    mutate(clinical_phase = factor(clinical_phase, increasing_phases, ordered = TRUE)) %>%
+    group_by(title) %>%
+    summarise(clinical_phase = max(clinical_phase))
+
+  # merge rows that have the same title
+  cat('Merging rows with the same title ... \n')
+  study_annot <- study_annot %>%
+    select(-clinical_phase) %>%
+    group_by(title) %>%
+    summarise_all(summarise_func) %>%
+    left_join(phase, by = 'title') %>%
+    select(title, `Pubchem CID`, clinical_phase, everything()) %>%
+    arrange(match(title, pdata$title))
+
+  # check that study_annot and pdata are in same order
+  stopifnot(all.equal(study_annot$title, pdata$title))
+
+  # save as seperate annotation, removing what pdata already has
+  study_annot <- study_annot %>% select(-c(title, `Pubchem CID`, pert_iname, pubchem_cid, Compound)) %>% rename_cols()
+  saveRDS(study_annot, paste0('inst/extdata/', study, '_annot.rds'))
+
+  return(study_annot)
+}
+
+# setup BRH data ----
+
 drugs <- fread('data-raw/drug_annot/repurposing_drugs_20180907.txt', skip = 'pert_iname')
 samples <- fread('data-raw/drug_annot/repurposing_samples_20180907.txt', skip = 'pert_iname')
 
@@ -56,131 +127,62 @@ grep('golgicide', samples$pert_iname, value = TRUE)
 samples[samples$pert_iname == 'golgicide-A', 'pert_iname'] <- 'golgicide-a'
 
 # merge based on pert_iname
-annot <- left_join(drugs, samples, by = 'pert_iname')
-annot[annot == ''] <- NA
+brh_annot <- left_join(drugs, samples, by = 'pert_iname')
+brh_annot[brh_annot == ''] <- NA
 
 # keep what is relevant for now
-annot <- select(annot, -c(broad_id, qc_incompatible, purity, expected_mass, smiles, InChIKey, deprecated_broad_id))
-annot <- unique(annot)
-annot$pubchem_cid <- as.character(annot$pubchem_cid)
+brh_annot <- select(brh_annot, -c(broad_id, qc_incompatible, purity, expected_mass, smiles, InChIKey, deprecated_broad_id))
+brh_annot <- unique(brh_annot)
+brh_annot$pubchem_cid <- as.character(brh_annot$pubchem_cid)
 
 # use most advanced phase
-annot$clinical_phase <- gsub('^Phase \\d/', '', annot$clinical_phase)
-unique(annot$clinical_phase)
-increasing_phases <- c('Withdrawn', 'Preclinical', 'Phase 1', 'Phase 2', 'Phase 2 | GRAS', 'Phase 3', 'Launched', 'Launched | GRAS')
+brh_annot$clinical_phase <- gsub('^Phase \\d/', '', brh_annot$clinical_phase)
+unique(brh_annot$clinical_phase)
 
-annot <- remove_non_utf8(annot)
+brh_annot <- remove_non_utf8(brh_annot)
 
 
-# add SIDER, DrugBank, and GRAS ----
+# add SIDER, DrugBank, Wikipedia, and GRAS ----
+
 sider <- readRDS('data-raw/drug_annot/pug_view/sider.rds')
 sider <- tibble(pubchem_cid = names(sider), SIDER = sider) %>%
   mutate(SIDER = ifelse(sider, pubchem_cid, NA))
 
 pug_annot <- readRDS('data-raw/drug_annot/pug_view/pug_annot.rds')
-pug_annot <- rename(pug_annot, DrugBank = drugbank)
+pug_annot <- rename(pug_annot, DrugBank = drugbank, Wikipedia = wikipedia)
 
-annot <- annot %>%
-  left_join(pug_annot, by = 'pubchem_cid') %>%
+# get matches on pubchem cid
+annot <- brh_annot %>%
+  as_tibble() %>%
+  select(-pert_iname) %>%
   left_join(sider, by = 'pubchem_cid') %>%
+  inner_join(pug_annot, by = 'pubchem_cid') %>%
   mutate(clinical_phase = ifelse(gras, paste0(clinical_phase, ' | GRAS'), clinical_phase)) %>%
   select(-gras) %>%
-  select(clinical_phase, DrugBank, SIDER, everything())
+  select(clinical_phase, DrugBank, SIDER, Wikipedia, everything())
 
+# get those that didn't match on pubchem cid and match by pert_iname
+annot <- brh_annot %>%
+  as_tibble() %>%
+  anti_join(pug_annot, by = 'pubchem_cid') %>%
+  select(-pubchem_cid) %>%
+  full_join(pug_annot, by = c('pert_iname')) %>%  # need full_join for subsequent fill
+  select(-gras) %>%
+  bind_rows(annot)
 
-
-# CMAP02 setup ----
-cmap_pdata <- readRDS('inst/extdata/CMAP02_pdata.rds')
-cmap_pdata <- destructure_title(cmap_pdata, drop=FALSE, .after=1)
-
-# pubchem CID seems to have the most matches
-table(unique(cmap_pdata$Compound) %in% annot$pert_iname)
-table(unique(cmap_pdata$`Pubchem CID`) %in% annot$pubchem_cid)
-
-# use cmap_pdata compound names
-cmap_annot <-  cmap_pdata %>%
-  select(title, 'Pubchem CID') %>%
-  left_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
-
-# use most advanced phase if same CID has multiple phases
-cmap_phase <- cmap_annot %>%
-  select(title, clinical_phase) %>%
-  mutate(clinical_phase = factor(clinical_phase, increasing_phases, ordered = TRUE)) %>%
-  group_by(title) %>%
-  summarise(clinical_phase = max(clinical_phase))
-
-# merge rows that have the same treatment
-cmap_annot <- cmap_annot %>%
-  select(-clinical_phase) %>%
-  group_by(title) %>%
-  summarise_all(summarise_func) %>%
-  left_join(cmap_phase, by = 'title') %>%
-  select(title, `Pubchem CID`, clinical_phase, everything()) %>%
-  arrange(match(title, cmap_pdata$title))
-
-# check that annot and pdata are in same order
-all.equal(cmap_annot$title, cmap_pdata$title)
-
-# save as seperate annotation, removing what pdata already has
-cmap_annot <- cmap_annot %>% select(-c(title, `Pubchem CID`, pert_iname)) %>% rename_cols()
-saveRDS(cmap_annot, 'inst/extdata/CMAP02_annot.rds')
-
-
-# L1000 setup -----
-
-l1000_pdata <- readRDS('inst/extdata/L1000_pdata.rds')
-l1000_pdata <- destructure_title(l1000_pdata, drop=FALSE, .after=1)
-
-# pubchem_cid and pert_iname together have the most matches
-sum(l1000_pdata$Compound %in% tolower(annot$pert_iname))
-sum(l1000_pdata$`Pubchem CID` %in% annot$pubchem_cid)
-sum(l1000_pdata$`Pubchem CID` %in% annot$pubchem_cid | l1000_pdata$Compound %in% tolower(annot$pert_iname))
-
-# first get matches on cid
-l1000_annot_cids <-  l1000_pdata %>%
-  select(title, Compound, 'Pubchem CID') %>%
-  inner_join(annot, by = c('Pubchem CID' = 'pubchem_cid'))
-
-# where there wasn't a cid match try on pert_iname
-l1000_annot <- l1000_pdata %>%
-  select(title, 'Pubchem CID', 'Compound') %>%
-  anti_join(annot, by = c('Pubchem CID' = 'pubchem_cid')) %>%
-  left_join(annot, by = c('Compound' = 'pert_iname')) %>%
-  bind_rows(l1000_annot_cids)
-
-# fill in na values with non-na value by cid and name
-l1000_annot <- l1000_annot %>%
-  group_by(`Pubchem CID`) %>%
+# fill in non-NA by cid then by pert_iname
+annot <- annot %>%
+  group_by(pubchem_cid) %>%
   fill(everything()) %>%
   fill(everything(), .direction = 'up') %>%
   ungroup() %>%
-  group_by(Compound) %>%
+  group_by(pert_iname) %>%
   fill(everything()) %>%
   fill(everything(), .direction = 'up') %>%
   ungroup()
 
-# use most advanced phase if same title has multiple phases
-l1000_phase <- l1000_annot %>%
-  select(title, clinical_phase) %>%
-  mutate(clinical_phase = factor(clinical_phase, increasing_phases, ordered = TRUE)) %>%
-  group_by(title) %>%
-  summarise(clinical_phase = max(clinical_phase))
+# CMAP02/L1000 setup ----
 
-# merge rows that have the same title
-l1000_annot <- l1000_annot %>%
-  select(-clinical_phase) %>%
-  group_by(title) %>%
-  summarise_all(summarise_func) %>%
-  left_join(l1000_phase, by = 'title') %>%
-  select(title, `Pubchem CID`, clinical_phase, everything()) %>%
-  arrange(match(title, l1000_pdata$title))
+cmap_annot <- setup_annot(annot, 'CMAP02')
+l1000_annot <- setup_annot(annot, 'L1000')
 
-# check that annot and pdata are in same order
-all.equal(l1000_annot$title, l1000_pdata$title)
-
-# check that have clinical status for all drugbank
-sum(is.na(l1000_annot[!is.na(l1000_annot$DrugBank), 'Clinical Phase']))
-
-# save as seperate annotation, removing what pdata already has
-l1000_annot <- l1000_annot %>% select(-c(title, `Pubchem CID`, pert_iname, pubchem_cid, Compound)) %>% rename_cols()
-saveRDS(l1000_annot, 'inst/extdata/L1000_annot.rds')
