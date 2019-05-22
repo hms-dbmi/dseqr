@@ -57,3 +57,35 @@ get_drugbank <- function(pug_view) {
   }
   return(db_id)
 }
+
+
+#' Extract Wikipedia URL from PUG-View
+#'
+#' @inheritParams check_gras
+#'
+#' @return Character vector with Wikipedia page
+#' @export
+#'
+#' @examples
+get_wikipedia <- function(pug_view) {
+
+  # default
+  wiki_name <- NA_character_
+
+  # get reference source names
+  refs <- pug_view$Record$Reference
+  sources <- sapply(refs, `[[`, 'SourceName')
+
+  # get first drugbank index
+  wiki <- which(sources == 'Wikipedia')[1]
+
+  if (!is.na(wiki)) {
+    # get base url
+    wiki_url <- refs[[wiki]]$URL
+
+    # make sure is wikipedia (wikidata like Pubchem but worse)
+    if (grepl('https://en.wikipedia.org/wiki', wiki_url, fixed = TRUE))
+      wiki_name <- gsub('^https://en.wikipedia.org/wiki/([^/]+)$', '\\1', wiki_url)
+  }
+  return(wiki_name)
+}
