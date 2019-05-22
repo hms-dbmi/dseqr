@@ -31,7 +31,7 @@
 #' cmap_res <- query_drugs(dprimes, cmap_es)
 #' l1000_res <- query_drugs(dprimes, l1000_es)
 #'
-#' explore_results(cmap_res, l1000_res)
+#' explore_results(cmap_res, l1000_res_thp1)
 #'
 explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 
@@ -352,14 +352,45 @@ add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, ti
 
   ids <- query_res[[id_col]]
   have_ids <- !is.na(ids)
-  query_res[[id_col]][have_ids] <- paste0('<a href="',
-                                          pre_url, ids[have_ids], post_url,
-                                          '" target="_blank" title="', paste('Go to', title), '">',
+
+  query_res[[id_col]][have_ids] <- paste0(get_open_a(pre_url, ids[have_ids], post_url, title),
                                           '<img src="', img_url, '" height="22px" hspace="4px"></img>',
                                           # ids[have_ids],
                                           '</a>')
 
   return(query_res)
+}
+
+#' Get Opening HTML a Tag
+#'
+#' If there are multiple-entry \code{ids} (e.g. \code{'2250, | 60823'}), the first entry
+#' is added to the href attribute and subsequent entries are added to onclick javascript.
+#'
+#' @inheritParams add_linkout
+#' @param ids non \code{NA} ids to be inserted between \code{pre_url} and \code{post_url} to form the link.
+#'
+#' @return Character vector of opening HTML a tags
+#' @export
+#'
+#' @examples
+get_open_a <- function(pre_url, ids, post_url, title) {
+
+  # are some cases with e.g. multiple pubchem cids
+  ids <- strsplit(ids, ' | ', fixed = TRUE)
+
+  open_a <- sapply(ids, function(id) {
+    # add first id to href
+    res <- paste0('<a href="', pre_url, id[1], post_url, '" target="_blank"')
+
+    if (length(id) > 1) {
+      # open next ids with javascript
+      onclick_js <- paste0("window.open('", pre_url, id[-1], post_url, "')", collapse = '; ')
+      res <- paste0(res, ' onclick="', onclick_js, '" title="', paste('Go to', title, paste(id, collapse = ', '), '">'))
+    } else {
+      res <- paste0(res, ' title="', paste('Go to', title, '">'))
+    }
+    return(res)
+  })
 }
 
 #' Add HTML to query results table
