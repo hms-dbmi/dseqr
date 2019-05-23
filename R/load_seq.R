@@ -2,7 +2,7 @@
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
-#' @param release EnsemblDB release. Should be same as used in \code{\link{build_index}}.
+#' @param release EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.
 #' @param load_saved If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.
 #' @param save_eset If TRUE (default) and either \code{load_saved} is \code{FALSE} or a saved \code{ExpressionSet} does not exist,
 #'   then an ExpressionSet will be saved to disk. Will overwrite if already exists.

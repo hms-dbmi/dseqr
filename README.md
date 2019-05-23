@@ -50,8 +50,13 @@ To download a transcriptome, build an index, and build an Ensembl annotation pac
 
 ```R
 library(drugseqr)
-build_index()
+
+# for bulk RNA seq
+build_ensdb_index()
 build_ensdb()
+
+# for single cell RNA seq
+build_gencode_index()
 ```
 
 ## Run Salmon, Load ExpressionSet, and Annotate

@@ -9,7 +9,7 @@ build_ensdb(species = "Homo sapiens", release = "94")
 \arguments{
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
-\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_index}}.}
+\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
 }
 \description{
 Build ensembldb annotation package.

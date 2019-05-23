@@ -13,7 +13,7 @@ load_seq(data_dir, species = "Homo sapiens", release = "94",
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
-\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_index}}.}
+\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
 
 \item{load_saved}{If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
 
