@@ -51,4 +51,4 @@ sum(!row.names(l1000_es) %in% tx2gene_nest$gene_name)
 # EnsDb94: 3
 
 
-saveRDS(tx2gene_nest, 'data-raw/sysdata/tx2gene.rds')
+saveRDS(tx2gene_nest, 'data-raw/tx2gene/tx2gene.rds')
