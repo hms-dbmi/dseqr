@@ -27,10 +27,28 @@ summarise_symbol <- function(gnames, syms, entrezid) {
   return(gnames)
 }
 
-
 # re-nest
 tx2gene_nest <- group_by(tx2gene_unnest, tx_id) %>%
   summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606, entrezid),
             entrezid = list(unique(entrezid)))
+
+
+# check concordance with l1000_es/cmap_es
+cmap_es_ind <- readRDS("inst/extdata/cmap_es_ind.rds")
+l1000_es <- readRDS("inst/extdata/l1000_es.rds")
+
+sum(!row.names(cmap_es_ind) %in% tx2gene_nest$gene_name)
+# EnsDb89: 207
+# EnsDb90: 203
+# EnsDb91: 201
+# EnsDb92: 220
+# EnsDb94: 169
+sum(!row.names(l1000_es) %in% tx2gene_nest$gene_name)
+# EnsDb89: 4
+# EnsDb90: 4
+# EnsDb91: 4
+# EnsDb92: 4
+# EnsDb94: 3
+
 
 saveRDS(tx2gene_nest, 'data-raw/sysdata/tx2gene.rds')

@@ -411,7 +411,7 @@ add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, ti
   have_ids <- !is.na(ids)
 
   query_res[[id_col]][have_ids] <- paste0(get_open_a(pre_url, ids[have_ids], post_url, title),
-                                          '<img src="', img_url, '" height="22px" hspace="4px"></img>',
+                                          '<img src="', img_url, '" height="20px" hspace="4px"></img>',
                                           # ids[have_ids],
                                           '</a>')
 
