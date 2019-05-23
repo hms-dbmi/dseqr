@@ -12,8 +12,7 @@ data-raw/single-cell/example-data/*
 # contains PUG-View files from Pubchem
 data-raw/drug_annot/pug_view/views/*
 
-
-# salmon indices
+# salmon/alevin indices
 inst/indices
 
 # drug effect size data (new users dl from s3)
@@ -22,3 +21,6 @@ inst/extdata/l1000_es.rds
 
 # ensdb annotation
 inst/EnsDb
+
+# txp2gene for alevin
+data-raw/single-cell/txp2gene/*.gtf.gz
