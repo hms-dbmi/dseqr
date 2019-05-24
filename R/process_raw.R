@@ -112,7 +112,7 @@ run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'hom
   # now assumes single end
 
   # location of index
-  salmon_idx <- system.file('indices', species, package = 'drugseqr')
+  salmon_idx <- system.file('indices', 'ensembl', species, package = 'drugseqr')
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_ensdb_index')
 
   if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
