@@ -43,12 +43,14 @@ sum(!row.names(cmap_es_ind) %in% tx2gene_nest$gene_name)
 # EnsDb91: 201
 # EnsDb92: 220
 # EnsDb94: 169
+# EnsDb95: 197
 sum(!row.names(l1000_es) %in% tx2gene_nest$gene_name)
 # EnsDb89: 4
 # EnsDb90: 4
 # EnsDb91: 4
 # EnsDb92: 4
 # EnsDb94: 3
+# EnsDb95: 4
 
 
 saveRDS(tx2gene_nest, 'data-raw/tx2gene/tx2gene.rds')
