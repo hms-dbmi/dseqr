@@ -181,13 +181,14 @@ get_ensdb_package <- function(species, release) {
 #' Get transcript to gene map.
 #'
 #' @inheritParams load_seq
+#' @param columns Character vector of columns from ensdb package to return or \code{'list'} to print available options.
 #'
 #' @return \code{data.frame} with columns \code{tx_id}, \code{gene_name}, and \code{entrezid}
 #' @export
 #'
 #' @keywords internal
 #'
-get_tx2gene <- function(species = 'Homo sapiens', release = '94') {
+get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("tx_id", "gene_name", "entrezid", "gene_id", "seq_name")) {
   # load EnsDb package
   ensdb_package <- get_ensdb_package(species, release)
   if (!require(ensdb_package, character.only = TRUE)) {
@@ -195,9 +196,13 @@ get_tx2gene <- function(species = 'Homo sapiens', release = '94') {
     require(ensdb_package, character.only = TRUE)
   }
 
+  if (columns[1] == 'list') {
+    print(ensembldb::listColumns(get(ensdb_package)))
+    return(NULL)
+  }
+
   # map from transcripts to genes
-  tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=c("tx_id", "gene_name", "entrezid"),
-                                    return.type='data.frame')
+  tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=columns, return.type='data.frame')
   tx2gene[tx2gene == ""] <- NA
   tx2gene <- tx2gene[!is.na(tx2gene$gene_name), ]
   return(tx2gene)

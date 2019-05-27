@@ -4,12 +4,15 @@
 \alias{get_tx2gene}
 \title{Get transcript to gene map.}
 \usage{
-get_tx2gene(species = "Homo sapiens", release = "94")
+get_tx2gene(species = "Homo sapiens", release = "94",
+  columns = c("tx_id", "gene_name", "entrezid"))
 }
 \arguments{
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
 \item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
+
+\item{columns}{Character vector of columns from ensdb package to return or \code{'list'} to print available options.}
 }
 \value{
 \code{data.frame} with columns \code{tx_id}, \code{gene_name}, and \code{entrezid}

@@ -30,7 +30,9 @@ summarise_symbol <- function(gnames, syms, entrezid) {
 # re-nest
 tx2gene_nest <- group_by(tx2gene_unnest, tx_id) %>%
   summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606, entrezid),
-            entrezid = list(unique(entrezid)))
+            entrezid = list(unique(entrezid)),
+            gene_id = unique(gene_id),
+            seq_name = unique(seq_name))
 
 
 # check concordance with l1000_es/cmap_es
