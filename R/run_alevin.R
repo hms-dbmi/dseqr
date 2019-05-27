@@ -1,15 +1,9 @@
 
-#' Runs salmon quantification.
-#'
-#' For pair-ended experiments, reads for each pair should be in a seperate file.
+#' Runs salmon alevin single-cell quantification.
 #'
 #' @param data_dir Directory with raw 10X single-cell fastq.gz RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-#' The first column should contain sample ids that match a single raw rna-seq data file name.
-#' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
-#' @param species Species name. Default is \code{homo_sapiens}.
+#' @param species Species name. Default is \code{human}.
 #' Used to determine transcriptome index to use.
-#' @param flags Character vector of flags to pass to salmon.
 #'
 #' @return NULL
 #' @export
@@ -18,10 +12,9 @@
 #'
 #' # first place data in data-raw/single-cell/example-data
 #' data_dir <- file.path('data-raw', 'single-cell', 'example-data', 'Run2644-10X-Lung', '10X_FID12518_Normal_3hg')
-#' run_alevin(data_dir, pdata_path)
+#' run_alevin(data_dir)
 #'
-run_alevin <- function(data_dir, species = 'human',
-                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
+run_alevin <- function(data_dir, species = 'human') {
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -50,7 +43,10 @@ run_alevin <- function(data_dir, species = 'human',
                  '-l', 'ISR',
                  '-1', paste(cb_fastqs, collapse = ' '),
                  '-2', paste(read_fastqs, collapse = ' '),
+                 '--chromium',
+                 '-i', alevin_idx,
                  '-o', shQuote(out_dir),
+                 '-p', 8,
                  '--tgMap', tgmap_path))
 
   return(NULL)
@@ -94,7 +90,7 @@ identify_sc_files <- function(data_dir, read_type = 'R1') {
   if (!length(sc_files))
     stop('No fastq.gz files identified in data_dir in read type of ', read_type)
 
-  if (length(sc_files) == 1) return(sc_files)
+  if (length(sc_files) == 1) return(file.path(data_dir, sc_files))
 
   # order by increasing lane if multiple
   # first try format from mkfastq

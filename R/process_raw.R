@@ -75,6 +75,7 @@ build_gencode_index <- function(species = 'human', release = '29') {
   # build index
   tryCatch(system2('salmon', args=c('index',
                                     '-t', gencode_file,
+                                    '--gencode',
                                     '-i', species)),
            error = function(err) {err$message <- 'Is salmon installed and on the PATH?'; stop(err)})
 
@@ -112,7 +113,7 @@ run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'hom
   # now assumes single end
 
   # location of index
-  salmon_idx <- system.file('indices', 'ensembl', species, package = 'drugseqr')
+  salmon_idx <- system.file('indices', 'ensdb', species, package = 'drugseqr')
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_ensdb_index')
 
   if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
