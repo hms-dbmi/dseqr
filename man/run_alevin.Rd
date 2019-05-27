@@ -2,31 +2,25 @@
 % Please edit documentation in R/run_alevin.R
 \name{run_alevin}
 \alias{run_alevin}
-\title{Runs salmon quantification.}
+\title{Runs salmon alevin single-cell quantification.}
 \usage{
-run_alevin(data_dir, species = "human", flags = c("--validateMappings",
-  "--posBias", "--seqBias", "--gcBias"))
+run_alevin(data_dir, species = "human", overwrite = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw 10X single-cell fastq.gz RNA-Seq files.}
 
-\item{species}{Species name. Default is \code{homo_sapiens}.
+\item{species}{Species name. Default is \code{human}.
 Used to determine transcriptome index to use.}
 
-\item{flags}{Character vector of flags to pass to salmon.}
-
-\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-The first column should contain sample ids that match a single raw rna-seq data file name.}
-
-\item{pdata}{Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.}
+\item{overwrite}{Do you want to overwrite results of previous run? Default is \code{FALSE}.}
 }
 \description{
-For pair-ended experiments, reads for each pair should be in a seperate file.
+Runs salmon alevin single-cell quantification.
 }
 \examples{
 
 # first place data in data-raw/single-cell/example-data
 data_dir <- file.path('data-raw', 'single-cell', 'example-data', 'Run2644-10X-Lung', '10X_FID12518_Normal_3hg')
-run_alevin(data_dir, pdata_path)
+run_alevin(data_dir)
 
 }

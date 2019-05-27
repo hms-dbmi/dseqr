@@ -4,6 +4,7 @@
 #' @param data_dir Directory with raw 10X single-cell fastq.gz RNA-Seq files.
 #' @param species Species name. Default is \code{human}.
 #' Used to determine transcriptome index to use.
+#' @param overwrite Do you want to overwrite results of previous run? Default is \code{FALSE}.
 #'
 #' @return NULL
 #' @export
@@ -14,7 +15,7 @@
 #' data_dir <- file.path('data-raw', 'single-cell', 'example-data', 'Run2644-10X-Lung', '10X_FID12518_Normal_3hg')
 #' run_alevin(data_dir)
 #'
-run_alevin <- function(data_dir, species = 'human') {
+run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -28,6 +29,11 @@ run_alevin <- function(data_dir, species = 'human') {
 
   # save alevin output here
   out_dir <- file.path(data_dir, 'alevin_output')
+
+  # make sure not overwriting previous result by mistake
+  if (file.exists(file.path(out_dir, 'alevin', 'quants_mat.gz')) & !overwrite)
+    stop('Output from previous alevin run already exists. Use overwrite = TRUE if re-run analysis.')
+
   unlink(out_dir, recursive = TRUE)
 
   # get R1 (CB+UMI sequences) and R2 (read sequences) order by lane number
