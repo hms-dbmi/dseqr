@@ -12,7 +12,7 @@
 #' @examples
 #'
 #' # first place data in data-raw/single-cell/example-data
-#' data_dir <- file.path('data-raw', 'single-cell', 'example-data', 'Run2644-10X-Lung', '10X_FID12518_Normal_3hg')
+#' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' run_alevin(data_dir)
 #'
 run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
@@ -24,8 +24,8 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
   tgmap_path <- system.file('extdata', 'txp2gene.tsv', package = 'drugseqr')
 
   # location of ribosomal/mitochondrial gene files (used for whitelist model)
-  rrna_path <- tgmap_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
-  mrna_path <- tgmap_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
+  rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
+  mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
 
   # location of index
   alevin_idx <- system.file('indices', 'gencode', species, package = 'drugseqr')
@@ -36,7 +36,7 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
 
   # make sure not overwriting previous result by mistake
   if (file.exists(file.path(out_dir, 'alevin', 'quants_mat.gz')) & !overwrite)
-    stop('Output from previous alevin run already exists. Use overwrite = TRUE if re-run analysis.')
+    stop('Output from previous alevin run already exists. Use overwrite = TRUE to re-run analysis.')
 
   unlink(out_dir, recursive = TRUE)
 
@@ -59,6 +59,7 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
                  '-p', 8,
                  '--mrna', mrna_path,
                  '--rrna', rrna_path,
+                 '--useCorrelation',
                  '--tgMap', tgmap_path))
 
   return(NULL)

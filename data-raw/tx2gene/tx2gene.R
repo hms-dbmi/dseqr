@@ -34,8 +34,10 @@ tx2gene <- group_by(tx2gene_unnest, tx_id) %>%
             seq_name = unique(seq_name))
 
 # only need tx_id and gene_name for salmon quant
+# need gene_id for annotation
+# need seq_name to for mitochondrial genes
 tx2gene %>%
-  dplyr::select(tx_id, gene_name) %>%
+  dplyr::select(tx_id, gene_name, gene_id, seq_name) %>%
   saveRDS('data-raw/tx2gene/tx2gene.rds')
 
 # check concordance with l1000_es/cmap_es ----
@@ -62,6 +64,7 @@ sum(!row.names(l1000_es) %in% tx2gene$gene_name)
 # described here: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y#Sec16
 
 library('org.Hs.eg.db')
+library(data.table)
 
 # use gene-ontology to retrieve ribo genes
 # sample approach as scPipe calculate_QC_metrics: https://github.com/LuyiTian/scPipe/blob/master/R/qc.R
@@ -69,16 +72,32 @@ ribo_go <- 'GO:0005840'
 
 AnnotationDbi::columns(org.Hs.eg.db)
 
-ribo_genes <- AnnotationDbi::mapIds(org.Hs.eg.db, keys=ribo_go, column='ENSEMBL', keytype="GO",multiVals = "list")[[1]]
-ribo_genes <- unique(na.omit(ribo_genes))
-table(ribo_genes %in% tx2gene$gene_id)
+ribo_genes <- AnnotationDbi::mapIds(org.Hs.eg.db, keys=ribo_go, column='ENSEMBLTRANS', keytype="GO",multiVals = "list")[[1]]
+ribo_genes <- tibble(tx_id = unique(na.omit(ribo_genes)))
 
 mito_genes <- tx2gene %>%
-  dplyr::select(gene_id, seq_name) %>%
-  group_by(gene_id) %>%
+  dplyr::select(tx_id, seq_name) %>%
+  group_by(tx_id) %>%
   summarise_all(unique) %>%
-  dplyr::filter(seq_name == 'MT') %>%
+  dplyr::filter(seq_name == 'MT')
+
+# make sure genes include subversion as used by alevin
+txp2gene <- fread('inst/extdata/txp2gene.tsv', col.names = c('tx_id', 'gene_id'))
+txp2gene <- as_tibble(txp2gene) %>%
+  mutate(tx_id = gsub('\\.[0-9]+$', '', tx_id))
+
+mito_genes <- mito_genes %>%
+  left_join(txp2gene, by = 'tx_id') %>%
+  dplyr::filter(!is.na(gene_id)) %>%
   pull(gene_id)
+
+ribo_genes <- ribo_genes %>%
+  left_join(txp2gene, by = 'tx_id') %>%
+  dplyr::filter(!is.na(gene_id)) %>%
+  dplyr::select(gene_id) %>%
+  dplyr::distinct() %>%
+  pull(gene_id)
+
 
 write.table(mito_genes, 'inst/extdata/mrna.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
 write.table(ribo_genes, 'inst/extdata/rrna.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
