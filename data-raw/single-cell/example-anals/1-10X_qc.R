@@ -66,11 +66,35 @@ set.seed(1000)
 clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
 table(clusters)
 
+sce <- computeSumFactors(sce, min.mean=0.1, cluster=clusters)
+
 # sizefactors should correlated well with total counts
 # indicates capture efficiency/sequencing depth are the major biases
 plot(sce$total_counts, sizeFactors(sce), log="xy")
 
 # normalize based on size-factors
 sce <- normalize(sce)
+
+# variance stabilization ----
+# variance goes up with mean in count-based data
+# note that this is same goal as limma::voom for bulk rna-seq data
+
+# assume technical variation is poisson
+new.trend <- makeTechTrend(x=sce)
+
+# estimate observed variances
+fit <- trendVar(sce, use.spikes=FALSE, loess.args=list(span=0.05))
+plot(fit$mean, fit$var, pch=16)
+curve(fit$trend(x), col="dodgerblue", add=TRUE)
+curve(new.trend(x), col="red", add=TRUE)
+
+# decompose variance using poisson as technical variance
+fit$trend <- new.trend # overwrite trend.
+dec <- decomposeVar(fit=fit) # use per-gene variance estimates in 'fit'.
+top.dec <- dec[order(dec$bio, decreasing=TRUE),]
+head(top.dec)
+
+# genes with the largest biological component in variance
+plotExpression(sce, features=rownames(top.dec)[1:15])
 
 
