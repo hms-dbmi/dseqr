@@ -23,6 +23,10 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
   # location of tgMap
   tgmap_path <- system.file('extdata', 'txp2gene.tsv', package = 'drugseqr')
 
+  # location of ribosomal/mitochondrial gene files (used for whitelist model)
+  rrna_path <- tgmap_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
+  mrna_path <- tgmap_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
+
   # location of index
   alevin_idx <- system.file('indices', 'gencode', species, package = 'drugseqr')
   if (!dir.exists(alevin_idx)) stop('No index found. See ?build_gencode_index')
@@ -53,6 +57,8 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
                  '-i', alevin_idx,
                  '-o', shQuote(out_dir),
                  '-p', 8,
+                 '--mrna', mrna_path,
+                 '--rrna', rrna_path,
                  '--tgMap', tgmap_path))
 
   return(NULL)
