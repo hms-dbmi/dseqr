@@ -3,6 +3,8 @@
 library(scater)
 library(dplyr)
 library(DropletUtils)
+library(scran)
+library(BiocSingular)
 
 # load/annotate data from alevin ----
 
@@ -25,10 +27,9 @@ sce <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=alevin))
 # annotate sce using tx2gene (best match with cmap_es/l1000_es)
 tx2gene <- readRDS("data-raw/tx2gene/tx2gene.rds")
 tx2gene <- tx2gene %>%
-  as_tibble() %>%
-  dplyr::select(-c(tx_id, entrezid)) %>%
-  group_by(gene_id) %>%
-  summarise_all(unique)
+  dplyr::select(-tx_id) %>%
+  dplyr::group_by(gene_id) %>%
+  dplyr::summarise_all(unique)
 
 rowData(sce) <- tibble(gene_id = gsub('\\.[0-9]+$', '', row.names(sce))) %>%
   left_join(tx2gene, by = 'gene_id')
@@ -49,6 +50,7 @@ hist(sce$pct_counts_Mito, breaks=20, col="grey80",
 hist(sce$pct_counts_Mito[colnames(sce) %in% whitelist], breaks=20, col="grey80",
      xlab="Percent mito reads (whitelist)")
 
+par(mfrow=c(1,1))
 # subset by alevin whitelist
 sce <- sce[, colnames(sce) %in% whitelist]
 
@@ -60,8 +62,6 @@ hist(log10(ave), col="grey80", breaks = 100)
 plotHighestExprs(sce)
 
 # normalizing for cells-specific biases ----
-library(scran)
-library(BiocSingular)
 set.seed(1000)
 clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
 table(clusters)
@@ -97,4 +97,45 @@ head(top.dec)
 # genes with the largest biological component in variance
 plotExpression(sce, features=rownames(top.dec)[1:15])
 
+# dimensionality reduction -----
+set.seed(1000)
+sce <- denoisePCA(sce, technical=new.trend, BSPARAM=IrlbaParam())
+ncol(reducedDim(sce, "PCA"))
 
+plot(attr(reducedDim(sce), "percentVar"), xlab="PC",
+     ylab="Proportion of variance explained")
+abline(v=ncol(reducedDim(sce, "PCA")), lty=2, col="red")
+
+plotPCA(sce, ncomponents=3, colour_by="log10_total_features_by_counts")
+
+# tSNE version
+set.seed(1000)
+sce <- runTSNE(sce, use_dimred="PCA", perplexity=30)
+plotTSNE(sce, colour_by="log10_total_features_by_counts")
+
+# clustering with graphs ----
+snn.gr <- buildSNNGraph(sce, use.dimred="PCA")
+clusters <- igraph::cluster_walktrap(snn.gr)
+sce$Cluster <- factor(clusters$membership)
+table(sce$Cluster)
+
+cluster.mod <- clusterModularity(snn.gr, sce$Cluster, get.values=TRUE)
+log.ratio <- log2(cluster.mod$observed/cluster.mod$expected + 1)
+
+library(pheatmap)
+pheatmap(log.ratio, cluster_rows=FALSE, cluster_cols=FALSE,
+         color=colorRampPalette(c("white", "blue"))(100))
+
+plotTSNE(sce, colour_by="Cluster")
+
+# Marker gene detection of clusters -----
+# only upregulated as more useful for positive id of cell type
+markers <- findMarkers(sce, clusters=sce$Cluster, direction="up")
+
+# look at e.g. cluster 1 with genes with top 10 minimum ranks
+marker.set <- markers[["1"]]
+chosen <- rownames(marker.set)[marker.set$Top <= 10]
+plotHeatmap(sce, features=chosen, exprs_values="logcounts",
+            zlim=5, center=TRUE, symmetric=TRUE, cluster_cols=FALSE,
+            colour_columns_by="Cluster", columns=order(sce$Cluster),
+            show_colnames=FALSE)
