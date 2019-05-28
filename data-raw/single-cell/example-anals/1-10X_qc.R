@@ -1,4 +1,4 @@
-# adapted from: https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/tenx.html
+# first several parts adapted from: https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/tenx.html
 
 library(scater)
 library(dplyr)
@@ -143,7 +143,9 @@ plotHeatmap(sce, features=chosen, exprs_values="logcounts",
 
 
 # check for discarded cell types -----
-# based on https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/qc.html#32_in_the_pbmc_data_set
+# based on https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/qc.html
+# doesn't automate well, just a visual check
+# personal note: may be useful to not conclude that one sample has cluster and other doesn't
 
 pass_qc <- colnames(sce.full) %in% whitelist
 
@@ -157,7 +159,29 @@ capped.kept <- pmax(kept, min(kept[kept>0]))
 # look for shift to bottom right (genes that are high in discarded cells, low in retained cells)
 plot(capped.lost, capped.kept, xlab="Average count (discarded)",
      ylab="Average count (retained)", log="xy", pch=16)
-is.spike <- isSpike(sce.full.416b)
-points(capped.lost[is.spike], capped.kept[is.spike], col="red", pch=16)
-is.mito <- rowData(sce.full.416b)$is_feature_control_Mt
-points(capped.lost[is.mito], capped.kept[is.mito], col="dodgerblue", pch=16)
+
+# check for doublets -----
+# based on https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/doublets.html
+# doesn't automate well, good to check that not relying on possibly double population for downstream analysis
+
+# relies on good clusters
+dbl.out <- doubletCluster(sce, sce$Cluster)
+dbl.out
+
+dbl.markers <- markers[["1"]]
+chosen <- rownames(dbl.markers)[dbl.markers$Top <= 10]
+plotHeatmap(sce, columns=order(sce$Cluster), colour_columns_by="Cluster",
+            features=chosen, cluster_cols=FALSE, center=TRUE, symmetric=TRUE,
+            zlim=c(-5, 5), show_colnames=FALSE)
+
+
+# simulates doublets from data
+set.seed(100)
+dbl.dens <- doubletCells(sce, BSPARAM=IrlbaParam())
+summary(dbl.dens)
+sce$DoubletScore <- dbl.dens
+plotTSNE(sce, colour_by="DoubletScore")
+
+# can check doublet score for each cluster
+# is the worst offender also the worst identified by doubletCluster?
+plotColData(sce, x="Cluster", y="DoubletScore", colour_by="Cluster")
