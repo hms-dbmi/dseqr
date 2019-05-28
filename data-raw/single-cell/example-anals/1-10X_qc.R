@@ -9,7 +9,7 @@ library(BiocSingular)
 # load/annotate data from alevin ----
 
 # folder with 10X fastq files
-data_dir <- file.path('data-raw/single-cell/example-data/Run2644-10X-Lung')
+data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 
 # this is LONG RUNNING
 # drugseqr::run_alevin(data_dir)
@@ -52,6 +52,7 @@ hist(sce$pct_counts_Mito[colnames(sce) %in% whitelist], breaks=20, col="grey80",
 
 par(mfrow=c(1,1))
 # subset by alevin whitelist
+sce.full <- sce
 sce <- sce[, colnames(sce) %in% whitelist]
 
 # look at most highly expressed genes
@@ -139,3 +140,24 @@ plotHeatmap(sce, features=chosen, exprs_values="logcounts",
             zlim=5, center=TRUE, symmetric=TRUE, cluster_cols=FALSE,
             colour_columns_by="Cluster", columns=order(sce$Cluster),
             show_colnames=FALSE)
+
+
+# check for discarded cell types -----
+# based on https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/qc.html#32_in_the_pbmc_data_set
+
+pass_qc <- colnames(sce.full) %in% whitelist
+
+lost <- calcAverage(counts(sce.full)[, !pass_qc])
+kept <- calcAverage(counts(sce.full)[, pass_qc])
+
+# Avoid loss of points where either average is zero.
+capped.lost <- pmax(lost, min(lost[lost>0]))
+capped.kept <- pmax(kept, min(kept[kept>0]))
+
+# look for shift to bottom right (genes that are high in discarded cells, low in retained cells)
+plot(capped.lost, capped.kept, xlab="Average count (discarded)",
+     ylab="Average count (retained)", log="xy", pch=16)
+is.spike <- isSpike(sce.full.416b)
+points(capped.lost[is.spike], capped.kept[is.spike], col="red", pch=16)
+is.mito <- rowData(sce.full.416b)$is_feature_control_Mt
+points(capped.lost[is.mito], capped.kept[is.mito], col="dodgerblue", pch=16)
