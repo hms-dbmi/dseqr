@@ -28,9 +28,6 @@ load_scseq <- function(data_dir) {
                                                     colData = data.frame(whitelist = colnames(counts) %in% whitelist),
                                                     metadata = list(rrna = rrna, mrna = mrna))
 
-  # calculate qc metrics
-  sce <- scater::calculateQCMetrics(sce, feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
-                                                               ribo = which(row.names(sce) %in% sce@metadata$rrna)))
   return(sce)
 }
 
@@ -69,6 +66,15 @@ stabilize_scseq <- function(sce) {
   # remove sctech portion (keeps only biological component)
   set.seed(1000)
   sce <- scran::denoisePCA(sce, technical=sctech, BSPARAM=BiocSingular::IrlbaParam())
+  return(sce)
+}
+
+qc_scseq <- function(sce) {
+  # calculate qc metrics if haven't previous
+  if (is.null(sce$total_counts))
+    sce <- scater::calculateQCMetrics(sce,
+                                      feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
+                                                            ribo = which(row.names(sce) %in% sce@metadata$rrna)))
   return(sce)
 }
 
