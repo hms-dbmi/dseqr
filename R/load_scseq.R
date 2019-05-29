@@ -31,6 +31,33 @@ load_scseq <- function(data_dir) {
   return(sce)
 }
 
+#' Normalize single-cell libraries for cell-specific biases
+#'
+#' @param sce \code{SingleCellExperiment} returned from \code{\link{load_scseq}}.
+#'
+#' @return Size-factor normalized \code{SingleCellExperiment}.
+#' @export
+#'
+#' @examples
+norm_scseq <- function(sce) {
+  # paper: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7
+  # example: https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/tenx.html#6_normalizing_for_cell-specific_biases
+
+  set.seed(1000)
+  clusters <- scran::quickCluster(sce, use.ranks=FALSE, BSPARAM=BiocSingular::IrlbaParam())
+  sce <- scran::computeSumFactors(sce, cluster=clusters, min.mean=0.1)
+  sce <- scater::normalize(sce)
+  return(sce)
+}
+
+
+
+
+
+
+
+
+
 #' Helper function to read single column text files
 #'
 #' @param file File to read from

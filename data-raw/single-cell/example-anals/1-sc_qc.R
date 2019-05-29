@@ -75,18 +75,12 @@ hist(log10(ave), col="grey80", breaks = 100)
 scater::plotHighestExprs(sce)
 
 # normalizing for cells-specific biases ----
-set.seed(1000)
-clusters <- quickCluster(sce, use.ranks=FALSE, BSPARAM=IrlbaParam())
-table(clusters)
 
-sce <- computeSumFactors(sce, min.mean=0.1, cluster=clusters)
+sce <- norm_scseq(sce)
 
 # sizefactors should correlated well with total counts
 # indicates capture efficiency/sequencing depth are the major biases
 plot(sce$total_counts, sizeFactors(sce), log="xy")
-
-# normalize based on size-factors
-sce <- normalize(sce)
 
 # variance stabilization ----
 # variance goes up with mean in count-based data
