@@ -5,6 +5,8 @@ library(dplyr)
 library(DropletUtils)
 library(scran)
 library(BiocSingular)
+library(ggplot2)
+library(cowplot)
 
 # load/annotate data from alevin ----
 
@@ -22,15 +24,45 @@ sce <- drugseqr::load_scseq(data_dir)
 sce <- scater::calculateQCMetrics(sce, feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
                                                              ribo = which(row.names(sce) %in% sce@metadata$rrna)))
 
-par(mfrow=c(3,2))
-hist(sce$log10_total_counts, breaks=20, col="grey80", xlab="Log-total UMI count")
-hist(sce$log10_total_features_by_counts, breaks=20, col="grey80", xlab="Log-total number of expressed features")
-hist(sce$pct_counts_mito, breaks=20, col="grey80", xlab="Percent mito reads")
-hist(sce$pct_counts_mito[sce$whitelist], breaks=20, col="grey80", xlab="Percent mito reads (whitelist)")
-hist(sce$pct_counts_ribo, breaks=20, col="grey80", xlab="Percent ribo reads")
-hist(sce$pct_counts_ribo[sce$whitelist], breaks=20, col="grey80", xlab="Percent ribo reads (whitelist)")
+sce_df <- tibble(log10_total_counts = sce$log10_total_counts,
+                 log10_total_features_by_counts = sce$log10_total_features_by_counts,
+                 pct_counts_ribo = sce$pct_counts_ribo,
+                 pct_counts_mito = sce$pct_counts_mito,
+                 whitelist = sce$whitelist)
 
-par(mfrow=c(1,1))
+ribo <- ggplot(sce_df, aes(x=pct_counts_ribo, fill=whitelist)) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  geom_histogram(position="identity", colour="black", alpha = 0.5, size = 0.05) +
+  xlab('Proportion of reads in ribosomal genes') +
+  theme(legend.position = "none")
+
+mito <- ggplot(sce_df, aes(x=pct_counts_mito, fill=whitelist)) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  geom_histogram(position="identity", colour="black", alpha = 0.5, size = 0.05) +
+  xlab('Proportion of reads in mitochondrial genes') +
+  theme(legend.position = "none") +
+  ylab('')
+
+ncounts <- ggplot(sce_df, aes(x=log10_total_counts, fill=whitelist)) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  geom_histogram(position="identity", colour="black", alpha = 0.5, size = 0.05) +
+  xlab('Log-total UMI count') +
+  theme(legend.position = "none")
+
+nexp <- ggplot(sce_df, aes(x=log10_total_features_by_counts, fill=whitelist)) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  geom_histogram(position="identity", colour="black", alpha = 0.5, size = 0.05) +
+  xlab('Log-total number of expressed features') +
+  theme(legend.position = "none") +
+  ylab('')
+
+legend <- get_legend(nexp + theme(legend.position="top"))
+plot_grid(legend, NULL, ncounts, nexp, ribo, mito, nrow = 3, rel_heights = c(0.2, 1, 1))
+
 # subset by alevin whitelist
 sce.full <- sce
 sce <- sce[, sce$whitelist]
