@@ -16,7 +16,7 @@ Imports:
     AnnotationHub (>= 2.14.5),
     curl (>= 3.3),
     dplyr (>= 0.7.8),
-    tximport (>= 1.10.1),
+    tximport (>= 1.12.0),
     edgeR (>= 3.24.3),
     factoextra (>= 1.0.5),
     ggplot2 (>= 3.1.0),

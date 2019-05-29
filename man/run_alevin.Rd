@@ -20,7 +20,7 @@ Runs salmon alevin single-cell quantification.
 \examples{
 
 # first place data in data-raw/single-cell/example-data
-data_dir <- file.path('data-raw', 'single-cell', 'example-data', 'Run2644-10X-Lung', '10X_FID12518_Normal_3hg')
+data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 run_alevin(data_dir)
 
 }

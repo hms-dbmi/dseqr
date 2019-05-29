@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_seq.R
 \name{load_seq}
 \alias{load_seq}
-\title{Load raw RNA-Seq data into an ExpressionSet.}
+\title{Load bulk RNA-Seq data into an ExpressionSet.}
 \usage{
 load_seq(data_dir, species = "Homo sapiens", release = "94",
   load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE,
@@ -40,7 +40,7 @@ then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
 }
 }
 \description{
-Load raw RNA-Seq data into an ExpressionSet.
+Load bulk RNA-Seq data into an ExpressionSet.
 }
 \examples{
 

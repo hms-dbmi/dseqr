@@ -1,4 +1,4 @@
-#' Load raw RNA-Seq data into an ExpressionSet.
+#' Load bulk RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
