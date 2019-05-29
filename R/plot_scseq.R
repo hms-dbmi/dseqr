@@ -52,6 +52,40 @@ hist_scseq_whitelist <- function(sce) {
 }
 
 
+#' Generates individual tsne plots for tsne_scseq_whitelist
+#'
+#' @param sce \code{SingleCellExperiment}
+#' @param colour_by List within \code{sce} to color by.
+#' @param name The name of the legend.
+#' @param xlab Character, x-axis label. Default is \code{''}.
+#' @param ylab Character, y-axis label. Default is \code{''}.
+#' @param scale One if either \code{'distiller'} (default), \code{'diverge'} (for mito/ribo), or \code{'manual'} (for whitelist).
+#'
+#' @return ggplot2 plot
+#' @export
+#'
+#' @examples
+geom_tsne <- function(sce, colour_by, name = colour_by, xlab = '', ylab = '', scale = 'distiller') {
+
+  # make really low mito/ribo content more prominent as well
+  if (scale == 'diverge')
+    colorscale <- get_diverge(sce[[colour_by]], name)
+
+  if (scale == 'distiller')
+    colorscale <- ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = name)
+
+  if (scale == 'manual')
+    colorscale <- ggplot2::scale_fill_manual(values = c("#E31A1C", "#FFFFCC"), name = name)
+
+  suppressMessages(scater::plotTSNE(sce, colour_by=colour_by, point_alpha = 1) +
+                     colorscale +
+                     xlab(xlab) +
+                     ylab(ylab) +
+                     ggplot2::theme(legend.position = 'top',
+                                    axis.text=ggplot2::element_blank(),
+                                    axis.ticks=ggplot2::element_blank()))
+}
+
 #' tSNE plots of whitelisted cells
 #'
 #' @param sce
@@ -69,52 +103,13 @@ tsne_scseq_whitelist <- function(sce) {
   set.seed(1000)
   sce <- scater::runTSNE(sce, use_dimred="PCA")
 
-  suppressMessages(tsne_white <- scater::plotTSNE(sce, colour_by='whitelist', point_alpha = 1) +
-                     ggplot2::scale_fill_manual(values = c("#E31A1C", "#FFFFCC")) +
-                     guides(fill=guide_legend(title='whitelist')) +
-                     theme(legend.position = 'top',
-                           axis.text=element_blank(),
-                           axis.ticks=element_blank()) +
-                     xlab('') +
-                     ylab(''))
+  tsne_white <- geom_tsne(sce, 'whitelist', scale = 'manual')
+  tsne_mito <- geom_tsne(sce, 'pct_counts_mito', 'Mitochondrial percent', ylab = 'Dimension 2', scale = 'diverge')
+  tsne_ribo <- geom_tsne(sce, 'pct_counts_ribo', 'Ribosomal percent', scale = 'diverge')
+  tsne_ncnt <- geom_tsne(sce, 'log10_total_counts', 'Log of total counts', xlab = 'Dimension 1')
+  tsne_nexp <- geom_tsne(sce, 'log10_total_features_by_counts', 'Log of expressed genes')
 
-  # make really low mito/ribo content more prominent as well
-  mito_scale <- get_diverge(sce$pct_counts_mito, 'Mitochondrial percent')
-  ribo_scale <- get_diverge(sce$pct_counts_ribo, 'Ribosomal percent')
-
-  suppressMessages(tsne_mito <- scater::plotTSNE(sce, colour_by='pct_counts_mito', point_alpha = 1) +
-                     mito_scale +
-                     theme(legend.position = 'top',
-                           axis.text=element_blank(),
-                           axis.ticks=element_blank()) +
-                     xlab(''))
-
-  suppressMessages(tsne_ribo <- scater::plotTSNE(sce, colour_by='pct_counts_ribo', point_alpha = 1) +
-                     ribo_scale +
-                     theme(legend.position = 'top',
-                           axis.title.x=element_blank(),
-                           axis.text=element_blank(),
-                           axis.ticks=element_blank()) +
-                     xlab('') +
-                     ylab(''))
-
-  suppressMessages(tsne_ncounts <- scater::plotTSNE(sce, colour_by='log10_total_counts', point_alpha = 1) +
-                     ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = 'Log of total counts') +
-                     theme(legend.position = 'top',
-                           axis.text=element_blank(),
-                           axis.ticks=element_blank()) +
-                     ylab(''))
-
-
-  suppressMessages(tsne_nexp <- scater::plotTSNE(sce, colour_by='log10_total_features_by_counts', point_alpha = 1) +
-                     ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = 'Log of expressed genes') +
-                     theme(legend.position = 'top',
-                           axis.text=element_blank(),
-                           axis.ticks=element_blank()) +
-                     xlab('') +
-                     ylab(''))
-
-  suppressWarnings(cowplot::plot_grid(tsne_white, NULL, tsne_mito, tsne_ribo, tsne_ncounts, tsne_nexp, nrow = 3))
+  suppressWarnings(cowplot::plot_grid(tsne_white, NULL, tsne_mito, tsne_ribo, tsne_ncnt, tsne_nexp, nrow = 3))
 }
 
 
