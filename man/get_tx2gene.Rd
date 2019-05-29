@@ -5,7 +5,7 @@
 \title{Get transcript to gene map.}
 \usage{
 get_tx2gene(species = "Homo sapiens", release = "94",
-  columns = c("tx_id", "gene_name", "entrezid"))
+  columns = c("tx_id", "gene_name", "entrezid", "gene_id", "seq_name"))
 }
 \arguments{
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}

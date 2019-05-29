@@ -21,7 +21,7 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
   sc_method <- detect_sc_method(data_dir)
 
   # location of tgMap
-  tgmap_path <- system.file('extdata', 'txp2gene.tsv', package = 'drugseqr')
+  tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
 
   # location of ribosomal/mitochondrial gene files (used for whitelist model)
   rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')

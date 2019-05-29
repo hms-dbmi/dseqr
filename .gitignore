@@ -23,4 +23,4 @@ inst/extdata/l1000_es.rds
 inst/EnsDb
 
 # txp2gene for alevin
-data-raw/single-cell/txp2gene/*.gz
+data-raw/single-cell/alevin-args/*.gz
