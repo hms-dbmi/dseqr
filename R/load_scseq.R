@@ -28,6 +28,9 @@ load_scseq <- function(data_dir) {
                                                     colData = data.frame(whitelist = colnames(counts) %in% whitelist),
                                                     metadata = list(rrna = rrna, mrna = mrna))
 
+  # calculate qc metrics
+  sce <- scater::calculateQCMetrics(sce, feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
+                                                               ribo = which(row.names(sce) %in% sce@metadata$rrna)))
   return(sce)
 }
 
@@ -51,11 +54,23 @@ norm_scseq <- function(sce) {
 }
 
 
+#' Model and account for mean-variance relationship
+#'
+#' @param sce
+#'
+#' @return
+#' @export
+#'
+#' @examples
+stabilize_scseq <- function(sce) {
+  # model mean-variance relationship
+  sctech <- scran::makeTechTrend(x=sce)
 
-
-
-
-
+  # remove sctech portion (keeps only biological component)
+  set.seed(1000)
+  sce <- scran::denoisePCA(sce, technical=sctech, BSPARAM=BiocSingular::IrlbaParam())
+  return(sce)
+}
 
 
 #' Helper function to read single column text files
