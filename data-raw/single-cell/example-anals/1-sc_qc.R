@@ -23,15 +23,15 @@ sce <- load_scseq(data_dir)
 sce <- qc_scseq(sce)
 
 # alevin does initial knee-based whitelisting then refines based on mtRNA, rRNA, etc
-# see what things look like before/after final whitelisting
+# compare metrics for whitelisted and non-whitelisted cells
 hist_scseq_whitelist(sce)
 
-# first normalize and stabilize
+# normalize and stabilize using all cells
 sce.full <- sce
 sce.full <- norm_scseq(sce.full)
 sce.full <- stabilize_scseq(sce.full)
 
-# show tSNE based on whitelist and whitelist metrics
+# show tSNE of all cells, colored by whitelist metrics
 tsne_scseq_whitelist(sce.full)
 
 # subset by alevin whitelist and re-norm/stabilize
@@ -80,9 +80,7 @@ set.seed(1000)
 sce <- runTSNE(sce, use_dimred="PCA")
 
 # clustering with graphs ----
-snn.gr <- buildSNNGraph(sce, use.dimred="PCA")
-clusters <- igraph::cluster_walktrap(snn.gr)
-sce$cluster <- factor(clusters$membership)
+sce <- add_scseq_clusters(sce)
 table(sce$cluster)
 
 # using original tSNE plot show clusters of whitelisted cells

@@ -90,3 +90,20 @@ qc_scseq <- function(sce) {
 read.delim1 <- function(file) {
   return(read.delim(file, header = FALSE, as.is = TRUE)$V1)
 }
+
+
+#' Add SNN Graph based clusters to SingleCellExperiment
+#'
+#' @param sce \code{SingleCellExperiment} returned by \code{\link{stabilize_scseq}} (contains \code{sce@reducedDims$PCA})
+#'
+#' @return \code{sce} with column \code{cluster} in \code{colData(sce)}
+#' @export
+#'
+#' @examples
+add_scseq_clusters <- function(sce) {
+  snn.gr <- scran::buildSNNGraph(sce, use.dimred="PCA")
+  clusters <- igraph::cluster_walktrap(snn.gr)
+  sce$cluster <- factor(clusters$membership)
+
+  return(sce)
+}
