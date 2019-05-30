@@ -10,7 +10,7 @@
 #'
 #' @examples
 geom_hist_whitelist <- function(sce_df, x, xlab = '', ylab = '') {
-  ggplot2::ggplot(sce_df, aes(x=get(x), fill=whitelist)) +
+  ggplot2::ggplot(sce_df, ggplot2::aes(x=get(x), fill=whitelist)) +
     ggplot2::theme_minimal() +
     ggplot2::scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
     ggplot2::geom_histogram(position="identity", colour="black", alpha = 0.5, size = 0.05) +
@@ -79,8 +79,8 @@ geom_tsne <- function(sce, colour_by, name = colour_by, xlab = '', ylab = '', sc
 
   suppressMessages(scater::plotTSNE(sce, colour_by=colour_by, point_alpha = 1) +
                      colorscale +
-                     xlab(xlab) +
-                     ylab(ylab) +
+                     ggplot2::xlab(xlab) +
+                     ggplot2::ylab(ylab) +
                      ggplot2::theme(legend.position = 'top',
                                     axis.text=ggplot2::element_blank(),
                                     axis.ticks=ggplot2::element_blank()))
@@ -129,7 +129,7 @@ get_diverge <- function(x, name) {
 
   diverge <- ggplot2::scale_fill_gradientn(
     name = name,
-    colors = rev(brewer.pal(9, "Spectral")),
+    colors = rev(RColorBrewer::brewer.pal(9, "Spectral")),
     values = range01(c(seq(qx[1], qx[2], length.out = 25),
                        seq(qx[2], qx[10], length.out = 25),
                        seq(qx[10], qx[11], length.out = 25))))
