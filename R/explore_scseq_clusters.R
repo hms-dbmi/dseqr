@@ -45,21 +45,24 @@ explore_scseq_clusters <- function(sce) {
     # title bar
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
     miniUI::miniContentPanel(
-      shiny::fillCol(flex = c(NA, NA, 1),
-                     shiny::tags$div(
-                       shinyWidgets::radioGroupButtons(
-                         inputId = "cluster",
-                         label = "Sort genes based on cluster:",
-                         choices = cluster_choices
-                       ),
-                       shiny::selectizeInput('gene', 'Select gene:', choices = NULL)
-                     ),
-                     shiny::hr(),
-                     shiny::fluidRow(
-                       shiny::splitLayout(cellWidths = c("50%", "50%"),
-                                          shiny::plotOutput("marker_plot"),
-                                          shiny::plotOutput("cluster_plot"))
-                     )
+      shiny::splitLayout(cellWidths = c("45%", "50%"),
+                         shiny::tags$div(
+                           style = 'height: 400px',
+                           shinyWidgets::radioGroupButtons(
+                             inputId = "cluster",
+                             label = "Sort genes based on cluster:",
+                             choices = cluster_choices
+                           ),
+                           shiny::selectizeInput('gene', 'Select gene:', choices = NULL)
+                         ),
+                         shiny::plotOutput("cluster_plot", width = '99%')
+      ),
+      shiny::hr(),
+      shiny::fluidRow(
+        shiny::splitLayout(cellWidths = c("45%", "50%"),
+                           shiny::plotOutput('biogps'),
+                           shiny::plotOutput("marker_plot")
+                           )
       )
     )
   )
@@ -87,6 +90,41 @@ explore_scseq_clusters <- function(sce) {
     })
     output$cluster_plot <- shiny::renderPlot({
       scater::plotTSNE(sce, colour_by = "cluster",  point_size = 3, point_alpha = 1, theme_size = 14)
+    })
+
+    output$biogps <- shiny::renderPlot({
+
+      # incase remove choice
+      gene <- input$gene
+      if (gene != '') {
+        prev_gene <<- gene
+      } else {
+        gene <- prev_gene
+      }
+
+      if (is.null(gene)) return(NULL)
+
+      gene_df <- sort(biogps[gene, ], decreasing = TRUE)[1:30]
+      gene_df <- tibble::tibble(source = factor(names(gene_df), levels = rev(names(gene_df))), mean = gene_df)
+
+      ggplot(gene_df, aes(x = source, y = mean, fill = mean)) +
+        theme_minimal() +
+        geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.8) +
+        scale_fill_distiller(palette = 'YlOrRd', name = '', direction = 1) +
+        xlab('') +
+        ylab('') +
+        ggtitle('BioGPS Human Gene Atlas Expression') +
+        scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
+        coord_flip() +
+        theme(panel.grid.minor = element_blank(),
+              panel.border = element_blank(),
+              panel.grid.major.y = element_blank(),
+              axis.ticks.y = element_line(size = 0.1),
+              plot.title = element_text(),
+              axis.text = element_text(size = 12),
+              legend.position = "none")
+
+
     })
 
     shiny::observeEvent(input$cluster, {
