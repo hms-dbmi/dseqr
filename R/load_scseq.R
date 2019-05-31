@@ -69,6 +69,14 @@ stabilize_scseq <- function(sce) {
   return(sce)
 }
 
+#' Calculate QC metrics for SingleCellExperiment
+#'
+#' @param sce
+#'
+#' @return
+#' @export
+#'
+#' @examples
 qc_scseq <- function(sce) {
   # calculate qc metrics if haven't previous
   if (is.null(sce$total_counts))

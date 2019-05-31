@@ -19,7 +19,7 @@
 #' # run differential expression analysis
 #' data_dir <- 'data-raw/example-data'
 #' eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
-#' anal <- diff_expr(eset, data_dir)
+#' # anal <- diff_expr(eset, data_dir)
 #'
 #' # alternatively load previous analysis
 #' anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
@@ -290,7 +290,7 @@ get_top <- function(query_res, nclinic = 100) {
   last_idx <- with_idx %>%
     dplyr::filter(!is.na(`Clinical Phase`)) %>%
     dplyr::pull(idx) %>%
-    nth(nclinic)
+    dplyr::nth(nclinic)
 
   # all compounds up to last
   keep_compounds <- with_idx %>%
@@ -300,7 +300,7 @@ get_top <- function(query_res, nclinic = 100) {
   # keep all entries of keep_compounds
   query_res <- query_res %>%
     dplyr::filter(Compound %in% keep_compounds) %>%
-    select(-Compound)
+    dplyr::select(-Compound)
 
   return(query_res)
 }

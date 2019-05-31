@@ -40,7 +40,7 @@ sce <- stabilize_scseq(sce)
 sce <- add_scseq_clusters(sce)
 
 set.seed(1000)
-sce <- scater::runTSNE(sce, use_dimred="PCA",)
+sce <- scater::runTSNE(sce, use_dimred="PCA")
 scater::plotTSNE(sce, colour_by = "cluster")
 
 # only upregulated as more useful for positive id of cell type
@@ -51,5 +51,5 @@ View(as.data.frame(markers[[1]]))
 
 # tSNE plots colored by different markers
 sce$`HBA2` <- exprs(sce)['HBA2', ]
-scater::plotTSNE(sce, colour_by = "HBA2")
+scater::plotTSNE(sce, colour_by = "HBA2", point_size = 2, point_alpha = 1, theme_size = 12)
 

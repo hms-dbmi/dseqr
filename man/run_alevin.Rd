@@ -23,4 +23,8 @@ Runs salmon alevin single-cell quantification.
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 run_alevin(data_dir)
 
+# another sample
+data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
+run_alevin(data_dir)
+
 }

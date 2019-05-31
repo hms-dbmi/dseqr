@@ -30,6 +30,7 @@
 explore_scseq_clusters <- function(sce) {
 
   # setup ----
+  biogps <- readRDS(system.file('extdata', 'biogps.rds', package = 'drugseqr'))
 
   # only upregulated as more useful for positive id of cell type
   markers <- scran::findMarkers(sce, clusters=sce$cluster, direction="up")
@@ -103,7 +104,9 @@ explore_scseq_clusters <- function(sce) {
       point_alpha[sce$cluster == input$cluster] <- 1
 
       scater::plotTSNE(sce, colour_by = "cluster",  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
-        ggplot2::theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
+        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+                       axis.text.x = ggplot2::element_blank(),
+                       axis.ticks.x = ggplot2::element_blank())
     })
 
     # link to Wikipedia page for gene ----

@@ -26,7 +26,7 @@ l1000_es <- readRDS(l1000_path)
 # run differential expression analysis
 data_dir <- 'data-raw/example-data'
 eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
-anal <- diff_expr(eset, data_dir)
+# anal <- diff_expr(eset, data_dir)
 
 # alternatively load previous analysis
 anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))

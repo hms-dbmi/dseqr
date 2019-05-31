@@ -14,7 +14,6 @@ Explore Single Cell Clusters
 }
 \examples{
 
-
 # import alevin quants
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 sce <- load_scseq(data_dir)
