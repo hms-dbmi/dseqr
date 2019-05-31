@@ -1,4 +1,4 @@
-# script to run tsne and colour by specific genes of interest
+# This script explores using marker genes and expert domain knowledge to id cell clusters for single-cell RNA-seq
 library(drugseqr)
 
 # folder with 10X fastq files
@@ -31,6 +31,7 @@ sce <- norm_scseq(sce)
 sce <- stabilize_scseq(sce)
 
 # clusters and marker gene detection -----
+
 # Note: tSNE plot differs from above because only using whitelisted cells
 # it is possible to maintain the above cell coordinates by subsetting sce.full
 # however clusters should still be found on sce as norm/stabilization on whitelisted only

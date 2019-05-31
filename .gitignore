@@ -8,6 +8,7 @@ data-raw/example-data/*
 !mds-sva.png
 
 data-raw/single-cell/example-data/*
+data-raw/single-cell/example-anals/GSE1133/*
 
 # contains PUG-View files from Pubchem
 data-raw/drug_annot/pug_view/views/*
