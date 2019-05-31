@@ -1,0 +1,15 @@
+{
+    "salmon_version": "0.13.1",
+    "libType": "ISR",
+    "mates1": "data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg/10X_FID12518_Normal_3hg_S1_L002_R1_001.fastq.gz",
+    "mates2": "data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg/10X_FID12518_Normal_3hg_S1_L002_R2_001.fastq.gz",
+    "chromium": [],
+    "index": "/home/alex/R/x86_64-pc-linux-gnu-library/3.6/drugseqr/indices/gencode/human",
+    "output": "data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg/alevin_output",
+    "threads": "8",
+    "mrna": "/home/alex/R/x86_64-pc-linux-gnu-library/3.6/drugseqr/extdata/mrna.csv",
+    "rrna": "/home/alex/R/x86_64-pc-linux-gnu-library/3.6/drugseqr/extdata/rrna.csv",
+    "useCorrelation": [],
+    "tgMap": "/home/alex/R/x86_64-pc-linux-gnu-library/3.6/drugseqr/extdata/txp2hgnc.tsv",
+    "auxDir": "aux_info"
+}
