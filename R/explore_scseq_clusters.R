@@ -9,7 +9,6 @@
 #'
 #' @examples
 #'
-#'
 #' # import alevin quants
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' sce <- load_scseq(data_dir)
@@ -70,15 +69,23 @@ explore_scseq_clusters <- function(sce) {
 
   server <- function(input, output, session) {
 
-    output$marker_plot <- shiny::renderPlot({
-      # incase remove choice
+    # selected gene: use previously selected if delete selection ----
+    gene <- shiny::reactive({
       gene <- input$gene
-      if (gene != '') {
-        prev_gene <<- gene
-      } else {
+      if (gene == '') {
         gene <- prev_gene
+      } else {
+        prev_gene <<- gene
       }
 
+      return(gene)
+    })
+
+    # show tSNE plot coloured by expression values -----
+
+    output$marker_plot <- shiny::renderPlot({
+
+      gene <- gene()
       if (is.null(gene)) return(NULL)
 
       suppressMessages(scater::plotTSNE(sce, colour_by = gene, point_size = 3, point_alpha = 1, theme_size = 14) +
@@ -87,6 +94,8 @@ explore_scseq_clusters <- function(sce) {
 
 
     })
+
+    # show plot of predicted cell clusters -----
     output$cluster_plot <- shiny::renderPlot({
 
       # make selected cluster stand out
@@ -97,35 +106,20 @@ explore_scseq_clusters <- function(sce) {
         ggplot2::theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
     })
 
-
+    # link to Wikipedia page for gene ----
     gene_link <- shiny::reactive({
-      # incase remove choice
-      gene <- input$gene
-      if (gene != '') {
-        prev_gene <<- gene
-      } else {
-        gene <- prev_gene
-      }
-
-      enid <- biogps[gene, ENTREZID]
-      paste0('http://genewiki.sulab.org/map/wiki/', enid, '/')
+      enid <- biogps[gene(), ENTREZID]
+      return(paste0('http://genewiki.sulab.org/map/wiki/', enid, '/'))
     })
 
+    # Click link out to Wikipedia ----
     shiny::observeEvent(input$wiki, {
       utils::browseURL(gene_link())
     })
 
-    # plot BioGps plot -----
+    # plot BioGPS data -----
     output$biogps <- shiny::renderPlot({
-
-      # incase remove choice
-      gene <- input$gene
-      if (gene != '') {
-        prev_gene <<- gene
-      } else {
-        gene <- prev_gene
-      }
-
+      gene <- gene()
       if (is.null(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
       gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
@@ -133,25 +127,26 @@ explore_scseq_clusters <- function(sce) {
       gene_dat <- tibble::tibble(mean = gene_dat,
                                  source = factor(names(gene_dat), levels = rev(names(gene_dat))))
 
-      ggplot(gene_dat, aes(x = source, y = mean, fill = mean)) +
-        theme_minimal() +
-        geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
-        scale_fill_distiller(palette = 'YlOrRd', name = '', direction = 1) +
-        xlab('') +
-        ylab('') +
-        ggtitle('BioGPS Human Gene Atlas Expression') +
-        scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
-        coord_flip() +
-        theme(panel.grid = element_blank(),
-              panel.border = element_blank(),
-              # axis.ticks.y = element_line(size = 0.1),
-              plot.title = element_text(),
-              axis.text = element_text(size = 12),
-              axis.text.x = element_blank(),
+      ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
+        ggplot2::theme_minimal() +
+        ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
+        ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = '', direction = 1) +
+        ggplot2::xlab('') +
+        ggplot2::ylab('') +
+        ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
+        ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
+        ggplot2::coord_flip() +
+        ggplot2::theme(panel.grid = ggplot2::element_blank(),
+              panel.border = ggplot2::element_blank(),
+              plot.title = ggplot2::element_text(),
+              axis.text = ggplot2::element_text(size = 12),
+              axis.text.x = ggplot2::element_blank(),
               legend.position = "none")
 
 
     })
+
+    # Change cluster to sort genes -----
 
     shiny::observeEvent(input$cluster, {
       shiny::updateSelectizeInput(session, 'gene', choices = row.names(markers[[input$cluster]]), server = TRUE)
