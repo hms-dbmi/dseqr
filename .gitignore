@@ -9,6 +9,7 @@ data-raw/example-data/*
 
 data-raw/single-cell/example-data/*
 data-raw/single-cell/example-anals/GSE1133/*
+data-raw/single-cell/biogps/U133AGNF1B.gcrma.avg.csv
 
 # contains PUG-View files from Pubchem
 data-raw/drug_annot/pug_view/views/*
