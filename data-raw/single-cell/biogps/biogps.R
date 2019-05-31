@@ -5,7 +5,7 @@ library(data.table)
 library(crossmeta)
 
 # load BioGPS Human U133A Gene Atlas
-atlas <- fread('data-raw/single-cell/U133AGNF1B.gcrma.avg.csv')
+atlas <- fread('data-raw/single-cell/biogps/U133AGNF1B.gcrma.avg.csv')
 colnames(atlas)[1] <- 'PROBE'
 
 # annotate to SYMBOL from U133A platform ----
@@ -14,7 +14,7 @@ colnames(atlas)[1] <- 'PROBE'
 gse_name <- 'GSE1133'
 data_dir <- 'data-raw/single-cell/example-anals'
 eset <- load_raw(gse_name, data_dir)[[1]]
-fdat <- fData(eset)[, c('PROBE', 'SYMBOL')]
+fdat <- fData(eset)[, c('PROBE', 'ENTREZID', 'SYMBOL')]
 
 # join with atlas
 table(fdat$PROBE %in% atlas$PROBE)
@@ -22,16 +22,15 @@ atlas <- atlas[PROBE %in% fdat$PROBE]
 atlas <- atlas[fdat, on = 'PROBE']
 
 # use max IQR to resolve duplicates by symbol
-expr <- atlas[, -c('SYMBOL', 'PROBE')]
-fdat <- AnnotatedDataFrame(atlas[, .(SYMBOL, PROBE)])
+expr <- atlas[, -c('SYMBOL', 'ENTREZID', 'PROBE')]
+fdat <- AnnotatedDataFrame(atlas[, .(SYMBOL, ENTREZID, PROBE)])
 eset <- ExpressionSet(as.matrix(expr), featureData = fdat)
 
 max_iqr <- which_max_iqr(eset, 'SYMBOL')
-eset <- eset[max_iqr, ]
+atlas <- atlas[max_iqr,  -'PROBE']
 
-# used SYMBOL for annotation
-row.names(eset) <- fData(eset)$SYMBOL
+# used SYMBOL for key column
+setkey(atlas, SYMBOL)
 
 # save expression values
-saveRDS(exprs(eset), 'data-raw/single-cell/biogps/biogps.rds')
-
+saveRDS(atlas, 'inst/extdata/biogps.rds')

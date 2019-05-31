@@ -41,20 +41,19 @@ explore_scseq_clusters <- function(sce) {
   #  user interface ----
 
   ui <- miniUI::miniPage(
-    shinyjs::useShinyjs(),
-    # title bar
+    shiny::tags$head(
+      shiny::tags$style("#wiki {margin-top: -26px; border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -8px;}")
+    ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
     miniUI::miniContentPanel(
       shiny::splitLayout(cellWidths = c("45%", "50%"),
                          shiny::tags$div(
                            style = 'height: 400px',
-                           shinyWidgets::radioGroupButtons(
-                             inputId = "cluster",
-                             label = "Sort genes based on cluster:",
-                             choices = cluster_choices
-                           ),
-                           shiny::selectizeInput('gene', 'Select gene:', choices = NULL)
-                         ),
+                           shinyWidgets::radioGroupButtons("cluster", "Sort genes based on cluster:", choices = cluster_choices),
+                           shiny::tags$div(
+                             shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('gene', 'Select gene:', choices = NULL)),
+                             shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt'), style='default', title = 'Go to Wikipedia')
+                         )),
                          shiny::plotOutput("cluster_plot", width = '99%')
       ),
       shiny::hr(),
@@ -62,7 +61,7 @@ explore_scseq_clusters <- function(sce) {
         shiny::splitLayout(cellWidths = c("45%", "50%"),
                            shiny::plotOutput('biogps'),
                            shiny::plotOutput("marker_plot")
-                           )
+        )
       )
     )
   )
@@ -83,15 +82,40 @@ explore_scseq_clusters <- function(sce) {
       if (is.null(gene)) return(NULL)
 
       suppressMessages(scater::plotTSNE(sce, colour_by = gene, point_size = 3, point_alpha = 1, theme_size = 14) +
-                         ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = '', direction = 1))
+                         ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1))
 
 
 
     })
     output$cluster_plot <- shiny::renderPlot({
-      scater::plotTSNE(sce, colour_by = "cluster",  point_size = 3, point_alpha = 1, theme_size = 14)
+
+      # make selected cluster stand out
+      point_alpha <- rep(0.1, ncol(sce))
+      point_alpha[sce$cluster == input$cluster] <- 1
+
+      scater::plotTSNE(sce, colour_by = "cluster",  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+        ggplot2::theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
     })
 
+
+    gene_link <- shiny::reactive({
+      # incase remove choice
+      gene <- input$gene
+      if (gene != '') {
+        prev_gene <<- gene
+      } else {
+        gene <- prev_gene
+      }
+
+      enid <- biogps[gene, ENTREZID]
+      paste0('http://genewiki.sulab.org/map/wiki/', enid, '/')
+    })
+
+    shiny::observeEvent(input$wiki, {
+      utils::browseURL(gene_link())
+    })
+
+    # plot BioGps plot -----
     output$biogps <- shiny::renderPlot({
 
       # incase remove choice
@@ -102,26 +126,28 @@ explore_scseq_clusters <- function(sce) {
         gene <- prev_gene
       }
 
-      if (is.null(gene)) return(NULL)
+      if (is.null(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
-      gene_df <- sort(biogps[gene, ], decreasing = TRUE)[1:30]
-      gene_df <- tibble::tibble(source = factor(names(gene_df), levels = rev(names(gene_df))), mean = gene_df)
+      gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
+      gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
+      gene_dat <- tibble::tibble(mean = gene_dat,
+                                 source = factor(names(gene_dat), levels = rev(names(gene_dat))))
 
-      ggplot(gene_df, aes(x = source, y = mean, fill = mean)) +
+      ggplot(gene_dat, aes(x = source, y = mean, fill = mean)) +
         theme_minimal() +
-        geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.8) +
+        geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
         scale_fill_distiller(palette = 'YlOrRd', name = '', direction = 1) +
         xlab('') +
         ylab('') +
         ggtitle('BioGPS Human Gene Atlas Expression') +
         scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
         coord_flip() +
-        theme(panel.grid.minor = element_blank(),
+        theme(panel.grid = element_blank(),
               panel.border = element_blank(),
-              panel.grid.major.y = element_blank(),
-              axis.ticks.y = element_line(size = 0.1),
+              # axis.ticks.y = element_line(size = 0.1),
               plot.title = element_text(),
               axis.text = element_text(size = 12),
+              axis.text.x = element_blank(),
               legend.position = "none")
 
 
