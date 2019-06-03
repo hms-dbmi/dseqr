@@ -4,10 +4,10 @@
 \alias{hist_scseq_whitelist}
 \title{Plot histograms for whitelist factors}
 \usage{
-hist_scseq_whitelist(sce)
+hist_scseq_whitelist(scseq)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment} returned by \code{load_scseq}}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} returned by \code{load_scseq}}
 }
 \value{
 plot

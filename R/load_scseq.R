@@ -42,9 +42,14 @@ load_scseq <- function(data_dir, type = 'Seurat') {
 srt_to_sce <- function(srt) {
   sce <- Seurat::as.SingleCellExperiment(srt)
 
+  # add qc genes as metadata
   qcgenes <- load_scseq_qcgenes()
   sce@metadata$mrna <- qcgenes$mrna
   sce@metadata$rrna <- qcgenes$rrna
+
+  # for compatibility in explore_scseq_clusters
+  sce$cluster <- sce$seurat_clusters
+
   return(sce)
 }
 
@@ -64,6 +69,31 @@ load_scseq_qcgenes <- function() {
 
   return(list(rrna=rrna, mrna=mrna))
 }
+
+#' Utility wrapper to run normalization and variance stabilization
+#'
+#' If \code{scseq} is a \code{SingleCellExperiment} object then runs the simpleSingleCell workflow.
+#' If \code{scseq} is a \code{Seurat} object then uses \code{SCTransform}.
+#'
+#' @param scseq
+#'
+#' @return
+#' @export
+#'
+#' @examples
+preprocess_scseq <- function(scseq) {
+
+  if (class(scseq) == 'SingleCellExperiment') {
+    scseq <- norm_scseq(scseq)
+    scseq <- stabilize_scseq(scseq)
+  }
+
+  if (class(scseq) == 'Seurat') {
+    scseq <- Seurat::SCTransform(scseq, verbose = FALSE)
+  }
+  return(scseq)
+}
+
 
 #' Normalize single-cell libraries for cell-specific biases
 #'
@@ -142,10 +172,79 @@ read.delim1 <- function(file) {
 #' @export
 #'
 #' @examples
-add_scseq_clusters <- function(sce, use.dimred = 'PCA') {
-  snn.gr <- scran::buildSNNGraph(sce, use.dimred=use.dimred)
-  clusters <- igraph::cluster_walktrap(snn.gr)
-  sce$cluster <- factor(clusters$membership)
+add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
 
-  return(sce)
+  if (class(scseq) == 'SingleCellExperiment') {
+    snn.gr <- scran::buildSNNGraph(scseq, use.dimred=use.dimred)
+    clusters <- igraph::cluster_walktrap(snn.gr)
+    scseq$cluster <- factor(clusters$membership - 1)
+
+  } else if (class(scseq) == 'Seurat') {
+    scseq <- Seurat::RunPCA(scseq, verbose = FALSE)
+    scseq <- Seurat::FindNeighbors(scseq, dims=1:30, verbose = FALSE)
+    scseq <- Seurat::FindClusters(scseq, verbose = FALSE)
+  } else {
+    stop('scseq must be either class SingleCellExperiment or Seurat')
+  }
+
+  return(scseq)
 }
+
+#' Get markers genes for single cell clusters
+#'
+#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scran::findMarkers}.
+#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::FindAllMarkers}.
+#'
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
+#' @param assay.type Used by \code{\link[scran]{findMarkers}}
+#'
+#' @return List of \code{data.frame}s, one for each cluster.
+#' @export
+#'
+#' @examples
+get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
+
+  # only upregulated as more useful for positive id of cell type
+  if (class(scseq) == 'SingleCellExperiment') {
+    markers <- scran::findMarkers(scseq, clusters=scseq$cluster, direction="up", assay.type = assay.type)
+
+  } else if (class(scseq) == 'Seurat') {
+    markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, verbose = FALSE)
+    markers <- split(markers, markers$cluster)
+
+  } else {
+    stop('scseq must be either class SingleCellExperiment or Seurat')
+  }
+
+  return(markers)
+}
+
+#' Run TSNE for visualizing single cell data.
+#'
+#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scater::runTSNE}.
+#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::RunTSNE}.
+#'
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
+#'
+#' @return \code{scseq} with TSNE results.
+#' @export
+#'
+#' @examples
+run_tsne <- function(scseq) {
+
+  set.seed(1000)
+  if (class(scseq) == 'SingleCellExperiment') {
+    scseq <- scater::runTSNE(scseq, use_dimred="PCA")
+
+  } else if (class(scseq) == 'Seurat') {
+    scseq <- Seurat::RunTSNE(scseq, dims = 1:30, verbose = FALSE)
+
+  } else {
+    stop('scseq must be either class SingleCellExperiment or Seurat')
+  }
+
+  return(scseq)
+}
+
+
+

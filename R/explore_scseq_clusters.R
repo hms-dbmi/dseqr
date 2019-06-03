@@ -2,7 +2,7 @@
 
 #' Explore Single Cell Clusters
 #'
-#' @param sce \code{SingleCellExperiment}
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object
 #'
 #' @return
 #' @export
@@ -11,37 +11,37 @@
 #'
 #' # import alevin quants
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-#' sce <- load_scseq(data_dir)
+#' scseq <- load_scseq(data_dir, type = 'Seurat')
 #'
 #' # subset by alevin whitelist norm/stabilize using good cell only
-#' sce <- sce[, sce$whitelist]
-#' sce <- norm_scseq(sce)
-#' sce <- stabilize_scseq(sce)
+#' scseq <- scseq[, scseq$whitelist]
+#' scseq <- preprocess_scseq(scseq)
 #'
 #' # get clusters and run tSNE
-#' sce <- add_scseq_clusters(sce)
+#' scseq <- add_scseq_clusters(scseq)
+#' scseq <- run_tsne(scseq)
 #'
-#' set.seed(1000)
-#' sce <- scater::runTSNE(sce, use_dimred="PCA")
-#'
-#' explore_scseq_clusters(sce)
-#'
-#' sce <- sce[, sce$cluster == '2']
-#' sce <- add_scseq_clusters(sce)
-#'
-#' set.seed(1000)
-#' sce <- scater::runTSNE(sce, use_dimred="PCA")
-#' explore_scseq_clusters(sce)
+#' explore_scseq_clusters(scseq)
 #'
 
-explore_scseq_clusters <- function(sce, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE') {
+explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE') {
 
   # setup ----
   biogps <- readRDS(system.file('extdata', 'biogps.rds', package = 'drugseqr'))
 
-  # only upregulated as more useful for positive id of cell type
   if (is.null(markers))
-    markers <- scran::findMarkers(sce, clusters=sce$cluster, direction="up", assay.type = assay.type)
+    markers <- get_scseq_markers(scseq, assay.type)
+
+  # plots all based on SingleCellExperiment
+  if (class(scseq) == 'Seurat') {
+    sce <- srt_to_sce(scseq)
+
+  } else if (class(scseq) == 'SingleCellExperiment') {
+    sce <- scseq
+
+  } else {
+    stop('scseq must be either a Seurat or SingleCellExperiment object.')
+  }
 
   cluster_choices <- names(markers)
   prev_gene <- NULL

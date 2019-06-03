@@ -2,18 +2,20 @@
 % Please edit documentation in R/load_scseq.R
 \name{load_scseq}
 \alias{load_scseq}
-\title{Load single-cell RNA-Seq data into a SingleCellExperiment.}
+\title{Load alevin quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir)
+load_scseq(data_dir, type = "Seurat")
 }
 \arguments{
-\item{Directory}{with raw and quantified single-cell RNA-Seq files.}
+\item{type}{Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.}
+
+\item{Directory}{with raw and alevin-quantified single-cell RNA-Seq files.}
 }
 \value{
-\code{SingleCellExperiment} with \code{colData} attribute including alevin whitelist.
+\code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
 }
 \description{
-Load single-cell RNA-Seq data into a SingleCellExperiment.
+Load alevin quantification into a Seurat or SingleCellExperiment object.
 }
 \examples{
 

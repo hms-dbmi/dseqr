@@ -4,7 +4,7 @@
 \alias{add_scseq_clusters}
 \title{Add SNN Graph based clusters to SingleCellExperiment}
 \usage{
-add_scseq_clusters(sce)
+add_scseq_clusters(scseq, use.dimred = "PCA")
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment} returned by \code{\link{stabilize_scseq}} (contains \code{sce@reducedDims$PCA})}

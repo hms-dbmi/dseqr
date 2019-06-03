@@ -4,10 +4,10 @@
 \alias{tsne_scseq_whitelist}
 \title{tSNE plots of whitelisted cells}
 \usage{
-tsne_scseq_whitelist(sce)
+tsne_scseq_whitelist(scseq)
 }
 \arguments{
-\item{sce}{}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} returned by \code{load_scseq}}
 }
 \description{
 tSNE plots of whitelisted cells

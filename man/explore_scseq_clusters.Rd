@@ -4,10 +4,11 @@
 \alias{explore_scseq_clusters}
 \title{Explore Single Cell Clusters}
 \usage{
-explore_scseq_clusters(sce)
+explore_scseq_clusters(scseq, markers = NULL, assay.type = "logcounts",
+  use_dimred = "TSNE")
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
 }
 \description{
 Explore Single Cell Clusters
@@ -16,19 +17,16 @@ Explore Single Cell Clusters
 
 # import alevin quants
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-sce <- load_scseq(data_dir)
+scseq <- load_scseq(data_dir, type = 'SingleCellExperiment')
 
 # subset by alevin whitelist norm/stabilize using good cell only
-sce <- sce[, sce$whitelist]
-sce <- norm_scseq(sce)
-sce <- stabilize_scseq(sce)
+scseq <- scseq[, scseq$whitelist]
+scseq <- preprocess_scseq(scseq)
 
 # get clusters and run tSNE
-sce <- add_scseq_clusters(sce)
+scseq <- add_scseq_clusters(scseq)
+scseq <- run_tsne(scseq)
 
-set.seed(1000)
-sce <- scater::runTSNE(sce, use_dimred="PCA")
-
-explore_scseq_clusters(sce)
+explore_scseq_clusters(scseq)
 
 }
