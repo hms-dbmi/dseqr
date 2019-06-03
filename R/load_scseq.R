@@ -108,8 +108,8 @@ read.delim1 <- function(file) {
 #' @export
 #'
 #' @examples
-add_scseq_clusters <- function(sce) {
-  snn.gr <- scran::buildSNNGraph(sce, use.dimred="PCA")
+add_scseq_clusters <- function(sce, use.dimred = 'PCA') {
+  snn.gr <- scran::buildSNNGraph(sce, use.dimred=use.dimred)
   clusters <- igraph::cluster_walktrap(snn.gr)
   sce$cluster <- factor(clusters$membership)
 

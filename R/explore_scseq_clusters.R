@@ -26,14 +26,22 @@
 #'
 #' explore_scseq_clusters(sce)
 #'
+#' sce <- sce[, sce$cluster == '2']
+#' sce <- add_scseq_clusters(sce)
+#'
+#' set.seed(1000)
+#' sce <- scater::runTSNE(sce, use_dimred="PCA")
+#' explore_scseq_clusters(sce)
+#'
 
-explore_scseq_clusters <- function(sce) {
+explore_scseq_clusters <- function(sce, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE') {
 
   # setup ----
   biogps <- readRDS(system.file('extdata', 'biogps.rds', package = 'drugseqr'))
 
   # only upregulated as more useful for positive id of cell type
-  markers <- scran::findMarkers(sce, clusters=sce$cluster, direction="up")
+  if (is.null(markers))
+    markers <- scran::findMarkers(sce, clusters=sce$cluster, direction="up", assay.type = assay.type)
 
   cluster_choices <- names(markers)
   prev_gene <- NULL
@@ -53,7 +61,7 @@ explore_scseq_clusters <- function(sce) {
                            shiny::tags$div(
                              shiny::tags$div(style = "display:inline-block", shiny::selectizeInput('gene', 'Select gene:', choices = NULL)),
                              shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt'), style='default', title = 'Go to Wikipedia')
-                         )),
+                           )),
                          shiny::plotOutput("cluster_plot", width = '99%')
       ),
       shiny::hr(),
@@ -89,7 +97,7 @@ explore_scseq_clusters <- function(sce) {
       gene <- gene()
       if (is.null(gene)) return(NULL)
 
-      suppressMessages(scater::plotTSNE(sce, colour_by = gene, point_size = 3, point_alpha = 1, theme_size = 14) +
+      suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = 1, theme_size = 14) +
                          ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1))
 
 
@@ -103,7 +111,7 @@ explore_scseq_clusters <- function(sce) {
       point_alpha <- rep(0.1, ncol(sce))
       point_alpha[sce$cluster == input$cluster] <- 1
 
-      scater::plotTSNE(sce, colour_by = "cluster",  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = "cluster",  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
         ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                        axis.text.x = ggplot2::element_blank(),
                        axis.ticks.x = ggplot2::element_blank())
@@ -112,7 +120,10 @@ explore_scseq_clusters <- function(sce) {
     # link to Wikipedia page for gene ----
     gene_link <- shiny::reactive({
       enid <- biogps[gene(), ENTREZID]
-      return(paste0('http://genewiki.sulab.org/map/wiki/', enid, '/'))
+      if (is.na(enid))
+        return(paste0('https://en.wikipedia.org/wiki/', gene()))
+      else
+        return(paste0('http://genewiki.sulab.org/map/wiki/', enid, '/'))
     })
 
     # Click link out to Wikipedia ----
@@ -140,11 +151,11 @@ explore_scseq_clusters <- function(sce) {
         ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
         ggplot2::coord_flip() +
         ggplot2::theme(panel.grid = ggplot2::element_blank(),
-              panel.border = ggplot2::element_blank(),
-              plot.title = ggplot2::element_text(),
-              axis.text = ggplot2::element_text(size = 12),
-              axis.text.x = ggplot2::element_blank(),
-              legend.position = "none")
+                       panel.border = ggplot2::element_blank(),
+                       plot.title = ggplot2::element_text(),
+                       axis.text = ggplot2::element_text(size = 12),
+                       axis.text.x = ggplot2::element_blank(),
+                       legend.position = "none")
 
 
     })

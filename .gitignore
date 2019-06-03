@@ -7,7 +7,7 @@ data-raw/example-data/*
 !mds-sva.R
 !mds-sva.png
 
-data-raw/single-cell/example-data/*
+*.fastq.gz
 data-raw/single-cell/example-anals/GSE1133/*
 data-raw/single-cell/biogps/U133AGNF1B.gcrma.avg.csv
 
