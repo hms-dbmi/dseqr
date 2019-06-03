@@ -1,8 +1,9 @@
-#' Load single-cell RNA-Seq data into a SingleCellExperiment.
+#' Load alevin quantification into a Seurat or SingleCellExperiment object.
 #'
-#' @param  Directory with raw and quantified single-cell RNA-Seq files.
+#' @param  Directory with raw and alevin-quantified single-cell RNA-Seq files.
+#' @param  type Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.
 #'
-#' @return \code{SingleCellExperiment} with \code{colData} attribute including alevin whitelist.
+#' @return \code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
 #' @export
 #'
 #' @examples
@@ -10,7 +11,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir) {
+load_scseq <- function(data_dir, type = 'Seurat') {
 
   # import alevin quants
   alevin_dir <- file.path(data_dir, 'alevin_output', 'alevin')
@@ -20,9 +21,31 @@ load_scseq <- function(data_dir) {
   whitelist <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
   whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
 
-  # Convert to Seurat Object
+  # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist)
-  return(srt)
+  if (type == 'Seurat') return(srt)
+
+  # convert to SingleCellExperiment
+  return(srt_to_sce(srt))
+}
+
+#' Convert Seurat object to SingleCellExperiment
+#'
+#' Also adds mrna and rrna
+#'
+#' @param srt
+#'
+#' @return
+#' @export
+#'
+#' @examples
+srt_to_sce <- function(srt) {
+  sce <- Seurat::as.SingleCellExperiment(srt)
+
+  qcgenes <- load_scseq_qcgenes()
+  sce@metadata$mrna <- qcgenes$mrna
+  sce@metadata$rrna <- qcgenes$rrna
+  return(sce)
 }
 
 #' Load mitochondrial and ribsomal gene names

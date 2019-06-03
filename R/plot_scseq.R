@@ -24,13 +24,15 @@ geom_hist_whitelist <- function(sce_df, x, xlab = '', ylab = '') {
 #' Currently plots histograms for percent ribosomal reads, percent mitochondrial reads, log of total counts,
 #' and log of total expressed features.
 #'
-#' @param sce \code{SingleCellExperiment} returned by \code{load_scseq}
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} returned by \code{load_scseq}
 #'
 #' @return plot
 #' @export
 #'
 #' @examples
-hist_scseq_whitelist <- function(sce) {
+hist_scseq_whitelist <- function(scseq) {
+
+  if (class(scseq) == 'Seurat') sce <- srt_to_sce(scseq)
 
   # make sure have qc metrics
   sce <- qc_scseq(sce)
@@ -88,20 +90,31 @@ geom_tsne <- function(sce, colour_by, name = colour_by, xlab = '', ylab = '', sc
 
 #' tSNE plots of whitelisted cells
 #'
-#' @param sce
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} returned by \code{load_scseq}
 #'
 #' @return
 #' @export
 #'
 #' @examples
-tsne_scseq_whitelist <- function(sce) {
+tsne_scseq_whitelist <- function(scseq) {
+
+  # SCTransform from Seurat: stabilized counts end up in "logcounts" (default for runTSNE)
+  # SingleCellExperiment: uses denoised PCA (aka variance stabilized) expression matrix
+
+  if (class(scseq) == 'Seurat') {
+    sce <- srt_to_sce(scseq)
+    use_dimred <- NULL
+
+  } else {
+    sce <- scseq
+    use_dimred <- 'PCA'
+  }
 
   # make sure have qc metrics
   sce <- qc_scseq(sce)
 
-  # uses denoised expression matrix
   set.seed(1000)
-  sce <- scater::runTSNE(sce, use_dimred="PCA")
+  sce <- scater::runTSNE(sce, use_dimred=use_dimred)
 
   tsne_white <- geom_tsne(sce, 'whitelist', scale = 'manual')
   tsne_mito <- geom_tsne(sce, 'pct_counts_mito', 'Mitochondrial percent', ylab = 'Dimension 2', scale = 'diverge')
