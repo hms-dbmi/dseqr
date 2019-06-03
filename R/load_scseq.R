@@ -18,17 +18,28 @@ load_scseq <- function(data_dir) {
 
   # final alevin whitelist
   whitelist <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
+  whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
+
+  # Convert to Seurat Object
+  srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist)
+  return(srt)
+}
+
+#' Load mitochondrial and ribsomal gene names
+#'
+#' This are the genes used by alevin for whitelisting.
+#'
+#' @return Named list with \code{rrna} and \code{mrna} character vectors.
+#' @export
+#'
+#' @examples
+load_scseq_qcgenes <- function() {
 
   # load mito and ribo genes
   rrna <- read.delim1(system.file('extdata', 'rrna.csv', package = 'drugseqr'))
   mrna <- read.delim1(system.file('extdata', 'mrna.csv', package = 'drugseqr'))
 
-  # Convert to SingleCellExperiment
-  sce <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=counts),
-                                                    colData = data.frame(whitelist = colnames(counts) %in% whitelist),
-                                                    metadata = list(rrna = rrna, mrna = mrna))
-
-  return(sce)
+  return(list(rrna=rrna, mrna=mrna))
 }
 
 #' Normalize single-cell libraries for cell-specific biases
