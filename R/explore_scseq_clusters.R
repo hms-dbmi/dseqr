@@ -51,24 +51,26 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
   }
 
   cluster_choices <- names(markers)
+  names(cluster_choices) <- paste('Cluster', cluster_choices)
   prev_gene <- NULL
 
   #  user interface ----
 
   ui <- miniUI::miniPage(
     shiny::tags$head(
-      shiny::tags$style("#wiki {margin-top: -26px; border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -8px;}")
+      shiny::tags$style("#wiki {margin-top: -26px; border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -16px;}"),
+      shiny::tags$style("#gene-container .selectize-input {border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -8px;}"),
+      shiny::tags$style("#gene-container .selectize-dropdown {margin-left: -8px;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
                       shiny::tags$div(
-                        style = 'height: 400px',
                         samples_toggle,
-                        shinyWidgets::radioGroupButtons("cluster", "Sort genes based on cluster:", choices = cluster_choices),
                         shiny::tags$div(
-                          shiny::tags$div(style = "display:inline-block;", shiny::selectizeInput('gene', 'Select gene:', choices = NULL)),
+                          shiny::tags$div(style = "display:inline-block; text-overflow:", shiny::selectInput("cluster", 'Cluster and marker gene:', choices = cluster_choices, width = '200px')),
+                          shiny::tags$div(style = "display:inline-block;", id='gene-container', shiny::selectizeInput('gene', '', choices = NULL, width = '200px')),
                           shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt'), style='default', title = 'Go to Wikipedia')
                         ))
 
