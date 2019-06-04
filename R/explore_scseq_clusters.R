@@ -47,7 +47,10 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
   samples <- unique(sce$orig.ident)
   samples_toggle <- NULL
   if (length(samples) > 1) {
-    samples_toggle <- shinyWidgets::checkboxGroupButtons("samples", "Highlight samples:", choices = samples, selected = samples)
+    samples_toggle <- shiny::tags$div(
+      shinyWidgets::checkboxGroupButtons("samples", "Highlight samples:", choices = samples, selected = samples),
+      shiny::br()
+    )
   }
 
   cluster_choices <- names(markers)
