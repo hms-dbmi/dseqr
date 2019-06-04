@@ -40,7 +40,7 @@ load_scseq <- function(data_dir, type = 'Seurat') {
 #'
 #' @examples
 srt_to_sce <- function(srt) {
-  sce <- Seurat::as.SingleCellExperiment(srt)
+  sce <- as.SingleCellExperiment(srt)
 
   # add qc genes as metadata
   qcgenes <- load_scseq_qcgenes()
@@ -50,6 +50,42 @@ srt_to_sce <- function(srt) {
   # for compatibility in explore_scseq_clusters
   sce$cluster <- sce$seurat_clusters
 
+  return(sce)
+}
+
+#' Coerce Seurat to SingleCellExperiment
+#'
+#' This exists because of bug satijalab/seurat#1626
+#'
+#' @param x
+#' @param assay
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+as.SingleCellExperiment <- function(x, assay = NULL, ...) {
+  if (!Seurat:::PackageCheck('SingleCellExperiment', error = FALSE)) {
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+  }
+  assay <- ifelse(is.null(assay), Seurat::DefaultAssay(object = x), assay)
+
+  assays = list(
+    counts = GetAssayData(object = x, assay = assay, slot = "counts"),
+    logcounts = GetAssayData(object = x, assay = assay, slot = "data")
+  )
+
+  assays <- assays[sapply(assays, nrow) != 0]
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
+
+  metadata <- x[[]]
+  metadata$ident <- Seurat::Idents(object = x)
+  SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay]][[]])
+  for (dr in Seurat:::FilterObjects(object = x, classes.keep = "DimReduc")) {
+    SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Seurat::Embeddings(object = x[[dr]])
+  }
   return(sce)
 }
 
