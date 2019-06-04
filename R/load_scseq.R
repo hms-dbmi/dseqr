@@ -247,6 +247,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
   } else if (class(scseq) == 'Seurat') {
     markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, verbose = FALSE)
     markers <- split(markers, markers$cluster)
+    markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
 
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')
