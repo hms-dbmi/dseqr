@@ -11,7 +11,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat') {
+load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 
   # import alevin quants
   alevin_dir <- file.path(data_dir, 'alevin_output', 'alevin')
@@ -22,7 +22,7 @@ load_scseq <- function(data_dir, type = 'Seurat') {
   whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
 
   # covert to Seurat object
-  srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist)
+  srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist, project = project)
   if (type == 'Seurat') return(srt)
 
   # convert to SingleCellExperiment
