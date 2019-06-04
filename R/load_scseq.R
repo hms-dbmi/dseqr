@@ -245,7 +245,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
     markers <- scran::findMarkers(scseq, clusters=scseq$cluster, direction="up", assay.type = assay.type)
 
   } else if (class(scseq) == 'Seurat') {
-    markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, verbose = FALSE)
+    markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE)
     markers <- split(markers, markers$cluster)
     markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
 

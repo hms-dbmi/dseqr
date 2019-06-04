@@ -53,30 +53,33 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     )
   }
 
+  current_markers <- markers
   cluster_choices <- names(markers)
   names(cluster_choices) <- paste('Cluster', cluster_choices)
   prev_gene <- NULL
+  prev_cluster <- NULL
 
   #  user interface ----
 
   ui <- miniUI::miniPage(
     shiny::tags$head(
-      shiny::tags$style("#wiki {margin-top: -26px; border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -16px;}"),
-      shiny::tags$style("#gene-container .selectize-input {border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -8px;}"),
-      shiny::tags$style("#gene-container .selectize-dropdown {margin-left: -8px;}")
+      shiny::tags$style("#wiki, #subcluster {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -6px;}"),
+      shiny::tags$style("button.btn.btn-default.dropdown-toggle {background-color: transparent !important;border-top-right-radius: 0; border-bottom-right-radius: 0}"),
+      shiny::tags$style(".sub-chev {font-size: 10px; padding: 0 10px; color: darkgray;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
+                      samples_toggle,
+                      shiny::uiOutput('subcluster_ui'),
+                      shiny::br(),
                       shiny::tags$div(
-                        samples_toggle,
-                        shiny::tags$div(
-                          shiny::tags$div(style = "display:inline-block; text-overflow:", shiny::selectInput("cluster", 'Cluster and marker gene:', choices = cluster_choices, width = '200px')),
-                          shiny::tags$div(style = "display:inline-block;", id='gene-container', shiny::selectizeInput('gene', '', choices = NULL, width = '200px')),
-                          shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt'), style='default', title = 'Go to Wikipedia')
-                        ))
-
+                        shiny::tags$div(style = "display:inline-block;", id='gene-container', shinyWidgets::pickerInput('gene', 'Select marker gene:', choices = NULL, width = '250px', options = shinyWidgets::pickerOptions(
+                          title = ""
+                        ))),
+                        shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt', 'fa-fw'), style='default', title = 'Go to Wikipedia')
+                      )
         ),
         shiny::column(6,
                       shiny::plotOutput("cluster_plot")
@@ -99,39 +102,84 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # selected gene: use previously selected if delete selection ----
     gene <- shiny::reactive({
       gene <- input$gene
-      if (gene == '') {
+      if (is.null(gene) || gene == '') {
         gene <- prev_gene
       } else {
         prev_gene <<- gene
       }
-
       return(gene)
+    })
+
+    output$subcluster_ui <- shiny::renderUI({
+
+
+      if (subcluster()) {
+        title <- 'show all clusters'
+        icon <- shiny::icon('chevron-left', 'fa-fw')
+      } else {
+        title <- 'explore this cluster'
+        icon <- shiny::icon('chevron-right', 'fa-fw')
+      }
+
+      shiny::tags$div(
+        shiny::tags$div(style = "display:inline-block; text-overflow:", shinyWidgets::pickerInput("cluster", 'Select cluster:', choices = cluster_choices, width = '250px')),
+        shinyBS::bsButton('subcluster', label = '', value = subcluster(), type = 'toggle', icon = icon, title = title)
+      )
     })
 
     # show tSNE plot coloured by expression values -----
 
     output$marker_plot <- shiny::renderPlot({
 
+      # show selected cluster only
+      if (subcluster())
+        sce <- sce[, sce$cluster == cluster()]
+
       gene <- gene()
       if (is.null(gene)) return(NULL)
 
-      suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = 1, theme_size = 14) +
-                         ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1) +
-                         ggplot2::theme(legend.position = 'none'))
+      # make selected samples stand out
+      point_alpha <- rep(1, ncol(sce))
+      point_alpha[!sce$orig.ident %in% input$samples] <- 0.1
 
+      suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+                         ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1))
 
+    })
+
+    subcluster <- shiny::reactive({
+      if (!length(input$subcluster)) return(FALSE)
+      return(input$subcluster)
+    })
+
+    cluster <- shiny::reactive({
+      if (!subcluster()) {
+        prev_cluster <<- input$cluster
+      }
+      return(prev_cluster)
     })
 
     # show plot of predicted cell clusters -----
     output$cluster_plot <- shiny::renderPlot({
 
-      # make selected cluster stand out
+      # default
+      colour_by <- 'cluster'
+
+      # show selected cluster only and color by group
+      if (subcluster()) {
+        sce <- sce[, sce$cluster == cluster()]
+        colour_by <- 'orig.ident'
+      }
+
+      # make selected cluster stand out and samples
       point_alpha <- rep(0.1, ncol(sce))
-      point_alpha[sce$cluster == input$cluster] <- 1
+      point_alpha[sce$cluster == cluster()] <- 1
       point_alpha[!sce$orig.ident %in% input$samples] <- 0.1
 
+      legend_title <- ifelse(subcluster(), 'Group', 'Cluster')
 
-      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = "cluster",  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+        ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
         ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                        axis.text.x = ggplot2::element_blank(),
                        axis.ticks.x = ggplot2::element_blank())
@@ -141,6 +189,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # link to Wikipedia page for gene ----
     gene_link <- shiny::reactive({
       enid <- biogps[gene(), ENTREZID]
+
       if (is.na(enid))
         return(paste0('https://en.wikipedia.org/wiki/', gene()))
       else
@@ -155,7 +204,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # plot BioGPS data -----
     output$biogps <- shiny::renderPlot({
       gene <- gene()
-      if (is.null(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
+      if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
       gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
       gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
@@ -177,20 +226,34 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
                        axis.text = ggplot2::element_text(size = 12),
                        axis.text.x = ggplot2::element_blank(),
                        legend.position = "none")
-
-
     })
 
-    # Change cluster to sort genes -----
+    # Change cluster/subcluster for genes -----
+    shiny::observeEvent(subcluster(), {
+      choicesOpt <- NULL
+      title <- 'Select cluster:'
+
+      # if subcluster get subcluster markers
+      if (subcluster()) {
+        scseq <- scseq[, scseq$seurat_clusters == cluster()]
+        Seurat::Idents(scseq) <- scseq$orig.ident
+        current_markers <<- get_scseq_markers(scseq)
+        cluster_choices <- names(current_markers)
+        names(cluster_choices) <- cluster_choices
+        choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">', 'Cluster ', cluster(), ' </span>', shiny::icon('chevron-right', 'sub-chev'), cluster_choices, '</span>'))
+        title <- 'Select sample:'
+
+      } else {
+        current_markers <<- markers
+      }
+
+      shinyWidgets::updatePickerInput(session, 'cluster', title, choices = cluster_choices, choicesOpt = choicesOpt)
+    })
 
     shiny::observeEvent(input$cluster, {
-      shiny::updateSelectizeInput(session, 'gene', choices = row.names(markers[[input$cluster]]), server = TRUE)
+      shinyWidgets::updatePickerInput(session, 'gene', choices = row.names(current_markers[[input$cluster]]))
     })
 
   }
-
-
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
-
-
 }
