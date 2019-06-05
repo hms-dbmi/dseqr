@@ -113,17 +113,20 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     output$subcluster_ui <- shiny::renderUI({
 
-
       if (subcluster()) {
         title <- 'show all clusters'
         icon <- shiny::icon('chevron-left', 'fa-fw')
+        selected <- NULL
       } else {
         title <- 'explore this cluster'
         icon <- shiny::icon('chevron-right', 'fa-fw')
+        selected <- cluster()
       }
 
       shiny::tags$div(
-        shiny::tags$div(style = "display:inline-block; text-overflow:", shinyWidgets::pickerInput("cluster", 'Select cluster:', choices = cluster_choices, width = '250px')),
+        shiny::tags$div(style = "display:inline-block; text-overflow:",
+                        shinyWidgets::pickerInput("cluster", 'Select cluster:',
+                                                  choices = cluster_choices, width = '250px', selected = selected)),
         shinyBS::bsButton('subcluster', label = '', value = subcluster(), type = 'toggle', icon = icon, title = title)
       )
     })
@@ -154,9 +157,10 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     })
 
     cluster <- shiny::reactive({
-      if (!subcluster()) {
-        prev_cluster <<- input$cluster
-      }
+      cluster <- input$cluster
+      if (is.null(cluster) || (!subcluster() && !cluster %in% sce$orig.ident))
+        prev_cluster <<- cluster
+
       return(prev_cluster)
     })
 
@@ -231,8 +235,6 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     # Change cluster/subcluster for genes -----
     shiny::observeEvent(subcluster(), {
-      choicesOpt <- NULL
-      title <- 'Select cluster:'
 
       # if subcluster get subcluster markers
       if (subcluster()) {
@@ -246,12 +248,16 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
         names(cluster_choices) <- cluster_choices
         choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">', 'Cluster ', cluster(), ' </span>', shiny::icon('chevron-right', 'sub-chev'), cluster_choices, '</span>'))
         title <- 'Select sample:'
+        selected <- NULL
 
       } else {
+        choicesOpt <- NULL
+        title <- 'Select cluster:'
         current_markers <<- markers
+        selected <- cluster()
       }
 
-      shinyWidgets::updatePickerInput(session, 'cluster', title, choices = cluster_choices, choicesOpt = choicesOpt)
+      shinyWidgets::updatePickerInput(session, 'cluster', title, choices = cluster_choices, selected = selected, choicesOpt = choicesOpt)
     })
 
     shiny::observeEvent(input$cluster, {
