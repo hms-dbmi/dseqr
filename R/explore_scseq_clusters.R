@@ -54,6 +54,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
   }
 
   current_markers <- markers
+  subcluster_markers <- list()
   cluster_choices <- names(markers)
   names(cluster_choices) <- paste('Cluster', cluster_choices)
   prev_gene <- NULL
@@ -235,9 +236,12 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       # if subcluster get subcluster markers
       if (subcluster()) {
-        scseq <- scseq[, scseq$seurat_clusters == cluster()]
-        Seurat::Idents(scseq) <- scseq$orig.ident
-        current_markers <<- get_scseq_markers(scseq)
+        if (!cluster() %in% names(subcluster_markers)) {
+          scseq <- scseq[, scseq$seurat_clusters == cluster()]
+          Seurat::Idents(scseq) <- scseq$orig.ident
+          subcluster_markers[[cluster()]] <<- get_scseq_markers(scseq)
+        }
+        current_markers <<- subcluster_markers[[cluster()]]
         cluster_choices <- names(current_markers)
         names(cluster_choices) <- cluster_choices
         choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">', 'Cluster ', cluster(), ' </span>', shiny::icon('chevron-right', 'sub-chev'), cluster_choices, '</span>'))
