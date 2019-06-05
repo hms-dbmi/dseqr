@@ -1,4 +1,5 @@
 library(Seurat)
+library(drugseqr)
 
 # import alevin quants
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
@@ -26,5 +27,4 @@ combined <- run_tsne(combined)
 markers <- get_scseq_markers(combined)
 
 # explore
-
 explore_scseq_clusters(combined, markers)

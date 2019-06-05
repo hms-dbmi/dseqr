@@ -43,12 +43,12 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     stop('scseq must be either a Seurat or SingleCellExperiment object.')
   }
 
-  # if more than one sample allow showing cells based on sample
-  samples <- unique(sce$orig.ident)
-  samples_toggle <- NULL
-  if (length(samples) > 1) {
-    samples_toggle <- shiny::tags$div(
-      shinyWidgets::checkboxGroupButtons("samples", "Highlight samples:", choices = samples, selected = samples),
+  # if more than one group allow showing cells based on groups
+  groups <- unique(sce$orig.ident)
+  groups_toggle <- NULL
+  if (length(groups) > 1) {
+    groups_toggle <- shiny::tags$div(
+      shinyWidgets::checkboxGroupButtons("groups", "Show cells for:", choices = groups, selected = groups),
       shiny::br()
     )
   }
@@ -72,13 +72,11 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
-                      samples_toggle,
+                      groups_toggle,
                       shiny::uiOutput('subcluster_ui'),
                       shiny::br(),
                       shiny::tags$div(
-                        shiny::tags$div(style = "display:inline-block;", id='gene-container', shinyWidgets::pickerInput('gene', 'Select marker gene:', choices = NULL, width = '250px', options = shinyWidgets::pickerOptions(
-                          title = ""
-                        ))),
+                        shiny::tags$div(style = "display:inline-block;", id='gene-container', shinyWidgets::pickerInput('gene', 'Show expression for:', choices = NULL, width = '250px')),
                         shinyBS::bsButton('wiki', label = '', icon = shiny::icon('external-link-alt', 'fa-fw'), style='default', title = 'Go to Wikipedia')
                       )
         ),
@@ -111,6 +109,13 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(gene)
     })
 
+    groups_r <- shiny::reactive({
+      # always show when just a single group
+      if (length(groups) == 1) return(groups)
+
+      return(input$groups)
+    })
+
     output$subcluster_ui <- shiny::renderUI({
 
       if (subcluster()) {
@@ -125,7 +130,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       shiny::tags$div(
         shiny::tags$div(style = "display:inline-block; text-overflow:",
-                        shinyWidgets::pickerInput("cluster", 'Select cluster:',
+                        shinyWidgets::pickerInput("cluster", 'Show marker genes for:',
                                                   choices = cluster_choices, width = '250px', selected = selected)),
         shinyBS::bsButton('subcluster', label = '', value = subcluster(), type = 'toggle', icon = icon, title = title)
       )
@@ -142,9 +147,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       gene <- gene()
       if (is.null(gene)) return(NULL)
 
-      # make selected samples stand out
+      # make selected groups stand out
       point_alpha <- rep(1, ncol(sce))
-      point_alpha[!sce$orig.ident %in% input$samples] <- 0.1
+      point_alpha[!sce$orig.ident %in% groups_r()] <- 0.1
 
       suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
                          ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1))
@@ -176,10 +181,10 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
         colour_by <- 'orig.ident'
       }
 
-      # make selected cluster stand out and samples
+      # make selected cluster stand out and groups
       point_alpha <- rep(0.1, ncol(sce))
       point_alpha[sce$cluster == cluster()] <- 1
-      point_alpha[!sce$orig.ident %in% input$samples] <- 0.1
+      point_alpha[!sce$orig.ident %in% groups_r()] <- 0.1
 
       legend_title <- ifelse(subcluster(), 'Group', 'Cluster')
 
@@ -191,20 +196,20 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     })
 
-    # link to Wikipedia page for gene ----
-    gene_link <- shiny::reactive({
-      enid <- biogps[gene(), ENTREZID]
+      # link to Wikipedia page for gene ----
+      gene_link <- shiny::reactive({
+        enid <- biogps[gene(), ENTREZID]
 
-      if (is.na(enid))
-        return(paste0('https://en.wikipedia.org/wiki/', gene()))
-      else
-        return(paste0('http://genewiki.sulab.org/map/wiki/', enid, '/'))
-    })
+        if (is.na(enid))
+          return(paste0('https://en.wikipedia.org/wiki/', gene()))
+        else
+          return(paste0('http://genewiki.sulab.org/map/wiki/', enid, '/'))
+      })
 
-    # Click link out to Wikipedia ----
-    shiny::observeEvent(input$wiki, {
-      utils::browseURL(gene_link())
-    })
+      # Click link out to Wikipedia ----
+      shiny::observeEvent(input$wiki, {
+        utils::browseURL(gene_link())
+      })
 
     # plot BioGPS data -----
     output$biogps <- shiny::renderPlot({
@@ -247,17 +252,15 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
         cluster_choices <- names(current_markers)
         names(cluster_choices) <- cluster_choices
         choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">', 'Cluster ', cluster(), ' </span>', shiny::icon('chevron-right', 'sub-chev'), cluster_choices, '</span>'))
-        title <- 'Select sample:'
         selected <- NULL
 
       } else {
         choicesOpt <- NULL
-        title <- 'Select cluster:'
         current_markers <<- markers
         selected <- cluster()
       }
 
-      shinyWidgets::updatePickerInput(session, 'cluster', title, choices = cluster_choices, selected = selected, choicesOpt = choicesOpt)
+      shinyWidgets::updatePickerInput(session, 'cluster', choices = cluster_choices, selected = selected, choicesOpt = choicesOpt)
     })
 
     shiny::observeEvent(input$cluster, {

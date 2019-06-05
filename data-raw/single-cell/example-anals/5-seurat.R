@@ -1,6 +1,6 @@
 library(drugseqr)
 
-data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
+data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 scseq.full <- load_scseq(data_dir)
 
 # qc plots
@@ -19,5 +19,6 @@ scseq <- add_scseq_clusters(scseq)
 
 # run tnse and explore clusters
 scseq <- run_tsne(scseq)
-explore_scseq_clusters(scseq)
+markers <- get_scseq_markers(scseq)
+explore_scseq_clusters(scseq, markers)
 
