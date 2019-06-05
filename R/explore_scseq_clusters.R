@@ -43,17 +43,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     stop('scseq must be either a Seurat or SingleCellExperiment object.')
   }
 
-  # if more than one group allow showing cells based on groups
-  groups <- unique(sce$orig.ident)
-  groups_toggle <- NULL
-  if (length(groups) > 1) {
-    groups_toggle <- shiny::tags$div(
-      shinyWidgets::checkboxGroupButtons("groups", "Show cells for:", choices = groups, selected = groups),
-      shiny::br()
-    )
-  }
 
   current_markers <- markers
+  subclusters <- list()
   subcluster_markers <- list()
   cluster_choices <- names(markers)
   names(cluster_choices) <- paste('Cluster', cluster_choices)
@@ -72,7 +64,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
-                      groups_toggle,
+                      shiny::uiOutput('groups_toggle'),
                       shiny::uiOutput('subcluster_ui'),
                       shiny::br(),
                       shiny::tags$div(
@@ -98,6 +90,40 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   server <- function(input, output, session) {
 
+
+    sce_r <- shiny::reactive({
+      # show selected cluster only
+      if (subcluster_r()) {
+        sce <- sce[, sce$cluster == cluster_r()]
+
+        if (!cluster_r() %in% names(subcluster_markers)) {
+          # subset to selected cluster
+          scseq <- scseq[, scseq$seurat_clusters == cluster_r()]
+
+          groups <- unique(scseq$orig.ident)
+          if (length(groups) > 1) {
+            # if there are user-labeled groups, compare them
+            Seurat::Idents(scseq) <- scseq$orig.ident
+          } else {
+            # otherwise calculate and compare subclusters
+            scseq <- add_scseq_clusters(scseq)
+            subcl <- letters[scseq$seurat_clusters]
+            names(subcl) <- colnames(scseq)
+            scseq$seurat_clusters <- scseq$orig.ident <- Seurat::Idents(scseq) <- factor(subcl)
+          }
+          subclusters[[cluster_r()]] <<- scseq$orig.ident
+          subcluster_markers[[cluster_r()]] <<- get_scseq_markers(scseq)
+        }
+
+        sce$orig.ident <- subclusters[[cluster_r()]]
+        sce$colour_by <- 'orig.ident'
+
+      } else {
+        sce$colour_by <- 'cluster'
+      }
+      return(sce)
+    })
+
     # selected gene: use previously selected if delete selection ----
     gene_r <- shiny::reactive({
       gene <- input$gene
@@ -109,12 +135,34 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(gene)
     })
 
+    available_groups_r <- shiny::reactive({
+      sce <- sce_r()
+      groups <- unique(as.character(sce$orig.ident))
+      return(groups)
+    })
+
     # used to determine cell groups to show (e.g. ctrl and test)
-    groups_r <- shiny::reactive({
+    selected_groups_r <- shiny::reactive({
+
+      groups <- available_groups_r()
       # always show when just a single group
       if (length(groups) == 1) return(groups)
 
       return(input$groups)
+    })
+
+
+    output$groups_toggle <- shiny::renderUI({
+      # if more than one group allow showing cells based on groups
+      groups <- available_groups_r()
+      groups_toggle <- NULL
+      if (length(groups) > 1) {
+        groups_toggle <- shiny::tags$div(
+          shinyWidgets::checkboxGroupButtons("groups", "Show cells for:", choices = groups, selected = groups),
+          shiny::br()
+        )
+      }
+      return(groups_toggle)
     })
 
     # UI elements change based on if exploring all or subcluster
@@ -141,17 +189,13 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # show tSNE plot coloured by expression values -----
 
     output$marker_plot <- shiny::renderPlot({
-
-      # show selected cluster only
-      if (subcluster_r())
-        sce <- sce[, sce$cluster == cluster_r()]
-
+      sce <- sce_r()
       gene <- gene_r()
       if (is.null(gene)) return(NULL)
 
       # make selected groups stand out
       point_alpha <- rep(1, ncol(sce))
-      point_alpha[!sce$orig.ident %in% groups_r()] <- 0.1
+      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0.1
 
       suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
                          ggplot2::scale_fill_distiller(palette = 'YlOrRd', name = gene, direction = 1))
@@ -168,8 +212,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     cluster_r <- shiny::reactive({
       cluster <- input$cluster
       if (is.null(cluster) ||
-      # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
-      # this test prevents saving the subcluster as prev_cluster and prevents returning to Cluster 0
+          # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
+          # this test prevents saving the subcluster as prev_cluster and prevents returning to Cluster 0
           (!subcluster_r() && !cluster %in% sce$orig.ident))
         prev_cluster <<- cluster
 
@@ -178,24 +222,16 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     # show plot of predicted cell clusters -----
     output$cluster_plot <- shiny::renderPlot({
+      sce <- sce_r()
 
-      # default
-      colour_by <- 'cluster'
-
-      # show selected cluster only and color by group
-      if (subcluster_r()) {
-        sce <- sce[, sce$cluster == cluster_r()]
-        colour_by <- 'orig.ident'
-      }
-
-      # make selected cluster stand out and groups
+      # make selected cluster and groups stand out
       point_alpha <- rep(0.1, ncol(sce))
       point_alpha[sce$cluster == cluster_r()] <- 1
-      point_alpha[!sce$orig.ident %in% groups_r()] <- 0.1
+      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0.1
 
       legend_title <- ifelse(subcluster_r(), 'Group', 'Cluster')
 
-      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = sce$colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
         ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
         ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                        axis.text.x = ggplot2::element_blank(),
@@ -246,15 +282,10 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     })
 
     # Change cluster/subcluster for genes -----
-    shiny::observeEvent(subcluster_r(), {
+    shiny::observeEvent(input$subcluster, {
 
       # if subcluster get subcluster markers
       if (subcluster_r()) {
-        if (!cluster_r() %in% names(subcluster_markers)) {
-          scseq <- scseq[, scseq$seurat_clusters == cluster_r()]
-          Seurat::Idents(scseq) <- scseq$orig.ident
-          subcluster_markers[[cluster_r()]] <<- get_scseq_markers(scseq)
-        }
         current_markers <<- subcluster_markers[[cluster_r()]]
         cluster_choices <- names(current_markers)
         names(cluster_choices) <- cluster_choices
