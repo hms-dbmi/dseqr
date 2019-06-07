@@ -39,13 +39,18 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 #' @export
 #'
 #' @examples
-srt_to_sce <- function(srt) {
-  sce <- as.SingleCellExperiment(srt)
+srt_to_sce <- function(srt, assay = NULL) {
+  if (class(srt) == 'SingleCellExperiment') return(srt)
+
+  sce <- as.SingleCellExperiment(srt, assay)
 
   # add qc genes as metadata
   qcgenes <- load_scseq_qcgenes()
   sce@metadata$mrna <- qcgenes$mrna
   sce@metadata$rrna <- qcgenes$rrna
+
+  # Seuray assay used by prevent_integrated
+  sce@metadata$seurat_assay <- ifelse(is.null(assay), Seurat::DefaultAssay(srt), assay)
 
   # for compatibility in explore_scseq_clusters
   sce$cluster <- sce$seurat_clusters
@@ -241,7 +246,9 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
 #'
 #' @examples
 get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
+
   if (!exist_clusters(scseq)) return(NULL)
+  scseq <- prevent_integrated(scseq)
 
   # only upregulated as more useful for positive id of cell type
   if (class(scseq) == 'SingleCellExperiment') {
@@ -251,9 +258,35 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
     suppressWarnings(markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE))
     markers <- split(markers, markers$cluster)
     markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
-
   }
+
   return(markers)
+}
+
+#' Switch away from integrated assay slot
+#'
+#' The "integrated" assay slot is inappropriate for differential expression analysis. This will switch to \code{SCTransform}'ed
+#' slot for \code{Seurat} objects. \code{SingleCellExperiment} objects check to make sure they weren't generated from
+#' "integrated" data.
+#'
+#' @param scseq \code{Seurat} or \code{SingleCellExperiment} object.
+#'
+#' @return \code{scseq} with "SCT" as the default assay if it was previously "integrated".
+#' @export
+#'
+#' @examples
+prevent_integrated <- function(scseq) {
+
+  if (class(scseq) == 'Seurat' &&
+      Seurat::DefaultAssay(srt) == 'integrated') {
+    Seurat::DefaultAssay(srt) <- 'SCT'
+
+  } else if (class(scseq) == 'SingleCellExperiment' &&
+             isTRUE(scseq@meta.data$seurat_assay) == 'integrated') {
+    stop("SingleCellExperiment object was generated from integrated Seurat assay.")
+  }
+
+  return(scseq)
 }
 
 exist_clusters <- function(scseq) {

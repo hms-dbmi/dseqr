@@ -33,16 +33,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     markers <- get_scseq_markers(scseq, assay.type)
 
   # plots all based on SingleCellExperiment
-  if (class(scseq) == 'Seurat') {
-    sce <- srt_to_sce(scseq)
-
-  } else if (class(scseq) == 'SingleCellExperiment') {
-    sce <- scseq
-
-  } else {
-    stop('scseq must be either a Seurat or SingleCellExperiment object.')
-  }
-
+  # use non-integrated but corrected assay for marker gene plots
+  sce <- srt_to_sce(scseq, "SCT")
 
   current_markers <- c()
   subclusters <- list()
@@ -92,12 +84,16 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     sce_r <- shiny::reactive({
       sce_orig <- sce
-      # show selected cluster only
+
+      # Do I need to check NULL?
+      if (in_subcluster_r() & is.null(cluster_r())) browser()
+
       if (in_subcluster_r() & !is.null(cluster_r())) {
+        # show selected subcluster only
         sce <- sce[, sce$cluster == cluster_r()]
 
         if (isFALSE(cluster_r() %in% names(subcluster_markers))) {
-          # subset to selected cluster
+          # subset original data to selected cluster
           scseq <- scseq[, scseq$seurat_clusters == cluster_r()]
 
           groups <- unique(scseq$orig.ident)
@@ -123,15 +119,15 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
         if (cluster_r() %in% lack_subclusters) {
           sce <- sce_orig
-          sce$colour_by <- 'cluster'
+          sce@metadata$colour_by <- 'cluster'
           return(sce)
         }
 
         sce$orig.ident <- subclusters[[cluster_r()]]
-        sce$colour_by <- 'orig.ident'
+        sce@metadata$colour_by <- 'orig.ident'
 
       } else {
-        sce$colour_by <- 'cluster'
+        sce@metadata$colour_by <- 'cluster'
       }
       return(sce)
     })
@@ -260,6 +256,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       point_alpha <- rep(1, ncol(sce))
       point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0.1
 
+
       suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
                          ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
 
@@ -294,7 +291,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       legend_title <- ifelse(in_subcluster_r(), 'Group', 'Cluster')
 
-      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = sce$colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = sce@metadata$colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
         ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
         ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                        axis.text.x = ggplot2::element_blank(),
