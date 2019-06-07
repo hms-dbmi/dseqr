@@ -72,8 +72,8 @@ as.SingleCellExperiment <- function(x, assay = NULL, ...) {
   assay <- ifelse(is.null(assay), Seurat::DefaultAssay(object = x), assay)
 
   assays = list(
-    counts = GetAssayData(object = x, assay = assay, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assay, slot = "data")
+    counts = Seurat::GetAssayData(object = x, assay = assay, slot = "counts"),
+    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data")
   )
 
   assays <- assays[sapply(assays, nrow) != 0]
@@ -125,7 +125,9 @@ preprocess_scseq <- function(scseq) {
   }
 
   if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::SCTransform(scseq, verbose = FALSE)
+    # alevin has non-integer values that sctransform turns to Inf
+    scseq <- Seurat::SetAssayData(scseq, 'counts', round(Seurat::GetAssayData(scseq, 'counts')))
+    scseq <- Seurat::SCTransform(scseq, verbose = FALSE, return.only.var.genes = FALSE)
   }
   return(scseq)
 }
@@ -216,7 +218,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
     scseq$cluster <- factor(clusters$membership - 1)
 
   } else if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::RunPCA(scseq, verbose = FALSE)
+    suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
     scseq <- Seurat::FindNeighbors(scseq, dims=1:30, verbose = FALSE)
     scseq <- Seurat::FindClusters(scseq, verbose = FALSE)
   } else {
@@ -239,21 +241,29 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
 #'
 #' @examples
 get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
+  if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
   if (class(scseq) == 'SingleCellExperiment') {
     markers <- scran::findMarkers(scseq, clusters=scseq$cluster, direction="up", assay.type = assay.type)
 
   } else if (class(scseq) == 'Seurat') {
-    markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE)
+    suppressWarnings(markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE))
     markers <- split(markers, markers$cluster)
     markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
 
-  } else {
-    stop('scseq must be either class SingleCellExperiment or Seurat')
   }
-
   return(markers)
+}
+
+exist_clusters <- function(scseq) {
+  if (class(scseq) == 'SingleCellExperiment') {
+    exist_clusters <- length(unique(scseq$clusters)) > 1
+
+  } else if (class(scseq) == 'Seurat') {
+    exist_clusters <- length(unique(Seurat::Idents(scseq))) > 1
+  }
+  return(exist_clusters)
 }
 
 #' Run TSNE for visualizing single cell data.
