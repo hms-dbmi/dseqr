@@ -24,11 +24,9 @@
 #' explore_scseq_clusters(scseq)
 #'
 
-explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE') {
+explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE', colour_by = 'cluster') {
 
   # setup ----
-  biogps <- readRDS(system.file('extdata', 'biogps.rds', package = 'drugseqr'))
-
   if (is.null(markers))
     markers <- get_scseq_markers(scseq, assay.type)
 
@@ -119,7 +117,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
         if (cluster_r() %in% lack_subclusters) {
           sce <- sce_orig
-          sce@metadata$colour_by <- 'cluster'
+          sce@metadata$colour_by <- colour_by
           return(sce)
         }
 
@@ -127,7 +125,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
         sce@metadata$colour_by <- 'orig.ident'
 
       } else {
-        sce@metadata$colour_by <- 'cluster'
+        sce@metadata$colour_by <- colour_by
       }
       return(sce)
     })
@@ -254,7 +252,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       # make selected groups stand out
       point_alpha <- rep(1, ncol(sce))
-      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0.1
+      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0
 
 
       suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
@@ -285,9 +283,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       sce <- sce_r()
 
       # make selected cluster and groups stand out
-      point_alpha <- rep(0.1, ncol(sce))
+      point_alpha <- rep(1, ncol(sce))
       point_alpha[sce$cluster == cluster_r()] <- 1
-      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0.1
+      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0
 
       legend_title <- ifelse(in_subcluster_r(), 'Group', 'Cluster')
 
@@ -311,29 +309,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     # plot BioGPS data -----
     output$biogps <- shiny::renderPlot({
-      gene <- gene_r()
-      if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
-
-      gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
-      gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
-      gene_dat <- tibble::tibble(mean = gene_dat,
-                                 source = factor(names(gene_dat), levels = rev(names(gene_dat))))
-
-      ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
-        ggplot2::theme_minimal() +
-        ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
-        ggplot2::scale_fill_distiller(palette = 'Reds', name = '', direction = 1) +
-        ggplot2::xlab('') +
-        ggplot2::ylab('') +
-        ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
-        ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
-        ggplot2::coord_flip() +
-        ggplot2::theme(panel.grid = ggplot2::element_blank(),
-                       panel.border = ggplot2::element_blank(),
-                       plot.title = ggplot2::element_text(),
-                       axis.text = ggplot2::element_text(size = 12),
-                       axis.text.x = ggplot2::element_blank(),
-                       legend.position = "none")
+      plot_biogps(gene_r())
     })
 
 
@@ -345,4 +321,39 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   }
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
+}
+
+
+#' Plot BioGPS data for a HGNC symbol
+#'
+#' @param gene Character vector of gene name.
+#' @keywords internal
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+plot_biogps <- function(gene) {
+  if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
+
+  gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
+  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
+  gene_dat <- tibble::tibble(mean = gene_dat,
+                             source = factor(names(gene_dat), levels = rev(names(gene_dat))))
+
+  ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
+    ggplot2::theme_minimal() +
+    ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
+    ggplot2::scale_fill_distiller(palette = 'Reds', name = '', direction = 1) +
+    ggplot2::xlab('') +
+    ggplot2::ylab('') +
+    ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
+    ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
+    ggplot2::coord_flip() +
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank(),
+                   plot.title = ggplot2::element_text(),
+                   axis.text = ggplot2::element_text(size = 12),
+                   axis.text.x = ggplot2::element_blank(),
+                   legend.position = "none")
 }

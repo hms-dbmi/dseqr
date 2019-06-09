@@ -33,4 +33,4 @@ atlas <- atlas[max_iqr,  -'PROBE']
 setkey(atlas, SYMBOL)
 
 # save expression values
-saveRDS(atlas, 'inst/extdata/biogps.rds')
+saveRDS(atlas, 'data-raw/single-cell/biogps/biogps.rds')
