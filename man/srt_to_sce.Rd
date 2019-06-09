@@ -4,7 +4,7 @@
 \alias{srt_to_sce}
 \title{Convert Seurat object to SingleCellExperiment}
 \usage{
-srt_to_sce(srt)
+srt_to_sce(srt, assay = NULL)
 }
 \arguments{
 \item{srt}{}

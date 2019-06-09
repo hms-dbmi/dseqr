@@ -1,10 +1,14 @@
-
-
 #' Explore Single Cell Clusters
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat} object
+#' @param markers Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
+#'  with the same name as the cluster.
+#' @param assay.type The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
+#' object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.
+#' @param colour_by The slot to colour the top right plot by. The default is 'cluster'. Another reasonable value is to add cell labels
+#'  to \code{scseq} that were determined from two seperate samples and then see how Seurat data integration warps those groups.
 #'
-#' @return
+#' @return NULL
 #' @export
 #'
 #' @examples
@@ -24,7 +28,7 @@
 #' explore_scseq_clusters(scseq)
 #'
 
-explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', use_dimred = 'TSNE', colour_by = 'cluster') {
+explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', colour_by = 'cluster') {
 
   # setup ----
   if (is.null(markers))
@@ -79,12 +83,11 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   server <- function(input, output, session) {
 
-
+    # reactive objects -----
+    # the current subset of the original SingleCellExperiment
+    # if exploring subset, will look for new clusters/markers
     sce_r <- shiny::reactive({
       sce_orig <- sce
-
-      # Do I need to check NULL?
-      if (in_subcluster_r() & is.null(cluster_r())) browser()
 
       if (in_subcluster_r() & !is.null(cluster_r())) {
         # show selected subcluster only
@@ -109,6 +112,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
               lack_subclusters <<- c(lack_subclusters, cluster_r())
 
             names(subcl) <- colnames(scseq)
+            # not sure if all of these are necessary
             scseq$seurat_clusters <- scseq$orig.ident <- Seurat::Idents(scseq) <- factor(subcl)
           }
           subclusters[[cluster_r()]] <<- scseq$orig.ident
@@ -130,7 +134,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(sce)
     })
 
-    # selected gene: use previously selected if delete selection ----
+    # selected gene: use previously selected if delete selection
     gene_r <- shiny::reactive({
       gene <- input$gene
       if (is.null(gene) || gene == '') {
@@ -141,6 +145,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(gene)
     })
 
+    # used to determine available groups to show (e.g. ctrl and test)
     available_groups_r <- shiny::reactive({
       sce <- sce_r()
       groups <- unique(as.character(sce$orig.ident))
@@ -157,7 +162,34 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(input$groups)
     })
 
+    # boolean indicating if currently exploring subcluster
+    in_subcluster_r <- shiny::reactive({
+      if (!length(input$subcluster)) return(FALSE)
+      return(input$subcluster)
+    })
 
+    # used to get the high level cluster (not the subcluster)
+    cluster_r <- shiny::reactive({
+      cluster <- input$cluster
+      if (is.null(cluster) ||
+          # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
+          # this test prevents saving the subcluster as prev_cluster and prevents returning to Cluster 0
+          (!in_subcluster_r() && !cluster %in% sce$orig.ident && !cluster %in% letters))
+        prev_cluster <<- cluster
+
+      return(prev_cluster)
+    })
+
+    # update marker genes based on cluster/subcluster selection -----
+    shiny::observeEvent(input$cluster, {
+      cluster_markers <- current_markers[[input$cluster]]
+      choices <- row.names(cluster_markers)
+      shinyWidgets::updatePickerInput(session, 'gene', choices = choices)
+    })
+
+
+    # dynamic UI inputs -------
+    # toggle for e.g. showing ctrl and/or test cells
     output$groups_toggle <- shiny::renderUI({
       # if more than one group allow showing cells based on groups
       groups <- available_groups_r()
@@ -170,7 +202,6 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       }
       return(groups_toggle)
     })
-
 
     # UI elements change based on if exploring all or subcluster
     output$subcluster_ui <- shiny::renderUI({
@@ -243,8 +274,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       )
     })
 
-    # show tSNE plot coloured by expression values -----
-
+    # plots ------
+    # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
       sce <- sce_r()
       gene <- gene_r()
@@ -255,30 +286,18 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0
 
 
-      suppressMessages(scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = gene, point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      suppressMessages(scater::plotTSNE(sce,
+                                        by_exprs_values = assay.type,
+                                        colour_by = gene,
+                                        point_size = 3,
+                                        point_alpha = point_alpha,
+                                        theme_size = 14) +
                          ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
 
     })
 
-    # boolean indicating if currently exploring subcluster
-    in_subcluster_r <- shiny::reactive({
-      if (!length(input$subcluster)) return(FALSE)
-      return(input$subcluster)
-    })
 
-    # used to get the high level cluster (not the subcluster)
-    cluster_r <- shiny::reactive({
-      cluster <- input$cluster
-      if (is.null(cluster) ||
-          # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
-          # this test prevents saving the subcluster as prev_cluster and prevents returning to Cluster 0
-          (!in_subcluster_r() && !cluster %in% sce$orig.ident && !cluster %in% letters))
-        prev_cluster <<- cluster
-
-      return(prev_cluster)
-    })
-
-    # show plot of predicted cell clusters -----
+    # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
       sce <- sce_r()
 
@@ -289,7 +308,12 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       legend_title <- ifelse(in_subcluster_r(), 'Group', 'Cluster')
 
-      scater::plotTSNE(sce, by_exprs_values = assay.type, colour_by = sce@metadata$colour_by,  point_size = 3, point_alpha = point_alpha, theme_size = 14) +
+      scater::plotTSNE(sce,
+                       by_exprs_values = assay.type,
+                       colour_by = sce@metadata$colour_by,
+                       point_size = 3,
+                       point_alpha = point_alpha,
+                       theme_size = 14) +
         ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
         ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                        axis.text.x = ggplot2::element_blank(),
@@ -297,31 +321,26 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     })
 
-    # link to GeneCards page for gene ----
-    gene_link_r <- shiny::reactive({
-      return(paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', gene_r()))
-    })
 
-    # Click link out to GeneCards ----
-    shiny::observeEvent(input$genecards, {
-      utils::browseURL(gene_link_r())
-    })
-
-    # plot BioGPS data -----
+    # plot BioGPS data
     output$biogps <- shiny::renderPlot({
       plot_biogps(gene_r())
     })
 
 
-    shiny::observeEvent(input$cluster, {
-      cluster_markers <- current_markers[[input$cluster]]
-      choices <- row.names(cluster_markers)
-      shinyWidgets::updatePickerInput(session, 'gene', choices = choices)
+    # link to GeneCards page for gene ----
+    gene_link_r <- shiny::reactive({
+      return(paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', gene_r()))
+    })
+
+    shiny::observeEvent(input$genecards, {
+      utils::browseURL(gene_link_r())
     })
 
   }
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
 }
+
 
 
 #' Plot BioGPS data for a HGNC symbol

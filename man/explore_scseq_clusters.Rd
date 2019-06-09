@@ -5,10 +5,19 @@
 \title{Explore Single Cell Clusters}
 \usage{
 explore_scseq_clusters(scseq, markers = NULL, assay.type = "logcounts",
-  use_dimred = "TSNE")
+  colour_by = "cluster")
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
+
+\item{markers}{Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
+with the same name as the cluster.}
+
+\item{assay.type}{The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
+object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.}
+
+\item{colour_by}{The slot to colour the top right plot by. The default is 'cluster'. Another reasonable value is to add cell labels
+to \code{scseq} that were determined from two seperate samples and then see how Seurat data integration warps those groups.}
 }
 \description{
 Explore Single Cell Clusters
@@ -17,7 +26,7 @@ Explore Single Cell Clusters
 
 # import alevin quants
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-scseq <- load_scseq(data_dir, type = 'SingleCellExperiment')
+scseq <- load_scseq(data_dir, type = 'Seurat')
 
 # subset by alevin whitelist norm/stabilize using good cell only
 scseq <- scseq[, scseq$whitelist]
