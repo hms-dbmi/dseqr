@@ -58,7 +58,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       shiny::fluidRow(
         shiny::column(6,
                       shiny::uiOutput('groups_toggle'),
-                      shiny::uiOutput('subcluster_ui'),
+                      shiny::uiOutput('cluster_selector'),
                       shiny::br(),
                       shiny::tags$div(
                         shiny::tags$div(style = "display:inline-block;", id='gene-container', shinyWidgets::pickerInput('gene', 'Show expression for:', choices = NULL, width = '250px', options = shinyWidgets::pickerOptions(liveSearch = TRUE))),
@@ -89,13 +89,13 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     sce_r <- shiny::reactive({
       sce_orig <- sce
 
-      if (in_subcluster_r() & !is.null(cluster_r())) {
+      if (in_subcluster_r() & !is.null(supercluster_r())) {
         # show selected subcluster only
-        sce <- sce[, sce$cluster == cluster_r()]
+        sce <- sce[, sce$selected_cluster == supercluster_r()]
 
-        if (isFALSE(cluster_r() %in% names(subcluster_markers))) {
+        if (isFALSE(supercluster_r() %in% names(subcluster_markers))) {
           # subset original data to selected cluster
-          scseq <- scseq[, scseq$seurat_clusters == cluster_r()]
+          scseq <- scseq[, scseq$seurat_clusters == supercluster_r()]
 
           groups <- unique(scseq$orig.ident)
           if (length(groups) > 1) {
@@ -109,23 +109,23 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
             # error or one subcluster
             if(length(unique(subcl)) == 1)
-              lack_subclusters <<- c(lack_subclusters, cluster_r())
+              lack_subclusters <<- c(lack_subclusters, supercluster_r())
 
             names(subcl) <- colnames(scseq)
             # not sure if all of these are necessary
             scseq$seurat_clusters <- scseq$orig.ident <- Seurat::Idents(scseq) <- factor(subcl)
           }
-          subclusters[[cluster_r()]] <<- scseq$orig.ident
-          subcluster_markers[[cluster_r()]] <<- get_scseq_markers(scseq)
+          subclusters[[supercluster_r()]] <<- scseq$orig.ident
+          subcluster_markers[[supercluster_r()]] <<- get_scseq_markers(scseq)
         }
 
-        if (cluster_r() %in% lack_subclusters) {
+        if (supercluster_r() %in% lack_subclusters) {
           sce <- sce_orig
           sce@metadata$colour_by <- colour_by
           return(sce)
         }
 
-        sce$orig.ident <- subclusters[[cluster_r()]]
+        sce$orig.ident <- subclusters[[supercluster_r()]]
         sce@metadata$colour_by <- 'orig.ident'
 
       } else {
@@ -169,7 +169,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     })
 
     # used to get the high level cluster (not the subcluster)
-    cluster_r <- shiny::reactive({
+    supercluster_r <- shiny::reactive({
       cluster <- input$cluster
       if (is.null(cluster) ||
           # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
@@ -181,8 +181,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     })
 
     # update marker genes based on cluster/subcluster selection -----
-    shiny::observeEvent(input$cluster, {
-      cluster_markers <- current_markers[[input$cluster]]
+    shiny::observe({
+      cluster_markers <- current_markers[[input$selected_cluster]]
       choices <- row.names(cluster_markers)
       shinyWidgets::updatePickerInput(session, 'gene', choices = choices)
     })
@@ -203,14 +203,14 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(groups_toggle)
     })
 
-    # UI elements change based on if exploring all or subcluster
-    output$subcluster_ui <- shiny::renderUI({
+    # UI elements change based on if exploring superclusters or subclusters
+    output$cluster_selector <- shiny::renderUI({
 
-      if (in_subcluster_r() && isFALSE(cluster_r() %in% lack_subclusters)) {
+      if (in_subcluster_r() && isFALSE(supercluster_r() %in% lack_subclusters)) {
         # in subcluster and exists
 
         # show subclusters markers
-        current_markers <<- subcluster_markers[[cluster_r()]]
+        current_markers <<- subcluster_markers[[supercluster_r()]]
         cluster_choices <- names(current_markers)
 
         # sometimes a race condition happens where updating UI before have subcluster markers
@@ -223,7 +223,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
         # style options to indicate top level cluster
         choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">',
-                                            'Cluster ', cluster_r(), ' </span>',
+                                            'Cluster ', supercluster_r(), ' </span>',
                                             shiny::icon('chevron-right', 'sub-chev'),
                                             cluster_choices, '</span>'))
 
@@ -236,12 +236,12 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       } else {
         # either not in subcluster or don't exist
 
-        # use top level cluster markers and previous cluster
+        # use supercluster markers and previous supercluster
         current_markers <<- markers
         cluster_choices <- names(current_markers)
         names(cluster_choices) <- paste('Cluster', cluster_choices)
-        selected <- ifelse(is.null(cluster_r()),
-                           cluster_choices[1], cluster_r())
+        selected <- ifelse(is.null(supercluster_r()),
+                           cluster_choices[1], supercluster_r())
 
         # no styling for options
         choicesOpt <- NULL
@@ -252,7 +252,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
         value <- FALSE
         disabled <- FALSE
 
-        if (isTRUE(cluster_r() %in% lack_subclusters)) {
+        if (isTRUE(supercluster_r() %in% lack_subclusters)) {
           # don't have subcluster
 
           # cues to prevent entering subclusters
@@ -264,7 +264,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
       shiny::tags$div(
         shiny::tags$div(style = "display:inline-block; text-overflow:",
-                        shinyWidgets::pickerInput("cluster", 'Show marker genes for:', width = '250px',
+                        shinyWidgets::pickerInput("selected_cluster", 'Show marker genes for:', width = '250px',
                                                   choices = cluster_choices,
                                                   choicesOpt = choicesOpt,
                                                   selected = selected)),
@@ -277,48 +277,15 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # plots ------
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
-      sce <- sce_r()
-      gene <- gene_r()
-      if (is.null(gene)) return(NULL)
-
-      # make selected groups stand out
-      point_alpha <- rep(1, ncol(sce))
-      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0
-
-
-      suppressMessages(scater::plotTSNE(sce,
-                                        by_exprs_values = assay.type,
-                                        colour_by = gene,
-                                        point_size = 3,
-                                        point_alpha = point_alpha,
-                                        theme_size = 14) +
-                         ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
-
+      if (is.null(gene_r())) return(NULL)
+      plot_tsne_gene(sce_r(), gene_r(), selected_groups_r(), assay.type)
     })
 
 
     # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
-      sce <- sce_r()
-
-      # make selected cluster and groups stand out
-      point_alpha <- rep(1, ncol(sce))
-      point_alpha[sce$cluster == cluster_r()] <- 1
-      point_alpha[!sce$orig.ident %in% selected_groups_r()] <- 0
-
       legend_title <- ifelse(in_subcluster_r(), 'Group', 'Cluster')
-
-      scater::plotTSNE(sce,
-                       by_exprs_values = assay.type,
-                       colour_by = sce@metadata$colour_by,
-                       point_size = 3,
-                       point_alpha = point_alpha,
-                       theme_size = 14) +
-        ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
-        ggplot2::theme(axis.title.x = ggplot2::element_blank(),
-                       axis.text.x = ggplot2::element_blank(),
-                       axis.ticks.x = ggplot2::element_blank())
-
+      plot_tsne_cluster(sce_r(), legend_title, selected_groups_r())
     })
 
 
@@ -339,40 +306,4 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   }
   shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
-}
-
-
-
-#' Plot BioGPS data for a HGNC symbol
-#'
-#' @param gene Character vector of gene name.
-#' @keywords internal
-#'
-#' @return ggplot
-#' @export
-#'
-#' @examples
-plot_biogps <- function(gene) {
-  if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
-
-  gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
-  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
-  gene_dat <- tibble::tibble(mean = gene_dat,
-                             source = factor(names(gene_dat), levels = rev(names(gene_dat))))
-
-  ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
-    ggplot2::theme_minimal() +
-    ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
-    ggplot2::scale_fill_distiller(palette = 'Reds', name = '', direction = 1) +
-    ggplot2::xlab('') +
-    ggplot2::ylab('') +
-    ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
-    ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
-    ggplot2::coord_flip() +
-    ggplot2::theme(panel.grid = ggplot2::element_blank(),
-                   panel.border = ggplot2::element_blank(),
-                   plot.title = ggplot2::element_text(),
-                   axis.text = ggplot2::element_text(size = 12),
-                   axis.text.x = ggplot2::element_blank(),
-                   legend.position = "none")
 }

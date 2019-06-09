@@ -150,3 +150,101 @@ get_diverge <- function(x, name) {
   return(diverge)
 }
 
+
+
+
+#' Plot TSNE coloured by cluster
+#'
+#' The groups are either \code{sce$cluster} (default) or \code{sce@metadata$colour_by}.
+#'
+#' @inheritParams plot_tsne_gene
+#' @param legend_title Title for the legend.
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+plot_tsne_cluster <- function(sce, legend_title, selected_groups = NULL, assay.type = 'logcounts') {
+  # make selected cluster and groups stand out
+  point_alpha <- rep(1, ncol(sce))
+  if (!is.null(selected_groups)) point_alpha[!sce$orig.ident %in% selected_groups] <- 0
+
+  colour_by <- ifelse(is.null(sce@metadata$colour_by), 'cluster', sce@metadata$colour_by)
+
+  scater::plotTSNE(sce,
+                   by_exprs_values = assay.type,
+                   colour_by = colour_by,
+                   point_size = 3,
+                   point_alpha = point_alpha,
+                   theme_size = 14) +
+    ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
+    ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_blank(),
+                   axis.ticks.x = ggplot2::element_blank())
+}
+
+#' Plot TSNE coloured by HGNC symbol
+#'
+#' @param sce \code{SingleCellExperiment}
+#' @param gene Character vector to colour cells by
+#' @param selected_groups The groups in \code{sce$orig.ident} to show cell for. The default \code{NULL} shows all cells.
+#' @inheritParams explore_scseq_clusters
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+plot_tsne_gene <- function(sce, gene, selected_groups = NULL, assay.type = 'logcounts') {
+  # make selected groups stand out
+  point_alpha <- rep(1, ncol(sce))
+  if (!is.null(selected_groups)) point_alpha[!sce$orig.ident %in% selected_groups] <- 0
+
+
+  suppressMessages(tsne_gene <- scater::plotTSNE(sce,
+                                                 by_exprs_values = assay.type,
+                                                 colour_by = gene,
+                                                 point_size = 3,
+                                                 point_alpha = point_alpha,
+                                                 theme_size = 14) +
+                     ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
+
+  return(tsne_gene)
+}
+
+
+
+#' Plot BioGPS data for a HGNC symbol
+#'
+#' @param gene Character vector of gene name.
+#' @keywords internal
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+plot_biogps <- function(gene) {
+  if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
+
+  gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
+  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
+  gene_dat <- tibble::tibble(mean = gene_dat,
+                             source = factor(names(gene_dat), levels = rev(names(gene_dat))))
+
+  ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
+    ggplot2::theme_minimal() +
+    ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
+    ggplot2::scale_fill_distiller(palette = 'Reds', name = '', direction = 1) +
+    ggplot2::xlab('') +
+    ggplot2::ylab('') +
+    ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
+    ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
+    ggplot2::coord_flip() +
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   panel.border = ggplot2::element_blank(),
+                   plot.title = ggplot2::element_text(),
+                   axis.text = ggplot2::element_text(size = 12),
+                   axis.text.x = ggplot2::element_blank(),
+                   legend.position = "none")
+}
+
+
