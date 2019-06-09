@@ -23,10 +23,17 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist, project = project)
-  if (type == 'Seurat') return(srt)
+  if (type == 'Seurat') {
+    return(srt)
 
-  # convert to SingleCellExperiment
-  return(srt_to_sce(srt))
+  } else if (type == 'SingleCellExperiment') {
+    # convert to SingleCellExperiment
+    return(srt_to_sce(srt))
+
+  } else {
+    stop('type must be either Seurat or SingleCellExperiment')
+  }
+
 }
 
 #' Convert Seurat object to SingleCellExperiment
@@ -278,8 +285,8 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
 prevent_integrated <- function(scseq) {
 
   if (class(scseq) == 'Seurat' &&
-      Seurat::DefaultAssay(srt) == 'integrated') {
-    Seurat::DefaultAssay(srt) <- 'SCT'
+      Seurat::DefaultAssay(scseq) == 'integrated') {
+    Seurat::DefaultAssay(scseq) <- 'SCT'
 
   } else if (class(scseq) == 'SingleCellExperiment' &&
              isTRUE(scseq@meta.data$seurat_assay) == 'integrated') {
