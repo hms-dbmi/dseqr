@@ -212,8 +212,6 @@ plot_tsne_gene <- function(sce, gene, selected_groups = NULL, assay.type = 'logc
                                     point_alpha = point_alpha,
                                     theme_size = 14) +
                      ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
-
-
 }
 
 #' Remove ggplot axis title, text, and ticks
@@ -288,14 +286,21 @@ plot_scseq_report <- function(sce, markers, point_size = 3) {
     ggplot2::theme(plot.margin=unit(c(20, 5.5, 20, 5.5), "points")) +
     theme_dimgray()
 
-  # now add the title
+  # now add the title ----
+
+  # include number of cells and percentage of total
+  ncells <- sum(sce$cluster == selected_group)
+  pcells <- round(ncells/ncol(sce) * 100)
+
   title <- cowplot::ggdraw() +
-    cowplot::draw_label(selected_group, x = 0, hjust = 0)
-    ggplot2::theme(plot.margin = margin(0, 0, 0, 7))
+    cowplot::draw_label(selected_group , x = 0, hjust = 0)
+
+  subtitle <- cowplot::ggdraw() +
+    cowplot::draw_label(paste0(ncells, ' cells - ', pcells, '%'), x = 0, hjust = 0, size = 12, colour = 'dimgray')
 
   # combine
   marker_nrows <- ceiling(length(genes)/2)
-  cowplot::plot_grid(title, cluster_plot, gene_grid, ncol = 1, rel_heights = c(0.1, 1.5, marker_nrows))
+  cowplot::plot_grid(title, subtitle, cluster_plot, gene_grid, ncol = 1, rel_heights = c(0.1, 0.1, 1.5, marker_nrows))
 }
 
 #' Save PDF of scRNA-seq reports
