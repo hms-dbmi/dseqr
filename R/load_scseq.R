@@ -222,7 +222,7 @@ read.delim1 <- function(file) {
 #' @export
 #'
 #' @examples
-add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
+add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 
   if (class(scseq) == 'SingleCellExperiment') {
     snn.gr <- scran::buildSNNGraph(scseq, use.dimred=use.dimred)
@@ -232,7 +232,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA') {
   } else if (class(scseq) == 'Seurat') {
     suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
     scseq <- Seurat::FindNeighbors(scseq, dims=1:30, verbose = FALSE)
-    scseq <- Seurat::FindClusters(scseq, verbose = FALSE)
+    scseq <- Seurat::FindClusters(scseq, verbose = FALSE, resolution = resolution)
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')
   }
