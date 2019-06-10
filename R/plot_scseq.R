@@ -164,23 +164,26 @@ get_diverge <- function(x, name) {
 #' @export
 #'
 #' @examples
-plot_tsne_cluster <- function(sce, legend_title, selected_groups = NULL, assay.type = 'logcounts') {
+plot_tsne_cluster <- function(sce, legend_title, selected_groups = NULL, point_size = 3, assay.type = 'logcounts', remove_axes = 'xaxis') {
+  if (class(sce) == 'Seurat') sce <- srt_to_sce(sce, 'SCT')
+
   # make selected cluster and groups stand out
   point_alpha <- rep(1, ncol(sce))
-  if (!is.null(selected_groups)) point_alpha[!sce$orig.ident %in% selected_groups] <- 0
+  if (!is.null(selected_groups)) point_alpha[!sce$orig.ident %in% selected_groups] <- 0.2
 
   colour_by <- ifelse(is.null(sce@metadata$colour_by), 'cluster', sce@metadata$colour_by)
 
-  scater::plotTSNE(sce,
-                   by_exprs_values = assay.type,
-                   colour_by = colour_by,
-                   point_size = 3,
-                   point_alpha = point_alpha,
-                   theme_size = 14) +
+  cluster_plot <- scater::plotTSNE(sce,
+                                   by_exprs_values = assay.type,
+                                   colour_by = colour_by,
+                                   point_size = point_size,
+                                   point_alpha = point_alpha,
+                                   theme_size = 14) +
     ggplot2::guides(fill = ggplot2::guide_legend(legend_title)) +
-    ggplot2::theme(axis.title.x = ggplot2::element_blank(),
-                   axis.text.x = ggplot2::element_blank(),
-                   axis.ticks.x = ggplot2::element_blank())
+    theme_minimal_axes()
+
+  cluster_plot <- remove_axes(cluster_plot, type = remove_axes)
+  return(cluster_plot)
 }
 
 #' Plot TSNE coloured by HGNC symbol
@@ -194,21 +197,124 @@ plot_tsne_cluster <- function(sce, legend_title, selected_groups = NULL, assay.t
 #' @export
 #'
 #' @examples
-plot_tsne_gene <- function(sce, gene, selected_groups = NULL, assay.type = 'logcounts') {
+plot_tsne_gene <- function(sce, gene, selected_groups = NULL, assay.type = 'logcounts', point_size = 3) {
+  if (class(sce) == 'Seurat') sce <- srt_to_sce(sce, 'SCT')
+
   # make selected groups stand out
   point_alpha <- rep(1, ncol(sce))
   if (!is.null(selected_groups)) point_alpha[!sce$orig.ident %in% selected_groups] <- 0
 
 
-  suppressMessages(tsne_gene <- scater::plotTSNE(sce,
-                                                 by_exprs_values = assay.type,
-                                                 colour_by = gene,
-                                                 point_size = 3,
-                                                 point_alpha = point_alpha,
-                                                 theme_size = 14) +
+  suppressMessages(scater::plotTSNE(sce,
+                                    by_exprs_values = assay.type,
+                                    colour_by = gene,
+                                    point_size = point_size,
+                                    point_alpha = point_alpha,
+                                    theme_size = 14) +
                      ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
 
-  return(tsne_gene)
+
+}
+
+#' Remove ggplot axis title, text, and ticks
+#'
+#' @param plot ggplot
+#' @param types Character vector of axis types to remove. Either or both of \code{'xaxis'} and \code{'yaxis'}.
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+remove_axes <- function(plot, types) {
+
+  if ('xaxis' %in% types)
+    plot <- plot +
+      ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+                     axis.text.x = ggplot2::element_blank(),
+                     axis.ticks.x = ggplot2::element_blank())
+
+  if ('yaxis' %in% types)
+    plot <- plot +
+      ggplot2::theme(axis.title.y = ggplot2::element_blank(),
+                     axis.text.y = ggplot2::element_blank(),
+                     axis.ticks.y = ggplot2::element_blank())
+
+  return(plot)
+}
+
+#' Make ggplot axes and text dimgray
+#'
+#' @param plot ggplot
+#'
+#' @return ggplot
+#' @export
+#'
+#' @examples
+theme_dimgray <- function(plot) {
+  ggplot2::theme(axis.line.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.line.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.ticks.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.ticks.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.text = ggplot2::element_text(colour = 'dimgray'),
+                 axis.title = ggplot2::element_text(colour = 'dimgray'),
+                 text = ggplot2::element_text(colour = 'dimgray'))
+}
+
+
+#' Plot grid with scRNA-seq cluster and gene markers together
+#'
+#' @param sce
+#' @param markers
+#' @param point_size
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plot_scseq_report <- function(sce, markers, point_size = 3) {
+  if (class(sce) == 'Seurat') sce <- srt_to_sce(sce, 'SCT')
+  selected_group <- names(markers)
+  genes <- markers[[1]]
+
+  # make orig.ident the clusters so that can highlight
+  sce$orig.ident <- sce$cluster
+
+  # get grid of gene plots and a cluster plot
+  gene_plots <- lapply(genes, function(gene) plot_tsne_gene(sce, gene, point_size = point_size) + theme_dimgray())
+  gene_plots <- lapply(gene_plots, remove_axes, c('xaxis', 'yaxis'))
+
+  gene_grid <- cowplot::plot_grid(plotlist = gene_plots, align = 'vh', ncol = 2)
+  cluster_plot <- plot_tsne_cluster(sce, legend_title = 'Cell Type', selected_groups = selected_group, remove_axes = 'none', point_size = point_size) +
+    ggplot2::theme(plot.margin=unit(c(20, 5.5, 20, 5.5), "points")) +
+    theme_dimgray()
+
+  # now add the title
+  title <- cowplot::ggdraw() +
+    cowplot::draw_label(selected_group, x = 0, hjust = 0)
+    ggplot2::theme(plot.margin = margin(0, 0, 0, 7))
+
+  # combine
+  marker_nrows <- ceiling(length(genes)/2)
+  cowplot::plot_grid(title, cluster_plot, gene_grid, ncol = 1, rel_heights = c(0.1, 1.5, marker_nrows))
+}
+
+#' Save PDF of scRNA-seq reports
+#'
+#' @param sce
+#' @param markers
+#' @param fname
+#' @param point_size
+#'
+#' @return
+#' @export
+#'
+#' @examples
+save_scseq_reports <- function(sce, markers, fname, point_size = 3) {
+  pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'cluster markers')
+  for (i in seq_along(markers)) {
+    plot(plot_scseq_report(sce, markers[i], point_size = point_size))
+  }
+  dev.off()
 }
 
 
