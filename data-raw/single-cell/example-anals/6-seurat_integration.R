@@ -17,6 +17,7 @@ test_scseq <- preprocess_scseq(test_scseq)
 
 # perform integration
 anchors <- FindIntegrationAnchors(object.list = list(ctrl_scseq, test_scseq))
+                                  # anchor.features = intersect(row.names(ctrl_scseq), row.names(test_scseq)))
 combined <- IntegrateData(anchors)
 DefaultAssay(combined) <- "integrated"
 combined <- ScaleData(combined, verbose = FALSE)
@@ -28,3 +29,14 @@ markers <- get_scseq_markers(combined)
 
 # explore
 explore_scseq_clusters(combined, markers)
+
+combined$cluster.group <- paste(Idents(combined), combined$orig.ident, sep = "_")
+Idents(combined) <- "cluster.group"
+mono.sjia <- FindMarkers(combined, ident.1 = "0_test", ident.2 = "0_ctrl")
+head(mono.sjia, n = 15)
+
+FeaturePlot(combined, features = c("APOBEC3A", "MT1E", "CCL3L1"), split.by = "orig.ident", max.cutoff = 3,
+            cols = c("grey", "red"))
+
+mono.sjia$avg_logFC
+
