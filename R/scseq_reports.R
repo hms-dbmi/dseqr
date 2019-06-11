@@ -1,8 +1,10 @@
 #' Save PDF of scRNA-seq reports
 #'
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
+#' @param markers Named list of character vectors specifying the marker genes to plot for each cluster. The names are the
+#'  clusters that reports will be generated for.
 #' @param fname String giving the name of the PDF file to save.
-#' @inheritParams explore_scseq_clusters
-#' @inheritParams plot_scseq_report
+#' @param point_size Numeric scalar, specifying the size of the points. Defaults to 3.
 #'
 #' @return Saves report to \code{fname}.
 #' @export
@@ -21,8 +23,9 @@ save_scseq_reports <- function(scseq, markers, fname, point_size = 3) {
 #' Plot grid with scRNA-seq cluster and gene markers together
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
+#' @param markers Named list with a single character vector specifying the marker genes to plot.
+#'  The name is the cluster that will be highlighted.
 #' @param point_size Numeric scalar, specifying the size of the points. Defaults to 3.
-#' @inheritParams explore_scseq_clusters
 #'
 #' @return \code{ggplot}
 #' @export

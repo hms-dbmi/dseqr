@@ -7,10 +7,10 @@
 save_scseq_reports(scseq, markers, fname, point_size = 3)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
 
-\item{markers}{Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
-with the same name as the cluster.}
+\item{markers}{Named list of character vectors specifying the marker genes to plot for each cluster. The names are the
+clusters that reports will be generated for.}
 
 \item{fname}{String giving the name of the PDF file to save.}
 
