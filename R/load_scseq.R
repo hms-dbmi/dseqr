@@ -214,11 +214,18 @@ read.delim1 <- function(file) {
 }
 
 
-#' Add SNN Graph based clusters to SingleCellExperiment
+#' Add clusters single cell RNA-seq object
 #'
-#' @param sce \code{SingleCellExperiment} returned by \code{\link{stabilize_scseq}} (contains \code{sce@reducedDims$PCA})
+#' Uses either \code{SingleCellExperiment} or \code{Seurat} workflows based on class of \code{scseq}.
 #'
-#' @return \code{sce} with column \code{cluster} in \code{colData(sce)}
+#' @param scseq \code{SingleCellExperiment} or \code{Seurat} returned by \code{\link{preprocess_scseq}}.
+#' @param use.dimred A string specifying reduced dimension to use e.g. \code{'PCA'} (default).
+#'  Only used if \code{scseq} has class \code{SingleCellExperiment}.
+#' @param resolution Use larger values to obtain more clusters (default is 0.8).
+#'  Only used if \code{scseq} has class \code{Seurat}.
+#'
+#' @return If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.
+#'  If \code{scseq} is a \code{Seurat} object, the result of \code{\link[Seurat]{FindClusters}} is returned.
 #' @export
 #'
 #' @examples
@@ -233,6 +240,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
     suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
     scseq <- Seurat::FindNeighbors(scseq, dims=1:30, verbose = FALSE)
     scseq <- Seurat::FindClusters(scseq, verbose = FALSE, resolution = resolution)
+
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')
   }
@@ -242,17 +250,23 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 
 #' Get markers genes for single cell clusters
 #'
-#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scran::findMarkers}.
-#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::FindAllMarkers}.
+#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{\link[scran]{findMarkers}}.
+#' If \code{scseq} is a \code{Seurat} object then uses either \code{\link[Seurat]{FindAllMarkers}} or
+#' \code{Seurat::FindMarkers} if both \code{ident.1} and \code{ident.2} are not NULL.
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
-#' @param assay.type Used by \code{\link[scran]{findMarkers}}
+#' @param assay.type Only used if \code{scseq} has class \code{SingleCellExperiment}.
+#' A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"} (default).
+#' @param ident.1 Identity class to define markers for.
+#'  Only used if \code{scseq} has class \code{Seurat} and \code{ident.2} is not \code{NULL}.
+#' @param ident.2 A second identity class for comparison.
+#'  Only used if \code{scseq} has class \code{Seurat} and \code{ident.1} is not \code{NULL}.
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
 #'
 #' @examples
-get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
+get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL) {
 
   if (!exist_clusters(scseq)) return(NULL)
   scseq <- prevent_integrated(scseq)
@@ -262,9 +276,15 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts') {
     markers <- scran::findMarkers(scseq, clusters=scseq$cluster, direction="up", assay.type = assay.type)
 
   } else if (class(scseq) == 'Seurat') {
-    suppressWarnings(markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE))
-    markers <- split(markers, markers$cluster)
-    markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
+    if (!is.null(ident.1) & !is.null(ident.2)) {
+      markers <- list()
+      markers[[ident.1]] <- Seurat::FindMarkers(scseq, verbose = FALSE, ident.1 = ident.1, ident.2 = ident.2)
+
+    } else {
+      suppressWarnings(markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE))
+      markers <- split(markers, markers$cluster)
+      markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
+    }
   }
 
   return(markers)
@@ -291,6 +311,9 @@ prevent_integrated <- function(scseq) {
   } else if (class(scseq) == 'SingleCellExperiment' &&
              isTRUE(scseq@meta.data$seurat_assay) == 'integrated') {
     stop("SingleCellExperiment object was generated from integrated Seurat assay.")
+
+  } else {
+    stop('scseq must be either a Seurat of SingleCellExperiment object.')
   }
 
   return(scseq)

@@ -2,16 +2,23 @@
 % Please edit documentation in R/load_scseq.R
 \name{add_scseq_clusters}
 \alias{add_scseq_clusters}
-\title{Add SNN Graph based clusters to SingleCellExperiment}
+\title{Add clusters single cell RNA-seq object}
 \usage{
-add_scseq_clusters(scseq, use.dimred = "PCA")
+add_scseq_clusters(scseq, use.dimred = "PCA", resolution = 0.8)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment} returned by \code{\link{stabilize_scseq}} (contains \code{sce@reducedDims$PCA})}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} returned by \code{\link{preprocess_scseq}}.}
+
+\item{use.dimred}{A string specifying reduced dimension to use e.g. \code{'PCA'} (default).
+Only used if \code{scseq} has class \code{SingleCellExperiment}.}
+
+\item{resolution}{Use larger values to obtain more clusters (default is 0.8).
+Only used if \code{scseq} has class \code{Seurat}.}
 }
 \value{
-\code{sce} with column \code{cluster} in \code{colData(sce)}
+If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.
+ If \code{scseq} is a \code{Seurat} object, the result of \code{\link[Seurat]{FindClusters}} is returned.
 }
 \description{
-Add SNN Graph based clusters to SingleCellExperiment
+Uses either \code{SingleCellExperiment} or \code{Seurat} workflows based on class of \code{scseq}.
 }
