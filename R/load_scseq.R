@@ -304,13 +304,13 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @examples
 prevent_integrated <- function(scseq) {
 
-  if (class(scseq) == 'Seurat' &&
-      Seurat::DefaultAssay(scseq) == 'integrated') {
-    Seurat::DefaultAssay(scseq) <- 'SCT'
+  if (class(scseq) == 'Seurat') {
+    if (Seurat::DefaultAssay(scseq) == 'integrated')
+      Seurat::DefaultAssay(scseq) <- 'SCT'
 
-  } else if (class(scseq) == 'SingleCellExperiment' &&
-             isTRUE(scseq@meta.data$seurat_assay) == 'integrated') {
-    stop("SingleCellExperiment object was generated from integrated Seurat assay.")
+  } else if (class(scseq) == 'SingleCellExperiment') {
+    if (isTRUE(scseq@meta.data$seurat_assay) == 'integrated')
+      stop("SingleCellExperiment object was generated from integrated Seurat assay.")
 
   } else {
     stop('scseq must be either a Seurat of SingleCellExperiment object.')
