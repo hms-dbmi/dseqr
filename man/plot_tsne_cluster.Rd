@@ -4,13 +4,13 @@
 \alias{plot_tsne_cluster}
 \title{Plot TSNE coloured by cluster}
 \usage{
-plot_tsne_cluster(scseq, legend_title, selected_groups = NULL,
+plot_tsne_cluster(scseq, legend_title = NULL, selected_groups = NULL,
   point_size = 3, assay.type = "logcounts")
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
 
-\item{legend_title}{Title for the legend.}
+\item{legend_title}{Title for the legend. The default is \code{scseq@metadata$colour_by} with title case.}
 
 \item{selected_groups}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
 

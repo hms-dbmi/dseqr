@@ -2,7 +2,7 @@
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
 #' @param markers Named list of character vectors specifying the marker genes to plot for each cluster. The names are the
-#'  clusters that reports will be generated for.
+#'  clusters that reports will be generated for in order.
 #' @param fname String giving the name of the PDF file to save.
 #' @param point_size Numeric scalar, specifying the size of the points. Defaults to 3.
 #'
@@ -11,8 +11,12 @@
 #'
 #' @examples
 save_scseq_reports <- function(scseq, markers, fname, point_size = 3) {
-  pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'cluster markers')
+  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
 
+  # put levels in order of markers
+  scseq$cluster <- factor(scseq$cluster, levels = names(markers))
+
+  pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'cluster markers')
   for (i in seq_along(markers)) {
     plot(plot_scseq_report(scseq, markers[i], point_size = point_size))
   }
@@ -22,17 +26,17 @@ save_scseq_reports <- function(scseq, markers, fname, point_size = 3) {
 
 #' Plot grid with scRNA-seq cluster and gene markers together
 #'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
+#' @param scseq \code{SingleCellExperiment}.
 #' @param markers Named list with a single character vector specifying the marker genes to plot.
 #'  The name is the cluster that will be highlighted.
 #' @param point_size Numeric scalar, specifying the size of the points. Defaults to 3.
 #'
 #' @return \code{ggplot}
 #' @export
+#' @keywords internal
 #'
 #' @examples
 plot_scseq_report <- function(scseq, markers, point_size = 3) {
-  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
   selected_group <- names(markers)
   genes <- markers[[1]]
 

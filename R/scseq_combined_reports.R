@@ -10,31 +10,38 @@
 #' @export
 #'
 #' @examples
-save_combined_scseq_reports <- function(scseq, markers, fname, point_size = 3) {
-  pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'combined cluster markers')
+save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, point_size = 3) {
 
-  # make plot to show plots of original clusters with new TSNE coords for first page ----
   if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
   group_idents <- scseq$orig.ident
   groups <- unique(group_idents)
-  scseq$orig.ident <- scseq$cluster
 
-  # temporarily change colour_by to initial grouping
-  scseq@metadata$colour_by <- 'orig_clusters'
 
+  # get scale that uses all possible levels
+  all_levels <- c(names(markers), levels(unlist(orig_clusters)))
+  all_levels <- unique(all_levels)
+  fill_scale <- scale_fill_names(all_levels)
+
+
+  # new TSNE coords with original clusters (first page)
   orig_plots <- list()
-  for (i in 1:length(groups)) {
-    legend_title <- c('Control Groups', 'Test Groups')[i]
-    orig_plots[[i]] <- plot_tsne_cluster(scseq[, group_idents == groups[i]], legend_title) +
-      theme_dimgray() + theme_no_xaxis() + theme_no_yaxis()
+  for (i in seq_along(groups)) {
+    group <- groups[i]
+    group_scseq <- scseq[, group_idents == group]
+    group_scseq$cluster <- factor(orig_clusters[[group]], levels = all_levels)
+
+    suppressMessages(orig_plots[[i]] <- plot_tsne_cluster(group_scseq, legend_title = toupper(group)) +
+                       theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
   }
 
-  # revert to default
-  scseq@metadata$colour_by <- NULL
-  scseq$orig.ident <- group_idents
+  # put cluster levels in order of markers
+  if (!all(names(markers) %in% levels(scseq$cluster)))
+    stop ('markers are missing for some clusters')
+  scseq$cluster <- factor(scseq$cluster, levels = names(markers))
 
-  combined_plot <- plot_tsne_cluster(scseq, 'Combined Groups') +
-    theme_dimgray() + theme_no_xaxis() + theme_no_yaxis()
+  # new TSNE coords with new clusters (first page)
+  suppressMessages(combined_plot <- plot_tsne_cluster(scseq, legend_title = 'COMBINED') +
+                     theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
 
   # get titles
   orig_title <- cowplot::ggdraw() +
@@ -52,6 +59,9 @@ save_combined_scseq_reports <- function(scseq, markers, fname, point_size = 3) {
   orig_grid <- cowplot::plot_grid(orig_title, orig_plots[[1]], orig_plots[[2]],
                                   combined_title, combined_plot,
                                   align = 'h', ncol=1, rel_heights = c(0.15,1,1,0.15,1))
+
+  # create pdf
+  pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'combined cluster markers')
   plot(orig_grid)
 
   for (i in seq_along(markers)) {
@@ -91,7 +101,9 @@ plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
 
       gene_plots[[idx]] <-
         plot_tsne_gene(scseq, genes[i], hide_mask = group_idents != groups[j], point_size = point_size) +
-        theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() +
+        theme_dimgray() +
+        theme_no_xaxis() +
+        theme_no_yaxis() +
         ggplot2::theme(legend.position = 'none', plot.title=ggplot2::element_text(size=12, hjust = 0)) +
         ggplot2::ggtitle(genes[i])
     }
@@ -99,12 +111,18 @@ plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
 
   # show clusters by group ----
   cluster_plots <- list()
-  for (j in 1:length(groups)) {
-    cluster_plots[[j]] <- plot_tsne_cluster(scseq[, group_idents == groups[j]], legend_title = 'Cell Type', selected_groups = selected_group, point_size = point_size) +
-      ggplot2::theme(plot.margin=ggplot2::unit(c(20, 5.5, 20, 5.5), "points")) +
-      theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() +
-      ggplot2::theme(legend.position = 'none', plot.title=ggplot2::element_text(size=14, color = 'black', hjust = 0)) +
-      ggplot2::ggtitle(toupper(groups[j]))
+  for (j in seq_along(groups)) {
+    group <- groups[[j]]
+    group_scseq <- scseq[, group_idents == group]
+
+    cluster_plots[[j]] <- plot_tsne_cluster(group_scseq, selected_groups = selected_group, point_size = point_size) +
+      ggplot2::theme(plot.margin = ggplot2::unit(c(20, 5.5, 20, 5.5), "points")) +
+      theme_dimgray() +
+      theme_no_xaxis() +
+      theme_no_yaxis() +
+      ggplot2::theme(legend.position = 'none',
+                     plot.title = ggplot2::element_text(size=14, color = 'black', hjust = 0)) +
+      ggplot2::ggtitle(toupper(group))
   }
 
   cluster_grid <- cowplot::plot_grid(plotlist = cluster_plots, align='vh', ncol = 2)

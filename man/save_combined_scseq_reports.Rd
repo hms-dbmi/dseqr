@@ -4,14 +4,15 @@
 \alias{save_combined_scseq_reports}
 \title{Save PDF of combined scRNA-seq reports}
 \usage{
-save_combined_scseq_reports(scseq, markers, fname, point_size = 3)
+save_combined_scseq_reports(scseq, markers, orig_clusters, fname,
+  point_size = 3)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object with \code{scseq$orig_clusters} providing the originally identified clusters for
 each sample. This permits visualizing how integration shift the TSNE coordinates and cluster assignments.}
 
 \item{markers}{Named list of character vectors specifying the marker genes to plot for each cluster. The names are the
-clusters that reports will be generated for.}
+clusters that reports will be generated for in order.}
 
 \item{fname}{String giving the name of the PDF file to save.}
 

@@ -2,14 +2,14 @@
 #'
 #' The groups are either \code{scseq$cluster} (default) or \code{scseq@metadata$colour_by}.
 #'
-#' @param legend_title Title for the legend.
+#' @param legend_title Title for the legend. The default is \code{scseq@metadata$colour_by} with title case.
 #' @inheritParams plot_tsne_gene
 #'
 #' @return \code{ggplot}
 #' @export
 #'
 #' @examples
-plot_tsne_cluster <- function(scseq, legend_title, selected_groups = NULL, point_size = 3, assay.type = 'logcounts') {
+plot_tsne_cluster <- function(scseq, legend_title = NULL, selected_groups = NULL, point_size = 3, assay.type = 'logcounts') {
   if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
 
   # make selected cluster and groups stand out
@@ -17,6 +17,7 @@ plot_tsne_cluster <- function(scseq, legend_title, selected_groups = NULL, point
   if (!is.null(selected_groups)) point_alpha[!scseq$orig.ident %in% selected_groups] <- 0.1
 
   colour_by <- ifelse(is.null(scseq@metadata$colour_by), 'cluster', scseq@metadata$colour_by)
+  legend_title <- ifelse(is.null(legend_title), tools::toTitleCase(colour_by), legend_title)
 
   cluster_plot <- scater::plotTSNE(scseq,
                                    by_exprs_values = assay.type,

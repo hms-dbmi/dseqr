@@ -278,7 +278,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
       if (is.null(gene_r())) return(NULL)
-      plot_tsne_gene(sce_r(), gene_r(), selected_groups_r(), assay.type)
+      plot_tsne_gene(sce_r(), gene_r(),selected_groups = selected_groups_r(), assay.type = assay.type)
     })
 
 

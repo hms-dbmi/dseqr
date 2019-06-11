@@ -7,7 +7,7 @@
 plot_scseq_report(scseq, markers, point_size = 3)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
+\item{scseq}{\code{SingleCellExperiment}.}
 
 \item{markers}{Named list with a single character vector specifying the marker genes to plot.
 The name is the cluster that will be highlighted.}
@@ -20,3 +20,4 @@ The name is the cluster that will be highlighted.}
 \description{
 Plot grid with scRNA-seq cluster and gene markers together
 }
+\keyword{internal}
