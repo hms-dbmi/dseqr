@@ -4,22 +4,24 @@
 \alias{plot_tsne_cluster}
 \title{Plot TSNE coloured by cluster}
 \usage{
-plot_tsne_cluster(sce, legend_title, selected_groups = NULL,
-  point_size = 3, assay.type = "logcounts", remove_axes = "xaxis")
+plot_tsne_cluster(scseq, legend_title, selected_groups = NULL,
+  point_size = 3, assay.type = "logcounts")
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
 
 \item{legend_title}{Title for the legend.}
 
-\item{selected_groups}{The groups in \code{sce$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
+\item{selected_groups}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
+
+\item{point_size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 
 \item{assay.type}{The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
 object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.}
 }
 \value{
-ggplot
+\code{ggplot}
 }
 \description{
-The groups are either \code{sce$cluster} (default) or \code{sce@metadata$colour_by}.
+The groups are either \code{scseq$cluster} (default) or \code{scseq@metadata$colour_by}.
 }

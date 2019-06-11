@@ -4,21 +4,27 @@
 \alias{plot_tsne_gene}
 \title{Plot TSNE coloured by HGNC symbol}
 \usage{
-plot_tsne_gene(sce, gene, selected_groups = NULL,
+plot_tsne_gene(scseq, gene, selected_groups = NULL, hide_mask = NULL,
   assay.type = "logcounts", point_size = 3)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
 
-\item{gene}{Character vector to colour cells by}
+\item{gene}{Character vector specifying gene to colour cells by.}
 
-\item{selected_groups}{The groups in \code{sce$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
+\item{selected_groups}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
+
+\item{hide_mask}{A boolean vector indicating samples to hide. This is useful if you need to compare e.g. one sample to
+another but want to maintain the same colour range for expression values. Passing in subsets of \code{scseq} would not
+achieve this.}
 
 \item{assay.type}{The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
 object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.}
+
+\item{point_size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
 \value{
-ggplot
+\code{ggplot}
 }
 \description{
 Plot TSNE coloured by HGNC symbol
