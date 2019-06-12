@@ -56,22 +56,22 @@ explore_scseq_clusters(test_anal$scseq, test_anal$markers)
 
 # Diseased Annotations
 # put in order that want reports to appear
-test_markers <- list('Macrophages#1'       = c('CD68', 'MRC1', 'IFI30', 'LST1'),
-                     'Macrophages#2'       = c('FGL2','FCN1', 'S100A12', 'CFP'),
-                     'Mast cells'          = c('MS4A2', 'SLC18A2', 'TPSD1', 'HPGDS'),
-                     'T-cells'             = c('IL7R', 'CD3E', 'CD3D'),
-                     'NK-cells'            = c('GZMH', 'GZMA', 'CCL4'),
-                     'B-cells'             = c('CD79A', 'FCRL5', 'MZB1'),
-                     'Endothelial'         = c('CLEC14A', 'ECSCR', 'EMCN', 'CLDN5'),
-                     'Smooth Muscle'       = c('COL1A2', 'COL3A1', 'COL6A2', 'PCOLCE'),
-                     'Alveolar Epithelium' = c('NKX2-1', 'SFTA2', 'SFTA3', 'SFTPD'),
-                     'Respiratory Cilia'   = c('DNAH12', 'HYDIN', 'RSPH4A'))
+test_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'IFI30', 'LST1'),
+                     'Macrophages#2'         = c('FGL2','FCN1', 'S100A12', 'CFP'),
+                     'T-cells'               = c('IL7R', 'CD3E', 'CD3D'),
+                     'Endothelial'           = c('CLEC14A', 'ECSCR', 'EMCN', 'CLDN5'),
+                     'Alveolar Epithelium#1' = c('NKX2-1', 'SFTA2', 'SFTA3', 'SFTPD'),
+                     'NK-cells'              = c('GZMH', 'GZMA', 'CCL4'),
+                     'Mast cells'            = c('MS4A2', 'SLC18A2', 'TPSD1', 'HPGDS'),
+                     'B-cells'               = c('CD79A', 'FCRL5', 'MZB1'),
+                     'Smooth Muscle'         = c('COL1A2', 'COL3A1', 'COL6A2', 'PCOLCE'),
+                     'Respiratory Cilia'     = c('DNAH12', 'HYDIN', 'RSPH4A'))
 
 
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-test_annot <- c('Macrophages#1', 'T-cells', 'NK-cells', 'Alveolar Epithelium',
+test_annot <- c('Macrophages#1', 'T-cells', 'NK-cells', 'Alveolar Epithelium#1',
                 'B-cells', 'Mast cells', 'Endothelial', 'Smooth Muscle',
                 'Macrophages#2', 'Respiratory Cilia')
 
@@ -82,8 +82,11 @@ save_scseq_reports(test_anal$scseq, markers = test_markers, point_size = 3,
 
 # Integrated analysis ----
 
+not_smooth <- test_anal$scseq$seurat_clusters != 'Smooth Muscle'
+
 # perform integration
 anchors <- FindIntegrationAnchors(object.list = list(ctrl_anal$scseq, test_anal$scseq))
+# anchors <- FindIntegrationAnchors(object.list = list(ctrl_anal$scseq, test_anal$scseq[, not_smooth]))
 # anchor.features = intersect(row.names(ctrl_scseq), row.names(test_scseq)))
 combined <- IntegrateData(anchors)
 DefaultAssay(combined) <- "integrated"
@@ -99,17 +102,17 @@ explore_scseq_clusters(combined, markers)
 
 # Combined Annotations
 # put in order that want reports to appear
-combined_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'CTSB', 'OLR1'),
+combined_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'IFI30', 'GPNMB', 'CTSB', 'OLR1'),
                          'Macrophages#2'         = c('FGL2','P2RY13', 'CFP', 'FCN1'),
-                         'Mast cells'            = c('RGS13', 'MS4A2', 'HPGDS'),
                          'T-cells'               = c('IL7R', 'TRAC', 'LTB', 'CXCR4'),
-                         'NK/T-cells'            = c('CXCR6', 'GZMA', 'CD3D'),
-                         'NK-cells'              = c('FGFBP2', 'KLRD1', 'S1PR5', 'CTSW'),
-                         'B-cells'               = c('CD79A', 'DERL3', 'MZB1'),
                          'Endothelial'           = c('CLEC14A', 'ECSCR', 'EMCN', 'CLDN5'),
                          'Alveolar Epithelium#1' = c('S100A14', 'C4BPA', 'C16ORF89', 'ALPL'),
                          'Alveolar Epithelium#2' = c('UPK3B', 'CRYAB', 'COL1A2', 'FSTL1', 'COL1A1'),
                          'RBCs'                  = c('ALAS2', 'HBM', 'HBA1'),
+                         'Mast cells'            = c('RGS13', 'MS4A2', 'HPGDS'),
+                         'NK/T-cells'            = c('CXCR6', 'GZMA', 'CD3D'),
+                         'NK-cells'              = c('FGFBP2', 'KLRD1', 'S1PR5', 'CTSW'),
+                         'B-cells'               = c('CD79A', 'DERL3', 'MZB1'),
                          'Respiratory Cilia'     = c('DNAH12', 'HYDIN', 'RSPH4A'))
 
 # rename based on identification and save reports
@@ -118,9 +121,10 @@ combined_annot <- c('Macrophages#1', 'T-cells', 'NK/T-cells', 'Alveolar Epitheli
                     'B-cells', 'Macrophages#2', 'RBCs', 'Mast cells', 'Endothelial', 'NK-cells', 'Respiratory Cilia')
 
 levels(combined$seurat_clusters) <- combined_annot
-combined$orig_clusters <- c(as.character(ctrl_anal$scseq$seurat_clusters), as.character(test_anal$scseq$seurat_clusters))
+orig_clusters <- list('ctrl' = ctrl_anal$scseq$seurat_clusters,
+                      'test' = test_anal$scseq$seurat_clusters)
 
-save_combined_scseq_reports(combined, markers = combined_markers, point_size = 3,
+save_combined_scseq_reports(combined, markers = combined_markers, orig_clusters = orig_clusters, point_size = 3,
                             fname = 'data-raw/single-cell/example-data/lung_combined_markers.pdf')
 
 

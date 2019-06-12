@@ -39,6 +39,9 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
     stop ('markers are missing for some clusters')
   scseq$cluster <- factor(scseq$cluster, levels = names(markers))
 
+  # plot if percentage cells
+  pcells_plot <- plot_combined_bars(groups, scseq)
+
   # new TSNE coords with new clusters (first page)
   suppressMessages(combined_plot <- plot_tsne_cluster(scseq, legend_title = 'COMBINED') +
                      theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
@@ -55,20 +58,58 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
   combined_title <- cowplot::ggdraw() +
     cowplot::draw_label('Combined Clusters', x = 0, hjust = 0)
 
+  combined_title <- cowplot::plot_grid(combined_title,  label, ncol=2)
+
   # combine plots with original clusters
   orig_grid <- cowplot::plot_grid(orig_title, orig_plots[[1]], orig_plots[[2]],
-                                  combined_title, combined_plot,
-                                  align = 'h', ncol=1, rel_heights = c(0.15,1,1,0.15,1))
+                                  ncol=1, rel_heights = c(.2,1,1))
+
+  combined_grid <- cowplot::plot_grid(combined_title, combined_plot, pcells_plot,
+                                  ncol=1, rel_heights = c(.2,1,1.5), align = 'v', axis = 'l')
 
   # create pdf
   pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'combined cluster markers')
   plot(orig_grid)
+  plot(combined_grid)
 
   for (i in seq_along(markers)) {
     reports <- plot_combined_scseq_report(scseq, markers = markers[i], point_size = point_size)
     for (report in reports) plot(report)
   }
   dev.off()
+}
+
+plot_combined_bars <- function(groups, scseq) {
+
+  # percent of cells per group in new cluster
+  combined_pcells <- list()
+  for (i in seq_along(groups)) {
+    group <- groups[i]
+    group_scseq <- scseq[, group_idents == group]
+    combined_pcells[[i]] <- data.frame(table(group_scseq$cluster) / ncol(group_scseq) * 100,
+                                       Group = toupper(group))
+  }
+  combined_pcells <- do.call(rbind, combined_pcells)
+
+  pcells_plot <- ggplot2::ggplot(combined_pcells, ggplot2::aes(x=Var1, y=Freq, fill=Group)) +
+    geom_bar(stat='identity',position="dodge") +
+    theme_cowplot() +
+    scale_fill_names(toupper(groups)) +
+    xlab('') +
+    guides(fill=guide_legend(title="Percent Cells")) +
+    theme_dimgray() +
+    scale_y_continuous(expand = c(0, 0), position = 'right', sec.axis = dup_axis()) +
+    theme(panel.grid.minor.y = element_blank(),
+          panel.grid.major.x = element_blank(),
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+          axis.title.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_line(),
+          axis.text.y.left = element_blank(),
+          axis.ticks.y.left = element_blank(),
+          plot.margin=ggplot2::unit(c(20, 5.5, 5.5, 5.5), "points"))
+
+  return(pcells_plot)
 }
 
 
@@ -115,6 +156,10 @@ plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
     group <- groups[[j]]
     group_scseq <- scseq[, group_idents == group]
 
+    ncells <- sum(group_scseq$orig.ident == selected_group)
+    pcells <- round(ncells / ncol(group_scseq) * 100)
+    subtitle <- paste0(ncells, ' cells - ', pcells, '%')
+
     cluster_plots[[j]] <- plot_tsne_cluster(group_scseq, selected_groups = selected_group, point_size = point_size) +
       ggplot2::theme(plot.margin = ggplot2::unit(c(20, 5.5, 20, 5.5), "points")) +
       theme_dimgray() +
@@ -122,7 +167,7 @@ plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
       theme_no_yaxis() +
       ggplot2::theme(legend.position = 'none',
                      plot.title = ggplot2::element_text(size=14, color = 'black', hjust = 0)) +
-      ggplot2::ggtitle(toupper(group))
+      ggplot2::ggtitle(toupper(group), subtitle)
   }
 
   cluster_grid <- cowplot::plot_grid(plotlist = cluster_plots, align='vh', ncol = 2)
