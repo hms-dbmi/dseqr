@@ -282,13 +282,10 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
       markers <- list()
-      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
+      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', slot = 'scale.data', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
 
     } else {
-      # no scale.data for integrated
-      slot <- ifelse(nrow(Seurat::GetAssayData(scseq, slot = 'scale.data', assay = 'SCT')),
-                     'scale.data', 'data')
-      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', slot = slot, only.pos = TRUE)
+      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', slot = 'scale.data', only.pos = TRUE)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
     }
@@ -305,14 +302,73 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @export
 #'
 #' @examples
-integrate_scseq <- function(scseqs) {
+integrate_scseq <- function(scseqs, center.sample = TRUE) {
 
   anchors <- Seurat::FindIntegrationAnchors(scseqs)
   combined <- Seurat::IntegrateData(anchors)
   Seurat::DefaultAssay(combined) <- "integrated"
   combined <- Seurat::ScaleData(combined, verbose = FALSE)
 
+  # scale.data centered by samples for cross-sample differential expression
+  if (center.sample)
+    combined <- add_centered(scseqs, combined)
+
   return(combined)
+}
+
+#' Add median centered sample data to scale.data
+#'
+#' For each sample, median centers each gene. Resulting matrices
+#' are merged and added to the \code{'scale.data'} slot of the \code{'SCT'} assay in \code{combined}.
+#'
+#' This is helpful to remove the effect of high background gene expression seen in one sample but not another
+#' which will dominate cross-sample differential gene expression analyses.
+#'
+#' @param scseqs List of \code{Seurat} objects used during sample integration to generate \code{combined}
+#' @param combined Integrated \code{Seurat} object from \code{\link{integrate_scseq}}
+#'
+#' @return \code{combined} with median centered sample data in \code{scale.data} slot of \code{SCT} assay
+#' @export
+#' @keywords internal
+#'
+#' @examples
+add_centered <- function(scseqs, combined) {
+
+  centered_scseqs <- lapply(scseqs, function(scseq) {
+    # grad pearson residuals
+    data <- Seurat::GetAssayData(scseq, assay = 'SCT', slot = 'scale.data')
+
+    # median center each gene within the sample
+    center_data(data)
+  })
+
+  # bind together shared genes
+  shared <- do.call(intersect, lapply(centered_samples, row.names))
+  centered_samples <- lapply(centered_samples, function(x) x[shared, ])
+
+  combined <- Seurat::SetAssayData(combined,
+                                   assay = 'SCT',
+                                   slot = 'scale.data',
+                                   new.data = do.call(cbind, centered_samples))
+  return(combined)
+}
+
+
+#' Median center matrix or data.frame
+#'
+#' @param data matrix or data.frame
+#' @param dim Dimension to center. Either 1 for rows (default) or 2 for columns.
+#'
+#' @return \code{data} median centered along \code{dim}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+center_data <- function(data, dim=1){
+
+  medians <- apply(data, dim, median, na.rm=TRUE)
+  data <- sweep(data, dim, medians, "-")
+  return(data)
 }
 
 
