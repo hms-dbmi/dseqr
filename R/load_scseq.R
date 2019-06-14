@@ -297,6 +297,27 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   return(markers)
 }
 
+#' Integrate multiple scRNA-seq samples
+#'
+#' @param scseqs List of \code{Seurat} objects
+#'
+#' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
+#' @export
+#'
+#' @examples
+integrate_scseq <- function(scseqs) {
+
+  anchors <- Seurat::FindIntegrationAnchors(scseqs)
+  combined <- Seurat::IntegrateData(anchors)
+  Seurat::DefaultAssay(combined) <- "integrated"
+  combined <- Seurat::ScaleData(combined, verbose = FALSE)
+
+  return(combined)
+}
+
+
+
+
 
 #' Test is there is at lest two clusters
 #'
