@@ -271,8 +271,8 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #' @examples
 get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL) {
 
+  # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
-  scseq <- prevent_integrated(scseq)
 
   # only upregulated as more useful for positive id of cell type
   if (class(scseq) == 'SingleCellExperiment') {
@@ -281,7 +281,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
       markers <- list()
-      markers[[ident.1]] <- Seurat::FindMarkers(scseq, verbose = FALSE, only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
+      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
 
     } else {
       # no scale.data for integrated
@@ -296,35 +296,18 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   return(markers)
 }
 
-#' Switch away from integrated assay slot
+
+
+#' Test is there is at lest two clusters
 #'
-#' The "integrated" assay slot is inappropriate for differential expression analysis. This will switch to \code{SCTransform}'ed
-#' slot for \code{Seurat} objects. \code{SingleCellExperiment} objects check to make sure they weren't generated from
-#' "integrated" data.
+#' Used by \code{\link{get_scseq_markers}} to prevent getting markers if there are no clusters to compare
 #'
-#' @param scseq \code{Seurat} or \code{SingleCellExperiment} object.
+#' @param scseq
 #'
-#' @return \code{scseq} with "SCT" as the default assay if it was previously "integrated".
+#' @return TRUE if more than one cluster exists
 #' @export
 #'
 #' @examples
-prevent_integrated <- function(scseq) {
-
-  if (class(scseq) == 'Seurat') {
-    if (Seurat::DefaultAssay(scseq) == 'integrated')
-      Seurat::DefaultAssay(scseq) <- 'SCT'
-
-  } else if (class(scseq) == 'SingleCellExperiment') {
-    if (isTRUE(scseq@meta.data$seurat_assay) == 'integrated')
-      stop("SingleCellExperiment object was generated from integrated Seurat assay.")
-
-  } else {
-    stop('scseq must be either a Seurat of SingleCellExperiment object.')
-  }
-
-  return(scseq)
-}
-
 exist_clusters <- function(scseq) {
   if (class(scseq) == 'SingleCellExperiment') {
     exist_clusters <- length(unique(scseq$clusters)) > 1
