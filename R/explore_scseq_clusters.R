@@ -28,7 +28,7 @@
 #' explore_scseq_clusters(scseq)
 #'
 
-explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', colour_by = 'cluster') {
+explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'scale.data', colour_by = 'cluster') {
 
   # setup ----
   if (is.null(markers))

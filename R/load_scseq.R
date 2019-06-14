@@ -85,10 +85,11 @@ as.SingleCellExperiment <- function(x, assay = NULL, ...) {
 
   assays = list(
     counts = Seurat::GetAssayData(object = x, assay = assay, slot = "counts"),
-    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data")
+    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data"),
+    scale.data = Seurat::GetAssayData(object = x, assay = assay, slot = "scale.data")
   )
 
-  assays <- assays[sapply(assays, nrow) != 0]
+  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
   sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
 
   metadata <- x[[]]
@@ -139,8 +140,8 @@ preprocess_scseq <- function(scseq) {
   if (class(scseq) == 'Seurat') {
     # alevin has non-integer values that sctransform turns to Inf
     scseq <- Seurat::SetAssayData(scseq, 'counts', round(Seurat::GetAssayData(scseq, 'counts')))
-    scseq <- Seurat::SCTransform(scseq, verbose = FALSE,
-                                 return.only.var.genes = FALSE)
+    scseq <- Seurat::SCTransform(scseq, verbose = FALSE, return.only.var.genes = FALSE)
+
   } else {
     stop('scseq must be either a SingleCellExperiment or Seurat object.')
   }
@@ -295,7 +296,6 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   return(markers)
 }
-
 
 
 #' Test is there is at lest two clusters
