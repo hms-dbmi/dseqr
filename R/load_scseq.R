@@ -139,7 +139,10 @@ preprocess_scseq <- function(scseq) {
   if (class(scseq) == 'Seurat') {
     # alevin has non-integer values that sctransform turns to Inf
     scseq <- Seurat::SetAssayData(scseq, 'counts', round(Seurat::GetAssayData(scseq, 'counts')))
-    scseq <- Seurat::SCTransform(scseq, verbose = FALSE, return.only.var.genes = FALSE)
+    scseq <- Seurat::SCTransform(scseq, verbose = FALSE,
+                                 return.only.var.genes = FALSE)
+  } else {
+    stop('scseq must be either a SingleCellExperiment or Seurat object.')
   }
   return(scseq)
 }
@@ -278,10 +281,13 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
       markers <- list()
-      markers[[ident.1]] <- Seurat::FindMarkers(scseq, verbose = FALSE, ident.1 = ident.1, ident.2 = ident.2)
+      markers[[ident.1]] <- Seurat::FindMarkers(scseq, verbose = FALSE, only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
 
     } else {
-      suppressWarnings(markers <- Seurat::FindAllMarkers(scseq, only.pos = TRUE, verbose = FALSE))
+      # no scale.data for integrated
+      slot <- ifelse(nrow(Seurat::GetAssayData(scseq, slot = 'scale.data', assay = 'SCT')),
+                     'scale.data', 'data')
+      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', slot = slot, only.pos = TRUE)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
     }
