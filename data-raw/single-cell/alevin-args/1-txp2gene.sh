@@ -7,3 +7,7 @@ cd ~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/txp2hgnc
 # transcript to ensembl gene tsv
 wget -nv ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.annotation.gtf.gz
 bioawk -c gff '$feature=="transcript" {print $attribute}' <(gunzip -c gencode.v29.annotation.gtf.gz) | awk -F ' ' '{print substr($4,2,length($4)-3) "\t" substr($2,2,length($2)-3)}' - > txp2gene.tsv
+
+
+# something was wrong with above txp2gene.tsv
+# dl from https://github.com/COMBINE-lab/salmon/files/2641712/txp2gene.tsv.zip

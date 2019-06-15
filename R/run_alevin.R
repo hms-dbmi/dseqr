@@ -1,6 +1,7 @@
 
 #' Runs salmon alevin single-cell quantification.
 #'
+#' @param indices_dir Directory with salmon indices. See \code{\link{build_gencode_index}}.
 #' @param data_dir Directory with raw 10X single-cell fastq.gz RNA-Seq files.
 #' @param species Species name. Default is \code{human}.
 #' Used to determine transcriptome index to use.
@@ -11,15 +12,17 @@
 #'
 #' @examples
 #'
+#' indices_dir <- 'data-raw/indices'
+#'
 #' # first place data in data-raw/single-cell/example-data
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-#' run_alevin(data_dir)
+#' run_alevin(data_dir, indices_dir)
 #'
 #' # another sample
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-#' run_alevin(data_dir)
+#' run_alevin(data_dir, indices_dir)
 #'
-run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
+run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE) {
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -32,7 +35,7 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
   mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
 
   # location of index
-  alevin_idx <- system.file('indices', 'gencode', species, package = 'drugseqr')
+  alevin_idx <- file.path(indices_dir, 'gencode', species)
   if (!dir.exists(alevin_idx)) stop('No index found. See ?build_gencode_index')
 
   # save alevin output here
@@ -63,7 +66,8 @@ run_alevin <- function(data_dir, species = 'human', overwrite = FALSE) {
                  '-p', 8,
                  '--mrna', mrna_path,
                  '--rrna', rrna_path,
-                 '--useCorrelation',
+                 '--dumpFeatures',
+                 '--dumpMtx',
                  '--tgMap', tgmap_path))
 
   return(NULL)

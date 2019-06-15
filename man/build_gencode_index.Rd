@@ -4,9 +4,11 @@
 \alias{build_gencode_index}
 \title{Download ensembl transcriptome and build index for salmon quantification}
 \usage{
-build_gencode_index(species = "human", release = "29")
+build_gencode_index(indices_dir, species = "human", release = "29")
 }
 \arguments{
+\item{indices_dir}{directory to place indices in.}
+
 \item{species}{The species. Default is \code{homo_sapiens.}}
 
 \item{release}{gencode release. Default is \code{29} (matches ensembl release 94 for \code{\link{build_ensdb_index}})).}
@@ -16,6 +18,7 @@ This index is used for single cell RNA-seq quantification. See \code{\link{build
 }
 \examples{
 # build salmon alevin index for humans
+indices_dir <- 'data-raw/indices'
 build_gencode_index()
 
 }

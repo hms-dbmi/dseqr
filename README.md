@@ -1,4 +1,4 @@
-# drugseqr
+gi# drugseqr
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -12,11 +12,11 @@ The goal of drugseqr (*drug-seek-R*) is to find CMAP02/L1000 compounds that oppo
 ```bash
 # get salmon
 cd /tmp
-wget https://github.com/COMBINE-lab/salmon/releases/download/v0.13.1/salmon-0.13.1_linux_x86_64.tar.gz
+wget https://github.com/COMBINE-lab/salmon/releases/download/v0.14.0/salmon-0.14.0_linux_x86_64.tar.gz
 
 # extract
 mkdir salmon
-tar -xvf salmon-0.13.1_linux_x86_64.tar.gz -C salmon --strip-components=1
+tar -xvf salmon-0.14.0_linux_x86_64.tar.gz -C salmon --strip-components=1
 
 # make salmon command available
 cd salmon
@@ -24,7 +24,7 @@ sudo mv bin/salmon /usr/local/bin
 sudo mv lib/* /usr/local/bin
 
 # check
-salmon --version # salmon 0.13.1
+salmon --version # salmon 0.14.0
 ```
 
 To install drugseqr clone the repo then install from source code:

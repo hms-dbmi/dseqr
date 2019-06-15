@@ -4,10 +4,12 @@
 \alias{run_alevin}
 \title{Runs salmon alevin single-cell quantification.}
 \usage{
-run_alevin(data_dir, species = "human", overwrite = FALSE)
+run_alevin(data_dir, indices_dir, species = "human", overwrite = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw 10X single-cell fastq.gz RNA-Seq files.}
+
+\item{indices_dir}{Directory with salmon indices. See \code{\link{build_gencode_index}}.}
 
 \item{species}{Species name. Default is \code{human}.
 Used to determine transcriptome index to use.}
@@ -19,12 +21,14 @@ Runs salmon alevin single-cell quantification.
 }
 \examples{
 
+indices_dir <- 'data-raw/indices'
+
 # first place data in data-raw/single-cell/example-data
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-run_alevin(data_dir)
+run_alevin(data_dir, indices_dir)
 
 # another sample
 data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-run_alevin(data_dir)
+run_alevin(data_dir, indices_dir)
 
 }

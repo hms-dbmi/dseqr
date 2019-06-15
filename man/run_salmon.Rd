@@ -4,11 +4,13 @@
 \alias{run_salmon}
 \title{Runs salmon quantification.}
 \usage{
-run_salmon(data_dir, pdata_path = NULL, pdata = NULL,
+run_salmon(indices_dir, data_dir, pdata_path = NULL, pdata = NULL,
   species = "homo_sapiens", flags = c("--validateMappings",
   "--posBias", "--seqBias", "--gcBias"))
 }
 \arguments{
+\item{indices_dir}{Directory with salmon indices. See \code{\link{build_ensdb_index}}.}
+
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
 
 \item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
@@ -27,8 +29,9 @@ For pair-ended experiments, reads for each pair should be in a seperate file.
 \examples{
 
 # first place IBD data in data-raw/example-data
+indices_dir <- 'data-raw/indices'
 data_dir <- file.path('data-raw', 'example-data')
 pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-run_salmon(data_dir, pdata_path)
+run_salmon(indices_dir, data_dir, pdata_path)
 
 }

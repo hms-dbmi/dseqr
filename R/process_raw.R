@@ -50,6 +50,7 @@ build_ensdb_index <- function(species = 'homo_sapiens', release = '94') {
 #'
 #' This index is used for single cell RNA-seq quantification. See \code{\link{build_ensdb_index}} for bulk RNA-seq equivalent.
 #'
+#' @param indices_dir directory to place indices in.
 #' @param species The species. Default is \code{homo_sapiens.}
 #' @param release gencode release. Default is \code{29} (matches ensembl release 94 for \code{\link{build_ensdb_index}})).
 #'
@@ -58,28 +59,35 @@ build_ensdb_index <- function(species = 'homo_sapiens', release = '94') {
 #'
 #' @examples
 #' # build salmon alevin index for humans
+#' indices_dir <- 'data-raw/indices'
 #' build_gencode_index()
 #'
-build_gencode_index <- function(species = 'human', release = '29') {
+build_gencode_index <- function(indices_dir, species = 'human', release = '29') {
+  indices_dir <- system.file(indices_dir, 'gencode')
+  dir.create(indices_dir)
 
-  indices_dir <- system.file('indices', 'gencode', package = 'drugseqr')
+  if (species != 'human' | release != '29')
+    stop('Only implemented for human gencode v29.')
 
-  # construct ensembl url for protein coding transcriptome
-  gencode_file <- paste0('gencode.v', release, '.pc_transcripts.fa.gz')
-  gencode_url <- paste0('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_', species, '/release_', release, '/', gencode_file)
+  gencode_file <- 'human_GENCODEv29.tar.gz'
+  gencode_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/', gencode_file)
 
   work_dir <- getwd()
   setwd(indices_dir)
-  curl::curl_download(gencode_url, gencode_file)
+
+  download.file(gencode_url, gencode_file)
+  utils::untar(gencode_file)
 
   # build index
   tryCatch(system2('salmon', args=c('index',
-                                    '-t', gencode_file,
+                                    '-t', 'human_GENCODEv29/gentrome.fa',
                                     '--gencode',
+                                    '-d', 'human_GENCODEv29/decoys.txt',
                                     '-i', species)),
            error = function(err) {err$message <- 'Is salmon installed and on the PATH?'; stop(err)})
 
-  unlink(gencode_file)
+
+  unlink(c(gencode_file, 'human_GENCODEv29'), recursive = TRUE)
   setwd(work_dir)
 }
 
@@ -89,6 +97,7 @@ build_gencode_index <- function(species = 'human', release = '29') {
 #'
 #' For pair-ended experiments, reads for each pair should be in a seperate file.
 #'
+#' @param indices_dir Directory with salmon indices. See \code{\link{build_ensdb_index}}.
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
 #' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
 #' The first column should contain sample ids that match a single raw rna-seq data file name.
@@ -103,17 +112,18 @@ build_gencode_index <- function(species = 'human', release = '29') {
 #' @examples
 #'
 #' # first place IBD data in data-raw/example-data
+#' indices_dir <- 'data-raw/indices'
 #' data_dir <- file.path('data-raw', 'example-data')
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-#' run_salmon(data_dir, pdata_path)
+#' run_salmon(indices_dir, data_dir, pdata_path)
 #'
-run_salmon <- function(data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens',
+run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens',
                        flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
   # location of index
-  salmon_idx <- system.file('indices', 'ensdb', species, package = 'drugseqr')
+  salmon_idx <- file.path(indices_dir, 'ensdb', species)
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_ensdb_index')
 
   if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
