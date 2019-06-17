@@ -68,7 +68,7 @@ build_ensdb_index <- function(indices_dir, species = 'homo_sapiens', release = '
 #' @examples
 #' # build salmon alevin index for humans
 #' indices_dir <- 'data-raw/indices'
-#' build_gencode_index()
+#' build_gencode_index(indices_dir)
 #'
 build_gencode_index <- function(indices_dir, species = 'human', release = '29', command = 'salmon') {
 
@@ -147,8 +147,8 @@ build_gencode_index_0.13.1 <- function(indices_dir, species, release) {
 #' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
-#' @param flags Character vector of flags to pass to salmon.
 #' @param command System command to invoke salmon with.
+#' @param flags Character vector of flags to pass to salmon.
 #'
 #' @return NULL
 #' @export
@@ -161,8 +161,8 @@ build_gencode_index_0.13.1 <- function(indices_dir, species, release) {
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_salmon(indices_dir, data_dir, pdata_path)
 #'
-run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens',
-                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias'), command = 'salmon') {
+run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens', command = 'salmon',
+                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 

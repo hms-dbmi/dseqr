@@ -12,6 +12,7 @@
 #' @examples
 save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, point_size = 3) {
 
+
   if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
   group_idents <- scseq$orig.ident
   groups <- unique(group_idents)
@@ -34,13 +35,14 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
                        theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
   }
 
+
   # put cluster levels in order of markers
   if (!all(names(markers) %in% levels(scseq$cluster)))
     stop ('markers are missing for some clusters')
   scseq$cluster <- factor(scseq$cluster, levels = names(markers))
 
   # plot if percentage cells
-  pcells_plot <- plot_combined_bars(groups, scseq)
+  pcells_barplot <- plot_scseq_barplot(scseq)
 
   # new TSNE coords with new clusters (first page)
   suppressMessages(combined_plot <- plot_tsne_cluster(scseq, legend_title = 'COMBINED') +
@@ -64,8 +66,8 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
   orig_grid <- cowplot::plot_grid(orig_title, orig_plots[[1]], orig_plots[[2]],
                                   ncol=1, rel_heights = c(.2,1,1))
 
-  combined_grid <- cowplot::plot_grid(combined_title, combined_plot, pcells_plot,
-                                  ncol=1, rel_heights = c(.2,1,1.5), align = 'v', axis = 'l')
+  combined_grid <- cowplot::plot_grid(combined_title, combined_plot, pcells_barplot,
+                                      ncol=1, rel_heights = c(.2,1,1.5), align = 'v', axis = 'l')
 
   # create pdf
   pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'combined cluster markers')
@@ -79,7 +81,21 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
   dev.off()
 }
 
-plot_combined_bars <- function(groups, scseq) {
+#' Plot scRNA-seq barplot
+#'
+#' Plots percentage of cells within each \code{scseq$cluster} split by \code{scseq$orig.ident}.
+#'
+#' @param scseq \code{SingleCellExperiment}
+#'
+#' @return \code{ggplot}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+plot_scseq_barplot <- function(scseq) {
+
+  group_idents <- scseq$orig.ident
+  groups <- unique(group_idents)
 
   # percent of cells per group in new cluster
   combined_pcells <- list()
@@ -92,22 +108,22 @@ plot_combined_bars <- function(groups, scseq) {
   combined_pcells <- do.call(rbind, combined_pcells)
 
   pcells_plot <- ggplot2::ggplot(combined_pcells, ggplot2::aes(x=Var1, y=Freq, fill=Group)) +
-    geom_bar(stat='identity',position="dodge") +
-    theme_cowplot() +
+    ggplot2::geom_bar(stat='identity',position="dodge") +
+    cowplot::theme_cowplot() +
     scale_fill_names(toupper(groups)) +
-    xlab('') +
-    guides(fill=guide_legend(title="Percent Cells")) +
+    ggplot2::xlab('') +
+    ggplot2::guides(fill=ggplot2::guide_legend(title="Percent Cells")) +
     theme_dimgray() +
-    scale_y_continuous(expand = c(0, 0), position = 'right', sec.axis = dup_axis()) +
-    theme(panel.grid.minor.y = element_blank(),
-          panel.grid.major.x = element_blank(),
-          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-          axis.title.y = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.line.x = element_line(),
-          axis.text.y.left = element_blank(),
-          axis.ticks.y.left = element_blank(),
-          plot.margin=ggplot2::unit(c(20, 5.5, 5.5, 5.5), "points"))
+    ggplot2::scale_y_continuous(expand = c(0, 0), position = 'right', sec.axis = ggplot2::dup_axis()) +
+    ggplot2::theme(panel.grid.minor.y = ggplot2::element_blank(),
+                   panel.grid.major.x = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                   axis.title.y = ggplot2::element_blank(),
+                   axis.ticks.x = ggplot2::element_blank(),
+                   axis.line.x = ggplot2::element_line(),
+                   axis.text.y.left = ggplot2::element_blank(),
+                   axis.ticks.y.left = ggplot2::element_blank(),
+                   plot.margin=ggplot2::unit(c(20, 5.5, 5.5, 5.5), "points"))
 
   return(pcells_plot)
 }
