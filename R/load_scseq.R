@@ -2,6 +2,7 @@
 #'
 #' @param  Directory with raw and alevin-quantified single-cell RNA-Seq files.
 #' @param  type Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.
+#' @inheritParams run_alevin
 #'
 #' @return \code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
 #' @export
@@ -11,10 +12,13 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
+load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', salmon_version = NULL) {
+
+  # incase want to use older salmon version
+  salmon_version <- ifelse(is.null(salmon_version), '', paste0('_', salmon_version))
 
   # import alevin quants
-  alevin_dir <- file.path(data_dir, 'alevin_output', 'alevin')
+  alevin_dir <- file.path(data_dir, paste0('alevin_output', salmon_version), 'alevin')
   counts <- tximport::tximport(file.path(alevin_dir, 'quants_mat.gz'), type = 'alevin')$counts
 
   # final alevin whitelist

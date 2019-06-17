@@ -6,6 +6,8 @@
 #' @param species Species name. Default is \code{human}.
 #' Used to determine transcriptome index to use.
 #' @param overwrite Do you want to overwrite results of previous run? Default is \code{FALSE}.
+#' @param salmon_version Version of salmon to use. Get's appended to \code{indices_dir}, alevin output
+#' directory and salmon command.
 #'
 #' @return NULL
 #' @export
@@ -22,7 +24,10 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #' run_alevin(data_dir, indices_dir)
 #'
-run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE) {
+run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE, salmon_version = NULL, flags = '--dumpMtx') {
+
+  # possibly use older salmon with version appended to executable name
+  salmon_version <- ifelse(is.null(salmon_version), '', paste0('_', salmon_version))
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -31,11 +36,11 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
 
   # location of index
-  alevin_idx <- file.path(indices_dir, 'gencode', species)
+  alevin_idx <- file.path(paste0(indices_dir, salmon_version), 'gencode', species)
   if (!dir.exists(alevin_idx)) stop('No index found. See ?build_gencode_index')
 
   # save alevin output here
-  out_dir <- file.path(data_dir, 'alevin_output')
+  out_dir <- file.path(data_dir, paste0('alevin_output', salmon_version))
   if (soup) out_dir <- paste0(out_dir, '_soup')
 
   # make sure not overwriting previous result by mistake
@@ -52,18 +57,18 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
     stop("Detected different number of cell barcode and read sequence FastQs.")
 
   if (soup) {
-    flags <- c('--keepCBFraction', 1, '--maxNumBarcodes', 4294967295)
+    flags <- c(flags, '--keepCBFraction', 1, '--maxNumBarcodes', 4294967295)
 
   } else {
     # location of ribosomal/mitochondrial gene files (used for whitelist model)
     rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
     mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
 
-    flags <- c('--mrna', mrna_path, '--rrna', rrna_path)
+    flags <- c(flags, '--mrna', mrna_path, '--rrna', rrna_path)
   }
 
   # run salmon alevin
-  system2('salmon',
+  system2(paste0('salmon', salmon_version),
           args=c('alevin',
                  '-l', 'ISR',
                  '-1', paste(cb_fastqs, collapse = ' '),
@@ -73,7 +78,6 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
                  '-o', shQuote(out_dir),
                  '-p', 8,
                  flags,
-                 '--dumpMtx',
                  '--tgMap', tgmap_path))
 
   return(NULL)
