@@ -28,7 +28,7 @@
 #' explore_scseq_clusters(scseq)
 #'
 
-explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'scale.data', colour_by = 'cluster') {
+explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts', colour_by = 'cluster') {
 
   # setup ----
   if (is.null(markers))
@@ -90,8 +90,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'scale.da
       sce_orig <- sce
 
       if (in_subcluster_r() & !is.null(supercluster_r())) {
+      # browser()
         # show selected subcluster only
-        sce <- sce[, sce$selected_cluster == supercluster_r()]
+        sce <- sce[, sce$seurat_clusters == supercluster_r()]
 
         if (isFALSE(supercluster_r() %in% names(subcluster_markers))) {
           # subset original data to selected cluster
@@ -170,9 +171,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'scale.da
 
     # used to get the high level cluster (not the subcluster)
     supercluster_r <- shiny::reactive({
-      cluster <- input$cluster
+      cluster <- input$selected_cluster
       if (is.null(cluster) ||
-          # after switching back to all clusters subcluster is FALSE but input$cluster is a subcluster
+          # after switching back to all clusters subcluster is FALSE but input$selected_cluster is a subcluster
           # this test prevents saving the subcluster as prev_cluster and prevents returning to Cluster 0
           (!in_subcluster_r() && !cluster %in% sce$orig.ident && !cluster %in% letters))
         prev_cluster <<- cluster
@@ -218,8 +219,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'scale.da
         if (is.null(cluster_choices)) cluster_choices <- ''
 
         # use either selected subcluster or first if none
-        selected <- ifelse(isTRUE(input$cluster %in% cluster_choices),
-                           input$cluster, cluster_choices[1])
+        selected <- ifelse(isTRUE(input$selected_cluster %in% cluster_choices),
+                           input$selected_cluster, cluster_choices[1])
 
         # style options to indicate top level cluster
         choicesOpt <- list(content = paste0('<span><span style="color: darkgray;">',

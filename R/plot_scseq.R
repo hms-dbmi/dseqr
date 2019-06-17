@@ -45,8 +45,9 @@ plot_tsne_cluster <- function(scseq, legend_title = NULL, selected_groups = NULL
 #' @export
 #'
 #' @examples
-plot_tsne_gene <- function(scseq, gene, selected_groups = NULL, hide_mask = NULL, assay.type = 'scale.data', point_size = 3) {
+plot_tsne_gene <- function(scseq, gene, selected_groups = NULL, hide_mask = NULL, assay.type = 'logcounts', point_size = 3) {
   if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
+
 
   # make selected groups stand out
   point_alpha <- rep(1, ncol(scseq))

@@ -4,7 +4,8 @@
 \alias{build_gencode_index}
 \title{Download ensembl transcriptome and build index for salmon quantification}
 \usage{
-build_gencode_index(indices_dir, species = "human", release = "29")
+build_gencode_index(indices_dir, species = "human", release = "29",
+  command = "salmon")
 }
 \arguments{
 \item{indices_dir}{directory to place indices in.}

@@ -4,13 +4,18 @@
 \alias{build_ensdb_index}
 \title{Download ensembl transcriptome and build index for salmon quantification}
 \usage{
-build_ensdb_index(species = "homo_sapiens", release = "94")
+build_ensdb_index(indices_dir, species = "homo_sapiens",
+  release = "94", command = "salmon")
 }
 \arguments{
+\item{indices_dir}{Directory with salmon indices.}
+
 \item{species}{The species. Default is \code{homo_sapiens.}}
 
 \item{release}{ensembl release. Default is \code{94} (latest in release for AnnotationHub -
 needs to match with \code{\link{build_ensdb}}) and corresponds to Gencode release 29 for \code{\link{build_gencode_index}}.}
+
+\item{command}{System command for salmon.}
 }
 \description{
 This index is used for bulk RNA seq quantification. See \code{\link{build_gencode_index}} for single cell RNA-seq equivalent.

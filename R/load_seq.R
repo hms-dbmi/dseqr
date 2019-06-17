@@ -8,6 +8,7 @@
 #'   then an ExpressionSet will be saved to disk. Will overwrite if already exists.
 #' @param save_dgel If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.
 #' @param filter if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.
+#' @param command System command that was used to invoke salmon. Used for versioning.
 #'
 #' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
@@ -30,7 +31,7 @@
 #' data_dir <- 'data-raw/example-data'
 #' eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
 #'
-load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
+load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE, command = 'salmon') {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
@@ -44,7 +45,7 @@ load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_sa
   if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
 
   # import quant.sf files and filter low counts
-  quants <- import_quants(data_dir, tx2gene, filter)
+  quants <- import_quants(data_dir, tx2gene, filter, command)
 
   # add library normalization
   pdata <- add_norms(quants, pdata)
@@ -132,7 +133,9 @@ setup_fdata <- function(tx2gene) {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, tx2gene, filter) {
+import_quants <- function(data_dir, tx2gene, filter, command) {
+
+  salmon_version <- get_salmon_version(command)
 
   # don't ignoreTxVersion if dots in tx2gene
   ignore <- TRUE
@@ -140,7 +143,7 @@ import_quants <- function(data_dir, tx2gene, filter) {
 
   # import quants using tximport
   # using limma::voom for differential expression (see tximport vignette)
-  qdirs   <- list.files(file.path(data_dir, 'quants'))
+  qdirs   <- list.files(file.path(data_dir, paste0('quants_', salmon_version)))
   quants_paths <- file.path(data_dir, 'quants', qdirs, 'quant.sf')
 
   # use folders as names (used as sample names)

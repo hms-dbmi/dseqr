@@ -6,7 +6,7 @@
 \usage{
 run_salmon(indices_dir, data_dir, pdata_path = NULL, pdata = NULL,
   species = "homo_sapiens", flags = c("--validateMappings",
-  "--posBias", "--seqBias", "--gcBias"))
+  "--posBias", "--seqBias", "--gcBias"), command = "salmon")
 }
 \arguments{
 \item{indices_dir}{Directory with salmon indices. See \code{\link{build_ensdb_index}}.}
@@ -22,6 +22,8 @@ The first column should contain sample ids that match a single raw rna-seq data 
 Used to determine transcriptome index to use.}
 
 \item{flags}{Character vector of flags to pass to salmon.}
+
+\item{command}{System command to invoke salmon with.}
 }
 \description{
 For pair-ended experiments, reads for each pair should be in a seperate file.

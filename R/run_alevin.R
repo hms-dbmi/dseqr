@@ -6,8 +6,7 @@
 #' @param species Species name. Default is \code{human}.
 #' Used to determine transcriptome index to use.
 #' @param overwrite Do you want to overwrite results of previous run? Default is \code{FALSE}.
-#' @param salmon_version Version of salmon to use. Get's appended to \code{indices_dir}, alevin output
-#' directory and salmon command.
+#' @param command System command to invoke salmon. Can be used to invoked different versions of salmon.
 #'
 #' @return NULL
 #' @export
@@ -24,10 +23,14 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #' run_alevin(data_dir, indices_dir)
 #'
-run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE, salmon_version = NULL, flags = '--dumpMtx') {
+run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE, command = 'salmon') {
 
   # possibly use older salmon with version appended to executable name
-  salmon_version <- ifelse(is.null(salmon_version), '', paste0('_', salmon_version))
+  salmon_version <- get_salmon_version(command)
+
+  # need .mtx if using salmon 0.14.0 until tximport supports
+  flags <- c()
+  if(salmon_version == '0.14.0') flags <- '--dumpMtx'
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -36,11 +39,11 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
 
   # location of index
-  alevin_idx <- file.path(paste0(indices_dir, salmon_version), 'gencode', species)
+  alevin_idx <- file.path(indices_dir, salmon_version, 'gencode', species)
   if (!dir.exists(alevin_idx)) stop('No index found. See ?build_gencode_index')
 
   # save alevin output here
-  out_dir <- file.path(data_dir, paste0('alevin_output', salmon_version))
+  out_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version))
   if (soup) out_dir <- paste0(out_dir, '_soup')
 
   # make sure not overwriting previous result by mistake
@@ -68,7 +71,7 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   }
 
   # run salmon alevin
-  system2(paste0('salmon', salmon_version),
+  system2(command,
           args=c('alevin',
                  '-l', 'ISR',
                  '-1', paste(cb_fastqs, collapse = ' '),

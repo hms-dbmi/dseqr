@@ -5,6 +5,8 @@
 #' @param species The species. Default is \code{homo_sapiens.}
 #' @param release ensembl release. Default is \code{94} (latest in release for AnnotationHub -
 #'   needs to match with \code{\link{build_ensdb}}) and corresponds to Gencode release 29 for \code{\link{build_gencode_index}}.
+#' @param indices_dir Directory with salmon indices.
+#' @param command System command for salmon.
 #'
 #' @return NULL
 #' @export
@@ -13,9 +15,15 @@
 #' # build salmon index for humans
 #' build_ensdb_index()
 #'
-build_ensdb_index <- function(species = 'homo_sapiens', release = '94') {
+build_ensdb_index <- function(indices_dir, species = 'homo_sapiens', release = '94', command = 'salmon') {
 
-  indices_dir <- system.file('indices', 'ensdb', package = 'drugseqr')
+  salmon_version <- get_salmon_version(command)
+  if (salmon_version == '0.14.0')
+    stop('EnsemblDb indices not yet implemented for salmon 0.14.0')
+
+  indices_dir <- file.path(indices_dir, salmon_version, 'ensdb')
+  if (!dir.exists(indices_dir))
+    dir.create(indices_dir, recursive = TRUE)
 
   # construct ensembl url for transcriptome
   ensembl_species <- gsub(' ', '_', tolower(species))
@@ -37,9 +45,9 @@ build_ensdb_index <- function(species = 'homo_sapiens', release = '94') {
   curl::curl_download(ensembl_url, ensembl_all)
 
   # build index
-  tryCatch(system2('salmon', args=c('index',
-                                    '-t', ensembl_all,
-                                    '-i', ensembl_species)),
+  tryCatch(system2(command, args=c('index',
+                                   '-t', ensembl_all,
+                                   '-i', ensembl_species)),
            error = function(err) {err$message <- 'Is salmon installed and on the PATH?'; stop(err)})
 
   unlink(ensembl_all)
@@ -62,9 +70,18 @@ build_ensdb_index <- function(species = 'homo_sapiens', release = '94') {
 #' indices_dir <- 'data-raw/indices'
 #' build_gencode_index()
 #'
-build_gencode_index <- function(indices_dir, species = 'human', release = '29') {
-  indices_dir <- system.file(indices_dir, 'gencode')
-  dir.create(indices_dir)
+build_gencode_index <- function(indices_dir, species = 'human', release = '29', command = 'salmon') {
+
+  salmon_version <- get_salmon_version(command)
+  build_func <- get(paste0('build_gencode_index_', salmon_version))
+  build_func(indices_dir, species, release)
+
+}
+
+build_gencode_index_0.14.0 <- function(indices_dir, species, release) {
+
+  indices_dir <- file.path(indices_dir, '0.14.0', 'gencode')
+  if (!dir.exists(indices_dir)) dir.create(indices_dir, recursive = TRUE)
 
   if (species != 'human' | release != '29')
     stop('Only implemented for human gencode v29.')
@@ -92,6 +109,32 @@ build_gencode_index <- function(indices_dir, species = 'human', release = '29') 
 }
 
 
+build_gencode_index_0.13.1 <- function(indices_dir, species, release) {
+
+  indices_dir <- file.path(indices_dir, '0.13.1', 'gencode')
+  if (!dir.exists(indices_dir)) dir.create(indices_dir, recursive = TRUE)
+
+  # construct ensembl url for protein coding transcriptome
+  gencode_file <- paste0('gencode.v', release, '.pc_transcripts.fa.gz')
+  gencode_url <- paste0('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_', species, '/release_', release, '/', gencode_file)
+
+  work_dir <- getwd()
+  setwd(indices_dir)
+  curl::curl_download(gencode_url, gencode_file)
+
+  # build index
+  tryCatch(system2('salmon', args=c('index',
+                                    '-t', gencode_file,
+                                    '--gencode',
+                                    '-i', species)),
+           error = function(err) {err$message <- 'Is salmon installed and on the PATH?'; stop(err)})
+
+  unlink(gencode_file)
+  setwd(work_dir)
+}
+
+
+
 
 #' Runs salmon quantification.
 #'
@@ -105,6 +148,7 @@ build_gencode_index <- function(indices_dir, species = 'human', release = '29') 
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #' @param flags Character vector of flags to pass to salmon.
+#' @param command System command to invoke salmon with.
 #'
 #' @return NULL
 #' @export
@@ -118,12 +162,13 @@ build_gencode_index <- function(indices_dir, species = 'human', release = '29') 
 #' run_salmon(indices_dir, data_dir, pdata_path)
 #'
 run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens',
-                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
+                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias'), command = 'salmon') {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
   # location of index
-  salmon_idx <- file.path(indices_dir, 'ensdb', species)
+  salmon_version <- get_salmon_version(command)
+  salmon_idx <- file.path(indices_dir, salmon_version, 'ensdb', species)
   if (!dir.exists(salmon_idx)) stop('No index found. See ?build_ensdb_index')
 
   if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
@@ -136,7 +181,7 @@ run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, s
   saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
 
   # save quants here
-  quants_dir <- file.path(data_dir, 'quants')
+  quants_dir <- file.path(data_dir, paste0('quants_', salmon_version))
   unlink(quants_dir, recursive = TRUE)
   dir.create(quants_dir)
 
@@ -173,7 +218,7 @@ run_salmon <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, s
     dir.create(out_dir)
 
     # run salmon
-    system2('salmon',
+    system2(command,
             args=c('quant',
                    '-i', salmon_idx,
                    '-l', 'A',

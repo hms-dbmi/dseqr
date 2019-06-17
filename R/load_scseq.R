@@ -2,7 +2,7 @@
 #'
 #' @param  Directory with raw and alevin-quantified single-cell RNA-Seq files.
 #' @param  type Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.
-#' @inheritParams run_alevin
+#' @param  command System command that salmon was invoked with. Used to determine salmon version.
 #'
 #' @return \code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
 #' @export
@@ -12,13 +12,13 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', salmon_version = NULL) {
+load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', command = 'salmon') {
 
-  # incase want to use older salmon version
-  salmon_version <- ifelse(is.null(salmon_version), '', paste0('_', salmon_version))
+  # possibly use older salmon with version appended to executable name
+  salmon_version <- get_salmon_version(command)
 
   # import alevin quants
-  alevin_dir <- file.path(data_dir, paste0('alevin_output', salmon_version), 'alevin')
+  alevin_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version), 'alevin')
   counts <- tximport::tximport(file.path(alevin_dir, 'quants_mat.gz'), type = 'alevin')$counts
 
   # final alevin whitelist
@@ -38,6 +38,22 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', sal
     stop('type must be either Seurat or SingleCellExperiment')
   }
 
+}
+
+#' Title
+#'
+#' @param command System command for salmon. Used to determine salmon version.
+#'
+#' @return Version of salmon.
+#' @export
+#' @keywords internal
+#'
+#' @examples
+get_salmon_version <- function(command) {
+  # possibly use older salmon with version appended to executable name
+  salmon_version <- system(paste(command, '--version'), intern = TRUE)
+  salmon_version <- gsub('^salmon ', '', salmon_version)
+  return(salmon_version)
 }
 
 #' Convert Seurat object to SingleCellExperiment
@@ -286,10 +302,10 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
       markers <- list()
-      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', slot = 'scale.data', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
+      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
 
     } else {
-      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', slot = 'scale.data', only.pos = TRUE)
+      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = TRUE)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
     }
@@ -306,55 +322,15 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @export
 #'
 #' @examples
-integrate_scseq <- function(scseqs, scale.data = TRUE) {
+integrate_scseq <- function(scseqs) {
 
   anchors <- Seurat::FindIntegrationAnchors(scseqs)
   combined <- Seurat::IntegrateData(anchors)
   Seurat::DefaultAssay(combined) <- "integrated"
   combined <- Seurat::ScaleData(combined, verbose = FALSE)
 
-  # scale.data is kept for diff analysis (Seurat recommended)
-  if (scale.data)
-    combined <- add_scaled(scseqs, combined)
-
   return(combined)
 }
-
-#' Add scale.data to integrated data
-#'
-#' For each sample merges the \code{'scale.data'} slot of the \code{'SCT'} assay in \code{combined}.
-#'
-#'
-#' @param scseqs List of \code{Seurat} objects used during sample integration to generate \code{combined}
-#' @param combined Integrated \code{Seurat} object from \code{\link{integrate_scseq}}
-#'
-#' @return \code{combined} with \code{scale.data} slot of \code{SCT} assay
-#' @export
-#' @keywords internal
-#'
-#' @examples
-add_scaled <- function(scseqs, combined) {
-
-  dts <- lapply(scseqs, function(scseq) {
-    # grab pearson residuals
-    data <- Seurat::GetAssayData(scseq, assay = 'SCT', slot = 'data')
-    data.table::data.table(data, keep.rownames=TRUE, key = 'rn')
-  })
-
- # merge together and set NAs to zero
-  dt <- Reduce(function(x, y) merge(x, y, all = TRUE), dts)
-  dt[is.na(dt)] <- 0
-
-  new.data <- as.matrix(dt[,-'rn'])
-  row.names(new.data) <- dt$rn
-
-  combined <- Seurat::SetAssayData(combined,
-                                   assay = 'SCT',
-                                   slot = 'scale.data',
-                                   new.data = new.data)
-  return(combined)
-}
-
 
 
 #' Test is there is at lest two clusters

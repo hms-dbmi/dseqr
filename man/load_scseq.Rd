@@ -4,10 +4,13 @@
 \alias{load_scseq}
 \title{Load alevin quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir, type = "Seurat", project = "SeuratProject")
+load_scseq(data_dir, type = "Seurat", project = "SeuratProject",
+  command = "salmon")
 }
 \arguments{
 \item{type}{Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.}
+
+\item{command}{System command that salmon was invoked with. Used to determine salmon version.}
 
 \item{Directory}{with raw and alevin-quantified single-cell RNA-Seq files.}
 }
