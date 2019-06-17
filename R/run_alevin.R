@@ -22,7 +22,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #' run_alevin(data_dir, indices_dir)
 #'
-run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE) {
+run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE) {
 
   # make sure its 10X
   sc_method <- detect_sc_method(data_dir)
@@ -30,16 +30,13 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   # location of tgMap
   tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
 
-  # location of ribosomal/mitochondrial gene files (used for whitelist model)
-  rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
-  mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
-
   # location of index
   alevin_idx <- file.path(indices_dir, 'gencode', species)
   if (!dir.exists(alevin_idx)) stop('No index found. See ?build_gencode_index')
 
   # save alevin output here
   out_dir <- file.path(data_dir, 'alevin_output')
+  if (soup) out_dir <- paste0(out_dir, '_soup')
 
   # make sure not overwriting previous result by mistake
   if (file.exists(file.path(out_dir, 'alevin', 'quants_mat.gz')) & !overwrite)
@@ -54,6 +51,17 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   if (length(cb_fastqs) != length(read_fastqs))
     stop("Detected different number of cell barcode and read sequence FastQs.")
 
+  if (soup) {
+    flags <- c('--keepCBFraction', 1, '--maxNumBarcodes', 4294967295)
+
+  } else {
+    # location of ribosomal/mitochondrial gene files (used for whitelist model)
+    rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
+    mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
+
+    flags <- c('--mrna', mrna_path, '--rrna', rrna_path)
+  }
+
   # run salmon alevin
   system2('salmon',
           args=c('alevin',
@@ -64,9 +72,7 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
                  '-i', alevin_idx,
                  '-o', shQuote(out_dir),
                  '-p', 8,
-                 '--mrna', mrna_path,
-                 '--rrna', rrna_path,
-                 '--dumpFeatures',
+                 flags,
                  '--dumpMtx',
                  '--tgMap', tgmap_path))
 
