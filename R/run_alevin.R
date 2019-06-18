@@ -7,6 +7,7 @@
 #' Used to determine transcriptome index to use.
 #' @param overwrite Do you want to overwrite results of previous run? Default is \code{FALSE}.
 #' @param command System command to invoke salmon. Can be used to invoked different versions of salmon.
+#' @param soup Should alevin be run to obtain ambient counts for \code{SoupX}? In development.
 #'
 #' @return NULL
 #' @export
@@ -23,7 +24,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #' run_alevin(data_dir, indices_dir)
 #'
-run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, soup = FALSE, command = 'salmon') {
+run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FALSE, command = 'salmon', soup = FALSE) {
 
   # possibly use older salmon with version appended to executable name
   salmon_version <- get_salmon_version(command)
@@ -60,7 +61,7 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
     stop("Detected different number of cell barcode and read sequence FastQs.")
 
   if (soup) {
-    flags <- c(flags, '--keepCBFraction', 1, '--maxNumBarcodes', 4294967295)
+    flags <- c(flags, '--keepCBFraction', 0.3, '--maxNumBarcodes', 4294967295, '--freqThreshold', 2)
 
   } else {
     # location of ribosomal/mitochondrial gene files (used for whitelist model)
@@ -79,7 +80,7 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
                  '--chromium',
                  '-i', alevin_idx,
                  '-o', shQuote(out_dir),
-                 '-p', 8,
+                 '-p', 4,
                  flags,
                  '--tgMap', tgmap_path))
 
@@ -97,8 +98,6 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
 #'
 #' @examples
 detect_sc_method <- function(data_dir) {
-
-
   fastq_paths <- list.files(data_dir, '.fastq.gz', full.names = TRUE)
   is_10x <- any(grepl('10X', fastq_paths))
 

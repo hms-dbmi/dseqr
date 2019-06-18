@@ -20,6 +20,6 @@ This index is used for single cell RNA-seq quantification. See \code{\link{build
 \examples{
 # build salmon alevin index for humans
 indices_dir <- 'data-raw/indices'
-build_gencode_index()
+build_gencode_index(indices_dir)
 
 }

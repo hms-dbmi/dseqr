@@ -5,7 +5,7 @@
 \title{Runs salmon alevin single-cell quantification.}
 \usage{
 run_alevin(data_dir, indices_dir, species = "human", overwrite = FALSE,
-  soup = FALSE, command = "salmon")
+  command = "salmon", soup = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with raw 10X single-cell fastq.gz RNA-Seq files.}
@@ -18,6 +18,8 @@ Used to determine transcriptome index to use.}
 \item{overwrite}{Do you want to overwrite results of previous run? Default is \code{FALSE}.}
 
 \item{command}{System command to invoke salmon. Can be used to invoked different versions of salmon.}
+
+\item{soup}{Should alevin be run to obtain ambient counts for \code{SoupX}? In development.}
 }
 \description{
 Runs salmon alevin single-cell quantification.
