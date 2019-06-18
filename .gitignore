@@ -28,3 +28,4 @@ inst/EnsDb
 
 # txp2gene for alevin
 data-raw/single-cell/alevin-args/*.gz
+data-raw/single-cell/kallisto-args/*
