@@ -14,12 +14,17 @@
 #'
 load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', command = 'salmon') {
 
-  # possibly use older salmon with version appended to executable name
+  # newer salmon has different format
+  # will eventually be supported by tximport
   salmon_version <- get_salmon_version(command)
+  salmon_old <- salmon_lt_0.14.0(salmon_version)
 
   # import alevin quants
   alevin_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version), 'alevin')
-  counts <- tximport::tximport(file.path(alevin_dir, 'quants_mat.gz'), type = 'alevin')$counts
+  quants_path <- file.path(alevin_dir, 'quants_mat.gz')
+
+  if (!salmon_old) counts <- readAlevin(quants_path)
+  else counts <- tximport::tximport(quants_path, type = 'alevin')$counts
 
   # final alevin whitelist
   whitelist <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
@@ -37,10 +42,111 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', com
   } else {
     stop('type must be either Seurat or SingleCellExperiment')
   }
-
 }
 
-#' Title
+#' Check if salmon version is less than 0.14.0
+#'
+#' @param salmon_version String giving salmon version
+#'
+#' @return \code{TRUE} if salmon version is less than 0.14.0, otherwise \code{FALSE}.
+#' @export
+#' @keywords internal
+#'
+#' @examples
+salmon_lt_0.14.0 <- function(salmon_version) {
+
+  # split by period and add names
+  salmon_version <- strsplit(salmon_version, '.', fixed = TRUE)[[1]]
+  names(salmon_version) <- c('major', 'minor', 'patch')
+
+  # newer salmon uses decoys in index
+  if (salmon_version['major'] == 0 & salmon_version['minor'] <= 13)
+    return(TRUE)
+
+  if (salmon_version['major'] > 0 | salmon_version['minor'] > 13)
+    return(FALSE)
+}
+
+#' Read alevin 0.14.0 output
+#'
+#' @param files path to alevin quants_mat.gz output
+#'
+#' @return matrix of counts
+#' @export
+#' @keywords internal
+#'
+#' @examples
+readAlevin <- function(files) {
+  # from https://github.com/COMBINE-lab/salmon/issues/380
+
+  dir <- sub("/alevin$","",dirname(files))
+  barcode.file <- file.path(dir, "alevin/quants_mat_rows.txt")
+  gene.file <- file.path(dir, "alevin/quants_mat_cols.txt")
+  matrix.file <- file.path(dir, "alevin/quants_mat.gz")
+  for (f in c(barcode.file, gene.file, matrix.file)) {
+    if (!file.exists(f)) {
+      stop("expecting 'files' to point to 'quants_mat.gz' file in a directory 'alevin'
+  also containing 'quants_mat_rows.txt' and 'quant_mat_cols.txt'.
+  please re-run alevin preserving output structure")
+    }
+  }
+  cell.names <- readLines(barcode.file)
+  gene.names <- readLines(gene.file)
+  num.cells <- length(cell.names)
+  num.genes <- length(gene.names)
+
+  mat <- matrix(nrow=num.genes, ncol=num.cells, dimnames=list(gene.names, cell.names))
+  con <- gzcon(file(matrix.file, "rb"))
+
+  get_binary <- function(id) { as.integer(head(intToBits(id), 8)) }
+  count_ones <- function(id) { sum(get_binary(id) == 1) }
+
+  {
+    # Version B specific support
+    num.bitvecs <- ceiling(num.genes/8)
+    for (j in seq_len(num.cells)) {
+      # read the bit vector
+      bit.vec <- readBin(con, integer(), size=1, signed=FALSE, endian = "little", n=num.bitvecs)
+
+      #iterating the bit vector
+      num.exp.genes <- 0
+      for ( int_flag in bit.vec ) {
+        # Don't know how to throw error
+        # if ( int_flag > 255 ) { /* RAISE ERROR */ }
+        num.exp.genes <- num.exp.genes + count_ones(int_flag)
+      }
+
+      i <- 0
+      count.index <- 0
+      # read in the expression of expressed genes
+      counts <- readBin(con, double(), size=4, endian = "little", n=num.exp.genes)
+
+      # iterating over the bit_vec to figure out the index of expressed gene
+      for ( int_flag in bit.vec ) {
+        # iterating over the u8 to figure out offset within u8
+        for ( gene.flag in get_binary(int_flag) ) {
+          # i maintains gene's index
+          i <- i + 1
+          if ( i > num.genes ) { break; }
+
+          # look for the bit vec with exp gene flag
+          if ( gene.flag == 1) {
+            # count.index gets the index in the counts  vector
+            count.index <- count.index + 1
+            count <- counts[count.index];
+            mat[i, j] <- count
+          } else { mat[i, j] <- 0 }
+        }
+      }
+    }
+  }
+
+  close(con)
+
+  mat
+}
+
+#' Get version of salmon from system command.
 #'
 #' @param command System command for salmon. Used to determine salmon version.
 #'

@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_scseq.R
 \name{get_salmon_version}
 \alias{get_salmon_version}
-\title{Title}
+\title{Get version of salmon from system command.}
 \usage{
 get_salmon_version(command)
 }
@@ -13,6 +13,6 @@ get_salmon_version(command)
 Version of salmon.
 }
 \description{
-Title
+Get version of salmon from system command.
 }
 \keyword{internal}

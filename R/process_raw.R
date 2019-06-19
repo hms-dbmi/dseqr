@@ -73,16 +73,13 @@ build_ensdb_index <- function(indices_dir, species = 'homo_sapiens', release = '
 build_gencode_index <- function(indices_dir, species = 'human', release = '29', command = 'salmon') {
 
   salmon_version <- get_salmon_version(command)
-  salmon_version <- strsplit(salmon_version, '.', fixed = TRUE)[[1]]
-  names(salmon_version) <- c('major', 'minor', 'patch')
+  salmon_old <- salmon_lt_0.14.0(salmon_version)
 
   # newer salmon uses decoys in index
-  if (salmon_version['major'] == 0 & salmon_version['minor'] <= 13) {
+  if (salmon_old)
     build_gencode_index_no_decoys(indices_dir, species, release)
-
-  } else if (salmon_version['major'] > 0 | salmon_version['minor'] > 13) {
+  else
     build_gencode_index_decoys(indices_dir, species, release)
-  }
 }
 
 build_gencode_index_decoys <- function(indices_dir, species, release) {
