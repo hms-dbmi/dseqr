@@ -14,21 +14,12 @@
 #'
 load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', command = 'salmon') {
 
-  # newer salmon has different format
-  # will eventually be supported by tximport
-  salmon_version <- get_salmon_version(command)
-  salmon_old <- salmon_lt_0.14.0(salmon_version)
-
-  # import alevin quants
-  alevin_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version), 'alevin')
-  quants_path <- file.path(alevin_dir, 'quants_mat.gz')
-
-  if (!salmon_old) counts <- readAlevin(quants_path)
-  else counts <- tximport::tximport(quants_path, type = 'alevin')$counts
+  counts <- load_scseq_counts(data_dir, command)
 
   # final alevin whitelist
-  whitelist <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
-  whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
+  alevin_dir <- get_alevin_dir(data_dir, command)
+  whitelist  <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
+  whitelist  <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist, project = project)
@@ -42,6 +33,27 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', com
   } else {
     stop('type must be either Seurat or SingleCellExperiment')
   }
+}
+
+load_scseq_counts <- function(data_dir, command = 'salmon') {
+
+  alevin_dir <- get_alevin_dir(data_dir, command)
+  quants_path <- file.path(alevin_dir, 'quants_mat.gz')
+
+  if (!salmon_old) counts <- read_alevin_mm(alevin_dir)
+  else counts <- tximport::tximport(quants_path, type = 'alevin')$counts
+
+  return(counts)
+}
+
+get_alevin_dir <- function(data_dir, command = 'salmon') {
+  # newer salmon has different format
+  # will eventually be supported by tximport
+  salmon_version <- get_salmon_version(command)
+  salmon_old <- salmon_lt_0.14.0(salmon_version)
+
+  # import alevin quants
+  alevin_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version), 'alevin')
 }
 
 #' Check if salmon version is less than 0.14.0
@@ -67,18 +79,33 @@ salmon_lt_0.14.0 <- function(salmon_version) {
     return(FALSE)
 }
 
-#' Read alevin 0.14.0 output
+#' Read alevin 0.14.0 quants_mat.mtx.gz output
 #'
-#' @param files path to alevin quants_mat.gz output
+#' @param files path to alevin directory
 #'
 #' @return matrix of counts
 #' @export
 #' @keywords internal
 #'
 #' @examples
-readAlevin <- function(files) {
-  # from https://github.com/COMBINE-lab/salmon/issues/380
+read_alevin_mm <- function(alevin_dir) {
+  mat <- Matrix::readMM(file.path(alevin_dir, 'quants_mat.mtx.gz'))
+  row.names(mat) <- read.delim1(file.path(alevin_dir, 'quants_mat_rows.txt'))
+  colnames(mat) <- read.delim1(file.path(alevin_dir, 'quants_mat_cols.txt'))
+  return(mat)
+}
 
+
+#' Read alevin 0.14.0 quants_mat.gz output
+#'
+#' @param files path to quants_mat.gz files
+#'
+#' @return sparse dgTMatrix
+#' @export
+#' @keywords internal
+#'
+#' @examples
+readAlevin_sparse <- function(files) {
   dir <- sub("/alevin$","",dirname(files))
   barcode.file <- file.path(dir, "alevin/quants_mat_rows.txt")
   gene.file <- file.path(dir, "alevin/quants_mat_cols.txt")
@@ -95,56 +122,50 @@ readAlevin <- function(files) {
   num.cells <- length(cell.names)
   num.genes <- length(gene.names)
 
-  mat <- matrix(nrow=num.genes, ncol=num.cells, dimnames=list(gene.names, cell.names))
+  # mat <- matrix(nrow=num.genes, ncol=num.cells, dimnames=list(gene.names, cell.names))
+  values <- rowinds <- colinds <- c()
   con <- gzcon(file(matrix.file, "rb"))
 
   get_binary <- function(id) { as.integer(head(intToBits(id), 8)) }
-  count_ones <- function(id) { sum(get_binary(id) == 1) }
 
-  {
-    # Version B specific support
-    num.bitvecs <- ceiling(num.genes/8)
-    for (j in seq_len(num.cells)) {
-      # read the bit vector
-      bit.vec <- readBin(con, integer(), size=1, signed=FALSE, endian = "little", n=num.bitvecs)
+  pb <- utils::txtProgressBar(style = 3, max = num.cells)
 
-      #iterating the bit vector
-      num.exp.genes <- 0
-      for ( int_flag in bit.vec ) {
-        # Don't know how to throw error
-        # if ( int_flag > 255 ) { /* RAISE ERROR */ }
-        num.exp.genes <- num.exp.genes + count_ones(int_flag)
-      }
 
-      i <- 0
-      count.index <- 0
-      # read in the expression of expressed genes
-      counts <- readBin(con, double(), size=4, endian = "little", n=num.exp.genes)
+  # Version B specific support
+  num.bitvecs <- ceiling(num.genes/8)
+  for (j in seq_len(num.cells)) {
+    # read the bit vector
+    bit.vec <- readBin(con, integer(), size=1, signed=FALSE, endian = "little", n=num.bitvecs)
 
-      # iterating over the bit_vec to figure out the index of expressed gene
-      for ( int_flag in bit.vec ) {
-        # iterating over the u8 to figure out offset within u8
-        for ( gene.flag in get_binary(int_flag) ) {
-          # i maintains gene's index
-          i <- i + 1
-          if ( i > num.genes ) { break; }
+    #iterating the bit vector
+    gene.flags <- unlist(lapply(bit.vec, get_binary))
+    num.exp.genes <- sum(gene.flags)
 
-          # look for the bit vec with exp gene flag
-          if ( gene.flag == 1) {
-            # count.index gets the index in the counts  vector
-            count.index <- count.index + 1
-            count <- counts[count.index];
-            mat[i, j] <- count
-          } else { mat[i, j] <- 0 }
-        }
-      }
-    }
+    # read in the expression of expressed genes
+    counts <- readBin(con, double(), size=4, endian = "little", n=num.exp.genes)
+    is.exp <- which(gene.flags == 1)
+
+    if (length(counts) != length(is.exp)) browser()
+
+    values <- c(values, counts)
+    rowinds <- c(rowinds, is.exp)
+    colinds <- c(colinds, rep(j, length(is.exp)))
+
+    utils::setTxtProgressBar(pb, j)
   }
+  in.genes <- rowinds <= num.genes
+
+  mat <- Matrix::sparseMatrix(i = rowinds[in.genes],
+                              j = colinds[in.genes],
+                              x = values[in.genes],
+                              dims = c(num.genes, num.cells),
+                              dimnames = list(gene.names, cell.names))
+
 
   close(con)
-
   mat
 }
+
 
 #' Get version of salmon from system command.
 #'
