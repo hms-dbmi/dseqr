@@ -45,7 +45,19 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
 
   # save alevin output here
   out_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version))
-  if (soup) out_dir <- paste0(out_dir, '_soup')
+
+  if (soup) {
+    soup_whitelist_path <- make_soup_whitelist(out_dir)
+    out_dir <- paste0(out_dir, '_soup')
+    flags <- c(flags, '--whitelist', soup_whitelist_path, '--maxNumBarcodes', 4294967295, '--freqThreshold', 0)
+
+  } else {
+    # location of ribosomal/mitochondrial gene files (used for whitelist model)
+    rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
+    mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
+
+    flags <- c(flags, '--mrna', mrna_path, '--rrna', rrna_path)
+  }
 
   # make sure not overwriting previous result by mistake
   if (file.exists(file.path(out_dir, 'alevin', 'quants_mat.gz')) & !overwrite)
@@ -60,16 +72,6 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
   if (length(cb_fastqs) != length(read_fastqs))
     stop("Detected different number of cell barcode and read sequence FastQs.")
 
-  if (soup) {
-    flags <- c(flags, '--keepCBFraction', 0.3, '--maxNumBarcodes', 4294967295, '--freqThreshold', 2)
-
-  } else {
-    # location of ribosomal/mitochondrial gene files (used for whitelist model)
-    rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
-    mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
-
-    flags <- c(flags, '--mrna', mrna_path, '--rrna', rrna_path)
-  }
 
   # run salmon alevin
   system2(command,
@@ -80,11 +82,28 @@ run_alevin <- function(data_dir, indices_dir, species = 'human', overwrite = FAL
                  '--chromium',
                  '-i', alevin_idx,
                  '-o', shQuote(out_dir),
-                 '-p', 4,
+                 '-p', 6,
+                 '--dumpFeatures',
                  flags,
                  '--tgMap', tgmap_path))
 
   return(NULL)
+}
+
+make_soup_whitelist <- function(out_dir) {
+  freq_path <- file.path(out_dir, 'alevin', 'raw_cb_frequency.txt')
+
+  if (!file.exists(freq_path))
+    stop('Run alevin once with soup=FALSE first is required to quantify soup.')
+
+  freqs <- data.table::fread(freq_path, col.names = c('barcode', 'umis'))
+  soup_whitelist <- freqs[umis > 0 & umis <= 10, .(barcode)]
+  soup_whitelist <- soup_whitelist[sample(.N, min(.N, 50000))]
+
+  soup_whitelist_path <- file.path(out_dir, 'alevin', 'soup_whitelist.txt')
+
+  data.table::fwrite(soup_whitelist, soup_whitelist_path, col.names = FALSE)
+  return(soup_whitelist_path)
 }
 
 #' Determine Method used for Single Cell RNA Seq
