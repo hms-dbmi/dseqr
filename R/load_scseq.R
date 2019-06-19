@@ -126,7 +126,7 @@ readAlevin_sparse <- function(files) {
   values <- rowinds <- colinds <- c()
   con <- gzcon(file(matrix.file, "rb"))
 
-  get_binary <- function(id) { as.integer(head(intToBits(id), 8)) }
+  get_binary <- function(id) {  rev( as.integer(head(intToBits(id), 8)) ) }
 
   pb <- utils::txtProgressBar(style = 3, max = num.cells)
 
