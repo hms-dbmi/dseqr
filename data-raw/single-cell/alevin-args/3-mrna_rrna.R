@@ -2,24 +2,15 @@
 #  for --mrna and --rrna flag of alevin
 # described here: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1670-y#Sec16
 
-library('org.Hs.eg.db')
 library(data.table)
 
 tx2gene <- readRDS('data-raw/tx2gene/tx2gene.rds')
 
-# use gene-ontology to retrieve ribo genes
-# sample approach as scPipe calculate_QC_metrics: https://github.com/LuyiTian/scPipe/blob/master/R/qc.R
-ribo_go <- 'GO:0005840'
-
-AnnotationDbi::columns(org.Hs.eg.db)
-
-ribo_genes <- AnnotationDbi::mapIds(org.Hs.eg.db, keys=ribo_go, column='ENSEMBLTRANS', keytype="GO",multiVals = "list")[[1]]
-
-ribo_genes <- tibble(tx_id = unique(na.omit(ribo_genes))) %>%
-  left_join(tx2gene, by='tx_id') %>%
-  dplyr::select(gene_name) %>%
-  distinct() %>%
-  pull(gene_name)
+# ribo genes from: https://www.genenames.org/data/genegroup/#!/group/1054
+ribo_genes <- fread('data-raw/single-cell/alevin-args/ribo.txt')
+ribo_genes <- c(ribo_genes$`Approved symbol`, ribo_genes$`Previous symbols`)
+ribo_genes <- tx2gene$gene_name[tx2gene$gene_name %in% toupper(ribo_genes)]
+ribo_genes <- unique(ribo_genes)
 
 mito_genes <- tx2gene %>%
   dplyr::select(seq_name, gene_name) %>%
