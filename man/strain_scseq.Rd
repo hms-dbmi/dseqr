@@ -18,5 +18,5 @@ strain_scseq(counts, empty, project)
 }
 \description{
 Uses \code{SoupX} to estimate and adjust counts for ambient contamination.
-Currently only works with kallisto quantification results.
+Currently only works with kallisto quantification results (and needs some work).
 }

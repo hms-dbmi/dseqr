@@ -10,11 +10,10 @@
 #'
 #' @examples
 hist_scseq_whitelist <- function(scseq) {
-
   if (class(scseq) == 'Seurat') sce <- srt_to_sce(scseq)
 
   # make sure have qc metrics
-  sce <- qc_scseq(sce)
+  sce <- add_scseq_qc_metrics(sce)
 
   # construct tibble for ggploting
   sce_df <- tibble::tibble(log10_total_counts = sce$log10_total_counts,
@@ -56,7 +55,7 @@ tsne_scseq_whitelist <- function(scseq) {
   }
 
   # make sure have qc metrics
-  sce <- qc_scseq(sce)
+  sce <- add_scseq_qc_metrics(sce)
 
   set.seed(1000)
   sce <- scater::runTSNE(sce, use_dimred=use_dimred)

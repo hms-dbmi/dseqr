@@ -17,9 +17,11 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 
   # generate/load whitelist
   whitelist <- get_scseq_whitelist(counts, data_dir)
+  whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
+  kneelist  <- readLines(file.path(data_dir, 'bus_output', 'kneelist.txt'))
 
   # covert to Seurat object
-  srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist, project = project)
+  srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
   if (type == 'Seurat') {
     return(srt)
 
@@ -52,6 +54,9 @@ load_scseq_counts <- function(data_dir) {
   # read annotations
   row.names(counts) <- readLines(file.path(count_dir, 'genes.genes.txt'))
   colnames(counts) <- readLines(file.path(count_dir, 'genes.barcodes.txt'))
+
+  # remove non-expressed genes
+  counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   return(counts)
 }

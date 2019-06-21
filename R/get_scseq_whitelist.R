@@ -9,11 +9,11 @@
 #' @keywords internal
 #'
 #' @examples
-get_scseq_whitelist <- function(counts, data_dir) {
+get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE) {
 
   # check for previous whitelist
   whitelist_path <- file.path(data_dir, 'bus_output', 'whitelist.txt')
-  if (file.exists(whitelist_path)) {
+  if (file.exists(whitelist_path) & !overwrite) {
     whitelist <- readLines(whitelist_path)
     return(whitelist)
   }
@@ -42,8 +42,9 @@ get_scseq_whitelist <- function(counts, data_dir) {
 
   # below knee is low quality
   df <- as.data.frame(sce@colData)
+
   df$quality <- NA
-  df$quality[df$total_counts <= knee] <- 'low'
+  df$quality[sce$total_counts <= knee] <- 'low'
 
   # devide above evenly into high and ambiguous
   midpnt <- round(nabove/2)
@@ -51,23 +52,30 @@ get_scseq_whitelist <- function(counts, data_dir) {
   df$quality[(midpnt+1):nabove] <- 'ambig'
 
   # set outliers above the knee as low quality
-  df$quality[colnames(sce_above)[mito.drop]] <- 'low'
-  df$quality[colnames(sce_above)[outl.drop]] <- 'low'
+  df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
+  df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
+
+  # clean df
+  nunique <- function(x) { length(unique(na.omit(x))) != 1 }
+  df <- df[, apply(df, 2, nunique)]
+  df <- df[, !duplicated(t(df))]
 
   # run model/get preds
   df$quality <- factor(df$quality)
   train <- df[df$quality != 'ambig', ]
   test  <- df[df$quality == 'ambig', ]
 
-  nb_model <- e1071::naiveBayes(quality ~ ., data = train)
-  np_preds <- predict(nb_model, newdata = test)
+  svm_model <- e1071::svm(quality ~ ., data = train)
+  svm_preds <- predict(svm_model, newdata = test)
 
   # determine what to keep and save for future
-  test$quality <- np_preds
+  test$quality <- svm_preds
   df <- rbind(train, test)
   whitelist <- row.names(df)[df$quality == 'high']
+  kneelist  <- colnames(sce_above)
 
   writeLines(whitelist, whitelist_path)
+  writeLines(kneelist, file.path(data_dir, 'bus_output', 'kneelist.txt'))
   return(whitelist)
 }
 
@@ -92,14 +100,14 @@ get_knee <- function(counts) {
 
   roryk_knee <- pick_roryk_cutoff(bcrank$total)
 
-  abline(h=metadata(bcrank)$inflection, col="darkgreen", lty=2)
-  abline(h=metadata(bcrank)$knee, col="dodgerblue", lty=2)
+  abline(h=bcrank@metadata$inflection, col="darkgreen", lty=2)
+  abline(h=bcrank@metadata$knee, col="dodgerblue", lty=2)
   abline(h=roryk_knee, col="red", lty=2)
 
   legend("bottomleft", legend=c("Inflection", "Knee", "Roryk Knee"),
          col=c("darkgreen", "dodgerblue", "red"), lty=2, cex=1.2)
 
-  return(metadata(bcrank)$inflection)
+  return(bcrank@metadata$inflection)
 }
 
 #' Pick Roryk knee point

@@ -1,28 +1,8 @@
-#' Get empty droplets
-#'
-#' Used for calling empty droplets for testing kallisto and SoupX. Recommendation is currently to use alevin cell
-#' filtering instead.
-#'
-#'
-#' @param counts sparse dgTMatrix returned by \code{\link{load_kallisto}}.
-#'
-#' @return Boolean with length \code{ncol(counts)} indicating if the droplet is empty (\code{TRUE}) or a cell(\code{FALSE}).
-#' @export
-#'
-#' @examples
-get_empty <- function(counts) {
-  out <- DropletUtils::emptyDrops(counts)
-
-  # same thresholds as SoupX paper
-  exp_genes <- tabulate(counts@j + 1)
-  is.cell <- !(out$FDR > 0.05 | is.na(out$FDR) | exp_genes < 50)
-  return(!is.cell)
-}
 
 #' Remove ambient gene expression from sc-RNAseq counts
 #'
 #' Uses \code{SoupX} to estimate and adjust counts for ambient contamination.
-#' Currently only works with kallisto quantification results.
+#' Currently only works with kallisto quantification results (and needs some work).
 #'
 #' @param counts sparse dgTMatrix returned by \code{\link{load_kallisto}}.
 #' @param empty Boolean with indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}
@@ -63,73 +43,18 @@ strain_scseq <- function(counts, empty, project) {
   }
 
 
-  scl <- SoupX::calculateContaminationFraction(scl, "Channel1", nonExpressedGeneList, tgtSoupCntsPerGroup = 100)
+  scl <- SoupX::calculateContaminationFraction(scl, "Channel1", nonExpressedGeneList, tgtSoupCntsPerGroup = 1000)
   SoupX::plotChannelContamination(scl, "Channel1")
 
   # interpolate and adjust
   scl <- SoupX::interpolateCellContamination(scl, "Channel1")
   scl <- SoupX::adjustCounts(scl)
 
+
+  colnames(scl$atoc) <- gsub('^Channel1___', '', colnames(scl$atoc))
   strained_scseq <- Seurat::CreateSeuratObject(scl$atoc, project)
   return(strained_scseq)
 
 }
 
-#' Filter cells for scRNA-seq based on quality metrics
-#'
-#' This is used for filtering low quality cells from kallisto quantification after running \code{get_empty} and
-#' either \code{strain_scseq} or just creating a Seurat object from the counts with empty droplets removed.
-#'
-#' Removes cells that are three median absolute deviations above or below the median for:
-#' percentage mitochondrial counts, percentage ribosomal counts, number of expressed features, and
-#' number of total counts.
-#'
-#' @param scseq Seurat object.
-#'
-#' @return \code{scseq} with low quality cells removed.
-#' @export
-#'
-#' @examples
-qc_scseq <- function(scseq) {
-  # simple for now
 
-  # ribosomal and mitochondrial genes
-  rrna_path <- system.file('extdata', 'rrna.csv', package = 'drugseqr')
-  mrna_path <- system.file('extdata', 'mrna.csv', package = 'drugseqr')
-
-  rrna <- read.delim1(rrna_path)
-  mrna <- read.delim1(mrna_path)
-
-  rrna <- rrna[rrna %in% row.names(scseq)]
-  mrna <- mrna[mrna %in% row.names(scseq)]
-
-  scseq$percent.mito <- Seurat::PercentageFeatureSet(scseq, features = mrna)
-  scseq$percent.ribo <- Seurat::PercentageFeatureSet(scseq, features = rrna)
-
-  # exclude 3 mads below and above median for each
-  scseq <- subset_scseq(scseq, 'percent.mito')
-  scseq <- subset_scseq(scseq, 'percent.ribo')
-  scseq <- subset_scseq(scseq, 'nFeature_RNA')
-  scseq <- subset_scseq(scseq, 'nCount_RNA')
-  return(scseq)
-
-}
-
-#' Remove cells above/below three mads from the median. Used by \code{qc_scseq}.
-#'
-#' @param scseq Seurat object
-#' @param by String, a numeric column in \code{scseq@meta.data} to subset by.
-#'
-#' @return \code{scseq} with cells that are within three mads of the median of \code{by}.
-#' @export
-#' @keywords internal
-#'
-#' @examples
-subset_scseq <- function(scseq, by) {
-  # keep within 3 mads of median
-  x <- scseq[[by]][[1]]
-  med.x <- median(x)
-  mad.x <- mad(x, med.x)
-  keep <- which((x > med.x - 3*mad.x) & (x < med.x + 3*mad.x))
-  return(scseq[, keep])
-}

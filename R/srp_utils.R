@@ -138,23 +138,28 @@ get_srp_meta <- function(gse_name) {
 #'
 #' @examples
 #'
+#'  # get metadata for healthy lung scRNA-seq samples
 #'  gse_name <- 'GSE117570'
 #'  srp_meta <- get_srp_meta(gse_name)
 #'  srp_meta <- srp_meta[grepl('_Normal$', srp_meta$title), ]
 #'
+#'  # where to put GSE folder to save data into
 #'  data_dir <- 'data-raw/single-cell/reference-data'
 #'
+#'  # get fastq files
 #'  get_geo_rnaseq(gse_name, srp_meta, data_dir)
+#'
+#'  # run kallist/bustools
+#'  indices_dir <- 'data-raw/indices/kallisto'
+#'  fastq_dirs <- list.files(file.path(data_dir, gse_name), full.names = TRUE)
+#'  for (fastq_dir in fastq_dirs) run_kallisto_scseq(indices_dir, fastq_dir)
+#'
 #'
 get_geo_rnaseq <- function(gse_name, srp_meta, data_dir) {
 
   # setup gse directory
-  gse_dir   <- file.path(data_dir, gse_name)
-  sra_dir   <- file.path(gse_dir, 'sra')
-  fastq_dir <- file.path(gse_dir, 'fastq')
-
-  dir.create(sra_dir, recursive = TRUE)
-  dir.create(fastq_dir)
+  gse_dir  <- file.path(data_dir, gse_name)
+  dir.create(gse_dir)
 
 
   # seperate runs based on GSM (can be multiple per GSM)
@@ -168,7 +173,7 @@ get_geo_rnaseq <- function(gse_name, srp_meta, data_dir) {
 
     for (srr_name in srr_names) {
       # download/fasterq-dump SRA files
-      run_fasterq_dump(srr_name, out_dir = file.path(gse_dir, 'fastq', srr_name))
+      run_fasterq_dump(srr_name, out_dir = file.path(gse_dir, srr_name))
     }
   }
   return(NULL)
@@ -187,7 +192,7 @@ get_geo_rnaseq <- function(gse_name, srp_meta, data_dir) {
 #' @keywords internal
 #'
 #' @examples
-run_fasterq_dump <- function(srr_name, out_dir, args = c('--split-files')) {
+run_fasterq_dump <- function(srr_name, out_dir, args = NULL) {
 
   # update fastq result if fastq-dump works
   system2('fasterq-dump',

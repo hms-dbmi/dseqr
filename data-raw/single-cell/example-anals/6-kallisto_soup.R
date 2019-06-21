@@ -2,8 +2,6 @@ library(drugseqr)
 
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 test_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-index_path <- 'data-raw/single-cell/kallisto-args/Homo_sapiens.GRCh38.cdna.all.release-94_k31.idx'
-whitelist_path <- 'data-raw/single-cell/kallisto-args/10xv2_whitelist.txt'
 
 # load raw counts and remove non expressed genes
 ctrl_counts <- read_kallisto(ctrl_dir)
@@ -16,7 +14,6 @@ test_counts <- test_counts[Matrix::rowSums(test_counts) > 0, ]
 ctrl_empty <- get_empty(ctrl_counts)
 test_empty <- get_empty(test_counts)
 
-
 # strain soup
 ctrl_scseq <- strain_scseq(ctrl_counts, ctrl_empty, 'ctrl')
 test_scseq <- strain_scseq(test_counts, test_empty, 'test')
@@ -24,7 +21,6 @@ test_scseq <- strain_scseq(test_counts, test_empty, 'test')
 # quality control cells
 ctrl_scseq <- qc_scseq(ctrl_scseq)
 test_scseq <- qc_scseq(test_scseq)
-
 
 # sctransform norm/variance stabilization
 ctrl_scseq <- preprocess_scseq(ctrl_scseq)

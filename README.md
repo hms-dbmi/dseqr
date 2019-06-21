@@ -5,26 +5,21 @@ gi# drugseqr
 
 The goal of drugseqr (*drug-seek-R*) is to find CMAP02/L1000 compounds that oppose RNA-seq gene expression signatures.
 
-## Installation on Debian
+## Installation with Conda
 
-[Salmon](https://combine-lab.github.io/salmon/) is required for quantifying the expression of transcripts using RNA-seq data. To install and make `salmon` command available:
+[Kallisto](https://pachterlab.github.io/kallisto/download) is required for quantifying the expression of transcripts using RNA-seq data. To install `kallisto` with conda:
 
 ```bash
-# get salmon
-cd /tmp
-wget https://github.com/COMBINE-lab/salmon/releases/download/v0.14.0/salmon-0.14.0_linux_x86_64.tar.gz
+# setup bioconda channels
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
 
-# extract
-mkdir salmon
-tar -xvf salmon-0.14.0_linux_x86_64.tar.gz -C salmon --strip-components=1
-
-# make salmon command available
-cd salmon
-sudo mv bin/salmon /usr/local/bin
-sudo mv lib/* /usr/local/bin
+# install kallisto
+conda install kallisto
 
 # check
-salmon --version # salmon 0.14.0
+kallisto --version
 ```
 
 To install drugseqr clone the repo then install from source code:
@@ -42,21 +37,19 @@ library(drugseqr)
 dl_drug_es()
 ```
 
-## Build Salmon Index and Ensembl Annotation Package
+## Build Kalisto Index
 
-[Salmon](https://combine-lab.github.io/salmon/) requires an index built on a target transcriptome for quantification. For mapping counts from transcripts to genes, `drugseqr` requires an Ensembl annotation package. This step only has to be performed once.
+[Kallisto](https://pachterlab.github.io/kallisto/) requires an index built on a target transcriptome for quantification. This step only has to be performed once.
 
-To download a transcriptome, build an index, and build an Ensembl annotation package for homo sapiens (default):
+To download a transcriptome and build an index for homo sapiens (default):
 
 ```R
 library(drugseqr)
 
-# for bulk RNA seq
-build_ensdb_index()
-build_ensdb()
+# path to save indices in
+indices_dir <- 'data-raw/indices'
 
-# for single cell RNA seq
-build_gencode_index()
+build_kallisto_index(indices_dir)
 ```
 
 ## Run Salmon, Load ExpressionSet, and Annotate
