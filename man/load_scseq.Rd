@@ -2,23 +2,20 @@
 % Please edit documentation in R/load_scseq.R
 \name{load_scseq}
 \alias{load_scseq}
-\title{Load alevin quantification into a Seurat or SingleCellExperiment object.}
+\title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir, type = "Seurat", project = "SeuratProject",
-  command = "salmon")
+load_scseq(data_dir, type = "Seurat", project = "SeuratProject")
 }
 \arguments{
 \item{type}{Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.}
 
-\item{command}{System command that salmon was invoked with. Used to determine salmon version.}
-
-\item{Directory}{with raw and alevin-quantified single-cell RNA-Seq files.}
+\item{Directory}{with raw and kallisto/bustools-quantified single-cell RNA-Seq files.}
 }
 \value{
-\code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
+\code{Seurat} (default) or \code{SingleCellExperiment} with whitelist meta data.
 }
 \description{
-Load alevin quantification into a Seurat or SingleCellExperiment object.
+Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.
 }
 \examples{
 

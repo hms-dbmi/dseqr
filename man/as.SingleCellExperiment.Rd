@@ -10,5 +10,5 @@ as.SingleCellExperiment(x, assay = NULL, ...)
 \item{...}{}
 }
 \description{
-This exists because of bug satijalab/seurat#1626
+This exists because of bug satijalab/seurat#1626. Remove once release accounts for it.
 }

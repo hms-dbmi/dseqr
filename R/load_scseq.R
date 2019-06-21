@@ -1,10 +1,9 @@
-#' Load alevin quantification into a Seurat or SingleCellExperiment object.
+#' Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.
 #'
-#' @param  Directory with raw and alevin-quantified single-cell RNA-Seq files.
+#' @param  Directory with raw and kallisto/bustools-quantified single-cell RNA-Seq files.
 #' @param  type Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.
-#' @param  command System command that salmon was invoked with. Used to determine salmon version.
 #'
-#' @return \code{Seurat} (default) or \code{SingleCellExperiment} with alevin whitelist meta data.
+#' @return \code{Seurat} (default) or \code{SingleCellExperiment} with whitelist meta data.
 #' @export
 #'
 #' @examples
@@ -12,14 +11,12 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', command = 'salmon') {
+load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 
-  counts <- load_scseq_counts(data_dir, command)
+  counts <- load_scseq_counts(data_dir)
 
-  # final alevin whitelist
-  alevin_dir <- get_alevin_dir(data_dir, command)
-  whitelist  <- read.delim1(file.path(alevin_dir, 'whitelist.txt'))
-  whitelist  <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
+  # generate/load whitelist
+  whitelist <- get_scseq_whitelist(counts, data_dir)
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts, meta.data = whitelist, project = project)
@@ -35,153 +32,30 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', com
   }
 }
 
-load_scseq_counts <- function(data_dir, command = 'salmon') {
+#' Read kallisto/bustools market matrix and annotations
+#'
+#'
+#' @inheritParams load_scseq
+#'
+#' @return sparse dgTMatrix with barcodes in columns and genes in rows.
+#' @export
+#'
+#' @examples
+#'
+load_scseq_counts <- function(data_dir) {
+  count_dir <- file.path(data_dir, 'bus_output', 'genecount')
 
-  alevin_dir <- get_alevin_dir(data_dir, command)
-  quants_path <- file.path(alevin_dir, 'quants_mat.gz')
+  # read sparse matrix
+  counts <- Matrix::readMM(file.path(count_dir, 'genes.mtx'))
+  counts <- Matrix::t(counts)
 
-  if (!salmon_old) counts <- read_alevin_mm(alevin_dir)
-  else counts <- tximport::tximport(quants_path, type = 'alevin')$counts
+  # read annotations
+  row.names(counts) <- readLines(file.path(count_dir, 'genes.genes.txt'))
+  colnames(counts) <- readLines(file.path(count_dir, 'genes.barcodes.txt'))
 
   return(counts)
 }
 
-get_alevin_dir <- function(data_dir, command = 'salmon') {
-  # newer salmon has different format
-  # will eventually be supported by tximport
-  salmon_version <- get_salmon_version(command)
-  salmon_old <- salmon_lt_0.14.0(salmon_version)
-
-  # import alevin quants
-  alevin_dir <- file.path(data_dir, paste0('alevin_output_', salmon_version), 'alevin')
-}
-
-#' Check if salmon version is less than 0.14.0
-#'
-#' @param salmon_version String giving salmon version
-#'
-#' @return \code{TRUE} if salmon version is less than 0.14.0, otherwise \code{FALSE}.
-#' @export
-#' @keywords internal
-#'
-#' @examples
-salmon_lt_0.14.0 <- function(salmon_version) {
-
-  # split by period and add names
-  salmon_version <- strsplit(salmon_version, '.', fixed = TRUE)[[1]]
-  names(salmon_version) <- c('major', 'minor', 'patch')
-
-  # newer salmon uses decoys in index
-  if (salmon_version['major'] == 0 & salmon_version['minor'] <= 13)
-    return(TRUE)
-
-  if (salmon_version['major'] > 0 | salmon_version['minor'] > 13)
-    return(FALSE)
-}
-
-#' Read alevin 0.14.0 quants_mat.mtx.gz output
-#'
-#' @param files path to alevin directory
-#'
-#' @return matrix of counts
-#' @export
-#' @keywords internal
-#'
-#' @examples
-read_alevin_mm <- function(alevin_dir) {
-  mat <- Matrix::readMM(file.path(alevin_dir, 'quants_mat.mtx.gz'))
-  row.names(mat) <- read.delim1(file.path(alevin_dir, 'quants_mat_rows.txt'))
-  colnames(mat) <- read.delim1(file.path(alevin_dir, 'quants_mat_cols.txt'))
-  return(mat)
-}
-
-
-#' Read alevin 0.14.0 quants_mat.gz output
-#'
-#' @param files path to quants_mat.gz files
-#'
-#' @return sparse dgTMatrix
-#' @export
-#' @keywords internal
-#'
-#' @examples
-readAlevin_sparse <- function(files) {
-  dir <- sub("/alevin$","",dirname(files))
-  barcode.file <- file.path(dir, "alevin/quants_mat_rows.txt")
-  gene.file <- file.path(dir, "alevin/quants_mat_cols.txt")
-  matrix.file <- file.path(dir, "alevin/quants_mat.gz")
-  for (f in c(barcode.file, gene.file, matrix.file)) {
-    if (!file.exists(f)) {
-      stop("expecting 'files' to point to 'quants_mat.gz' file in a directory 'alevin'
-  also containing 'quants_mat_rows.txt' and 'quant_mat_cols.txt'.
-  please re-run alevin preserving output structure")
-    }
-  }
-  cell.names <- readLines(barcode.file)
-  gene.names <- readLines(gene.file)
-  num.cells <- length(cell.names)
-  num.genes <- length(gene.names)
-
-  # mat <- matrix(nrow=num.genes, ncol=num.cells, dimnames=list(gene.names, cell.names))
-  values <- rowinds <- colinds <- c()
-  con <- gzcon(file(matrix.file, "rb"))
-
-  get_binary <- function(id) {  rev( as.integer(head(intToBits(id), 8)) ) }
-
-  pb <- utils::txtProgressBar(style = 3, max = num.cells)
-
-
-  # Version B specific support
-  num.bitvecs <- ceiling(num.genes/8)
-  for (j in seq_len(num.cells)) {
-    # read the bit vector
-    bit.vec <- readBin(con, integer(), size=1, signed=FALSE, endian = "little", n=num.bitvecs)
-
-    #iterating the bit vector
-    gene.flags <- unlist(lapply(bit.vec, get_binary))
-    num.exp.genes <- sum(gene.flags)
-
-    # read in the expression of expressed genes
-    counts <- readBin(con, double(), size=4, endian = "little", n=num.exp.genes)
-    is.exp <- which(gene.flags == 1)
-
-    if (length(counts) != length(is.exp)) browser()
-
-    values <- c(values, counts)
-    rowinds <- c(rowinds, is.exp)
-    colinds <- c(colinds, rep(j, length(is.exp)))
-
-    utils::setTxtProgressBar(pb, j)
-  }
-  in.genes <- rowinds <= num.genes
-
-  mat <- Matrix::sparseMatrix(i = rowinds[in.genes],
-                              j = colinds[in.genes],
-                              x = values[in.genes],
-                              dims = c(num.genes, num.cells),
-                              dimnames = list(gene.names, cell.names))
-
-
-  close(con)
-  mat
-}
-
-
-#' Get version of salmon from system command.
-#'
-#' @param command System command for salmon. Used to determine salmon version.
-#'
-#' @return Version of salmon.
-#' @export
-#' @keywords internal
-#'
-#' @examples
-get_salmon_version <- function(command) {
-  # possibly use older salmon with version appended to executable name
-  salmon_version <- system(paste(command, '--version'), intern = TRUE)
-  salmon_version <- gsub('^salmon ', '', salmon_version)
-  return(salmon_version)
-}
 
 #' Convert Seurat object to SingleCellExperiment
 #'
@@ -198,23 +72,16 @@ srt_to_sce <- function(srt, assay = NULL) {
 
   sce <- as.SingleCellExperiment(srt, assay)
 
-  # add qc genes as metadata
-  qcgenes <- load_scseq_qcgenes()
-  sce@metadata$mrna <- qcgenes$mrna
-  sce@metadata$rrna <- qcgenes$rrna
-
-  # Seuray assay used by prevent_integrated
-  sce@metadata$seurat_assay <- ifelse(is.null(assay), Seurat::DefaultAssay(srt), assay)
-
   # for compatibility in explore_scseq_clusters
   sce$cluster <- sce$seurat_clusters
 
   return(sce)
 }
 
+
 #' Coerce Seurat to SingleCellExperiment
 #'
-#' This exists because of bug satijalab/seurat#1626
+#' This exists because of bug satijalab/seurat#1626. Remove once release accounts for it.
 #'
 #' @param x
 #' @param assay
@@ -232,8 +99,7 @@ as.SingleCellExperiment <- function(x, assay = NULL, ...) {
 
   assays = list(
     counts = Seurat::GetAssayData(object = x, assay = assay, slot = "counts"),
-    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data"),
-    scale.data = Seurat::GetAssayData(object = x, assay = assay, slot = "scale.data")
+    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data")
   )
 
   assays <- assays[sapply(X = assays, FUN = nrow) != 0]
@@ -260,11 +126,21 @@ as.SingleCellExperiment <- function(x, assay = NULL, ...) {
 load_scseq_qcgenes <- function() {
 
   # load mito and ribo genes
-  rrna <- read.delim1(system.file('extdata', 'rrna.csv', package = 'drugseqr'))
-  mrna <- read.delim1(system.file('extdata', 'mrna.csv', package = 'drugseqr'))
+  rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr'))
+  mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr'))
 
   return(list(rrna=rrna, mrna=mrna))
 }
+
+add_qc_genes <- function(sce) {
+  # add qc genes as metadata
+  qcgenes <- load_scseq_qcgenes()
+  sce@metadata$mrna <- qcgenes$mrna
+  sce@metadata$rrna <- qcgenes$rrna
+
+  return(sce)
+}
+
 
 #' Utility wrapper to run normalization and variance stabilization
 #'
@@ -342,27 +218,17 @@ stabilize_scseq <- function(sce) {
 #' @export
 #'
 #' @examples
-qc_scseq <- function(sce) {
+add_scseq_qc_metrics <- function(sce) {
   # calculate qc metrics if haven't previous
-  if (is.null(sce$total_counts))
-    sce <- scater::calculateQCMetrics(sce,
-                                      feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
-                                                            ribo = which(row.names(sce) %in% sce@metadata$rrna)))
+  if (!is.null(sce$total_counts)) return(sce)
+
+  sce <- add_qc_genes(sce)
+  sce <- scater::calculateQCMetrics(sce,
+                                    feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
+                                                          ribo = which(row.names(sce) %in% sce@metadata$rrna)))
   return(sce)
 }
 
-
-#' Helper function to read single column text files
-#'
-#' @param file File to read from
-#'
-#' @return Character vector from \code{file}.
-#' @export
-#'
-#' @examples
-read.delim1 <- function(file) {
-  return(read.delim(file, header = FALSE, as.is = TRUE)$V1)
-}
 
 
 #' Add clusters single cell RNA-seq object
