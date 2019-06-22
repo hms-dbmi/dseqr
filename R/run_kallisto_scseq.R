@@ -13,7 +13,7 @@
 #' indices_dir <- 'data-raw/indices/kallisto'
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #'
-#' run_kallisto_scseq(data_dir, indices_dir)
+#' run_kallisto_scseq(indices_dir, data_dir)
 #'
 run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '-t 4'), species = 'homo_sapiens', release = '94') {
 
@@ -22,11 +22,22 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
 
   # make sure that have whitelist and get path
   dl_10x_whitelists(indices_dir)
-  whitepath <- get_whitepath(indices_dir, bus_args)
+  whitepath <- get_10x_whitepath(indices_dir, bus_args)
+
+  # get index_path
+  index_path <- list.files(indices_dir,
+                           pattern = paste0(species, '.GRCh38.cdna.all.release-', release, '_k31.idx'),
+                           ignore.case = TRUE, full.names = TRUE)
 
   # get CB and read fastq files
   cb_fastqs <- identify_sc_files(data_dir, 'R1')
   read_fastqs <- identify_sc_files(data_dir, 'R2')
+
+  if (length(cb_fastqs) != length(read_fastqs))
+    stop("Different number of cell-barcode and read fastqs.")
+
+  # alternate CB and read fastqs
+  fastqs <- c(rbind(cb_fastqs, read_fastqs))
 
   # run quantification
   out_dir <- file.path(data_dir, 'bus_output')
@@ -36,8 +47,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
                    '-i', index_path,
                    '-o', out_dir,
                    bus_args,
-                   cb_fastqs,
-                   read_fastqs))
+                   fastqs))
 
   # location of map from transcript names to gene names
   tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
