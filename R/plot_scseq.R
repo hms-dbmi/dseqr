@@ -3,68 +3,66 @@
 #' The groups are either \code{scseq$cluster} (default) or \code{scseq@metadata$colour_by}.
 #'
 #' @param legend_title Title for the legend. The default is \code{scseq@metadata$colour_by} with title case.
-#' @inheritParams plot_tsne_gene
+#' @param ... Additional arguments passed to \code{Seurat::DimPlot}.
+#' @inheritParams plot_umap_gene
 #'
 #' @return \code{ggplot}
 #' @export
 #'
 #' @examples
-plot_tsne_cluster <- function(scseq, legend_title = NULL, selected_groups = NULL, point_size = 3, assay.type = 'logcounts') {
-  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
+plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
+
+  cols <- get_colour_values(levels(scseq$seurat_clusters))
 
   # make selected cluster and groups stand out
-  point_alpha <- rep(1, ncol(scseq))
-  if (!is.null(selected_groups)) point_alpha[!scseq$orig.ident %in% selected_groups] <- 0.1
+  if (!is.null(selected_groups))
+    cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$orig.ident) %in% selected_groups, 1, 0.1))
 
-  colour_by <- ifelse(is.null(scseq@metadata$colour_by), 'cluster', scseq@metadata$colour_by)
-  legend_title <- ifelse(is.null(legend_title), tools::toTitleCase(colour_by), legend_title)
+  Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size) +
+    ggplot2::xlab('UMAP1') +
+    ggplot2::ylab('UMAP2') +
+    ggplot2::guides(colour=ggplot2::guide_legend(title='Cluster')) +
+    ggplot2::theme(plot.title = ggplot2::element_blank(),
+                   axis.text = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank())
 
-  cluster_plot <- scater::plotTSNE(scseq,
-                                   by_exprs_values = assay.type,
-                                   colour_by = colour_by,
-                                   point_size = point_size,
-                                   point_alpha = point_alpha,
-                                   theme_size = 14) +
-    ggplot2::guides(fill = ggplot2::guide_legend(legend_title))
-
-  return(cluster_plot)
 }
+
 
 #' Plot TSNE coloured by HGNC symbol
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
 #' @param gene Character vector specifying gene to colour cells by.
 #' @param selected_groups The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
-#' @param hide_mask A boolean vector indicating samples to hide. This is useful if you need to compare e.g. one sample to
-#' another but want to maintain the same colour range for expression values. Passing in subsets of \code{scseq} would not
-#' achieve this.
-#' @param point_size Numeric scalar, specifying the size of the points. Defaults to 3.
+#' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
 #' @inheritParams explore_scseq_clusters
 #'
 #' @return \code{ggplot}
 #' @export
 #'
 #' @examples
-plot_tsne_gene <- function(scseq, gene, selected_groups = NULL, hide_mask = NULL, assay.type = 'logcounts', point_size = 3) {
-  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
-
+plot_umap_gene <- function(scseq, gene, selected_groups = NULL, pt.size = 3) {
 
   # make selected groups stand out
-  point_alpha <- rep(1, ncol(scseq))
-  if (!is.null(selected_groups)) point_alpha[!scseq$orig.ident %in% selected_groups] <- 0
-  if (!is.null(hide_mask)) point_alpha[hide_mask] <- 0
+  cells <- NULL
+  if (!is.null(cells))
+    cells <- colnames(scseq)[scseq$orig.ident %in% selected_groups]
 
-  # make sure not all zero for gene (otherwise all black)
-  scseq@assays$data[[assay.type]][gene, ] <- scseq@assays$data$logcounts[gene, ] +
-    runif(ncol(scseq), min=0.00001, max=0.0001)
+  gene_plot <- Seurat::FeaturePlot(scseq,
+                                   gene,
+                                   cells = cells,
+                                   cols = c('lightgray', 'red'),
+                                   reduction = 'umap',
+                                   order = TRUE,
+                                   pt.size = pt.size) +
+    ggplot2::xlab('UMAP1') +
+    ggplot2::ylab('UMAP2') +
+    ggplot2::theme(plot.title = ggplot2::element_blank(),
+                   axis.text = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank())
 
-  suppressMessages(scater::plotTSNE(scseq,
-                                    by_exprs_values = assay.type,
-                                    colour_by = gene,
-                                    point_size = point_size,
-                                    point_alpha = point_alpha,
-                                    theme_size = 14) +
-                     ggplot2::scale_fill_distiller(palette = 'Reds', name = gene, direction = 1))
+  gene_plot$labels$colour <- gene
+  return(gene_plot)
 
 }
 

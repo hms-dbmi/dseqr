@@ -9,28 +9,30 @@
 #'
 #' @examples
 scale_fill_names <- function(levs) {
-  nlevs <- length(levs)
-  if (nlevs <= 10) {
-    values <- head(.get_palette("tableau10medium"), nlevs)
-    names(values) <- levs
-
-  } else {
-    if (nlevs <= 20) {
-      values <- head(.get_palette("tableau20"), nlevs)
-      names(values) <- levs
-
-    } else {
-      values <- viridisLite::cividis(nlevs)
-      names(values) <- levs
-    }
-  }
-
+  values <- get_colour_values(levs)
+  names(values) <- levs
   plot_scale <- ggplot2::scale_fill_manual(values = values)
   return(plot_scale)
 }
 
+get_colour_values <- function(levs) {
+  nlevs <- length(levs)
+  if (nlevs <= 10) {
+    values <- head(get_palette("tableau10medium"), nlevs)
+
+  } else {
+    if (nlevs <= 20) {
+      values <- head(get_palette("tableau20"), nlevs)
+
+    } else {
+      values <- viridisLite::cividis(nlevs)
+    }
+  }
+  return(values)
+}
+
 # Function to define color palettes.
-.get_palette <- function(palette_name) {
+get_palette <- function(palette_name) {
   switch(palette_name,
          tableau20 = c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C",
                        "#98DF8A", "#D62728", "#FF9896", "#9467BD", "#C5B0D5",

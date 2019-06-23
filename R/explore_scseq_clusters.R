@@ -34,10 +34,6 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
   if (is.null(markers))
     markers <- get_scseq_markers(scseq, assay.type)
 
-  # plots all based on SingleCellExperiment
-  # use non-integrated but corrected assay for marker gene plots
-  sce <- srt_to_sce(scseq, "SCT")
-
   # name cluster choices for drop down
   cluster_choices <- names(markers)
   names(cluster_choices) <- paste('Cluster', names(markers))
@@ -50,7 +46,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   ui <- miniUI::miniPage(
     shiny::tags$head(
-      shiny::tags$style("#genecards {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -6px;}"),
+      shiny::tags$style("#genecards {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -8px; margin-top: -26px}"),
       shiny::tags$style("button.btn.btn-default.dropdown-toggle {background-color: transparent !important;border-top-right-radius: 0; border-bottom-right-radius: 0}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
@@ -62,7 +58,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
                       shiny::selectizeInput("contrast_cluster", 'In comparison to:', choices = NULL, width = '291.5px'),
                       shiny::br(),
                       shiny::tags$div(
-                        shiny::tags$div(style = "display:inline-block;", id='gene-container', shinyWidgets::pickerInput('gene', 'Show expression for:', choices = NULL, width = '250px', options = shinyWidgets::pickerOptions(liveSearch = TRUE))),
+                        shiny::tags$div(style = "display:inline-block;", id='gene-container',
+                                        shiny::selectizeInput('gene', 'Show expression for:', choices = NULL, width = '250px')
+                                        ),
                         shinyBS::bsButton('genecards', label = '', icon = shiny::icon('external-link-alt', 'fa-fw'), style='default', title = 'Go to GeneCards')
                       )
         ),
@@ -90,7 +88,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
     # used to determine available groups to show (e.g. ctrl and test)
     available_groups_r <- shiny::reactive({
-      groups <- unique(as.character(sce$orig.ident))
+      groups <- unique(as.character(scseq$orig.ident))
       return(groups)
     })
 
@@ -111,6 +109,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
       return(contrast_choices)
     })
 
+
     # change cluster to compare against
     shiny::observeEvent(input$contrast_cluster, {
 
@@ -126,7 +125,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
           markers[[contrast]] <<- get_scseq_markers(scseq, ident.1 = id1, ident.2 = id2)
       }
 
-      shinyWidgets::updatePickerInput(session, 'gene', choices = row.names(markers[[contrast]]))
+      cluster_markers <- markers[[contrast]]
+      choices <- row.names(cluster_markers)
+      shiny::updateSelectizeInput(session, 'gene', choices = choices, server = TRUE)
     })
 
 
@@ -134,7 +135,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     shiny::observe({
       cluster_markers <- markers[[input$selected_cluster]]
       choices <- row.names(cluster_markers)
-      shinyWidgets::updatePickerInput(session, 'gene', choices = choices)
+      shiny::updateSelectizeInput(session, 'gene', choices = choices, server = TRUE)
 
       # reset contrast selections
       shiny::updateSelectizeInput(session, 'contrast_cluster', choices = contrast_choices_r())
@@ -161,15 +162,15 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # plots ------
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
-      if (is.null(input$gene)) return(NULL)
-      plot_tsne_gene(sce, input$gene,selected_groups = selected_groups_r(), assay.type = assay.type)
+      if (input$gene == '') return(NULL)
+      plot_umap_gene(scseq, input$gene, selected_groups = selected_groups_r())
     })
 
 
     # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
       legend_title <-'Cluster'
-      plot_tsne_cluster(sce, legend_title, selected_groups_r())
+      plot_umap_cluster(scseq, selected_groups_r())
     })
 
 

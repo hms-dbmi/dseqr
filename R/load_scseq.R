@@ -349,10 +349,10 @@ exist_clusters <- function(scseq) {
   return(exist_clusters)
 }
 
-#' Run TSNE for visualizing single cell data.
+#' Run UMAP for visualizing single cell data.
 #'
-#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scater::runTSNE}.
-#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::RunTSNE}.
+#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scater::runUMAP}.
+#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::RunUMAP}.
 #'
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
 #'
@@ -360,14 +360,14 @@ exist_clusters <- function(scseq) {
 #' @export
 #'
 #' @examples
-run_tsne <- function(scseq, perplexity = 30) {
+run_umap <- function(scseq) {
 
   set.seed(1000)
   if (class(scseq) == 'SingleCellExperiment') {
-    scseq <- scater::runTSNE(scseq, use_dimred="PCA")
+    scseq <- scater::runUMAP(scseq, use_dimred="PCA")
 
   } else if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::RunTSNE(scseq, dims = 1:30, perplexity = perplexity, verbose = FALSE)
+    scseq <- Seurat::RunUMAP(scseq, dims = 1:30, verbose = FALSE)
 
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')
