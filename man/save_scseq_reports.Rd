@@ -4,7 +4,7 @@
 \alias{save_scseq_reports}
 \title{Save PDF of scRNA-seq reports}
 \usage{
-save_scseq_reports(scseq, markers, fname, point_size = 3)
+save_scseq_reports(scseq, markers, fname, pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
@@ -14,7 +14,7 @@ clusters that reports will be generated for in order.}
 
 \item{fname}{String giving the name of the PDF file to save.}
 
-\item{point_size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
+\item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
 \value{
 Saves report to \code{fname}.

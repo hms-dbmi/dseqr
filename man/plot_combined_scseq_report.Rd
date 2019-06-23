@@ -7,7 +7,7 @@
 plot_combined_scseq_report(scseq, markers, point_size = 3)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment}.}
+\item{scseq}{\code{Seurat} object.}
 
 \item{markers}{Named list with a single character vector specifying the marker genes to plot.
 The name is the cluster that will be highlighted.}

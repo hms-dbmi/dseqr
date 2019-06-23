@@ -1,8 +1,5 @@
-#' Plot TSNE coloured by cluster
+#' Plot UMAP coloured by cluster
 #'
-#' The groups are either \code{scseq$cluster} (default) or \code{scseq@metadata$colour_by}.
-#'
-#' @param legend_title Title for the legend. The default is \code{scseq@metadata$colour_by} with title case.
 #' @param ... Additional arguments passed to \code{Seurat::DimPlot}.
 #' @inheritParams plot_umap_gene
 #'
@@ -29,9 +26,9 @@ plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
 }
 
 
-#' Plot TSNE coloured by HGNC symbol
+#' Plot UMAP coloured by HGNC symbol
 #'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat}.
+#' @param scseq \code{Seurat}.
 #' @param gene Character vector specifying gene to colour cells by.
 #' @param selected_groups The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
 #' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.

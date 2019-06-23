@@ -15,8 +15,6 @@ each sample. This permits visualizing how integration shift the TSNE coordinates
 clusters that reports will be generated for in order.}
 
 \item{fname}{String giving the name of the PDF file to save.}
-
-\item{point_size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
 \value{
 Saves report to \code{fname}.
