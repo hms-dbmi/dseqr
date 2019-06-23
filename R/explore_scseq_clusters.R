@@ -46,8 +46,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
 
   ui <- miniUI::miniPage(
     shiny::tags$head(
-      shiny::tags$style("#genecards {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -8px; margin-top: -26px}"),
-      shiny::tags$style("button.btn.btn-default.dropdown-toggle {background-color: transparent !important;border-top-right-radius: 0; border-bottom-right-radius: 0}")
+      shiny::tags$style("#genecards {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -8px; margin-top: -26px;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters"),
     miniUI::miniContentPanel(
@@ -59,8 +58,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
                       shiny::br(),
                       shiny::tags$div(
                         shiny::tags$div(style = "display:inline-block;", id='gene-container',
-                                        shiny::selectizeInput('gene', 'Show expression for:', choices = NULL, width = '250px')
-                                        ),
+                                        shiny::selectizeInput('gene', 'Show expression for:', choices = NULL, width = '250px')),
                         shinyBS::bsButton('genecards', label = '', icon = shiny::icon('external-link-alt', 'fa-fw'), style='default', title = 'Go to GeneCards')
                       )
         ),
@@ -125,21 +123,27 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
           markers[[contrast]] <<- get_scseq_markers(scseq, ident.1 = id1, ident.2 = id2)
       }
 
+      # update markers genes
       cluster_markers <- markers[[contrast]]
       choices <- row.names(cluster_markers)
+      choices <- c(choices, setdiff(row.names(scseq), choices))
+
       shiny::updateSelectizeInput(session, 'gene', choices = choices, server = TRUE)
     })
+
+
 
 
     # update marker genes based on cluster selection -----
     shiny::observe({
       cluster_markers <- markers[[input$selected_cluster]]
       choices <- row.names(cluster_markers)
+      choices <- c(choices, setdiff(row.names(scseq), choices))
+
       shiny::updateSelectizeInput(session, 'gene', choices = choices, server = TRUE)
 
       # reset contrast selections
       shiny::updateSelectizeInput(session, 'contrast_cluster', choices = contrast_choices_r())
-
     })
 
 
