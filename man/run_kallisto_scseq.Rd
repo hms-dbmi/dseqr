@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_kallisto_scseq.R
 \name{run_kallisto_scseq}
 \alias{run_kallisto_scseq}
-\title{Run kallisto/bustools for quantifying scRNA-seq}
+\title{Run kallisto/bustools for quantifying 10X scRNA-seq data}
 \usage{
 run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
   "-t 4"), species = "homo_sapiens", release = "94")
@@ -10,7 +10,7 @@ run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
 \arguments{
 \item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}
 
-\item{data_dir}{Path to folder with fastq.gz scRNA-seq files}
+\item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
 
 \item{bus_args}{Character vector of arguments to bustools.}
 
@@ -20,7 +20,7 @@ run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
 needs to match with \code{\link{build_ensdb}}).}
 }
 \description{
-Run kallisto/bustools for quantifying scRNA-seq
+Run kallisto/bustools for quantifying 10X scRNA-seq data
 }
 \examples{
 

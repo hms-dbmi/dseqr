@@ -4,7 +4,7 @@
 \alias{run_tsne}
 \title{Run TSNE for visualizing single cell data.}
 \usage{
-run_tsne(scseq)
+run_tsne(scseq, perplexity = 30)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object.}

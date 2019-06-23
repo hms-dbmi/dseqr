@@ -20,18 +20,20 @@ Explore Single Cell Clusters
 }
 \examples{
 
-# import alevin quants
+# import kallisto quants
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-scseq <- load_scseq(data_dir, type = 'Seurat')
+scseq <- load_scseq(data_dir)
 
-# subset by alevin whitelist norm/stabilize using good cell only
+# subset by whitelist norm/stabilize using good cell only
 scseq <- scseq[, scseq$whitelist]
 scseq <- preprocess_scseq(scseq)
 
 # get clusters and run tSNE
-scseq <- add_scseq_clusters(scseq)
+scseq <- add_scseq_clusters(scseq, resolution = 1.6)
 scseq <- run_tsne(scseq)
 
-explore_scseq_clusters(scseq)
+markers <- get_scseq_markers(scseq)
+
+explore_scseq_clusters(scseq, markers)
 
 }

@@ -4,7 +4,7 @@
 \alias{get_scseq_whitelist}
 \title{Get whitelist for high quality cells}
 \usage{
-get_scseq_whitelist(counts, data_dir)
+get_scseq_whitelist(counts, data_dir, overwrite = FALSE)
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}

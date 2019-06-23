@@ -41,6 +41,7 @@ build_kallisto_index <- function(indices_dir, species = 'homo_sapiens', release 
 
   # build index
   index_fname <- gsub('fa.gz$', paste0(ensembl_release, '_k31.idx'), ensembl_fasta)
+  index_fname <- tolower(index_fname)
   tryCatch(system2('kallisto', args=c('index',
                                    '-i', index_fname,
                                    ensembl_fasta)),

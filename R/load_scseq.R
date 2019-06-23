@@ -34,6 +34,7 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
   }
 }
 
+
 #' Read kallisto/bustools market matrix and annotations
 #'
 #'
@@ -166,8 +167,6 @@ preprocess_scseq <- function(scseq) {
   }
 
   if (class(scseq) == 'Seurat') {
-    # alevin has non-integer values that sctransform turns to Inf
-    scseq <- Seurat::SetAssayData(scseq, 'counts', round(Seurat::GetAssayData(scseq, 'counts')))
     scseq <- Seurat::SCTransform(scseq, verbose = FALSE, return.only.var.genes = FALSE)
 
   } else {
@@ -299,8 +298,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
-      markers <- list()
-      markers[[ident.1]] <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
+      markers <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
 
     } else {
       markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = TRUE)
@@ -362,14 +360,14 @@ exist_clusters <- function(scseq) {
 #' @export
 #'
 #' @examples
-run_tsne <- function(scseq) {
+run_tsne <- function(scseq, perplexity = 30) {
 
   set.seed(1000)
   if (class(scseq) == 'SingleCellExperiment') {
     scseq <- scater::runTSNE(scseq, use_dimred="PCA")
 
   } else if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::RunTSNE(scseq, dims = 1:30, verbose = FALSE)
+    scseq <- Seurat::RunTSNE(scseq, dims = 1:30, perplexity = perplexity, verbose = FALSE)
 
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')

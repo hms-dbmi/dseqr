@@ -7,7 +7,7 @@
 identify_sc_files(data_dir, read_type = "R1")
 }
 \arguments{
-\item{data_dir}{Path to folder with fastq.gz scRNA-seq files}
+\item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
 
 \item{read_type}{One of \code{'R1'} or \code{'R2'} for CB+UMI and read sequences respectively.}
 }

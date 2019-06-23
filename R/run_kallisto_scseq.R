@@ -1,7 +1,7 @@
-#' Run kallisto/bustools for quantifying scRNA-seq
+#' Run kallisto/bustools for quantifying 10X scRNA-seq data
 #'
 #' @param indices_dir Directory with kallisto indices. See \code{\link{build_kallisto_index}}.
-#' @param data_dir Path to folder with fastq.gz scRNA-seq files
+#' @param data_dir Path to folder with 10X fastq.gz scRNA-seq files
 #' @param bus_args Character vector of arguments to bustools.
 #' @inheritParams build_kallisto_index
 #'
@@ -17,17 +17,12 @@
 #'
 run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '-t 4'), species = 'homo_sapiens', release = '94') {
 
-  # only 10x currently implemented
-  detect_sc_method(data_dir)
-
   # make sure that have whitelist and get path
   dl_10x_whitelists(indices_dir)
   whitepath <- get_10x_whitepath(indices_dir, bus_args)
 
   # get index_path
-  index_path <- list.files(indices_dir,
-                           pattern = paste0(species, '.GRCh38.cdna.all.release-', release, '_k31.idx'),
-                           ignore.case = TRUE, full.names = TRUE)
+  index_path <- file.path(indices_dir, paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
 
   # get CB and read fastq files
   cb_fastqs <- identify_sc_files(data_dir, 'R1')
@@ -119,24 +114,6 @@ dl_10x_whitelists <- function(indices_dir) {
       system2('wget', args=c('--output-document', whitelist_paths[i],
                              whilelist_urls[i]))
   }
-}
-
-#' Determine Method used for Single Cell RNA Seq
-#'
-#' Currently just looks for 10X data.
-#'
-#' @inheritParams run_kallisto_scseq
-#'
-#' @return Character vector of detected method.
-#' @export
-#'
-#' @examples
-detect_sc_method <- function(data_dir) {
-  fastq_paths <- list.files(data_dir, '.fastq.gz', full.names = TRUE)
-  is_10x <- any(grepl('10X', fastq_paths))
-
-  if (!is_10x) stop('only 10X implemented - 10X should be somewhere in the fastq.gz file name or path')
-  return('10X')
 }
 
 #' Get 10X FastQ paths for a read type and sort by increasing lane number

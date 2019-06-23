@@ -9,7 +9,7 @@
 #' @keywords internal
 #'
 #' @examples
-get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE) {
+get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 
   # check for previous whitelist
   whitelist_path <- file.path(data_dir, 'bus_output', 'whitelist.txt')
