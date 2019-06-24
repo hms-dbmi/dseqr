@@ -14,6 +14,7 @@ save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 
   # put levels in order of markers
   scseq$seurat_clusters <- factor(scseq$seurat_clusters, levels = names(markers))
+  Seurat::Idents(scseq) <- 'seurat_clusters'
 
   pdf(file = fname, paper = 'US', width = 8.50, height = 11.0, title = 'cluster markers')
   for (i in seq_along(markers)) {
@@ -36,6 +37,7 @@ save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 #'
 #' @examples
 plot_scseq_report <- function(scseq, markers, pt.size = 3) {
+
   selected_group <- names(markers)
   genes <- markers[[1]]
 
