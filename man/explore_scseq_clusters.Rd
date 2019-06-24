@@ -4,16 +4,13 @@
 \alias{explore_scseq_clusters}
 \title{Explore Single Cell Clusters}
 \usage{
-explore_scseq_clusters(scseq, markers = NULL, assay.type = "logcounts")
+explore_scseq_clusters(scseq, markers = NULL, pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
 
 \item{markers}{Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
 with the same name as the cluster.}
-
-\item{assay.type}{The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
-object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.}
 }
 \description{
 Explore Single Cell Clusters

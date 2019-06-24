@@ -1,36 +1,24 @@
 library(Seurat)
 library(drugseqr)
 
-run_scseq_anal <- function(data_dir, project, resolution = 0.8) {
-    scseq.full <- load_scseq(data_dir, project = project)
-
-    # qc plots
-    hist_scseq_whitelist(scseq.full)
-    # run sctransform
-    scseq.full <- preprocess_scseq(scseq.full)
-    tsne_scseq_whitelist(scseq.full)
-
-    # subset by alevin whitelist
-    scseq <- scseq.full[, scseq.full$whitelist]
-    scseq <- preprocess_scseq(scseq)
-
-    # add clusters
-    scseq <- add_scseq_clusters(scseq, resolution = resolution)
-
-    # run tnse
-    scseq <- run_tsne(scseq)
-    return(scseq)
-}
 
 # control lung analysis ----
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-ctrl_scseq <- run_scseq_anal(ctrl_dir, project = 'ctrl', resolution = 1.6)
+ctrl_scseq <- load_scseq(ctrl_dir, project = 'ctrl')
+ctrl_scseq <- ctrl_scseq[, ctrl_scseq$whitelist]
+ctrl_scseq <- preprocess_scseq(ctrl_scseq)
+
+# add clusters and run tsne
+ctrl_scseq <- add_scseq_clusters(ctrl_scseq, resolution = 1.6)
+ctrl_scseq <- run_tsne(ctrl_scseq)
+
+# get markers
 ctrl_markers <- get_scseq_markers(ctrl_scseq)
 ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers)
-saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/ctrl_anal.rds')
+# saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/ctrl_anal.rds')
 
 
-ctrl_anal <- readRDS('data-raw/single-cell/example-data/ctrl_anal.rds')
+# ctrl_anal <- readRDS('data-raw/single-cell/example-data/ctrl_anal.rds')
 explore_scseq_clusters(ctrl_anal$scseq, ctrl_anal$markers)
 
 
@@ -62,17 +50,26 @@ save_scseq_reports(ctrl_anal$scseq, markers = ctrl_markers, point_size = 3,
 
 # test lung analysis -----
 test_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-test_scseq <- run_scseq_anal(test_dir, 'test')
+test_scseq <- load_scseq(test_dir, project = 'test')
+test_scseq <- test_scseq[, test_scseq$whitelist]
+test_scseq <- preprocess_scseq(test_scseq)
+
+# add clusters and run tsne
+test_scseq <- add_scseq_clusters(test_scseq)
+test_scseq <- run_umap(test_scseq)
+test_scseq <- jitter_umap(test_scseq)
+
+# get markers
 test_markers <- get_scseq_markers(test_scseq)
 test_anal <- list(scseq = test_scseq, markers = test_markers)
-saveRDS(test_anal, 'data-raw/single-cell/example-data/test_anal.rds')
+# saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/test_anal.rds')
 
-test_anal <- readRDS('data-raw/single-cell/example-data/test_anal.rds')
+# test_anal <- readRDS('data-raw/single-cell/example-data/test_anal.rds')
 explore_scseq_clusters(test_anal$scseq, test_anal$markers)
 
 # Diseased Annotations
 # put in order that want reports to appear
-test_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'IFI30', 'LST1'),
+test_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'CTSL', 'MARCO'),
                      'Macrophages#2'         = c('FGL2','FCN1', 'S100A9', 'S100A8'),
                      'T-cells'               = c('IL7R', 'CD3E', 'CD3D'),
                      'Endothelial'           = c('CLEC14A', 'VWF', 'EMCN', 'CLDN5'),

@@ -3,8 +3,6 @@
 #' @param scseq \code{SingleCellExperiment} or \code{Seurat} object
 #' @param markers Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
 #'  with the same name as the cluster.
-#' @param assay.type The assay data that gets used by \code{\link[scater]{plotTSNE}}. If \code{scseq} is a \code{Seurat}
-#' object then the default ('logcounts') will be from the \code{data} slot of the \code{Seurat::DefaultAssay}.
 #'
 #' @return NULL
 #' @export
@@ -28,11 +26,11 @@
 #' explore_scseq_clusters(scseq, markers)
 #'
 
-explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcounts') {
+explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
 
   # setup ----
   if (is.null(markers))
-    markers <- get_scseq_markers(scseq, assay.type)
+    markers <- get_scseq_markers(scseq)
 
   # name cluster choices for drop down
   cluster_choices <- names(markers)
@@ -167,14 +165,14 @@ explore_scseq_clusters <- function(scseq, markers = NULL, assay.type = 'logcount
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
       if (input$gene == '') return(NULL)
-      plot_umap_gene(scseq, input$gene, selected_groups = selected_groups_r())
+      plot_umap_gene(scseq, input$gene, selected_groups = selected_groups_r(), pt.size = pt.size)
     })
 
 
     # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
       legend_title <-'Cluster'
-      plot_umap_cluster(scseq, selected_groups_r())
+      plot_umap_cluster(scseq, selected_groups_r(), pt.size = pt.size)
     })
 
 

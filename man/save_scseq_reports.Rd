@@ -7,7 +7,7 @@
 save_scseq_reports(scseq, markers, fname, pt.size = 3)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} or \code{Seurat}.}
+\item{scseq}{\code{Seurat}.}
 
 \item{markers}{Named list of character vectors specifying the marker genes to plot for each cluster. The names are the
 clusters that reports will be generated for in order.}

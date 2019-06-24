@@ -376,5 +376,19 @@ run_umap <- function(scseq) {
   return(scseq)
 }
 
+#' Add jitter to UMAP embeddings
+#'
+#' @param scseq \code{Seurat} object with umap reduction
+#' @inheritParams jitter
+#'
+#' @return \code{scseq} with jitter added to umap embedding
+#' @export
+#'
+#' @examples
+jitter_umap <- function(scseq, factor = 1, amount = 0) {
+  scseq[['umap']]@cell.embeddings <-
+    apply(scseq[['umap']]@cell.embeddings, 2, jitter, factor, amount)
 
+  return(scseq)
+}
 

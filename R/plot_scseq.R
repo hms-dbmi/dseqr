@@ -15,15 +15,16 @@ plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
   if (!is.null(selected_groups))
     cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$orig.ident) %in% selected_groups, 1, 0.1))
 
-  Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size) +
-    ggplot2::xlab('UMAP1') +
-    ggplot2::ylab('UMAP2') +
-    ggplot2::guides(colour=ggplot2::guide_legend(title='Cluster')) +
-    ggplot2::theme(plot.title = ggplot2::element_blank(),
-                   axis.text = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank())
+  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size) +
+    theme_no_xaxis() + theme_no_yaxis()
+    ggplot2::guides(colour=ggplot2::guide_legend(title='Cluster'))
+
+  return(cluster_plot)
 
 }
+
+
+
 
 
 #' Plot UMAP coloured by HGNC symbol
@@ -45,18 +46,10 @@ plot_umap_gene <- function(scseq, gene, selected_groups = NULL, pt.size = 3) {
   if (!is.null(cells))
     cells <- colnames(scseq)[scseq$orig.ident %in% selected_groups]
 
-  gene_plot <- Seurat::FeaturePlot(scseq,
-                                   gene,
-                                   cells = cells,
-                                   cols = c('lightgray', 'red'),
-                                   reduction = 'umap',
-                                   order = TRUE,
-                                   pt.size = pt.size) +
-    ggplot2::xlab('UMAP1') +
-    ggplot2::ylab('UMAP2') +
-    ggplot2::theme(plot.title = ggplot2::element_blank(),
-                   axis.text = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank())
+  gene_plot <- Seurat::FeaturePlot(scseq, gene, cells = cells, reduction = 'umap', order = TRUE, pt.size = pt.size) +
+    theme_no_xaxis() +
+    theme_no_yaxis() +
+    ggplot2::theme(plot.title = ggplot2::element_blank())
 
   gene_plot$labels$colour <- gene
   return(gene_plot)
