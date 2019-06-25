@@ -36,7 +36,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
   cluster_choices <- names(markers)
   names(cluster_choices) <- paste('Cluster', names(markers))
 
-  # placeholder for default cluster to compare to
+  test_cluster <- NULL
 
   #  user interface ----
 
@@ -102,6 +102,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
 
     # update cluster choices based on show_contrasts toggle
     cluster_choices_r <- shiny::eventReactive(input$show_contrasts, {
+
       if (input$show_contrasts) {
         # cluster choices are as compared to other clusters
         test <- input$selected_cluster
@@ -110,9 +111,12 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
         contrast_choices <- c(test, paste0(test, '-', ctrls))
         names(contrast_choices) <- paste('Cluster', test, 'vs', c('all', ctrls))
 
+        # update global so that can return to same cluster when toggle back
+        test_cluster <<- test
+
       } else {
         # cluster choices are the clusters themselves
-        contrast_choices <- cluster_choices
+        contrast_choices  <- cluster_choices
       }
 
       # update icon on toggle
@@ -124,7 +128,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
 
     # update cluster choices
     shiny::observe({
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = cluster_choices_r())
+      # when first hit toggle, selected contrast doesn't change
+      shiny::updateSelectizeInput(session, 'selected_cluster', choices = cluster_choices_r(), selected = test_cluster)
     })
 
 
