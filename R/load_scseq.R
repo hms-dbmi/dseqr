@@ -331,6 +331,27 @@ integrate_scseq <- function(scseqs) {
   return(combined)
 }
 
+#' Get predicted cells types for a query dataset based on a reference dataset
+#'
+#' @param reference \code{Seurat} object to use as a reference
+#' @param query \code{Seurat} object to obtain predictions for
+#'
+#' @return \code{data.frame} with predictions
+#' @export
+#'
+#' @examples
+transfer_labels <- function(reference, query) {
+
+  k.filter <- min(201, ncol(reference), ncol(query))-1
+
+  anchors <- Seurat::FindTransferAnchors(reference, query, k.filter = k.filter)
+  predictions <- Seurat::TransferData(anchorset = anchors,
+                                      refdata = reference$seurat_clusters,
+                                      dims = 1:30)
+
+  return(predictions)
+}
+
 
 #' Test is there is at lest two clusters
 #'
@@ -382,7 +403,7 @@ run_umap <- function(scseq) {
 #' Add jitter to UMAP embeddings
 #'
 #' @param scseq \code{Seurat} object with umap reduction
-#' @inheritParams jitter
+#' @inheritParams base::jitter
 #'
 #' @return \code{scseq} with jitter added to umap embedding
 #' @export
