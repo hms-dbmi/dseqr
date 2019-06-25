@@ -42,16 +42,18 @@ cluster_markers <- list('B-cells#1'       = c('IGHD', 'TNFRSF13C', 'MS4A1'),
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-cell_ids <- c('B-cells#1',
-              'T-cells',
-              'Monocytes',
-              'B-cells#2',
-              'NK-cells',
-              'Pre B-cells',
-              'Dendritic Cells',
-              'Erythroid')
+annot <- c('B-cells#1',
+           'T-cells',
+           'Monocytes',
+           'B-cells#2',
+           'NK-cells',
+           'Pre B-cells',
+           'Dendritic Cells',
+           'Erythroid')
 
+anal$annot <- annot
+saveRDS(anal, 'data-raw/single-cell/example-data/bm_anal.rds')
 
-levels(anal$scseq$seurat_clusters) <- cell_ids
+levels(anal$scseq$seurat_clusters) <- annot
 save_scseq_reports(anal$scseq, markers = cluster_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/bm_sjia_markers.pdf')

@@ -103,8 +103,11 @@ combined <- add_scseq_clusters(combined)
 combined <- run_umap(combined)
 markers <- get_scseq_markers(combined)
 
+anal <- list(scseq = combined, markers = markers)
+saveRDS(anal, 'data-raw/single-cell/example-data/sjia_blood1&2.rds')
+
 # look at how integration changes cell groupings
-explore_scseq_clusters(combined, markers)
+explore_scseq_clusters(anal$scseq, anal$markers)
 
 cluster_markers <- list('NK-cells'    = c('GZMA', 'PRF1', 'CD247'),
                         'Monocytes'   = c('NCF2', 'CLEC7A', 'C5AR1', 'AIF1'),
@@ -112,7 +115,9 @@ cluster_markers <- list('NK-cells'    = c('GZMA', 'PRF1', 'CD247'),
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-cell_ids <- c('NK-cells', 'Monocytes', 'B-cells')
+annot <- c('NK-cells', 'Monocytes', 'B-cells')
+anal$annot <- annot
+saveRDS(anal, 'data-raw/single-cell/example-data/sjia_blood1&2.rds')
 
 levels(combined$seurat_clusters) <- cell_ids
 

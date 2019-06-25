@@ -9,42 +9,39 @@ ctrl_scseq <- ctrl_scseq[, ctrl_scseq$whitelist]
 ctrl_scseq <- preprocess_scseq(ctrl_scseq)
 
 # add clusters and run tsne
-ctrl_scseq <- add_scseq_clusters(ctrl_scseq, resolution = 1.6)
-ctrl_scseq <- run_tsne(ctrl_scseq)
+ctrl_scseq <- add_scseq_clusters(ctrl_scseq, resolution = 1.4)
+ctrl_scseq <- run_umap(ctrl_scseq)
 
 # get markers
 ctrl_markers <- get_scseq_markers(ctrl_scseq)
 ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers)
-# saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/ctrl_anal.rds')
+saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/ctrl_lung_anal.rds')
 
 
-# ctrl_anal <- readRDS('data-raw/single-cell/example-data/ctrl_anal.rds')
+ctrl_anal <- readRDS('data-raw/single-cell/example-data/ctrl_lung_anal.rds')
 explore_scseq_clusters(ctrl_anal$scseq, ctrl_anal$markers)
 
 
 # Normal Annotations
 # put in order that want reports to appear
-ctrl_markers <- list('Macrophages#1'         = c('TNFSF13', 'ADAMTSL4', 'TREM1'),
-                     'Macrophages#2'         = c('FGL2', 'CFP', 'MPEG1', 'TLR2'),
+ctrl_markers <- list('Macrophages#1'         = c('PTAFR', 'CD68', 'APOC1'),
+                     'Macrophages#2'         = c('FGL2', 'CFP', 'MPEG1'),
                      'T-cells'               = c('CD3E', 'CD3D', 'IL2RG', 'TRBC2'),
-                     'Endothelial'           = c('ROBO4', 'PODXL', 'RAMP3', 'ACVRL1'),
-                     'Alveolar Epithelium#1' = c('NKX2-1', 'SFTA2', 'EMP2', 'KRT19'),
-                     'Alveolar Epithelium#2' = c('IRX3', 'SCGB3A1', 'ALPL'),
+                     'Alveolar Epithelium'   = c('NKX2-1', 'SFTA2', 'EMP2', 'KRT19'),
                      'RBCs'                  = c('HBA1', 'HBA2', 'HBB'))
 
 # rename based on identification and save reports
 # need to be in same order as clusters
 ctrl_annot <- c('T-cells',
                 'RBCs',
-                'Alveolar Epithelium#1',
+                'Alveolar Epithelium',
                 'RBCs',
                 'Macrophages#1',
                 'Macrophages#2',
-                'Endothelial',
-                'Alveolar Epithelium#2')
+                '?')
 
 levels(ctrl_anal$scseq$seurat_clusters) <- ctrl_annot
-save_scseq_reports(ctrl_anal$scseq, markers = ctrl_markers, point_size = 3,
+save_scseq_reports(ctrl_anal$scseq, markers = ctrl_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/lung_normal_markers.pdf')
 
 
@@ -58,13 +55,14 @@ test_scseq <- preprocess_scseq(test_scseq)
 test_scseq <- add_scseq_clusters(test_scseq)
 test_scseq <- run_umap(test_scseq)
 test_scseq <- jitter_umap(test_scseq)
+test_scseq <- jitter_umap(test_scseq)
 
 # get markers
 test_markers <- get_scseq_markers(test_scseq)
 test_anal <- list(scseq = test_scseq, markers = test_markers)
-# saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/test_anal.rds')
+saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
 
-# test_anal <- readRDS('data-raw/single-cell/example-data/test_anal.rds')
+test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
 explore_scseq_clusters(test_anal$scseq, test_anal$markers)
 
 # Diseased Annotations
@@ -72,11 +70,12 @@ explore_scseq_clusters(test_anal$scseq, test_anal$markers)
 test_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'CTSL', 'MARCO'),
                      'Macrophages#2'         = c('FGL2','FCN1', 'S100A9', 'S100A8'),
                      'T-cells'               = c('IL7R', 'CD3E', 'CD3D'),
-                     'Endothelial'           = c('CLEC14A', 'VWF', 'EMCN', 'CLDN5'),
-                     'Alveolar Epithelium#1' = c('NKX2-1', 'SFTPB', 'SFTPA2', 'SLPI'),
                      'NK-cells'              = c('GZMH', 'GZMA', 'CCL4'),
+                     'Endothelial'           = c('CLEC14A', 'VWF', 'EMCN', 'CLDN5'),
+                     'Alveolar Epithelium'   = c('NKX2-1', 'SFTPB', 'SFTPA2', 'SLPI'),
                      'Mast cells'            = c('MS4A2', 'CPA3', 'TPSAB1', 'HPGDS'),
-                     'B-cells'               = c('CD79A', 'IGKC', 'MZB1'),
+                     'B-cells#1'             = c('IGHG1', 'IGHG3', 'CD79A'),
+                     'B-cells#2'             = c('JCHAIN', 'IGHD', 'SLITRK5'),
                      'SMC/Adipocyte'         = c('COL1A2', 'COL3A1', 'COL6A2', 'PCOLCE'),
                      'Respiratory Cilia'     = c('PIFO', 'RSPH1', 'SNTN', 'RSPH4A'))
 
@@ -87,34 +86,37 @@ test_markers <- list('Macrophages#1'         = c('CD68', 'MRC1', 'CTSL', 'MARCO'
 test_annot <- c('Macrophages#1',
                 'T-cells',
                 'NK-cells',
-                'Alveolar Epithelium#1',
-                'B-cells',
+                'Alveolar Epithelium',
+                'Macrophages#2',
                 'Mast cells',
+                'B-cells#1',
+                'B-cells#2',
                 'Endothelial',
                 'SMC/Adipocyte',
-                'Macrophages#2',
                 'Respiratory Cilia')
 
+test_anal$annot <- test_annot
+saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
+
 levels(test_anal$scseq$seurat_clusters) <- test_annot
-save_scseq_reports(test_anal$scseq, markers = test_markers, point_size = 3,
+save_scseq_reports(test_anal$scseq, markers = test_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/lung_diseased_markers.pdf')
 
 
 # Integrated analysis  ----
 
 # perform integration
-anchors <- FindIntegrationAnchors(object.list = list(ctrl_anal$scseq, test_anal$scseq))
-combined <- IntegrateData(anchors)
-DefaultAssay(combined) <- "integrated"
-combined <- ScaleData(combined, verbose = FALSE)
+combined <- integrate_scseq(list(ctrl_anal$scseq, test_anal$scseq))
 
 # get clusters/tsne/markers
 combined <- add_scseq_clusters(combined)
-combined <- run_tsne(combined)
+combined <- run_umap(combined)
+combined <- jitter_umap(combined)
 markers <- get_scseq_markers(combined)
 
+anal <- list(scseq = combined, markers = markers)
 # look at how integration changes cell groupings
-explore_scseq_clusters(combined, markers)
+explore_scseq_clusters(anal$scseq, anal$markers)
 
 # Combined Annotations
 # put in order that want reports to appear
