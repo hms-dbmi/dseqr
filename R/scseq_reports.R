@@ -12,6 +12,12 @@
 #' @examples
 save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 
+  if (!all(names(markers) %in% levels(scseq$seurat_clusters)))
+    stop('All names of markers must also be in seurat cluster levels.')
+
+  # exclude any clusters that markers are not provided for
+  scseq <- scseq[, scseq$seurat_clusters %in% names(markers)]
+
   # put levels in order of markers
   scseq$seurat_clusters <- factor(scseq$seurat_clusters, levels = names(markers))
   Seurat::Idents(scseq) <- 'seurat_clusters'
