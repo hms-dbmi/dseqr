@@ -320,10 +320,13 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @examples
 integrate_scseq <- function(scseqs) {
 
-  anchors <- Seurat::FindIntegrationAnchors(scseqs)
+  k.filter <- min(200, min(sapply(scseqs, ncol)))
+
+  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter)
   combined <- Seurat::IntegrateData(anchors)
   Seurat::DefaultAssay(combined) <- "integrated"
   combined <- Seurat::ScaleData(combined, verbose = FALSE)
+  combined$orig.ident <- factor(combined$orig.ident)
 
   return(combined)
 }
