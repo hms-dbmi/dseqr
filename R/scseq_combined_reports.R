@@ -217,3 +217,19 @@ plot_combined_scseq_report <- function(scseq, markers, pt.size = 3) {
   return(pages)
 }
 
+
+#' Get a fill scale with named values
+#'
+#' @param levs Character vector of levels to get a fill scale for.
+#'
+#' @return ggplot2 \code{scale_fill_manual} with values names from \code{levs}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+scale_fill_names <- function(levs) {
+  values <- get_palette(levs)
+  names(values) <- levs
+  plot_scale <- ggplot2::scale_fill_manual(values = values)
+  return(plot_scale)
+}

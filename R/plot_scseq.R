@@ -57,7 +57,12 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 
   gene_plot$labels$colour <- gene
   return(gene_plot)
+}
 
+
+theme_no_axis_vals <- function() {
+  ggplot2::theme(axis.text = ggplot2::element_blank(),
+                 axis.ticks = ggplot2::element_blank())
 }
 
 
@@ -95,50 +100,42 @@ plot_biogps <- function(gene) {
                    legend.position = "none")
 }
 
-theme_no_axis_vals <- function() {
-  ggplot2::theme(axis.text = ggplot2::element_blank(),
-                 axis.ticks = ggplot2::element_blank())
-}
 
-#' Remove ggplot xaxis title, text, and ticks
+
+#' Get a pallete for cluster plots
 #'
-#' @return \code{theme}
+#' @param levs Character vector of levels to get colour pallete for.
+#'
+#' @return Character vector with colour codes of \code{length(levs)}.
 #' @export
 #' @keywords internal
 #'
 #' @examples
-theme_no_xaxis <- function() {
-  ggplot2::theme(axis.title.x = ggplot2::element_blank(),
-                 axis.text.x = ggplot2::element_blank(),
-                 axis.ticks.x = ggplot2::element_blank())
+get_palette <- function(levs) {
+
+  # palettes from scater
+  tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C",
+                 "#98DF8A", "#D62728", "#FF9896", "#9467BD", "#C5B0D5",
+                 "#8C564B", "#C49C94", "#E377C2", "#F7B6D2", "#7F7F7F",
+                 "#C7C7C7", "#BCBD22", "#DBDB8D", "#17BECF", "#9EDAE5")
+
+  tableau10medium <- c("#729ECE", "#FF9E4A", "#67BF5C", "#ED665D",
+                       "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
+                       "#CDCC5D", "#6DCCDA")
+
+  nlevs <- length(levs)
+  if (nlevs <= 10) {
+    values <- head(tableau10medium, nlevs)
+
+  } else {
+    if (nlevs <= 20) {
+      values <- head(tableau20, nlevs)
+
+    } else {
+      values <- viridisLite::cividis(nlevs)
+    }
+  }
+  return(values)
 }
 
-#' Remove ggplot yaxis title, text, and ticks
-#'
-#' @return \code{theme}
-#' @export
-#' @keywords internal
-#'
-#' @examples
-theme_no_yaxis <- function() {
-  ggplot2::theme(axis.title.y = ggplot2::element_blank(),
-                 axis.text.y = ggplot2::element_blank(),
-                 axis.ticks.y = ggplot2::element_blank())
-}
 
-#' Make ggplot axes and text dimgray
-#'
-#' @return \code{theme}
-#' @export
-#' @keywords internal
-#'
-#' @examples
-theme_dimgray <- function() {
-  ggplot2::theme(axis.line.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
-                 axis.line.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
-                 axis.ticks.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
-                 axis.ticks.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
-                 axis.text = ggplot2::element_text(colour = 'dimgray'),
-                 axis.title = ggplot2::element_text(colour = 'dimgray'),
-                 text = ggplot2::element_text(colour = 'dimgray'))
-}

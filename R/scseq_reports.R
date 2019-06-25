@@ -52,7 +52,9 @@ plot_scseq_report <- function(scseq, markers, pt.size = 3) {
 
   # get grid of gene plots
   gene_plots <- lapply(genes, function(gene) plot_umap_gene(scseq, gene, pt.size = pt.size) +
-                         theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() +
+                         theme_dimgray() +
+                         theme_no_xaxis() +
+                         theme_no_yaxis() +
                          ggplot2::theme(legend.position = 'none', plot.title=ggplot2::element_text(size=12, hjust = 0)) +
                          ggplot2::ggtitle(gene))
 
@@ -82,4 +84,48 @@ plot_scseq_report <- function(scseq, markers, pt.size = 3) {
   # combine titles and plots
   marker_nrows <- ceiling(length(genes)/2)
   cowplot::plot_grid(title, subtitle, cluster_plot, gene_grid, ncol = 1, rel_heights = c(0.1, 0.1, 1, marker_nrows))
+}
+
+
+#' Remove ggplot xaxis title, text, and ticks
+#'
+#' @return \code{theme}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+theme_no_xaxis <- function() {
+  ggplot2::theme(axis.title.x = ggplot2::element_blank(),
+                 axis.text.x = ggplot2::element_blank(),
+                 axis.ticks.x = ggplot2::element_blank())
+}
+
+#' Remove ggplot yaxis title, text, and ticks
+#'
+#' @return \code{theme}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+theme_no_yaxis <- function() {
+  ggplot2::theme(axis.title.y = ggplot2::element_blank(),
+                 axis.text.y = ggplot2::element_blank(),
+                 axis.ticks.y = ggplot2::element_blank())
+}
+
+#' Make ggplot axes and text dimgray
+#'
+#' @return \code{theme}
+#' @export
+#' @keywords internal
+#'
+#' @examples
+theme_dimgray <- function() {
+  ggplot2::theme(axis.line.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.line.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.ticks.x = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.ticks.y = ggplot2::element_line(size = 0.1, color = 'dimgray'),
+                 axis.text = ggplot2::element_text(colour = 'dimgray'),
+                 axis.title = ggplot2::element_text(colour = 'dimgray'),
+                 text = ggplot2::element_text(colour = 'dimgray'))
 }

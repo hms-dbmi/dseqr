@@ -109,7 +109,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
         test <- input$selected_cluster
         ctrls <- cluster_choices[cluster_choices != test]
 
-        contrast_choices <- c(test, paste0(test, '-', ctrls))
+        contrast_choices <- c(test, paste0(test, ' - ', ctrls))
         names(contrast_choices) <- paste0(prefix, test, ' vs ', c('all', ctrls))
 
         # update global so that can return to same cluster when toggle back
@@ -140,7 +140,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
       sel <- input$selected_cluster
       # get cluster if don't have (for comparing specific cluster)
       if (!sel %in% names(markers)) {
-        con <- strsplit(sel, '-')[[1]]
+        con <- strsplit(sel, ' - ')[[1]]
         markers[[sel]] <<- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
       }
 
