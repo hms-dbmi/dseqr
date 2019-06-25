@@ -21,3 +21,4 @@ value indicate samples that replicates.}
 \description{
 Validate sample pairing for pair-ended RNA seq
 }
+\keyword{internal}

@@ -21,3 +21,4 @@ value indicate samples that replicates.}
 \description{
 Validate sample replicates for RNA seq
 }
+\keyword{internal}
