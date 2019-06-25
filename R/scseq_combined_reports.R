@@ -10,13 +10,13 @@
 #' @export
 #'
 #' @examples
-save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, point_size = 3) {
+save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, pt.size = 3) {
 
+  if (!all(names(markers) %in% levels(scseq$seurat_clusters)))
+    stop ('markers are missing for some clusters')
 
-  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
-  group_idents <- scseq$orig.ident
-  groups <- unique(group_idents)
-
+  idents <- scseq$orig.ident
+  un.idents <- levels(idents)
 
   # get scale that uses all possible levels
   all_levels <- c(names(markers), levels(unlist(orig_clusters)))
@@ -24,29 +24,28 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
   fill_scale <- scale_fill_names(all_levels)
 
 
-  # new TSNE coords with original clusters (first page)
+  # new UMAP coords with original clusters (first page)
   orig_plots <- list()
-  for (i in seq_along(groups)) {
-    group <- groups[i]
-    group_scseq <- scseq[, group_idents == group]
-    group_scseq$cluster <- factor(orig_clusters[[group]], levels = all_levels)
+  for (i in seq_along(un.idents)) {
+    ident <- un.idents[i]
+    ident_scseq <- scseq[, idents == ident]
+    ident_scseq$seurat_clusters <- factor(orig_clusters[[ident]], levels = all_levels)
 
-    suppressMessages(orig_plots[[i]] <- plot_tsne_cluster(group_scseq, legend_title = toupper(group)) +
-                       theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
+    orig_plots[[i]] <- plot_umap_cluster(ident_scseq, legend_title = toupper(ident)) +
+                       theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale
   }
 
 
+
   # put cluster levels in order of markers
-  if (!all(names(markers) %in% levels(scseq$cluster)))
-    stop ('markers are missing for some clusters')
-  scseq$cluster <- factor(scseq$cluster, levels = names(markers))
+  scseq$seurat_clusters <- factor(scseq$seurat_clusters, levels = names(markers))
 
   # plot if percentage cells
   pcells_barplot <- plot_scseq_barplot(scseq)
 
   # new TSNE coords with new clusters (first page)
-  suppressMessages(combined_plot <- plot_tsne_cluster(scseq, legend_title = 'COMBINED') +
-                     theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale)
+  combined_plot <- plot_umap_cluster(scseq, legend_title = 'COMBINED') +
+                    theme_dimgray() + theme_no_xaxis() + theme_no_yaxis() + fill_scale
 
   # get titles
   orig_title <- cowplot::ggdraw() +
@@ -74,8 +73,9 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
   plot(orig_grid)
   plot(combined_grid)
 
+
   for (i in seq_along(markers)) {
-    reports <- plot_combined_scseq_report(scseq, markers = markers[i], point_size = point_size)
+    reports <- plot_combined_scseq_report(scseq, markers = markers[i], pt.size = pt.size)
     for (report in reports) plot(report)
   }
   dev.off()
@@ -94,23 +94,23 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, po
 #' @examples
 plot_scseq_barplot <- function(scseq) {
 
-  group_idents <- scseq$orig.ident
-  groups <- unique(group_idents)
+  idents  <- scseq$orig.ident
+  un.idents <- levels(idents)
 
-  # percent of cells per group in new cluster
+  # percent of cells per ident in new cluster
   combined_pcells <- list()
-  for (i in seq_along(groups)) {
-    group <- groups[i]
-    group_scseq <- scseq[, group_idents == group]
-    combined_pcells[[i]] <- data.frame(table(group_scseq$cluster) / ncol(group_scseq) * 100,
-                                       Group = toupper(group))
+  for (i in seq_along(un.idents)) {
+    ident <- un.idents[i]
+    ident_scseq <- scseq[, idents == ident]
+    combined_pcells[[i]] <- data.frame(table(ident_scseq$seurat_clusters) / ncol(ident_scseq) * 100,
+                                       Group = toupper(ident))
   }
   combined_pcells <- do.call(rbind, combined_pcells)
 
   pcells_plot <- ggplot2::ggplot(combined_pcells, ggplot2::aes(x=Var1, y=Freq, fill=Group)) +
     ggplot2::geom_bar(stat='identity',position="dodge") +
     cowplot::theme_cowplot() +
-    scale_fill_names(toupper(groups)) +
+    scale_fill_names(toupper(un.idents)) +
     ggplot2::xlab('') +
     ggplot2::guides(fill=ggplot2::guide_legend(title="Percent Cells")) +
     theme_dimgray() +
@@ -140,50 +140,49 @@ plot_scseq_barplot <- function(scseq) {
 #' @keywords internal
 #'
 #' @examples
-plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
-  if (class(scseq) == 'Seurat') scseq <- srt_to_sce(scseq, 'SCT')
-  selected_group <- names(markers)
+plot_combined_scseq_report <- function(scseq, markers, pt.size = 3) {
+  sel.clust <- names(markers)
   genes <- markers[[1]]
 
   # make orig.ident the clusters so that can highlight
-  group_idents <- scseq$orig.ident
-  groups <- unique(group_idents)
-  scseq$orig.ident <- scseq$cluster
+  idents <- scseq$orig.ident
+  un.idents <- levels(idents)
 
   # get grid of gene plots by group
   gene_plots <- list()
-  for (i in 1:length(genes)) {
-    for (j in 1:length(groups)) {
+  for (i in seq_along(genes)) {
+    for (j in seq_along(un.idents)) {
       idx <- length(gene_plots) + 1
 
       gene_plots[[idx]] <-
-        plot_tsne_gene(scseq, genes[i], hide_mask = group_idents != groups[j], point_size = point_size) +
+        plot_umap_gene(scseq, genes[i], selected_idents = un.idents[j], pt.size = pt.size) +
         theme_dimgray() +
         theme_no_xaxis() +
         theme_no_yaxis() +
-        ggplot2::theme(legend.position = 'none', plot.title=ggplot2::element_text(size=12, hjust = 0)) +
-        ggplot2::ggtitle(genes[i])
+        ggplot2::ggtitle(genes[i]) +
+        ggplot2::theme(legend.position = 'none',
+                       plot.title=ggplot2::element_text(size=12, hjust = 0, vjust = 1.5))
     }
   }
 
   # show clusters by group ----
   cluster_plots <- list()
-  for (j in seq_along(groups)) {
-    group <- groups[[j]]
-    group_scseq <- scseq[, group_idents == group]
+  for (i in seq_along(un.idents)) {
+    ident <- un.idents[[i]]
+    ident_scseq <- scseq[, idents == ident]
 
-    ncells <- sum(group_scseq$orig.ident == selected_group)
-    pcells <- round(ncells / ncol(group_scseq) * 100)
+    ncells <- sum(ident_scseq$seurat_clusters == sel.clust)
+    pcells <- round(ncells / ncol(ident_scseq) * 100)
     subtitle <- paste0(ncells, ' cells - ', pcells, '%')
 
-    cluster_plots[[j]] <- plot_tsne_cluster(group_scseq, selected_groups = selected_group, point_size = point_size) +
+    cluster_plots[[i]] <- plot_umap_cluster(ident_scseq, selected_clusters = sel.clust, pt.size = pt.size) +
       ggplot2::theme(plot.margin = ggplot2::unit(c(20, 5.5, 20, 5.5), "points")) +
       theme_dimgray() +
       theme_no_xaxis() +
       theme_no_yaxis() +
+      ggplot2::ggtitle(toupper(ident), subtitle) +
       ggplot2::theme(legend.position = 'none',
-                     plot.title = ggplot2::element_text(size=14, color = 'black', hjust = 0)) +
-      ggplot2::ggtitle(toupper(group), subtitle)
+                     plot.title = ggplot2::element_text(size=14, color = 'black', hjust = 0))
   }
 
   cluster_grid <- cowplot::plot_grid(plotlist = cluster_plots, align='vh', ncol = 2)
@@ -202,7 +201,7 @@ plot_combined_scseq_report <- function(scseq, markers, point_size = 3) {
 
   # title
   title <- cowplot::ggdraw() +
-    cowplot::draw_label(selected_group, x = 0, hjust = 0)
+    cowplot::draw_label(sel.clust, x = 0, hjust = 0)
 
   label <- cowplot::ggdraw() +
     cowplot::draw_label('TSNE PLOTS', x=1, hjust = 1,  colour = 'dimgray', size = 12)

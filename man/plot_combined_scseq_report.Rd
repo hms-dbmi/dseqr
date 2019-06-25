@@ -4,15 +4,13 @@
 \alias{plot_combined_scseq_report}
 \title{Plot grid of combined scRNA-seq clusters and gene markers together}
 \usage{
-plot_combined_scseq_report(scseq, markers, point_size = 3)
+plot_combined_scseq_report(scseq, markers, pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object.}
 
 \item{markers}{Named list with a single character vector specifying the marker genes to plot.
 The name is the cluster that will be highlighted.}
-
-\item{point_size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
 \value{
 List of \code{ggplot} objects

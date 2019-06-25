@@ -5,7 +5,7 @@
 \title{Save PDF of combined scRNA-seq reports}
 \usage{
 save_combined_scseq_reports(scseq, markers, orig_clusters, fname,
-  point_size = 3)
+  pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object with \code{scseq$orig_clusters} providing the originally identified clusters for
@@ -15,6 +15,8 @@ each sample. This permits visualizing how integration shift the TSNE coordinates
 clusters that reports will be generated for in order.}
 
 \item{fname}{String giving the name of the PDF file to save.}
+
+\item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
 \value{
 Saves report to \code{fname}.

@@ -7,7 +7,7 @@
 #' @export
 #'
 #' @examples
-plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3) {
+plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster') {
 
   cols <- get_colour_values(levels(scseq$seurat_clusters))
 
@@ -18,7 +18,7 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
     theme_no_axis_vals() +
     ggplot2::xlab('UMAP1') +
     ggplot2::ylab('UMAP2') +
-    ggplot2::guides(colour=ggplot2::guide_legend(title='Cluster'))
+    ggplot2::guides(colour=ggplot2::guide_legend(title=legend_title))
 
   return(cluster_plot)
 }
@@ -53,7 +53,7 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
     ggplot2::theme(plot.title = ggplot2::element_blank())
 
   # need until bug fixed in Seurat, then use cells argument in FeaturePlot
-  gene_plot$data <- gene_plot$data[cells, ]
+  gene_plot$data <- gene_plot$data[row.names(gene_plot$data) %in% cells, ]
 
   gene_plot$labels$colour <- gene
   return(gene_plot)

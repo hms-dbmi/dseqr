@@ -38,7 +38,7 @@ save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 #' @examples
 plot_scseq_report <- function(scseq, markers, pt.size = 3) {
 
-  selected_group <- names(markers)
+  selected_cluster <- names(markers)
   genes <- markers[[1]]
 
   # make orig.ident the clusters so that can highlight
@@ -53,17 +53,17 @@ plot_scseq_report <- function(scseq, markers, pt.size = 3) {
   gene_grid <- cowplot::plot_grid(plotlist = gene_plots, align = 'vh', ncol = 2)
 
   # get cluster plot
-  cluster_plot <- plot_umap_cluster(scseq, selected_groups = selected_group, pt.size = pt.size) +
+  cluster_plot <- plot_umap_cluster(scseq, selected_clusters = selected_cluster, pt.size = pt.size) +
     ggplot2::theme(plot.margin=ggplot2::unit(c(20, 5.5, 20, 5.5), "points")) +
     theme_dimgray() + theme_no_xaxis() + theme_no_yaxis()
 
   # get the title
   # include number of cells and percentage of total
-  ncells <- sum(scseq$seurat_clusters == selected_group)
+  ncells <- sum(scseq$seurat_clusters == selected_cluster)
   pcells <- round(ncells/ncol(scseq) * 100)
 
   title <- cowplot::ggdraw() +
-    cowplot::draw_label(selected_group, x = 0, hjust = 0)
+    cowplot::draw_label(selected_cluster, x = 0, hjust = 0)
 
   label <- cowplot::ggdraw() +
     cowplot::draw_label('UMAP PLOTS', x=1, hjust = 1,  colour = 'dimgray', size = 12)
