@@ -34,7 +34,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
 
   # name cluster choices for drop down
   cluster_choices <- names(markers)
-  names(cluster_choices) <- paste('Cluster', names(markers))
+  prefix <- ifelse(is.na(as.integer(cluster_choices[1])), '', 'Cluster ')
+  names(cluster_choices) <- paste0(prefix, names(markers))
 
   test_cluster <- NULL
 
@@ -109,7 +110,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
         ctrls <- cluster_choices[cluster_choices != test]
 
         contrast_choices <- c(test, paste0(test, '-', ctrls))
-        names(contrast_choices) <- paste('Cluster', test, 'vs', c('all', ctrls))
+        names(contrast_choices) <- paste0(prefix, test, ' vs ', c('all', ctrls))
 
         # update global so that can return to same cluster when toggle back
         test_cluster <<- test
