@@ -48,7 +48,6 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
-                      shiny::uiOutput('groups_toggle'),
                       shiny::tags$div(
                         shiny::tags$div(style = "display:inline-block;",
                                         shiny::selectizeInput("selected_cluster", 'Show marker genes for:', choices = cluster_choices, width = '250px')),
@@ -59,7 +58,9 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
                         shiny::tags$div(style = "display:inline-block;",
                                         shiny::selectizeInput('gene', 'Show expression for:', choices = NULL, width = '250px')),
                         shinyBS::bsButton('genecards', label = '', icon = shiny::icon('external-link-alt', 'fa-fw'), style='default', title = 'Go to GeneCards')
-                      )
+                      ),
+                      shiny::br(),
+                      shiny::uiOutput('groups_toggle')
         ),
         shiny::column(6,
                       shiny::plotOutput("cluster_plot")
@@ -94,7 +95,7 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
 
       groups <- available_groups_r()
       # always show when just a single group
-      if (length(groups) == 1) return(groups)
+      if (length(groups) == 1 || input$groups == 'all') return(groups)
 
       return(input$groups)
     })
@@ -153,7 +154,8 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
       groups_toggle <- NULL
       if (length(groups) > 1) {
         groups_toggle <- shiny::tags$div(
-          shinyWidgets::checkboxGroupButtons("groups", "Show cells for group:", choices = groups, selected = groups),
+          shiny::radioButtons("groups", "Show cells for group:",
+                                          choices = c('all', groups), inline = TRUE),
           shiny::br()
         )
       }
@@ -165,14 +167,14 @@ explore_scseq_clusters <- function(scseq, markers = NULL, pt.size = 3) {
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
       if (input$gene == '') return(NULL)
-      plot_umap_gene(scseq, input$gene, selected_groups = selected_groups_r(), pt.size = pt.size)
+      plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
     })
 
 
     # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
       legend_title <-'Cluster'
-      plot_umap_cluster(scseq, selected_groups_r(), pt.size = pt.size)
+      plot_umap_cluster(scseq, pt.size = pt.size)
     })
 
 

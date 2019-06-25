@@ -4,14 +4,15 @@
 \alias{plot_umap_gene}
 \title{Plot UMAP coloured by HGNC symbol}
 \usage{
-plot_umap_gene(scseq, gene, selected_groups = NULL, pt.size = 3)
+plot_umap_gene(scseq, gene, selected_idents = levels(scseq$orig.ident),
+  pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{Seurat}.}
 
 \item{gene}{Character vector specifying gene to colour cells by.}
 
-\item{selected_groups}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
+\item{selected_idents}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
 
 \item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }

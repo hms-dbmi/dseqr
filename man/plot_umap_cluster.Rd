@@ -4,12 +4,12 @@
 \alias{plot_umap_cluster}
 \title{Plot UMAP coloured by cluster}
 \usage{
-plot_umap_cluster(scseq, selected_groups = NULL, pt.size = 3)
+plot_umap_cluster(scseq,
+  selected_clusters = levels(scseq$seurat_clusters), pt.size = 3,
+  legend_title = "Cluster")
 }
 \arguments{
 \item{scseq}{\code{Seurat}.}
-
-\item{selected_groups}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
 
 \item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 

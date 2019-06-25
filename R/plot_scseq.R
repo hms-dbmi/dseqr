@@ -7,13 +7,12 @@
 #' @export
 #'
 #' @examples
-plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
+plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3) {
 
   cols <- get_colour_values(levels(scseq$seurat_clusters))
 
   # make selected cluster and groups stand out
-  if (!is.null(selected_groups))
-    cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$orig.ident) %in% selected_groups, 1, 0.1))
+  cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$seurat_clusters) %in% selected_clusters, 1, 0.1))
 
   cluster_plot <- Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size) +
     theme_no_axis_vals() +
@@ -22,7 +21,6 @@ plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
     ggplot2::guides(colour=ggplot2::guide_legend(title='Cluster'))
 
   return(cluster_plot)
-
 }
 
 
@@ -33,7 +31,7 @@ plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
 #'
 #' @param scseq \code{Seurat}.
 #' @param gene Character vector specifying gene to colour cells by.
-#' @param selected_groups The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
+#' @param selected_idents The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
 #' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
 #' @inheritParams explore_scseq_clusters
 #'
@@ -41,18 +39,21 @@ plot_umap_cluster <- function(scseq, selected_groups = NULL, pt.size = 3) {
 #' @export
 #'
 #' @examples
-plot_umap_gene <- function(scseq, gene, selected_groups = NULL, pt.size = 3) {
+plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 3) {
 
   # make selected groups stand out
-  cells <- NULL
-  if (!is.null(cells))
-    cells <- colnames(scseq)[scseq$orig.ident %in% selected_groups]
+  cells <- colnames(scseq)
+  cells <- colnames(scseq)[scseq$orig.ident %in% selected_idents]
 
-  gene_plot <- Seurat::FeaturePlot(scseq, gene, cells = cells, reduction = 'umap', order = TRUE, pt.size = pt.size) +
+
+  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'umap', order = TRUE, pt.size = pt.size) +
     theme_no_axis_vals() +
     ggplot2::xlab('UMAP1') +
     ggplot2::ylab('UMAP2') +
     ggplot2::theme(plot.title = ggplot2::element_blank())
+
+  # need until bug fixed in Seurat, then use cells argument in FeaturePlot
+  gene_plot$data <- gene_plot$data[cells, ]
 
   gene_plot$labels$colour <- gene
   return(gene_plot)
