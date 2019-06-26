@@ -28,25 +28,8 @@
 
 explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
-  test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
-  levels(test_anal$scseq$seurat_clusters) <- test_anal$annot
-  Idents(test_anal$scseq) <- test_anal$scseq$seurat_clusters
-  names(test_anal$markers) <- test_anal$annot
-
-  scseq <- test_anal$scseq
-  markers <- test_anal$markers
-
-  if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- 'SCT'
-
-  # setup ----
-  if (is.null(markers))
-    markers <- get_scseq_markers(scseq)
-
-  # name cluster choices for drop down
-  cluster_choices <- names(markers)
-
-  test_cluster <- NULL
-
+  anal_files <- list.files(data_dir)
+  anal_options <- gsub('.rds$', '', anal_files)
 
   #  user interface ----
 
@@ -60,7 +43,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
-                      shiny::selectInput('selected_anal', 'Selected sample:', choice = c('sjia_lung', 'sjia_bm', 'sjia_pbmc'), width = '392.5px'),
+                      shiny::selectInput('selected_anal', 'Selected sample:', choice = anal_options, width = '392.5px'),
                       shiny::br(),
                       shiny::conditionalPanel('input.show_rename == false',
                                               shiny::tags$div(class = 'selectize-buttons', style='height:79px;',
@@ -68,7 +51,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
                                                                               shiny::selectizeInput("selected_cluster", 'Show marker genes for:', choices = NULL, width = '306.5px')),
                                                               shinyBS::bsButton('show_contrasts', label = '', type = 'toggle', value = FALSE, icon = shiny::icon('chevron-right', 'fa-fw'), style='default', title = 'Toggle single group comparisons'),
                                                               shinyBS::bsButton('show_rename', label = '', type = 'toggle', value = FALSE, icon = shiny::icon('tag', 'fa-fw'), style='default', title = 'Toggle rename cluster'))
-                                              ),
+                      ),
                       shiny::conditionalPanel('input.show_rename == true', shiny::uiOutput('rename_ui')),
                       shiny::br(),
                       shiny::tags$div(class = 'selectize-buttons',
@@ -98,12 +81,93 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
   server <- function(input, output, session) {
 
     # reactive objects -----
-    rvs <- shiny::reactiveValues(renaming = 0)
+    annot_rv <- shiny::reactiveVal(NULL)
+    con_markers_rv <- shiny::reactiveVal(list())
 
     # used to determine available groups to show (e.g. ctrl and test)
     available_groups_r <- shiny::reactive({
+      scseq <- scseq_r()
       groups <- unique(as.character(scseq$orig.ident))
       return(groups)
+    })
+
+    # the loaded analysis object
+    anal_r <- shiny::reactive({
+      selected_file <- paste0(input$selected_anal, '.rds')
+
+      anal <- readRDS(file.path(data_dir, selected_file))
+
+      if (!is.null(anal$annot)) {
+        levels(anal$scseq$seurat_clusters) <- anal$annot
+        Idents(anal$scseq) <- anal$scseq$seurat_clusters
+      }
+
+      if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
+        Seurat::DefaultAssay(anal$scseq) <- 'SCT'
+
+      #  annot
+      annot_rv(anal$annot)
+      return(anal)
+    })
+
+    shiny::observeEvent(input$rename_cluster, {
+
+      if (isTRUE(input$rename_cluster)) {
+
+        if (input$new_cluster_name != '') {
+
+          annot <- annot_rv()
+          # update global annot
+          sel.clust <- input$selected_cluster
+          sel.idx   <- which(annot == sel.clust)
+          annot[sel.idx] <- input$new_cluster_name
+          annot_rv(annot)
+        }
+
+        # reset toggles to initial state
+        shinyBS::updateButton(session, 'show_rename', value = FALSE)
+        shinyBS::updateButton(session, 'rename_cluster', value = FALSE)
+      }
+    })
+
+
+    # the markers
+    markers_r <- shiny::reactive({
+      anal <- anal_r()
+      annot <- annot_rv()
+      markers <- anal$markers
+
+      if (!is.null(annot)) {
+        names(markers) <- annot
+      }
+
+      return(markers)
+    })
+
+
+    # the seurat object
+    scseq_r <- shiny::reactive({
+      anal <- anal_r()
+      markers <- markers_r()
+      scseq <- anal$scseq
+
+      levels(scseq$seurat_clusters) <- names(markers)
+      Seurat::Idents(scseq) <- scseq$seurat_clusters
+
+      return(scseq)
+    })
+
+    # the cluster names
+    clusters_r <- shiny::reactive({
+      markers <- markers_r()
+      return(names(markers))
+    })
+
+    # currently selected test cluster
+    test_cluster_r <- shiny::reactive({
+      test_cluster <- input$selected_cluster
+      test_cluster <- gsub(' vs .+?$', '', test_cluster)
+      return(test_cluster)
     })
 
     # used to determine cell groups to show (e.g. ctrl and test)
@@ -116,52 +180,28 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       return(input$groups)
     })
 
-    # update cluster choices based on show_contrasts toggle and renaming
-    cluster_choices_r <- shiny::reactive({
 
 
-      if (isTRUE(input$rename_cluster)) {
+    # update cluster/contrast choices based on show_contrasts toggle and renaming
+    group_choices_r <- shiny::reactive({
 
-        if (input$new_cluster_name != '') {
-          # for ease remove any newly calculated markers
-          markers  <<- markers[cluster_choices]
-
-          # rename markers
-          sel.clust <- shiny::isolate(input$selected_cluster)
-          sel.idx   <- which(names(markers) == sel.clust)
-          names(markers)[sel.idx] <<- input$new_cluster_name
-          cluster_choices <<- names(markers)
-
-          levels(scseq$seurat_clusters) <<- cluster_choices
-          Seurat::Idents(scseq) <<- scseq$seurat_clusters
-
-          shiny::isolate(rvs$renaming <- rvs$renaming + 1)
-          test_cluster <<- input$new_cluster_name
-
-        }
-
-        # reset toggles to initial state
-        shinyBS::updateButton(session, 'show_rename', value = FALSE)
-        shinyBS::updateButton(session, 'rename_cluster', value = FALSE)
-      }
-
+      scseq <- scseq_r()
+      markers <- markers_r()
+      clusters <- clusters_r()
 
       if (isTRUE(input$show_contrasts)) {
-        # cluster choices are as compared to other clusters
-        test <- shiny::isolate(input$selected_cluster)
-        ctrls <- cluster_choices[cluster_choices != test]
+        # group choices are as compared to other clusters
+        test <- shiny::isolate(test_cluster_r())
+        ctrls <- clusters[clusters != test]
 
         contrast_choices <- c(test, paste0(test, ' vs ', ctrls))
         # make sure not too long
         names(contrast_choices) <- stringr::str_trunc(paste0(test, ' vs ', c('all', ctrls)), 40)
-
-        # update global so that can return to same cluster when toggle back
-        test_cluster <<- test
         disable_rename <- TRUE
 
       } else {
         # cluster choices are the clusters themselves
-        contrast_choices  <- cluster_choices
+        contrast_choices  <- clusters
         disable_rename <- FALSE
       }
 
@@ -173,24 +213,31 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       return(contrast_choices)
     })
 
-    # update cluster choices
     shiny::observe({
-      # when first hit toggle, selected contrast doesn't change
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = cluster_choices_r(), selected = test_cluster)
+      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r())
     })
+
 
 
     # update marker genes based on cluster selection -----
     shiny::observeEvent(input$selected_cluster, {
+      scseq <- scseq_r()
+      con_markers <- con_markers_rv()
+      markers <- c(markers_r(), con_markers)
+
       sel <- input$selected_cluster
       if (sel == '') return(NULL)
 
       # get cluster if don't have (for comparing specific cluster)
       if (!sel %in% names(markers)) {
         con <- strsplit(sel, ' vs ')[[1]]
-        markers[[sel]] <<- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
+        con_markers[[sel]] <- markers[[sel]] <- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
+
+        # update con markers reactive value
+        con_markers_rv(con_markers)
       }
 
+      # allow selecting non-marker genes (at bottom of list)
       cluster_markers <- markers[[sel]]
       choices <- row.names(cluster_markers)
       choices <- c(choices, setdiff(row.names(scseq), choices))
@@ -230,15 +277,15 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     # plots ------
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
+
       if (input$gene == '') return(NULL)
-      plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
+      plot_umap_gene(scseq_r(), input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
     })
 
 
     # show plot of predicted cell clusters
     output$cluster_plot <- shiny::renderPlot({
-      # update if renaming cluster
-      rvs$renaming
+      scseq <- scseq_r()
 
       legend_title <-'Cluster'
       plot_umap_cluster(scseq, pt.size = pt.size)
