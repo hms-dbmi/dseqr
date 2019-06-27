@@ -43,7 +43,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     miniUI::miniContentPanel(
       shiny::fluidRow(
         shiny::column(6,
-                      shiny::selectInput('selected_anal', 'Selected sample:', choice = anal_options, width = '392.5px'),
+                      shiny::selectInput('selected_anal', 'Selected analysis:', choice = anal_options, width = '392.5px'),
                       shiny::br(),
                       shiny::conditionalPanel('input.show_rename == false',
                                               shiny::tags$div(class = 'selectize-buttons', style='height:79px;',
@@ -80,18 +80,21 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
   server <- function(input, output, session) {
 
-    # reactive objects -----
+    # reactive values (can update and persist within session) -----
     annot_rv <- shiny::reactiveVal(NULL)
     con_markers_rv <- shiny::reactiveVal(list())
 
-    # used to determine available groups to show (e.g. ctrl and test)
+
+    # reactive expressions (auto update) ----------
+
+    # groups to show (e.g. ctrl and test)
     available_groups_r <- shiny::reactive({
       scseq <- scseq_r()
       groups <- unique(as.character(scseq$orig.ident))
       return(groups)
     })
 
-    # the loaded analysis object
+    # current analysis
     anal_r <- shiny::reactive({
       selected_file <- paste0(input$selected_anal, '.rds')
 
@@ -108,26 +111,6 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       #  annot
       annot_rv(anal$annot)
       return(anal)
-    })
-
-    shiny::observeEvent(input$rename_cluster, {
-
-      if (isTRUE(input$rename_cluster)) {
-
-        if (input$new_cluster_name != '') {
-
-          annot <- annot_rv()
-          # update global annot
-          sel.clust <- input$selected_cluster
-          sel.idx   <- which(annot == sel.clust)
-          annot[sel.idx] <- input$new_cluster_name
-          annot_rv(annot)
-        }
-
-        # reset toggles to initial state
-        shinyBS::updateButton(session, 'show_rename', value = FALSE)
-        shinyBS::updateButton(session, 'rename_cluster', value = FALSE)
-      }
     })
 
 
@@ -163,7 +146,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       return(names(markers))
     })
 
-    # currently selected test cluster
+    # currently selected test cluster (need to)
     test_cluster_r <- shiny::reactive({
       test_cluster <- input$selected_cluster
       test_cluster <- gsub(' vs .+?$', '', test_cluster)
@@ -185,8 +168,6 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     # update cluster/contrast choices based on show_contrasts toggle and renaming
     group_choices_r <- shiny::reactive({
 
-      scseq <- scseq_r()
-      markers <- markers_r()
       clusters <- clusters_r()
 
       if (isTRUE(input$show_contrasts)) {
@@ -197,29 +178,64 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         contrast_choices <- c(test, paste0(test, ' vs ', ctrls))
         # make sure not too long
         names(contrast_choices) <- stringr::str_trunc(paste0(test, ' vs ', c('all', ctrls)), 40)
-        disable_rename <- TRUE
 
       } else {
         # cluster choices are the clusters themselves
         contrast_choices  <- clusters
-        disable_rename <- FALSE
       }
-
-      # update icon on toggle
-      icon <- ifelse(isTRUE(input$show_contrasts), 'chevron-down', 'chevron-right')
-      shinyBS::updateButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-      shinyBS::updateButton(session, 'show_rename', disabled = disable_rename)
 
       return(contrast_choices)
     })
 
+
+    # observations (do stuff if something changes) -------
+    # update annot if rename a cluster
+    shiny::observeEvent(input$rename_cluster, {
+
+      if (isTRUE(input$rename_cluster)) {
+
+        if (input$new_cluster_name != '') {
+
+          # update reactive annotation
+          annot <- annot_rv()
+          sel.clust <- input$selected_cluster
+          sel.idx   <- which(annot == sel.clust)
+          annot[sel.idx] <- input$new_cluster_name
+          annot_rv(annot)
+        }
+
+        # reset toggles to initial state
+        shinyBS::updateButton(session, 'show_rename', value = FALSE)
+        shinyBS::updateButton(session, 'rename_cluster', value = FALSE)
+      }
+    })
+
+
+    # update group choices if they change
     shiny::observe({
       shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r())
     })
 
+    # update group choices/buttons if show contrasts is toggled
+    shiny::observeEvent(input$show_contrasts, {
+      # update icon on toggle
+      if (input$show_contrasts) {
+        disable_rename <- TRUE
+        icon <- 'chevron-down'
+        selected <- NULL
+
+      } else {
+        disable_rename <- FALSE
+        icon <- 'chevron-right'
+        selected <- test_cluster_r()
+      }
+      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r(), selected = selected)
+      shinyBS::updateButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
+      shinyBS::updateButton(session, 'show_rename', disabled = disable_rename)
+    })
 
 
-    # update marker genes based on cluster selection -----
+    # update marker genes based on cluster selection
     shiny::observeEvent(input$selected_cluster, {
       scseq <- scseq_r()
       con_markers <- con_markers_rv()
@@ -246,8 +262,9 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     })
 
 
+    # dynamic UI elements (change based on state of app) ----
 
-    # toggle for e.g. showing ctrl and/or test cells ----
+    # ui to show e.g. ctrl or test cells
     output$groups_toggle <- shiny::renderUI({
       # if more than one group allow showing cells based on groups
       groups <- available_groups_r()
@@ -262,8 +279,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       return(groups_toggle)
     })
 
-
-    # conditional UI elements to either selected cluster or rename it ----
+    # ui for renaming a cluster
     output$rename_ui <- shiny::renderUI({
       current_name <- input$selected_cluster
       shiny::tags$div(class = 'textinput-buttons', style='height:79px;',
