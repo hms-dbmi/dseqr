@@ -37,6 +37,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     shiny::tags$head(
       shiny::tags$style("#genecards, #show_contrasts, #show_rename, #rename_cluster {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -5px; margin-top: -26px;}"),
       shiny::tags$style("div.textinput-buttons #rename_cluster {margin-top: -3px;}"),
+      shiny::tags$style(".selectize-dropdown-content {max-height: 300px;}"),
       shiny::tags$style("div.selectize-buttons .selectize-input, #show_contrasts, #new_cluster_name {border-top-right-radius: 0; border-bottom-right-radius: 0;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters", left = NULL, right = NULL),
@@ -166,29 +167,6 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
 
 
-    # update cluster/contrast choices based on show_contrasts toggle and renaming
-    group_choices_r <- shiny::reactive({
-
-      clusters <- clusters_r()
-
-      if (isTRUE(input$show_contrasts)) {
-        # group choices are as compared to other clusters
-        test <- shiny::isolate(test_cluster_r())
-        ctrls <- clusters[clusters != test]
-
-        contrast_choices <- c(test, paste0(test, ' vs ', ctrls))
-        # make sure not too long
-        names(contrast_choices) <- stringr::str_trunc(paste0(test, ' vs ', c('all', ctrls)), 40)
-
-      } else {
-        # cluster choices are the clusters themselves
-        contrast_choices  <- clusters
-      }
-
-      return(contrast_choices)
-    })
-
-
     # observations (do stuff if something changes) -------
     # update annot if rename a cluster
     shiny::observeEvent(input$rename_cluster, {
@@ -218,10 +196,56 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       }
     })
 
+    contrast_options <- list(render = I(
+      '{
+        option: function(item, escape) {
 
-    # update group choices/selected if they change
+          // styling if looking at cluster
+          var clustEl = "<div style=\\"columns: 2;\\">" +
+                          "<div>" +
+                             escape(item.name) +
+                          "</div>" +
+                          "<div style=\\"color: #A0A0A0;text-align:right;\\">" +
+                           item.ncells + " :: " + item.pspace + item.pcells + "%" +
+                          "</div>" +
+                        "</div>";
+
+          // styling if looking at contrast
+          var conEl  = "<div>" + escape(item.label) + "</div>";
+
+          return item.pcells ? clustEl : conEl;
+        }
+      }'
+    ))
+
+
+    # update group choices/selected if they change or show_contrasts changes
     shiny::observe({
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r(), selected = selected_cluster_rv())
+
+      scseq <- scseq_r()
+      clusters <- clusters_r()
+
+      if (isTRUE(input$show_contrasts)) {
+        # group choices are as compared to other clusters
+        test <- shiny::isolate(test_cluster_r())
+        ctrls <- clusters[clusters != test]
+
+        contrast_choices <- c(test, paste0(test, ' vs ', ctrls))
+        # make sure not too long
+        names(contrast_choices) <- stringr::str_trunc(paste0(test, ' vs ', c('all', ctrls)), 40)
+
+      } else {
+        # show the cell numbers/percentages
+        ncells <- tabulate(scseq$seurat_clusters)
+        pcells <- round(ncells/sum(ncells) * 100)
+        pspace <- strrep('&nbsp;&nbsp;', 2-nchar(pcells))
+
+
+        # cluster choices are the clusters themselves
+        contrast_choices  <- data.frame(name = clusters, ncells, pcells, pspace, row.names = clusters, value = clusters, label = clusters)
+
+      }
+      shiny::updateSelectizeInput(session, 'selected_cluster', choices = contrast_choices, selected = selected_cluster_rv(), options = contrast_options, server = TRUE)
     })
 
 
@@ -246,7 +270,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         selected_cluster_rv(NULL)
       } else {
         selected_cluster_rv(test_cluster_r())
-        }
+      }
 
     })
 
