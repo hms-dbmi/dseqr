@@ -9,7 +9,7 @@
 #' @examples
 plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster') {
 
-  cols <- get_colour_values(levels(scseq$seurat_clusters))
+  cols <- get_palette(levels(scseq$seurat_clusters))
 
   # make selected cluster and groups stand out
   cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$seurat_clusters) %in% selected_clusters, 1, 0.1))
@@ -45,6 +45,8 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
   cells <- colnames(scseq)
   cells <- colnames(scseq)[scseq$orig.ident %in% selected_idents]
 
+  # make sure not plotting combined markers
+  if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- 'SCT'
 
   gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'umap', order = TRUE, pt.size = pt.size) +
     theme_no_axis_vals() +
@@ -62,7 +64,9 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 
 theme_no_axis_vals <- function() {
   ggplot2::theme(axis.text = ggplot2::element_blank(),
-                 axis.ticks = ggplot2::element_blank())
+                 axis.ticks = ggplot2::element_blank(),
+                 legend.text = ggplot2::element_text(size = 14, margin = ggplot2::margin(b=7)),
+                 legend.title = ggplot2::element_text(size = 16, margin = ggplot2::margin(b=9)))
 }
 
 
@@ -79,7 +83,7 @@ plot_biogps <- function(gene) {
   if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
   gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
-  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:20]
+  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:15]
   gene_dat <- tibble::tibble(mean = gene_dat,
                              source = factor(names(gene_dat), levels = rev(names(gene_dat))))
 
@@ -94,8 +98,8 @@ plot_biogps <- function(gene) {
     ggplot2::coord_flip() +
     ggplot2::theme(panel.grid = ggplot2::element_blank(),
                    panel.border = ggplot2::element_blank(),
-                   plot.title = ggplot2::element_text(),
-                   axis.text = ggplot2::element_text(size = 12),
+                   plot.title = ggplot2::element_text(size = 16),
+                   axis.text = ggplot2::element_text(size = 14),
                    axis.text.x = ggplot2::element_blank(),
                    legend.position = "none")
 }

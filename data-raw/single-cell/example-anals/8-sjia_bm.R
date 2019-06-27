@@ -1,6 +1,8 @@
 library(Seurat)
 library(drugseqr)
 
+setwd("~/Documents/Batcave/zaklab/drugseqr")
+
 # bone marrow analysis -----
 data_dir <- 'data-raw/single-cell/example-data/Run2622-10X-BoneMarrow-STA1/10X_STA-1_3hg'
 
@@ -54,6 +56,11 @@ annot <- c('B-cells#1',
 anal$annot <- annot
 saveRDS(anal, 'data-raw/single-cell/example-data/bm_anal.rds')
 
-levels(anal$scseq$seurat_clusters) <- annot
+anal <- readRDS('data-raw/single-cell/example-data/bm_anal.rds')
+levels(anal$scseq$seurat_clusters) <- anal$annot
+Idents(anal$scseq) <- anal$scseq$seurat_clusters
+names(anal$markers) <- anal$annot
+explore_scseq_clusters(anal$scseq, anal$markers, pt.size = 2.5)
+
 save_scseq_reports(anal$scseq, markers = cluster_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/bm_sjia_markers.pdf')

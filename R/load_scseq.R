@@ -287,7 +287,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #' @export
 #'
 #' @examples
-get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL) {
+get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
@@ -298,10 +298,12 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
-      markers <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE, ident.1 = ident.1, ident.2 = ident.2)
+      markers <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE,
+                                     ident.1 = ident.1, ident.2 = ident.2,
+                                     min.diff.pct = min.diff.pct)
 
     } else {
-      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = TRUE)
+      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = TRUE, min.diff.pct = min.diff.pct)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
     }
@@ -318,7 +320,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @export
 #'
 #' @examples
-integrate_scseq <- function(scseqs) {
+integrate_scseqs <- function(scseqs) {
 
   k.filter <- min(200, min(sapply(scseqs, ncol)))
 

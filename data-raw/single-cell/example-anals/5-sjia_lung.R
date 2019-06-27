@@ -32,15 +32,21 @@ ctrl_markers <- list('Macrophages#1'         = c('PTAFR', 'CD68', 'APOC1'),
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-ctrl_annot <- c('T-cells',
-                'RBCs',
-                'Alveolar Epithelium',
-                'RBCs',
-                'Macrophages#1',
-                'Macrophages#2',
-                '?')
+ctrl_anal$annot <- c('T-cells',
+                     'RBCs',
+                     'Alveolar Epithelium',
+                     'RBCs',
+                     'Macrophages#1',
+                     'Macrophages#2',
+                     '6')
 
-levels(ctrl_anal$scseq$seurat_clusters) <- ctrl_annot
+saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/sjia_lung_healthy.rds')
+
+ctrl_anal <- readRDS('data-raw/single-cell/example-data/sjia_lung_healthy.rds')
+levels(ctrl_anal$scseq$seurat_clusters) <- ctrl_anal$annot
+Idents(ctrl_anal$scseq) <- ctrl_anal$scseq$seurat_clusters
+names(ctrl_anal$markers) <- ctrl_anal$annot
+
 save_scseq_reports(ctrl_anal$scseq, markers = ctrl_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/lung_normal_markers.pdf')
 
@@ -60,10 +66,10 @@ test_scseq <- jitter_umap(test_scseq)
 # get markers
 test_markers <- get_scseq_markers(test_scseq)
 test_anal <- list(scseq = test_scseq, markers = test_markers)
-saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
+# saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
 
 test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
-explore_scseq_clusters(test_anal$scseq, test_anal$markers)
+explore_scseq_clusters(test_anal$scseq, test_anal$markers, pt.size = 2.5)
 
 # Diseased Annotations
 # put in order that want reports to appear
@@ -96,9 +102,17 @@ test_annot <- c('Macrophages#1',
                 'Respiratory Cilia')
 
 test_anal$annot <- test_annot
-saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
+# saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
 
-levels(test_anal$scseq$seurat_clusters) <- test_annot
+test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
+levels(test_anal$scseq$seurat_clusters) <- test_anal$annot
+Idents(test_anal$scseq) <- test_anal$scseq$seurat_clusters
+names(test_anal$markers) <- test_anal$annot
+
+data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia/'
+explore_scseq_clusters(data_dir, pt.size = 2.5)
+
+
 save_scseq_reports(test_anal$scseq, markers = test_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/lung_diseased_markers.pdf')
 
@@ -253,10 +267,10 @@ test_markers <- list()
 
 for (cell_group in cell_groups) {
 
-    test_markers[[cell_group]] <- tryCatch(get_scseq_markers(combined,
-                                                             ident.1 = paste0(cell_group, '_test'),
-                                                             ident.2 = paste0(cell_group, '_ctrl'))[[1]],
-                                           error = function(e) return(NULL))
+  test_markers[[cell_group]] <- tryCatch(get_scseq_markers(combined,
+                                                           ident.1 = paste0(cell_group, '_test'),
+                                                           ident.2 = paste0(cell_group, '_ctrl'))[[1]],
+                                         error = function(e) return(NULL))
 }
 
 explore_scseq_clusters(combined, test_markers)

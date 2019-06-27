@@ -20,11 +20,11 @@ scseq <- run_umap(scseq)
 
 # get markers and explore
 markers <- get_scseq_markers(scseq)
-anal <- list(scseq = scseq, markers = markers)
-saveRDS(anal, 'data-raw/single-cell/example-data/sjia_blood1.rds')
+anal1 <- list(scseq = scseq, markers = markers)
+saveRDS(anal1, 'data-raw/single-cell/example-data/sjia_blood1.rds')
 
 
-anal <- readRDS('data-raw/single-cell/example-data/sjia_blood1.rds')
+anal1 <- readRDS('data-raw/single-cell/example-data/sjia_blood1.rds')
 explore_scseq_clusters(anal1$scseq, anal1$markers)
 
 
@@ -36,10 +36,16 @@ cluster_markers <- list('NK-cells'    = c('GZMA', 'PRF1', 'CD247'),
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-cell_ids <- c('NK-cells', 'Monocytes', 'B-cells')
+anal1$annot <- c('NK-cells', 'Monocytes', 'B-cells')
+saveRDS(anal1, 'data-raw/single-cell/example-data/sjia_blood1.rds')
+
+anal1 <- readRDS('data-raw/single-cell/example-data/sjia_blood1.rds')
+levels(anal1$scseq$seurat_clusters) <- anal1$annot
+Idents(anal1$scseq) <- anal1$scseq$seurat_clusters
+names(anal1$markers) <- anal1$annot
+explore_scseq_clusters(anal1$scseq, anal1$markers)
 
 
-levels(anal$scseq$seurat_clusters) <- cell_ids
 save_scseq_reports(anal$scseq, markers = cluster_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/sjia_blood1_markers.pdf')
 
@@ -67,11 +73,11 @@ scseq@active.ident <- scseq$seurat_clusters <- factor(Idents(scseq), levels = so
 
 # get markers and explore
 markers <- get_scseq_markers(scseq)
-anal <- list(scseq = scseq, markers = markers)
-saveRDS(anal, 'data-raw/single-cell/example-data/sjia_blood2.rds')
+anal2 <- list(scseq = scseq, markers = markers)
+saveRDS(anal2, 'data-raw/single-cell/example-data/sjia_blood2.rds')
 
-anal <- readRDS('data-raw/single-cell/example-data/sjia_blood2.rds')
-explore_scseq_clusters(anal$scseq, anal$markers)
+anal2 <- readRDS('data-raw/single-cell/example-data/sjia_blood2.rds')
+explore_scseq_clusters(anal2$scseq, anal2$markers)
 
 
 # Normal Annotations
@@ -83,11 +89,17 @@ cluster_markers <- list('NK-cells'    = c('GNLY', 'NKG7', 'GZMB'),
 
 # rename based on identification and save reports
 # need to be in same order as clusters
-cell_ids <- c('NK-cells', 'Monocytes', 'B-cells', 'T-cells')
+anal2$annot <- c('NK-cells', 'Monocytes', 'B-cells', 'T-cells')
+saveRDS(anal2, 'data-raw/single-cell/example-data/sjia_blood2.rds')
+
+anal2 <- readRDS('data-raw/single-cell/example-data/sjia_blood2.rds')
+levels(anal2$scseq$seurat_clusters) <- anal2$annot
+Idents(anal2$scseq) <- anal2$scseq$seurat_clusters
+names(anal2$markers) <- anal2$annot
+explore_scseq_clusters(anal2$scseq, anal2$markers)
 
 
-levels(anal$scseq$seurat_clusters) <- cell_ids
-save_scseq_reports(anal$scseq, markers = cluster_markers, pt.size = 3,
+save_scseq_reports(anal2$scseq, markers = cluster_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/sjia_blood2_markers.pdf')
 
 

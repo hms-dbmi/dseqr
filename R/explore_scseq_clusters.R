@@ -28,7 +28,7 @@
 
 explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
-  anal_files <- list.files(data_dir)
+  anal_files <- rev(list.files(data_dir))
   anal_options <- gsub('.rds$', '', anal_files)
 
   #  user interface ----
@@ -36,15 +36,19 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
   ui <- miniUI::miniPage(
     shiny::tags$head(
       shiny::tags$style("#genecards, #show_contrasts, #show_rename, #rename_cluster {border-top-left-radius: 0; border-bottom-left-radius: 0; position: relative; z-index: 2; margin-left: -5px; margin-top: -26px;}"),
-      shiny::tags$style("div.textinput-buttons #rename_cluster {margin-top: -3px;}"),
+      shiny::tags$style("div.textinput-buttons #rename_cluster {margin-top: -3.5px;}"),
       shiny::tags$style(".selectize-dropdown-content {max-height: 300px;}"),
+      shiny::tags$style(".selectize-fw {min-width: 400px;}"),
+      shiny::tags$style(".selectize-buttons, .textinput-buttons {min-width: 400px;}"),
       shiny::tags$style("div.selectize-buttons .selectize-input, #show_contrasts, #new_cluster_name {border-top-right-radius: 0; border-bottom-right-radius: 0;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters", left = NULL, right = NULL),
     miniUI::miniContentPanel(
-      shiny::fluidRow(
+      shiny::fixedRow(
         shiny::column(6,
-                      shiny::selectInput('selected_anal', 'Selected analysis:', choice = anal_options, width = '392.5px'),
+                      shiny::tags$div(class = 'selectize-fw',
+                                      shiny::selectInput('selected_anal', 'Selected analysis:', choice = anal_options, width = '392.5px')
+                      ),
                       shiny::br(),
                       shiny::conditionalPanel('input.show_rename == false',
                                               shiny::tags$div(class = 'selectize-buttons', style='height:79px;',
@@ -102,16 +106,15 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
       anal <- readRDS(file.path(data_dir, selected_file))
 
-      if (!is.null(anal$annot)) {
-        levels(anal$scseq$seurat_clusters) <- anal$annot
-        Idents(anal$scseq) <- anal$scseq$seurat_clusters
-      }
+      if (is.null(anal$annot))
+        anal$annot <- names(anal$markers)
 
       if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
         Seurat::DefaultAssay(anal$scseq) <- 'SCT'
 
       #  annot
       annot_rv(anal$annot)
+
       return(anal)
     })
 
@@ -121,10 +124,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       anal <- anal_r()
       annot <- annot_rv()
       markers <- anal$markers
-
-      if (!is.null(annot)) {
-        names(markers) <- annot
-      }
+      names(markers) <- annot
 
       return(markers)
     })
@@ -152,6 +152,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     test_cluster_r <- shiny::reactive({
       test_cluster <- input$selected_cluster
       test_cluster <- gsub(' vs .+?$', '', test_cluster)
+      if (test_cluster == '') return(NULL)
       return(test_cluster)
     })
 
@@ -180,7 +181,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
           sel.clust <- input$selected_cluster
           sel.idx   <- which(annot == sel.clust)
           annot[sel.idx] <- input$new_cluster_name
-          annot_rv(annot)
+          annot_rv(make.unique(annot))
         }
 
         # reset toggles to initial state
@@ -195,28 +196,6 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         selected_cluster_rv(input$new_cluster_name)
       }
     })
-
-    contrast_options <- list(render = I(
-      '{
-        option: function(item, escape) {
-
-          // styling if looking at cluster
-          var clustEl = "<div style=\\"columns: 2;\\">" +
-                          "<div>" +
-                             escape(item.name) +
-                          "</div>" +
-                          "<div style=\\"color: #A0A0A0;text-align:right;\\">" +
-                           item.ncells + " :: " + item.pspace + item.pcells + "%" +
-                          "</div>" +
-                        "</div>";
-
-          // styling if looking at contrast
-          var conEl  = "<div>" + escape(item.label) + "</div>";
-
-          return item.pcells ? clustEl : conEl;
-        }
-      }'
-    ))
 
 
     # update group choices/selected if they change or show_contrasts changes
@@ -245,6 +224,28 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         contrast_choices  <- data.frame(name = clusters, ncells, pcells, pspace, row.names = clusters, value = clusters, label = clusters)
 
       }
+
+      contrast_options <- list(render = I(
+        '{
+        option: function(item, escape) {
+
+          // styling if looking at cluster
+          var clustEl = "<div style=\\"columns: 2;\\">" +
+                          "<div>" +
+                             escape(item.name) +
+                          "</div>" +
+                          "<div style=\\"color: #A0A0A0;text-align:right;\\">" +
+                           item.ncells + " :: " + item.pspace + item.pcells + "%" +
+                          "</div>" +
+                        "</div>";
+
+          // styling if looking at contrast
+          var conEl  = "<div>" + escape(item.label) + "</div>";
+
+          return item.pcells ? clustEl : conEl;
+        }
+      }'
+      ))
       shiny::updateSelectizeInput(session, 'selected_cluster', choices = contrast_choices, selected = selected_cluster_rv(), options = contrast_options, server = TRUE)
     })
 
@@ -367,5 +368,5 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     })
 
   }
-  shiny::runGadget(shiny::shinyApp(ui, server), viewer = shiny::browserViewer())
+  shiny::shinyApp(ui, server, options = list('launch.browser' = TRUE))
 }

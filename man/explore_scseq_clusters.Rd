@@ -4,7 +4,7 @@
 \alias{explore_scseq_clusters}
 \title{Explore Single Cell Clusters}
 \usage{
-explore_scseq_clusters(scseq, markers = NULL, pt.size = 3)
+explore_scseq_clusters(data_dir, pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
