@@ -83,6 +83,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     # reactive values (can update and persist within session) -----
     annot_rv <- shiny::reactiveVal(NULL)
     con_markers_rv <- shiny::reactiveVal(list())
+    selected_cluster_rv <- shiny::reactiveVal(NULL)
 
 
     # reactive expressions (auto update) ----------
@@ -210,30 +211,44 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       }
     })
 
-
-    # update group choices if they change
-    shiny::observe({
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r())
+    # update selected cluster if rename a cluster
+    shiny::observeEvent(input$rename_cluster, {
+      if (isTRUE(input$rename_cluster) && input$new_cluster_name != '') {
+        selected_cluster_rv(input$new_cluster_name)
+      }
     })
 
-    # update group choices/buttons if show contrasts is toggled
+
+    # update group choices/selected if they change
+    shiny::observe({
+      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r(), selected = selected_cluster_rv())
+    })
+
+
+    # update group buttons if show contrasts is toggled
     shiny::observeEvent(input$show_contrasts, {
       # update icon on toggle
       if (input$show_contrasts) {
         disable_rename <- TRUE
         icon <- 'chevron-down'
-        selected <- NULL
 
       } else {
         disable_rename <- FALSE
         icon <- 'chevron-right'
-        selected <- test_cluster_r()
       }
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = group_choices_r(), selected = selected)
       shinyBS::updateButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
       shinyBS::updateButton(session, 'show_rename', disabled = disable_rename)
     })
 
+    # update selected cluster if show contrasts is toggled
+    shiny::observeEvent(input$show_contrasts, {
+      if (input$show_contrasts) {
+        selected_cluster_rv(NULL)
+      } else {
+        selected_cluster_rv(test_cluster_r())
+        }
+
+    })
 
     # update marker genes based on cluster selection
     shiny::observeEvent(input$selected_cluster, {
