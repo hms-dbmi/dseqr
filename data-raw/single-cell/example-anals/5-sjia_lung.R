@@ -33,9 +33,9 @@ ctrl_markers <- list('Macrophages#1'         = c('PTAFR', 'CD68', 'APOC1'),
 # rename based on identification and save reports
 # need to be in same order as clusters
 ctrl_anal$annot <- c('T-cells',
-                     'RBCs',
+                     'RBCs#1',
                      'Alveolar Epithelium',
-                     'RBCs',
+                     'RBCs#2',
                      'Macrophages#1',
                      'Macrophages#2',
                      '6')

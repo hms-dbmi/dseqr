@@ -222,9 +222,9 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
         # cluster choices are the clusters themselves
         contrast_choices  <- data.frame(name = clusters, ncells, pcells, pspace, row.names = clusters, value = clusters, label = clusters)
-
       }
 
+      # JS code for adding cell numbers/percentages to selectize options
       contrast_options <- list(render = I(
         '{
         option: function(item, escape) {
@@ -246,7 +246,9 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         }
       }'
       ))
-      shiny::updateSelectizeInput(session, 'selected_cluster', choices = contrast_choices, selected = selected_cluster_rv(), options = contrast_options, server = TRUE)
+      shiny::updateSelectizeInput(session, 'selected_cluster',
+                                  choices = contrast_choices, selected = selected_cluster_rv(),
+                                  options = contrast_options, server = TRUE)
     })
 
 
@@ -298,7 +300,7 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       choices <- row.names(cluster_markers)
       choices <- c(choices, setdiff(row.names(scseq), choices))
 
-      shiny::updateSelectizeInput(session, 'gene', choices = choices, server = TRUE)
+      shiny::updateSelectizeInput(session, 'gene', choices = choices, selected = NULL, server = TRUE)
     })
 
 
@@ -334,8 +336,10 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
     # show tSNE plot coloured by expression values
     output$marker_plot <- shiny::renderPlot({
 
-      if (input$gene == '') return(NULL)
-      plot_umap_gene(scseq_r(), input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
+      scseq <- scseq_r()
+
+      if (input$gene == '' || !input$gene %in% row.names(scseq)) return(NULL)
+      plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
     })
 
 
