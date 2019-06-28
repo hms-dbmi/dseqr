@@ -39,8 +39,9 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
       shiny::tags$style("div.textinput-buttons #rename_cluster {margin-top: -3.5px;}"),
       shiny::tags$style(".selectize-dropdown-content {max-height: 300px;}"),
       shiny::tags$style(".selectize-fw {min-width: 400px;}"),
+      shiny::tags$style(".input-swatch {height: 10px; width: 10px; border: 1px solid #54575a;display: inline-block; margin-right: 5px;}"),
       shiny::tags$style(".selectize-buttons, .textinput-buttons {min-width: 400px;}"),
-      shiny::tags$style("div.selectize-buttons .selectize-input, #show_contrasts, #new_cluster_name {border-top-right-radius: 0; border-bottom-right-radius: 0;}")
+      shiny::tags$style(".selectize-buttons .selectize-input, #show_contrasts, #new_cluster_name {border-top-right-radius: 0; border-bottom-right-radius: 0;}")
     ),
     miniUI::gadgetTitleBar("Explore Single-Cell Clusters", left = NULL, right = NULL),
     miniUI::miniContentPanel(
@@ -209,9 +210,15 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
         test <- shiny::isolate(test_cluster_r())
         ctrls <- clusters[clusters != test]
 
-        contrast_choices <- c(test, paste0(test, ' vs ', ctrls))
-        # make sure not too long
-        names(contrast_choices) <- stringr::str_trunc(paste0(test, ' vs ', c('all', ctrls)), 40)
+        colours <- get_palette(clusters)
+        names(colours) <- clusters
+
+        contrast_choices <- data.frame(test = stringr::str_trunc(test, 17),
+                                       ctrl = stringr::str_trunc(c('all', ctrls), 17),
+                                       value = c(test, paste0(test, ' vs ', ctrls)),
+                                       testColor = colours[test],
+                                       ctrlColor = c('white', colours[ctrls]))
+
 
       } else {
         # show the cell numbers/percentages
@@ -221,17 +228,26 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
 
         # cluster choices are the clusters themselves
-        contrast_choices  <- data.frame(name = clusters, ncells, pcells, pspace, row.names = clusters, value = clusters, label = clusters)
+        testColor <- get_palette(clusters)
+        contrast_choices  <- data.frame(name = stringr::str_trunc(clusters, 27),
+                                        value = clusters,
+                                        label = clusters,
+                                        testColor,
+                                        ncells,
+                                        pcells, pspace,
+                                        row.names = clusters)
       }
 
-      # JS code for adding cell numbers/percentages to selectize options
+      # JS code for adding cell numbers/percentages to selectize options ----
       contrast_options <- list(render = I(
         '{
+        // styling for options
         option: function(item, escape) {
 
           // styling if looking at cluster
           var clustEl = "<div style=\\"columns: 2;\\">" +
-                          "<div>" +
+                          "<div style=\\"margin-right: -80px\\">" +
+                            "<div class=\\"input-swatch\\" style=\\"background-color:" + item.testColor + "\\"></div>" +
                              escape(item.name) +
                           "</div>" +
                           "<div style=\\"color: #A0A0A0;text-align:right;\\">" +
@@ -240,12 +256,44 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
                         "</div>";
 
           // styling if looking at contrast
-          var conEl  = "<div>" + escape(item.label) + "</div>";
+          var conEl  = "<div>" +
+                         "(<div class=\\"input-swatch\\" style=\\"margin-left: 5px; background-color:" + item.testColor + "\\"></div>" +
+                         " - " +
+                         "<div class=\\"input-swatch\\" style=\\"background-color:" + item.ctrlColor + "\\"></div>) " +
+                         escape(item.test) + " vs " +
+                         escape(item.ctrl) +
+                       "</div>";
 
+          // either cluster or contrast element
+          return item.pcells ? clustEl : conEl;
+        },
+
+        //styling for current item
+        item: function(item, escape) {
+          // styling if looking at cluster
+          var clustEl = "<div>" +
+                            "<div class=\\"input-swatch\\" style=\\"background-color:" + item.testColor + "\\"></div>" +
+                             escape(item.name) +
+                          "<span style=\\"color: #A0A0A0;\\">" +
+                             " (" + item.ncells + " :: " + item.pcells + "%)" +
+                          "</span>" +
+                        "</div>";
+
+           // styling if looking at contrast
+          var conEl  = "<div>" +
+                         "(<div class=\\"input-swatch\\" style=\\"margin-left: 5px; background-color:" + item.testColor + "\\"></div>" +
+                         " - " +
+                         "<div class=\\"input-swatch\\" style=\\"background-color:" + item.ctrlColor + "\\"></div>) " +
+                         escape(item.test) + " vs " +
+                         escape(item.ctrl) +
+                       "</div>";
+
+          // either cluster or contrast element
           return item.pcells ? clustEl : conEl;
         }
       }'
       ))
+      #-----
       shiny::updateSelectizeInput(session, 'selected_cluster',
                                   choices = contrast_choices, selected = selected_cluster_rv(),
                                   options = contrast_options, server = TRUE)
