@@ -1,0 +1,47 @@
+.selectize-dropdown-content {
+  max-height: 300px;
+}
+
+.input-swatch {
+  height: 10px; 
+  width: 10px; 
+  border: 1px solid #54575a;
+  display: inline-block; 
+  margin-right: 5px;
+}
+
+
+
+/* FORMS BESIDE BUTTONS */
+
+.input-group,
+.form-group {
+  max-width: 400px;
+  /* same height for any input type */
+  height: 79px; 
+}
+
+/* border radius */
+.input-group .selectize-input, 
+#show_contrasts {
+  border-top-right-radius: 0; 
+  border-bottom-right-radius: 0;
+}
+
+/* first button beside input when more than one */
+.input-group .squashed-btn {
+  border-left-width: 0;
+}
+
+.input-group-btn button {
+  border-top-left-radius: 0; 
+  border-bottom-left-radius: 0; 
+  z-index: 0  !important;
+}
+
+
+.input-group-btn {
+  vertical-align: top;
+}
+
+
