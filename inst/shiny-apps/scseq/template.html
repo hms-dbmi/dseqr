@@ -47,7 +47,7 @@
       <div class="row">
         <div class="col-sm-6">
           <!-- analysis selection (e.g. sjia_pbmcs2) -->
-          <div class="form-group">
+          <div class="form-group selectize-fh">
             <label class="control-label" for="selected_anal">Selected analysis:</label>
             <div>
               <select id="selected_anal"></select>
@@ -57,7 +57,7 @@
           <br/>
           <!-- cluster (e.g. cell type) selection -->
           <div data-display-if="(input.rename_cluster + input.show_rename) % 2 == 0" data-ns-prefix="">
-            <div class="form-group">
+            <div class="form-group selectize-fh">
               <label class="control-label" for="selected_cluster">Show marker genes for:</label>
               <div class="input-group">
                 <div>
@@ -75,7 +75,7 @@
           </div>
           <!-- input for renaming a cluster -->
           <div data-display-if="(input.rename_cluster + input.show_rename) % 2 != 0" data-ns-prefix="">
-            <div class="form-group">
+            <div class="form-group selectize-fh">
               <label class="control-label" for="new_cluster_name">New cluster name:</label>
               <div class="input-group">
                 <input id="new_cluster_name" type="text" class="form-control shiny-bound-input" value="" placeholder="">
@@ -87,7 +87,7 @@
           </div>
           <br/>
           <!-- input for selecting the gene to show expression for -->
-          <div class="form-group">
+          <div class="form-group selectize-fh">
             <label class="control-label" for="gene">Show expression for:</label>
             <div class="input-group">
               <div>

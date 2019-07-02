@@ -14,8 +14,7 @@
 
 /* FORMS BESIDE BUTTONS */
 
-.input-group,
-.form-group {
+.selectize-fh {
   max-width: 400px !important;
   /* same height for any input type */
   height: 79px; 
