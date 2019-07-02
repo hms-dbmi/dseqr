@@ -8,13 +8,16 @@ server <- function(input, output, session) {
 
   # initialize analysis options
   anal_files <- rev(list.files(data_dir))
+  anal_files <- anal_files[-grep('_annot.rds$', anal_files)]
   anal_options <- gsub('.rds$', '', anal_files)
   shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options)
 
   # reactive values (can update and persist within session) -----
   annot_rv <- shiny::reactiveVal(NULL)
+  annot_path_rv <- shiny::reactiveVal(NULL)
   con_markers_rv <- shiny::reactiveVal(list())
   selected_cluster_rv <- shiny::reactiveVal(NULL)
+  selected_cluster_idx_rv <- shiny::reactiveVal(NULL)
 
 
   # reactive expressions (auto update) ----------
@@ -32,17 +35,29 @@ server <- function(input, output, session) {
     selected_file <- paste0(input$selected_anal, '.rds')
     anal <- readRDS(file.path(data_dir, selected_file))
 
-    if (is.null(anal$annot))
-      anal$annot <- names(anal$markers)
-
     if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
       Seurat::DefaultAssay(anal$scseq) <- 'SCT'
 
-    #  annot
-    annot_rv(anal$annot)
     return(anal)
-
   }, ignoreInit = TRUE)
+
+  # setup the initial cluster annotations/file path
+  shiny::observeEvent(anal_r(), {
+    anal <- anal_r()
+    annot <- anal$annot
+
+    if (is.null(annot))
+      annot <- names(anal$markers)
+
+    # make sure annot on disc so that can update quickly
+    annot_path <- file.path(data_dir, paste0(input$selected_anal, '_annot.rds'))
+    if (!file.exists(annot_path)) saveRDS(annot, annot_path)
+
+    annot <- readRDS(annot_path)
+    annot_rv(annot)
+    annot_path_rv(annot_path)
+    selected_cluster_rv(NULL)
+  }, priority = 1)
 
 
   # the markers
@@ -53,6 +68,11 @@ server <- function(input, output, session) {
     names(markers) <- annot
 
     return(markers)
+  })
+
+  is_rename_r <- shiny::reactive({
+    is_rename <- (input$rename_cluster + input$show_rename) %% 2 == 0
+    return(is_rename)
   })
 
 
@@ -98,7 +118,7 @@ server <- function(input, output, session) {
   # update annot if rename a cluster
   shiny::observeEvent(input$rename_cluster, {
 
-    if (input$rename_cluster %% 2 != 0) {
+    if (is_rename_r()) {
 
       if (input$new_cluster_name != '') {
 
@@ -107,7 +127,12 @@ server <- function(input, output, session) {
         sel.clust <- input$selected_cluster
         sel.idx   <- which(annot == sel.clust)
         annot[sel.idx] <- input$new_cluster_name
-        annot_rv(make.unique(annot))
+        annot <- make.unique(annot)
+        annot_rv(annot)
+        selected_cluster_idx_rv(sel.idx)
+
+        # save on disc
+        saveRDS(annot, annot_path_rv())
       }
 
     }
@@ -115,8 +140,10 @@ server <- function(input, output, session) {
 
   # update selected cluster if rename a cluster
   shiny::observeEvent(input$rename_cluster, {
-    if (input$rename_cluster %% 2 != 0 && input$new_cluster_name != '') {
-      selected_cluster_rv(input$new_cluster_name)
+    if (is_rename_r() & input$new_cluster_name != '') {
+      annot <- annot_rv()
+      sel.idx <- selected_cluster_idx_rv()
+      selected_cluster_rv(annot[sel.idx])
     }
   })
 
@@ -139,8 +166,7 @@ server <- function(input, output, session) {
                                      ctrl = stringr::str_trunc(c('all', ctrls), 17),
                                      value = c(test, paste0(test, ' vs ', ctrls)),
                                      testColor = colours[test],
-                                     ctrlColor = c('white', colours[ctrls]),
-                                     row.names = clusters)
+                                     ctrlColor = c('white', colours[ctrls]))
 
 
     } else {
@@ -151,13 +177,13 @@ server <- function(input, output, session) {
 
       # cluster choices are the clusters themselves
       testColor <- get_palette(clusters)
-      contrast_choices  <- data.frame(name = stringr::str_trunc(clusters, 27),
+      trunc <- stringr::str_trunc(clusters, 27)
+      contrast_choices  <- data.frame(name = trunc,
                                       value = clusters,
                                       label = clusters,
                                       testColor,
                                       ncells,
-                                      pcells, pspace,
-                                      row.names = clusters)
+                                      pcells, pspace)
     }
 
     contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -233,8 +259,8 @@ server <- function(input, output, session) {
 
   # ui for renaming a cluster
   shiny::observeEvent(input$show_rename, {
-    if (input$show_rename == TRUE)
-      shiny::updateTextInput(session, 'new_cluster_name', placeholder = paste('Type new name for', input$selected_cluster, '...'))
+    if (!is_rename_r())
+      shiny::updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', input$selected_cluster, '...'))
   })
 
 
