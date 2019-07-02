@@ -1,4 +1,5 @@
 server <- function(input, output, session) {
+  shinyjs::useShinyjs(html = TRUE)
 
   # get arguments from calling function
   data_dir <- shiny::getShinyOption('data_dir')
@@ -96,7 +97,7 @@ server <- function(input, output, session) {
   # update annot if rename a cluster
   shiny::observeEvent(input$rename_cluster, {
 
-    if (isTRUE(input$rename_cluster)) {
+    if (input$rename_cluster %% 2 != 0) {
 
       if (input$new_cluster_name != '') {
 
@@ -108,15 +109,12 @@ server <- function(input, output, session) {
         annot_rv(make.unique(annot))
       }
 
-      # reset toggles to initial state
-      shinyBS::updateButton(session, 'show_rename', value = FALSE)
-      shinyBS::updateButton(session, 'rename_cluster', value = FALSE)
     }
   })
 
   # update selected cluster if rename a cluster
   shiny::observeEvent(input$rename_cluster, {
-    if (isTRUE(input$rename_cluster) && input$new_cluster_name != '') {
+    if (input$rename_cluster %% 2 != 0 && input$new_cluster_name != '') {
       selected_cluster_rv(input$new_cluster_name)
     }
   })
@@ -128,7 +126,7 @@ server <- function(input, output, session) {
     scseq <- scseq_r()
     clusters <- clusters_r()
 
-    if (isTRUE(input$show_contrasts)) {
+    if (input$show_contrasts %% 2 != 0) {
       # group choices are as compared to other clusters
       test <- shiny::isolate(test_cluster_r())
       ctrls <- clusters[clusters != test]
@@ -140,7 +138,8 @@ server <- function(input, output, session) {
                                      ctrl = stringr::str_trunc(c('all', ctrls), 17),
                                      value = c(test, paste0(test, ' vs ', ctrls)),
                                      testColor = colours[test],
-                                     ctrlColor = c('white', colours[ctrls]))
+                                     ctrlColor = c('white', colours[ctrls]),
+                                     row.names = clusters)
 
 
     } else {
@@ -171,21 +170,15 @@ server <- function(input, output, session) {
   # update group buttons if show contrasts is toggled
   shiny::observeEvent(input$show_contrasts, {
     # update icon on toggle
-    if (input$show_contrasts) {
-      disable_rename <- TRUE
-      icon <- 'chevron-down'
+    icon <- ifelse(input$show_contrasts %% 2 != 0, 'chevron-down', 'chevron-right')
 
-    } else {
-      disable_rename <- FALSE
-      icon <- 'chevron-right'
-    }
-    shinyBS::updateButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-    shinyBS::updateButton(session, 'show_rename', disabled = disable_rename)
+    shiny::updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
+    shinyjs::toggleState('show_rename')
   })
 
   # update selected cluster if show contrasts is toggled
   shiny::observeEvent(input$show_contrasts, {
-    if (input$show_contrasts) {
+    if (input$show_contrasts %% 2 != 0) {
       selected_cluster_rv(NULL)
     } else {
       selected_cluster_rv(test_cluster_r())

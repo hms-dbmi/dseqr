@@ -16,7 +16,7 @@
 
 .input-group,
 .form-group {
-  max-width: 400px;
+  max-width: 400px !important;
   /* same height for any input type */
   height: 79px; 
 }
