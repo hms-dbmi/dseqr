@@ -2,8 +2,9 @@ server <- function(input, output, session) {
   shinyjs::useShinyjs(html = TRUE)
 
   # get arguments from calling function
-  data_dir <- shiny::getShinyOption('data_dir')
-  pt.size  <- shiny::getShinyOption('pt.size')
+  # defaults for server
+  data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
+  pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
   # initialize analysis options
   anal_files <- rev(list.files(data_dir))
