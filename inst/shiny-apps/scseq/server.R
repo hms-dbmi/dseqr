@@ -8,7 +8,7 @@ server <- function(input, output, session) {
 
   # initialize analysis options
   anal_files <- rev(list.files(data_dir))
-  anal_files <- anal_files[-grep('_annot.rds$', anal_files)]
+  anal_files <- anal_files[!grepl('_annot.rds$', anal_files)]
   anal_options <- gsub('.rds$', '', anal_files)
   shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options)
 
