@@ -6,19 +6,15 @@ server <- function(input, output, session) {
   data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
   pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
-  # initialize analysis/integration options
-  anal_files <- rev(list.files(data_dir))
-  anal_files <- anal_files[!grepl('_annot.rds$', anal_files)]
-  anal_options <- gsub('.rds$', '', anal_files)
-  shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options)
-  shiny::updateSelectizeInput(session, 'test_integration', choices = anal_options)
-  shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options)
 
-  # toggle to show integration
-  shinyjs::onclick("show_integration",
-                   shinyjs::toggle(id = "integration", anim = TRUE))
+  # toggle to show dataset integration
+  shinyjs::onclick("show_integration", {
+  shinyjs::toggle(id = "integration", anim = TRUE)
+  shinyjs::toggleClass(id = "show_integration", 'active')
+  })
 
   # reactive values (can update and persist within session) -----
+  new_anals_rv <- shiny::reactiveVal(NULL)
   annot_rv <- shiny::reactiveVal(NULL)
   annot_path_rv <- shiny::reactiveVal(NULL)
   con_markers_rv <- shiny::reactiveVal(list())
@@ -27,6 +23,25 @@ server <- function(input, output, session) {
 
 
   # reactive expressions (auto update) ----------
+
+  # available analyses
+  anal_options_r <- shiny::reactive({
+    # reactive to new anals
+    new_anals_rv()
+
+    # use saved anals as options
+    anal_files <- rev(list.files(data_dir))
+    anal_files <- anal_files[!grepl('_annot.rds$', anal_files)]
+    anal_options <- gsub('.rds$', '', anal_files)
+
+    return(anal_options)
+  })
+
+  # analyses available for integration
+  integration_options_r <- shiny::reactive({
+    # TODO: integrated datasets not an option
+    anal_options_r()
+  })
 
   # groups to show (e.g. ctrl and test)
   available_groups_r <- shiny::reactive({
@@ -46,25 +61,6 @@ server <- function(input, output, session) {
 
     return(anal)
   }, ignoreInit = TRUE)
-
-  # setup the initial cluster annotations/file path
-  shiny::observeEvent(anal_r(), {
-    anal <- anal_r()
-    annot <- anal$annot
-
-    if (is.null(annot))
-      annot <- names(anal$markers)
-
-    # make sure annot on disc so that can update quickly
-    annot_path <- file.path(data_dir, paste0(input$selected_anal, '_annot.rds'))
-    if (!file.exists(annot_path)) saveRDS(annot, annot_path)
-
-    annot <- readRDS(annot_path)
-    annot_rv(annot)
-    annot_path_rv(annot_path)
-    selected_cluster_rv(NULL)
-  }, priority = 1)
-
 
   # the markers
   markers_r <- shiny::reactive({
@@ -121,6 +117,49 @@ server <- function(input, output, session) {
 
 
   # observations (do stuff if something changes) -------
+  # analysis options
+  shiny::observe({
+    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r())
+  })
+
+  # integration analyses can be either control or test (not both)
+  # update choices of opposite so that doesn't close current
+  shiny::observe({
+
+    ctrl <- input$ctrl_integration
+    test <- shiny::isolate(input$test_integration)
+    anal_options <- anal_options_r()
+
+    shiny::updateSelectizeInput(session, 'test_integration', choices = anal_options[!anal_options %in% ctrl], selected = test)
+  })
+  shiny::observe({
+    ctrl <- shiny::isolate(input$ctrl_integration)
+    test <- input$test_integration
+    anal_options <- anal_options_r()
+
+    shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options[!anal_options %in% test], selected = ctrl)
+  })
+
+
+  # setup the initial cluster annotations/file path
+  shiny::observeEvent(anal_r(), {
+    anal <- anal_r()
+    annot <- anal$annot
+
+    if (is.null(annot))
+      annot <- names(anal$markers)
+
+    # make sure annot on disc so that can update quickly
+    annot_path <- file.path(data_dir, paste0(input$selected_anal, '_annot.rds'))
+    if (!file.exists(annot_path)) saveRDS(annot, annot_path)
+
+    annot <- readRDS(annot_path)
+    annot_rv(annot)
+    annot_path_rv(annot_path)
+    selected_cluster_rv(NULL)
+  }, priority = 1)
+
+
   # update annot if rename a cluster
   shiny::observeEvent(input$rename_cluster, {
 

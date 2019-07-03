@@ -1,9 +1,12 @@
 ## ui.R ##
 shiny::htmlTemplate("template.html",
-                    # buttons for dataset integration
+                    # toggle to show dataset integration panel
                     show_integration   = shiny::actionButton('show_integration', '',
                                                               icon = shiny::icon('object-group', 'far fa-fw'),
                                                               title = 'Toggle dataset integration'),
+                    # dataset integration panel
+                    test_integration = shiny::selectizeInput('test_integration', 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
+                    ctrl_integration = shiny::selectizeInput('ctrl_integration', 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
                     submit_integration = shiny::actionButton('submit_integration', 'Integrate Datasets',
                                                               icon = shiny::icon('object-group', 'fa-fw'),
                                                               title = 'Integrate datasets',  

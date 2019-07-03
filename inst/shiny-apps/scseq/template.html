@@ -60,21 +60,9 @@
             </div>
           </div>
           <!-- integrate datasets selection (e.g. ctrl and test datasets to combine) -->
-          <div id='integration' class="integration-container">
-            <div class="form-group">
-              <label class="control-label" for="test_integration">Test datasets:</label>
-              <div>
-                <select id="test_integration" class="shiny-bound-input shinyjs-resettable selectized" multiple="multiple" data-shinyjs-resettable-id="test_integration" data-shinyjs-resettable-type="Select" data-shinyjs-resettable-value="&quot;&quot;" style="display: none;" tabindex="-1"></select>
-                <script type="application/json" data-for="test_integration">{}</script>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="control-label" for="ctrl_integration">Control datasets:</label>
-              <div>
-                <select id="ctrl_integration" class="shiny-bound-input shinyjs-resettable selectized" multiple="multiple" data-shinyjs-resettable-id="ctrl_integration" data-shinyjs-resettable-type="Select" data-shinyjs-resettable-value="&quot;&quot;" style="display: none;" tabindex="-1"></select>
-                <script type="application/json" data-for="ctrl_integration">{}</script>
-              </div>
-            </div>
+          <div id='integration' class="integration-container" style="display: none;">
+            {{ test_integration }}
+            {{ ctrl_integration }}
             <label class="control-label" ></label>
             {{ submit_integration }}
           </div>
