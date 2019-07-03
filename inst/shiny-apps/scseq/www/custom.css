@@ -2,12 +2,24 @@
   max-height: 300px;
 }
 
+/* for showing cluster colour in dropdown */
 .input-swatch {
   height: 10px; 
   width: 10px; 
   border: 1px solid #54575a;
   display: inline-block; 
   margin-right: 5px;
+}
+
+/* INTEGRATION RELATED */
+.integration-container {
+  /* border-top: 1px solid lightgray; */
+  /* border-bottom: 1px solid lightgray; */
+  border: 1px solid #e7e7e7;
+  max-width: 400px !important;
+  background-color: #f8f8f8;
+  padding: 10px;
+  margin-bottom: 15px;
 }
 
 
@@ -22,7 +34,7 @@
 
 /* border radius */
 .input-group .selectize-input, 
-#show_contrasts {
+.squashed-btn {
   border-top-right-radius: 0; 
   border-bottom-right-radius: 0;
 }

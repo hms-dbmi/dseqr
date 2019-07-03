@@ -6,11 +6,17 @@ server <- function(input, output, session) {
   data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
   pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
-  # initialize analysis options
+  # initialize analysis/integration options
   anal_files <- rev(list.files(data_dir))
   anal_files <- anal_files[!grepl('_annot.rds$', anal_files)]
   anal_options <- gsub('.rds$', '', anal_files)
   shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options)
+  shiny::updateSelectizeInput(session, 'test_integration', choices = anal_options)
+  shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options)
+
+  # toggle to show integration
+  shinyjs::onclick("show_integration",
+                   shinyjs::toggle(id = "integration", anim = TRUE))
 
   # reactive values (can update and persist within session) -----
   annot_rv <- shiny::reactiveVal(NULL)
