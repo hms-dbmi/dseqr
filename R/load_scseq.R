@@ -22,6 +22,8 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
+  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], is.ambient(counts), 'ambient')
+
   if (type == 'Seurat') {
     return(srt)
 
@@ -32,6 +34,34 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
   } else {
     stop('type must be either Seurat or SingleCellExperiment')
   }
+}
+
+#' Determine ambient transcripts
+#'
+#' Looks at droplets with counts less than or equal to 10 and flags genes with outlier total counts
+#' as ambient.
+#'
+#' @param counts \code{dgTMatrix} of counts. Rows are genes, columns are droplets.
+#'
+#' @return Boolean vector indicating genes that are enriched in ambient RNA fraction.
+#' @export
+#' @keywords internal
+#'
+#' @examples
+is.ambient <- function(counts) {
+
+  # get drops with less than 10 counts
+  ncount <- Matrix::colSums(counts)
+  ambient <- counts[, ncount <= 10]
+
+  # number of counts per gene
+  nambient <- Matrix::rowSums(ambient)
+
+  # outliers
+  outvals <- graphics::boxplot(nambient, plot = FALSE)$out
+  is.ambient <- row.names(counts) %in% names(outvals)
+
+  return(is.ambient)
 }
 
 
