@@ -13,7 +13,7 @@ server <- function(input, output, session) {
 
   # toggle to show dataset integration
   shinyjs::onclick("show_integration", {
-  shinyjs::toggle(id = "integration", anim = TRUE)
+  shinyjs::toggle(id = "integration-form", anim = TRUE)
   shinyjs::toggleClass(id = "show_integration", 'active')
   })
 
@@ -161,10 +161,10 @@ server <- function(input, output, session) {
     msg <- validate_integration(test, ctrl)
 
     if (is.null(msg)) {
-      shinyjs::removeClass('submit-integration-container', 'has-error')
+      shinyjs::removeClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
     } else {
-      shinyjs::html(selector = '#submit-integration-container .help-block', html = msg)
-      shinyjs::addClass('submit-integration-container', 'has-error')
+      shinyjs::html(selector = '#integration-form .validate-wrapper .help-block', html = msg)
+      shinyjs::addClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
     }
 
   })
