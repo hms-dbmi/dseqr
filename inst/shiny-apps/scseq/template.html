@@ -64,7 +64,10 @@
             {{ test_integration }}
             {{ ctrl_integration }}
             <label class="control-label" ></label>
-            {{ submit_integration }}
+            <div class="validate-input" id = "submit-integration-container">
+              {{ submit_integration }}
+              <span class="help-block">Username is taken</span>
+            </div>
           </div>
           <br/>
           <!-- cluster (e.g. cell type) selection -->

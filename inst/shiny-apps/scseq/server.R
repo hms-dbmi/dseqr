@@ -149,9 +149,24 @@ server <- function(input, output, session) {
   shiny::observe({
     ctrl <- shiny::isolate(input$ctrl_integration)
     test <- input$test_integration
-    anal_options <- anal_options_r()
+    anal_options <- integration_options_r()
 
     shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options[!anal_options %in% test], selected = ctrl)
+  })
+
+  shiny::observeEvent(input$submit_integration, {
+    test <- input$test_integration
+    ctrl <- input$ctrl_integration
+
+    msg <- validate_integration(test, ctrl)
+
+    if (is.null(msg)) {
+      shinyjs::removeClass('submit-integration-container', 'has-error')
+    } else {
+      shinyjs::html(selector = '#submit-integration-container .help-block', html = msg)
+      shinyjs::addClass('submit-integration-container', 'has-error')
+    }
+
   })
 
 

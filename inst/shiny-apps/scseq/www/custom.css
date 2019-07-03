@@ -17,6 +17,7 @@
 }
 
 /* INTEGRATION RELATED */
+
 .integration-container {
   /* border-top: 1px solid lightgray; */
   /* border-bottom: 1px solid lightgray; */
@@ -26,6 +27,21 @@
   padding: 10px;
   margin-bottom: 15px;
 }
+
+.validate-input.has-error button {
+  border-color: #a94442;
+  color: #a94442;
+  outline-color: #a94442;
+}
+
+.validate-input.has-error .help-block {
+  display: block;
+}
+
+.validate-input .help-block {
+  display: none;
+}
+
 
 
 
