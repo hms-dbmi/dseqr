@@ -20,9 +20,16 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
   whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
   kneelist  <- readLines(file.path(data_dir, 'bus_output', 'kneelist.txt'))
 
+  # get ambient expression profile/determine outlier genes
+  pct_ambient <- get_pct_ambient(counts)
+  out_ambient <- get_outliers(pct_ambient)
+
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
-  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], is.ambient(counts), 'ambient')
+
+  # add ambient metadata for genes
+  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], pct_ambient, 'pct_ambient')
+  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], out_ambient, 'out_ambient')
 
   if (type == 'Seurat') {
     return(srt)
@@ -36,32 +43,43 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
   }
 }
 
-#' Determine ambient transcripts
+#' Determine ambient percent for each gene
 #'
-#' Looks at droplets with counts less than or equal to 10 and flags genes with outlier total counts
-#' as ambient.
+#' Looks at droplets with counts less than or equal to 10 calculates the total percent for each gene
 #'
 #' @param counts \code{dgTMatrix} of counts. Rows are genes, columns are droplets.
 #'
-#' @return Boolean vector indicating genes that are enriched in ambient RNA fraction.
+#' @return Named numeric vector of percentages for each gene.
 #' @export
 #' @keywords internal
 #'
 #' @examples
-is.ambient <- function(counts) {
+get_pct_ambient <- function(counts) {
 
   # get drops with less than 10 counts
   ncount <- Matrix::colSums(counts)
   ambient <- counts[, ncount <= 10]
 
-  # number of counts per gene
+  # percentage of counts per gene
   nambient <- Matrix::rowSums(ambient)
+  pct_ambient <- nambient / sum(nambient) * 100
+  return(pct_ambient)
+}
 
-  # outliers
-  outvals <- graphics::boxplot(nambient, plot = FALSE)$out
-  is.ambient <- row.names(counts) %in% names(outvals)
-
-  return(is.ambient)
+#' Flag outliers
+#'
+#'
+#' @param x Named numeric vector
+#'
+#' @return Boolean vector with \code{length(x)} indicating if values of \code{x} are outliers (TRUE) or not (FALSE).
+#' @export
+#' @keywords internal
+#'
+#' @examples
+get_outliers <- function(x) {
+  outliers <- graphics::boxplot(x, plot = FALSE)$out
+  is.outlier <- names(x) %in% names(outliers)
+  return(is.outlier)
 }
 
 
