@@ -11,6 +11,11 @@
   margin-right: 5px;
 }
 
+.form-control {
+  /* remove ugly box shadow from inputs */
+  box-shadow: inset 0px 0px 0px 0px red;
+}
+
 /* INTEGRATION RELATED */
 .integration-container {
   /* border-top: 1px solid lightgray; */

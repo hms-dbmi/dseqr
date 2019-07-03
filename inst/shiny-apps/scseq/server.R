@@ -6,6 +6,10 @@ server <- function(input, output, session) {
   data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
   pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
+  # directory for integrated analyses
+  integrated_dir <- file.path(data_dir, 'integrated')
+  if (!dir.exists(integrated_dir)) dir.create(integrated_dir)
+
 
   # toggle to show dataset integration
   shinyjs::onclick("show_integration", {
@@ -30,17 +34,17 @@ server <- function(input, output, session) {
     new_anals_rv()
 
     # use saved anals as options
-    anal_files <- rev(list.files(data_dir))
-    anal_files <- anal_files[!grepl('_annot.rds$', anal_files)]
-    anal_options <- gsub('.rds$', '', anal_files)
+    ind_options  <- setdiff(list.files(data_dir), 'integrated')
+    int_options <- list.files(integrated_dir)
 
-    return(anal_options)
+
+    return(list(Individual = ind_options, Integrated = int_options))
   })
 
   # analyses available for integration
   integration_options_r <- shiny::reactive({
     # TODO: integrated datasets not an option
-    anal_options_r()
+    anal_options_r()$Individual
   })
 
   # groups to show (e.g. ctrl and test)
@@ -53,11 +57,21 @@ server <- function(input, output, session) {
   # current analysis
   anal_r <- shiny::eventReactive(input$selected_anal, {
 
-    selected_file <- paste0(input$selected_anal, '.rds')
-    anal <- readRDS(file.path(data_dir, selected_file))
+    # load analysis parts
+    anal_name <- input$selected_anal
+    scseq_path <- scseq_part_path(data_dir, anal_name, 'scseq')
+    annot_path <- scseq_part_path(data_dir, anal_name, 'annot')
+    markers_path <- scseq_part_path(data_dir, anal_name, 'markers')
+
+    anal <- list(scseq = readRDS(scseq_path), markers = readRDS(markers_path), annot = readRDS(annot_path))
 
     if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
       Seurat::DefaultAssay(anal$scseq) <- 'SCT'
+
+    # reset session-persistent things
+    annot_rv(anal$annot)
+    annot_path_rv(annot_path)
+    selected_cluster_rv(NULL)
 
     return(anal)
   }, ignoreInit = TRUE)
@@ -128,7 +142,7 @@ server <- function(input, output, session) {
 
     ctrl <- input$ctrl_integration
     test <- shiny::isolate(input$test_integration)
-    anal_options <- anal_options_r()
+    anal_options <- integration_options_r()
 
     shiny::updateSelectizeInput(session, 'test_integration', choices = anal_options[!anal_options %in% ctrl], selected = test)
   })
@@ -139,25 +153,6 @@ server <- function(input, output, session) {
 
     shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options[!anal_options %in% test], selected = ctrl)
   })
-
-
-  # setup the initial cluster annotations/file path
-  shiny::observeEvent(anal_r(), {
-    anal <- anal_r()
-    annot <- anal$annot
-
-    if (is.null(annot))
-      annot <- names(anal$markers)
-
-    # make sure annot on disc so that can update quickly
-    annot_path <- file.path(data_dir, paste0(input$selected_anal, '_annot.rds'))
-    if (!file.exists(annot_path)) saveRDS(annot, annot_path)
-
-    annot <- readRDS(annot_path)
-    annot_rv(annot)
-    annot_path_rv(annot_path)
-    selected_cluster_rv(NULL)
-  }, priority = 1)
 
 
   # update annot if rename a cluster
