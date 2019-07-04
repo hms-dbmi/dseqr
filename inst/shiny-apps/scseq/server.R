@@ -11,12 +11,6 @@ server <- function(input, output, session) {
     shinyjs::toggleClass(id = "show_integration", 'active')
   })
 
-  # toggle to show dataset settings
-  shinyjs::onclick("show_settings", {
-    shinyjs::toggle(id = "settings-form", anim = TRUE)
-    shinyjs::toggleClass(id = "show_settings", 'active')
-  })
-
   # reactive values (can update and persist within session) -----
   new_anal_rv <- shiny::reactiveVal(NULL)
   annot_rv <- shiny::reactiveVal(NULL)
@@ -84,8 +78,19 @@ server <- function(input, output, session) {
     annot_path_rv(annot_path)
     selected_cluster_rv(NULL)
 
+    # whether analysis is integrated or not
+
     return(anal)
   }, ignoreInit = TRUE)
+
+
+  # used to determine if showing integrated specific options
+  output$is_integrated <- shiny::reactive({
+    scseq <- anal_r()$scseq
+    length(levels(scseq$orig.ident)) == 2
+  })
+  shiny::outputOptions(output, "is_integrated", suspendWhenHidden = FALSE)
+
 
   # the markers
   markers_r <- shiny::reactive({
@@ -138,9 +143,9 @@ server <- function(input, output, session) {
 
     groups <- available_groups_r()
     # always show when just a single group
-    if (length(groups) == 1 || input$groups == 'all') return(groups)
+    if (length(groups) == 1 || input$selected_group == 'all') return(groups)
 
-    return(input$groups)
+    return(input$selected_group)
   })
 
 
@@ -150,7 +155,7 @@ server <- function(input, output, session) {
 
   # analysis options
   shiny::observe({
-    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r(), selected = new_anal_rv())
+    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r(), selected = 'lung_sjia')
   })
 
   # integration analyses can be either control or test (not both)
@@ -279,6 +284,10 @@ server <- function(input, output, session) {
     shiny::updateSelectizeInput(session, 'selected_cluster',
                                 choices = contrast_choices, selected = selected_cluster_rv(),
                                 options = contrast_options, server = TRUE)
+
+    shiny::updateSelectizeInput(session, 'sample_comparison_clusters',
+                                choices = contrast_choices, selected = selected_cluster_rv(),
+                                options = contrast_options, server = TRUE)
   })
 
 
@@ -330,20 +339,6 @@ server <- function(input, output, session) {
 
   # dynamic UI elements (change based on state of app) ----
 
-  # ui to show e.g. ctrl or test cells
-  output$groups_toggle <- shiny::renderUI({
-    # if more than one group allow showing cells based on groups
-    groups <- available_groups_r()
-    groups_toggle <- NULL
-    if (length(groups) > 1) {
-      groups_toggle <- shiny::tags$div(
-        shiny::radioButtons("groups", "Show cells for group:",
-                            choices = c('all', groups), inline = TRUE),
-        shiny::br()
-      )
-    }
-    return(groups_toggle)
-  })
 
   # ui for renaming a cluster
   shiny::observeEvent(input$show_rename, {

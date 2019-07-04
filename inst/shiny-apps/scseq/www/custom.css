@@ -23,14 +23,16 @@
   /* border-bottom: 1px solid lightgray; */
   border: 1px solid #e7e7e7;
   max-width: 400px !important;
-  background-color: white;
+  background-color: #f8f8f8;
   padding: 10px;
   margin-bottom: 15px;
 }
 
-.well-form.well-bg {
-  background-color: #f8f8f8;
-
+.hidden-form {
+  padding: 10px 0px;
+  border-width: 1px 0px;
+  border-style: solid;
+  border-color: #e7e7e7;
 }
 
 /* VALIDATION RELATED */
@@ -67,9 +69,39 @@
   border-bottom-right-radius: 0;
 }
 
+.input-group-btn .dropdown {
+  display: inline-block;
+}
+
+.input-group-btn .dropdown button {
+  border-top-left-radius: 0; 
+  border-bottom-left-radius: 0;
+  border-left-width: 0px;
+}
+
+.input-group-btn .dropdown .caret {
+  display: none;
+}
+
+.squashed-btn {
+  border-radius: 0px;
+  border-left-width: 0px;
+}
+
 
 .input-group-btn {
   vertical-align: top;
 }
 
 
+/* BRAND */
+.brand-icons {
+  background-color: white;
+  padding: 5px;
+  border: 1px solid #ccc; 
+}
+
+.brand-icons i {
+  color: cornflowerblue;
+  font-size: 14px;
+}
