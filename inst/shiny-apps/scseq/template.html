@@ -53,12 +53,10 @@
                 <select id="selected_anal"></select>
                 <script type="application/json" data-for="selected_anal" data-nonempty="">{}</script>
               </div>
-              <span class="input-group-btn">
+              <div class="input-group-btn">
                 {{ show_integration }}
-              </span>
-              <span class="input-group-btn">
                 {{ show_settings }}
-              </span>
+              </div>
             </div>
           </div>
           <!-- style settings -->
@@ -69,7 +67,7 @@
           </div>
         
         <!-- integrate datasets selection (e.g. ctrl and test datasets to combine) -->
-        <div id='integration-form' class="well-form" style="display: none;">
+        <div id='integration-form' class="well-form well-bg" style="display: none;">
           {{ integration_name }}
           {{ test_integration }}
           {{ ctrl_integration }}
@@ -89,12 +87,10 @@
                 <select id="selected_cluster"></select> 
                 <script type="application/json" data-for="selected_cluster">{}</script>
               </div>
-              <span class="input-group-btn">
+              <div class="input-group-btn">
                 {{ show_contrasts }}
-              </span>
-              <span class="input-group-btn">
                 {{ show_rename }}
-              </span>
+              </div>
             </div>
           </div>
         </div>

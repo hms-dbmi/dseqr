@@ -23,12 +23,15 @@
   /* border-bottom: 1px solid lightgray; */
   border: 1px solid #e7e7e7;
   max-width: 400px !important;
-  background-color: #f8f8f8;
+  background-color: white;
   padding: 10px;
   margin-bottom: 15px;
 }
 
+.well-form.well-bg {
+  background-color: #f8f8f8;
 
+}
 
 /* VALIDATION RELATED */
 
@@ -59,24 +62,9 @@
   height: 79px; 
 }
 
-/* border radius */
-.input-group .selectize-input, 
-.squashed-btn {
+.input-group .selectize-input {
   border-top-right-radius: 0; 
   border-bottom-right-radius: 0;
-}
-
-/* first button beside input when more than one */
-.input-group .squashed-btn,
-/* not first button in justified group */
-.btn-group-justified .btn-group:not(:first-child) button  {
-  border-left-width: 0;
-}
-
-.input-group-btn button {
-  border-top-left-radius: 0; 
-  border-bottom-left-radius: 0; 
-  z-index: 0  !important;
 }
 
 
