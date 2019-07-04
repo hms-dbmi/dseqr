@@ -28,6 +28,10 @@
   margin-bottom: 15px;
 }
 
+
+
+/* VALIDATION RELATED */
+
 .validate-wrapper.has-error button {
   border-color: #a94442;
   color: #a94442;
@@ -40,6 +44,8 @@
 
 .validate-wrapper .help-block {
   display: none;
+  margin-top: 10px;
+  text-align: center;
 }
 
 

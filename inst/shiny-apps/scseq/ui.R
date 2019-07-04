@@ -7,6 +7,7 @@ shiny::htmlTemplate("template.html",
                     # dataset integration panel
                     test_integration = shiny::selectizeInput('test_integration', 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
                     ctrl_integration = shiny::selectizeInput('ctrl_integration', 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
+                    integration_name = shiny::textInput('integration_name', 'Name for new integrated analysis:', width = '100%'),
                     submit_integration = shiny::actionButton('submit_integration', 'Integrate Datasets',
                                                               icon = shiny::icon('object-group', 'fa-fw'),
                                                               title = 'Integrate datasets',  

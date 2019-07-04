@@ -17,20 +17,8 @@ Explore Single Cell Clusters
 }
 \examples{
 
-# import kallisto quants
-data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-scseq <- load_scseq(data_dir)
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
 
-# subset by whitelist norm/stabilize using good cell only
-scseq <- scseq[, scseq$whitelist]
-scseq <- preprocess_scseq(scseq)
-
-# get clusters and run tSNE
-scseq <- add_scseq_clusters(scseq, resolution = 1.6)
-scseq <- run_tsne(scseq)
-
-markers <- get_scseq_markers(scseq)
-
-explore_scseq_clusters(scseq, markers)
+explore_scseq_clusters(data_dir)
 
 }

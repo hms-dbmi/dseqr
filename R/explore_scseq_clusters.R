@@ -26,11 +26,75 @@ explore_scseq_clusters <- function(data_dir, pt.size = 3) {
 
 }
 
-validate_integration <- function(test, ctrl) {
-  msg <- NULL
+#' Integrate previously saved scseqs
+#'
+#' Performs integration and saves as a new analysis.
+#' Used by \code{explore_scseq_clusters} shiny app.
+#'
+#' @param data_dir Directory with saved analyses.
+#' @param test Character vector of test analysis names.
+#' @param ctrl Character vector of control analysis names.
+#' @param anal_name Name for new integrated analysis.
+#'
+#' @return NULL
+#' @export
+#' @keywords internal
+#'
+#' @examples
+integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name) {
+  # get paths for saved scseqs
+  test_paths <- scseq_part_path(data_dir, test, 'scseq')
+  ctrl_paths <- scseq_part_path(data_dir, ctrl, 'scseq')
 
+  # load
+  test_scseqs <- lapply(test_paths, readRDS)
+  ctrl_scseqs <- lapply(ctrl_paths, readRDS)
+
+  # set orig.ident to ctrl/test and integrate
+  test_scseqs <- lapply(test_scseqs, function(x) {x$orig.ident <- factor('test'); x})
+  ctrl_scseqs <- lapply(ctrl_scseqs, function(x) {x$orig.ident <- factor('ctrl'); x})
+  combined <- integrate_scseqs(c(test_scseqs, ctrl_scseqs))
+  browser()
+
+  # add clusters and get markers
+  combined <- add_scseq_clusters(combined)
+  combined <- run_umap(combined)
+  markers <- get_scseq_markers(combined)
+
+  # add analysis name to integrated vector
+  int_path <- file.path(data_dir, 'integrated.rds')
+  int_options <- readRDS(int_path)
+  saveRDS(c(int_options, anal_name), int_path)
+
+  # save analysis parts
+  dir.create(file.path(data_dir, anal_name))
+  saveRDS(combined, scseq_part_path(data_dir, anal_name, 'scseq'))
+  saveRDS(markers, scseq_part_path(data_dir, anal_name, 'markers'))
+  saveRDS(names(markers), scseq_part_path(data_dir, anal_name, 'annot'))
+
+  return(NULL)
+}
+
+#' Validate dataset selection for integration
+#'
+#' @param test Character vector of test dataset names
+#' @param ctrl Character vector of control dataset names
+#'
+#' @return \code{NULL} is valid, otherwise an error message
+#' @export
+#' @keywords internal
+#'
+#' @examples
+validate_integration <- function(test, ctrl, anal_name, anal_options) {
+  msg <- NULL
   # make sure both control and test analyses provided
-  if (is.null(test) || is.null(ctrl)) {
+  if (is.null(anal_name)) {
+    msg <- 'Provide a name for integrated analysis'
+
+  } else if (anal_name %in% unlist(anal_options)) {
+    msg <- 'Analysis name already exists'
+
+  } else if (is.null(test) || is.null(ctrl)) {
     msg <- 'Need control and test datasets'
   }
 

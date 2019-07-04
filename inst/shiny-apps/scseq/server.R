@@ -6,11 +6,6 @@ server <- function(input, output, session) {
   data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
   pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
-  # directory for integrated analyses
-  integrated_dir <- file.path(data_dir, 'integrated')
-  if (!dir.exists(integrated_dir)) dir.create(integrated_dir)
-
-
   # toggle to show dataset integration
   shinyjs::onclick("show_integration", {
   shinyjs::toggle(id = "integration-form", anim = TRUE)
@@ -18,7 +13,7 @@ server <- function(input, output, session) {
   })
 
   # reactive values (can update and persist within session) -----
-  new_anals_rv <- shiny::reactiveVal(NULL)
+  new_anal_rv <- shiny::reactiveVal(NULL)
   annot_rv <- shiny::reactiveVal(NULL)
   annot_path_rv <- shiny::reactiveVal(NULL)
   con_markers_rv <- shiny::reactiveVal(list())
@@ -31,14 +26,23 @@ server <- function(input, output, session) {
   # available analyses
   anal_options_r <- shiny::reactive({
     # reactive to new anals
-    new_anals_rv()
+    new_anal_rv()
+
+    # make sure integrated rds exists
+    int_path <- file.path(data_dir, 'integrated.rds')
+    if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
     # use saved anals as options
-    ind_options  <- setdiff(list.files(data_dir), 'integrated')
-    int_options <- list.files(integrated_dir)
+    int_options <- readRDS(file.path(data_dir, 'integrated.rds'))
+    ind_options <- setdiff(list.files(data_dir), c(int_options, 'integrated.rds'))
 
+    # must be a list if length one for option groups to work
+    if (length(int_options) == 1) int_options <- list(int_options)
+    if (length(ind_options) == 1) ind_options <- list(ind_options)
 
-    return(list(Individual = ind_options, Integrated = int_options))
+    anal_options <- list(Individual = ind_options, Integrated = int_options)
+
+    return(anal_options)
   })
 
   # analyses available for integration
@@ -133,7 +137,7 @@ server <- function(input, output, session) {
   # observations (do stuff if something changes) -------
   # analysis options
   shiny::observe({
-    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r())
+    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r(), selected = new_anal_rv())
   })
 
   # integration analyses can be either control or test (not both)
@@ -157,13 +161,29 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$submit_integration, {
     test <- input$test_integration
     ctrl <- input$ctrl_integration
+    anal_name <- input$integration_name
+    anal_options <- anal_options_r()
 
-    msg <- validate_integration(test, ctrl)
+    error_msg <- validate_integration(test, ctrl, anal_name, anal_options)
 
-    if (is.null(msg)) {
+    if (is.null(error_msg)) {
+      # clear error and disable button
       shinyjs::removeClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
+      shinyjs::disable('submit_integration')
+
+      # run integration
+      integrate_saved_scseqs(data_dir, test, ctrl, anal_name)
+
+      # re-enable, clear inputs, close, and trigger update of available/selected anal
+      shinyjs::enable('submit_integration')
+      shiny::updateSelectizeInput('test_integration', selected = NULL)
+      shiny::updateSelectizeInput('ctrl_integration', selected = NULL)
+      shiny::updateTextInput('integration_name', value = NULL)
+      new_anal_rv(anal_name)
+
     } else {
-      shinyjs::html(selector = '#integration-form .validate-wrapper .help-block', html = msg)
+      # show error message
+      shinyjs::html(selector = '#integration-form .validate-wrapper .help-block', html = error_msg)
       shinyjs::addClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
     }
 
@@ -305,7 +325,7 @@ server <- function(input, output, session) {
     if (length(groups) > 1) {
       groups_toggle <- shiny::tags$div(
         shiny::radioButtons("groups", "Show cells for group:",
-                            choices = c('all', groups), inline = FALSE),
+                            choices = c('all', groups), inline = TRUE),
         shiny::br()
       )
     }
