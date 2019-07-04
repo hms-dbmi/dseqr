@@ -4,12 +4,17 @@ server <- function(input, output, session) {
   # get arguments from calling function
   # defaults for server
   data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
-  pt.size  <- shiny::getShinyOption('pt.size', 2.5)
 
   # toggle to show dataset integration
   shinyjs::onclick("show_integration", {
-  shinyjs::toggle(id = "integration-form", anim = TRUE)
-  shinyjs::toggleClass(id = "show_integration", 'active')
+    shinyjs::toggle(id = "integration-form", anim = TRUE)
+    shinyjs::toggleClass(id = "show_integration", 'active')
+  })
+
+  # toggle to show dataset settings
+  shinyjs::onclick("show_settings", {
+    shinyjs::toggle(id = "settings-form", anim = TRUE)
+    shinyjs::toggleClass(id = "show_settings", 'active')
   })
 
   # reactive values (can update and persist within session) -----
@@ -67,7 +72,9 @@ server <- function(input, output, session) {
     annot_path <- scseq_part_path(data_dir, anal_name, 'annot')
     markers_path <- scseq_part_path(data_dir, anal_name, 'markers')
 
-    anal <- list(scseq = readRDS(scseq_path), markers = readRDS(markers_path), annot = readRDS(annot_path))
+    anal <- list(scseq = readRDS(scseq_path),
+                 markers = readRDS(markers_path),
+                 annot = readRDS(annot_path))
 
     if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
       Seurat::DefaultAssay(anal$scseq) <- 'SCT'
@@ -105,6 +112,10 @@ server <- function(input, output, session) {
     levels(scseq$seurat_clusters) <- names(markers)
     Seurat::Idents(scseq) <- scseq$seurat_clusters
 
+    jitter <- input$point_jitter
+    if (jitter > 0)
+      scseq <- jitter_umap(scseq, factor = jitter)
+
     return(scseq)
   })
 
@@ -135,6 +146,8 @@ server <- function(input, output, session) {
 
 
   # observations (do stuff if something changes) -------
+
+
   # analysis options
   shiny::observe({
     shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r(), selected = new_anal_rv())
@@ -346,7 +359,7 @@ server <- function(input, output, session) {
     scseq <- scseq_r()
 
     if (input$gene == '' || !input$gene %in% row.names(scseq)) return(NULL)
-    plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = pt.size)
+    plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = input$point_size)
   })
 
 
@@ -356,7 +369,7 @@ server <- function(input, output, session) {
 
 
     legend_title <-'Cluster'
-    plot_umap_cluster(scseq, pt.size = pt.size)
+    plot_umap_cluster(scseq, pt.size = input$point_size)
   })
 
 

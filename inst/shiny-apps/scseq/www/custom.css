@@ -67,7 +67,9 @@
 }
 
 /* first button beside input when more than one */
-.input-group .squashed-btn {
+.input-group .squashed-btn,
+/* not first button in justified group */
+.btn-group-justified .btn-group:not(:first-child) button  {
   border-left-width: 0;
 }
 
