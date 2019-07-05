@@ -1,3 +1,3 @@
-shiny::htmlTemplate("www/templates/contrasts.html", blah = "HELLLO CONTRASTS"
+shiny::htmlTemplate("www/templates/contrasts.html", blah = "HELLO CONTRASTS"
 
 )
