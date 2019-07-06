@@ -1,33 +1,10 @@
-<div class="tab-pane active" data-value="Single-Cell" id="tab-1823-1">
+<div class="tab-pane" data-value="Single-Cell" id="single-cell-tab">
   <div class="row">
     <div class="col-sm-6">
       <div class="well-form well-bg">
         <!-- analysis selection (e.g. sjia_pbmcs2) -->
-        <div class="form-group selectize-fh">
-          <label class="control-label" for="selected_anal">Select a dataset:</label>
-          <div class="input-group">
-            <div>
-              <select id="selected_anal"></select>
-              <script type="application/json" data-for="selected_anal" data-nonempty="">{}</script>
-            </div>
-            <div class="input-group-btn">
-              <span title="Toggle dataset integration">{{ show_integration }}</span>
-              <span title="Style settings">{{ show_settings }}</span>
-            </div>
-          </div>
-        </div>
-          <!-- integrate datasets selection (e.g. ctrl and test datasets to combine) -->
-          <div id='integration-form' class="hidden-form" style="display: none;">
-            {{ integration_name }}
-            {{ test_integration }}
-            {{ ctrl_integration }}
-            <label class="control-label" ></label> 
-            <div class="validate-wrapper">
-              {{ submit_integration }}
-              <span class="help-block"></span>
-            </div>
-          </div>
-          <br/>
+
+
           <!-- cluster (e.g. cell type) selection -->
           <div data-display-if="(input.rename_cluster + input.show_rename) % 2 == 0" data-ns-prefix="">
             <div class="form-group selectize-fh">

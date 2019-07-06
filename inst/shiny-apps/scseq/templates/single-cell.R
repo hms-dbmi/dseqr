@@ -1,4 +1,4 @@
-shiny::htmlTemplate("www/templates/single-cell.html",
+shiny::htmlTemplate("templates/single-cell.html",
                     # styling related
                     show_settings = shinyWidgets::dropdownButton(
                       shiny::sliderInput('point_size', 'Point size:',

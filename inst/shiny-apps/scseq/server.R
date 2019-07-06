@@ -1,255 +1,201 @@
-server <- function(input, output, session) {
-  shinyjs::useShinyjs(html = TRUE)
-
-  # get arguments from calling function
-  # defaults for server
-  data_dir <- shiny::getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
-
-  # toggle to show dataset integration
-  shinyjs::onclick("show_integration", {
-    shinyjs::toggle(id = "integration-form", anim = TRUE)
-    shinyjs::toggleClass(id = "show_integration", 'active')
-  })
-
-  # reactive values (can update and persist within session) -----
-  new_anal_rv <- shiny::reactiveVal(NULL)
-  annot_rv <- shiny::reactiveVal(NULL)
-  annot_path_rv <- shiny::reactiveVal(NULL)
-  con_markers_rv <- shiny::reactiveVal(list())
-  selected_cluster_rv <- shiny::reactiveVal(NULL)
-  selected_cluster_idx_rv <- shiny::reactiveVal(NULL)
+scPage <- function(input, output, session, data_dir, new_anal, new_annot) {
 
 
-  # reactive expressions (auto update) ----------
+  # the analysis and options
+  scForm <- callModule(scForm, 'form',
+                       data_dir = data_dir,
+                       new_anal = new_anal,
+                       new_annot = new_annot)
 
-  # available analyses
-  anal_options_r <- shiny::reactive({
-    # reactive to new anals
-    new_anal_rv()
+  callModule(scClusterPlot, 'cluster_plot',
+             scseq = scForm$scseq,
+             plot_styles = scForm$plot_styles)
 
-    # make sure integrated rds exists
-    int_path <- file.path(data_dir, 'integrated.rds')
-    if (!file.exists(int_path)) saveRDS(NULL, int_path)
+  callModule(scMarkerPlot, 'marker_plot',
+             scseq = scForm$scseq,
+             selected_gene = scForm$selected_gene,
+             selected_groups = scForm$selected_groups,
+             plot_styles = scForm$plot_styles)
 
-    # use saved anals as options
-    int_options <- readRDS(file.path(data_dir, 'integrated.rds'))
-    ind_options <- setdiff(list.files(data_dir), c(int_options, 'integrated.rds'))
+  return(NULL)
+}
 
-    # must be a list if length one for option groups to work
-    if (length(int_options) == 1) int_options <- list(int_options)
-    if (length(ind_options) == 1) ind_options <- list(ind_options)
-
-    anal_options <- list(Individual = ind_options, Integrated = int_options)
-
-    return(anal_options)
-  })
-
-  # analyses available for integration
-  integration_options_r <- shiny::reactive({
-    # TODO: integrated datasets not an option
-    anal_options_r()$Individual
-  })
-
-  # groups to show (e.g. ctrl and test)
-  available_groups_r <- shiny::reactive({
-    scseq <- scseq_r()
-    groups <- unique(as.character(scseq$orig.ident))
-    return(groups)
-  })
-
-  # current analysis
-  anal_r <- shiny::eventReactive(input$selected_anal, {
-
-    # load analysis parts
-    anal_name <- input$selected_anal
-    scseq_path <- scseq_part_path(data_dir, anal_name, 'scseq')
-    annot_path <- scseq_part_path(data_dir, anal_name, 'annot')
-    markers_path <- scseq_part_path(data_dir, anal_name, 'markers')
-
-    anal <- list(scseq = readRDS(scseq_path),
-                 markers = readRDS(markers_path),
-                 annot = readRDS(annot_path))
-
-    if (Seurat::DefaultAssay(anal$scseq) == 'integrated')
-      Seurat::DefaultAssay(anal$scseq) <- 'SCT'
-
-    # reset session-persistent things
-    annot_rv(anal$annot)
-    annot_path_rv(annot_path)
-    selected_cluster_rv(NULL)
-
-    # whether analysis is integrated or not
-
-    return(anal)
-  }, ignoreInit = TRUE)
+scForm <- function(input, output, session, data_dir, new_anal, new_annot) {
 
 
-  # used to determine if showing integrated specific options
-  output$is_integrated <- shiny::reactive({
-    scseq <- anal_r()$scseq
-    length(levels(scseq$orig.ident)) == 2
-  })
-  shiny::outputOptions(output, "is_integrated", suspendWhenHidden = FALSE)
+  # the analysis and options
+  scAnal <- callModule(selectedAnal, 'anal',
+                       data_dir = data_dir,
+                       new_anal = new_anal,
+                       new_annot = new_annot)
+
+  # integration stuff
+  scIntegration <- callModule(integrationForm, 'integration',
+                              anal_options = scAnal$anal_options,
+                              show_integration = scAnal$show_integration)
+
+  # the cluster
+  scCluster <- callModule(selectedCluster, 'cluster',
+                          scseq = scAnal$scseq,
+                          annot = scAnal$annot)
+
+  # the gene selection
+  scGene <- callModule(selectedGene, 'gene',
+                       selected_cluster = scCluster$selected_cluster,
+                       scseq = scAnal$scseq,
+                       markers = scAnal$markers)
 
 
-  # the markers
-  markers_r <- shiny::reactive({
-    anal <- anal_r()
-    annot <- annot_rv()
-    markers <- anal$markers
-    names(markers) <- annot
-
-    return(markers)
-  })
-
-  is_rename_r <- shiny::reactive({
-    is_rename <- (input$rename_cluster + input$show_rename) %% 2 == 0
-    return(is_rename)
-  })
+  # the groups selection
+  scGroups <- callModule(selectedGroups, 'groups', scseq = scAnal$scseq)
 
 
-  # the seurat object
-  scseq_r <- shiny::reactive({
-    anal <- anal_r()
-    markers <- markers_r()
-    scseq <- anal$scseq
+  return(list(
+    scseq = scAnal$scseq,
+    plot_styles = scAnal$plot_styles,
+    selected_gene = scGene$selected_gene,
+    selected_groups = scGroups$selected_groups
+  ))
+}
 
-    levels(scseq$seurat_clusters) <- names(markers)
-    Seurat::Idents(scseq) <- scseq$seurat_clusters
+selectedGroups <- function(input, output, session, scseq) {
 
-    jitter <- input$point_jitter
-    if (jitter > 0)
-      scseq <- jitter_umap(scseq, factor = jitter)
+    # groups to show (e.g. ctrl and test)
+    available_groups <- shiny::reactive({
+      unique(as.character(scseq()$orig.ident))
+    })
 
-    return(scseq)
-  })
-
-  # the cluster names
-  clusters_r <- shiny::reactive({
-    markers <- markers_r()
-    return(names(markers))
-  })
-
-  # currently selected test cluster (need to)
-  test_cluster_r <- shiny::reactive({
-    test_cluster <- input$selected_cluster
-    test_cluster <- gsub(' vs .+?$', '', test_cluster)
-    if (test_cluster == '') return(NULL)
-    return(test_cluster)
-  })
-
-  # used to determine cell groups to show (e.g. ctrl and test)
-  selected_groups_r <- shiny::reactive({
-
-    groups <- available_groups_r()
+    selected_groups <- reactive({
+    groups <- available_groups()
     # always show when just a single group
     if (length(groups) == 1 || input$selected_group == 'all') return(groups)
 
     return(input$selected_group)
   })
+ 
+ 
+  return(list(
+    selected_groups = selected_groups
+  ))
+}
 
+selectedGene <- function(input, output, session, selected_cluster, scseq, markers) {
 
+  # update marker genes based on cluster selection
+  gene_choices <- reactive({
+    sel <- selected_cluster()
+    req(sel)
 
-  # observations (do stuff if something changes) -------
+    scseq <- scseq()
+    markers <- markers()
 
+    # get cluster if don't have (for comparing specific cluster)
+    if (!sel %in% names(markers)) {
+      con <- strsplit(sel, ' vs ')[[1]]
+      con_markers[[sel]] <- markers[[sel]] <- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
+    }
 
-  # analysis options
-  shiny::observe({
-    shiny::updateSelectizeInput(session, 'selected_anal', choices = anal_options_r(), selected = 'lung_sjia')
+    # allow selecting non-marker genes (at bottom of list)
+    cluster_markers <- markers[[sel]]
+    choices <- row.names(cluster_markers)
+    choices <- c(choices, setdiff(row.names(scseq), choices))
+
+    return(choices)
   })
 
-  # integration analyses can be either control or test (not both)
-  # update choices of opposite so that doesn't close current
-  shiny::observe({
+  observe({
+    updateSelectizeInput(session, 'selected_gene', choices = gene_choices(), selected = NULL, server = TRUE)
+  })
 
+  return(list(
+      selected_gene = reactive(input$selected_gene)
+  ))
+
+}
+
+scClusterPlot <- function(input, output, session, scseq, plot_styles) {
+
+  output$cluster_plot <- renderPlot({
+    plot_umap_cluster(scseq(), pt.size = plot_styles$size())
+  })
+}
+
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_groups, plot_styles) {
+
+  output$marker_plot <- renderPlot({
+    req(selected_gene())
+    req(selected_groups())
+    plot_umap_gene(scseq(), selected_gene(), selected_idents = selected_groups(), pt.size = plot_styles$size())
+  })
+}
+
+integrationForm <- function(input, output, session, anal_options, show_integration) {
+
+  # show/hide integration form
+  observe({
+    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
+    toggleClass(id = "show_integration", 'active', condition = show_integration())
+  })
+
+  integration_name <- reactive(input$integration_name)
+  integration_options <- reactive(anal_options()$Individual)
+
+  observe({
     ctrl <- input$ctrl_integration
-    test <- shiny::isolate(input$test_integration)
-    anal_options <- integration_options_r()
+    test <- isolate(input$test_integration)
+    options <- integration_options()
 
-    shiny::updateSelectizeInput(session, 'test_integration', choices = anal_options[!anal_options %in% ctrl], selected = test)
+    updateSelectizeInput(session, 'test_integration', choices = options[!options %in% ctrl], selected = test)
   })
-  shiny::observe({
-    ctrl <- shiny::isolate(input$ctrl_integration)
+
+  observe({
+    ctrl <- isolate(input$ctrl_integration)
     test <- input$test_integration
-    anal_options <- integration_options_r()
+    options <- integration_options()
 
-    shiny::updateSelectizeInput(session, 'ctrl_integration', choices = anal_options[!anal_options %in% test], selected = ctrl)
+    updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test], selected = ctrl)
   })
 
-  shiny::observeEvent(input$submit_integration, {
-    test <- input$test_integration
-    ctrl <- input$ctrl_integration
-    anal_name <- input$integration_name
-    anal_options <- anal_options_r()
+}
 
-    error_msg <- validate_integration(test, ctrl, anal_name, anal_options)
+selectedCluster <- function(input, output, session, scseq, annot) {
 
-    if (is.null(error_msg)) {
-      # clear error and disable button
-      shinyjs::removeClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
-      shinyjs::disable('submit_integration')
+  show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
 
-      # run integration
-      integrate_saved_scseqs(data_dir, test, ctrl, anal_name)
+  # show/hide rename and select panel
+  show_rename <- reactive({
+    (input$rename_cluster + input$show_rename) %% 2 != 0
+  })
 
-      # re-enable, clear inputs, close, and trigger update of available/selected anal
-      shinyjs::enable('submit_integration')
-      shiny::updateSelectizeInput('test_integration', selected = NULL)
-      shiny::updateSelectizeInput('ctrl_integration', selected = NULL)
-      shiny::updateTextInput('integration_name', value = NULL)
-      new_anal_rv(anal_name)
-
-    } else {
-      # show error message
-      shinyjs::html(selector = '#integration-form .validate-wrapper .help-block', html = error_msg)
-      shinyjs::addClass(selector = '#integration-form .validate-wrapper', class = 'has-error')
-    }
-
+  # show/hide integration form
+  observe({
+    toggle(id = "rename_panel", condition = show_rename())
+    toggle(id = "select_panel", condition = !show_rename())
   })
 
 
-  # update annot if rename a cluster
-  shiny::observeEvent(input$rename_cluster, {
+  # show/hide contrasts
+  observe({
+    # update icon on toggle
+    icon <- ifelse(show_contrasts(), 'chevron-down', 'chevron-right')
 
-    if (is_rename_r()) {
-
-      if (input$new_cluster_name != '') {
-
-        # update reactive annotation
-        annot <- annot_rv()
-        sel.clust <- input$selected_cluster
-        sel.idx   <- which(annot == sel.clust)
-        annot[sel.idx] <- input$new_cluster_name
-        annot <- make.unique(annot)
-        annot_rv(annot)
-        selected_cluster_idx_rv(sel.idx)
-
-        # save on disc
-        saveRDS(annot, annot_path_rv())
-      }
-
-    }
+    updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
+    toggleState('show_rename', condition = !show_contrasts())
+    toggleClass(id = "show_contrasts", 'active', condition = show_contrasts())
   })
 
-  # update selected cluster if rename a cluster
-  shiny::observeEvent(input$rename_cluster, {
-    if (is_rename_r() & input$new_cluster_name != '') {
-      annot <- annot_rv()
-      sel.idx <- selected_cluster_idx_rv()
-      selected_cluster_rv(annot[sel.idx])
-    }
+  test_cluster <- reactive({
+    test_cluster <- input$selected_cluster
+    gsub(' vs .+?$', '', test_cluster)
   })
 
+  observe({
+    scseq <- scseq()
+    clusters <- annot()
 
-  # update group choices/selected if they change or show_contrasts changes
-  shiny::observe({
-
-    scseq <- scseq_r()
-    clusters <- clusters_r()
-
-    if (input$show_contrasts %% 2 != 0) {
+    if (show_contrasts()) {
       # group choices are as compared to other clusters
-      test <- shiny::isolate(test_cluster_r())
+      test <- isolate(test_cluster())
       ctrls <- clusters[clusters != test]
 
       colours <- get_palette(clusters)
@@ -265,126 +211,178 @@ server <- function(input, output, session) {
     } else {
       # show the cell numbers/percentages
       ncells <- tabulate(scseq$seurat_clusters)
-      pcells <- round(ncells/sum(ncells) * 100)
-      pspace <- strrep('&nbsp;&nbsp;', 2-nchar(pcells))
+      pcells <- round(ncells / sum(ncells) * 100)
+      pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
 
       # cluster choices are the clusters themselves
       testColor <- get_palette(clusters)
-      trunc <- stringr::str_trunc(clusters, 27)
-      contrast_choices  <- data.frame(name = trunc,
-                                      value = clusters,
-                                      label = clusters,
-                                      testColor,
-                                      ncells,
-                                      pcells, pspace)
+      contrast_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
+                                     value = clusters,
+                                     label = clusters,
+                                     testColor,
+                                     ncells,
+                                     pcells, pspace)
     }
 
     contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-    shiny::updateSelectizeInput(session, 'selected_cluster',
-                                choices = contrast_choices, selected = selected_cluster_rv(),
-                                options = contrast_options, server = TRUE)
+    updateSelectizeInput(session, 'selected_cluster',
+                         choices = contrast_choices,
+                         options = contrast_options, server = TRUE)
 
-    shiny::updateSelectizeInput(session, 'sample_comparison_clusters',
-                                choices = contrast_choices, selected = selected_cluster_rv(),
-                                options = contrast_options, server = TRUE)
-  })
-
-
-  # update group buttons if show contrasts is toggled
-  shiny::observeEvent(input$show_contrasts, {
-    # update icon on toggle
-    icon <- ifelse(input$show_contrasts %% 2 != 0, 'chevron-down', 'chevron-right')
-
-    shiny::updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-    shinyjs::toggleState('show_rename')
-  })
-
-  # update selected cluster if show contrasts is toggled
-  shiny::observeEvent(input$show_contrasts, {
-    if (input$show_contrasts %% 2 != 0) {
-      selected_cluster_rv(NULL)
-    } else {
-      selected_cluster_rv(test_cluster_r())
-    }
 
   })
 
-  # update marker genes based on cluster selection
-  shiny::observeEvent(input$selected_cluster, {
-    scseq <- scseq_r()
-    con_markers <- con_markers_rv()
-    markers <- c(markers_r(), con_markers)
+  return(list(
+    selected_cluster = reactive(input$selected_cluster)
+  ))
+}
 
-    sel <- input$selected_cluster
-    if (sel == '') return(NULL)
 
-    # get cluster if don't have (for comparing specific cluster)
-    if (!sel %in% names(markers)) {
-      con <- strsplit(sel, ' vs ')[[1]]
-      con_markers[[sel]] <- markers[[sel]] <- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
+selectedAnal <- function(input, output, session, data_dir, new_anal, new_annot) {
 
-      # update con markers reactive value
-      con_markers_rv(con_markers)
-    }
 
-    # allow selecting non-marker genes (at bottom of list)
-    cluster_markers <- markers[[sel]]
-    choices <- row.names(cluster_markers)
-    choices <- c(choices, setdiff(row.names(scseq), choices))
+  # load scseq
+  scseq <- reactive({
+    req(input$selected_anal)
 
-    shiny::updateSelectizeInput(session, 'gene', choices = choices, selected = NULL, server = TRUE)
+    scseq_path <- scseq_part_path(data_dir, input$selected_anal, 'scseq')
+    scseq <- readRDS(scseq_path)
+
+    if (Seurat::DefaultAssay(scseq) == 'integrated')
+      Seurat::DefaultAssay(scseq) <- 'SCT'
+
+    return(scseq)
   })
 
+  # load markers
+  markers <- reactive({
+    req(input$selected_anal)
 
-  # dynamic UI elements (change based on state of app) ----
-
-
-  # ui for renaming a cluster
-  shiny::observeEvent(input$show_rename, {
-    if (!is_rename_r())
-      shiny::updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', input$selected_cluster, '...'))
+    markers_path <- scseq_part_path(data_dir, input$selected_anal, 'markers')
+    readRDS(markers_path)
   })
 
+  # load annotation for clusters
+  annot <- reactive({
+    req(input$selected_anal)
 
-  # plots ------
-  # show tSNE plot coloured by expression values
-  output$marker_plot <- shiny::renderPlot({
-
-    scseq <- scseq_r()
-
-    if (input$gene == '' || !input$gene %in% row.names(scseq)) return(NULL)
-    plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = input$point_size)
+    annot_path <- scseq_part_path(data_dir, input$selected_anal, 'annot')
+    readRDS(annot_path)
   })
 
+  # available analyses
+  anal_options <- reactive({
+    # reactive to new anals
+    new_anal()
 
-  # show plot of predicted cell clusters
-  output$cluster_plot <- shiny::renderPlot({
-    scseq <- scseq_r()
+    # make sure integrated rds exists
+    int_path <- file.path(data_dir, 'integrated.rds')
+    if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
+    # use saved anals as options
+    integrated <- readRDS(file.path(data_dir, 'integrated.rds'))
+    individual <- setdiff(list.files(data_dir), c(integrated, 'integrated.rds'))
 
-    legend_title <-'Cluster'
-    plot_umap_cluster(scseq, pt.size = input$point_size)
+    # must be a list if length one for option groups to work
+    if (length(integrated) == 1) integrated <- list(integrated)
+    if (length(individual) == 1) individual <- list(individual)
+
+    list(Individual = individual, Integrated = integrated)
   })
 
-
-  # plot BioGPS data
-  output$biogps <- shiny::renderPlot({
-    plot_biogps(input$gene)
+  # update if options change
+  observe({
+    updateSelectizeInput(session, 'selected_anal', choices = anal_options(), selected = 'lung_sjia')
   })
 
+  # get styles and integration info
+  plot_styles <- callModule(plotStyles, 'styles')
+  show_integration <- callModule(showIntegration, 'integration')
 
-  # link to GeneCards page for gene ----
-  gene_link_r <- shiny::reactive({
-    return(paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$gene))
-  })
 
-  shiny::observeEvent(input$genecards, {
-    utils::browseURL(gene_link_r())
-  })
+  # return anal and options to app
+  return(list(
+    scseq = scseq,
+    markers = markers,
+    annot = annot,
+    anal_options = anal_options,
+    plot_styles = plot_styles,
+    show_integration = show_integration
+  ))
+}
 
-  shiny::observeEvent(input$done, {
-    shiny::stopApp()
-  })
+
+plotStyles <- function(input, output, session) {
+
+
+  jitter <- reactive(input$point_jitter)
+  size <- reactive(input$point_size)
+
+  return(list(jitter = jitter, size = size))
+}
+
+
+showIntegration <- function(input, output, session) {
+  return(reactive({
+    input$show_integration %% 2 != 0
+  }))
+}
+
+
+server <- function(input, output, session) {
+
+  # get arguments from calling function
+  # defaults for server
+  data_dir <- getShinyOption('data_dir', '/srv/shiny-server/drugseqr/scseq/sjia')
+
+  # things that the global app needs to know about
+  rv <- reactiveValues(new_anal = FALSE, new_annot = FALSE)
+
+  # scAnal <- callModule(selectedAnal, 'sc', data_dir, reactive(new_anal))
+
+  print(data_dir)
+
+  # single cell analysis and options
+  scPage <- callModule(scPage, 'sc',
+                       data_dir = data_dir,
+                       new_anal = reactive(rv$new_anal),
+                       new_annot = reactive(rv$new_annot))
+
+
+
+  # reactive values (can update and persist within session) -----
+  # new_anal_rv <- reactiveVal(NULL)
+
+  # # reactive expressions (auto update) ----------
+
+  # # available analyses
+  # anal_options_r <- reactive({
+  #   browser()
+  #   # reactive to new anals
+  #   new_anal_rv()
+
+  #   # make sure integrated rds exists
+  #   int_path <- file.path(data_dir, 'integrated.rds')
+  #   if (!file.exists(int_path)) saveRDS(NULL, int_path)
+
+  #   # use saved anals as options
+  #   int_options <- readRDS(file.path(data_dir, 'integrated.rds'))
+  #   ind_options <- setdiff(list.files(data_dir), c(int_options, 'integrated.rds'))
+
+  #   # must be a list if length one for option groups to work
+  #   if (length(int_options) == 1) int_options <- list(int_options)
+  #   if (length(ind_options) == 1) ind_options <- list(ind_options)
+
+  #   anal_options <- list(Individual = ind_options, Integrated = int_options)
+
+  #   return(anal_options)
+  # })
+
+
+
+  # source('server/single-cell.R', local = TRUE)
+  # source('server/contrasts.R', local = TRUE)
+
 
 }
