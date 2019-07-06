@@ -12,11 +12,11 @@ scPageInput <- function(id) {
         ),
         hr(),
         div(class = 'row',
-            div(class="col-sm-6 col-lg-6 col-lg-push-6",
+            div(class = "col-sm-6 col-lg-6 col-lg-push-6",
                 scMarkerPlotUI(ns('marker_plot'))
             ),
-            div(class="col-sm-6 col-lg-6 col-lg-pull-6",
-                scBioGpsPlotUI(ns('marker_plot'))
+            div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
+                scBioGpsPlotUI(ns('biogps_plot'))
             )
         )
     )
@@ -149,7 +149,7 @@ selectedClusterInput <- function(id) {
           div(class = 'form-group selectize-fh',
               label(class = 'control-label', `for` = ns('new_cluster_name'), 'New cluster name:'),
               div(class = 'input-group',
-                  input(id=ns('new_cluster_name'), type='text', class='form-control shiny-bound-input', value='', placeholder=''),
+                  input(id = ns('new_cluster_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
                   span(class = 'input-group-btn',
                        actionButton(ns('rename_cluster'), '',
                                     icon = icon('plus', 'fa-fw'),
@@ -175,9 +175,8 @@ selectedGeneInput <- function(id) {
               script(type = 'application/json', `data-for` = ns('selected_gene'), HTML('{}'))
             ),
             div(class = 'input-group-btn',
-                actionButton(ns('genecards'), '',
-                             icon = icon('external-link-alt', 'fa-fw'),
-                             title = 'Go to GeneCards')
+                uiOutput(ns("genecards"))
+
             )
         )
     )
@@ -189,9 +188,9 @@ selectedGroupsInput <- function(id) {
 
   withTags({
     div(style = 'display: block;',
-      shinyWidgets::radioGroupButtons(ns('selected_group'), "Show cells for group:",
-        choices = c('test', 'all', 'ctrl'),
-      selected = 'all', justified = TRUE)
+        shinyWidgets::radioGroupButtons(ns('selected_group'), "Show cells for group:",
+                                        choices = c('test', 'all', 'ctrl'),
+                                        selected = 'all', justified = TRUE)
 
     )
 
@@ -214,8 +213,7 @@ bootstrapPage(
 
              # single cell tab
              scPageInput("sc")
-             #  source('templates/single-cell.R')$value,
-             #  source('templates/contrasts.R')$value
+
 
     )
   )

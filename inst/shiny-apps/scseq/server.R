@@ -17,6 +17,10 @@ scPage <- function(input, output, session, data_dir, new_anal, new_annot) {
              selected_groups = scForm$selected_groups,
              plot_styles = scForm$plot_styles)
 
+
+  callModule(scBioGpsPlot, 'biogps_plot',
+             selected_gene = scForm$selected_gene)
+
   return(NULL)
 }
 
@@ -37,13 +41,15 @@ scForm <- function(input, output, session, data_dir, new_anal, new_annot) {
   # the cluster
   scCluster <- callModule(selectedCluster, 'cluster',
                           scseq = scAnal$scseq,
+                          markers = scAnal$markers,
                           annot = scAnal$annot)
 
   # the gene selection
   scGene <- callModule(selectedGene, 'gene',
                        selected_cluster = scCluster$selected_cluster,
                        scseq = scAnal$scseq,
-                       markers = scAnal$markers)
+                       markers = scAnal$markers,
+                       con_markers = scCluster$con_markers)
 
 
   # the groups selection
@@ -58,50 +64,64 @@ scForm <- function(input, output, session, data_dir, new_anal, new_annot) {
   ))
 }
 
+scBioGpsPlot <- function(input, output, session, selected_gene) {
+  # plot BioGPS data
+  output$biogps_plot <- renderPlot({
+    plot_biogps(selected_gene())
+  })
+}
+
+
 selectedGroups <- function(input, output, session, scseq) {
 
-    # groups to show (e.g. ctrl and test)
-    available_groups <- shiny::reactive({
-      unique(as.character(scseq()$orig.ident))
-    })
+  # groups to show (e.g. ctrl and test)
+  available_groups <- shiny::reactive({
+    unique(as.character(scseq()$orig.ident))
+  })
 
-    selected_groups <- reactive({
+  selected_groups <- reactive({
     groups <- available_groups()
     # always show when just a single group
     if (length(groups) == 1 || input$selected_group == 'all') return(groups)
 
     return(input$selected_group)
   })
- 
- 
+
+
   return(list(
     selected_groups = selected_groups
   ))
 }
 
-selectedGene <- function(input, output, session, selected_cluster, scseq, markers) {
+selectedGene <- function(input, output, session, selected_cluster, scseq, markers, con_markers) {
+
+
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
     sel <- selected_cluster()
     req(sel)
 
-    scseq <- scseq()
-    markers <- markers()
-
-    # get cluster if don't have (for comparing specific cluster)
-    if (!sel %in% names(markers)) {
-      con <- strsplit(sel, ' vs ')[[1]]
-      con_markers[[sel]] <- markers[[sel]] <- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
-    }
-
     # allow selecting non-marker genes (at bottom of list)
-    cluster_markers <- markers[[sel]]
+    cluster_markers <- c(markers(), con_markers())[[sel]]
     choices <- row.names(cluster_markers)
-    choices <- c(choices, setdiff(row.names(scseq), choices))
+    choices <- c(choices, setdiff(row.names( scseq()), choices))
 
     return(choices)
   })
+
+  output$genecards <- renderUI({
+    gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
+    ns <- session$ns
+    withTags({
+      a(class = 'btn btn-default',
+        href = gene_link, target = '_blank',
+        icon('external-link-alt', 'fa-fw')
+    )
+
+    })
+  })
+
 
   observe({
     updateSelectizeInput(session, 'selected_gene', choices = gene_choices(), selected = NULL, server = TRUE)
@@ -158,16 +178,20 @@ integrationForm <- function(input, output, session, anal_options, show_integrati
 
 }
 
-selectedCluster <- function(input, output, session, scseq, annot) {
+selectedCluster <- function(input, output, session, scseq, markers, annot) {
+
+
+  con_markers <- reactiveVal(list())
 
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
 
-  # show/hide rename and select panel
+  selected_cluster <- reactive(input$selected_cluster)
+
   show_rename <- reactive({
     (input$rename_cluster + input$show_rename) %% 2 != 0
   })
 
-  # show/hide integration form
+  # show/hide rename and select panel
   observe({
     toggle(id = "rename_panel", condition = show_rename())
     toggle(id = "select_panel", condition = !show_rename())
@@ -189,6 +213,7 @@ selectedCluster <- function(input, output, session, scseq, annot) {
     gsub(' vs .+?$', '', test_cluster)
   })
 
+  # update cluster/contrast choices
   observe({
     scseq <- scseq()
     clusters <- annot()
@@ -233,8 +258,31 @@ selectedCluster <- function(input, output, session, scseq, annot) {
 
   })
 
+  # update ui for renaming a cluster
+  observe({
+    if (!show_rename())
+      updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', input$selected_cluster, '...'))
+  })
+
+  # get cluster if don't have (for comparing specific cluster)
+  observe({
+    sel <- selected_cluster()
+    con_markers <- con_markers()
+    req(sel)
+
+
+    if (!sel %in% names(c(con_markers, markers()))) {
+      con <- strsplit(sel, ' vs ')[[1]]
+      con_markers[[sel]] <- get_scseq_markers(scseq(), ident.1 = con[1], ident.2 = con[2])
+      con_markers(con_markers)
+    }
+  })
+
+
   return(list(
-    selected_cluster = reactive(input$selected_cluster)
+    selected_cluster = selected_cluster,
+    con_markers = con_markers
+
   ))
 }
 
