@@ -48,38 +48,58 @@ explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
 #' @param anal_name Name for new integrated analysis.
+#' @param progress optional Shiny \code{Progress} object.
 #'
 #' @return NULL
 #' @export
 #' @keywords internal
 #'
 #' @examples
-integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name) {
+integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgress = NULL) {
+
+  # save dummy data if testing shiny
+  if (isTRUE(getOption('shiny.testmode'))) {
+    save_combined(combined = NULL, markers = NULL, data_dir = data_dir, anal_name = anal_name)
+    return(NULL)
+  }
+
+  # default updateProgress and number of steps
+  if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
+  n = 6
+
   # get paths for saved scseqs
   test_paths <- scseq_part_path(data_dir, test, 'scseq')
   ctrl_paths <- scseq_part_path(data_dir, ctrl, 'scseq')
 
-  # load
+  updateProgress(1/n, 'loading')
   test_scseqs <- lapply(test_paths, readRDS)
   ctrl_scseqs <- lapply(ctrl_paths, readRDS)
 
   # set orig.ident to ctrl/test and integrate
   test_scseqs <- lapply(test_scseqs, function(x) {x$orig.ident <- factor('test'); x})
   ctrl_scseqs <- lapply(ctrl_scseqs, function(x) {x$orig.ident <- factor('ctrl'); x})
-  combined <- integrate_scseqs(c(test_scseqs, ctrl_scseqs))
-  browser()
 
-  # add clusters and get markers
+  updateProgress(2/n, 'integrating')
+  combined <- integrate_scseqs(c(test_scseqs, ctrl_scseqs))
+
+  updateProgress(3/n, 'clustering')
   combined <- add_scseq_clusters(combined)
+
+  updateProgress(4/n, 'reducing')
   combined <- run_umap(combined)
+
+  updateProgress(5/n, 'getting markers')
   markers <- get_scseq_markers(combined)
 
-  # add analysis name to integrated vector
+  updateProgress(6/n, 'saving')
+  save_combined(combined, markers, data_dir, anal_name)
+}
+
+save_combined <- function(combined, markers, data_dir, anal_name) {
   int_path <- file.path(data_dir, 'integrated.rds')
   int_options <- readRDS(int_path)
   saveRDS(c(int_options, anal_name), int_path)
 
-  # save analysis parts
   dir.create(file.path(data_dir, anal_name))
   saveRDS(combined, scseq_part_path(data_dir, anal_name, 'scseq'))
   saveRDS(markers, scseq_part_path(data_dir, anal_name, 'markers'))

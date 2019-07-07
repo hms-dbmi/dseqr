@@ -102,12 +102,12 @@ integrationFormInput <- function(id) {
         selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
 
-        div(class = 'validate-wrapper',
+        div(id = ns('validate'), class = 'validate-wrapper',
             actionButton(ns('submit_integration'), 'Integrate Datasets',
                          icon = shiny::icon('object-group', 'fa-fw'),
                          title = 'Integrate datasets',
                          class = 'btn-block btn-default'),
-            span(class = 'help-block')
+            span(id =ns('error_msg'), class = 'help-block')
         )
     )
   })

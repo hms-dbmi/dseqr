@@ -28,12 +28,20 @@ scPage <- function(input, output, session, data_dir) {
 
 scForm <- function(input, output, session, data_dir) {
 
+  # updates if new integrated dataset
+  new_anal <- reactive({
+    scIntegration()
+  })
+
+
   # the analysis and options
   scAnal <- callModule(selectedAnal, 'anal',
-                       data_dir = data_dir)
+                       data_dir = data_dir,
+                       new_anal = new_anal)
 
   # integration stuff
   scIntegration <- callModule(integrationForm, 'integration',
+                              data_dir = data_dir,
                               anal_options = scAnal$anal_options,
                               show_integration = scAnal$show_integration)
 
@@ -64,7 +72,7 @@ scForm <- function(input, output, session, data_dir) {
     jitter <- scAnal$plot_styles$jitter()
     shiny::req(scseq, annot, jitter)
 
-    levels(scseq$seurat_clusters) <-annot
+    levels(scseq$seurat_clusters) <- annot
     Seurat::Idents(scseq) <- scseq$seurat_clusters
 
     if (jitter > 0)
@@ -84,7 +92,7 @@ scForm <- function(input, output, session, data_dir) {
 }
 
 # selected analysis input logic ----
-selectedAnal <- function(input, output, session, data_dir) {
+selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   selected_anal <- reactive({
     req(input$selected_anal)
@@ -128,10 +136,12 @@ selectedAnal <- function(input, output, session, data_dir) {
     return(markers)
   })
 
+
+
   # available analyses
   anal_options <- reactive({
     # reactive to new anals
-    # new_anal()
+    new_anal()
 
     # make sure integrated rds exists
     int_path <- file.path(data_dir, 'integrated.rds')
@@ -181,39 +191,106 @@ plotStyles <- function(input, output, session) {
 }
 
 showIntegration <- function(input, output, session) {
-  return(reactive({
-    input$show_integration %% 2 != 0
-  }))
-}
 
-# single cell dataset integration logic -----
-integrationForm <- function(input, output, session, anal_options, show_integration) {
+  show_integration <- reactive(input$show_integration %% 2 != 0)
+
 
   # show/hide integration form
   observe({
-    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
     toggleClass(id = "show_integration", 'active', condition = show_integration())
   })
+
+
+  return(show_integration)
+}
+
+# single cell dataset integration logic -----
+
+#' Single Cell Integration form
+#'
+#' @return \code{reactiveVal} that is either NULL or contains the name of a new integrated analysis
+integrationForm <- function(input, output, session, data_dir, anal_options, show_integration) {
+
 
   integration_name <- reactive(input$integration_name)
   integration_options <- reactive(anal_options()$Individual)
 
-  observe({
-    ctrl <- input$ctrl_integration
-    test <- isolate(input$test_integration)
-    options <- integration_options()
+  ctrl <- reactiveVal()
+  test <- reactiveVal()
+  new_anal <- reactiveVal()
 
-    updateSelectizeInput(session, 'test_integration', choices = options[!options %in% ctrl], selected = test)
+  # show/hide integration form
+  observe({
+    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
   })
 
-  observe({
-    ctrl <- isolate(input$ctrl_integration)
-    test <- input$test_integration
-    options <- integration_options()
+  observe(ctrl(input$ctrl_integration))
+  observe(test(input$test_integration))
 
-    updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test], selected = ctrl)
+
+  # update test dataset choices
+  observe({
+    options <- integration_options()
+    updateSelectizeInput(session, 'test_integration', choices = options[!options %in% ctrl()], selected = isolate(test()))
   })
 
+  # update control dataset choices
+  observe({
+    options <- integration_options()
+    updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
+  })
+
+  # run integration
+  observeEvent(input$submit_integration, {
+
+    test_anals <- test()
+    ctrl_anals <- ctrl()
+    anal_name <- input$integration_name
+    anal_options <- anal_options()
+
+    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, anal_options)
+
+    if (is.null(error_msg)) {
+      # clear error and disable button
+      removeClass(id = 'validate', class = 'has-error')
+      disable('submit_integration')
+
+      # Create a Progress object
+      progress <- Progress$new()
+      progress$set(message = "Integrating datasets", value = 0)
+      # Close the progress when this reactive exits (even if there's an error)
+      on.exit(progress$close())
+
+      # Create a callback function to update progress.
+      updateProgress <- function(value = NULL, detail = NULL) {
+        if (is.null(value)) {
+          value <- progress$getValue()
+          value <- value + (progress$getMax() - value) / 5
+        }
+        progress$set(value = value, detail = detail)
+      }
+
+
+      # run integration
+      integrate_saved_scseqs(data_dir, ctrl_anals, ctrl_anals, anal_name, updateProgress = updateProgress)
+
+
+      # re-enable, clear inputs, and trigger update of available anals
+      ctrl(NULL)
+      test(NULL)
+      new_anal(anal_name)
+      updateTextInput(session, 'integration_name', value = '')
+      enable('submit_integration')
+
+    } else {
+      # show error message
+      html('error_msg', html = error_msg)
+      addClass('validate', class = 'has-error')
+    }
+
+  })
+
+  return(new_anal)
 }
 
 # selected cluster/contrast/rename logic ----
@@ -291,7 +368,7 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
     annot <- annot()
     req(annot, scseq)
 
-    levels(scseq$seurat_clusters) <-annot
+    levels(scseq$seurat_clusters) <- annot
     Seurat::Idents(scseq) <- scseq$seurat_clusters
     return(scseq)
   })
@@ -345,7 +422,7 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
     # update reactive annotation
     mod_annot <- annot()
     sel_clust <- selected_cluster()
-    sel_idx   <- which(mod_annot == sel_clust)
+    sel_idx <- which(mod_annot == sel_clust)
     mod_annot[sel_idx] <- input$new_cluster_name
     mod_annot <- make.unique(mod_annot)
 
@@ -415,7 +492,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
     # allow selecting non-marker genes (at bottom of list)
     choices <- row.names(selected_markers)
-    choices <- c(choices, setdiff(row.names( scseq()), choices))
+    choices <- c(choices, setdiff(row.names(scseq()), choices))
 
     return(choices)
   })
