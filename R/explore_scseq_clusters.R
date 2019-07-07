@@ -121,7 +121,7 @@ save_combined <- function(combined, markers, data_dir, anal_name) {
 validate_integration <- function(test, ctrl, anal_name, anal_options) {
   msg <- NULL
   # make sure both control and test analyses provided
-  if (is.null(anal_name)) {
+  if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
   } else if (anal_name %in% unlist(anal_options)) {
