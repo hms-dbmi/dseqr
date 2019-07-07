@@ -234,5 +234,141 @@
   })
 
 
-  
+  # update group choices/selected if they change or show_contrasts changes
+  shiny::observe({
 
+    scseq <- scseq_r()
+    clusters <- clusters_r()
+
+    if (input$show_contrasts %% 2 != 0) {
+      # group choices are as compared to other clusters
+      test <- shiny::isolate(test_cluster_r())
+      ctrls <- clusters[clusters != test]
+
+      colours <- get_palette(clusters)
+      names(colours) <- clusters
+
+      contrast_choices <- data.frame(test = stringr::str_trunc(test, 17),
+                                     ctrl = stringr::str_trunc(c('all', ctrls), 17),
+                                     value = c(test, paste0(test, ' vs ', ctrls)),
+                                     testColor = colours[test],
+                                     ctrlColor = c('white', colours[ctrls]))
+
+
+    } else {
+      # show the cell numbers/percentages
+      ncells <- tabulate(scseq$seurat_clusters)
+      pcells <- round(ncells/sum(ncells) * 100)
+      pspace <- strrep('&nbsp;&nbsp;', 2-nchar(pcells))
+
+      # cluster choices are the clusters themselves
+      testColor <- get_palette(clusters)
+      trunc <- stringr::str_trunc(clusters, 27)
+      contrast_choices  <- data.frame(name = trunc,
+                                      value = clusters,
+                                      label = clusters,
+                                      testColor,
+                                      ncells,
+                                      pcells, pspace)
+    }
+
+    contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+    shiny::updateSelectizeInput(session, 'selected_cluster',
+                                choices = contrast_choices, selected = selected_cluster_rv(),
+                                options = contrast_options, server = TRUE)
+
+    shiny::updateSelectizeInput(session, 'sample_comparison_clusters',
+                                choices = contrast_choices, selected = selected_cluster_rv(),
+                                options = contrast_options, server = TRUE)
+  })
+
+
+  # update group buttons if show contrasts is toggled
+  shiny::observeEvent(input$show_contrasts, {
+    # update icon on toggle
+    icon <- ifelse(input$show_contrasts %% 2 != 0, 'chevron-down', 'chevron-right')
+
+    shiny::updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
+    shinyjs::toggleState('show_rename')
+  })
+
+  # update selected cluster if show contrasts is toggled
+  shiny::observeEvent(input$show_contrasts, {
+    if (input$show_contrasts %% 2 != 0) {
+      selected_cluster_rv(NULL)
+    } else {
+      selected_cluster_rv(test_cluster_r())
+    }
+
+  })
+
+  # update marker genes based on cluster selection
+  shiny::observeEvent(input$selected_cluster, {
+    scseq <- scseq_r()
+    con_markers <- con_markers_rv()
+    markers <- c(markers_r(), con_markers)
+
+    sel <- input$selected_cluster
+    if (sel == '') return(NULL)
+
+    # get cluster if don't have (for comparing specific cluster)
+    if (!sel %in% names(markers)) {
+      con <- strsplit(sel, ' vs ')[[1]]
+      con_markers[[sel]] <- markers[[sel]] <- get_scseq_markers(scseq, ident.1 = con[1], ident.2 = con[2])
+
+      # update con markers reactive value
+      con_markers_rv(con_markers)
+    }
+
+    # allow selecting non-marker genes (at bottom of list)
+    cluster_markers <- markers[[sel]]
+    choices <- row.names(cluster_markers)
+    choices <- c(choices, setdiff(row.names(scseq), choices))
+
+    shiny::updateSelectizeInput(session, 'gene', choices = choices, selected = NULL, server = TRUE)
+  })
+
+
+  # dynamic UI elements (change based on state of app) ----
+
+
+  # ui for renaming a cluster
+  shiny::observeEvent(input$show_rename, {
+    if (!is_rename_r())
+      shiny::updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', selected_cluster(), '...'))
+  })
+
+
+  # plots ------
+  # show tSNE plot coloured by expression values
+  output$marker_plot <- shiny::renderPlot({
+
+    scseq <- scseq_r()
+
+    if (input$gene == '' || !input$gene %in% row.names(scseq)) return(NULL)
+    plot_umap_gene(scseq, input$gene, selected_idents = selected_groups_r(), pt.size = input$point_size)
+  })
+
+
+  # show plot of predicted cell clusters
+  output$cluster_plot <- shiny::renderPlot({
+    scseq <- scseq_r()
+    plot_umap_cluster(scseq, pt.size = input$point_size)
+  })
+
+
+  # plot BioGPS data
+  output$biogps <- shiny::renderPlot({
+    plot_biogps(input$gene)
+  })
+
+
+  # link to GeneCards page for gene ----
+  gene_link_r <- shiny::reactive({
+    return(paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$gene))
+  })
+
+  shiny::observeEvent(input$genecards, {
+    utils::browseURL(gene_link_r())
+  })

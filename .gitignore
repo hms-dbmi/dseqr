@@ -27,6 +27,11 @@ inst/extdata/l1000_es.rds
 # ensdb annotation
 inst/EnsDb
 
+# test stuff for app
+inst/app/tests/**/*.png
+inst/app/tests/*-current/*
+inst/app/tests/data/test/*
+
 # txp2gene for alevin
 data-raw/single-cell/alevin-args/*.gz
 data-raw/single-cell/kallisto-args/*

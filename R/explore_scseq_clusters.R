@@ -14,14 +14,27 @@
 #' explore_scseq_clusters(data_dir)
 #'
 
-explore_scseq_clusters <- function(data_dir) {
-  # for development so that auto refresh when change file
-  options(shiny.autoreload = TRUE)
+explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
 
-  app_dir <- '~/Documents/Batcave/zaklab/drugseqr/inst/shiny-apps/scseq'
+  app_dir <- 'inst/app'
 
   # pass arguments to app through options then run
   shiny::shinyOptions(data_dir = data_dir)
+
+
+  if (test) {
+    # run test and return
+    shinytest::recordTest(app_dir, seed = 0)
+    return(NULL)
+
+  } else if (test_data) {
+    # use test data (faster)
+    options(shiny.testmode = TRUE)
+
+  }
+
+  # auto-reload if update app files
+  options(shiny.autoreload = TRUE)
   shiny::runApp(app_dir, launch.browser = TRUE)
 
 }

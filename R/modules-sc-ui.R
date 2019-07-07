@@ -1,4 +1,7 @@
-scPageInput <- function(id) {
+# page and input form UI -----
+#' UI for Single Cell Exploration page
+#' @export
+scPageUI <- function(id) {
   ns <- NS(id)
   withTags({
     div(class = 'tab-pane active', `data-value` = 'Single-Cell', id = 'single-cell-tab',
@@ -7,22 +10,23 @@ scPageInput <- function(id) {
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-6',
-                scClusterPlotUI(ns('cluster_plot'))
+                scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
         hr(),
         div(class = 'row',
             div(class = "col-sm-6 col-lg-6 col-lg-push-6",
-                scMarkerPlotUI(ns('marker_plot'))
+                scMarkerPlotOutput(ns('marker_plot'))
             ),
             div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
-                scBioGpsPlotUI(ns('biogps_plot'))
+                scBioGpsPlotOutput(ns('biogps_plot'))
             )
         )
     )
   })
 }
 
+#' Input form for Single Cell Exploration page
 scFormInput <- function(id) {
   ns <- NS(id)
 
@@ -40,21 +44,55 @@ scFormInput <- function(id) {
   })
 }
 
-scClusterPlotUI <- function(id) {
+
+# analysis input -----
+
+#' Input form/associated buttons for selecting single cell analysis
+selectedAnalInput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('cluster_plot'))
+
+  withTags({
+    div(class = 'form-group selectize-fh',
+        label(class = 'control-label', `for` = ns('selected_anal'), 'Select a dataset:'),
+        div(class = 'input-group',
+            div(
+              select(id = ns('selected_anal')),
+              script(type = 'application/json', `data-for` = ns('selected_anal'), HTML('{}'))
+            ),
+            div(class = 'input-group-btn',
+                showIntegrationButton(ns('integration')),
+                plotStylesButton(ns('styles'))
+            )
+        )
+    )
+  })
 }
 
-scMarkerPlotUI <- function(id) {
+#' Button with sliders for adjusting plot jitter and point size
+plotStylesButton <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('marker_plot'))
+  shinyWidgets::dropdownButton(
+    sliderInput(ns('point_size'), 'Point size:',
+                width = '100%', ticks = FALSE,
+                min = 0.5, max = 4, value = 2.5, step = 0.5),
+    sliderInput(ns('point_jitter'), 'Point jitter:',
+                width = '100%', ticks = FALSE,
+                min = 0, max = 3, value = 0, step = 0.5),
+    circle = FALSE, right = TRUE, icon = icon('cog', 'fa-fw')
+  )
 }
 
-scBioGpsPlotUI <- function(id) {
+#' Button with to toggle display of integrationFormInput
+showIntegrationButton <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('biogps_plot'))
+
+  actionButton(ns('show_integration'), '',
+               icon = icon('object-group', 'far fa-fw'),
+               title = 'Toggle dataset integration', class = 'squashed-btn')
 }
 
+# integration input ------
+#' Input form for integrating single cell datasets
 integrationFormInput <- function(id) {
   ns <- NS(id)
 
@@ -75,50 +113,8 @@ integrationFormInput <- function(id) {
   })
 }
 
-
-selectedAnalInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('selected_anal'), 'Select a dataset:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('selected_anal')),
-              script(type = 'application/json', `data-for` = ns('selected_anal'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                showIntegrationInput(ns('integration')),
-                plotStylesInput(ns('styles'))
-            )
-        )
-    )
-  })
-}
-
-plotStylesInput <- function(id) {
-  ns <- NS(id)
-  shinyWidgets::dropdownButton(
-    sliderInput(ns('point_size'), 'Point size:',
-                width = '100%', ticks = FALSE,
-                min = 0.5, max = 4, value = 2.5, step = 0.5),
-    sliderInput(ns('point_jitter'), 'Point jitter:',
-                width = '100%', ticks = FALSE,
-                min = 0, max = 3, value = 0, step = 0.5),
-    circle = FALSE, right = TRUE, icon = icon('cog', 'fa-fw')
-  )
-}
-
-
-showIntegrationInput <- function(id) {
-  ns <- NS(id)
-
-  actionButton(ns('show_integration'), '',
-               icon = icon('object-group', 'far fa-fw'),
-               title = 'Toggle dataset integration', class = 'squashed-btn')
-}
-
-
+# cluster input -----
+#' Input form and buttons to select a cluster or contrast and rename a cluster
 selectedClusterInput <- function(id) {
   ns <- NS(id)
 
@@ -162,7 +158,8 @@ selectedClusterInput <- function(id) {
   })
 }
 
-
+# gene input -----
+#' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
 selectedGeneInput <- function(id) {
   ns <- NS(id)
 
@@ -183,11 +180,13 @@ selectedGeneInput <- function(id) {
   })
 }
 
+# groups input -----
+#' Input form to control/test/all groups for integrated datasets
 selectedGroupsInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(style = 'display: block;',
+    div(style = 'display: none;', id = ns('selected_group_container'),
         shinyWidgets::radioGroupButtons(ns('selected_group'), "Show cells for group:",
                                         choices = c('test', 'all', 'ctrl'),
                                         selected = 'all', justified = TRUE)
@@ -198,23 +197,23 @@ selectedGroupsInput <- function(id) {
 
 }
 
-## ui.R ##
-bootstrapPage(
-  useShinyjs(),
-  includeScript(path = 'www/contrasts.js'),
-  includeCSS(path = 'www/custom.css'),
-  htmlTemplate("navbar.html"),
-  fluidPage(
-    # make sure selectize loaded (not using default)
-    tags$div(style = 'display: none', selectizeInput('blah1', label = NULL, choices = '')),
-
-    # THE TABS ----
-    tags$div(class = "tab-content", `data-tabsetid` = "1823", id = "tabs",
-
-             # single cell tab
-             scPageInput("sc")
 
 
-    )
-  )
-)
+# plot outputs ----
+#' Output plot of single cell clusters
+scClusterPlotOutput <- function(id) {
+  ns <- NS(id)
+  plotOutput(ns('cluster_plot'))
+}
+
+#' Output plot of single cell markers
+scMarkerPlotOutput <- function(id) {
+  ns <- NS(id)
+  plotOutput(ns('marker_plot'))
+}
+
+#' Output plot of biogps data for a gene
+scBioGpsPlotOutput <- function(id) {
+  ns <- NS(id)
+  plotOutput(ns('biogps_plot'))
+}

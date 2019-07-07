@@ -93,6 +93,11 @@
   vertical-align: top;
 }
 
+/* same height as selectize input  */
+.input-group-btn .btn {
+  min-height: 34px;
+}
+
 
 /* BRAND */
 .brand-icons {
