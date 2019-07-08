@@ -9,3 +9,4 @@ scClusterPlotOutput(id)
 \description{
 Output plot of single cell clusters
 }
+\keyword{internal}

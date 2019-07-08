@@ -1,6 +1,7 @@
 # page and input form UI -----
 #' UI for Single Cell Exploration page
 #' @export
+#' @keywords internal
 scPageUI <- function(id) {
   ns <- NS(id)
   withTags({
@@ -27,6 +28,8 @@ scPageUI <- function(id) {
 }
 
 #' Input form for Single Cell Exploration page
+#' @export
+#' @keywords internal
 scFormInput <- function(id) {
   ns <- NS(id)
 
@@ -44,12 +47,16 @@ scFormInput <- function(id) {
   })
 }
 
-
 # analysis input -----
 
 #' Input form/associated buttons for selecting single cell analysis
-selectedAnalInput <- function(id) {
+#' @export
+#' @keywords internal
+selectedAnalInput <- function(id, with_integration = TRUE) {
   ns <- NS(id)
+
+  integration_button <- NULL
+  if (with_integration) integration_button <- showIntegrationButton(ns('integration'))
 
   withTags({
     div(class = 'form-group selectize-fh',
@@ -60,7 +67,7 @@ selectedAnalInput <- function(id) {
               script(type = 'application/json', `data-for` = ns('selected_anal'), HTML('{}'))
             ),
             div(class = 'input-group-btn',
-                showIntegrationButton(ns('integration')),
+                integration_button,
                 plotStylesButton(ns('styles'))
             )
         )
@@ -69,6 +76,8 @@ selectedAnalInput <- function(id) {
 }
 
 #' Button with sliders for adjusting plot jitter and point size
+#' @export
+#' @keywords internal
 plotStylesButton <- function(id) {
   ns <- NS(id)
   shinyWidgets::dropdownButton(
@@ -83,6 +92,8 @@ plotStylesButton <- function(id) {
 }
 
 #' Button with to toggle display of integrationFormInput
+#' @export
+#' @keywords internal
 showIntegrationButton <- function(id) {
   ns <- NS(id)
 
@@ -93,6 +104,8 @@ showIntegrationButton <- function(id) {
 
 # integration input ------
 #' Input form for integrating single cell datasets
+#' @export
+#' @keywords internal
 integrationFormInput <- function(id) {
   ns <- NS(id)
 
@@ -115,6 +128,8 @@ integrationFormInput <- function(id) {
 
 # cluster input -----
 #' Input form and buttons to select a cluster or contrast and rename a cluster
+#' @export
+#' @keywords internal
 selectedClusterInput <- function(id) {
   ns <- NS(id)
 
@@ -160,6 +175,8 @@ selectedClusterInput <- function(id) {
 
 # gene input -----
 #' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
+#' @export
+#' @keywords internal
 selectedGeneInput <- function(id) {
   ns <- NS(id)
 
@@ -182,6 +199,8 @@ selectedGeneInput <- function(id) {
 
 # groups input -----
 #' Input form to control/test/all groups for integrated datasets
+#' @export
+#' @keywords internal
 selectedGroupsInput <- function(id) {
   ns <- NS(id)
 
@@ -201,18 +220,24 @@ selectedGroupsInput <- function(id) {
 
 # plot outputs ----
 #' Output plot of single cell clusters
+#' @export
+#' @keywords internal
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('cluster_plot'))
 }
 
 #' Output plot of single cell markers
+#' @export
+#' @keywords internal
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('marker_plot'))
 }
 
 #' Output plot of biogps data for a gene
+#' @export
+#' @keywords internal
 scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'))

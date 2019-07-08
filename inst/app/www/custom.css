@@ -64,6 +64,7 @@
   height: 79px; 
 }
 
+
 .input-group .selectize-input {
   border-top-right-radius: 0; 
   border-bottom-right-radius: 0;
@@ -98,18 +99,42 @@
   min-height: 34px;
 }
 
+/* FULL HEIGHT BUTTON BESIDE INPUT */
+.input-group.full-height-btn {
+  width: calc(100% - 43.5px);
+}
+
+.full-height-btn .input-group-btn {
+  width: 0px;
+}
+
+.full-height-btn button {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+}
+
+.full-height-selectize {
+  height: 1px;
+}
+
+
+
+
 
 /* BRAND */
 .brand-icons {
   background-color: white;
   padding: 5px 12px;
   border: 1px solid #ccc; 
+  cursor: default;
 }
 
 .brand-icons i {
   color: cornflowerblue;
   font-size: 14px;
 }
+
 
 /* NAVBAR */
 .navbar-default {

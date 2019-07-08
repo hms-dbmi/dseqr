@@ -4,8 +4,9 @@
 \alias{selectedAnalInput}
 \title{Input form/associated buttons for selecting single cell analysis}
 \usage{
-selectedAnalInput(id)
+selectedAnalInput(id, with_integration = TRUE)
 }
 \description{
 Input form/associated buttons for selecting single cell analysis
 }
+\keyword{internal}

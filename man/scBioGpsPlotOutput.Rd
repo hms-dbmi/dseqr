@@ -9,3 +9,4 @@ scBioGpsPlotOutput(id)
 \description{
 Output plot of biogps data for a gene
 }
+\keyword{internal}

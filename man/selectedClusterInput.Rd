@@ -9,3 +9,4 @@ selectedClusterInput(id)
 \description{
 Input form and buttons to select a cluster or contrast and rename a cluster
 }
+\keyword{internal}

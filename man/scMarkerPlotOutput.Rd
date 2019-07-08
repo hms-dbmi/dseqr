@@ -9,3 +9,4 @@ scMarkerPlotOutput(id)
 \description{
 Output plot of single cell markers
 }
+\keyword{internal}

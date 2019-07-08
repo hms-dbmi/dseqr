@@ -9,3 +9,4 @@ scPageUI(id)
 \description{
 UI for Single Cell Exploration page
 }
+\keyword{internal}

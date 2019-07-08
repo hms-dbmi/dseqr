@@ -9,3 +9,4 @@ plotStylesButton(id)
 \description{
 Button with sliders for adjusting plot jitter and point size
 }
+\keyword{internal}

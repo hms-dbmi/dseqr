@@ -1,3 +1,4 @@
+
 # page and input form logic ----
 
 #' Logic for Single Cell Exploration page
@@ -16,7 +17,6 @@ scPage <- function(input, output, session, data_dir) {
   callModule(scMarkerPlot, 'marker_plot',
              scseq = scForm$scseq,
              selected_gene = scForm$selected_gene,
-             selected_groups = scForm$selected_groups,
              plot_styles = scForm$plot_styles)
 
 
@@ -26,6 +26,8 @@ scPage <- function(input, output, session, data_dir) {
   return(NULL)
 }
 
+#' @export
+#' @keywords internal
 scForm <- function(input, output, session, data_dir) {
 
   # updates if new integrated dataset
@@ -61,8 +63,10 @@ scForm <- function(input, output, session, data_dir) {
                        selected_markers = scCluster$selected_markers)
 
 
-  # the groups selection
-  scGroups <- callModule(selectedGroups, 'groups', scseq = scAnal$scseq)
+  # the comparison selection
+  scComparison <- callModule(samplesComparison, 'sample', scseq = scAnal$scseq, annot = scCluster$annot)
+
+
 
 
   # update scseq with annotation changes and jitter
@@ -86,12 +90,52 @@ scForm <- function(input, output, session, data_dir) {
   return(list(
     scseq = scseq,
     plot_styles = scAnal$plot_styles,
-    selected_gene = scGene$selected_gene,
-    selected_groups = scGroups$selected_groups
+    selected_gene = scGene$selected_gene
   ))
 }
 
+
+samplesComparison <- function(input, output, session, scseq, annot) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+
+
+
+  contrast_choices <- reactive({
+
+    clusters <- annot()
+    req(clusters)
+
+    # show the cell numbers/percentages
+    ncells <- tabulate(scseq()$seurat_clusters)
+    pcells <- round(ncells / sum(ncells) * 100)
+    pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
+
+    # cluster choices are the clusters themselves
+    testColor <- get_palette(clusters)
+    contrast_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
+                                    value = clusters,
+                                    label = clusters,
+                                    testColor,
+                                    ncells, pcells, pspace, row.names = NULL)
+
+    return(contrast_choices)
+
+  })
+
+
+    # update UI for contrast/cluster choices
+  observeEvent(contrast_choices(), {
+    updateSelectizeInput(session, 'selected_cluster',
+                         choices = contrast_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+}
+
 # selected analysis input logic ----
+
+#' @export
+#' @keywords internal
 selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   selected_anal <- reactive({
@@ -181,6 +225,8 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
   ))
 }
 
+#' @export
+#' @keywords internal
 plotStyles <- function(input, output, session) {
 
 
@@ -190,6 +236,8 @@ plotStyles <- function(input, output, session) {
   return(list(jitter = jitter, size = size))
 }
 
+#' @export
+#' @keywords internal
 showIntegration <- function(input, output, session) {
 
   show_integration <- reactive(input$show_integration %% 2 != 0)
@@ -207,7 +255,8 @@ showIntegration <- function(input, output, session) {
 # single cell dataset integration logic -----
 
 #' Single Cell Integration form
-#'
+#' @export
+#' @keywords internal
 #' @return \code{reactiveVal} that is either NULL or contains the name of a new integrated analysis
 integrationForm <- function(input, output, session, data_dir, anal_options, show_integration) {
 
@@ -275,7 +324,7 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
       integrate_saved_scseqs(data_dir, ctrl_anals, ctrl_anals, anal_name, updateProgress = updateProgress)
 
 
-      # re-enable, clear inputs, close, and trigger update of available/selected anal
+      # re-enable, clear inputs, and trigger update of available anals
       ctrl(NULL)
       test(NULL)
       new_anal(anal_name)
@@ -294,11 +343,14 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
 }
 
 # selected cluster/contrast/rename logic ----
+
+#' @export
+#' @keywords internal
 selectedCluster <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  selected_cluster <- reactiveVal(NULL)
+  selected_cluster <- reactiveVal()
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
   con_markers <- reactiveVal(list())
 
@@ -530,8 +582,8 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
 }
 
-# selected groups (ctrl/test/all) logic -----
-selectedGroups <- function(input, output, session, scseq) {
+# selected comparison (clusters/samples) logic -----
+selectedComparison <- function(input, output, session, scseq) {
 
   # groups to show (e.g. ctrl and test)
   available_groups <- shiny::reactive({
@@ -562,6 +614,9 @@ selectedGroups <- function(input, output, session, scseq) {
 }
 
 # plot logic ----
+
+#' @export
+#' @keywords internal
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
   output$cluster_plot <- renderPlot({
@@ -569,21 +624,25 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles) {
   })
 }
 
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_groups, plot_styles) {
+#' @export
+#' @keywords internal
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles) {
 
   output$marker_plot <- renderPlot({
     req(selected_gene())
-    req(selected_groups())
-    plot_umap_gene(scseq(), selected_gene(), selected_idents = selected_groups(), pt.size = plot_styles$size())
+    plot_umap_gene(scseq(), selected_gene(), pt.size = plot_styles$size())
   })
 }
 
+#' @export
+#' @keywords internal
 scBioGpsPlot <- function(input, output, session, selected_gene) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
     plot_biogps(selected_gene())
   })
 }
+
 
 
 
@@ -608,5 +667,6 @@ server <- function(input, output, session) {
   # single cell analysis and options
   scPage <- callModule(scPage, 'sc',
                        data_dir = data_dir)
+
 
 }

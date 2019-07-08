@@ -4,7 +4,8 @@
 \alias{integrate_saved_scseqs}
 \title{Integrate previously saved scseqs}
 \usage{
-integrate_saved_scseqs(data_dir, test, ctrl, anal_name)
+integrate_saved_scseqs(data_dir, test, ctrl, anal_name,
+  updateProgress = NULL)
 }
 \arguments{
 \item{data_dir}{Directory with saved analyses.}
@@ -14,6 +15,8 @@ integrate_saved_scseqs(data_dir, test, ctrl, anal_name)
 \item{ctrl}{Character vector of control analysis names.}
 
 \item{anal_name}{Name for new integrated analysis.}
+
+\item{progress}{optional Shiny \code{Progress} object.}
 }
 \description{
 Performs integration and saves as a new analysis.

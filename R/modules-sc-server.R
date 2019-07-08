@@ -26,6 +26,8 @@ scPage <- function(input, output, session, data_dir) {
   return(NULL)
 }
 
+#' @export
+#' @keywords internal
 scForm <- function(input, output, session, data_dir) {
 
   # updates if new integrated dataset
@@ -92,6 +94,9 @@ scForm <- function(input, output, session, data_dir) {
 }
 
 # selected analysis input logic ----
+
+#' @export
+#' @keywords internal
 selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   selected_anal <- reactive({
@@ -181,6 +186,8 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
   ))
 }
 
+#' @export
+#' @keywords internal
 plotStyles <- function(input, output, session) {
 
 
@@ -190,6 +197,8 @@ plotStyles <- function(input, output, session) {
   return(list(jitter = jitter, size = size))
 }
 
+#' @export
+#' @keywords internal
 showIntegration <- function(input, output, session) {
 
   show_integration <- reactive(input$show_integration %% 2 != 0)
@@ -207,7 +216,8 @@ showIntegration <- function(input, output, session) {
 # single cell dataset integration logic -----
 
 #' Single Cell Integration form
-#'
+#' @export
+#' @keywords internal
 #' @return \code{reactiveVal} that is either NULL or contains the name of a new integrated analysis
 integrationForm <- function(input, output, session, data_dir, anal_options, show_integration) {
 
@@ -294,6 +304,9 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
 }
 
 # selected cluster/contrast/rename logic ----
+
+#' @export
+#' @keywords internal
 selectedCluster <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
 
 
@@ -562,6 +575,9 @@ selectedGroups <- function(input, output, session, scseq) {
 }
 
 # plot logic ----
+
+#' @export
+#' @keywords internal
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
   output$cluster_plot <- renderPlot({
@@ -569,6 +585,8 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles) {
   })
 }
 
+#' @export
+#' @keywords internal
 scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_groups, plot_styles) {
 
   output$marker_plot <- renderPlot({
@@ -578,6 +596,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_
   })
 }
 
+#' @export
+#' @keywords internal
 scBioGpsPlot <- function(input, output, session, selected_gene) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
