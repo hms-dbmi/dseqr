@@ -1,5 +1,4 @@
 
-# page and input form logic ----
 
 #' Logic for Single Cell Exploration page
 #' @export
@@ -47,12 +46,17 @@ scForm <- function(input, output, session, data_dir) {
                               anal_options = scAnal$anal_options,
                               show_integration = scAnal$show_integration)
 
+  # comparison type
+  comparisonType <- callModule(comparisonType, 'comparison',
+                               scseq = scAnal$scseq)
+
   # the cluster
   scCluster <- callModule(selectedCluster, 'cluster',
                           selected_anal = scAnal$selected_anal,
                           scseq = scAnal$scseq,
                           markers = scAnal$markers,
-                          annot_path = scAnal$annot_path)
+                          annot_path = scAnal$annot_path,
+                          comparison_type = comparisonType)
 
 
   # the gene selection
@@ -64,7 +68,10 @@ scForm <- function(input, output, session, data_dir) {
 
 
   # the comparison selection
-  scComparison <- callModule(samplesComparison, 'sample', scseq = scAnal$scseq, annot = scCluster$annot)
+  scComparison <- callModule(sampleComparison, 'sample',
+                             scseq = scAnal$scseq,
+                             annot = scCluster$annot,
+                             comparison_type = comparisonType)
 
 
 
@@ -95,11 +102,13 @@ scForm <- function(input, output, session, data_dir) {
 }
 
 
-samplesComparison <- function(input, output, session, scseq, annot) {
+sampleComparison <- function(input, output, session, scseq, annot, comparison_type) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-
-
+  # show/hide the entire sample comparison UI
+  observe({
+    toggle(id = "sample_comparison_panel", condition = comparison_type() == 'samples')
+  })
 
   contrast_choices <- reactive({
 
@@ -126,13 +135,30 @@ samplesComparison <- function(input, output, session, scseq, annot) {
 
     # update UI for contrast/cluster choices
   observeEvent(contrast_choices(), {
-    updateSelectizeInput(session, 'selected_cluster',
+    updateSelectizeInput(session, 'selected_clusters',
                          choices = contrast_choices(),
                          options = contrast_options, server = TRUE)
   })
 }
 
-# selected analysis input logic ----
+comparisonType <- function(input, output, session, scseq) {
+
+  # groups to show (e.g. ctrl and test)
+  available_groups <- shiny::reactive({
+    unique(as.character(scseq()$orig.ident))
+  })
+
+  show_groups <- reactive({
+    length(available_groups()) > 1
+  })
+
+  # show UI component if more than one available groups
+  observe({
+    toggle(id = "comparison_type_container", condition = show_groups())
+  })
+
+  return(reactive(input$comparison_type))
+}
 
 #' @export
 #' @keywords internal
@@ -252,7 +278,6 @@ showIntegration <- function(input, output, session) {
   return(show_integration)
 }
 
-# single cell dataset integration logic -----
 
 #' Single Cell Integration form
 #' @export
@@ -342,11 +367,10 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
   return(new_anal)
 }
 
-# selected cluster/contrast/rename logic ----
 
 #' @export
 #' @keywords internal
-selectedCluster <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
+selectedCluster <- function(input, output, session, selected_anal, scseq, markers, annot_path, comparison_type) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -357,6 +381,11 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
   # things that return for plotting
   annot <- reactiveVal(NULL)
   selected_markers <- reactiveVal(NULL)
+
+  # show/hide the entire selected cluster UI
+  observe({
+    toggle(id = "selected_cluster_panel", condition = comparison_type() == 'clusters')
+  })
 
   show_rename <- reactive({
     (input$rename_cluster + input$show_rename) %% 2 != 0
@@ -532,7 +561,6 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
   ))
 }
 
-# selected marker gene logic ----
 selectedGene <- function(input, output, session, selected_anal, selected_cluster, scseq, selected_markers) {
 
   selected_gene <- reactiveVal(NULL)
@@ -582,38 +610,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
 }
 
-# selected comparison (clusters/samples) logic -----
-selectedComparison <- function(input, output, session, scseq) {
 
-  # groups to show (e.g. ctrl and test)
-  available_groups <- shiny::reactive({
-    unique(as.character(scseq()$orig.ident))
-  })
-
-  show_groups <- reactive({
-    length(available_groups()) > 1
-  })
-
-  selected_groups <- reactive({
-    groups <- available_groups()
-    # always show when just a single group
-    if (length(groups) == 1 || input$selected_group == 'all') return(groups)
-
-    return(input$selected_group)
-  })
-
-  # show UI component if more than one available groups
-  observe({
-    toggle(id = "selected_group_container", condition = show_groups())
-  })
-
-
-  return(list(
-    selected_groups = selected_groups
-  ))
-}
-
-# plot logic ----
 
 #' @export
 #' @keywords internal

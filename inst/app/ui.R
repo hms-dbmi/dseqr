@@ -1,11 +1,45 @@
 
+id_from_tab <- function(tab) {
+  id <- tolower(tab)
+  gsub(' ', '-', id)
+}
+
+navbarUI <- function(tabs, active) {
+
+  withTags({
+    nav(class = 'navbar navbar-default navbar-static-top',
+      div(class = 'container-fluid',
+        div(class = 'navbar-header',
+          span(class = 'navbar-brand', title = 'drugseqr',
+            span(class = 'brand-icons',
+              i( class = 'glyphicon glyphicon-leaf'),
+              'drugseqr'
+            )
+          )
+        ),
+        ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
+          lapply(seq_along(tabs), function(i) {
+            tab <- tabs[i]
+            is.active <- tab == active
+            li(class = ifelse(is.active, 'active', ''),
+              a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
+            )
+          })
+        )
+      )
+    )
+  })
+}
+
+
 #' UI for Single Cell Exploration page
 #' @export
 #' @keywords internal
-scPageUI <- function(id) {
+scPageUI <- function(id, tab, active) {
   ns <- NS(id)
+  active_class <- ifelse(tab == active, 'active', '')
   withTags({
-    div(class = 'tab-pane active', `data-value` = 'Single-Cell', id = 'single-cell-tab',
+    div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
         div(class = 'row',
             div(class = 'col-sm-6',
                 scFormInput(ns('form'))
@@ -27,6 +61,18 @@ scPageUI <- function(id) {
   })
 }
 
+BulkPageUI <- function(id, tab, active) {
+  ns <- NS(id)
+  active_class <- ifelse(tab == active, 'active', '')
+  withTags({
+    div(class = paste0('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
+        div(class = 'row'),
+        hr(),
+        div(class = 'row')
+    )
+  })
+}
+
 #' Input form for Single Cell Exploration page
 #' @export
 #' @keywords internal
@@ -37,10 +83,10 @@ scFormInput <- function(id) {
     div(class = "well-form well-bg",
         selectedAnalInput(ns('anal')),
         integrationFormInput(ns('integration')),
-        selectedComparisonInput(ns('comparison')),
+        comparisonTypeToggle(ns('comparison')),
         br(),
         selectedClusterInput(ns('cluster')),
-        samplesComparisonInput(ns('sample')),
+        sampleComparisonInput(ns('sample')),
         br(),
         selectedGeneInput(ns('gene'))
     )
@@ -48,22 +94,22 @@ scFormInput <- function(id) {
 }
 
 
-samplesComparisonInput <- function(id) {
+sampleComparisonInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(id = ns('select_panel'),
+    div(id = ns('sample_comparison_panel'), style = 'display: none;',
         div(class = 'form-group',
-            label(class = 'control-label', `for` = ns('selected_cluster'), 'Compare samples for:'),
+            label(class = 'control-label', `for` = ns('selected_clusters'), 'Compare samples for:'),
             div(class = 'input-group full-height-btn',
                 div(class = 'full-height-selectize',
-                  select(id = ns('selected_cluster'), multiple = TRUE),
-                  script(type = 'application/json', `data-for` = ns('selected_cluster'), HTML('{}'))
+                    select(id = ns('selected_clusters'), style = 'display: none', multiple = TRUE),
+                    script(type = 'application/json', `data-for` = ns('selected_clusters'), HTML('{}'))
                 ),
                 div(class = 'input-group-btn',
-                    actionButton(ns('show_integration'), '',
+                    actionButton(ns('run_comparison'), '',
                                  icon = icon('chevron-right', 'far fa-fw'),
-                                 title = 'Compare ')
+                                 title = 'Compare test to control cells')
                 )
             )
 
@@ -74,6 +120,23 @@ samplesComparisonInput <- function(id) {
 
 }
 
+#' Input form to control/test/all groups for integrated datasets
+#' @export
+#' @keywords internal
+comparisonTypeToggle <- function(id) {
+  ns <- NS(id)
+
+  withTags({
+    div(style = 'display: none;', id = ns('comparison_type_container'),
+        shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
+                                        choices = c('clusters', 'samples'),
+                                        selected = 'clusters', justified = TRUE)
+
+    )
+
+  })
+
+}
 
 #' Input form/associated buttons for selecting single cell analysis
 #' @export
@@ -86,7 +149,7 @@ selectedAnalInput <- function(id) {
         label(class = 'control-label', `for` = ns('selected_anal'), 'Select a dataset:'),
         div(class = 'input-group',
             div(
-              select(id = ns('selected_anal')),
+              select(id = ns('selected_anal'), style = 'display: none'),
               script(type = 'application/json', `data-for` = ns('selected_anal'), HTML('{}'))
             ),
             div(class = 'input-group-btn',
@@ -158,39 +221,40 @@ selectedClusterInput <- function(id) {
 
   withTags({
     tagList(
+      div(id = ns('selected_cluster_panel'),
+        div(id = ns('select_panel'),
+            div(class = 'form-group selectize-fh',
+                label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:'),
+                div(class = 'input-group',
+                    div(
+                      select(id = ns('selected_cluster'), style = 'display: none'),
+                      script(type = 'application/json', `data-for` = ns('selected_cluster'), HTML('{}'))
+                    ),
+                    div(class = 'input-group-btn',
 
-      div(id = ns('select_panel'),
-          div(class = 'form-group selectize-fh',
-              label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:'),
-              div(class = 'input-group',
-                  div(
-                    select(id = ns('selected_cluster')),
-                    script(type = 'application/json', `data-for` = ns('selected_cluster'), HTML('{}'))
-                  ),
-                  div(class = 'input-group-btn',
-
-                      actionButton(ns('show_contrasts'), '',
-                                   icon = icon('chevron-right', 'fa-fw'),
-                                   title = 'Toggle single group comparisons'),
-                      actionButton(ns('show_rename'), '',
-                                   icon = icon('tag', 'fa-fw'),
-                                   title = 'Toggle rename cluster')
-                  )
-              )
-          )
-      ),
-      div(id = ns('rename_panel'), style = 'display: none',
-          div(class = 'form-group selectize-fh',
-              label(class = 'control-label', `for` = ns('new_cluster_name'), 'New cluster name:'),
-              div(class = 'input-group',
-                  input(id = ns('new_cluster_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
-                  span(class = 'input-group-btn',
-                       actionButton(ns('rename_cluster'), '',
-                                    icon = icon('plus', 'fa-fw'),
-                                    title = 'Rename cluster')
-                  )
-              )
-          )
+                        actionButton(ns('show_contrasts'), '',
+                                     icon = icon('chevron-right', 'fa-fw'),
+                                     title = 'Toggle single group comparisons'),
+                        actionButton(ns('show_rename'), '',
+                                     icon = icon('tag', 'fa-fw'),
+                                     title = 'Toggle rename cluster')
+                    )
+                )
+            )
+        ),
+        div(id = ns('rename_panel'), style = 'display: none',
+            div(class = 'form-group selectize-fh',
+                label(class = 'control-label', `for` = ns('new_cluster_name'), 'New cluster name:'),
+                div(class = 'input-group',
+                    input(id = ns('new_cluster_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
+                    span(class = 'input-group-btn',
+                         actionButton(ns('rename_cluster'), '',
+                                      icon = icon('plus', 'fa-fw'),
+                                      title = 'Rename cluster')
+                    )
+                )
+            )
+        )
       )
     )
   })
@@ -208,12 +272,11 @@ selectedGeneInput <- function(id) {
         label(class = 'control-label', `for` = ns('selected_gene'), 'Show expression for:'),
         div(class = 'input-group',
             div(
-              select(id = ns('selected_gene')),
+              select(id = ns('selected_gene'), style = 'display: none;'),
               script(type = 'application/json', `data-for` = ns('selected_gene'), HTML('{}'))
             ),
             div(class = 'input-group-btn',
                 uiOutput(ns("genecards"))
-
             )
         )
     )
@@ -221,23 +284,6 @@ selectedGeneInput <- function(id) {
 }
 
 
-#' Input form to control/test/all groups for integrated datasets
-#' @export
-#' @keywords internal
-selectedComparisonInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(style = 'display: block;', id = ns('selected_group_container'),
-        shinyWidgets::radioGroupButtons(ns('selected_group'), "Perform comparisons between:",
-                                        choices = c('clusters', 'samples'),
-                                        selected = 'clusters', justified = TRUE)
-
-    )
-
-  })
-
-}
 
 
 
@@ -265,20 +311,23 @@ scBioGpsPlotOutput <- function(id) {
   plotOutput(ns('biogps_plot'))
 }
 
+tabs <- c('Datasets', 'Single Cell', 'Bulk', 'Pathways', 'Drugs')
+active <- 'Single Cell'
 
 bootstrapPage(
   useShinyjs(),
   includeScript(path = 'www/contrasts.js'),
   includeCSS(path = 'www/custom.css'),
-  htmlTemplate("navbar.html"),
+  navbarUI(tabs, active),
   fluidPage(
     # make sure selectize loaded (not using default)
     tags$div(style = 'display: none', selectizeInput('blah1', label = NULL, choices = '')),
 
     # THE TABS ----
-    tags$div(class = "tab-content", `data-tabsetid` = "1823", id = "tabs",
+    tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
              # single cell tab
-             scPageUI("sc")
+             scPageUI("sc", tab = 'Single Cell', active),
+             BulkPageUI("bulk", tab = 'Bulk', active)
     )
   )
 )
