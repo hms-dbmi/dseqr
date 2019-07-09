@@ -378,6 +378,37 @@ integrate_scseqs <- function(scseqs) {
   combined <- Seurat::ScaleData(combined, verbose = FALSE)
   combined$orig.ident <- factor(combined$orig.ident)
 
+  # add ambient outlier info
+  combined <- add_ambient(combined)
+
+  return(combined)
+}
+
+#' Mark ambient outliers in combined dataset
+#'
+#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the test datasets.
+#'
+#' @param scseqs the original scseqs
+#' @param combined the combined scseqs
+#'
+#' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
+add_ambient <- function(scseqs, combined) {
+
+  # genes to keep in order that appear
+  keep <- row.names(combined[['SCT']])
+
+  # datasets that are test samples
+  is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
+
+  # genes that are ambient in at least one test sample
+  ambient <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
+  ambient <- lapply(ambient, function(x) row.names(x)[x$out_ambient])
+  ambient <- unique(unlist(ambient))
+
+  # set in combined
+  combined[['SCT']]@meta.features$out_ambient <- FALSE
+  combined[['SCT']]@meta.features$out_ambient[keep %in% ambient] <- TRUE
+
   return(combined)
 }
 

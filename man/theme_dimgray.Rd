@@ -4,7 +4,10 @@
 \alias{theme_dimgray}
 \title{Make ggplot axes and text dimgray}
 \usage{
-theme_dimgray()
+theme_dimgray(with_nums = TRUE)
+}
+\arguments{
+\item{with_nums}{Include axis ticks/text? Default is TRUE.}
 }
 \value{
 \code{theme}

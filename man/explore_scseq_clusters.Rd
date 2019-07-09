@@ -19,6 +19,6 @@ Explore Single Cell Clusters
 
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
 
-explore_scseq_clusters(data_dir)
+explore_scseq_clusters(data_dir, test_data = FALSE)
 
 }

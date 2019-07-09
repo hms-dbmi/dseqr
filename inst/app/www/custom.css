@@ -61,7 +61,7 @@
 .selectize-fh {
   max-width: 400px !important;
   /* same height for any input type */
-  height: 79px; 
+  min-height: 79px; 
 }
 
 

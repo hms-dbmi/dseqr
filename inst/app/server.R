@@ -1,32 +1,58 @@
 
 
 #' Logic for Single Cell Exploration page
-#' @export
-#' @keywords internal
 scPage <- function(input, output, session, data_dir) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
                        data_dir = data_dir)
 
+
   callModule(scClusterPlot, 'cluster_plot',
              scseq = scForm$scseq,
              plot_styles = scForm$plot_styles)
 
-  callModule(scMarkerPlot, 'marker_plot',
-             scseq = scForm$scseq,
-             selected_gene = scForm$selected_gene,
-             plot_styles = scForm$plot_styles)
-
+  # showing cluster comparison ----
+  scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
+                                scseq = scForm$scseq,
+                                selected_gene = scForm$selected_gene_cluster,
+                                plot_styles = scForm$plot_styles,
+                                selected_group = 'all',
+                                cached_plot = reactive(NULL))
 
   callModule(scBioGpsPlot, 'biogps_plot',
-             selected_gene = scForm$selected_gene)
+             selected_gene = scForm$selected_gene_cluster)
+
+  # showing sample comparison -----
+  scMarkerSample <- callModule(scMarkerPlot, 'marker_plot_test',
+                               scseq = scForm$scseq,
+                               selected_gene = scForm$selected_gene_sample,
+                               plot_styles = scForm$plot_styles,
+                               selected_group = 'test',
+                               cached_plot = reactive(NULL))
+
+  callModule(scMarkerPlot, 'marker_plot_ctrl',
+             scseq = scForm$scseq,
+             selected_gene = scForm$selected_gene_sample,
+             plot_styles = scForm$plot_styles,
+             selected_group = 'ctrl',
+             cached_plot = scMarkerSample$plot)
+
+  show_samples <- reactive({
+    scForm$comparison_type() == 'samples'
+  })
+
+  observe({
+    toggle(id = "sample_comparison_row",  condition = show_samples())
+    toggle(id = "cluster_comparison_row", condition = !show_samples())
+  })
+
+
 
   return(NULL)
 }
 
-#' @export
-#' @keywords internal
+#' Logic for form on Single Cell Exploration page
 scForm <- function(input, output, session, data_dir) {
 
   # updates if new integrated dataset
@@ -50,36 +76,37 @@ scForm <- function(input, output, session, data_dir) {
   comparisonType <- callModule(comparisonType, 'comparison',
                                scseq = scAnal$scseq)
 
-  # the cluster
-  scCluster <- callModule(selectedCluster, 'cluster',
-                          selected_anal = scAnal$selected_anal,
-                          scseq = scAnal$scseq,
-                          markers = scAnal$markers,
-                          annot_path = scAnal$annot_path,
-                          comparison_type = comparisonType)
+  # the selected cluster/gene for cluster comparison ----
+  scClusterComparison <- callModule(clusterComparison, 'cluster',
+                                    selected_anal = scAnal$selected_anal,
+                                    scseq = scAnal$scseq,
+                                    markers = scAnal$markers,
+                                    annot_path = scAnal$annot_path)
+
+  scClusterGene <- callModule(selectedGene, 'gene_clusters',
+                              selected_anal = scAnal$selected_anal,
+                              selected_cluster = scClusterComparison$selected_cluster,
+                              scseq = scAnal$scseq,
+                              selected_markers = scClusterComparison$selected_markers)
+
+  # the selected clusters/gene for sample comparison ----
+  scSampleComparison <- callModule(sampleComparison, 'sample',
+                                   scseq = scAnal$scseq,
+                                   annot = scClusterComparison$annot)
 
 
-  # the gene selection
-  scGene <- callModule(selectedGene, 'gene',
-                       selected_anal = scAnal$selected_anal,
-                       selected_cluster = scCluster$selected_cluster,
-                       scseq = scAnal$scseq,
-                       selected_markers = scCluster$selected_markers)
-
-
-  # the comparison selection
-  scComparison <- callModule(sampleComparison, 'sample',
+  scSampleGene <- callModule(selectedGene, 'gene_samples',
+                             selected_anal = scAnal$selected_anal,
+                             selected_cluster = scSampleComparison$selected_cluster,
                              scseq = scAnal$scseq,
-                             annot = scCluster$annot,
-                             comparison_type = comparisonType)
+                             selected_markers = scSampleComparison$selected_markers)
 
 
 
-
-  # update scseq with annotation changes and jitter
+  # update scseq with annotation changes and jitter ----
   scseq <- reactive({
     scseq <- scAnal$scseq()
-    annot <- scCluster$annot()
+    annot <- scClusterComparison$annot()
     jitter <- scAnal$plot_styles$jitter()
     shiny::req(scseq, annot, jitter)
 
@@ -93,75 +120,30 @@ scForm <- function(input, output, session, data_dir) {
     return(scseq)
   })
 
+  show_samples <- reactive({
+    comparisonType() == 'samples'
+  })
+
+
+  observe({
+    toggle(id = "sample_comparison_inputs",  condition = show_samples())
+    toggle(id = "cluster_comparison_inputs", condition = !show_samples())
+  })
+
+
 
   return(list(
     scseq = scseq,
     plot_styles = scAnal$plot_styles,
-    selected_gene = scGene$selected_gene
+    selected_gene_cluster = scClusterGene$selected_gene,
+    selected_gene_sample = scSampleGene$selected_gene,
+    comparison_type = comparisonType
+
   ))
 }
 
 
-sampleComparison <- function(input, output, session, scseq, annot, comparison_type) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-
-  # show/hide the entire sample comparison UI
-  observe({
-    toggle(id = "sample_comparison_panel", condition = comparison_type() == 'samples')
-  })
-
-  contrast_choices <- reactive({
-
-    clusters <- annot()
-    req(clusters)
-
-    # show the cell numbers/percentages
-    ncells <- tabulate(scseq()$seurat_clusters)
-    pcells <- round(ncells / sum(ncells) * 100)
-    pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
-
-    # cluster choices are the clusters themselves
-    testColor <- get_palette(clusters)
-    contrast_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                    value = clusters,
-                                    label = clusters,
-                                    testColor,
-                                    ncells, pcells, pspace, row.names = NULL)
-
-    return(contrast_choices)
-
-  })
-
-
-    # update UI for contrast/cluster choices
-  observeEvent(contrast_choices(), {
-    updateSelectizeInput(session, 'selected_clusters',
-                         choices = contrast_choices(),
-                         options = contrast_options, server = TRUE)
-  })
-}
-
-comparisonType <- function(input, output, session, scseq) {
-
-  # groups to show (e.g. ctrl and test)
-  available_groups <- shiny::reactive({
-    unique(as.character(scseq()$orig.ident))
-  })
-
-  show_groups <- reactive({
-    length(available_groups()) > 1
-  })
-
-  # show UI component if more than one available groups
-  observe({
-    toggle(id = "comparison_type_container", condition = show_groups())
-  })
-
-  return(reactive(input$comparison_type))
-}
-
-#' @export
-#' @keywords internal
+#' Logic for selected analysis part of scForm
 selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   selected_anal <- reactive({
@@ -251,8 +233,7 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
   ))
 }
 
-#' @export
-#' @keywords internal
+#' Logic for plot styles dropdown in selectedAnal
 plotStyles <- function(input, output, session) {
 
 
@@ -262,8 +243,7 @@ plotStyles <- function(input, output, session) {
   return(list(jitter = jitter, size = size))
 }
 
-#' @export
-#' @keywords internal
+#' Logic for show integration button in selectedAnal
 showIntegration <- function(input, output, session) {
 
   show_integration <- reactive(input$show_integration %% 2 != 0)
@@ -279,10 +259,7 @@ showIntegration <- function(input, output, session) {
 }
 
 
-#' Single Cell Integration form
-#' @export
-#' @keywords internal
-#' @return \code{reactiveVal} that is either NULL or contains the name of a new integrated analysis
+#' Logic for integration form toggled by showIntegration
 integrationForm <- function(input, output, session, data_dir, anal_options, show_integration) {
 
 
@@ -326,7 +303,7 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
 
     if (is.null(error_msg)) {
       # clear error and disable button
-      removeClass(id = 'validate', class = 'has-error')
+      removeClass('validate', class = 'has-error')
       disable('submit_integration')
 
       # Create a Progress object
@@ -346,7 +323,11 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
 
 
       # run integration
-      integrate_saved_scseqs(data_dir, ctrl_anals, ctrl_anals, anal_name, updateProgress = updateProgress)
+      integrate_saved_scseqs(data_dir,
+                             test = test_anals,
+                             ctrl = ctrl_anals,
+                             anal_name = anal_name,
+                             updateProgress = updateProgress)
 
 
       # re-enable, clear inputs, and trigger update of available anals
@@ -367,10 +348,34 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
   return(new_anal)
 }
 
+#' Logic for comparison type toggle for integrated analyses
+comparisonType <- function(input, output, session, scseq) {
 
-#' @export
-#' @keywords internal
-selectedCluster <- function(input, output, session, selected_anal, scseq, markers, annot_path, comparison_type) {
+  # groups to show (e.g. ctrl and test)
+  available_groups <- shiny::reactive({
+    unique(as.character(scseq()$orig.ident))
+  })
+
+  show_groups <- reactive({
+    length(available_groups()) > 1
+  })
+
+  # show UI component if more than one available groups
+  observe({
+    toggle(id = "comparison_type_container", condition = show_groups())
+  })
+
+  # always show clusters if not integrated
+  observe({
+    if( !show_groups())
+      updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
+  })
+
+  return(reactive(input$comparison_type))
+}
+
+#' Logic for cluster comparison input
+clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -381,11 +386,6 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
   # things that return for plotting
   annot <- reactiveVal(NULL)
   selected_markers <- reactiveVal(NULL)
-
-  # show/hide the entire selected cluster UI
-  observe({
-    toggle(id = "selected_cluster_panel", condition = comparison_type() == 'clusters')
-  })
 
   show_rename <- reactive({
     (input$rename_cluster + input$show_rename) %% 2 != 0
@@ -398,41 +398,19 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
   })
 
   # update data.frame for cluster/contrast choices
-  contrast_choices <- reactive({
+  choices <- reactive({
     clusters <- annot()
     req(clusters)
 
     if (show_contrasts()) {
-      # group choices are as compared to other clusters
       test <- isolate(test_cluster())
-      ctrls <- clusters[clusters != test]
-
-      colours <- get_palette(clusters)
-      names(colours) <- clusters
-
-      contrast_choices <- data.frame(test = stringr::str_trunc(test, 17),
-                                     ctrl = stringr::str_trunc(c('all', ctrls), 17),
-                                     value = c(test, paste0(test, ' vs ', ctrls)),
-                                     testColor = colours[test],
-                                     ctrlColor = c('white', colours[ctrls]), row.names = NULL)
-
+      choices <- get_contrast_choices(clusters, test)
 
     } else {
-      # show the cell numbers/percentages
-      ncells <- tabulate(scseq()$seurat_clusters)
-      pcells <- round(ncells / sum(ncells) * 100)
-      pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
-
-      # cluster choices are the clusters themselves
-      testColor <- get_palette(clusters)
-      contrast_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                     value = clusters,
-                                     label = clusters,
-                                     testColor,
-                                     ncells, pcells, pspace, row.names = NULL)
+      choices <- get_cluster_choices(clusters, scseq())
     }
 
-    return(contrast_choices)
+    return(choices)
   })
 
 
@@ -518,9 +496,9 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
 
 
   # update UI for contrast/cluster choices
-  observeEvent(contrast_choices(), {
+  observeEvent(choices(), {
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = contrast_choices(),
+                         choices = choices(),
                          selected = selected_cluster(),
                          options = contrast_options, server = TRUE)
   })
@@ -561,6 +539,51 @@ selectedCluster <- function(input, output, session, selected_anal, scseq, marker
   ))
 }
 
+#' Logic to for sample comparison input
+sampleComparison <- function(input, output, session, scseq, annot) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  # for storing all sample markers within session
+  all_markers <- reactiveVal(list())
+
+  # data.frame of markers for selected sample
+  selected_markers <- reactiveVal()
+
+  cluster_choices <- reactive({
+    req(annot())
+    get_cluster_choices(annot(), scseq())
+  })
+
+
+  # update UI for contrast/cluster choices
+  observeEvent(cluster_choices(), {
+    updateSelectizeInput(session, 'selected_clusters',
+                         choices = cluster_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+
+  observeEvent(input$run_comparison, {
+    req(input$selected_clusters)
+
+    # set idents to ctrl and test
+    scseq <- scseq()
+    Seurat::Idents(scseq) <- scseq$orig.ident
+
+    # exclude non-selected clusters
+    scseq <-  scseq[, scseq$seurat_clusters %in% input$selected_clusters]
+    markers <- get_scseq_markers(scseq, ident.1 = 'test', ident.2 = 'ctrl', min.diff.pct = -Inf)
+
+    # set selected markers
+    selected_markers(markers)
+  })
+
+  return(list(
+    selected_markers = selected_markers
+  ))
+}
+
+
+#' Logic for selected gene to show plots for
 selectedGene <- function(input, output, session, selected_anal, selected_cluster, scseq, selected_markers) {
 
   selected_gene <- reactiveVal(NULL)
@@ -568,7 +591,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
   # update marker genes based on cluster selection
   gene_choices <- reactive({
     selected_markers <- selected_markers()
-    req(selected_markers)
+    if (is.null(selected_markers)) return(NULL)
 
     # allow selecting non-marker genes (at bottom of list)
     choices <- row.names(selected_markers)
@@ -611,9 +634,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 }
 
 
-
-#' @export
-#' @keywords internal
+#' Logic for cluster plots
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
   output$cluster_plot <- renderPlot({
@@ -621,26 +642,42 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles) {
   })
 }
 
-#' @export
-#' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles) {
+#' Logic for marker gene plots
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles, selected_group, cached_plot) {
 
-  output$marker_plot <- renderPlot({
+  plot <- reactive({
+    # cached plot if showing test samples
+    cached <- cached_plot()
+    if (!is.null(cached)) return(cached)
+
     req(selected_gene())
     plot_umap_gene(scseq(), selected_gene(), pt.size = plot_styles$size())
   })
+
+  output$marker_plot <- renderPlot({
+    pl <- plot()
+    req(pl)
+
+    if (selected_group != 'all')
+      pl <- format_sample_gene_plot(pl, selected_group, scseq())
+
+    return(pl)
+  })
+
+
+  return(list(
+    plot = plot
+  ))
 }
 
-#' @export
-#' @keywords internal
+
+#' Logic for BioGPS plot
 scBioGpsPlot <- function(input, output, session, selected_gene) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
     plot_biogps(selected_gene())
   })
 }
-
-
 
 
 server <- function(input, output, session) {

@@ -18,7 +18,10 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
     theme_no_axis_vals() +
     ggplot2::xlab('UMAP1') +
     ggplot2::ylab('UMAP2') +
-    ggplot2::guides(colour=ggplot2::guide_legend(title=legend_title))
+    ggplot2::guides(colour=ggplot2::guide_legend(title=legend_title)) +
+    theme_dimgray(with_nums = FALSE) +
+    ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'),
+          legend.text = ggplot2::element_text(colour = 'black'))
 
   return(cluster_plot)
 }
@@ -43,7 +46,7 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 
   # make selected groups stand out
   cells <- colnames(scseq)
-  cells <- colnames(scseq)[scseq$orig.ident %in% selected_idents]
+  cells <- cells[scseq$orig.ident %in% selected_idents]
 
   # make sure not plotting combined markers
   if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- 'SCT'
@@ -52,14 +55,42 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
     theme_no_axis_vals() +
     ggplot2::xlab('UMAP1') +
     ggplot2::ylab('UMAP2') +
-    ggplot2::theme(plot.title = ggplot2::element_blank())
+    ggplot2::theme(plot.title = ggplot2::element_blank()) +
+    theme_dimgray(with_nums = FALSE) +
+    ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'))
 
   # need until bug fixed in Seurat, then use cells argument in FeaturePlot
   gene_plot$data <- gene_plot$data[row.names(gene_plot$data) %in% cells, ]
-
   gene_plot$labels$colour <- gene
+
   return(gene_plot)
 }
+
+#' Format gene plots for sample comparison for drugseqr app
+#'
+#' @param plot Returned by \code{\link{plot_umap_gene}}
+#' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
+#' @param scseq \code{Seurat} object.
+#'
+#' @return \code{plot} formatted for drugseqr app
+format_sample_gene_plot <- function(plot, group, scseq) {
+
+  # show selected group only
+  sel.cells <- colnames(scseq)[scseq$orig.ident == group]
+  plot$data <- plot$data[row.names(plot$data) %in% sel.cells, ]
+
+  # add selected group as title
+  plot <- plot + ggplot2::ggtitle(toupper(group)) +
+    ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
+
+  # remove control plot labels and legend
+  if (group == 'ctrl')
+    plot <- plot + ggplot2::xlab('') + ggplot2::ylab('') +
+    ggplot2::theme(legend.position = 'none')
+
+  return(plot)
+}
+
 
 
 theme_no_axis_vals <- function() {

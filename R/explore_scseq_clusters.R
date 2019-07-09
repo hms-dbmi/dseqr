@@ -11,7 +11,7 @@
 #'
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
 #'
-#' explore_scseq_clusters(data_dir)
+#' explore_scseq_clusters(data_dir, test_data = FALSE)
 #'
 
 explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
@@ -31,6 +31,8 @@ explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
     # use test data (faster)
     options(shiny.testmode = TRUE)
 
+  } else {
+    options(shiny.testmode = FALSE)
   }
 
   # auto-reload if update app files
@@ -59,7 +61,8 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
-    save_combined(combined = NULL, markers = NULL, data_dir = data_dir, anal_name = anal_name)
+    scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
+    save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
     return(NULL)
   }
 
@@ -92,18 +95,32 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
   markers <- get_scseq_markers(combined)
 
   updateProgress(6/n, 'saving')
-  save_combined(combined, markers, data_dir, anal_name)
+  scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
+  save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
 }
 
-save_combined <- function(combined, markers, data_dir, anal_name) {
-  int_path <- file.path(data_dir, 'integrated.rds')
-  int_options <- readRDS(int_path)
-  saveRDS(c(int_options, anal_name), int_path)
+#' Save Single Cell RNA-seq data for app
+#'
+#' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
+#' @param anal_name The analysis name.
+#' @param data_dir Path to directory to save in
+#' @param integrated is the analysis integration. Default is \code{FALSE}
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE) {
+  if (integrated) {
+    int_path <- file.path(data_dir, 'integrated.rds')
+    int_options <- readRDS(int_path)
+    saveRDS(c(int_options, anal_name), int_path)
+  }
 
   dir.create(file.path(data_dir, anal_name))
-  saveRDS(combined, scseq_part_path(data_dir, anal_name, 'scseq'))
-  saveRDS(markers, scseq_part_path(data_dir, anal_name, 'markers'))
-  saveRDS(names(markers), scseq_part_path(data_dir, anal_name, 'annot'))
+  for (type in names(scseq_data)) {
+    saveRDS(scseq_data[[type]], scseq_part_path(data_dir, anal_name, type))
+  }
 
   return(NULL)
 }
