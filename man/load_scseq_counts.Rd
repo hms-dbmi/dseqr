@@ -12,6 +12,3 @@ sparse dgTMatrix with barcodes in columns and genes in rows.
 \description{
 Read kallisto/bustools market matrix and annotations
 }
-\examples{
-
-}

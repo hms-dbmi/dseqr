@@ -9,6 +9,9 @@ get_dprimes(diff_exprs)
 \arguments{
 \item{diff_exprs}{List returned by \code{\link{dif_expr}}}
 }
+\value{
+Named numeric vector. Names are gene names, values are effect size values.
+}
 \description{
 These are used to query against drug effect size matrices.
 }

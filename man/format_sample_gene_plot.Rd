@@ -19,3 +19,4 @@ format_sample_gene_plot(plot, group, scseq)
 \description{
 Format gene plots for sample comparison for drugseqr app
 }
+\keyword{internal}

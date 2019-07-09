@@ -7,8 +7,6 @@
 #' @return Character vector of barcodes called as high quality cells.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 
   # check for previous whitelist
@@ -87,8 +85,6 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 #' @return count value corresponding to Roryk knee point
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_knee <- function(counts) {
   bcrank <- DropletUtils::barcodeRanks(counts)
 
@@ -119,8 +115,6 @@ get_knee <- function(counts) {
 #' @return count value corresponding to Roryk knee point
 #' @export
 #' @keywords internal
-#'
-#' @examples
 pick_roryk_cutoff <- function(bcs){
   bcs_hist = hist(log10(bcs), plot=FALSE, n=50)
   mids = bcs_hist$mids

@@ -225,7 +225,6 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 #' @return \code{data.frame} of perturbation correlations and annotations.
 #' @export
 #'
-#' @examples
 study_table <- function(query_res, study, cells = NULL) {
   query_res <- append_pdata(query_res, study)
   query_res <- limit_cells(query_res, cells)
@@ -242,10 +241,8 @@ study_table <- function(query_res, study, cells = NULL) {
 #' @param cells Character vector of cell lines to limit \code{query_res} by.
 #' @importFrom magrittr "%>%"
 #'
-#' @return
+#' @return \code{query_res} for specified \code{cells}
 #' @export
-#'
-#' @examples
 limit_cells <- function(query_res, cells) {
   if (is.null(cells)) return(query_res)
 
@@ -270,8 +267,6 @@ limit_cells <- function(query_res, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-#'
-#' @examples
 get_top <- function(query_res, nclinic = 100) {
 
   # arrange by correlation
@@ -324,10 +319,6 @@ get_top <- function(query_res, nclinic = 100) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-#' @examples
-#'
-#'
-
 summarize_compound <- function(query_res) {
 
   # group by compound
@@ -403,8 +394,6 @@ summarize_compound <- function(query_res) {
 #'
 #' @return \code{query_res} with HTML for hyperlinks in \code{id_col}.
 #' @export
-#'
-#' @examples
 add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, title = id_col) {
 
   ids <- query_res[[id_col]]
@@ -428,8 +417,6 @@ add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, ti
 #'
 #' @return Character vector of opening HTML a tags
 #' @export
-#'
-#' @examples
 get_open_a <- function(pre_url, ids, post_url, title) {
 
   # are some cases with e.g. multiple pubchem cids
@@ -456,8 +443,6 @@ get_open_a <- function(pre_url, ids, post_url, title) {
 #'
 #' @return \code{query_res} with pubchem cid links and correlation plot HTML.
 #' @export
-#'
-#' @examples
 add_table_html <- function(query_res) {
 
   pre_urls <- c('https://pubchem.ncbi.nlm.nih.gov/compound/',
@@ -505,8 +490,6 @@ add_table_html <- function(query_res) {
 #'
 #' @return \code{query_res} with column \code{'External Links'} formed from pasting \code{cols} together. \code{cols} are removed.
 #' @export
-#'
-#' @examples
 merge_linkouts <- function(query_res, cols) {
 
   # paste cols with non-NA values
@@ -529,8 +512,6 @@ merge_linkouts <- function(query_res, cols) {
 #'
 #' @return Character vector of HTML markup for the title/circle/text for a correlation plot.
 #' @export
-#'
-#' @examples
 get_cors_html <- function(cors, titles, cors_range) {
 
   cors_html <- sapply(seq_along(cors), function(i) {
@@ -559,8 +540,6 @@ get_cors_html <- function(cors, titles, cors_range) {
 #'
 #' @return Numeric vector giving x position for correlation plot in \code{\link{explore_search}}
 #' @export
-#'
-#' @examples
 calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   range[1] <- range[1] - pad
   range[2] <- range[2] + pad

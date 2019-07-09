@@ -4,7 +4,7 @@
 #'
 #' @param diff_exprs List returned by \code{\link{dif_expr}}
 #'
-#' @return
+#' @return Named numeric vector. Names are gene names, values are effect size values.
 #' @export
 #'
 #' @examples

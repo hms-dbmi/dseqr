@@ -52,8 +52,6 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
 #' @return Named numeric vector of percentages for each gene.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_pct_ambient <- function(counts) {
 
   # get drops with less than 10 counts
@@ -74,8 +72,6 @@ get_pct_ambient <- function(counts) {
 #' @return Boolean vector with \code{length(x)} indicating if values of \code{x} are outliers (TRUE) or not (FALSE).
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_outliers <- function(x) {
   outliers <- graphics::boxplot(x, plot = FALSE)$out
   is.outlier <- names(x) %in% names(outliers)
@@ -90,9 +86,6 @@ get_outliers <- function(x) {
 #'
 #' @return sparse dgTMatrix with barcodes in columns and genes in rows.
 #' @export
-#'
-#' @examples
-#'
 load_scseq_counts <- function(data_dir) {
   count_dir <- file.path(data_dir, 'bus_output', 'genecount')
 
@@ -115,12 +108,10 @@ load_scseq_counts <- function(data_dir) {
 #'
 #' Also adds mrna and rrna
 #'
-#' @param srt
+#' @param srt \code{Seurat} object
 #'
-#' @return
+#' @return \code{SingleCellExperiment} object
 #' @export
-#'
-#' @examples
 srt_to_sce <- function(srt, assay = NULL) {
   if (class(srt) == 'SingleCellExperiment') return(srt)
 
@@ -137,15 +128,12 @@ srt_to_sce <- function(srt, assay = NULL) {
 #'
 #' This exists because of bug satijalab/seurat#1626. Remove once release accounts for it.
 #'
-#' @param x
-#' @param assay
-#' @param ...
+#' @param x \code{Seurat} object
+#' @param assay The assay to use. Default (NULL) uses the default assay from \code{x}.
 #'
-#' @return
-#' @export
+#' @return \code{SingleCellExperiment}
 #'
-#' @examples
-as.SingleCellExperiment <- function(x, assay = NULL, ...) {
+as.SingleCellExperiment <- function(x, assay = NULL) {
   if (!Seurat:::PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
@@ -175,8 +163,6 @@ as.SingleCellExperiment <- function(x, assay = NULL, ...) {
 #'
 #' @return Named list with \code{rrna} and \code{mrna} character vectors.
 #' @export
-#'
-#' @examples
 load_scseq_qcgenes <- function() {
 
   # load mito and ribo genes
@@ -201,12 +187,10 @@ add_qc_genes <- function(sce) {
 #' If \code{scseq} is a \code{SingleCellExperiment} object then runs the simpleSingleCell workflow.
 #' If \code{scseq} is a \code{Seurat} object then uses \code{SCTransform}.
 #'
-#' @param scseq
+#' @param scseq \code{Seurat} or \code{SingleCellExperiment} object
 #'
-#' @return
+#' @return Normalized and variance stabilized \code{scseq}.
 #' @export
-#'
-#' @examples
 preprocess_scseq <- function(scseq) {
 
   if (class(scseq) == 'SingleCellExperiment') {
@@ -230,8 +214,6 @@ preprocess_scseq <- function(scseq) {
 #'
 #' @return Size-factor normalized \code{SingleCellExperiment}.
 #' @export
-#'
-#' @examples
 norm_scseq <- function(sce) {
   # paper: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7
   # example: https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/tenx.html#6_normalizing_for_cell-specific_biases
@@ -246,12 +228,10 @@ norm_scseq <- function(sce) {
 
 #' Model and account for mean-variance relationship
 #'
-#' @param sce
+#' @param sce \code{SingleCellExperiment}
 #'
-#' @return
+#' @return Variance stabilized \code{sce}
 #' @export
-#'
-#' @examples
 stabilize_scseq <- function(sce) {
   # model mean-variance relationship
   sctech <- scran::makeTechTrend(x=sce)
@@ -264,12 +244,10 @@ stabilize_scseq <- function(sce) {
 
 #' Calculate QC metrics for SingleCellExperiment
 #'
-#' @param sce
+#' @param sce \code{SingleCellExperiment}
 #'
-#' @return
+#' @return \code{sce} with qc metrics added by \code{\link[scater]{calculatedQCMetrics}}
 #' @export
-#'
-#' @examples
 add_scseq_qc_metrics <- function(sce) {
   # calculate qc metrics if haven't previous
   if (!is.null(sce$total_counts)) return(sce)
@@ -296,8 +274,6 @@ add_scseq_qc_metrics <- function(sce) {
 #' @return If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.
 #'  If \code{scseq} is a \code{Seurat} object, the result of \code{\link[Seurat]{FindClusters}} is returned.
 #' @export
-#'
-#' @examples
 add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 
   if (class(scseq) == 'SingleCellExperiment') {
@@ -333,8 +309,6 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-#'
-#' @examples
 get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25) {
 
   # dont get markers if no clusters
@@ -366,8 +340,6 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #'
 #' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
 #' @export
-#'
-#' @examples
 integrate_scseqs <- function(scseqs) {
 
   k.filter <- min(200, min(sapply(scseqs, ncol)))
@@ -379,7 +351,7 @@ integrate_scseqs <- function(scseqs) {
   combined$orig.ident <- factor(combined$orig.ident)
 
   # add ambient outlier info
-  combined <- add_ambient(combined)
+  combined <- add_ambient(scseqs, combined)
 
   return(combined)
 }
@@ -419,8 +391,6 @@ add_ambient <- function(scseqs, combined) {
 #'
 #' @return \code{data.frame} with predictions
 #' @export
-#'
-#' @examples
 transfer_labels <- function(reference, query) {
 
   k.filter <- min(201, ncol(reference), ncol(query))-1
@@ -442,8 +412,6 @@ transfer_labels <- function(reference, query) {
 #'
 #' @return TRUE if more than one cluster exists
 #' @export
-#'
-#' @examples
 exist_clusters <- function(scseq) {
   if (class(scseq) == 'SingleCellExperiment') {
     exist_clusters <- length(unique(scseq$clusters)) > 1
@@ -463,8 +431,6 @@ exist_clusters <- function(scseq) {
 #'
 #' @return \code{scseq} with TSNE results.
 #' @export
-#'
-#' @examples
 run_umap <- function(scseq) {
 
   set.seed(1000)
@@ -488,8 +454,6 @@ run_umap <- function(scseq) {
 #'
 #' @return \code{scseq} with jitter added to umap embedding
 #' @export
-#'
-#' @examples
 jitter_umap <- function(scseq, factor = 1, amount = 0) {
   scseq[['umap']]@cell.embeddings <-
     apply(scseq[['umap']]@cell.embeddings, 2, jitter, factor, amount)

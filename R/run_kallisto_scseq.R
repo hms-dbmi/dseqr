@@ -75,8 +75,6 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
 #' @return Path to 10x whitelist.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_10x_whitepath <- function(indices_dir, bus_args) {
   if (any(grepl('-x 10xv2', bus_args))) {
     whitepath <- file.path(indices_dir, '10xv2_whitelist.txt')
@@ -95,11 +93,9 @@ get_10x_whitepath <- function(indices_dir, bus_args) {
 #'
 #' @inheritParams run_kallisto_scseq
 #'
-#' @return
+#' @return NULL
 #' @export
 #' @keywords internal
-#'
-#' @examples
 dl_10x_whitelists <- function(indices_dir) {
 
   whilelist_urls <- c(
@@ -114,6 +110,7 @@ dl_10x_whitelists <- function(indices_dir) {
       system2('wget', args=c('--output-document', whitelist_paths[i],
                              whilelist_urls[i]))
   }
+  return(NULL)
 }
 
 #' Get 10X FastQ paths for a read type and sort by increasing lane number
@@ -123,8 +120,6 @@ dl_10x_whitelists <- function(indices_dir) {
 #'
 #' @return Character vector of lane ordered paths to FastQ read type files.
 #' @export
-#'
-#' @examples
 identify_sc_files <- function(data_dir, read_type = 'R1') {
   # see https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/fastq-input for description of file name format
 

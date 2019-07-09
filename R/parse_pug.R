@@ -36,8 +36,6 @@ check_gras <- function(pug_view) {
 #'
 #' @return Character vector with DrugBank ID or NA if none exists
 #' @export
-#'
-#' @examples
 get_drugbank <- function(pug_view) {
 
   # default
@@ -65,8 +63,6 @@ get_drugbank <- function(pug_view) {
 #'
 #' @return Character vector with Wikipedia page
 #' @export
-#'
-#' @examples
 get_wikipedia <- function(pug_view) {
 
   # default

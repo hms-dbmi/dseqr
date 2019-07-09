@@ -303,8 +303,6 @@ validate_pairs <- function(pairs, rows, reps) {
 #' @return \code{TRUE} if the replicate is valid, otherwise \code{FALSE}.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 validate_reps <- function(pairs, rows, reps) {
   valid <- FALSE
 
@@ -368,8 +366,6 @@ get_fastq_id1s <- function(fastq_paths) {
 #' @return boolean indicating if experiement is pair-ended (\code{TRUE}) or single-ended (\code{FALSE}).
 #' @export
 #' @keywords internal
-#'
-#' @examples
 detect_paired <- function(fastq_id1s) {
 
   # TODO: handle SRA fastq files

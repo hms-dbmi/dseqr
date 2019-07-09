@@ -11,6 +11,9 @@ limit_cells(query_res, cells)
 
 \item{cells}{Character vector of cell lines to limit \code{query_res} by.}
 }
+\value{
+\code{query_res} for specified \code{cells}
+}
 \description{
 Limit Query Results to Specific Cell Lines
 }

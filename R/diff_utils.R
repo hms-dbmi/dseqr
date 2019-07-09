@@ -271,8 +271,6 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 #'
 #' @return NULL
 #' @export
-#'
-#' @examples
 plotMDS <- function(exprs, exprs_sva, group) {
 
   # get_dist acts on rows

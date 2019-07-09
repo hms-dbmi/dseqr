@@ -4,10 +4,15 @@
 \alias{as.SingleCellExperiment}
 \title{Coerce Seurat to SingleCellExperiment}
 \usage{
-as.SingleCellExperiment(x, assay = NULL, ...)
+as.SingleCellExperiment(x, assay = NULL)
 }
 \arguments{
-\item{...}{}
+\item{x}{\code{Seurat} object}
+
+\item{assay}{The assay to use. Default (NULL) uses the default assay from \code{x}.}
+}
+\value{
+\code{SingleCellExperiment}
 }
 \description{
 This exists because of bug satijalab/seurat#1626. Remove once release accounts for it.

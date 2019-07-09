@@ -55,7 +55,7 @@ get_contrast_choices <- function(clusters, test) {
 #'
 #' used by navbarUI and *PageUI for drugseqr app
 #'
-#' @param tab
+#' @param tab The name of the tab (e.g. \code{'Single Cell'})
 #' @export
 #' @keywords internal
 id_from_tab <- function(tab) {

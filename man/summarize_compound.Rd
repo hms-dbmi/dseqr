@@ -23,7 +23,3 @@ the \code{'Correlation'} column.
 Clinical status is summarized by keeping the most advanced phase only (e.g. Launched > Phase 3). For all other variables,
 all unique entries are paste together seperated by \code{'|'}.
 }
-\examples{
-
-
-}

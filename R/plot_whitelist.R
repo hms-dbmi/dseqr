@@ -7,8 +7,6 @@
 #'
 #' @return \code{ggplot}
 #' @export
-#'
-#' @examples
 hist_scseq_whitelist <- function(scseq) {
   if (class(scseq) == 'Seurat') sce <- srt_to_sce(scseq)
 
@@ -38,8 +36,6 @@ hist_scseq_whitelist <- function(scseq) {
 #'
 #' @return \code{ggplot}
 #' @export
-#'
-#' @examples
 tsne_scseq_whitelist <- function(scseq) {
 
   # SCTransform from Seurat: stabilized counts end up in "logcounts" (default for runTSNE)
@@ -80,8 +76,6 @@ tsne_scseq_whitelist <- function(scseq) {
 #' @return \code{ggplot}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 geom_hist_whitelist <- function(sce_df, x, xlab = '', ylab = '') {
   ggplot2::ggplot(sce_df, ggplot2::aes(x=get(x), fill=whitelist)) +
     ggplot2::theme_minimal() +
@@ -105,8 +99,6 @@ geom_hist_whitelist <- function(sce_df, x, xlab = '', ylab = '') {
 #' @return \code{ggplot}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 geom_tsne <- function(sce, colour_by, name = colour_by, xlab = '', ylab = '', scale = 'distiller') {
 
   # make really low mito/ribo content more prominent as well
@@ -137,8 +129,6 @@ geom_tsne <- function(sce, colour_by, name = colour_by, xlab = '', ylab = '', sc
 #' @return \code{ScaleContinuous}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_diverge <- function(x, name) {
   range01 <- function(x){(x-min(x))/(max(x)-min(x))}
   qx <- quantile(x, probs = seq(0, 1, 0.1))

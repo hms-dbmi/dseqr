@@ -53,8 +53,6 @@ append_pdata <- function(query_res, study) {
 #'
 #' @return \code{pdata} with bound annotation columns.
 #' @export
-#'
-#' @examples
 append_annot <- function(pdata, study) {
   annot_fname <- paste0(study, '_annot.rds')
   annot_path <- system.file('extdata', annot_fname, package = 'drugseqr')
@@ -76,8 +74,6 @@ append_annot <- function(pdata, study) {
 #' @return \code{pdata} without \code{'title'} column and 4 new columns: \code{'Compound'}, \code{'Cell Line'}, \code{'Dose'},
 #'   and \code{'Duration'}.
 #' @export
-#'
-#' @examples
 destructure_title <- function(pdata, drop = TRUE, ...) {
   title_split <- strsplit(pdata$title, '_')
 

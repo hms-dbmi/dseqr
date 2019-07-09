@@ -8,8 +8,6 @@
 #'
 #' @return Saves report to \code{fname}.
 #' @export
-#'
-#' @examples
 save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 
   if (!all(names(markers) %in% levels(scseq$seurat_clusters)))
@@ -40,8 +38,6 @@ save_scseq_reports <- function(scseq, markers, fname, pt.size = 3) {
 #' @return \code{ggplot}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 plot_scseq_report <- function(scseq, markers, pt.size = 3) {
 
   selected_cluster <- names(markers)
@@ -92,8 +88,6 @@ plot_scseq_report <- function(scseq, markers, pt.size = 3) {
 #' @return \code{theme}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 theme_no_xaxis <- function() {
   ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                  axis.text.x = ggplot2::element_blank(),
@@ -105,8 +99,6 @@ theme_no_xaxis <- function() {
 #' @return \code{theme}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 theme_no_yaxis <- function() {
   ggplot2::theme(axis.title.y = ggplot2::element_blank(),
                  axis.text.y = ggplot2::element_blank(),
@@ -120,8 +112,6 @@ theme_no_yaxis <- function() {
 #' @return \code{theme}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 theme_dimgray <- function(with_nums = TRUE) {
 
   axis.line <- ggplot2::element_line(size = 0.1, color = 'dimgray')

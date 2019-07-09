@@ -7,7 +7,10 @@
 stabilize_scseq(sce)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{\code{SingleCellExperiment}}
+}
+\value{
+Variance stabilized \code{sce}
 }
 \description{
 Model and account for mean-variance relationship

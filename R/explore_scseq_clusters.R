@@ -55,8 +55,6 @@ explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
 #' @return NULL
 #' @export
 #' @keywords internal
-#'
-#' @examples
 integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgress = NULL) {
 
   # save dummy data if testing shiny
@@ -108,8 +106,6 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
 #'
 #' @return NULL
 #' @export
-#'
-#' @examples
 save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE) {
   if (integrated) {
     int_path <- file.path(data_dir, 'integrated.rds')
@@ -133,8 +129,6 @@ save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE)
 #' @return \code{NULL} is valid, otherwise an error message
 #' @export
 #' @keywords internal
-#'
-#' @examples
 validate_integration <- function(test, ctrl, anal_name, anal_options) {
   msg <- NULL
   # make sure both control and test analyses provided
@@ -161,8 +155,6 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
 #' @return Path to analysis \code{part}.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 scseq_part_path <- function(data_dir, anal_name, part) {
   fname <- paste0(anal_name, '_', part, '.rds')
   file.path(data_dir, anal_name, fname)

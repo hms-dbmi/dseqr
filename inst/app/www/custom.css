@@ -101,7 +101,7 @@
 
 /* FULL HEIGHT BUTTON BESIDE INPUT */
 .input-group.full-height-btn {
-  width: calc(100% - 43.5px);
+  width: calc(100% - 42.5px);
 }
 
 .full-height-btn .input-group-btn {

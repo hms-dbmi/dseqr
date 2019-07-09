@@ -10,8 +10,6 @@
 #'
 #' @return \code{Seurat} object with counts corrected for ambient contamination.
 #' @export
-#'
-#' @examples
 strain_scseq <- function(counts, empty, project) {
 
   hgGenes = c("HBA1", "HBA2", "HBB", "HBD", "HBE1", "HBG1", "HBG2", "HBM", "HBQ1", "HBZ")

@@ -5,8 +5,6 @@
 #'
 #' @return \code{ggplot}
 #' @export
-#'
-#' @examples
 plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster') {
 
   cols <- get_palette(levels(scseq$seurat_clusters))
@@ -26,10 +24,6 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
   return(cluster_plot)
 }
 
-
-
-
-
 #' Plot UMAP coloured by HGNC symbol
 #'
 #' @param scseq \code{Seurat}.
@@ -40,8 +34,6 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
 #'
 #' @return \code{ggplot}
 #' @export
-#'
-#' @examples
 plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 3) {
 
   # make selected groups stand out
@@ -73,6 +65,8 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 #' @param scseq \code{Seurat} object.
 #'
 #' @return \code{plot} formatted for drugseqr app
+#' @export
+#' @keywords internal
 format_sample_gene_plot <- function(plot, group, scseq) {
 
   # show selected group only
@@ -91,8 +85,6 @@ format_sample_gene_plot <- function(plot, group, scseq) {
   return(plot)
 }
 
-
-
 theme_no_axis_vals <- function() {
   ggplot2::theme(axis.text = ggplot2::element_blank(),
                  axis.ticks = ggplot2::element_blank(),
@@ -108,8 +100,6 @@ theme_no_axis_vals <- function() {
 #'
 #' @return ggplot
 #' @export
-#'
-#' @examples
 plot_biogps <- function(gene) {
   if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
@@ -136,7 +126,6 @@ plot_biogps <- function(gene) {
 }
 
 
-
 #' Get a pallete for cluster plots
 #'
 #' @param levs Character vector of levels to get colour pallete for.
@@ -144,8 +133,6 @@ plot_biogps <- function(gene) {
 #' @return Character vector with colour codes of \code{length(levs)}.
 #' @export
 #' @keywords internal
-#'
-#' @examples
 get_palette <- function(levs) {
 
   # palettes from scater

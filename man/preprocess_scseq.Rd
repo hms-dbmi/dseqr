@@ -7,7 +7,10 @@
 preprocess_scseq(scseq)
 }
 \arguments{
-\item{scseq}{}
+\item{scseq}{\code{Seurat} or \code{SingleCellExperiment} object}
+}
+\value{
+Normalized and variance stabilized \code{scseq}.
 }
 \description{
 If \code{scseq} is a \code{SingleCellExperiment} object then runs the simpleSingleCell workflow.

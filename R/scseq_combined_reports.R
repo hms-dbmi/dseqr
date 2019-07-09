@@ -8,8 +8,6 @@
 #'
 #' @return Saves report to \code{fname}.
 #' @export
-#'
-#' @examples
 save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, pt.size = 3) {
 
   if (!all(names(markers) %in% levels(scseq$seurat_clusters)))
@@ -90,8 +88,6 @@ save_combined_scseq_reports <- function(scseq, markers, orig_clusters, fname, pt
 #' @return \code{ggplot}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 plot_scseq_barplot <- function(scseq) {
 
   idents  <- scseq$orig.ident
@@ -138,8 +134,6 @@ plot_scseq_barplot <- function(scseq) {
 #' @return List of \code{ggplot} objects
 #' @export
 #' @keywords internal
-#'
-#' @examples
 plot_combined_scseq_report <- function(scseq, markers, pt.size = 3) {
   sel.clust <- names(markers)
   genes <- markers[[1]]
@@ -225,8 +219,6 @@ plot_combined_scseq_report <- function(scseq, markers, pt.size = 3) {
 #' @return ggplot2 \code{scale_fill_manual} with values names from \code{levs}
 #' @export
 #' @keywords internal
-#'
-#' @examples
 scale_fill_names <- function(levs) {
   values <- get_palette(levs)
   names(values) <- levs

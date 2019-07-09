@@ -6,6 +6,9 @@
 \usage{
 id_from_tab(tab)
 }
+\arguments{
+\item{tab}{The name of the tab (e.g. \code{'Single Cell'})}
+}
 \description{
 used by navbarUI and *PageUI for drugseqr app
 }

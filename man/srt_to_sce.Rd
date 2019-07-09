@@ -7,7 +7,10 @@
 srt_to_sce(srt, assay = NULL)
 }
 \arguments{
-\item{srt}{}
+\item{srt}{\code{Seurat} object}
+}
+\value{
+\code{SingleCellExperiment} object
 }
 \description{
 Also adds mrna and rrna
