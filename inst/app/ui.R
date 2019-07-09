@@ -89,11 +89,13 @@ scFormInput <- function(id) {
         # inputs for comparing clusters
         div(id = ns('cluster_comparison_inputs'),
             clusterComparisonInput(ns('cluster')),
+            br(),
             selectedGeneInput(ns('gene_clusters'))
         ),
         # inputs for comparing samples
         div(id = ns('sample_comparison_inputs'), style = 'display: none',
             sampleComparisonInput(ns('sample')),
+            br(),
             selectedGeneInput(ns('gene_samples'))
         )
     )

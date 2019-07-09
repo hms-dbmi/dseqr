@@ -99,24 +99,32 @@
   min-height: 34px;
 }
 
+
 /* FULL HEIGHT BUTTON BESIDE INPUT */
-.input-group.full-height-btn {
-  width: calc(100% - 42.5px);
-}
 
 .full-height-btn .input-group-btn {
-  width: 0px;
+  min-width: 42px;
 }
 
 .full-height-btn button {
   position: absolute !important;
   top: 0;
   bottom: 0;
+  right: 0;
 }
 
 .full-height-selectize {
-  height: 1px;
+  display: table-cell;
 }
+
+.full-height-selectize .selectize-input {
+  display: block;
+}
+
+.full-height-selectize .selectize-control {
+  margin-bottom: 0;
+}
+
 
 
 
