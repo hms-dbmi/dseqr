@@ -8,16 +8,16 @@ navbarUI <- function(tabs, active) {
             div(class = 'navbar-header',
                 span(class = 'navbar-brand', title = 'drugseqr',
                      span(class = 'brand-icons',
-                          i( class = 'glyphicon glyphicon-leaf'),
+                          i(class = 'glyphicon glyphicon-leaf'),
                           'drugseqr'
                      )
                 )
             ),
             ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
                lapply(seq_along(tabs), function(i) {
-                 tab <- tabs[i]
-                 is.active <- tab == active
-                 li(class = ifelse(is.active, 'active', ''),
+                tab <- tabs[i]
+                is.active <- tab == active
+                li(class = ifelse(is.active, 'active', ''),
                     a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
                  )
                })
@@ -42,7 +42,7 @@ scPageUI <- function(id, tab, active) {
             )
         ),
         hr(),
-        # row for cluster comparison
+    # row for cluster comparison
         div(class = 'row', id = ns('cluster_comparison_row'),
             div(class = "col-sm-6 col-lg-6 col-lg-push-6",
                 scMarkerPlotOutput(ns('marker_plot_cluster'))
@@ -51,7 +51,7 @@ scPageUI <- function(id, tab, active) {
                 scBioGpsPlotOutput(ns('biogps_plot'))
             )
         ),
-        # row for sample (test vs ctrl) comparison
+    # row for sample (test vs ctrl) comparison
         div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
             div(class = "col-sm-6 col-lg-6 col-lg-push-6",
                 scMarkerPlotOutput(ns('marker_plot_ctrl'))
@@ -86,35 +86,35 @@ DrugPageUI <- function(id, tab, active) {
 
   withTags({
     div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
-        fillCol(flex = c(NA, NA, NA, 1),
-                div(class = 'form-group selectize-fh',
-                    label(class = 'control-label', `for` = ns('selected_anal'), 'Select study:'),
-                    div(class = 'input-group',
-                        div(
-                          select(id = ns('study'), style = 'display: none'),
-                          script(type = 'application/json', `data-for` = ns('study'), HTML('{}'))
-                        ),
-                        div(class = 'input-group-btn',
-                            shinyBS::bsButton(ns('clinical'), label = '', icon = icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                            shinyBS::bsButton(ns('advanced'), label = '', icon = icon('cogs'), style='default', title = 'toggle advanced options')
+        div(class = 'row',
+            div(class = 'col-sm-6',
+                div(class = "well-form well-bg",
+                    div(class = 'form-group selectize-fh',
+                        label(class = 'control-label', `for` = ns('selected_anal'), 'Select study:'),
+                        div(class = 'input-group',
+                            div(
+                              select(id = ns('study'), style = 'display: none'),
+                              script(type = 'application/json', `data-for` = ns('study'), HTML('{}'))
+                            ),
+                            div(class = 'input-group-btn',
+                                shinyBS::bsButton(ns('clinical'), label = '', icon = icon('pills'), style = 'default', onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                                shinyBS::bsButton(ns('advanced'), label = '', icon = icon('cogs'), style = 'default', title = 'toggle advanced options')
+                            )
                         )
-                    )
-                ),
-                shinyjs::hidden(
-                  div(
-                    id = ns('advanced-panel'),
-                    hr(),
-                    selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder="showing all")),
-                    # checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
-                    plotOutput(outputId = ns("histPlot"), width = 800))
-                ),
-                hr(),
-                div(class = 'dt-container',
-                  DT::dataTableOutput(ns("query_res"))
+                    ),
+                      div(id = ns('advanced-panel'), class = 'hidden-form', style = 'display: none;',
+                        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%'),
+    # checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
+                        plotOutput(outputId = ns("histPlot"), width = 800)
+                        )
+
                 )
+            )
+        ),
+        hr(),
+        div(class = 'dt-container',
+            DT::dataTableOutput(ns("query_res"))
         )
-
-
     )
   })
 }
@@ -128,17 +128,14 @@ scFormInput <- function(id) {
         selectedAnalInput(ns('anal')),
         integrationFormInput(ns('integration')),
         comparisonTypeToggle(ns('comparison')),
-        br(),
-        # inputs for comparing clusters
+    # inputs for comparing clusters
         div(id = ns('cluster_comparison_inputs'),
             clusterComparisonInput(ns('cluster')),
-            br(),
             selectedGeneInput(ns('gene_clusters'))
         ),
-        # inputs for comparing samples
+    # inputs for comparing samples
         div(id = ns('sample_comparison_inputs'), style = 'display: none',
             sampleComparisonInput(ns('sample')),
-            br(),
             selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
         )
     )
@@ -172,7 +169,7 @@ comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(style = 'display: none;', id = ns('comparison_type_container'),
+    div(style = 'display: none;', id = ns('comparison_type_container'), class = 'selectize-fh form-group',
         shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
                                         choices = c('clusters', 'samples'),
                                         selected = 'clusters', justified = TRUE)
@@ -231,20 +228,25 @@ showIntegrationButton <- function(id) {
 #' Input form for integrating single cell datasets
 integrationFormInput <- function(id) {
   ns <- NS(id)
-
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        textInput(ns('integration_name'), 'Name for new integrated analysis:', width = '100%'),
         selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
+        div(class = 'form-group selectize-fh',
+          label(class = 'control-label', `for` = ns('integration_name'), 'Name for new integrated analysis:'),
+          div(class = 'validate-wrapper', id = ns('validate'),
 
-        div(id = ns('validate'), class = 'validate-wrapper',
-            actionButton(ns('submit_integration'), 'Integrate Datasets',
-                         icon = icon('object-group', 'fa-fw'),
-                         title = 'Integrate datasets',
-                         class = 'btn-block btn-default'),
-            span(id =ns('error_msg'), class = 'help-block')
-        )
+          div(class = 'input-group',
+              input(id = ns('integration_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
+              span(class = 'input-group-btn',
+                    actionButton(ns('submit_integration'), '',
+                                icon = icon('plus', 'fa-fw'),
+                                title = 'Integrate datasets')
+              )
+          ),
+              span(id = ns('error_msg'), class = 'help-block')
+          )
+      )
     )
   })
 }
@@ -358,12 +360,12 @@ bootstrapPage(
   includeCSS(path = 'www/drugs.css'),
   navbarUI(tabs, active),
   fluidPage(
-    # make sure selectize loaded (not using default)
+# make sure selectize loaded (not using default)
     tags$div(style = 'display: none', selectizeInput('blah1', label = NULL, choices = '')),
 
-    # THE TABS ----
+# THE TABS ----
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
-             # single cell tab
+# single cell tab
              scPageUI("sc", tab = 'Single Cell', active),
              BulkPageUI("bulk", tab = 'Bulk', active),
              DrugPageUI("drug", tab = 'Drugs', active)

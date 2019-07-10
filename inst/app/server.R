@@ -43,8 +43,8 @@ drugPage <- function(input, output, session) {
 
   updateSelectizeInput(session, 'study', choices = study_choices, selected = 'CMAP02')
 
+    # TODO: implement toggle for histogram plot (hide for now)
     shinyjs::hide('histPlot')
-
     output$histPlot <- shiny::renderPlot({
       req(input$study)
 
@@ -78,8 +78,7 @@ drugPage <- function(input, output, session) {
                               "}"))),
           ordering=FALSE,
           scrollX = TRUE,
-          pageLength = 50,
-          scrollY = TRUE,
+          pageLength = 20,
           paging = TRUE,
           bInfo = 0,
           dom = 'ftp'
@@ -87,7 +86,25 @@ drugPage <- function(input, output, session) {
       )
     }, server = TRUE)
 
-    isClinical <- shiny::reactiveVal(FALSE)
+    # toggle for clinical status
+    is_clinical <- reactive({
+      input$clinical %% 2 != 0
+    })
+    observe({
+      toggleClass('clinical', 'btn-primary', condition = is_clinical())
+    })
+
+    # boolean for advanced options
+    is_advanced <- reactive({
+      input$advanced %% 2 != 0
+    })
+
+    #  toggle button styling and showing advanced options
+    shiny::observe({
+      toggleClass('advanced', 'btn-primary', condition = is_advanced())
+      toggle('advanced-panel', condition = is_advanced(), anim = TRUE)
+    })
+
 
     # generate table to display
     query_res <- shiny::reactive({
@@ -100,7 +117,7 @@ drugPage <- function(input, output, session) {
       }
 
       # for removing entries without a clinical phase
-      if (isClinical()) {
+      if (is_clinical()) {
         query_res <- tibble::as_tibble(query_res)
         query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
       }
@@ -108,7 +125,7 @@ drugPage <- function(input, output, session) {
       return(query_res)
     })
 
-    # get choices for cell lines
+    # update choices for cell lines
     shiny::observe({
       req(input$study)
       if (input$study == 'L1000') {
@@ -121,40 +138,9 @@ drugPage <- function(input, output, session) {
     })
 
 
-    #  toggle advanced options
-    isAdvanced <- shiny::reactiveVal(FALSE)
-    shiny::observe({
-      # toggle panel
-      shinyjs::toggle('advanced-panel', condition = isAdvanced())
-    })
 
-    # click 'Clinical' ----
-    observeEvent(input$clinical,{
-      toggle <- (input$clinical %% 2) + 1
 
-      # update clinical button styling
-      shinyBS::updateButton(session, 'clinical', style = c('default', 'primary')[toggle])
 
-      # update boolean reactiveVal
-      isClinical(toggle - 1)
-    })
-
-    # click 'Advanced' ----
-    observeEvent(input$advanced,{
-      toggle <- (input$advanced %% 2) + 1
-
-      # update clinical button styling
-      shinyBS::updateButton(session, 'advanced', style = c('default', 'primary')[toggle])
-
-      # update boolean reactiveVal
-      isAdvanced(toggle - 1)
-    })
-
-    # click 'Done' ----
-
-    shiny::observeEvent(input$done, {
-      shiny::stopApp()
-    })
 
 }
 
@@ -414,7 +400,7 @@ showIntegration <- function(input, output, session) {
 
   # show/hide integration form
   observe({
-    toggleClass(id = "show_integration", 'active', condition = show_integration())
+    toggleClass(id = "show_integration", 'btn-primary', condition = show_integration())
   })
 
 
@@ -633,7 +619,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
     updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
     toggleState('show_rename', condition = !show_contrasts())
-    toggleClass(id = "show_contrasts", 'active', condition = show_contrasts())
+    toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
   })
 
 
@@ -777,7 +763,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
   # toggle for excluding ambient
   observe({
-    toggleClass('exclude_ambient', class = 'active', condition = exclude_ambient())
+    toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
 

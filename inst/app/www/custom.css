@@ -25,14 +25,14 @@
   max-width: 400px !important;
   background-color: #f8f8f8;
   padding: 10px;
-  margin-bottom: 15px;
 }
 
 .hidden-form {
-  padding: 10px 0px;
+  padding: 10px 0px 0px;
   border-width: 1px 0px;
   border-style: solid;
   border-color: #e7e7e7;
+  margin-bottom: 10px;
 }
 
 /* VALIDATION RELATED */
@@ -127,9 +127,6 @@
 
 
 
-
-
-
 /* BRAND */
 .brand-icons {
   background-color: white;
@@ -162,4 +159,10 @@
   border: 1px solid #ccc;
   background-color: white;
   color: cornflowerblue;
+}
+
+
+/* STANDARDIZE HEIGHTS */
+.well-form .form-group {
+  min-height: 79px;
 }

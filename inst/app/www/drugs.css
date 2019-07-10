@@ -4,6 +4,11 @@
   white-space: nowrap;
 }
 
+/* no y-scrollbar */
+.dataTables_scrollBody {
+  overflow-y: hidden !important; 
+}
+
 /* CORRELATION PLOTS */
 td.sim-cell {
   min-width: 180px !important; 
