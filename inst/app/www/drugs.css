@@ -1,0 +1,46 @@
+
+/* table text on 1 line */
+.dt-container {
+  white-space: nowrap;
+}
+
+/* CORRELATION PLOTS */
+td.sim-cell {
+  min-width: 180px !important; 
+  padding: 0px !important; 
+  position: relative;
+}
+
+.simplot {
+  position: absolute; 
+  z-index: 1;
+   top: 0; 
+   left: 0; 
+   right: 0; 
+   bottom: 0;
+}
+
+.simplot text.x {
+  fill: transparent; 
+  font: 10px Arial, sans-serif;
+  text-anchor: middle;
+}
+
+.simplot circle {
+  fill: transparent; 
+  stroke-width: 1.1px; 
+  stroke: rgba(0, 0, 0, 0.35);
+}
+
+.cor-point:hover {
+  cursor: crosshair;
+}
+
+.cor-point:hover text.x {
+  fill: #443;
+}
+
+.cor-point:hover circle {
+  fill: red; 
+  stroke: #443;
+}

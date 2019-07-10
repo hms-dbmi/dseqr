@@ -68,10 +68,53 @@ BulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
   active_class <- ifelse(tab == active, 'active', '')
   withTags({
-    div(class = paste0('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
+    div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
         div(class = 'row'),
         hr(),
         div(class = 'row')
+    )
+  })
+}
+
+
+DrugPageUI <- function(id, tab, active) {
+
+  ns <- NS(id)
+
+  active_class <- ifelse(tab == active, 'active', '')
+
+
+  withTags({
+    div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
+        fillCol(flex = c(NA, NA, NA, 1),
+                div(class = 'form-group selectize-fh',
+                    label(class = 'control-label', `for` = ns('selected_anal'), 'Select study:'),
+                    div(class = 'input-group',
+                        div(
+                          select(id = ns('study'), style = 'display: none'),
+                          script(type = 'application/json', `data-for` = ns('study'), HTML('{}'))
+                        ),
+                        div(class = 'input-group-btn',
+                            shinyBS::bsButton(ns('clinical'), label = '', icon = icon('pills'), style='default', onclick='toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                            shinyBS::bsButton(ns('advanced'), label = '', icon = icon('cogs'), style='default', title = 'toggle advanced options')
+                        )
+                    )
+                ),
+                shinyjs::hidden(
+                  div(
+                    id = ns('advanced-panel'),
+                    hr(),
+                    selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder="showing all")),
+                    # checkboxGroupInput('options', NULL, c('Plot Histogram', 'Blah')),
+                    plotOutput(outputId = ns("histPlot"), width = 800))
+                ),
+                hr(),
+                div(class = 'dt-container',
+                  DT::dataTableOutput(ns("query_res"))
+                )
+        )
+
+
     )
   })
 }
@@ -197,7 +240,7 @@ integrationFormInput <- function(id) {
 
         div(id = ns('validate'), class = 'validate-wrapper',
             actionButton(ns('submit_integration'), 'Integrate Datasets',
-                         icon = shiny::icon('object-group', 'fa-fw'),
+                         icon = icon('object-group', 'fa-fw'),
                          title = 'Integrate datasets',
                          class = 'btn-block btn-default'),
             span(id =ns('error_msg'), class = 'help-block')
@@ -305,12 +348,14 @@ scBioGpsPlotOutput <- function(id) {
 }
 
 tabs <- c('Datasets', 'Single Cell', 'Bulk', 'Pathways', 'Drugs')
-active <- 'Single Cell'
+active <- 'Drugs'
 
 bootstrapPage(
   useShinyjs(),
   includeScript(path = 'www/contrasts.js'),
+  includeScript(path = 'www/toggleClinicalTitle.js'),
   includeCSS(path = 'www/custom.css'),
+  includeCSS(path = 'www/drugs.css'),
   navbarUI(tabs, active),
   fluidPage(
     # make sure selectize loaded (not using default)
@@ -320,7 +365,8 @@ bootstrapPage(
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
              # single cell tab
              scPageUI("sc", tab = 'Single Cell', active),
-             BulkPageUI("bulk", tab = 'Bulk', active)
+             BulkPageUI("bulk", tab = 'Bulk', active),
+             DrugPageUI("drug", tab = 'Drugs', active)
     )
   )
 )
