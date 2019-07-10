@@ -1,29 +1,27 @@
 
-
+#' Logic for Drugs page
 drugPage <- function(input, output, session) {
 
-  data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data/IBD'
+  # the form area inputs/results
+  form <- callModule(drugForm, 'form')
 
-  # # load CMAP02 data
-  # cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
-  # cmap_es <- readRDS(cmap_path)
-  #
-  # l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr')
-  # l1000_es <- readRDS(l1000_path)
-  #
-  # # run differential expression analysis
-  # # eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
-  # # anal <- diff_expr(eset, data_dir)
-  #
-  # # alternatively load previous analysis
-  # anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
-  #
-  # # get dprime effect size values for analysis
-  # dprimes <- get_dprimes(anal)
-  #
-  # # get correlations between query and drug signatures
-  # cmap_res <- query_drugs(dprimes, cmap_es)
-  # l1000_res <- query_drugs(dprimes, l1000_es)
+  # the output table
+  callModule(drugTable, 'table',
+             cmap_res = form$cmap_res,
+             l1000_res = form$l1000_res,
+             drug_study = form$drug_study,
+             cells = form$cells,
+             is_clinical = form$is_clinical)
+
+
+
+
+}
+
+drugForm <- function(input, output, session) {
+
+
+  data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data/IBD'
 
   cmap_res <- readRDS(file.path(data_dir, 'cmap_res.rds'))
   l1000_res <- readRDS(file.path(data_dir, 'l1000_res.rds'))
@@ -43,105 +41,102 @@ drugPage <- function(input, output, session) {
 
   updateSelectizeInput(session, 'study', choices = study_choices, selected = 'CMAP02')
 
-    # TODO: implement toggle for histogram plot (hide for now)
-    shinyjs::hide('histPlot')
-    output$histPlot <- shiny::renderPlot({
-      req(input$study)
+  # update choices for cell lines
+  shiny::observe({
+    req(input$study)
+    if (input$study == 'L1000') {
+      cell_choices <- l1000_cells
 
-      if (input$study == 'CMAP02') x <- cmap_res else x <- l1000_res
-      bins <- seq(min(x), max(x), length.out = 51)
+    } else if (input$study == 'CMAP02') {
+      cell_choices <- cmap_cells
+    }
+    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices, selected = NULL)
+  })
 
-      hist(x, breaks = bins, col = "#75AADB", border = "white",
-           xlab = "Pearson correlations", main = "", xlim = c(min(x) - 0.1, max(x) + 0.1))
-    })
+  # toggle for clinical status
+  is_clinical <- reactive({
+    input$clinical %% 2 != 0
+  })
+  observe({
+    toggleClass('clinical', 'btn-primary', condition = is_clinical())
+  })
 
-    # show query data
-    output$query_res <- DT::renderDataTable({
+  # boolean for advanced options
+  is_advanced <- reactive({
+    input$advanced %% 2 != 0
+  })
 
-      query_res <- query_res()
-      wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
-      # -1 needed with rownames = FALSE
-      elipsis_targets <- which(colnames(query_res) %in% wide_cols) - 1
+  #  toggle button styling and showing advanced options
+  shiny::observe({
+    toggleClass('advanced', 'btn-primary', condition = is_advanced())
+    toggle('advanced-panel', condition = is_advanced(), anim = TRUE)
+  })
 
-      DT::datatable(
-        query_res,
-        class = 'cell-border',
-        rownames = FALSE,
-        selection = 'none',
-        escape = FALSE, # to allow HTML in table
-        options = list(
-          columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
-                            list(targets = elipsis_targets, render = DT::JS(
-                              "function(data, type, row, meta) {",
-                              "return type === 'display' && data !== null && data.length > 17 ?",
-                              "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
-                              "}"))),
-          ordering=FALSE,
-          scrollX = TRUE,
-          pageLength = 20,
-          paging = TRUE,
-          bInfo = 0,
-          dom = 'ftp'
-        )
+
+  return(list(
+    cmap_res = cmap_res,
+    l1000_res = l1000_res,
+    drug_study = reactive(input$study),
+    cells = reactive(input$cells),
+    is_clinical = is_clinical
+  ))
+
+
+}
+
+drugTable <- function(input, output, session, cmap_res, l1000_res, drug_study, cells, is_clinical) {
+
+  # generate table to display
+  query_res <- shiny::reactive({
+    drug_study <- drug_study()
+
+    req(drug_study)
+    if (drug_study == 'L1000') {
+      query_res <- study_table(l1000_res, 'L1000', cells())
+
+    } else if (drug_study == 'CMAP02') {
+      query_res <- study_table(cmap_res, 'CMAP02', cells())
+    }
+
+    # for removing entries without a clinical phase
+    if (is_clinical()) {
+      query_res <- tibble::as_tibble(query_res)
+      query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
+    }
+
+    return(query_res)
+  })
+
+  # show query data
+  output$query_res <- DT::renderDataTable({
+
+    query_res <- query_res()
+    wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
+    # -1 needed with rownames = FALSE
+    elipsis_targets <- which(colnames(query_res) %in% wide_cols) - 1
+
+    DT::datatable(
+      query_res,
+      class = 'cell-border',
+      rownames = FALSE,
+      selection = 'none',
+      escape = FALSE, # to allow HTML in table
+      options = list(
+        columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
+                          list(targets = elipsis_targets, render = DT::JS(
+                            "function(data, type, row, meta) {",
+                            "return type === 'display' && data !== null && data.length > 17 ?",
+                            "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
+                            "}"))),
+        ordering=FALSE,
+        scrollX = TRUE,
+        pageLength = 20,
+        paging = TRUE,
+        bInfo = 0,
+        dom = 'ftp'
       )
-    }, server = TRUE)
-
-    # toggle for clinical status
-    is_clinical <- reactive({
-      input$clinical %% 2 != 0
-    })
-    observe({
-      toggleClass('clinical', 'btn-primary', condition = is_clinical())
-    })
-
-    # boolean for advanced options
-    is_advanced <- reactive({
-      input$advanced %% 2 != 0
-    })
-
-    #  toggle button styling and showing advanced options
-    shiny::observe({
-      toggleClass('advanced', 'btn-primary', condition = is_advanced())
-      toggle('advanced-panel', condition = is_advanced(), anim = TRUE)
-    })
-
-
-    # generate table to display
-    query_res <- shiny::reactive({
-      req(input$study)
-      if (input$study == 'L1000') {
-        query_res <- study_table(l1000_res, 'L1000', input$cells)
-
-      } else if (input$study == 'CMAP02') {
-        query_res <- study_table(cmap_res, 'CMAP02', input$cells)
-      }
-
-      # for removing entries without a clinical phase
-      if (is_clinical()) {
-        query_res <- tibble::as_tibble(query_res)
-        query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
-      }
-
-      return(query_res)
-    })
-
-    # update choices for cell lines
-    shiny::observe({
-      req(input$study)
-      if (input$study == 'L1000') {
-        cell_choices <- l1000_cells
-
-      } else if (input$study == 'CMAP02') {
-        cell_choices <- cmap_cells
-      }
-      shiny::updateSelectizeInput(session, 'cells', choices = cell_choices, selected = NULL)
-    })
-
-
-
-
-
-
+    )
+  }, server = TRUE)
 }
 
 #' Logic for Single Cell Exploration page
