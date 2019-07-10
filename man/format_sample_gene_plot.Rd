@@ -4,7 +4,7 @@
 \alias{format_sample_gene_plot}
 \title{Format gene plots for sample comparison for drugseqr app}
 \usage{
-format_sample_gene_plot(plot, group, scseq)
+format_sample_gene_plot(plot, group, selected_gene, scseq)
 }
 \arguments{
 \item{plot}{Returned by \code{\link{plot_umap_gene}}}

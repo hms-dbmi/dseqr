@@ -1,3 +1,34 @@
+#' UI for navbar
+#' @param active the active tab name
+#' @export
+#' @keywords internal
+navbarUI <- function(tabs, active) {
+
+  withTags({
+    nav(class = 'navbar navbar-default navbar-static-top',
+        div(class = 'container-fluid',
+            div(class = 'navbar-header',
+                span(class = 'navbar-brand', title = 'drugseqr',
+                     span(class = 'brand-icons',
+                          i(class = 'glyphicon glyphicon-leaf'),
+                          'drugseqr'
+                     )
+                )
+            ),
+            ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
+               lapply(seq_along(tabs), function(i) {
+                 tab <- tabs[i]
+                 is.active <- tab == active
+                 li(class = ifelse(is.active, 'active', ''),
+                    a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
+                 )
+               })
+            )
+        )
+    )
+  })
+}
+
 #' Get cluster choices data.frame for selectize dropdown
 #'
 #' @param clusters Character vector of cluster names

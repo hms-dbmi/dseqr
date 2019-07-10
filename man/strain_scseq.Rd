@@ -4,17 +4,15 @@
 \alias{strain_scseq}
 \title{Remove ambient gene expression from sc-RNAseq counts}
 \usage{
-strain_scseq(counts, empty, project)
+strain_scseq(counts, empty)
 }
 \arguments{
 \item{counts}{sparse dgTMatrix returned by \code{\link{load_kallisto}}.}
 
-\item{empty}{Boolean with indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}}
-
-\item{project}{String. Passed to \code{CreateSeuratObject}.}
+\item{empty}{Boolean indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}}
 }
 \value{
-\code{Seurat} object with counts corrected for ambient contamination.
+\code{counts} corrected for ambient contamination.
 }
 \description{
 Uses \code{SoupX} to estimate and adjust counts for ambient contamination.
