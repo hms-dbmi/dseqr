@@ -90,6 +90,9 @@ scForm <- function(input, output, session, data_dir) {
                               selected_markers = scClusterComparison$selected_markers)
 
   # the selected clusters/gene for sample comparison ----
+
+
+
   scSampleComparison <- callModule(sampleComparison, 'sample',
                                    scseq = scAnal$scseq,
                                    annot = scClusterComparison$annot)
@@ -130,6 +133,7 @@ scForm <- function(input, output, session, data_dir) {
     toggle(id = "cluster_comparison_inputs", condition = !show_samples())
   })
 
+  # return values ----
 
 
   return(list(
@@ -212,7 +216,7 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   # update if options change
   observe({
-    updateSelectizeInput(session, 'selected_anal', choices = anal_options())
+    updateSelectizeInput(session, 'selected_anal', selected = 'sjia_lung', choices = anal_options())
   })
 
   # get styles and integration info
@@ -588,17 +592,40 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
   selected_gene <- reactiveVal(NULL)
 
+  exclude_ambient <- reactive({
+    if (is.null(input$exclude_ambient)) return(FALSE)
+    input$exclude_ambient %% 2 != 0
+  })
+
+  # toggle for excluding ambient
+  observe({
+    toggleClass('exclude_ambient', class = 'active', condition = exclude_ambient())
+  })
+
+
+
   # update marker genes based on cluster selection
   gene_choices <- reactive({
     selected_markers <- selected_markers()
     if (is.null(selected_markers)) return(NULL)
 
-    # allow selecting non-marker genes (at bottom of list)
     choices <- row.names(selected_markers)
+
+    if (exclude_ambient()) {
+      scseq <- scseq()
+
+      fts <- scseq[['SCT']]@meta.features
+      ambient <- row.names(fts)[fts$out_ambient]
+
+      choices <- setdiff(choices, ambient)
+    }
+
+    # allow selecting non-marker genes (at bottom of list)
     choices <- c(choices, setdiff(row.names(scseq()), choices))
 
     return(choices)
   })
+
 
   output$genecards <- renderUI({
     gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
@@ -623,6 +650,7 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
   })
 
 
+  # update choices
   observe({
     updateSelectizeInput(session, 'selected_gene', choices = gene_choices(), selected = NULL, server = TRUE)
   })
@@ -659,7 +687,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
     req(pl)
 
     if (selected_group != 'all')
-      pl <- format_sample_gene_plot(pl, selected_group, scseq())
+      pl <- format_sample_gene_plot(pl, selected_group, selected_gene(), scseq())
 
     return(pl)
   })

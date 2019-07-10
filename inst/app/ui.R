@@ -96,7 +96,7 @@ scFormInput <- function(id) {
         div(id = ns('sample_comparison_inputs'), style = 'display: none',
             sampleComparisonInput(ns('sample')),
             br(),
-            selectedGeneInput(ns('gene_samples'))
+            selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
         )
     )
   })
@@ -254,8 +254,15 @@ clusterComparisonInput <- function(id) {
 
 
 #' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
-selectedGeneInput <- function(id) {
+selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
+
+  exclude_ambient_button <- NULL
+  if (sample_comparison)
+    exclude_ambient_button <- actionButton(ns('exclude_ambient'), '',
+                                           icon = icon('ban', 'fa-fw'),
+                                           title = 'Toggle excluding ambient genes', class = 'squashed-btn')
+
 
   withTags({
     div(class = 'form-group selectize-fh',
@@ -266,7 +273,12 @@ selectedGeneInput <- function(id) {
               script(type = 'application/json', `data-for` = ns('selected_gene'), HTML('{}'))
             ),
             div(class = 'input-group-btn',
-                uiOutput(ns("genecards"))
+                exclude_ambient_button,
+
+                div(style = 'display: inline-block',
+                    uiOutput(ns("genecards"))
+
+                )
             )
         )
     )
