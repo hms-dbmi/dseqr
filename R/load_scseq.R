@@ -11,7 +11,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
+load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', soupx = FALSE) {
 
   counts <- load_scseq_counts(data_dir)
 
@@ -23,6 +23,12 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject') {
   # get ambient expression profile/determine outlier genes
   pct_ambient <- get_pct_ambient(counts)
   out_ambient <- get_outliers(pct_ambient)
+
+  if (soupx) {
+    empty <- get_empty(counts)
+    counts <- strain_scseq(counts, empty)
+    kneelist <- kneelist[kneelist %in% colnames(counts)]
+  }
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)

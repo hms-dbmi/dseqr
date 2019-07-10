@@ -5,12 +5,11 @@
 #' Currently only works with kallisto quantification results (and needs some work).
 #'
 #' @param counts sparse dgTMatrix returned by \code{\link{load_kallisto}}.
-#' @param empty Boolean with indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}
-#' @param project String. Passed to \code{CreateSeuratObject}.
+#' @param empty Boolean indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}
 #'
-#' @return \code{Seurat} object with counts corrected for ambient contamination.
+#' @return \code{counts} corrected for ambient contamination.
 #' @export
-strain_scseq <- function(counts, empty, project) {
+strain_scseq <- function(counts, empty) {
 
   hgGenes = c("HBA1", "HBA2", "HBB", "HBD", "HBE1", "HBG1", "HBG2", "HBM", "HBQ1", "HBZ")
   igGenes = c("IGHA1", "IGHA2", "IGHG1", "IGHG2", "IGHG3", "IGHG4", "IGHD", "IGHE",
@@ -22,7 +21,7 @@ strain_scseq <- function(counts, empty, project) {
 
   # infer useful candidate genes
   scl <- SoupX::inferNonExpressedGenes(scl)
-  SoupX::plotCandidateMarkerGenes(scl, 'Channel1')
+  # SoupX::plotCandidateMarkerGenes(scl, 'Channel1')
 
   nonExpressedGenes <- scl$channels$Channel1$nonExpressedGenes
   isUseful <- row.names(nonExpressedGenes)[nonExpressedGenes$isUseful]
@@ -37,12 +36,11 @@ strain_scseq <- function(counts, empty, project) {
 
   if (!length(nonExpressedGeneList)) {
     message("Immunoglobulin and haemoglobin genes not useful. Failed to strain soup.")
-    return(Seurat::CreateSeuratObject(toc, project))
+    return(counts)
   }
 
-
   scl <- SoupX::calculateContaminationFraction(scl, "Channel1", nonExpressedGeneList, tgtSoupCntsPerGroup = 1000)
-  SoupX::plotChannelContamination(scl, "Channel1")
+  # SoupX::plotChannelContamination(scl, "Channel1")
 
   # interpolate and adjust
   scl <- SoupX::interpolateCellContamination(scl, "Channel1")
@@ -50,9 +48,15 @@ strain_scseq <- function(counts, empty, project) {
 
 
   colnames(scl$atoc) <- gsub('^Channel1___', '', colnames(scl$atoc))
-  strained_scseq <- Seurat::CreateSeuratObject(scl$atoc, project)
-  return(strained_scseq)
+  return(scl$atoc)
+}
 
+get_empty <- function(counts) {
+
+  out <- DropletUtils::emptyDrops(counts)
+  empty <- out$FDR > 0.05 | is.na(out$FDR)
+
+  return(empty)
 }
 
 
