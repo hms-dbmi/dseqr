@@ -67,7 +67,10 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 #' @return \code{plot} formatted for drugseqr app
 #' @export
 #' @keywords internal
-format_sample_gene_plot <- function(plot, group, scseq) {
+format_sample_gene_plot <- function(plot, group, selected_gene, scseq) {
+
+  # the min and max gene expression value
+  lims <- range(plot$data[[selected_gene]])
 
   # show selected group only
   sel.cells <- colnames(scseq)[scseq$orig.ident == group]
@@ -76,6 +79,9 @@ format_sample_gene_plot <- function(plot, group, scseq) {
   # add selected group as title
   plot <- plot + ggplot2::ggtitle(toupper(group)) +
     ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
+
+  # use the same scale for each sample so that comparable
+  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low ="lightgray", high = "blue", limits = lims))
 
   # remove control plot labels and legend
   if (group == 'ctrl')
