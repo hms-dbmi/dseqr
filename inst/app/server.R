@@ -94,6 +94,7 @@ scForm <- function(input, output, session, data_dir) {
 
 
   scSampleComparison <- callModule(sampleComparison, 'sample',
+                                   selected_anal = scAnal$selected_anal,
                                    scseq = scAnal$scseq,
                                    annot = scClusterComparison$annot)
 
@@ -544,11 +545,12 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 }
 
 #' Logic to for sample comparison input
-sampleComparison <- function(input, output, session, scseq, annot) {
+sampleComparison <- function(input, output, session, selected_anal, scseq, annot) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-  # for storing all sample markers within session
-  all_markers <- reactiveVal(list())
+
+  # TODO: make it so that annotation changes don't require re-computing markers
+  # TODO store markers that have been previously computed
 
   # data.frame of markers for selected sample
   selected_markers <- reactiveVal()
@@ -556,6 +558,24 @@ sampleComparison <- function(input, output, session, scseq, annot) {
   cluster_choices <- reactive({
     req(annot())
     get_cluster_choices(annot(), scseq())
+  })
+
+  # reset if switch analysis or annotation updates
+  observe({
+    selected_anal()
+    annot()
+    selected_markers(NULL)
+  }, priority = 1)
+
+  # update scseq with annotation
+  annot_scseq <- reactive({
+    scseq <- scseq()
+    annot <- annot()
+    req(annot, scseq)
+
+    levels(scseq$seurat_clusters) <- annot
+    Seurat::Idents(scseq) <- scseq$seurat_clusters
+    return(scseq)
   })
 
 
@@ -570,7 +590,7 @@ sampleComparison <- function(input, output, session, scseq, annot) {
     req(input$selected_clusters)
 
     # set idents to ctrl and test
-    scseq <- scseq()
+    scseq <- annot_scseq()
     Seurat::Idents(scseq) <- scseq$orig.ident
 
     # exclude non-selected clusters
