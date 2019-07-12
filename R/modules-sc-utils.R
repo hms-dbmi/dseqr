@@ -29,6 +29,21 @@ navbarUI <- function(tabs, active) {
   })
 }
 
+
+#' UI for a tab pane
+#'
+#' @param tab The name of the tab
+#' @param active The name of the active tab
+#' @param ... The UI elements to place in the tab
+#' @return shiny div tag with UI for tab
+#' @export
+#' @keywords internal
+tabPane <- function(tab, active, ...) {
+  active_class <- ifelse(tab == active, 'active', '')
+  tags$div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab), ...)
+}
+
+
 #' Get cluster choices data.frame for selectize dropdown
 #'
 #' @param clusters Character vector of cluster names

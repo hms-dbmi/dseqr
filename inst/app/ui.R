@@ -25,16 +25,6 @@ datasetsFormInput <- function(id) {
   })
 }
 
-
-dropdownMenuButton <- function(id, label) {
-  tags$li(
-    tags$a(
-      id = id, role = 'button', class = 'action-button shiny-bound-input', label
-    )
-  )
-}
-
-
 dsAnalysisInput <- function(id) {
   ns <- NS(id)
 
@@ -97,12 +87,6 @@ dsLabelRowsUI <- function(id) {
   })
 }
 
-# utilities used throughout the site
-tabPane <- function(tab, active, ...) {
-  active_class <- ifelse(tab == active, 'active', '')
-  tags$div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab), ...)
-}
-
 textInputWithButtons <- function(id, label, ...) {
   tags$div(class = 'form-group selectize-fh',
            tags$label(class = 'control-label', `for` = id, label),
@@ -113,100 +97,15 @@ textInputWithButtons <- function(id, label, ...) {
   )
 }
 
-# -----
-# UI for Drugs page
-drugsPageUI <- function(id, tab, active) {
-  ns <- NS(id)
-
-  withTags({
-    tabPane(tab, active,
-            div(class = 'row',
-                div(class = 'col-sm-6',
-                    drugsFormInput(ns('form'))
-                )
-            ),
-            hr(),
-            drugsTableOutput(ns('table'))
+dropdownMenuButton <- function(id, label) {
+  tags$li(
+    tags$a(
+      id = id, role = 'button', class = 'action-button shiny-bound-input', label
     )
-  })
-}
-
-# Output table for Drugs Page
-drugsTableOutput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = 'dt-container',
-        DT::dataTableOutput(ns("query_res"))
-    )
-  })
-}
-
-#' Input form for Drugs page
-drugsFormInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = "well-form well-bg",
-        querySignatureInput(ns('signature')),
-        selectedDrugStudyInput(ns('drug_study')),
-        advancedOptionsInput(ns('advanced'))
-
-    )
-  })
-}
-
-querySignatureInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('query'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('query'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                shinyBS::bsButton(ns('run_query'), label = '', icon = icon('search'), title = 'Run query')
-            )
-        )
-    )
-  })
-}
-
-advancedOptionsInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(id = ns('advanced-panel'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%')
-    )
-  })
-}
-
-selectedDrugStudyInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('study'), 'Select drug study:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('study'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('study'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                shinyBS::bsButton(ns('clinical'), label = '', icon = icon('pills'), style = 'default', onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                shinyBS::bsButton(ns('advanced'), label = '', icon = icon('cogs'), style = 'default', title = 'toggle advanced options')
-            )
-        )
-    )
-  })
+  )
 }
 
 
-# -----
 tabs <- c('Datasets', 'Single Cell', 'Bulk', 'Pathways', 'Drugs')
 active <- 'Datasets'
 

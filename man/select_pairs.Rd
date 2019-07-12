@@ -4,7 +4,7 @@
 \alias{select_pairs}
 \title{Select pairs and replicates for an experiment.}
 \usage{
-select_pairs(data_dir, pdata_path)
+select_pairs(data_dir)
 }
 \arguments{
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
