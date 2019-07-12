@@ -4,9 +4,7 @@
 #'
 #' @param indices_dir Directory with kallisto indices. See \code{\link{build_kallisto_index}}.
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-#' The first column should contain sample ids that match a single raw rna-seq data file name.
-#' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
+#' @param pdata Previous result of call to \code{run_kallisto_bulk} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #' @param fl.mean Estimated average fragment length (only relevant for single-end reads).
@@ -23,17 +21,15 @@
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_kallisto_bulk(indices_dir, data_dir, pdata_path)
 #'
-run_kallisto_bulk <- function(indices_dir, data_dir, pdata_path = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL) {
+run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
   # get index_path
   index_path <- file.path(indices_dir, paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
 
-  if (is.null(pdata_path) & is.null(pdata)) stop('One of pdata_path or pdata must be supplied.')
-
   # prompt user to select pairs/validate file names etc
-  if (is.null(pdata)) pdata <- select_pairs(data_dir, pdata_path)
+  if (is.null(pdata)) pdata <- select_pairs(data_dir)
   pdata$quants_dir <- gsub('.fastq.gz$', '', pdata$`File Name`)
 
   # save selections
@@ -72,7 +68,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata_path = NULL, pdata = 
     # include any replicates
     rep_num <- pdata$Replicate[row_num]
     if (!is.null(rep_num) && !is.na(rep_num)) {
-      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name']
+      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name', drop = TRUE]
     }
 
     # remove fastq_files for next quant loop
@@ -85,7 +81,6 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata_path = NULL, pdata = 
     # use the first file name in any replicates
     sample_name <- gsub('.fastq.gz$', '', fastq_file[1])
     out_dir <- file.path(quants_dir, sample_name)
-    dir.create(out_dir)
 
     # run kallisto
     system2('kallisto',

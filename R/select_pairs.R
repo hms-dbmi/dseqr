@@ -20,10 +20,7 @@
 #' pdata <- select_pairs(data_dir, pdata_path)
 #'
 #'
-select_pairs <- function(data_dir, pdata_path) {
-
-  # TODO: validate that e.g. 2 samples selected as replicates are not also paired
-  # TODO: will pdata be 1 row per file for pair-ended or 1 row per sample?
+select_pairs <- function(data_dir) {
 
   # setup ----
 
@@ -36,14 +33,9 @@ select_pairs <- function(data_dir, pdata_path) {
 
   background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
-  # load pdata and determine row to file correspondence
-  # needs to be data.frame for ExpressionSet construction
-  pdata <- tryCatch(data.table::fread(pdata_path, fill=TRUE, data.table = FALSE),
-                    error = function(err) {err$message <- "Couldn't read pdata"; stop(err)})
 
-  # match pdata and file names
   fastqs <- list.files(data_dir, '.fastq.gz')
-  pdata <- match_pdata(pdata, fastqs)
+  pdata <- tibble::tibble('File Name' = fastqs)
 
   pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
 
@@ -393,7 +385,12 @@ detect_paired <- function(fastq_id1s) {
   }
 
   # paired experiments will have '1' and '2'
-  paired <- length(unique(pairs)) == 2
+  uniq.pairs <- unique(pairs)
+  paired <- setequal(c('1', '2'), uniq.pairs)
+
+  # unpaired will have only '1'
+  if (!paired) stopifnot(uniq.pairs == '1')
+
   return(paired)
 }
 

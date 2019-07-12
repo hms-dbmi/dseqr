@@ -1,40 +1,77 @@
 
-datasetsPageUI <- function(id, tab, active) {
+dsPageUI <- function(id, tab, active) {
   ns <- NS(id)
   withTags({
     tabPane(tab, active,
             div(class = 'row',
                 div(class = 'col-sm-6',
-                    datasetsFormInput(ns('form'))
+                    dsFormInput(ns('form'))
                 )
             ),
             hr(),
-            div(dsPairsTable(ns('pairs')))
+            div(dsNewTable(ns('pairs')))
     )
   })
 }
 
-datasetsFormInput <- function(id) {
+dsFormInput <- function(id) {
   ns <- NS(id)
 
   withTags({
     div(class = "well-form well-bg",
-        dsAnalysisInput(ns('selected_anal')),
-        dsEndTypeInput(ns('end_type'))
+        dsSelectedDatasetInput(ns('selected_dataset')),
+        div(id = ns('new_dataset_panel'), style = 'display: none;',
+            dsNewInputs(ns('new_dataset'))
+        ),
+        div(id = ns('existing_dataset_panel'), style = 'display: none;',
+            dsExistingInputs(ns('existing_dataset'))
+        )
     )
   })
 }
 
-dsAnalysisInput <- function(id) {
+dsNewInputs <- function(id) {
+  ns <- NS(id)
+
+  tagList(
+    dsEndTypeInput(ns('end_type')),
+    dsLabelNewRowsUI(ns('label_rows')),
+    actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-primary')
+  )
+}
+
+dsExistingInputs <- function(id) {
+  ns <- NS(id)
+
+  justifiedButtonGroup(
+    label = 'Label selected rows:',
+    actionButton('test', 'Test'),
+    actionButton('ctrl', 'Control'),
+    actionButton('reset', 'Reset')
+  )
+}
+
+dsLabelNewRowsUI <- function(id) {
+  ns <- NS(id)
+  justifiedButtonGroup(
+    label = 'Label selected rows:',
+    actionButton(ns('pair'), 'Paired'),
+    actionButton(ns('rep'), 'Replicate'),
+    actionButton(ns('reset'), 'Reset')
+  )
+}
+
+dsSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    textInputWithButtons(ns('anal_name'), 'Analysis name:',
-                         button(id = ns('anal_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input",
-                                `data-title` = 'Folder with fastq.gz files',
-                                title = 'Select folder with fastq.gz files',
-                                i(class = 'far fa-folder')
-                         )
+    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add new dataset'),
+                              button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
+                                     `data-title` = 'Folder with fastq.gz files',
+                                     title = 'Select folder with fastq.gz files',
+                                     i(class = 'far fa-folder')
+
+                              )
     )
   })
 }
@@ -47,52 +84,39 @@ dsEndTypeInput <- function(id) {
                  choices = NULL, width = '100%')
 }
 
-dsPairsTable <- function(id) {
+dsNewTable <- function(id) {
   ns <- NS(id)
 
-  tagList(
-    dsLabelRowsUI(ns('label_rows')),
-    DT::dataTableOutput(ns("pdata"))
-  )
+  DT::dataTableOutput(ns("pdata"))
 }
 
-dsLabelRowsUI <- function(id) {
-  ns <- NS(id)
-  withTags({
-    div(class = 'well-form no-well',
-         div(class = 'btn-group btn-group-justified',
-             div(class = 'btn-group',
-                 button(type = 'button',
-                        class = 'btn btn-default dropdown-toggle',
-                        `data-toggle`='dropdown',
-                        `aria-haspopup`='true',
-                        `aria-expanded`='false',
-                        span('Label Selected Rows')
-                 ),
-                 ul(class = 'dropdown-menu', style = 'width: 100%;',
-                    li(class="dropdown-header", 'Files'),
-                    dropdownMenuButton(ns('pair'), 'Paired'),
-                    dropdownMenuButton(ns('rep'), 'Replicates'),
-                    li(role = 'separator', class='divider'),
-                    li(class="dropdown-header", 'Group'),
-                    dropdownMenuButton(ns('test'), 'Test'),
-                    dropdownMenuButton(ns('ctrl'), 'Control'),
-                    li(role = 'separator', class='divider'),
-                    dropdownMenuButton(ns('reset'), 'Reset Labels')
-                 )
-             )
-         )
 
-    )
-  })
-}
-
+# general utility components
 textInputWithButtons <- function(id, label, ...) {
   tags$div(class = 'form-group selectize-fh',
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group',
                     tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
                     tags$span(class = 'input-group-btn', ...)
+           )
+  )
+}
+
+selectizeInputWithButtons <- function(id, label, options = NULL, ...) {
+
+  options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
+
+  tags$div(class = 'form-group selectize-fh',
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(class = 'input-group',
+                    tags$div(
+                      tags$select(id = id, style = 'display: none'),
+                      tags$script(type = 'application/json', `data-for` = id, HTML(options))
+                    ),
+                    tags$div(class = 'input-group-btn',
+                             # the buttons
+                             ...
+                    )
            )
   )
 }
@@ -105,7 +129,47 @@ dropdownMenuButton <- function(id, label) {
   )
 }
 
+justifiedButtonGroup <- function(label, ...) {
+  tags$div(class = 'form-group selectize-fh',
+           tags$label(class = 'control-label',  label),
+           tags$div(class = 'btn-group btn-group-justified', role = 'group',
+                    lapply(list(...), function(btn) {
+                      tags$div(class = 'btn-group', role = 'group', btn)
+                    })
+           )
+  )
+}
 
+# deprecated but keep because nice design
+dsLabelRowsUI <- function(id) {
+  ns <- NS(id)
+  withTags({
+    div(class = 'btn-group btn-group-justified',
+        div(class = 'btn-group',
+            button(type = 'button',
+                   class = 'btn btn-default dropdown-toggle',
+                   `data-toggle`='dropdown',
+                   `aria-haspopup`='true',
+                   `aria-expanded`='false',
+                   span('Label Selected Rows')
+            ),
+            ul(class = 'dropdown-menu', style = 'width: 100%;',
+               li(class="dropdown-header", 'Files'),
+               dropdownMenuButton(ns('pair'), 'Paired'),
+               dropdownMenuButton(ns('rep'), 'Replicates'),
+               li(role = 'separator', class='divider'),
+               li(class="dropdown-header", 'Group'),
+               dropdownMenuButton(ns('test'), 'Test'),
+               dropdownMenuButton(ns('ctrl'), 'Control'),
+               li(role = 'separator', class='divider'),
+               dropdownMenuButton(ns('reset'), 'Reset Labels')
+            )
+        )
+    )
+  })
+}
+
+#-----
 tabs <- c('Datasets', 'Single Cell', 'Bulk', 'Pathways', 'Drugs')
 active <- 'Datasets'
 
@@ -126,7 +190,7 @@ bootstrapPage(
              scPageUI("sc", tab = 'Single Cell', active),
              bulkPageUI("bulk", tab = 'Bulk', active),
              drugsPageUI("drug", tab = 'Drugs', active),
-             datasetsPageUI('datasets', tab = 'Datasets', active)
+             dsPageUI('datasets', tab = 'Datasets', active)
     )
   )
 )

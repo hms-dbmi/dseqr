@@ -1,44 +1,144 @@
-datasetsPage <- function(input, output, session) {
-  dsForm <- callModule(datasetsForm, 'form')
+dsPage <- function(input, output, session) {
+  dsForm <- callModule(dsForm, 'form')
 
-  callModule(dsPairsTable, 'pairs', fastq_dir = dsForm$fastq_dir)
+  pdata <- callModule(dsNewTable, 'pairs',
+                           fastq_dir = dsForm$fastq_dir,
+                           labels = dsForm$new_inputs$labels,
+                           paired = dsForm$new_inputs$paired)
+
+  # run quantification
+  observeEvent(dsForm$new_inputs$run_quant(), {
+
+    pdata <- pdata()
+
+    indices_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/indices/kallisto'
+    data_dir <- dsForm$fastq_dir()
+
+    run_kallisto_bulk(indices_dir, data_dir, pdata)
+  })
 }
 
 
-datasetsForm <- function(input, output, session) {
+dsForm <- function(input, output, session) {
 
-  dsAnalysis <- callModule(dsAnalysis, 'selected_anal')
+  dataset <- callModule(dsSelectedDataset, 'selected_dataset')
 
-  end_type <- callModule(dsEndType, 'end_type',
-                         fastq_dir = dsAnalysis$fastq_dir)
+  show_create <- reactive({
+    req(dataset$fastq_dir())
+    dataset$is.create()
+  })
+
+  observe({
+    toggle('new_dataset_panel', condition = show_create())
+    toggle('existing_dataset_panel', condition = !dataset$is.create())
+  })
+
+  new_inputs <- callModule(dsNewInputs, 'new_dataset',
+                           fastq_dir = dataset$fastq_dir)
+
 
   return(list(
-    fastq_dir = dsAnalysis$fastq_dir
+    fastq_dir = dataset$fastq_dir,
+    new_inputs = new_inputs
   ))
 
 }
 
-dsAnalysis <- function(input, output, session) {
+dsNewInputs <- function(input, output, session, fastq_dir) {
+
+  paired <- callModule(dsEndType, 'end_type',
+                       fastq_dir = fastq_dir)
+
+  labels <- callModule(dsLabelNewRows, 'label_rows',
+                       paired = paired)
+
+  run_quant <- reactive({
+    req(input$run_quant)
+    input$run_quant
+  })
+
+  return(list(
+    paired = paired,
+    labels = labels,
+    run_quant = run_quant
+  ))
+}
+
+dsLabelNewRows <- function(input, output, session, paired) {
+
+  observe(
+    shinyjs::toggleClass("pair", 'disabled', condition = !paired())
+  )
+
+  return(list(
+    reset = reactive(input$reset),
+    rep = reactive(input$rep),
+    pair = reactive(input$pair)
+  ))
+}
+
+dsSelectedDataset <- function(input, output, session) {
 
   indices_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/indices/kallisto'
 
+  # TODO: implement previous datasets
+  prev_datasets <- reactiveVal('')
+  is.create <- reactiveVal(FALSE)
 
   # get directory with fastqs
   bulk_dir <- c('bulk-data' = '~/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data')
-  shinyFiles::shinyDirChoose(input, "anal_dir", roots = bulk_dir)
-  fastq_dir <- reactiveVal('~/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data/IBD')
+  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = bulk_dir)
 
-  # fastq_dir <- reactive({
-  #   dir <- parseDirPath(bulk_dir, input$anal_dir)
-  #   req(dir)
-  #   dir
-  # })
+  # FOR DEV
+  updateSelectizeInput(session, 'dataset_name', selected = 'IBD', choices = 'IBD')
 
-  anal_name <- reactive(input$anal_name)
+
+  # is the dataset a new one?
+  observe({
+    req(input$dataset_name)
+    # for creating new
+    is.create(!input$dataset_name %in% prev_datasets())
+  })
+
+  # add disabled class if not creating
+  observe({
+    toggleClass('dataset_dir', 'disabled', condition = !is.create())
+  })
+
+
+  # open selector if creating
+  observeEvent(is.create(), {
+    req(is.create())
+
+    if (is.create()) {
+      # COMMENTED FOR DEV
+      # shinyjs::click('dataset_dir')
+    }
+  })
+
+  fastq_dir <- reactive({
+    # FOR DEV
+    # note that kallisto doesn't accept ~ expansion
+    return('/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data/IBD')
+    dir <- shinyFiles::parseDirPath(bulk_dir, input$dataset_dir)
+    print(dir)
+    req(dir)
+    dir
+  })
+
+  observe({
+    input$dataset_dir
+    if (is.null(fastq_dir())) {
+      updateSelectizeInput('dataset_name', choices = '')
+    }
+  })
+
+  dataset_name <- reactive(input$dataset_name)
 
   return(list(
-    anal_name = anal_name,
-    fastq_dir = fastq_dir
+    dataset_name = dataset_name,
+    fastq_dir = fastq_dir,
+    is.create = is.create
   ))
 
 }
@@ -76,30 +176,26 @@ dsEndType <- function(input, output, session, fastq_dir) {
     updateSelectizeInput(session, 'end_type', choices = end_types)
   })
 
-  return(end_type = reactive(input$end_type))
+  return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
 
-dsPairsTable <- function(input, output, session, fastq_dir) {
+dsNewTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # things user will update and return
-  state <- reactiveValues(pdata = 0)
   pdata_r <- reactiveVal()
   pairs_r <- reactiveVal()
   reps_r <- reactiveVal()
 
-  # setup ----
 
-  # label button clicks
-  labels <- callModule(dsLabelRows, 'label_rows')
-
+  # colors
+  background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
   group_colors <- c("#C7E9C0", "#C6DBEF", "#FCBBA1", "#FDD0A2", "#BCBDDC", "#D9D9D9", "#F6E8C3", "#DC143C",
                     "#A1D99B", "#9ECAE1", "#FC9272", "#FDAE6B", "#9E9AC8", "#BDBDBD", "#DFC27D", "#FFFFFF",
                     "#C3B091", "#007FFF", "#00FFFF", "#7FFFD4", "#228B22", "#808000", "#7FFF00", "#BFFF00",
                     "#FFD700", "#DAA520", "#FF7F50", "#FA8072","#FC0FC0", "#CC8899", "#E0B0FF", "#B57EDC", "#843179")
 
   ncolors <- length(group_colors)
-  background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
 
   # reset everything when new fastq_dir
@@ -109,7 +205,7 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
 
     fastqs <- list.files(fastq_dir, '.fastq.gz$')
     pdata <- tibble::tibble('File Name' = fastqs)
-    pdata <- tibble::add_column(pdata, Group = NA, Pair = NA, Replicate = NA, .before = 1)
+    pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
 
     pdata_r(pdata)
 
@@ -127,7 +223,7 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
       options = list(
-        columnDefs = list(list(className = 'dt-nopad', targets = c(0, 1, 2))),
+        columnDefs = list(list(className = 'dt-nopad', targets = c(0, 1))),
         scrollY = FALSE,
         paging = FALSE,
         bInfo = 0
@@ -136,10 +232,23 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
   })
 
 
-  # proxy pdata to update Pair/Replicate column
-  proxy_pata <- shiny::eventReactive(state$pdata, {
-
+  # pdata that gets returned with reps and pairs
+  returned_pdata <- reactive({
     pdata <- pdata_r()
+
+    pdata$Replicate <- reps_r()
+    pdata$Pair <- pairs_r()
+
+    if (!paired()) pdata$Pair <- NULL
+
+    return(pdata)
+  })
+  # pdata to update Pair/Replicate column in proxy (uses html)
+  labeled_pata <- reactive({
+
+    # things that trigger update
+    pdata <- pdata_r()
+    req(pdata)
     reps <- reps_r()
     pairs <- pairs_r()
 
@@ -152,7 +261,7 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
     }
 
     # update pdata Pair column
-    if (TRUE) {
+    if (paired()) {
       pair_nums <- sort(unique(setdiff(pairs, NA)))
       for (pair_num in pair_nums) {
         color <- group_colors[pair_num]
@@ -169,15 +278,14 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
   # proxy used to replace data
   proxy <- DT::dataTableProxy("pdata")
   shiny::observe({
-
-    DT::replaceData(proxy, proxy_pata(), rownames = FALSE)
+    DT::replaceData(proxy, labeled_pata(), rownames = FALSE)
   })
 
 
-  # click 'Pair Samples' ----
-
+  # click 'Paired'
   shiny::observeEvent(labels$pair(), {
     req(labels$pair())
+
     reps <- reps_r()
     pairs <- pairs_r()
 
@@ -191,16 +299,13 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
       pair_num <- length(unique(setdiff(pairs, NA))) + 1
       pairs[rows] <- pair_num
       pairs_r(pairs)
-
-      # update states to trigger updates
-      state$pdata <- state$pdata + 1
     }
   })
 
-  # click 'Mark Replicates' ----
-
+  # click 'Replicate'
   shiny::observeEvent(labels$rep(), {
     req(labels$rep())
+
     reps <- reps_r()
     pairs <- pairs_r()
 
@@ -211,25 +316,22 @@ dsPairsTable <- function(input, output, session, fastq_dir) {
       rep_num <- length(unique(setdiff(reps, NA))) + 1
       reps[rows] <- rep_num
       reps_r(reps)
-
-      # update states to trigger updates
-      state$pdata <- state$pdata + 1
     }
   })
 
 
-  # click 'Reset' ----
-
-  shiny::observeEvent(input$reset, {
-    pdata <- pdata()
-    pairs <<- rep(NA, nrow(pdata))
-    reps <<- rep(NA, nrow(pdata))
-    pdata$Pair <<- NA
-    pdata$Replicate <<- NA
-
-    # remove groups from table and reset control
-    state$pdata <- state$pdata + 1
+  # click 'Reset'
+  shiny::observeEvent(labels$reset(), {
+    pdata <- pdata_r()
+    clear <- rep(NA, nrow(pdata))
+    reps_r(clear)
+    pairs_r(clear)
   })
+
+
+
+  return(returned_pdata)
+
 }
 
 
@@ -272,7 +374,7 @@ server <- function(input, output, session) {
 
   drugsPage <- callModule(drugsPage, 'drug')
 
-  datasetsPage <- callModule(datasetsPage, 'datasets')
+  datasetsPage <- callModule(dsPage, 'datasets')
 
 
 }

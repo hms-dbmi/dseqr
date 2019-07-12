@@ -61,12 +61,14 @@
 
 
 /* FORMS BESIDE BUTTONS */
-
-.selectize-fh {
-  max-width: 400px !important;
-  /* same height for any input type */
-  min-height: 79px; 
+.well-form .form-group {
+  min-height: 100px;
 }
+
+.selectize-fh,
+.well-form .form-group {
+  min-height: 100px; 
+} 
 
 
 .input-group .selectize-input {
@@ -166,10 +168,7 @@
 }
 
 
-/* STANDARDIZE HEIGHTS */
-.well-form .form-group {
-  min-height: 79px;
-}
+
 
 
 .btn-group-justified .dropdown-toggle::after {
