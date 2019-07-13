@@ -9,7 +9,12 @@ dsPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            div(dsNewTable(ns('pairs')))
+            div(id = ns('new_table_container'), style = 'display: none;',
+                dsTable(ns('new'))
+            ),
+            div(id = ns('prev_table_container'), style = 'display: none;',
+                dsTable(ns('prev'))
+            )
     )
   })
 }
@@ -23,8 +28,8 @@ dsFormInput <- function(id) {
         div(id = ns('new_dataset_panel'), style = 'display: none;',
             dsNewInputs(ns('new_dataset'))
         ),
-        div(id = ns('existing_dataset_panel'), style = 'display: none;',
-            dsExistingInputs(ns('existing_dataset'))
+        div(id = ns('prev_dataset_panel'), style = 'display: none;',
+            dsPrevInputs(ns('prev_dataset'))
         )
     )
   })
@@ -40,14 +45,18 @@ dsNewInputs <- function(id) {
   )
 }
 
-dsExistingInputs <- function(id) {
+dsPrevInputs <- function(id) {
   ns <- NS(id)
 
-  justifiedButtonGroup(
-    label = 'Label selected rows:',
-    actionButton('test', 'Test'),
-    actionButton('ctrl', 'Control'),
-    actionButton('reset', 'Reset')
+  tagList(
+    textInput(ns('anal_name'), 'Analysis name:', width = '100%'),
+    justifiedButtonGroup(
+      label = 'Label selected rows:',
+      actionButton('test', 'Test'),
+      actionButton('ctrl', 'Control'),
+      actionButton('reset', 'Reset')
+    ),
+    actionButton(ns('run_diff'), 'Run Analysis', width = '100%', class = 'btn-primary')
   )
 }
 
@@ -84,12 +93,10 @@ dsEndTypeInput <- function(id) {
                  choices = NULL, width = '100%')
 }
 
-dsNewTable <- function(id) {
+dsTable <- function(id) {
   ns <- NS(id)
-
   DT::dataTableOutput(ns("pdata"))
 }
-
 
 # general utility components
 textInputWithButtons <- function(id, label, ...) {
