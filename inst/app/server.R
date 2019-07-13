@@ -33,8 +33,6 @@ dsPage <- function(input, output, session, data_dir) {
 
     shinyjs::disable(selector = 'input')
 
-    browser()
-
     # quantification
     run_kallisto_bulk(indices_dir = indices_dir,
                       data_dir = fastq_dir,
@@ -106,9 +104,32 @@ dsNewInputs <- function(input, output, session, fastq_dir) {
   labels <- callModule(dsLabelNewRows, 'label_rows',
                        paired = paired)
 
+  quantModal <- modalDialog(
+    withTags({
+      dl(
+        dt('End type'),
+        dd('Experiment is selected as single ended'),
+        hr(),
+        dt('Replicates'),
+        dd('If any - e.g. same sample sequenced in replicate. These will be treated as a single library.')
+      )
+    }),
+    title = 'Double check:',
+    size = 's',
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton("confirm", "Quantify", class = 'pull-left btn-danger')
+    )
+  )
+
+  # Show modal when button is clicked.
+  observeEvent(input$run_quant, {
+    showModal(quantModal)
+  })
+
   run_quant <- reactive({
-    req(input$run_quant)
-    input$run_quant
+    req(input$confirm)
+    input$confirm
   })
 
   return(list(
