@@ -30,7 +30,7 @@ add_es <- function(diff_exprs, cols = c("dprime", "vardprime")) {
   classes <- diff_exprs$pdata$group
 
   # group names for contrast
-  groups <- c('test', 'control')
+  groups <- c('test', 'ctrl')
 
   # get sample sizes for groups
   ni <- sum(classes == groups[2])

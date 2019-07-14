@@ -10,15 +10,15 @@
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
+#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
 #' cmap_es <- readRDS(cmap_path)
 #'
-#' l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr')
+#' l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', , mustWork = TRUE)
 #' l1000_es <- readRDS(l1000_path)
 #'
 #' # run differential expression analysis
 #' data_dir <- 'data-raw/example-data'
-#' eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr'))
+#' eset <- readRDS(system.file('extdata', 'IBD', 'eset.rds', package = 'drugseqr', , mustWork = TRUE))
 #' # anal <- diff_expr(eset, data_dir)
 #'
 #' # alternatively load previous analysis
@@ -70,7 +70,7 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
       shiny::tags$style(".cor-point:hover text.x {fill: #443;}"),
       shiny::tags$style(".cor-point:hover circle {fill: red; stroke: #443;}"),
 
-      shiny::includeScript(system.file("js/toggleClinicalTitle.js", package = "drugseqr"))
+      shiny::includeScript(system.file("js/toggleClinicalTitle.js", package = "drugseqr", mustWork = TRUE))
     ),
     # title bar
     miniUI::gadgetTitleBar("Explore Results"),

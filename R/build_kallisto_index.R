@@ -16,6 +16,8 @@
 #' build_ensdb_index(indices_dir)
 #'
 build_kallisto_index <- function(indices_dir, species = 'homo_sapiens', release = '94') {
+  # need curl (only in suggests)
+  is.installed('curl', level = 'error')
 
   if (!dir.exists(indices_dir))
     dir.create(indices_dir, recursive = TRUE)

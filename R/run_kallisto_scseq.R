@@ -45,7 +45,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
                    fastqs))
 
   # location of map from transcript names to gene names
-  tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr')
+  tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr', mustWork = TRUE)
 
   # run bustools
   tmp_dir <- file.path(out_dir, 'tmp')

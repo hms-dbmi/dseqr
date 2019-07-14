@@ -8,7 +8,7 @@
 dl_drug_es <- function(files = c('cmap_es_ind.rds', 'l1000_es.rds'), check = FALSE) {
 
   # make sure doesn't already exist
-  dest_dir <- system.file('extdata', package = 'drugseqr')
+  dest_dir <- system.file('extdata', package = 'drugseqr', mustWork = TRUE)
   if (!dir.exists(dest_dir)) stop('Make sure you build drugseqr first.')
 
 

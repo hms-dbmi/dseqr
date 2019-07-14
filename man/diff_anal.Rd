@@ -4,7 +4,7 @@
 \alias{diff_anal}
 \title{Run limma analysis.}
 \usage{
-diff_anal(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL",
+diff_anal(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMBOL",
   rna_seq = TRUE)
 }
 \arguments{

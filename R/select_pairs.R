@@ -14,7 +14,7 @@
 #'
 #' @examples
 #'
-#' data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+#' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #'
 #' pdata <- select_pairs(data_dir, pdata_path)

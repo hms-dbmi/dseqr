@@ -9,7 +9,7 @@
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
+#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
 #' cmap_es <- readRDS(cmap_path)
 #'
 #' # load previous analysis
@@ -29,7 +29,7 @@ append_pdata <- function(query_res, study) {
 
   # load pdata for study
   pdata_fname <- paste0(study, '_pdata.rds')
-  pdata_path <- system.file('extdata', pdata_fname, package = 'drugseqr')
+  pdata_path <- system.file('extdata', pdata_fname, package = 'drugseqr', mustWork = TRUE)
   pdata <- readRDS(pdata_path)
 
   # append BRH annotation
@@ -55,7 +55,7 @@ append_pdata <- function(query_res, study) {
 #' @export
 append_annot <- function(pdata, study) {
   annot_fname <- paste0(study, '_annot.rds')
-  annot_path <- system.file('extdata', annot_fname, package = 'drugseqr')
+  annot_path <- system.file('extdata', annot_fname, package = 'drugseqr', mustWork = TRUE)
 
   annot <- readRDS(annot_path)
   pdata <- cbind(pdata, annot)

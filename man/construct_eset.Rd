@@ -4,14 +4,12 @@
 \alias{construct_eset}
 \title{Construct expression set}
 \usage{
-construct_eset(quants, fdata, pdata, annot)
+construct_eset(quants, fdata, annot)
 }
 \arguments{
 \item{quants}{\code{DGEList} with RNA-seq counts.}
 
 \item{fdata}{\code{data.table} returned from \code{\link{setup_fdata}}.}
-
-\item{pdata}{\code{data.frame} of sample annotation data processed by \code{\link{match_pdata}} followed by \code{\link{add_norms}}.}
 
 \item{annot}{Character vector with ensembldb package name. e.g. \code{'EnsDb.Hsapiens.v94'}. Returned from \code{\link{get_ensdb_package}}.}
 }

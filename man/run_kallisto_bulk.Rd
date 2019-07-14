@@ -4,13 +4,16 @@
 \alias{run_kallisto_bulk}
 \title{Runs kallisto quantification for bulk samples.}
 \usage{
-run_kallisto_bulk(indices_dir, data_dir, species = "homo_sapiens",
-  release = "94", fl.mean = NULL, fl.sd = NULL)
+run_kallisto_bulk(indices_dir, data_dir, pdata, paired,
+  species = "homo_sapiens", release = "94", fl.mean = NULL,
+  fl.sd = NULL, updateProgress = NULL)
 }
 \arguments{
 \item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}
 
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
+
+\item{pdata}{Previous result of call to \code{run_kallisto_bulk} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.}
 
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}
@@ -18,11 +21,6 @@ Used to determine transcriptome index to use.}
 \item{fl.mean}{Estimated average fragment length (only relevant for single-end reads).}
 
 \item{fl.sd}{Estimated standard deviation of fragment length (only relevant for single-end reads).}
-
-\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-The first column should contain sample ids that match a single raw rna-seq data file name.}
-
-\item{pdata}{Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.}
 }
 \description{
 For pair-ended experiments, reads for each pair should be in a seperate file.

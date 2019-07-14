@@ -4,21 +4,15 @@
 \alias{explore_scseq_clusters}
 \title{Explore Single Cell Clusters}
 \usage{
-explore_scseq_clusters(data_dir, test = FALSE, test_data = TRUE)
-}
-\arguments{
-\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object}
-
-\item{markers}{Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
-with the same name as the cluster.}
+explore_scseq_clusters(base_dir, test = FALSE, test_data = TRUE)
 }
 \description{
 Explore Single Cell Clusters
 }
 \examples{
 
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
+base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
 
-explore_scseq_clusters(data_dir, test_data = FALSE)
+explore_scseq_clusters(base_dir, test_data = FALSE)
 
 }

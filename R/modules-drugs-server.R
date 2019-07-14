@@ -51,10 +51,10 @@ drugsForm <- function(input, output, session) {
 #' @keywords internal
 selectedDrugStudy <- function(input, output, session) {
 
-  data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/bulk/example-data/IBD'
+  data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/IBD/bulk/IBD'
 
-  cmap_res <- readRDS(file.path(data_dir, 'cmap_res.rds'))
-  l1000_res <- readRDS(file.path(data_dir, 'l1000_res.rds'))
+  cmap_res <- readRDS(file.path(data_dir, 'cmap_res_salmon.rds'))
+  l1000_res <- readRDS(file.path(data_dir, 'l1000_res_salmon.rds'))
 
   drug_study <- reactive(input$study)
 

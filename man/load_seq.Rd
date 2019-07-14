@@ -6,7 +6,7 @@
 \usage{
 load_seq(data_dir, species = "Homo sapiens", release = "94",
   load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE,
-  filter = TRUE, command = "salmon")
+  filter = TRUE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -23,8 +23,6 @@ then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
 \item{save_dgel}{If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.}
 
 \item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
-
-\item{command}{System command that was used to invoke salmon. Used for versioning.}
 }
 \value{
 \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
@@ -35,7 +33,6 @@ then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
     \code{\link[limma]{voom}} (see \code{vignette("tximport", package = "tximport")}).
   \item \code{phenoData} from \code{pdata_path} annotation file with added columns:
     \itemize{
-      \item \code{quants_dir} directory within '\code{data_dir}/quants' containing salmon quantification results.
       \item \code{lib.size} library size from \code{\link[edgeR]{calcNormFactors}}.
       \item \code{norm.factors} library normalization factors from \code{\link[edgeR]{calcNormFactors}}.
     }

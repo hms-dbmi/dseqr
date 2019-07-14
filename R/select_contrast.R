@@ -11,7 +11,7 @@
 #'
 #' @examples
 #'
-#' eset_path <- system.file('extdata', 'IBD', 'eset.rds', package='drugseqr')
+#' eset_path <- system.file('extdata', 'IBD', 'eset.rds', package='drugseqr', mustWork = TRUE)
 #' eset <- readRDS(eset_path)
 #'
 #' select_contrast(eset)

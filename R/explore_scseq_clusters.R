@@ -1,25 +1,21 @@
 #' Explore Single Cell Clusters
 #'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object
-#' @param markers Named list of \code{data.frame}s where \code{row.names} are the marker genes. One list per cluster in \code{scseq}
-#'  with the same name as the cluster.
-#'
 #' @return NULL
 #' @export
 #'
 #' @examples
 #'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
+#' base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
 #'
-#' explore_scseq_clusters(data_dir, test_data = FALSE)
+#' explore_scseq_clusters(base_dir, test_data = FALSE)
 #'
 
-explore_scseq_clusters <- function(data_dir, test = FALSE, test_data = TRUE) {
+explore_scseq_clusters <- function(base_dir, test = FALSE, test_data = TRUE) {
 
   app_dir <- 'inst/app'
 
   # pass arguments to app through options then run
-  shiny::shinyOptions(data_dir = data_dir)
+  shiny::shinyOptions(base_dir = base_dir)
 
 
   if (test) {

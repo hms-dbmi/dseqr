@@ -172,8 +172,8 @@ as.SingleCellExperiment <- function(x, assay = NULL) {
 load_scseq_qcgenes <- function() {
 
   # load mito and ribo genes
-  rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr'))
-  mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr'))
+  rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr', mustWork = TRUE))
+  mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr', mustWork = TRUE))
 
   return(list(rrna=rrna, mrna=mrna))
 }

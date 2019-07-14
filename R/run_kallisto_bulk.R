@@ -21,19 +21,15 @@
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_kallisto_bulk(indices_dir, data_dir, pdata_path)
 #'
-run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL) {
-  # TODO: make it handle single and paired-end data
-  # now assumes single end
+run_kallisto_bulk <- function(indices_dir, data_dir, pdata, paired, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
+
+  # TODO: implement interaction between pairs and duplicates
+
+  # default updateProgress and number of steps
+  if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
 
   # get index_path
   index_path <- file.path(indices_dir, paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
-
-  # prompt user to select pairs/validate file names etc
-  if (is.null(pdata)) pdata <- select_pairs(data_dir)
-  pdata$quants_dir <- gsub('.fastq.gz$', '', pdata$`File Name`)
-
-  # save selections
-  saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
 
   # save quants here
   quants_dir <- file.path(data_dir, 'quants')
@@ -41,7 +37,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'ho
   dir.create(quants_dir)
 
   # specific flags for single end experiments
-  paired <- 'Pair' %in% colnames(pdata)
+  flags <- NULL
   if (!paired) {
     if (is.null(fl.mean)) {
       message('Single-end experiment but estimated average fragment length not provided. Setting to 200.')
@@ -61,6 +57,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'ho
 
   while (length(fastq_files)) {
 
+
     # grab next
     fastq_file <-fastq_files[1]
     row_num <- which(pdata$`File Name` == fastq_file)
@@ -71,6 +68,15 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'ho
       fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name', drop = TRUE]
     }
 
+    # include any pairs
+    pair_num <- pdata$Pair[row_num]
+    if (!is.null(pair_num) && !is.na(pair_num)) {
+      fastq_file <- pdata[pdata$Pair %in% pair_num, 'File Name', drop = TRUE]
+    }
+
+    # update progress
+    updateProgress(amount = length(fastq_file))
+
     # remove fastq_files for next quant loop
     fastq_files <- setdiff(fastq_files, fastq_file)
 
@@ -78,7 +84,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'ho
     fastq_path <- paste(shQuote(file.path(data_dir, fastq_file)), collapse = ' ')
 
     # save each sample in it's own folder
-    # use the first file name in any replicates
+    # use the first file name in any replicates/pairs
     sample_name <- gsub('.fastq.gz$', '', fastq_file[1])
     out_dir <- file.path(quants_dir, sample_name)
 
@@ -87,6 +93,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'ho
             args=c('quant',
                    '-i', index_path,
                    '-o', shQuote(out_dir),
+                   '-t', 6,
                    flags,
                    fastq_path))
   }

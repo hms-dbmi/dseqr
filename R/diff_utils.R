@@ -35,11 +35,11 @@
 #'
 #' @examples
 #'
-#' data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+#' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
 #' anal <- diff_expr(eset, data_dir)
 
-diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
+diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
 
   # check for annot column
   if (!annot %in% colnames(Biobase::fData(eset)))
@@ -69,7 +69,14 @@ diff_expr <- function (eset, data_dir, annot = "SYMBOL", svanal = TRUE, prev_ana
   }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
 
   # differential expression
-  anal <- diff_anal(dups$eset, dups$exprs_sva, setup$modsv, data_dir, annot, rna_seq)
+
+  anal <- diff_anal(eset = dups$eset,
+                    anal_name = anal_name,
+                    exprs_sva = dups$exprs_sva,
+                    modsv = setup$modsv,
+                    data_dir = data_dir,
+                    annot = annot,
+                    rna_seq = rna_seq)
   return (anal)
 }
 
@@ -97,7 +104,7 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
   svobj <- list("sv" = NULL)
 
   # make full and null model matrix
-  group_levels = c('control', 'test')
+  group_levels = c('ctrl', 'test')
   group <- factor(Biobase::pData(eset)$group, levels = group_levels)
 
   mod <- stats::model.matrix(~0 + group)
@@ -227,10 +234,10 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
 #'   meta-analysis.
 
 
-diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = TRUE){
+diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = TRUE){
 
-  group_levels <- c('control', 'test')
-  contrasts <- 'test-control'
+  group_levels <- c('ctrl', 'test')
+  contrasts <- 'test-ctrl'
 
   # differential expression (surrogate variables modeled and not)
   ebayes_sv <- fit_ebayes(eset, contrasts, modsv, rna_seq)
@@ -253,7 +260,7 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 
   # save to disk
   diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot)
-  save_name <- paste("diff_expr", tolower(annot), sep = "_")
+  save_name <- paste("diff_expr", tolower(annot), anal_name, sep = "_")
   save_name <- paste0(save_name, ".rds")
 
   saveRDS(diff_expr, file.path(data_dir, save_name))
@@ -272,6 +279,8 @@ diff_anal <- function(eset, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_se
 #' @return NULL
 #' @export
 plotMDS <- function(exprs, exprs_sva, group) {
+  suggests <- c('factoextra', 'MASS', 'plotly')
+  if (!is.installed(suggests, level = 'message')) return(NULL)
 
   # get_dist acts on rows
   exprs <- t(exprs)
@@ -290,7 +299,7 @@ plotMDS <- function(exprs, exprs_sva, group) {
   scaling <- dplyr::bind_rows(scaling, scaling_sva) %>%
     dplyr::rename('MDS_dimension_1' = V1,'MDS_dimension_2' = V2) %>%
     dplyr::mutate(Sample = rep(row.names(exprs), 2)) %>%
-    dplyr::mutate(Group = rep(factor(group, levels = c('control', 'test')), 2)) %>%
+    dplyr::mutate(Group = rep(factor(group, levels = c('ctrl', 'test')), 2)) %>%
     dplyr::mutate(SVA = rep(c('Without Surrogate Variable Analysis', 'With Surrogate Variable Analysis'), each = nrow(exprs)))
 
   # jitter by 2% of range
@@ -310,8 +319,13 @@ plotMDS <- function(exprs, exprs_sva, group) {
     ggplot2::coord_equal() +
     ggplot2::guides(alpha = FALSE, size = FALSE)
 
-  p <- plotly::ggplotly(mds_plot, tooltip = "Sample") %>%
-    plotly::config(displayModeBar = FALSE)
+  if (is.installed('plotly', level = 'message')) {
+    p <- plotly::ggplotly(mds_plot, tooltip = "Sample") %>%
+      plotly::config(displayModeBar = FALSE)
+
+  } else {
+    p <- mds_plot
+  }
 
 
   print(p)

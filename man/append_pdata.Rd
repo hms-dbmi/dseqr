@@ -20,7 +20,7 @@ Join CMAP02/L1000 pdata and query results.
 \examples{
 
 # load CMAP02 data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr')
+cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
 cmap_es <- readRDS(cmap_path)
 
 # load previous analysis

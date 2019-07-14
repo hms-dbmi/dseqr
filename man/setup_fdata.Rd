@@ -4,10 +4,7 @@
 \alias{setup_fdata}
 \title{Setup feature annotation data}
 \usage{
-setup_fdata(tx2gene)
-}
-\arguments{
-\item{tx2gene}{\code{data.frame} mapping transcripts to gene names. Returned from from \code{\link{get_tx2gene}}.}
+setup_fdata()
 }
 \value{
 \code{data.table} with columns \code{SYMBOL} and \code{ENTREZID_HS} corresponding to

@@ -4,7 +4,7 @@
 \alias{diff_expr}
 \title{Differential expression analysis of eset.}
 \usage{
-diff_expr(eset, data_dir, annot = "SYMBOL", svanal = TRUE,
+diff_expr(eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE,
   prev_anal = NULL)
 }
 \arguments{
@@ -47,7 +47,7 @@ and supplied to the \code{prev_anal} parameter. In this case, previous selection
 }
 \examples{
 
-data_dir <- system.file('extdata', 'IBD', package='drugseqr')
+data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 eset <- load_seq(data_dir)
 anal <- diff_expr(eset, data_dir)
 }
