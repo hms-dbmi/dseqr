@@ -260,7 +260,8 @@ advancedOptionsInput <- function(id) {
 
   withTags({
     div(id = ns('advanced-panel'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%')
+        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%'),
+        shinyWidgets::radioGroupButtons(ns('sort_by'), 'Sort based on correlation:', choices = c('minimum' = 'min_cor', 'average' = 'avg_cor'), justified = TRUE)
     )
   })
 }

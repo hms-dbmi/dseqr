@@ -225,12 +225,10 @@ explore_results <- function(cmap_res = NULL, l1000_res = NULL) {
 #' @return \code{data.frame} of perturbation correlations and annotations.
 #' @export
 #'
-study_table <- function(query_res, study, cells = NULL) {
-  query_res <- append_pdata(query_res, study)
+study_table <- function(query_res, study, cells = NULL, sort_by = c('min_cor', 'avg_cor')) {
+
   query_res <- limit_cells(query_res, cells)
-  query_res <- get_top(query_res)
-  query_res <- destructure_title(query_res, .after = 'Correlation')
-  query_res <- summarize_compound(query_res)
+  query_res <- summarize_compound(query_res, sort_by = sort_by[1])
   query_res <- add_table_html(query_res)
   return(query_res)
 }
@@ -267,37 +265,14 @@ limit_cells <- function(query_res, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-get_top <- function(query_res, nclinic = 100) {
+get_top <- function(query_cors, arrange_by, ntop = 300) {
 
-  # arrange by correlation
-  query_res <- query_res %>%
+  query_cors %>%
     dplyr::as_tibble() %>%
-    dplyr::arrange(Correlation) %>%
-    dplyr::mutate(Compound = gsub('^([^_]+)_.+?$', '\\1', title))
-
-  # add index to unique compounds
-  with_idx <- query_res %>%
-    dplyr::select(Compound, `Clinical Phase`) %>%
-    dplyr::distinct() %>%
-    dplyr::mutate(idx = 1:dplyr::n())
-
-  # get index to keep up to (n with clinical phase)
-  last_idx <- with_idx %>%
-    dplyr::filter(!is.na(`Clinical Phase`)) %>%
-    dplyr::pull(idx) %>%
-    dplyr::nth(nclinic)
-
-  # all compounds up to last
-  keep_compounds <- with_idx %>%
-    dplyr::filter(idx <= last_idx) %>%
+    dplyr::arrange_(arrange_by) %>%
+    head(ntop) %>%
     dplyr::pull(Compound)
 
-  # keep all entries of keep_compounds
-  query_res <- query_res %>%
-    dplyr::filter(Compound %in% keep_compounds) %>%
-    dplyr::select(-Compound)
-
-  return(query_res)
 }
 
 
@@ -319,35 +294,55 @@ get_top <- function(query_res, nclinic = 100) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-summarize_compound <- function(query_res) {
+summarize_compound <- function(query_res, sort_by, top = 200) {
+
+  # add Compound column
+  query_res <- tibble::add_column(query_res,
+                                  Compound = stringr::str_extract(query_res$title, '^[^_]+'), .after = 'Correlation')
+
 
   # group by compound
   query_res <- query_res %>%
     dplyr::group_by(Compound)
 
+  # put all correlations together in list
+  # keep minimum and average correlation for sorting
+  query_cors <- query_res %>%
+    dplyr::select(Correlation, Compound, `Clinical Phase`) %>%
+    dplyr::summarise(min_cor = min(Correlation),
+                     avg_cor = mean(Correlation),
+                     Correlation = I(list(Correlation)))
+
+  # compounds in top min or avg cor
+  top_min <- get_top(query_cors, 'min_cor')
+  top_avg <- get_top(query_cors, 'avg_cor')
+  top <- unique(c(top_min, top_avg))
+
+  # filter based on top
+  query_res <- query_res %>%
+    dplyr::filter(Compound %in% top)
+
+  query_cors <- query_cors %>%
+    dplyr::filter(Compound %in% top) %>%
+    dplyr::select(-Compound)
+
   # merge cell line, dose, and duration and samples for correlation titles
   query_res <- query_res %>%
-    tidyr::unite(title, 'Cell Line', 'Dose', 'Duration', 'Samples(n)')
+    dplyr::mutate(title = paste(stringr::str_replace(title, '^[^_]+_', ''), `Samples(n)`, sep = '_')) %>%
+    dplyr::select(-`Samples(n)`)
 
   query_title <- query_res %>%
     dplyr::select(title, Compound) %>%
     dplyr::summarize(title = I(list(title))) %>%
     dplyr::select(title)
 
-  # put all correlations together in list
-  # keep minimum correlation for sorting
-  query_cors <- query_res %>%
-    dplyr::select(Correlation, Compound) %>%
-    dplyr::summarise(min_cor = min(Correlation), Correlation = I(list(Correlation))) %>%
-    dplyr::select(Correlation, min_cor)
 
+  # keep furthest clinical phase
   summarise_phase <- function(phases) {
     if (all(is.na(phases))) return(phases[1])
     max(phases, na.rm = TRUE)
   }
 
-
-  # keep furthest clinical phase
   query_phase <- query_res %>%
     dplyr::select(`Clinical Phase`, Compound) %>%
     dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
@@ -371,8 +366,8 @@ summarize_compound <- function(query_res) {
     tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
 
   query_res <- dplyr::bind_cols(query_cors, query_rest, query_title) %>%
-    dplyr::arrange(min_cor) %>%
-    dplyr::select(-min_cor)
+    dplyr::arrange_(sort_by) %>%
+    dplyr::select(-avg_cor, -min_cor)
 
   return(query_res)
 }

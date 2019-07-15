@@ -91,7 +91,7 @@ dsPage <- function(input, output, session, data_dir) {
 
     anals_path <- file.path(data_dir, 'analysed.rds')
     anals <- readRDS(anals_path)
-    anals[[dataset_name]] <- c(anals[[anal_name]], anal_path)
+    anals[[dataset_name]] <- c(anals[[dataset_name]], anal_path)
     saveRDS(anals, anals_path)
 
     new_anal(anal_path)
@@ -294,7 +294,7 @@ dsSelectedDataset <- function(input, output, session, data_dir, new_dataset) {
       dir <- prev_paths()[which(ds == input$dataset_name)]
     }
 
-    normalizePath(dir)
+    return(dir)
   })
 
 
@@ -664,6 +664,7 @@ drugsPage <- function(input, output, session, new_anal, bulk_dir) {
              l1000_res = form$l1000_res,
              drug_study = form$drug_study,
              cells = form$cells,
+             sort_by = form$sort_by,
              show_clinical = form$show_clinical)
 
 
@@ -698,6 +699,7 @@ drugsForm <- function(input, output, session, new_anal, bulk_dir) {
     l1000_res = querySignature$l1000_res,
     drug_study = drugStudy$drug_study,
     cells = advancedOptions$cells,
+    sort_by = advancedOptions$sort_by,
     show_clinical = drugStudy$show_clinical
   ))
 
@@ -736,7 +738,7 @@ selectedDrugStudy <- function(input, output, session, study_choices) {
 
 
   return(list(
-    drug_study = reactive(input$study),
+    drug_study = drug_study,
     show_clinical = show_clinical,
     show_advanced = show_advanced
   ))
@@ -799,6 +801,10 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
       cmap_res <- query_drugs(dprimes, cmap_es)
       l1000_res <- query_drugs(dprimes, l1000_es)
 
+      # pre-append pdata for speed
+      cmap_res <- append_pdata(cmap_res, 'CMAP02')
+      l1000_res <- append_pdata(l1000_res, 'L1000')
+
       saveRDS(cmap_res, cmap_res_path)
       saveRDS(l1000_res, l1000_res_path)
     }
@@ -845,6 +851,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
   })
 
 
+
   # update choices for cell lines
   shiny::observe({
     req(drug_study())
@@ -858,7 +865,8 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
   })
 
   return(list(
-    cells = reactive(input$cells)
+    cells = reactive(input$cells),
+    sort_by = reactive(input$sort_by)
   ))
 
 }
@@ -866,22 +874,22 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' Logic for drug table
 #' @export
 #' @keywords internal
-drugsTable <- function(input, output, session, cmap_res, l1000_res, drug_study, cells, show_clinical) {
+drugsTable <- function(input, output, session, cmap_res, l1000_res, drug_study, cells, show_clinical, sort_by) {
 
   # generate table to display
   query_res <- shiny::reactive({
     drug_study <- drug_study()
 
-    req(drug_study)
+    req(drug_study, sort_by())
     if (drug_study == 'L1000') {
       l1000_res <- l1000_res()
       req(l1000_res)
-      query_res <- study_table(l1000_res, 'L1000', cells())
+      query_res <- study_table(l1000_res, 'L1000', cells(), sort_by = sort_by())
 
     } else if (drug_study == 'CMAP02') {
       cmap_res <- cmap_res()
       req(cmap_res)
-      query_res <- study_table(cmap_res, 'CMAP02', cells())
+      query_res <- study_table(cmap_res, 'CMAP02', cells(), sort_by = sort_by())
     }
 
     # for removing entries without a clinical phase

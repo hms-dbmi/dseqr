@@ -6,6 +6,7 @@
 #' @examples
 #'
 #' base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
+#' base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD'
 #'
 #' explore_scseq_clusters(base_dir, test_data = FALSE)
 #'
