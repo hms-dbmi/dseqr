@@ -468,8 +468,11 @@ add_table_html <- function(query_res) {
   query_res$title <- NULL
 
   cors_range <- range(unlist(cors))
+  # centerline x
+  cx <- calcx(0, cors_range)
+
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
-                            <line x1="90" x2="90" y1="0" y2="38" style="stroke: rgb(221, 221, 221); shape-rendering: crispEdges; stroke-width: 1px; stroke-dasharray: 3, 3;"></line>',
+                            <line class="centerline" x1="',cx,'" x2="',cx,'" y1="0" y2="38"></line>',
                                   get_cors_html(cors, titles, cors_range),
                                   '</svg>')
 

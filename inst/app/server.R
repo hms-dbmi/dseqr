@@ -830,11 +830,8 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
 #' @keywords internal
 advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
 
-
-
   # available cell lines
   cmap_cells <- reactive({
-    browser()
     cmap_res <- cmap_res()
     req(cmap_res)
     cmap_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', cmap_res$title))

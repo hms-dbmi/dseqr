@@ -49,3 +49,11 @@ td.sim-cell {
   fill: red; 
   stroke: #443;
 }
+
+.simplot line.centerline {
+  stroke: rgb(221, 221, 221); 
+  shape-rendering: crispEdges; 
+  stroke-width: 1px; 
+  stroke-dasharray: 3, 3;
+
+}
