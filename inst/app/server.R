@@ -834,15 +834,16 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 
   # available cell lines
   cmap_cells <- reactive({
+    browser()
     cmap_res <- cmap_res()
     req(cmap_res)
-    cmap_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', names(cmap_res)))
+    cmap_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', cmap_res$title))
   })
 
   l1000_cells <- reactive({
     l1000_res <- l1000_res()
     req(l1000_res)
-    l1000_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', names(l1000_res)))
+    l1000_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', l1000_res$title))
   })
 
   #  toggle button styling and showing advanced options
@@ -939,7 +940,7 @@ server <- function(input, output, session) {
   # get arguments from calling function
   # defaults for server
   # base directory contains data_dir folder
-  base_dir <- getShinyOption('base_dir', '/srv/shiny-server/drugseqr')
+  base_dir <- getShinyOption('base_dir', '/srv/shiny-server/drugseqr/data_dir')
 
   # for testing don't seem to be able to pass arguments as options
   if (isTRUE(getOption('shiny.testmode'))) {
