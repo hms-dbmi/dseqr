@@ -680,8 +680,7 @@ drugsForm <- function(input, output, session, new_anal, bulk_dir) {
                                new_anal = new_anal,
                                bulk_dir = bulk_dir)
 
-  drugStudy <- callModule(selectedDrugStudy, 'drug_study',
-                          study_choices = querySignature$study_choices)
+  drugStudy <- callModule(selectedDrugStudy, 'drug_study')
 
 
   advancedOptions <- callModule(advancedOptions, 'advanced',
@@ -718,7 +717,7 @@ drugsForm <- function(input, output, session, new_anal, bulk_dir) {
 #' Logic for selected drug study
 #' @export
 #' @keywords internal
-selectedDrugStudy <- function(input, output, session, study_choices) {
+selectedDrugStudy <- function(input, output, session) {
 
 
   drug_study <- reactive(input$study)
@@ -728,10 +727,9 @@ selectedDrugStudy <- function(input, output, session, study_choices) {
     input$advanced %% 2 != 0
   })
 
-  observe({
-    req(study_choices())
-    updateSelectizeInput(session, 'study', choices = study_choices())
-  })
+
+  updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000'), selected = NULL)
+
 
 
 
@@ -760,29 +758,27 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
 
   cmap_res <- reactiveVal()
   l1000_res <- reactiveVal()
-  study_choices <- reactiveVal()
-  anals <- reactiveVal()
 
-  # reset choices if new analysis
-  observe({
+  # reload query choices if new analysis
+  query_choices <- reactive({
     new_anal()
-    anals(readRDS(anals_path))
-    study_choices(NULL)
+    readRDS(anals_path)
   })
 
-
   observe({
-    req(anals())
-    updateSelectizeInput(session, 'query', choices = anals())
+    anals <- query_choices()
+    req(anals)
+    updateSelectizeInput(session, 'query', choices = anals)
   })
 
   observe({
     query_path <- input$query
+    anals <- query_choices()
     req(query_path)
     query_dir <- dirname(query_path)
 
-    anal_names <- sapply(anals(), names)
-    anal_dirs <- unlist(anals())
+    anal_names <- sapply(anals, names)
+    anal_dirs <- unlist(anals)
     anal_name <- anal_names[which(anal_dirs == query_path)]
 
     # load or run drug queries
@@ -796,11 +792,11 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
     } else {
 
       # load drug studies
-      cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
-      cmap_es <- readRDS(cmap_path)
-
+      cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
       l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
+      cmap_es  <- readRDS(cmap_path)
       l1000_es <- readRDS(l1000_path)
+
 
       # get dprime effect size values for analysis
       anal <- readRDS(query_path)
@@ -814,18 +810,14 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
       saveRDS(l1000_res, l1000_res_path)
     }
 
-
     cmap_res(cmap_res)
     l1000_res(l1000_res)
-    study_choices(c('CMAP02', 'L1000'))
-
   })
 
 
   return(list(
     cmap_res = cmap_res,
-    l1000_res = l1000_res,
-    study_choices = study_choices
+    l1000_res = l1000_res
   ))
 
 }

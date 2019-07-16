@@ -3,6 +3,8 @@ library(dplyr)
 library(tidyr)
 library(drugseqr)
 
+pkgconfig::set_config("dplyr::na_matches" = "never")
+
 # function definitions ----
 
 # non UTF-8 encoded character cause DT alerts on filtering
@@ -40,6 +42,19 @@ rename_cols <- function(annot) {
                   `Vendor Name` = vendor_name)
 
   return(annot)
+}
+
+destructure_title <- function(pdata, drop = TRUE, ...) {
+  title_split <- strsplit(pdata$title, '_')
+
+  pdata <- tibble::add_column(pdata,
+                              'Compound'  = sapply(title_split, `[`, 1),
+                              'Cell Line' = sapply(title_split, `[`, 2),
+                              'Dose'      = sapply(title_split, `[`, 3),
+                              'Duration'  = sapply(title_split, `[`, 4), ...)
+
+  if (drop) pdata$title <- NULL
+  return(pdata)
 }
 
 setup_annot <- function(annot, study) {
@@ -179,7 +194,8 @@ annot <- annot %>%
   group_by(pert_iname) %>%
   fill(everything()) %>%
   fill(everything(), .direction = 'up') %>%
-  ungroup()
+  ungroup() %>%
+  distinct()
 
 # CMAP02/L1000 setup ----
 
