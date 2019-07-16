@@ -209,7 +209,7 @@ drugsTableOutput <- function(id) {
 
   withTags({
     div(class = 'dt-container',
-        DT::dataTableOutput(ns("query_res"))
+        DT::dataTableOutput(ns("query_table"))
     )
   })
 }

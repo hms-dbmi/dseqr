@@ -660,8 +660,7 @@ drugsPage <- function(input, output, session, new_anal, bulk_dir) {
 
   # the output table
   callModule(drugsTable, 'table',
-             cmap_res = form$cmap_res,
-             l1000_res = form$l1000_res,
+             query_res = form$query_res,
              drug_study = form$drug_study,
              cells = form$cells,
              sort_by = form$sort_by,
@@ -691,12 +690,22 @@ drugsForm <- function(input, output, session, new_anal, bulk_dir) {
                                 drugStudy$drug_study,
                                 drugStudy$show_advanced)
 
+  query_res <- reactive({
+    drug_study <- drugStudy$drug_study()
+    cmap_res = querySignature$cmap_res()
+    l1000_res = querySignature$l1000_res()
+    req(drug_study, cmap_res, l1000_res)
+
+    if (drug_study == 'CMAP02') return(cmap_res)
+    if (drug_study == 'L1000') return(l1000_res)
+
+  })
+
 
 
 
   return(list(
-    cmap_res = querySignature$cmap_res,
-    l1000_res = querySignature$l1000_res,
+    query_res = query_res,
     drug_study = drugStudy$drug_study,
     cells = advancedOptions$cells,
     sort_by = advancedOptions$sort_by,
@@ -801,10 +810,6 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
       cmap_res <- query_drugs(dprimes, cmap_es)
       l1000_res <- query_drugs(dprimes, l1000_es)
 
-      # pre-append pdata for speed
-      cmap_res <- append_pdata(cmap_res, 'CMAP02')
-      l1000_res <- append_pdata(l1000_res, 'L1000')
-
       saveRDS(cmap_res, cmap_res_path)
       saveRDS(l1000_res, l1000_res_path)
     }
@@ -831,35 +836,24 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
 advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
 
   # available cell lines
-  cmap_cells <- reactive({
-    cmap_res <- cmap_res()
-    req(cmap_res)
-    cmap_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', cmap_res$title))
+  cmap_cells <- unique(cmap_annot$cell)
+  l1000_cells <- unique(l1000_annot$cell)
+
+  # update choices for cell lines based on selected study
+  cell_choices <- shiny::reactive({
+    req(drug_study())
+    if (drug_study() == 'L1000') return(l1000_cells)
+    else if (drug_study() == 'CMAP02') return(cmap_cells)
   })
 
-  l1000_cells <- reactive({
-    l1000_res <- l1000_res()
-    req(l1000_res)
-    l1000_cells  <- unique(gsub('^[^_]+_([^_]+)_.+?$', '\\1', l1000_res$title))
-  })
-
-  #  toggle button styling and showing advanced options
+  #  toggle  showing advanced options
   shiny::observe({
     toggle('advanced-panel', condition = show_advanced(), anim = TRUE)
   })
 
-
-
   # update choices for cell lines
   shiny::observe({
-    req(drug_study())
-    if (drug_study() == 'L1000') {
-      cell_choices <- l1000_cells()
-
-    } else if (drug_study() == 'CMAP02') {
-      cell_choices <- cmap_cells()
-    }
-    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices, selected = NULL)
+    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices(), selected = NULL)
   })
 
   return(list(
@@ -872,50 +866,84 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' Logic for drug table
 #' @export
 #' @keywords internal
-drugsTable <- function(input, output, session, cmap_res, l1000_res, drug_study, cells, show_clinical, sort_by) {
+#' @importFrom magrittr "%>%"
+drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by) {
 
-  # generate table to display
-  query_res <- shiny::reactive({
+  # will update with proxy to prevent redraw
+  dummy_table <- data.frame('Correlation' = NA,
+                            'Compound' = NA,
+                            'Clinical Phase' = NA,
+                            'External Links' = NA,
+                            'MOA' = NA,
+                            'Target' = NA,
+                            'Disease Area' = NA,
+                            'Indication' = NA,
+                            'Vendor' = NA,
+                            'Catalog #' = NA,
+                            'Vendor Name' = NA, check.names = FALSE)
+
+  # get either cmap or l1000 annotations
+  drug_annot <- reactive({
     drug_study <- drug_study()
+    req(drug_study)
 
-    req(drug_study, sort_by())
-    if (drug_study == 'L1000') {
-      l1000_res <- l1000_res()
-      req(l1000_res)
-      query_res <- study_table(l1000_res, 'L1000', cells(), sort_by = sort_by())
-
-    } else if (drug_study == 'CMAP02') {
-      cmap_res <- cmap_res()
-      req(cmap_res)
-      query_res <- study_table(cmap_res, 'CMAP02', cells(), sort_by = sort_by())
-    }
-
-    # for removing entries without a clinical phase
-    if (show_clinical()) {
-      query_res <- tibble::as_tibble(query_res)
-      query_res <- dplyr::filter(query_res, !is.na(.data$`Clinical Phase`))
-    }
-
-    return(query_res)
+    if (drug_study == 'CMAP02') return(cmap_annot)
+    else if (drug_study == 'L1000') return(l1000_annot)
   })
 
-  # show query data
-  output$query_res <- DT::renderDataTable({
-
+  # add annotations to query result
+  query_table_full <- reactive({
     query_res <- query_res()
+    drug_annot <- drug_annot()
+    req(query_res, drug_annot)
+    stopifnot(all.equal(drug_annot$title, names(query_res)))
+
+    tibble::add_column(drug_annot, Correlation = query_res, .before=0)
+  })
+
+  # subset to selected cells, summarize by compound, and add html
+  query_table_summarised <- reactive({
+    query_table_full <- query_table_full()
+    req(query_table_full)
+
+    query_table <- query_table_full %>%
+      limit_cells(cells()) %>%
+      summarize_compound() %>%
+      add_table_html()
+  })
+
+  query_table_final <- reactive({
+    query_table <- query_table_summarised()
+    req(query_table)
+
+    # subset by clinical phase
+    if (show_clinical()) query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
+
+    # sort as desired
+    dplyr::arrange(query_table, !!sym(sort_by())) %>%
+      select(-min_cor, -avg_cor)
+  })
+
+
+  # show query data
+  output$query_table <- DT::renderDataTable({
+    # redraw if drug study changes
+    drug_study()
+
+    # ellipses for wide columns
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
-    elipsis_targets <- which(colnames(query_res) %in% wide_cols) - 1
+    elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
 
     DT::datatable(
-      query_res,
+      dummy_table,
       class = 'cell-border',
       rownames = FALSE,
       selection = 'none',
       escape = FALSE, # to allow HTML in table
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
-                          list(targets = elipsis_targets, render = DT::JS(
+                          list(targets = c(4,5,6,7), render = DT::JS(
                             "function(data, type, row, meta) {",
                             "return type === 'display' && data !== null && data.length > 17 ?",
                             "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
@@ -929,6 +957,14 @@ drugsTable <- function(input, output, session, cmap_res, l1000_res, drug_study, 
       )
     )
   }, server = TRUE)
+
+  # proxy used to replace data
+  proxy <- DT::dataTableProxy("query_table")
+  observe({
+    query_table <- query_table_final()
+    req(query_table)
+    DT::replaceData(proxy, query_table, rownames = FALSE)
+  })
 }
 
 
