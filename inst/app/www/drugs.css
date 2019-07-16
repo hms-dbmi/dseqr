@@ -55,5 +55,10 @@ td.sim-cell {
   shape-rendering: crispEdges; 
   stroke-width: 1px; 
   stroke-dasharray: 3, 3;
+}
 
+.simplot.show-meanline line.meanline {
+  stroke-width: 1px;
+  stroke: dodgerblue; 
+  shape-rendering: crispEdges;
 }

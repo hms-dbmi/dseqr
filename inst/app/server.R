@@ -914,21 +914,24 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 
   query_table_final <- reactive({
     query_table <- query_table_summarised()
-    req(query_table)
+    sort_by <- sort_by()
+    req(query_table, sort_by)
 
     # subset by clinical phase
     if (show_clinical()) query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
 
+    if (sort_by == 'avg_cor') {
+      query_table$Correlation <- gsub('simplot', 'simplot show-meanline', query_table$Correlation)
+    }
+
     # sort as desired
-    dplyr::arrange(query_table, !!sym(sort_by())) %>%
+    dplyr::arrange(query_table, !!sym(sort_by)) %>%
       select(-min_cor, -avg_cor)
   })
 
 
   # show query data
   output$query_table <- DT::renderDataTable({
-    # redraw if drug study changes
-    drug_study()
 
     # ellipses for wide columns
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')

@@ -217,12 +217,14 @@ add_table_html <- function(query_res) {
   titles <- query_res$cor_title
   query_res$cor_title <- NULL
 
-  cors_range <- range(unlist(cors))
-  # centerline x
-  cx <- calcx(0, cors_range)
 
-  query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">
-                            <line class="centerline" x1="',cx,'" x2="',cx,'" y1="0" y2="38"></line>',
+  cors_range <- range(unlist(cors))
+  xcenter <- calcx(0, cors_range)
+  xmean <- calcx(query_res$avg_cor, cors_range)
+
+  query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">',
+                                  paste0('<line class="meanline" x1="', xmean,'" x2="', xmean,'" y1="0" y2="8"></line>'),
+                                  '<line class="centerline" x1="', xcenter,'" x2="', xcenter,'" y1="0" y2="38"></line>',
                                   get_cors_html(cors, titles, cors_range),
                                   '</svg>')
 
