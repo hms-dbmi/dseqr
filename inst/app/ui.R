@@ -56,18 +56,37 @@ dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    div(id = ns('anal_name_container'),
-        textInput(ns('anal_name'), 'Analysis name:', container_id = ns('anal_name_container'), help_id = ns('anal_name_help'))
+    selectizeInputWithValidation(
+      ns('anal_name'),
+      'Analysis name:',
+      options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
+      container_id = ns('anal_name_container'),
+      help_id = ns('anal_name_help')
     ),
-    justifiedButtonGroup(
-      id = ns('anal_labels'),
-      label = 'Label selected rows:',
-      help_block = span(id = ns('labels_help'), class = 'help-block'),
-      actionButton(ns('test'), 'Test'),
-      actionButton(ns('ctrl'), 'Control'),
-      actionButton(ns('reset'), 'Reset')
-    ),
-    actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
+    div(id = ns('anal_buttons_panel'),
+      justifiedButtonGroup(
+        id = ns('anal_labels'),
+        label = 'Label selected rows:',
+        help_block = span(id = ns('labels_help'), class = 'help-block'),
+        actionButton(ns('test'), 'Test'),
+        actionButton(ns('ctrl'), 'Control'),
+        actionButton(ns('reset'), 'Reset')
+      ),
+      actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
+    )
+  )
+}
+
+selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL) {
+  options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
+
+  tags$div(class = 'form-group selectize-fh', id = container_id,
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(
+             tags$select(id = id, style = 'display: none'),
+             tags$script(type = 'application/json', `data-for` = id, HTML(options))
+           ),
+           tags$span(class = 'help-block', id = help_id)
   )
 }
 
@@ -246,14 +265,9 @@ querySignatureInput <- function(id) {
   withTags({
     div(class = 'form-group selectize-fh',
         label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('query'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))
-            ),
-            div(class = 'input-group-btn',
-                shinyBS::bsButton(ns('run_query'), label = '', icon = icon('search'), title = 'Run query')
-            )
+        div(
+          select(id = ns('query'), style = 'display: none'),
+          script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))
         )
     )
   })
