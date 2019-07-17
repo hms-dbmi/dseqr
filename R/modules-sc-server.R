@@ -665,17 +665,11 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
   })
 
 
-  output$genecards <- renderUI({
+  observeEvent(input$genecards, {
     gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
-    ns <- session$ns
-    withTags({
-      a(class = 'btn btn-default',
-        href = gene_link, target = '_blank',
-        icon('external-link-alt', 'fa-fw')
-      )
-
-    })
+    runjs(paste0("window.open('", gene_link, "')"))
   })
+
 
   # reset selected gene if analysis changes
   observeEvent(selected_anal(), {
