@@ -1,42 +1,74 @@
 dsPage <- function(input, output, session, data_dir) {
 
 
-  new_anal <- reactiveVal()
-  new_dataset <- reactiveVal()
+  quant_anal <- reactiveVal()
+  quant_dataset <- reactiveVal()
+  msg_quant <- reactiveVal()
+  msg_anal <- reactiveVal()
 
   dsForm <- callModule(dsForm, 'form', data_dir,
-                       new_dataset = new_dataset)
+                       quant_dataset = quant_dataset,
+                       msg_quant = msg_quant,
+                       msg_anal = msg_anal)
 
 
   observe({
-    toggle('new_table_container', condition = dsForm$show_new())
-    toggle('prev_table_container', condition = dsForm$show_prev())
+    toggle('quant_table_container', condition = dsForm$show_quant())
+    toggle('anal_table_container', condition = dsForm$show_anal())
   })
 
-  new_pdata <- callModule(dsNewDatasetTable, 'new',
-                          fastq_dir = dsForm$fastq_dir,
-                          labels = dsForm$new_labels,
-                          paired = dsForm$paired)
+  dsQuantTable <- callModule(dsQuantDatasetTable, 'quant',
+                             fastq_dir = dsForm$fastq_dir,
+                             labels = dsForm$quant_labels,
+                             paired = dsForm$paired)
 
-  dsPrevTable <- callModule(dsPrevDatasetTable, 'prev',
+  dsAnalTable <- callModule(dsAnalDatasetTable, 'anal',
                             fastq_dir = dsForm$fastq_dir,
-                            labels = dsForm$prev_labels)
+                            labels = dsForm$anal_labels)
 
-  # run quantification for new dataset
+  observe({
+    msg_quant(dsQuantTable$valid_msg())
+  })
+
+  validate_pdata <- function(pdata) {
+    group <- pdata$Group
+    group <- group[!is.na(group)]
+
+    if (length(unique(group)) != 2) {
+      msg <- 'Analysis requires test and control groups'
+
+    } else if (length(group) < 3) {
+      msg <- 'At least three samples are required for analysis'
+
+    } else {
+      msg <- NULL
+    }
+    return(msg)
+  }
+
+  observe({
+    pdata <- dsAnalTable$pdata()
+    valid_msg <- validate_pdata(pdata)
+    msg_anal(valid_msg)
+  })
+
+  # run quantification for quant dataset
   observeEvent(dsForm$run_quant(), {
+    #TODO make not hardcoded
     indices_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/indices/kallisto'
 
+
     # setup
-    pdata <- new_pdata()
+    pdata <- dsQuantTable$pdata()
     paired <- dsForm$paired()
-    fastq_dir <- dsForm$fastq_dir()
+    dataset_dir <- dsForm$dataset_dir()
     dataset_name <- dsForm$dataset_name()
 
     # disable inputs
     shinyjs::disable(selector = 'input')
 
     # Create a Progress object
-    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
+    progress <- Progress$quant(session, min=0, max = nrow(pdata)+1)
     progress$set(message = "Quantifying files", value = 0)
     # Close the progress when this reactive exits (even if there's an error)
     on.exit(progress$close())
@@ -47,6 +79,7 @@ dsPage <- function(input, output, session, data_dir) {
     }
 
     # quantification
+    fastq_dir <- file.path(data_dir, 'bulk', dataset_dir)
     run_kallisto_bulk(indices_dir = indices_dir,
                       data_dir = fastq_dir,
                       pdata = pdata,
@@ -56,105 +89,138 @@ dsPage <- function(input, output, session, data_dir) {
     # generate eset and save
     progress$set(message = 'Annotating dataset')
     eset <- load_seq(fastq_dir)
-    new_dataset(dataset_name)
+    quant_dataset(dataset_name)
 
-    # save in file to indicate that has been quantified
-    quant_path <- file.path(data_dir, 'quantified.rds')
-    names(fastq_dir) <- dataset_name
-
-    quant <- readRDS(quant_path)
-    saveRDS(c(quant, fastq_dir), quant_path)
+    # save to bulk datasets to indicate that has been quantified
+    add_bulk_dataset(dataset_name, dataset_dir, data_dir)
 
     # re-enable inputs
     shinyjs::enable(selector = 'input')
     progress$inc(1)
   })
 
-  observeEvent(dsForm$run_diff(), {
 
-    eset <- dsPrevTable$eset()
-    pdata <- dsPrevTable$pdata()
+  observeEvent(dsForm$run_anal(), {
+    # visual that running
+    disable(selector = 'input')
+
+    progress <- Progress$quant(session, min=0, max = 2)
+    progress$set(message = "Differential expression", value = 1)
+    on.exit(progress$close())
+
+    # get what need
+    eset <- dsAnalTable$eset()
+    pdata <- dsAnalTable$pdata()
     fastq_dir <- dsForm$fastq_dir()
-    anal_name <- dsForm$anal_name()
+
     dataset_name <- dsForm$dataset_name()
-    req(eset, pdata, fastq_dir, anal_name)
+    dataset_dir <- dsForm$dataset_dir()
+    anal_name <- dsForm$anal_name()
+
+    req(eset, pdata, fastq_dir, anal_name, dataset_dir)
 
     # setup for non-interactive differential expression
     colnames(pdata) <- tolower(colnames(pdata))
+    pdata <- pdata[!is.na(pdata$group), ]
     pdata <- data.frame(pdata, row.names = pdata$title)
 
-    diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
+    # run
+    diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, anal_anal = list(pdata = pdata))
 
-    # add to previously analysis
-    anal_path <- file.path(fastq_dir, paste0('diff_expr_symbol_', anal_name, '.rds'))
-    names(anal_path) <- anal_name
+    # add to analious anals
+    save_bulk_anals(dataset_name = dataset_name,
+                    dataset_dir = dataset_dir,
+                    anal_name = anal_name,
+                    data_dir = data_dir)
 
-    anals_path <- file.path(data_dir, 'analysed.rds')
-    anals <- readRDS(anals_path)
-    anals[[dataset_name]] <- c(anals[[dataset_name]], anal_path)
-    saveRDS(anals, anals_path)
 
-    new_anal(anal_path)
+    # visual that done
+    progress$inc(1)
+    enable(selector = 'input')
+    quant_anal(anal_name)
   })
 
 
   return(list(
-    new_anal = new_anal,
+    quant_anal = quant_anal,
     data_dir = dsForm$fastq_dir
   ))
 
 
 }
 
-dsForm <- function(input, output, session, data_dir, new_dataset) {
+save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
+  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
+  anals <- readRDS(anals_path)
+
+  anals[nrow(anals)+1, ] <- c(dataset_name, dataset_dir, anal_name)
+  saveRDS(anals, anals_path)
+}
+
+
+dsForm <- function(input, output, session, data_dir, quant_dataset, msg_quant, msg_anal) {
 
   dataset <- callModule(dsSelectedDataset, 'selected_dataset',
                         data_dir = data_dir,
-                        new_dataset = new_dataset)
+                        quant_dataset = quant_dataset)
 
 
-  # show new, previous or neither
-  show_new <- reactive({
+  # show quant, analious or neither
+  show_quant <- reactive({
     dataset$dataset_name() != '' && dataset$is.create()
   })
-  show_prev <- reactive({
+  show_anal <- reactive({
     dataset$dataset_name() != '' && !dataset$is.create()
   })
 
 
   observe({
-    toggle('new_dataset_panel', condition = show_new())
-    toggle('prev_dataset_panel', condition = show_prev())
+    toggle('quant_dataset_panel', condition = show_quant())
+    toggle('anal_dataset_panel', condition = show_anal())
   })
 
-  new <- callModule(dsFormNew, 'new_dataset',
-                    fastq_dir = dataset$fastq_dir)
+  quant <- callModule(dsFormQuant, 'quant_form',
+                      fastq_dir = dataset$fastq_dir,
+                      error_msg = msg_quant)
 
-  prev <- callModule(dsFormPrev, 'prev_dataset')
+  anal <- callModule(dsFormAnal, 'anal_form',
+                     error_msg = msg_anal)
 
 
   return(list(
     fastq_dir = dataset$fastq_dir,
-    paired = new$paired,
-    new_labels = new$labels,
-    prev_labels = prev$labels,
-    run_quant = new$run_quant,
-    run_diff = prev$run_diff,
+    paired = quant$paired,
+    quant_labels = quant$labels,
+    anal_labels = anal$labels,
+    run_quant = quant$run_quant,
+    run_anal = anal$run_anal,
     dataset_name = dataset$dataset_name,
-    anal_name = prev$anal_name,
-    show_new = show_new,
-    show_prev = show_prev
+    dataset_dir = dataset$dataset_dir,
+    anal_name = anal$anal_name,
+    show_quant = show_quant,
+    show_anal = show_anal
   ))
 
 }
 
-dsFormNew <- function(input, output, session, fastq_dir) {
+dsFormQuant <- function(input, output, session, fastq_dir, error_msg) {
 
   paired <- callModule(dsEndType, 'end_type',
                        fastq_dir = fastq_dir)
 
-  labels <- callModule(dsLabelNewRows, 'label_rows',
-                       paired = paired)
+  observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
+
+
+  reset <- reactive(input$reset)
+  rep <- reactive(input$rep)
+  pair <- reactive(input$pair)
+
+  observe({
+    error_msg <- error_msg()
+    toggleClass('quant_labels', 'has-error', condition = !is.null(error_msg))
+    html('error_msg', html = error_msg)
+
+  })
 
   quantModal <- function() {
     modalDialog(
@@ -189,81 +255,135 @@ dsFormNew <- function(input, output, session, fastq_dir) {
 
   return(list(
     paired = paired,
-    labels = labels,
+    labels = list(
+      reset = reset,
+      pair = pair,
+      rep = rep
+    ),
     run_quant = run_quant
   ))
 }
 
 
-dsFormPrev <- function(input, output, session) {
+dsFormAnal <- function(input, output, session, error_msg) {
 
 
-  run <- reactiveVal()
-  labels <- callModule(dsLabelPrevRows, 'label_rows')
+  run_anal <- reactiveVal()
+  labels <- list(
+      test = reactive(input$test),
+      ctrl = reactive(input$ctrl),
+      reset = reactive(input$reset)
+  )
 
   anal_name <- reactive(input$anal_name)
 
-  observeEvent(input$run_diff, {
+  has_anal_name <- reactive(anal_name() != '')
 
-    if (anal_name() == '') {
+  # clear anal name error if type
+  observe({
+    if (has_anal_name()) {
+      removeClass('anal_name_container' ,'has-error')
+      html('anal_name_help', '')
+    }
+  })
+
+  # clear labels error on click
+  observe({
+    input$test
+    input$ctrl
+    input$reset
+    removeClass('anal_labels', 'has-error')
+    html('labels_help', '')
+  })
+
+  observeEvent(input$run_anal, {
+    # check for analysis name
+    if (!has_anal_name()) {
+      addClass('anal_name_container', 'has-error')
+      html('anal_name_help', 'Requires analysis name.')
       return(NULL)
     }
 
-    run(input$run_diff)
+    # check that pdata is correct
+    error_msg <- error_msg()
+    if (!is.null(error_msg)) {
+      addClass('anal_labels', 'has-error')
+      html('labels_help', error_msg)
+      return(NULL)
+    }
+
+    run_anal(input$run_anal)
   })
 
   return(list(
     labels = labels,
-    run_diff = run,
+    run_anal = run_anal,
     anal_name = anal_name
   ))
 }
 
 
-dsLabelNewRows <- function(input, output, session, paired) {
+save_bulk_dataset <- function(dataset_name, dataset_dir, data_dir) {
+  datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
+  datasets <- readRDS(datasets_path)
 
-  observe(
-    shinyjs::toggleClass("pair", 'disabled', condition = !paired())
-  )
-
-  return(list(
-    reset = reactive(input$reset),
-    rep = reactive(input$rep),
-    pair = reactive(input$pair)
-  ))
+  datasets[nrow(datasets)+1, ] <- c(dataset_name, dataset_dir)
+  saveRDS(datasets, datasets_path)
 }
 
-dsSelectedDataset <- function(input, output, session, data_dir, new_dataset) {
+load_bulk_datasets <-function(data_dir) {
+  datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
 
-  quant_path <- file.path(data_dir, 'quantified.rds')
-  if (!file.exists(quant_path)) saveRDS('', quant_path)
+  if (file.exists(datasets_path)) {
+    datasets <- readRDS(datasets_path)
 
-  # dataset names/dirs stored as names/values in quantified.rds
-  prev_paths <- reactiveVal(readRDS(quant_path))
-  prev_datasets <- reactive(names(prev_paths()))
-  is.create <- reactiveVal(FALSE)
+  } else {
+    datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
+    colnames(datasets) <- c("dataset_name", "dataset_dir")
+    saveRDS(datasets, datasets_path)
+  }
+
+  datasets$value <-  datasets$label <- datasets$dataset_name
+
+  return(datasets)
+}
+
+
+
+dsSelectedDataset <- function(input, output, session, data_dir, quant_dataset) {
+
 
   # get directory with fastqs
-  bulk_dir <- c('bulk' = data_dir)
-  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = bulk_dir)
+  roots <- c('bulk' = file.path(data_dir, 'bulk'))
+  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
 
-  # update prev_paths/datasets if new one quantified
-  observe({
-    req(new_dataset())
-    prev_paths(readRDS(quant_path))
+
+  datasets <- reactive({
+    quant_dataset()
+    load_bulk_datasets(data_dir)
+  })
+
+  dataset_name <- reactive(input$dataset_name)
+
+  dataset <- reactive({
+    datasets <- datasets()
+    dataset_name <- dataset_name()
+
+    datasets[datasets$dataset_name == dataset_name, ]
+  })
+
+  # is the dataset a quant one?
+  is.create <- reactive({
+    dataset_name <- dataset_name()
+    datasets <- datasets()
+    req(dataset_name)
+
+    !dataset_name %in% datasets$dataset_name
   })
 
   observe({
-    req(prev_datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = prev_datasets())
-  })
-
-
-  # is the dataset a new one?
-  observe({
-    req(input$dataset_name)
-    # for creating new
-    is.create(!input$dataset_name %in% prev_datasets())
+    req(datasets())
+    updateSelectizeInput(session, 'dataset_name', choices = datasets(), server = TRUE)
   })
 
   # add disabled class if not creating
@@ -280,29 +400,35 @@ dsSelectedDataset <- function(input, output, session, data_dir, new_dataset) {
     }
   })
 
-
-  fastq_dir <- reactive({
-    req(input$dataset_name)
+  dataset_dir <- reactive({
+    dataset_name <- dataset_name()
+    req(dataset_name)
 
     if (is.create()) {
       req(input$dataset_dir)
-      dir <- shinyFiles::parseDirPath(bulk_dir, input$dataset_dir)
+      dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
+      dir <- basename(as.character(dir))
     }
     else {
-      ds <- prev_datasets()
-      req(ds)
-      dir <- prev_paths()[which(ds == input$dataset_name)]
+      datasets <- datasets()
+      req(datasets)
+      dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
     }
-
     return(dir)
   })
 
 
-  dataset_name <- reactive(input$dataset_name)
+  fastq_dir <- reactive({
+    dataset_dir <- dataset_dir()
+    req(dataset_dir)
+    file.path(data_dir, 'bulk', dataset_dir)
+  })
+
 
   return(list(
-    dataset_name = dataset_name,
     fastq_dir = fastq_dir,
+    dataset_name = dataset_name,
+    dataset_dir = dataset_dir,
     is.create = is.create
   ))
 
@@ -310,6 +436,7 @@ dsSelectedDataset <- function(input, output, session, data_dir, new_dataset) {
 
 
 dsEndType <- function(input, output, session, fastq_dir) {
+
 
   # get fastq files in directory
   fastq_files <- reactive({
@@ -345,12 +472,13 @@ dsEndType <- function(input, output, session, fastq_dir) {
 }
 
 
-dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired) {
+dsQuantDatasetTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # things user will update and return
   pdata_r <- reactiveVal()
   pairs_r <- reactiveVal()
   reps_r <- reactiveVal()
+  valid_msg <- reactiveVal()
 
 
   # colors
@@ -363,10 +491,11 @@ dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired)
   ncolors <- length(group_colors)
 
 
-  # reset everything when new fastq_dir
+  # reset everything when quant fastq_dir
   observeEvent(fastq_dir(), {
     fastq_dir <- fastq_dir()
     req(fastq_dir)
+
 
     pdata_path <- file.path(fastq_dir, 'pdata.rds')
 
@@ -385,7 +514,7 @@ dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired)
     reps_r(pdata$Replicate)
   })
 
-  # redraw table when new pdata (otherwise update data using proxy)
+  # redraw table when quant pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
 
     DT::datatable(
@@ -473,7 +602,10 @@ dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired)
     rows  <- input$pdata_rows_selected
 
     # check for incomplete/wrong input
-    if (validate_pairs(pairs, rows, reps)) {
+    msg <- validate_pairs(pairs, rows, reps)
+    valid_msg(msg)
+
+    if (is.null(msg)) {
 
       # add rows as a pair
       pair_num <- length(unique(setdiff(pairs, NA))) + 1
@@ -491,7 +623,10 @@ dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired)
 
     # get rows
     rows  <- input$pdata_rows_selected
-    if (validate_reps(pairs, rows, reps)) {
+    msg <- validate_reps(pairs, rows, reps)
+    valid_msg(msg)
+
+    if (is.null(msg)) {
       # add rows as replicates
       rep_num <- length(unique(setdiff(reps, NA))) + 1
       reps[rows] <- rep_num
@@ -508,11 +643,14 @@ dsNewDatasetTable <- function(input, output, session, fastq_dir, labels, paired)
     pairs_r(clear)
   })
 
-  return(returned_pdata)
+  return(list(
+    pdata = returned_pdata,
+    valid_msg = valid_msg
+  ))
 }
 
 
-dsPrevDatasetTable <- function(input, output, session, fastq_dir, labels) {
+dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels) {
 
   background <- '#e9305d url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
@@ -540,7 +678,7 @@ dsPrevDatasetTable <- function(input, output, session, fastq_dir, labels) {
     return(pdata)
   })
 
-  # reset when new eset
+  # reset when quant eset
   observe({
     eset <- eset()
     req(eset)
@@ -554,7 +692,7 @@ dsPrevDatasetTable <- function(input, output, session, fastq_dir, labels) {
 
 
 
-  # redraw table when new pdata (otherwise update data using proxy)
+  # redraw table when quant pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
 
     DT::datatable(
@@ -635,15 +773,9 @@ dsPrevDatasetTable <- function(input, output, session, fastq_dir, labels) {
 }
 
 
-dsLabelPrevRows <- function(input, output, session, fastq_dir) {
+dsLabelAnalRows <- function(input, output, session, fastq_dir) {
 
-  return(list(
-    test = reactive(input$test),
-    ctrl = reactive(input$ctrl),
-    reset = reactive(input$reset),
-    rep = reactive(input$rep),
-    pair = reactive(input$pair)
-  ))
+
 }
 
 
@@ -651,12 +783,12 @@ dsLabelPrevRows <- function(input, output, session, fastq_dir) {
 #' Logic for Drugs page
 #' @export
 #' @keywords internal
-drugsPage <- function(input, output, session, new_anal, bulk_dir) {
+drugsPage <- function(input, output, session, quant_anal, data_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
-                     new_anal = new_anal,
-                     bulk_dir = bulk_dir)
+                     quant_anal = quant_anal,
+                     data_dir = data_dir)
 
   # the output table
   callModule(drugsTable, 'table',
@@ -674,30 +806,30 @@ drugsPage <- function(input, output, session, new_anal, bulk_dir) {
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
-drugsForm <- function(input, output, session, new_anal, bulk_dir) {
+drugsForm <- function(input, output, session, quant_anal, data_dir) {
 
   querySignature <- callModule(querySignature, 'signature',
-                               new_anal = new_anal,
-                               bulk_dir = bulk_dir)
+                               quant_anal = quant_anal,
+                               data_dir = data_dir)
 
-  drugStudy <- callModule(selectedDrugStudy, 'drug_study')
-
+  drugStudy <- callModule(selectedDrugStudy, 'drug_study',
+                          anal = querySignature$anal)
 
   advancedOptions <- callModule(advancedOptions, 'advanced',
-                                querySignature$cmap_res,
-                                querySignature$l1000_res,
-                                drugStudy$drug_study,
-                                drugStudy$show_advanced)
+                                cmap_res = querySignature$cmap_res,
+                                l1000_res = querySignature$l1000_res,
+                                drug_study = drugStudy$drug_study,
+                                show_advanced = drugStudy$show_advanced)
 
   query_res <- reactive({
     drug_study <- drugStudy$drug_study()
-    cmap_res = querySignature$cmap_res()
-    l1000_res = querySignature$l1000_res()
-    req(drug_study, cmap_res, l1000_res)
+    cmap_res <- querySignature$cmap_res()
+    l1000_res <- querySignature$l1000_res()
 
     if (drug_study == 'CMAP02') return(cmap_res)
     if (drug_study == 'L1000') return(l1000_res)
 
+    return(NULL)
   })
 
 
@@ -717,7 +849,7 @@ drugsForm <- function(input, output, session, new_anal, bulk_dir) {
 #' Logic for selected drug study
 #' @export
 #' @keywords internal
-selectedDrugStudy <- function(input, output, session) {
+selectedDrugStudy <- function(input, output, session, anal) {
 
 
   drug_study <- reactive(input$study)
@@ -727,11 +859,10 @@ selectedDrugStudy <- function(input, output, session) {
     input$advanced %% 2 != 0
   })
 
-
-  updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000'), selected = NULL)
-
-
-
+  observe({
+    req(anal())
+    updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000'), selected = NULL)
+  })
 
   # toggle for clinical status
   show_clinical <- reactive({
@@ -752,64 +883,113 @@ selectedDrugStudy <- function(input, output, session) {
 
 }
 
-querySignature <- function(input, output, session, new_anal, bulk_dir) {
-  anals_path <- file.path(bulk_dir, 'analysed.rds')
-  if (!file.exists(anals_path)) saveRDS(list(), anals_path)
+load_bulk_anals <- function(data_dir) {
+  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
+
+  if (file.exists(anals_path)) {
+    anals <- readRDS(anals_path)
+
+  } else {
+    anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
+    colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
+    saveRDS(anals, anals_path)
+  }
+
+  anals$label <- anals$anal_name
+  anals$value <- 1:nrow(anals)
+
+  return(anals)
+
+}
+
+querySignature <- function(input, output, session, quant_anal, data_dir) {
+
 
   cmap_res <- reactiveVal()
   l1000_res <- reactiveVal()
+  is_saved <- reactiveVal(FALSE)
 
-  # reload query choices if new analysis
-  query_choices <- reactive({
-    new_anal()
-    readRDS(anals_path)
-  })
+  # reload query choices if quant analysis
+  anals <- reactive(load_bulk_anals(data_dir))
 
   observe({
-    anals <- query_choices()
+    anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'query', choices = anals)
+    updateSelectizeInput(session, 'query', choices = anals, server = TRUE)
   })
 
+  anal <- reactive({
+    row_num <- input$query
+    anals <- anals()
+    req(row_num, anals)
+
+    anals[row_num, ]
+  })
+
+
+  # paths to drug query results
+  res_paths <- reactive({
+    anal <- anal()
+    dataset_dir <- file.path(data_dir, 'bulk', anal$dataset_dir)
+    anal_name <- anal$anal_name
+
+    list(
+      cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
+      l1000 = file.path(dataset_dir, paste0('l1000_res_', anal_name, '.rds'))
+    )
+  })
+
+
+  # get saved cmap/l1000 query results
   observe({
-    query_path <- input$query
-    anals <- query_choices()
-    req(query_path)
-    query_dir <- dirname(query_path)
+    res_paths <- res_paths()
 
-    anal_names <- sapply(anals, names)
-    anal_dirs <- unlist(anals)
-    anal_name <- anal_names[which(anal_dirs == query_path)]
+    # load if available
+    if (file.exists(res_paths$cmap)) {
+      cmap_res <- readRDS(res_paths$cmap)
+      l1000_res <- readRDS(res_paths$l1000)
 
-    # load or run drug queries
-    cmap_res_path <- file.path(query_dir, paste0('cmap_res_', anal_name, '.rds'))
-    l1000_res_path <- file.path(query_dir, paste0('l1000_res_', anal_name, '.rds'))
-
-    if (file.exists(cmap_res_path)) {
-      cmap_res <- readRDS(cmap_res_path)
-      l1000_res <- readRDS(l1000_res_path)
+      is_saved(TRUE)
 
     } else {
-
-      # load drug studies
-      cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
-      l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
-      cmap_es  <- readRDS(cmap_path)
-      l1000_es <- readRDS(l1000_path)
-
-
-      # get dprime effect size values for analysis
-      anal <- readRDS(query_path)
-      dprimes <- get_dprimes(anal)
-
-      # get correlations between query and drug signatures
-      cmap_res <- query_drugs(dprimes, cmap_es)
-      l1000_res <- query_drugs(dprimes, l1000_es)
-
-      saveRDS(cmap_res, cmap_res_path)
-      saveRDS(l1000_res, l1000_res_path)
+      cmap_res <- l1000_res <- NULL
+      is_saved(FALSE)
     }
+    cmap_res(cmap_res)
+    l1000_res(l1000_res)
+  })
 
+  # disable running if saved
+  observe({
+    toggleState('run_query', condition = !is_saved())
+  })
+
+  # run query
+  observeEvent(input$run_query, {
+    res_paths <- res_paths()
+    anal_path <- file.path(bulk_dir, input$query)
+
+    disable('run_query')
+
+    # load drug studies
+    cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
+    cmap_es  <- readRDS(cmap_path)
+    l1000_es <- readRDS(l1000_path)
+
+
+    # get dprime effect size values for analysis
+    anal <- readRDS(anal_path)
+    dprimes <- get_dprimes(anal)
+
+    # get correlations between query and drug signatures
+    cmap_res <- query_drugs(dprimes, cmap_es)
+    l1000_res <- query_drugs(dprimes, l1000_es)
+
+    saveRDS(cmap_res, res_paths$cmap)
+    saveRDS(l1000_res, res_paths$l1000)
+
+    is_saved(TRUE)
     cmap_res(cmap_res)
     l1000_res(l1000_res)
   })
@@ -817,7 +997,9 @@ querySignature <- function(input, output, session, new_anal, bulk_dir) {
 
   return(list(
     cmap_res = cmap_res,
-    l1000_res = l1000_res
+    l1000_res = l1000_res,
+    is_saved = is_saved,
+    anal = anal
   ))
 
 }
@@ -861,7 +1043,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by) {
 
-  # will update with proxy to prevent redraw
+  # will update with proxy to analent redraw
   dummy_table <- data.frame('Correlation' = NA,
                             'Compound' = NA,
                             'Clinical Phase' = NA,
@@ -886,6 +1068,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   # add annotations to query result
   query_table_full <- reactive({
     query_res <- query_res()
+    if (is.null(query_res)) return(NULL)
+
     drug_annot <- drug_annot()
     req(query_res, drug_annot)
     stopifnot(all.equal(drug_annot$title, names(query_res)))
@@ -896,7 +1080,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   # subset to selected cells, summarize by compound, and add html
   query_table_summarised <- reactive({
     query_table_full <- query_table_full()
-    req(query_table_full)
+    if (is.null(query_table_full)) return(NULL)
 
     query_table <- query_table_full %>%
       limit_cells(cells()) %>%
@@ -906,8 +1090,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 
   query_table_final <- reactive({
     query_table <- query_table_summarised()
+    if (is.null(query_table)) return(NULL)
     sort_by <- sort_by()
-    req(query_table, sort_by)
 
     # subset by clinical phase
     if (show_clinical()) query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
@@ -924,6 +1108,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 
   # show query data
   output$query_table <- DT::renderDataTable({
+    req(drug_study())
 
     # ellipses for wide columns
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
@@ -954,12 +1139,12 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   }, server = TRUE)
 
   # proxy used to replace data
+  # low priority to make sure data has been rendered
   proxy <- DT::dataTableProxy("query_table")
-  observe({
+  observeEvent(query_table_final(), {
     query_table <- query_table_final()
-    req(query_table)
     DT::replaceData(proxy, query_table, rownames = FALSE)
-  })
+  }, priority = -1, ignoreNULL = FALSE)
 }
 
 
@@ -968,7 +1153,7 @@ server <- function(input, output, session) {
   # get arguments from calling function
   # defaults for server
   # base directory contains data_dir folder
-  base_dir <- getShinyOption('base_dir', '/srv/shiny-server/drugseqr/data_dir')
+  data_dir <- getShinyOption('data_dir', '/srv/shiny-server/drugseqr/data_dir')
 
   # for testing don't seem to be able to pass arguments as options
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -981,27 +1166,24 @@ server <- function(input, output, session) {
     file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
   }
 
-  # start in base directory so that everything is relative to this locally and on server
-  setwd(base_dir)
+  sc_dir <- file.path(data_dir, 'single-cell')
+  bulk_dir <- file.path(data_dir, 'bulk')
 
-  sc_dir <- 'single-cell'
-  bulk_dir <- 'bulk'
-
-  if (!dir.exists(sc_dir)) dir.create(sc_dir)
-  if (!dir.exists(bulk_dir)) dir.create(bulk_dir)
+  dir.create(sc_dir, showWarnings = FALSE)
+  dir.create(bulk_dir, showWarnings = FALSE)
 
 
   # single cell analysis and options
   scPage <- callModule(scPage, 'sc',
-                       data_dir = sc_dir)
+                       sc_dir = sc_dir)
 
   dsPage <- callModule(dsPage, 'datasets',
-                       data_dir = bulk_dir)
+                       data_dir = data_dir)
 
 
   drugsPage <- callModule(drugsPage, 'drug',
-                          new_anal = dsPage$new_anal,
-                          bulk_dir = bulk_dir)
+                          quant_anal = dsPage$quant_anal,
+                          data_dir = data_dir)
 
 
 

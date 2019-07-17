@@ -261,31 +261,29 @@ select_pairs <- function(data_dir) {
 #'
 validate_pairs <- function(pairs, rows, reps) {
 
-  valid <- FALSE
-
   rep_rows <- reps[rows]
   all_rep_rows <- all(rep_rows %in% rows, na.rm = TRUE)
 
   if (length(rows) < 2) {
-    message("Select at least two rows to mark as pairs.")
+    msg <- "Select at least two rows to mark as pairs."
 
   } else if (!anyNA(rep_rows) && length(unique(rep_rows)) < 2) {
-    message("Select at least two non-replicate rows to mark as pairs.")
+    msg <- "Select at least two non-replicate rows to mark as pairs."
 
   } else if (!anyNA(rep_rows) && !all_rep_rows) {
-    message("All replicates must be included in the same pair.")
+    msg <- "All replicates must be included in the same pair."
 
   } else if (length(unique(rep_rows)) > 2) {
-    message("A pair must include exactly two replicate groups or one replicate group and one additional sample.")
+    msg <- "A pair must include exactly two replicate groups or one replicate group and one additional sample."
 
   } else if (!all(is.na(pairs[rows]))) {
-    message("Selected row(s) already belong to a pair. Click 'Reset' if you need to start over.")
+    msg <- "Selected row(s) already belong to a pair. Click 'Reset' if you need to start over."
 
   } else {
-    valid <- TRUE
+    msg <- NULL
   }
 
-  return(valid)
+  return(msg)
 }
 
 #' Validate sample replicates for RNA seq
@@ -296,24 +294,21 @@ validate_pairs <- function(pairs, rows, reps) {
 #' @export
 #' @keywords internal
 validate_reps <- function(pairs, rows, reps) {
-  valid <- FALSE
-
-  rep_rows <- reps[rows]
 
   if (length(rows) < 2) {
-    message("Select at least two rows to mark as replicates.")
+    msg <- "Select at least two rows to mark as replicates."
 
   } else if (!all(is.na(reps[rows]))) {
-    message("Selected row(s) already belong to a replicate. Click 'Reset' if you need to start over.")
+    msg <- "Selected row(s) already belong to a replicate. Click 'Reset' if you need to start over."
 
   } else if (!all(is.na(pairs[rows]))) {
-    message("Replicates must be specified first for paired samples that include replicates. Click 'Reset' if you need to start over.")
+    msg <- "Replicates must be specified first for paired samples that include replicates. Click 'Reset' if you need to start over."
 
   } else {
-    valid <- TRUE
+    msg <- NULL
   }
 
-  return(valid)
+  return(msg)
 }
 
 

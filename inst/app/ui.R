@@ -9,11 +9,11 @@ dsPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            div(id = ns('new_table_container'), style = 'display: none;',
-                dsTable(ns('new'))
+            div(id = ns('quant_table_container'), style = 'display: none;',
+                dsTable(ns('quant'))
             ),
-            div(id = ns('prev_table_container'), style = 'display: none;',
-                dsTable(ns('prev'))
+            div(id = ns('anal_table_container'), style = 'display: none;',
+                dsTable(ns('anal'))
             )
     )
   })
@@ -25,61 +25,59 @@ dsFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         dsSelectedDatasetInput(ns('selected_dataset')),
-        div(id = ns('new_dataset_panel'), style = 'display: none;',
-            dsFormNewInput(ns('new_dataset'))
+        div(id = ns('quant_dataset_panel'), style = 'display: none;',
+            dsFormQuantInput(ns('quant_form'))
         ),
-        div(id = ns('prev_dataset_panel'), style = 'display: none;',
-            dsFormPrevInput(ns('prev_dataset'))
+        div(id = ns('anal_dataset_panel'), style = 'display: none;',
+            dsFormAnalInput(ns('anal_form'))
         )
     )
   })
 }
 
-dsFormNewInput <- function(id) {
+dsFormQuantInput <- function(id) {
   ns <- NS(id)
 
   tagList(
     dsEndTypeInput(ns('end_type')),
-    dsLabelNewRowsUI(ns('label_rows')),
+    justifiedButtonGroup(
+      id = ns('quant_labels'),
+      label = 'Label selected rows:',
+      help_block = span(id = ns('error_msg'), class = 'help-block'),
+      actionButton(ns('pair'), 'Paired'),
+      actionButton(ns('rep'), 'Replicate'),
+      actionButton(ns('reset'), 'Reset')
+    ),
     actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-primary')
   )
 }
 
-dsFormPrevInput <- function(id) {
+dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    textInput(ns('anal_name'), 'Analysis name:', width = '100%'),
-    dsLabelPrevRowsUI(ns('label_rows')),
-    actionButton(ns('run_diff'), 'Run Analysis', width = '100%', class = 'btn-primary')
+    div(id = ns('anal_name_container'),
+        textInput(ns('anal_name'), 'Analysis name:', container_id = ns('anal_name_container'), help_id = ns('anal_name_help'))
+    ),
+    justifiedButtonGroup(
+      id = ns('anal_labels'),
+      label = 'Label selected rows:',
+      help_block = span(id = ns('labels_help'), class = 'help-block'),
+      actionButton(ns('test'), 'Test'),
+      actionButton(ns('ctrl'), 'Control'),
+      actionButton(ns('reset'), 'Reset')
+    ),
+    actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
   )
 }
 
-dsLabelNewRowsUI <- function(id) {
-  ns <- NS(id)
-  justifiedButtonGroup(
-    label = 'Label selected rows:',
-    actionButton(ns('pair'), 'Paired'),
-    actionButton(ns('rep'), 'Replicate'),
-    actionButton(ns('reset'), 'Reset')
-  )
-}
 
-dsLabelPrevRowsUI <- function(id) {
-  ns <- NS(id)
-  justifiedButtonGroup(
-    label = 'Label selected rows:',
-    actionButton(ns('test'), 'Test'),
-    actionButton(ns('ctrl'), 'Control'),
-    actionButton(ns('reset'), 'Reset')
-  )
-}
 
 dsSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add new dataset'),
+    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add quant dataset'),
                               button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
                                      `data-title` = 'Folder with fastq.gz files',
                                      title = 'Select folder with fastq.gz files',
@@ -114,6 +112,14 @@ textInputWithButtons <- function(id, label, ...) {
   )
 }
 
+textInput <- function(id, label, container_id = NULL, help_id = NULL) {
+  tags$div(class = 'form-group selectize-fh', id = container_id,
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
+           tags$span(class='help-block', id = help_id)
+  )
+}
+
 selectizeInputWithButtons <- function(id, label, options = NULL, ...) {
 
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
@@ -141,14 +147,15 @@ dropdownMenuButton <- function(id, label) {
   )
 }
 
-justifiedButtonGroup <- function(label, ...) {
-  tags$div(class = 'form-group selectize-fh',
+justifiedButtonGroup <- function(..., label, id = NULL, help_block = NULL) {
+  tags$div(class = 'form-group selectize-fh', id = id,
            tags$label(class = 'control-label',  label),
            tags$div(class = 'btn-group btn-group-justified', role = 'group',
                     lapply(list(...), function(btn) {
                       tags$div(class = 'btn-group', role = 'group', btn)
                     })
-           )
+           ),
+           help_block
   )
 }
 
@@ -242,7 +249,7 @@ querySignatureInput <- function(id) {
         div(class = 'input-group',
             div(
               select(id = ns('query'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('query'), HTML('{}'))
+              script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))
             ),
             div(class = 'input-group-btn',
                 shinyBS::bsButton(ns('run_query'), label = '', icon = icon('search'), title = 'Run query')
@@ -292,7 +299,7 @@ selectedDrugStudyInput <- function(id) {
 
 #-----
 tabs <- c('Datasets', 'Single Cell', 'Drugs')
-active <- 'Drugs'
+active <- 'Datasets'
 
 bootstrapPage(
   useShinyjs(),

@@ -1,11 +1,11 @@
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
-scPage <- function(input, output, session, data_dir) {
+scPage <- function(input, output, session, sc_dir) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
-                       data_dir = data_dir)
+                       sc_dir = sc_dir)
 
 
   callModule(scClusterPlot, 'cluster_plot',
@@ -55,7 +55,7 @@ scPage <- function(input, output, session, data_dir) {
 #' Logic for form on Single Cell Exploration page
 #' @export
 #' @keywords internal
-scForm <- function(input, output, session, data_dir) {
+scForm <- function(input, output, session, sc_dir) {
 
   # updates if new integrated dataset
   new_anal <- reactive({
@@ -65,12 +65,12 @@ scForm <- function(input, output, session, data_dir) {
 
   # the analysis and options
   scAnal <- callModule(selectedAnal, 'anal',
-                       data_dir = data_dir,
+                       sc_dir = sc_dir,
                        new_anal = new_anal)
 
   # integration stuff
   scIntegration <- callModule(integrationForm, 'integration',
-                              data_dir = data_dir,
+                              sc_dir = sc_dir,
                               anal_options = scAnal$anal_options,
                               show_integration = scAnal$show_integration)
 
@@ -153,7 +153,7 @@ scForm <- function(input, output, session, data_dir) {
 #' Logic for selected analysis part of scForm
 #' @export
 #' @keywords internal
-selectedAnal <- function(input, output, session, data_dir, new_anal) {
+selectedAnal <- function(input, output, session, sc_dir, new_anal) {
 
   selected_anal <- reactive({
     req(input$selected_anal)
@@ -162,7 +162,7 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
 
   # get's used for saving annotation to disc
   annot_path <- reactive({
-    scseq_part_path(data_dir, selected_anal(), 'annot')
+    scseq_part_path(sc_dir, selected_anal(), 'annot')
   })
 
   # load annotation for clusters
@@ -173,7 +173,7 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
   # load scseq and name using annot
   scseq <- reactive({
 
-    scseq_path <- scseq_part_path(data_dir, selected_anal(), 'scseq')
+    scseq_path <- scseq_part_path(sc_dir, selected_anal(), 'scseq')
     scseq <- readRDS(scseq_path)
 
     if (Seurat::DefaultAssay(scseq) == 'integrated')
@@ -191,7 +191,7 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
   markers <- reactive({
     req(annot())
 
-    markers_path <- scseq_part_path(data_dir, selected_anal(), 'markers')
+    markers_path <- scseq_part_path(sc_dir, selected_anal(), 'markers')
     markers <- readRDS(markers_path)
     names(markers) <- annot()
     return(markers)
@@ -205,12 +205,12 @@ selectedAnal <- function(input, output, session, data_dir, new_anal) {
     new_anal()
 
     # make sure integrated rds exists
-    int_path <- file.path(data_dir, 'integrated.rds')
+    int_path <- file.path(sc_dir, 'integrated.rds')
     if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
     # use saved anals as options
-    integrated <- readRDS(file.path(data_dir, 'integrated.rds'))
-    individual <- setdiff(list.files(data_dir), c(integrated, 'integrated.rds'))
+    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
     # must be a list if length one for option groups to work
     if (length(integrated) == 1) integrated <- list(integrated)
@@ -275,7 +275,7 @@ showIntegration <- function(input, output, session) {
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, data_dir, anal_options, show_integration) {
+integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
 
 
   integration_name <- reactive(input$integration_name)
@@ -338,7 +338,7 @@ integrationForm <- function(input, output, session, data_dir, anal_options, show
 
 
       # run integration
-      integrate_saved_scseqs(data_dir,
+      integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
                              anal_name = anal_name,

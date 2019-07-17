@@ -3,6 +3,7 @@ library(drugseqr)
 library(shiny)
 library(shinyjs)
 library(shinyWidgets)
+library(dplyr)
 
 
 # setup Drugs table annotation
