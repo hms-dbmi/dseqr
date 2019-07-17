@@ -24,7 +24,7 @@ dsFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        dsSelectedDatasetInput(ns('selected_dataset')),
+        dsDatasetInput(ns('selected_dataset')),
         div(id = ns('quant_dataset_panel'), style = 'display: none;',
             dsFormQuantInput(ns('quant_form'))
         ),
@@ -92,7 +92,7 @@ selectizeInputWithValidation <- function(id, label, options = NULL, container_id
 
 
 
-dsSelectedDatasetInput <- function(id) {
+dsDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({

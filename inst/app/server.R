@@ -2,16 +2,14 @@ dsPage <- function(input, output, session, data_dir) {
 
 
   new_anal <- reactiveVal()
-  quant_dataset <- reactiveVal()
+  new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
   msg_anal <- reactiveVal()
-  is_prev_anal <- reactiveVal()
 
   dsForm <- callModule(dsForm, 'form', data_dir,
-                       quant_dataset = quant_dataset,
+                       new_dataset = new_dataset,
                        msg_quant = msg_quant,
-                       msg_anal = msg_anal,
-                       is_prev_anal = is_prev_anal)
+                       msg_anal = msg_anal)
 
 
   observe({
@@ -19,25 +17,22 @@ dsPage <- function(input, output, session, data_dir) {
     toggle('anal_table_container', condition = dsForm$show_anal())
   })
 
-  dsQuantTable <- callModule(dsQuantDatasetTable, 'quant',
+  dsQuantTable <- callModule(dsQuantTable, 'quant',
                              fastq_dir = dsForm$fastq_dir,
                              labels = dsForm$quant_labels,
                              paired = dsForm$paired)
 
-  dsAnalTable <- callModule(dsAnalDatasetTable, 'anal',
+  dsAnalTable <- callModule(dsAnalTable, 'anal',
                             fastq_dir = dsForm$fastq_dir,
                             labels = dsForm$anal_labels,
                             data_dir = data_dir,
-                            dataset_name = dsForm$dataset_name,
+                            dataset_dir = dsForm$dataset_dir,
                             anal_name = dsForm$anal_name)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
   })
 
-  observe({
-    is_prev_anal(dsAnalTable$is_prev_anal())
-  })
 
   observe({
     pdata <- dsAnalTable$pdata()
@@ -82,7 +77,7 @@ dsPage <- function(input, output, session, data_dir) {
     # generate eset and save
     progress$set(message = 'Annotating dataset')
     eset <- load_seq(fastq_dir)
-    quant_dataset(dataset_name)
+    new_dataset(dataset_name)
 
     # save to bulk datasets to indicate that has been quantified
     add_bulk_dataset(dataset_name, dataset_dir, data_dir)
@@ -168,11 +163,11 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
 }
 
 
-dsForm <- function(input, output, session, data_dir, quant_dataset, msg_quant, msg_anal, is_prev_anal) {
+dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg_anal) {
 
-  dataset <- callModule(dsSelectedDataset, 'selected_dataset',
+  dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
-                        quant_dataset = quant_dataset)
+                        new_dataset = new_dataset)
 
 
   # show quant, anals or neither
@@ -197,8 +192,7 @@ dsForm <- function(input, output, session, data_dir, quant_dataset, msg_quant, m
   anal <- callModule(dsFormAnal, 'anal_form',
                      error_msg = msg_anal,
                      data_dir = data_dir,
-                     dataset_name = dataset$dataset_name,
-                     is_prev_anal = is_prev_anal)
+                     dataset_name = dataset$dataset_name)
 
 
   return(list(
@@ -280,7 +274,7 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg) {
 }
 
 
-dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, is_prev_anal) {
+dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir) {
 
 
   run_anal <- reactiveVal()
@@ -290,9 +284,10 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     reset = reactive(input$reset)
   )
 
-  observe({
-    toggle('anal_buttons_panel', condition = is_prev_anal())
-  })
+  anal_name <- reactive(input$anal_name)
+  has_anal_name <- reactive(anal_name() != '')
+
+
 
   # analyses (can be multiple) from dataset
   dataset_anals <- reactive({
@@ -307,9 +302,14 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     updateSelectizeInput(session, 'anal_name', choices = dataset_anals())
   })
 
-  anal_name <- reactive(input$anal_name)
+  is_prev_anal <- reactive({
+    anal_name() %in% setdiff(dataset_anals(), '')
+  })
 
-  has_anal_name <- reactive(anal_name() != '')
+  observe({
+    toggle('anal_buttons_panel', condition = !is_prev_anal())
+  })
+
 
   # clear anal name error if type
   observe({
@@ -382,7 +382,7 @@ load_bulk_datasets <-function(data_dir) {
 
 
 
-dsSelectedDataset <- function(input, output, session, data_dir, quant_dataset) {
+dsDataset <- function(input, output, session, data_dir, new_dataset) {
 
 
   # get directory with fastqs
@@ -391,7 +391,7 @@ dsSelectedDataset <- function(input, output, session, data_dir, quant_dataset) {
 
 
   datasets <- reactive({
-    quant_dataset()
+    new_dataset()
     load_bulk_datasets(data_dir)
   })
 
@@ -497,7 +497,7 @@ dsEndType <- function(input, output, session, fastq_dir) {
 }
 
 
-dsQuantDatasetTable <- function(input, output, session, fastq_dir, labels, paired) {
+dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # things user will update and return
   pdata_r <- reactiveVal()
@@ -675,7 +675,7 @@ dsQuantDatasetTable <- function(input, output, session, fastq_dir, labels, paire
 }
 
 
-dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels, data_dir, dataset_name, anal_name) {
+dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dataset_dir, anal_name) {
 
   background <- '#e9305d url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
@@ -694,32 +694,31 @@ dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels, data_d
   # pdata that gets returned with group column
   returned_pdata <- reactive({
     pdata <- pdata_r()
+    req(pdata)
 
     pdata$Group <- group_r()
-
     return(pdata)
   })
 
-  # path to previous analysis
-  anal_path <- reactive({
+  # path to saved group
+  group_path <- reactive({
     anal_name <- anal_name()
-    anals <- load_bulk_anals(data_dir)
-    dataset_dir <- anals$dataset_dir[anals$dataset_name == dataset_name() & anals$anal_name == anal_name()]
-    if (!length(dataset_dir) | anal_name == '') return(NULL)
-
-    anal_file <- paste0('diff_expr_symbol_', anal_name(), '.rds')
-    file.path(data_dir, 'bulk', dataset_dir, anal_file)
+    dataset_dir <- dataset_dir()
+    group_file <- paste0('group_', anal_name, '.rds')
+    file.path(data_dir, 'bulk', dataset_dir, group_file)
   })
 
-  is_prev_anal <- reactive(is.null(anal_path()))
+  observeEvent(group_path(), {
+    group_path <- group_path()
+    if (file.exists(group_path)) {
+      group_r(readRDS(group_path))
+    } else {
+      saveRDS(group_r(), group_path)
+    }
+  })
 
-  # pdata from previous analysis
-  analysed_pdata <- reactive({
-    anal_path <- anal_path()
-    if (is.null(anal_path)) return(NULL)
-
-    anal <- readRDS(anal_path)
-    anal$pdata
+  observeEvent(group_r(), {
+    saveRDS(group_r(), group_path())
   })
 
 
@@ -735,14 +734,6 @@ dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels, data_d
     group_r(group)
   })
 
-  # update groups if have analysed pdata
-  observe({
-    anal_pdata <- analysed_pdata()
-    pdata <- pdata_r()
-    pdata[row.names(anal_pdata), 'Group'] <- anal_pdata$group
-    group <- pdata$Group
-    group_r(group)
-  })
 
   # redraw table when new pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
@@ -788,6 +779,7 @@ dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels, data_d
   })
 
 
+
   # click 'Test'
   shiny::observeEvent(labels$test(), {
     test <- labels$test()
@@ -821,8 +813,7 @@ dsAnalDatasetTable <- function(input, output, session, fastq_dir, labels, data_d
 
   return(list(
     pdata = returned_pdata,
-    eset = eset,
-    is_prev_anal = is_prev_anal
+    eset = eset
   ))
 
 }
@@ -937,6 +928,9 @@ selectedDrugStudy <- function(input, output, session, anal) {
   ))
 
 }
+
+
+
 
 load_bulk_anals <- function(data_dir) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
