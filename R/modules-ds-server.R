@@ -192,6 +192,87 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
 
 }
 
+#' Logic for selected dataset part of dsFrom
+#' @export
+#' @keywords internal
+dsDataset <- function(input, output, session, data_dir, new_dataset) {
+
+
+  # get directory with fastqs
+  roots <- c('bulk' = file.path(data_dir, 'bulk'))
+  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
+
+
+  datasets <- reactive({
+    new_dataset()
+    load_bulk_datasets(data_dir)
+  })
+
+  dataset_name <- reactive(input$dataset_name)
+
+  # is the dataset a quant one?
+  is.create <- reactive({
+    dataset_name <- dataset_name()
+    datasets <- datasets()
+    req(dataset_name)
+
+    !dataset_name %in% datasets$dataset_name
+  })
+
+  observe({
+    req(datasets())
+    updateSelectizeInput(session, 'dataset_name', choices = datasets(), server = TRUE)
+  })
+
+  # add disabled class if not creating
+  observe({
+    toggleClass('dataset_dir', 'disabled', condition = !is.create())
+  })
+
+
+  # open selector if creating
+  observeEvent(is.create(), {
+    req(is.create())
+    if (is.create()) {
+      shinyjs::click('dataset_dir')
+    }
+  })
+
+  dataset_dir <- reactive({
+    dataset_name <- dataset_name()
+    req(dataset_name)
+
+    if (is.create()) {
+      req(input$dataset_dir)
+      dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
+      dir <- basename(as.character(dir))
+    }
+    else {
+      datasets <- datasets()
+      req(datasets)
+      dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
+    }
+    return(dir)
+  })
+
+
+  fastq_dir <- reactive({
+    dataset_dir <- dataset_dir()
+    req(dataset_dir)
+    file.path(data_dir, 'bulk', dataset_dir)
+  })
+
+
+  return(list(
+    fastq_dir = fastq_dir,
+    dataset_name = dataset_name,
+    dataset_dir = dataset_dir,
+    is.create = is.create
+  ))
+
+}
+
+
 #' Logic for dataset quantification part of dsForm
 #' @export
 #' @keywords internal
@@ -381,85 +462,6 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
   ))
 }
 
-#' Logic for selected dataset part of dsFrom
-#' @export
-#' @keywords internal
-dsDataset <- function(input, output, session, data_dir, new_dataset) {
-
-
-  # get directory with fastqs
-  roots <- c('bulk' = file.path(data_dir, 'bulk'))
-  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
-
-
-  datasets <- reactive({
-    new_dataset()
-    load_bulk_datasets(data_dir)
-  })
-
-  dataset_name <- reactive(input$dataset_name)
-
-  # is the dataset a quant one?
-  is.create <- reactive({
-    dataset_name <- dataset_name()
-    datasets <- datasets()
-    req(dataset_name)
-
-    !dataset_name %in% datasets$dataset_name
-  })
-
-  observe({
-    req(datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = datasets(), server = TRUE)
-  })
-
-  # add disabled class if not creating
-  observe({
-    toggleClass('dataset_dir', 'disabled', condition = !is.create())
-  })
-
-
-  # open selector if creating
-  observeEvent(is.create(), {
-    req(is.create())
-    if (is.create()) {
-      shinyjs::click('dataset_dir')
-    }
-  })
-
-  dataset_dir <- reactive({
-    dataset_name <- dataset_name()
-    req(dataset_name)
-
-    if (is.create()) {
-      req(input$dataset_dir)
-      dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
-      dir <- basename(as.character(dir))
-    }
-    else {
-      datasets <- datasets()
-      req(datasets)
-      dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
-    }
-    return(dir)
-  })
-
-
-  fastq_dir <- reactive({
-    dataset_dir <- dataset_dir()
-    req(dataset_dir)
-    file.path(data_dir, 'bulk', dataset_dir)
-  })
-
-
-  return(list(
-    fastq_dir = fastq_dir,
-    dataset_name = dataset_name,
-    dataset_dir = dataset_dir,
-    is.create = is.create
-  ))
-
-}
 
 #' Logic for dataset quantification table
 #' @export
@@ -471,6 +473,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
   pairs_r <- reactiveVal()
   reps_r <- reactiveVal()
   valid_msg <- reactiveVal()
+  is_rendered <- reactiveVal(FALSE)
 
 
   # colors
@@ -500,17 +503,20 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     }
 
     pdata <- readRDS(pdata_path)
-
-    pdata_r(pdata)
     pairs_r(pdata$Pair)
     reps_r(pdata$Replicate)
+
+    pdata$Pair <- pdata$Replicate <- NA
+    pdata_r(pdata)
   })
 
   # redraw table when quant pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
+    dummy_pdata <- tibble::tibble(Pair = NA, Replicate = NA, 'File Name' = NA)
+    is_rendered(TRUE)
 
     DT::datatable(
-      pdata_r(),
+      dummy_pdata,
       class = 'cell-border dt-fake-height',
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
@@ -579,6 +585,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
   # proxy used to replace data
   proxy <- DT::dataTableProxy("pdata")
   shiny::observe({
+    req(is_rendered())
     DT::replaceData(proxy, html_pata(), rownames = FALSE)
   })
 
@@ -669,7 +676,7 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
     return(pdata)
   })
 
-  # path to saved group
+  # path to saved group annotations
   group_path <- reactive({
     anal_name <- anal_name()
     dataset_dir <- dataset_dir()
@@ -677,8 +684,11 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
     file.path(data_dir, 'bulk', dataset_dir, group_file)
   })
 
+  # load saved group annotations if group path changes
   observeEvent(group_path(), {
     group_path <- group_path()
+    req(group_path)
+
     if (file.exists(group_path)) {
       group_r(readRDS(group_path))
     } else {
@@ -696,7 +706,10 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
     eset <- eset()
     req(eset)
 
-    pdata <- data.frame(Group = NA, Title = colnames(eset), row.names = colnames(eset), stringsAsFactors = FALSE)
+    pdata <- Biobase::pData(eset) %>%
+      dplyr::select(-lib.size, -norm.factors) %>%
+      tibble::add_column(Group = NA, Title = colnames(eset), .before = 1)
+
     group <- rep(NA, nrow(pdata))
 
     pdata_r(pdata)
@@ -706,7 +719,6 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
 
   # redraw table when new pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
-    dummy_pdata <- data.frame(Group = NA, Title = NA, stringsAsFactors = FALSE)
 
     DT::datatable(
       pdata_r(),
@@ -716,6 +728,7 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
       options = list(
         columnDefs = list(list(className = 'dt-nopad', targets = 0)),
         scrollY = FALSE,
+        scrollX = TRUE,
         paging = FALSE,
         bInfo = 0
       )
