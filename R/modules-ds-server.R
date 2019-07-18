@@ -118,7 +118,7 @@ dsPage <- function(input, output, session, data_dir) {
     # run
     diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
 
-    # add to analious anals
+    # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,
                     dataset_dir = dataset_dir,
                     anal_name = anal_name,
@@ -210,7 +210,7 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
 
   dataset_name <- reactive(input$dataset_name)
 
-  # is the dataset a quant one?
+  # is the dataset a quantified one?
   is.create <- reactive({
     dataset_name <- dataset_name()
     datasets <- datasets()
@@ -221,7 +221,7 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
 
   observe({
     req(datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = datasets(), server = TRUE)
+    updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 4), datasets()), server = TRUE)
   })
 
   # add disabled class if not creating
@@ -415,7 +415,7 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
   })
 
   observe({
-    toggle('anal_buttons_panel',anim = TRUE, condition = !is_prev_anal())
+    toggle('anal_buttons_panel', condition = !is_prev_anal())
   })
 
 
@@ -676,41 +676,45 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
     return(pdata)
   })
 
-  # path to saved group annotations
-  group_path <- reactive({
+  # path to saved analysis
+  anal_path <- reactive({
     anal_name <- anal_name()
     dataset_dir <- dataset_dir()
-    group_file <- paste0('group_', anal_name, '.rds')
+    if (anal_name == '') return(NULL)
+
+    group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
     file.path(data_dir, 'bulk', dataset_dir, group_file)
-  })
-
-  # load saved group annotations if group path changes
-  observeEvent(group_path(), {
-    group_path <- group_path()
-    req(group_path)
-
-    if (file.exists(group_path)) {
-      group_r(readRDS(group_path))
-    } else {
-      saveRDS(group_r(), group_path)
-    }
-  })
-
-  observeEvent(group_r(), {
-    saveRDS(group_r(), group_path())
   })
 
 
   # reset when new eset or analysis name
   observe({
+    anal_name()
     eset <- eset()
+    anal_path <- anal_path()
+
     req(eset)
 
     pdata <- Biobase::pData(eset) %>%
       dplyr::select(-lib.size, -norm.factors) %>%
       tibble::add_column(Group = NA, Title = colnames(eset), .before = 1)
 
+
     group <- rep(NA, nrow(pdata))
+
+    # load annotations from previous analysis if available
+    if (!is.null(anal_path) && file.exists(anal_path)) {
+
+      anal <- readRDS(anal_path)
+      in.anal <- which(row.names(pdata) %in% row.names(anal$pdata))
+      group[in.anal] <- anal$pdata$group
+
+      is.test <- which(group == 'test')
+      is.ctrl <- which(group == 'ctrl')
+      pdata[is.test, 'Group'] <- '<div style="background-color: #e6194b;"><span>test</span></div>'
+      pdata[is.ctrl, 'Group'] <- paste0('<div style="background: ', background, ';"><span>control</span></div>')
+
+    }
 
     pdata_r(pdata)
     group_r(group)
@@ -725,10 +729,11 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
       class = 'cell-border dt-fake-height',
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
+      extensions = "FixedColumns",
       options = list(
         columnDefs = list(list(className = 'dt-nopad', targets = 0)),
-        scrollY = FALSE,
         scrollX = TRUE,
+        fixedColumns = TRUE,
         paging = FALSE,
         bInfo = 0
       )

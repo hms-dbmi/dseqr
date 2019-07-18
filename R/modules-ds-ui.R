@@ -47,7 +47,7 @@ dsDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add quant dataset'),
+    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add new dataset'),
                               button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
                                      `data-title` = 'Folder with fastq.gz files',
                                      title = 'Select folder with fastq.gz files',
@@ -74,7 +74,7 @@ dsFormQuantInput <- function(id) {
       actionButton(ns('rep'), 'Replicate'),
       actionButton(ns('reset'), 'Reset')
     ),
-    actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-primary')
+    actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-warning')
   )
 }
 
@@ -123,6 +123,10 @@ dsFormAnalInput <- function(id) {
 #' @keywords internal
 dsTable <- function(id) {
   ns <- NS(id)
-  DT::dataTableOutput(ns("pdata"))
+  withTags({
+    div(class = 'dt-container',
+      DT::dataTableOutput(ns("pdata"))
+    )
+  })
 }
 
