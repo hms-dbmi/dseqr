@@ -1,0 +1,99 @@
+cell_id	cell_type	base_cell_id	precursor_cell_id	modification	sample_type	primary_site	subtype	original_growth_pattern	provider_catalog_id	original_source_vendor	donor_age	donor_sex	donor_ethnicity
+A375	cell line	A375	-666	-666	tumor	skin	malignant melanoma	adherent	CRL-1619	ATCC	54	F	-666
+A375.311	cell line	A375	A375	genetically modified to stably express Cas9 protein	tumor	skin	malignant melanoma	adherent	CRL-1619	ATCC	54	F	-666
+A549	cell line	A549	-666	-666	tumor	lung	non small cell lung cancer| carcinoma	adherent	CCL-185	ATCC	58	M	Caucasian
+A549.311	cell line	A549	A549	genetically  modified to stably express Cas9 protein	tumor	lung	non small cell lung cancer| carcinoma	adherent	CCL-185	ATCC	58	M	Caucasian
+A673	cell line	A673	-666	-666	tumor	bone	ewing's sarcoma	adherent	CRL-1598	ATCC	-666	F	-666
+AGS	cell line	AGS	-666	-666	tumor	stomach	adenocarcinoma	adherent	CRL-1739	ATCC	54	F	Caucasian
+BT20	cell line	BT20	-666	-666	tumor	breast	carcinoma	adherent	HTB-19	ATCC	74	F	Caucasian
+CL34	cell line	CL34	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	-666	DSMZ	-666	F	-666
+CORL23	cell line	CORL23	-666	-666	tumor	lung	non small cell lung cancer| large cell carcinoma	adherent	92031919	ECACC	-666	M	-666
+COV644	cell line	COV644	-666	-666	tumor	ovary	carcinoma| epithelial-mucinous	adherent	-666	ECACC	-666	F	-666
+DV90	cell line	DV90	-666	-666	tumor	lung	non small cell lung cancer| adenocarcinoma	adherent	-666	DSMZ	-666	M	-666
+EFO27	cell line	EFO27	-666	-666	tumor	ovary	mucinous papillary adenocarcinoma	adherent	-666	DSMZ	-666	F	-666
+H1299	cell line	H1299	-666	-666	-666	lung	carcinoma	adherent	-666	-666	-666	-666	-666
+HA1E	cell line	HA1E	-666	immortalized normal	normal	kidney	normal kidney	adherent	-666	-666	-666	-666	-666
+HA1E.101	cell line	HA1E	HA1E	genetically modified to stably express Cas9 protein	normal	kidney	normal kidney	adherent	-666	-666	-666	-666	-666
+HA1E.311	cell line	HA1E	HA1E	genetically modified to stably express Cas9 protein	normal	kidney	normal kidney	adherent	-666	-666	-666	-666	-666
+HCC15	cell line	HCC15	-666	-666	tumor	lung	non small cell lung cancer| squamous cell carcinoma	adherent	-666	DSMZ	-666	M	-666
+HCC515	cell line	HCC515	-666	-666	normal	lung	carcinoma	adherent	-666	-666	-666	-666	-666
+HCT116	cell line	HCT116	-666	-666	tumor	large intestine	colorectal carcinoma	adherent	CCL-247	ATCC	-666	M	-666
+HEC108	cell line	HEC108	-666	-666	tumor	endometrium	endometrial adenocarcinoma	adherent	-666	HSRRB	-666	F	-666
+HEK293T	cell line	HEK293T	-666	immortalized normal	normal	kidney	embryonal kidney	adherent	-666	-666	-666	-666	-666
+HEKTE	cell line	HEKTE	-666	immortalized normal	normal	kidney	epithelial	-666	-666	-666	-666	-666	-666
+HELA	cell line	HELA	-666	-666	tumor	large intestine	adenocarcinoma	adherent	CCL-2	ATCC	31	F	Black
+HELA.311	cell line	HELA	HELA	genetically modified to stably express Cas9 protein	tumor	large intestine	adenocarcinoma	adherent	CCL-2	ATCC	31	F	Black
+HEPG2	cell line	HEPG2	-666	-666	tumor	liver	hepatocellular carcinoma	adherent	HB-8065	ATCC	15	M	Caucasian
+HL60	cell line	HL60	-666	-666	tumor	haematopoietic and lymphoid tissue	acute myelogenous leukemia (AML)| M3 (promyelocytic)	suspension	CCL-240	ATCC	36	F	Caucasian
+HME1	cell line	HME1	-666	immortalized normal	normal	breast	-666	adherent	CRL-4010	-666	-666	M	-666
+HS27A	cell line	HS27A	-666	bone marrow cells that were immortalized	normal	bone	bone marrow	adherent	-666	-666	-666	-666	-666
+HS578T	cell line	HS578T	-666	-666	tumor	breast	carcinoma	adherent	HTB-126	ATCC	74	F	Caucasian
+HT115	cell line	HT115	-666	-666	tumor	large intestine	colorectal carcinoma	adherent	-666	ECACC	-666	-666	-666
+HT29	cell line	HT29	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	HTB-38	ATCC	44	F	Caucasian
+HT29.311	cell line	HT29	HT29	genetically modified to stably express Cas9 protein	tumor	large intestine	colorectal adenocarcinoma	adherent	HTB-38	ATCC	44	F	Caucasian
+HUH7	cell line	HUH7	-666	-666	tumor	liver	hepatocellular carcinoma	adherent	-666	HSRRB	-666	M	-666
+HUVEC	cell line	HUVEC	-666	immortalized normal	normal	vascular system	normal endothelial cell|umbilical cord	adherent	IFO50271	JCRB	-666	-666	-666
+JHUEM2	cell line	JHUEM2	-666	-666	tumor	endometrium	endometrial adenocarcinoma| endometrioid carcinoma	adherent	-666	RIKEN	-666	F	-666
+JURKAT	cell line	JURKAT	-666	-666	tumor	haematopoietic and lymphoid tissue	acute lymphoblastic leukemia (ALL)| T-cell	suspension	-666	DSMZ	-666	M	-666
+LNCAP	cell line	LNCAP	-666	-666	tumor	prostate	carcinoma| prostate	adherent	-666	DSMZ	50	M	-666
+LOVO	cell line	LOVO	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	CCL-229	ATCC	56	M	-666
+MCF10A	cell line	MCF10A	-666	immortalized normal	normal	breast	epithelial	adherent	CRL-10317	ATCC	-666	-666	-666
+MCF7	cell line	MCF7	-666	-666	tumor	breast	adenocarcinoma	adherent	HTB-22	ATCC	69	F	Caucasian
+MCF7.101	cell line	MCF7	MCF7	genetically modified to stably express Cas9 protein	tumor	breast	adenocarcinoma	adherent	HTB-22	ATCC	69	F	Caucasian
+MCF7.311	cell line	MCF7	MCF7	genetically modified to stably express Cas9 protein	tumor	breast	adenocarcinoma	adherent	HTB-22	ATCC	69	F	Caucasian
+MCH58	cell line	MCH58	-666	immortalized normal	normal	skin	skin fibroblast	-666	-666	-666	-666	-666	-666
+MDAMB231	cell line	MDAMB231	-666	-666	tumor	breast	adenocarcinoma	adherent	HTB-26	ATCC	51	F	Caucasian
+MDST8	cell line	MDST8	-666	-666	tumor	large intestine	colorectal carcinoma	adherent	-666	ECACC	-666	-666	-666
+NCIH1694	cell line	NCIH1694	-666	-666	tumor	lung	small cell lung cancer| carcinoma	suspension	CRL-5888	ATCC	61	M	Caucasian
+NCIH1836	cell line	NCIH1836	-666	-666	tumor	lung	small cell lung cancer| carcinoma	suspension	CRL-5898	ATCC	52	M	Caucasian
+NCIH2073	cell line	NCIH2073	-666	-666	tumor	lung	non small cell lung cancer| adenocarcinoma	adherent	CRL-5918	ATCC	47	F	Caucasian
+NCIH508	cell line	NCIH508	-666	-666	tumor	large intestine	colorectal adenocarcinoma	mix	CCL-253	ATCC	55	M	Caucasian
+NCIH596	cell line	NCIH596	-666	-666	tumor	lung	non small cell lung cancer| adenosquamous carcinoma	adherent	HTB-178	ATCC	73	M	Caucasian
+NCIH716	cell line	NCIH716	-666	-666	tumor	large intestine	colorectal adenocarcinoma	suspension	CCL-251	ATCC	33	M	Caucasian
+NKDBA	cell line	NKDBA	-666	hTERT-immortalized normal kidney cells immunoselected for DBA-positivity	normal	kidney	kidney epithelial	-666	-666	-666	-666	M	-666
+NOMO1	cell line	NOMO1	-666	-666	tumor	haematopoietic and lymphoid tissue	acute myeloid leukemia (AML)	suspension	-666	HSRRB	-666	F	-666
+OV7	cell line	OV7	-666	-666	tumor	ovary	carcinoma	adherent	-666	ECACC	-666	F	-666
+PC3	cell line	PC3	-666	-666	tumor	prostate	adenocarcinoma	mix	CRL-1435	ATCC	62	M	Caucasian
+PC3.101	cell line	PC3	PC3	genetically modified to stably express Cas9 protein	tumor	prostate	adenocarcinoma	mix	CRL-1435	ATCC	62	M	Caucasian
+PC3.311	cell line	PC3	PC3	genetically modified to stably express Cas9 protein	tumor	prostate	adenocarcinoma	mix	CRL-1435	ATCC	62	M	Caucasian
+PL21	cell line	PL21	-666	-666	tumor	haematopoietic and lymphoid tissue	acute myelogenous leukemia| promyelocytic	suspension	-666	DSMZ	-666	M	-666
+RKO	cell line	RKO	-666	-666	tumor	large intestine	colorectal carcinoma	adherent	-666	ATCC	-666	-666	-666
+RMGI	cell line	RMGI	-666	-666	tumor	ovary	carcinoma| clear cell	adherent	-666	HSRRB	-666	F	-666
+RMUGS	cell line	RMUGS	-666	-666	tumor	ovary	carcinoma	adherent	-666	HSRRB	-666	F	-666
+SHSY5Y	cell line	SHSY5Y	-666	-666	tumor	autonomic ganglia	neuroblastoma	mix	CRL-2266	ATCC	-666	F	-666
+SKBR3	cell line	SKBR3	-666	-666	tumor	breast	adenocarcinoma	adherent	HTB-30	ATCC	43	F	Caucasian
+SKLU1	cell line	SKLU1	-666	-666	tumor	lung	non small cell lung cancer| adenocarcinoma	adherent	HTB-57	ATCC	60	F	Caucasian
+SKM1	cell line	SKM1	-666	-666	tumor	haematopoietic and lymphoid tissue	acute myeloid leukemia (AML)	suspension	-666	HSRRB	-666	M	-666
+SKMEL1	cell line	SKMEL1	-666	-666	tumor	skin	malignant melanoma	suspension	HTB-67	ATCC	29	M	Caucasian
+SKMEL28	cell line	SKMEL28	-666	-666	tumor	skin	malignant melanoma	adherent	HTB-72	ATCC	51	M	-666
+SNGM	cell line	SNGM	-666	-666	tumor	endometrium	endometrial adenocarcinoma	adherent	-666	HSRRB	-666	F	-666
+SNU1040	cell line	SNU1040	-666	-666	tumor	large intestine	colorectal carcinoma	mix	-666	KCLB	-666	M	-666
+SNUC5	cell line	SNUC5	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	-666	KCLB	-666	F	-666
+SW480	cell line	SW480	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	CCL-228	ATCC	50	M	Caucasian
+SW620	cell line	SW620	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	CCL-227	ATCC	51	M	Caucasian
+SW948	cell line	SW948	-666	-666	tumor	large intestine	colorectal adenocarcinoma	adherent	CCL-237	ATCC	81	F	Caucasian
+T3M10	cell line	T3M10	-666	-666	tumor	lung	non small cell lung cancer| large cell carcinoma	adherent	-666	RIKEN	-666	M	-666
+THP1	cell line	THP1	-666	-666	tumor	haematopoietic and lymphoid tissue	acute myelogenous leukemia| M5 (monocytic)	suspension	TIB-202	ATCC	1	M	-666
+TYKNU	cell line	TYKNU	-666	-666	tumor	ovary	carcinoma| undifferentiated	adherent	-666	HSRRB	-666	F	-666
+U266	cell line	U266	-666	-666	tumor	blood	myeloman, haematopoietic,lymphoid	mix	ACC9	DSMZ	-666	-666	-666
+U2OS	cell line	U2OS	-666	-666	tumor	bone	osteosarcoma	adherent	HTB-96	ATCC	15	F	Caucasian
+U937	cell line	U937	-666	-666	tumor	haematopoietic and lymphoid tissue	lymphoma| B-cell| non-hodgkin's| histiocytic	suspension	CRL-1593.2	ATCC	37	M	Caucasian
+VCAP	cell line	VCAP	-666	-666	tumor	prostate	carcinoma	adherent	-666	ATCC	-666	M	-666
+WSUDLCL2	cell line	WSUDLCL2	-666	-666	tumor	haematopoietic and lymphoid tissue	lymphoma| B-cell| non-hodgkin's| diffuse large cell	suspension	-666	DSMZ	-666	M	-666
+YAPC	cell line	YAPC	-666	-666	tumor	pancreas	pancreatic carcinoma	adherent	-666	DSMZ	-666	M	-666
+YAPC.311	cell line	YAPC	YAPC	genetically modified to stably express Cas9 protein	tumor	pancreas	pancreatic carcinoma	adherent	-666	DSMZ	-666	M	-666
+MNEU.E	differentiated	MNEU	-666	differentiated from ESC to be motor neurons	normal	-666	-666	adherent	-666	Harvard University	-666	-666	-666
+NEU	differentiated	NEU	-666	terminally differentiated to be neurons	normal	-666	-666	adherent	-666	-666	-666	-666	-666
+NEU.KCL	differentiated	NEU	NEU	NEU exposed to KCl (potassium chloride) solution to activate neurons	normal	-666	-666	adherent	-666	-666	-666	-666	-666
+NPC	differentiated	NPC	-666	differentiated from iPSC, but not terminally differentiated	primary	central nervous system	normal stem fibroblast-derived iPScs	adherent	-666	-666	-666	-666	-666
+NPC.CAS9	differentiated	NPC	NPC	NPC that were genetically modified to stably express Cas9 protein	primary	central nervous system	normal stem fibroblast-derived iPScs	adherent	-666	-666	-666	-666	-666
+NPC.TAK	differentiated	NPC	NPC	differentiated from iPSC, but not terminally differentiated	primary	central nervous system	normal stem fibroblast-derived iPScs	adherent	-666	-666	-666	-666	-666
+HUES3	ESC	HUES3	-666	-666	normal	-666	-666	adherent	-666	-666	-666	-666	-666
+FIBRNPC	iPSC	FIBRNPC	-666	-666	normal	skin	-666	adherent	-666	-666	-666	-666	-666
+ASC	primary	ASC	-666	-666	primary	adipose	normal primary adipocyte stem cells	adherent	-666	-666	-666	-666	-666
+ASC.C	primary	ASC	-666	-666	primary	adipose	normal primary adipocyte stem cells	adherent	HPA-v	Sciencell	-666	-666	-666
+CD34	primary	CD34	-666	-666	normal	bone	bone marrow	suspension	-666	-666	-666	-666	-666
+PHH	primary	PHH	-666	-666	primary	liver	normal primary liver	-666	-666	CellzDirect	-666	-666	-666
+SKB	primary	SKB	-666	-666	normal	muscle	myoblast	-666	CC-2580	Lonza	-666	-666	-666
+SKL	primary	SKL	-666	-666	primary	muscle	normal primary skeletal muscle cells	adherent	CC-2561	LONZA	-666	-666	-666
+SKL.C	primary	SKL	-666	-666	primary	muscle	normal primary skeletal muscle cells	adherent	CC-2561	LONZA	-666	-666	-666

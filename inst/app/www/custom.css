@@ -209,3 +209,8 @@ td.dt-nopad span {
   padding: 8px 10px; 
   color: white;
 }
+
+/* table text on 1 line */
+.dt-container {
+  white-space: nowrap;
+}

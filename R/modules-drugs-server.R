@@ -73,7 +73,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   cmap_res <- reactiveVal()
   l1000_res <- reactiveVal()
 
-  # reload query choices if quant analysis
+  # reload query choices if new analysis
   anals <- reactive({
     new_anal()
     load_bulk_anals(data_dir)
@@ -82,7 +82,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   observe({
     anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'query', choices = anals, server = TRUE)
+    updateSelectizeInput(session, 'query', choices = rbind(rep(NA, 5), anals), server = TRUE)
   })
 
   anal <- reactive({
@@ -206,8 +206,8 @@ selectedDrugStudy <- function(input, output, session, anal) {
 advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
 
   # available cell lines
-  cmap_cells <- unique(cmap_annot$cell)
-  l1000_cells <- unique(l1000_annot$cell)
+  cmap_cells <- cell_info$cmap
+  l1000_cells <- cell_info$l1000
 
   # update choices for cell lines based on selected study
   cell_choices <- shiny::reactive({
@@ -223,7 +223,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 
   # update choices for cell lines
   shiny::observe({
-    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices(), selected = NULL)
+    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices(), selected = NULL, server = TRUE)
   })
 
   return(list(

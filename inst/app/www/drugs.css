@@ -1,8 +1,4 @@
 
-/* table text on 1 line */
-.dt-container {
-  white-space: nowrap;
-}
 
 /* no y-scrollbar */
 .dataTables_scrollBody {

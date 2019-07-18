@@ -135,8 +135,6 @@ import_quants <- function(data_dir, filter) {
   # use folders as names (used as sample names)
   names(quants_paths) <- qdirs
 
-  browser()
-
   txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = "kallisto",
                             ignoreTxVersion = ignore, countsFromAbundance = "lengthScaledTPM")
 

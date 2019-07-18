@@ -1,11 +1,10 @@
-
-
 tabs <- c('Datasets', 'Single Cell', 'Drugs')
-active <- 'Datasets'
+active <- 'Drugs'
 
 bootstrapPage(
   useShinyjs(),
   includeScript(path = 'www/contrasts.js'),
+  includeScript(path = 'www/cellOptions.js'),
   includeScript(path = 'www/toggleClinicalTitle.js'),
   includeCSS(path = 'www/custom.css'),
   includeCSS(path = 'www/drugs.css'),
