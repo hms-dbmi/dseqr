@@ -41,10 +41,9 @@ load_bulk_anals <- function(data_dir) {
   }
 
   anals$label <- anals$anal_name
-  anals$value <- 1:nrow(anals)
+  anals$value <- seq_len(nrow(anals))
 
   return(anals)
-
 }
 
 #' Save new analysis info to anals dataframe
