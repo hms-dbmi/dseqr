@@ -283,8 +283,8 @@ plotMDS <- function(exprs, exprs_sva, group) {
   if (!is.installed(suggests, level = 'message')) return(NULL)
 
   # get_dist acts on rows
-  exprs <- t(exprs)
-  exprs_sva <- t(exprs_sva)
+  exprs <- t(exprs[complete.cases(exprs), ])
+  exprs_sva <- t(exprs_sva[complete.cases(exprs_sva), ])
 
   dist <- factoextra::get_dist(exprs, method = 'spearman')
   dist_sva <- factoextra::get_dist(exprs_sva, method = 'spearman')
@@ -326,7 +326,6 @@ plotMDS <- function(exprs, exprs_sva, group) {
   } else {
     p <- mds_plot
   }
-
 
   print(p)
 }
