@@ -4,10 +4,10 @@
 \alias{run_drugseqr}
 \title{Run drugseqr app}
 \usage{
-run_drugseqr(base_dir, test = FALSE, test_data = TRUE)
+run_drugseqr(data_dir, test = FALSE, test_data = TRUE)
 }
 \arguments{
-\item{base_dir}{Directory containing folders \code{'bulk'} and \code{'single-cell'}.
+\item{data_dir}{Directory containing folders \code{'bulk'} and \code{'single-cell'}.
 Ignored if \code{test_data} is \code{TRUE}.}
 
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
@@ -20,9 +20,10 @@ Used for local development
 }
 \examples{
 
-base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
-base_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/sjia'
 
-run_drugseqr(base_dir, test_data = FALSE)
+run_drugseqr(data_dir, test_data = TRUE)
 
 }

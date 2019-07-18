@@ -4,7 +4,7 @@
 \alias{selectedAnal}
 \title{Logic for selected analysis part of scForm}
 \usage{
-selectedAnal(input, output, session, data_dir, new_anal)
+selectedAnal(input, output, session, sc_dir, new_anal)
 }
 \description{
 Logic for selected analysis part of scForm

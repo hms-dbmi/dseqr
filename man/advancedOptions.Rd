@@ -2,12 +2,12 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{advancedOptions}
 \alias{advancedOptions}
-\title{Logic for advanced options for selectedDrugStudy}
+\title{Logic for advanced options in drugsForm}
 \usage{
 advancedOptions(input, output, session, cmap_res, l1000_res, drug_study,
   show_advanced)
 }
 \description{
-Logic for advanced options for selectedDrugStudy
+Logic for advanced options in drugsForm
 }
 \keyword{internal}

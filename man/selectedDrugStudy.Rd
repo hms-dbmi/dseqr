@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{selectedDrugStudy}
 \alias{selectedDrugStudy}
-\title{Logic for selected drug study}
+\title{Logic for selected drug study in drugsForm}
 \usage{
-selectedDrugStudy(input, output, session)
+selectedDrugStudy(input, output, session, anal)
 }
 \description{
-Logic for selected drug study
+Logic for selected drug study in drugsForm
 }
 \keyword{internal}

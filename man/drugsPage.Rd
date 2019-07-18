@@ -4,7 +4,7 @@
 \alias{drugsPage}
 \title{Logic for Drugs page}
 \usage{
-drugsPage(input, output, session)
+drugsPage(input, output, session, new_anal, data_dir)
 }
 \description{
 Logic for Drugs page

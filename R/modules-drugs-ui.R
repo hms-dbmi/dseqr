@@ -25,7 +25,7 @@ drugsTableOutput <- function(id) {
 
   withTags({
     div(class = 'dt-container',
-        DT::dataTableOutput(ns("query_res"))
+        DT::dataTableOutput(ns("query_table"))
     )
   })
 }
@@ -55,14 +55,9 @@ querySignatureInput <- function(id) {
   withTags({
     div(class = 'form-group selectize-fh',
         label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('query'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('query'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                shinyBS::bsButton(ns('run_query'), label = '', icon = icon('search'), title = 'Run query')
-            )
+        div(
+          select(id = ns('query'), style = 'display: none'),
+          script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))
         )
     )
   })
@@ -76,7 +71,8 @@ advancedOptionsInput <- function(id) {
 
   withTags({
     div(id = ns('advanced-panel'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%')
+        selectizeInput(ns('cells'), 'Select cell lines:', choices = NULL, multiple = TRUE, options = list(placeholder = "showing all"), width = '100%'),
+        shinyWidgets::radioGroupButtons(ns('sort_by'), 'Sort based on correlation:', choices = c('minimum' = 'min_cor', 'average' = 'avg_cor'), justified = TRUE)
     )
   })
 }
