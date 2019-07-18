@@ -1,6 +1,5 @@
 dsPage <- function(input, output, session, data_dir) {
 
-
   new_anal <- reactiveVal()
   new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
@@ -9,7 +8,8 @@ dsPage <- function(input, output, session, data_dir) {
   dsForm <- callModule(dsForm, 'form', data_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
-                       msg_anal = msg_anal)
+                       msg_anal = msg_anal,
+                       new_anal = new_anal)
 
 
   observe({
@@ -163,7 +163,7 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
 }
 
 
-dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg_anal) {
+dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg_anal, new_anal) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -192,7 +192,8 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
   anal <- callModule(dsFormAnal, 'anal_form',
                      error_msg = msg_anal,
                      data_dir = data_dir,
-                     dataset_name = dataset$dataset_name)
+                     dataset_name = dataset$dataset_name,
+                     new_anal = new_anal)
 
 
   return(list(
@@ -274,7 +275,7 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg) {
 }
 
 
-dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir) {
+dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal) {
 
 
   run_anal <- reactiveVal()
@@ -291,6 +292,8 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
 
   # analyses (can be multiple) from dataset
   dataset_anals <- reactive({
+    # reload if new analysis
+    new_anal()
     dataset_name <- dataset_name()
     req(dataset_name)
 
@@ -307,7 +310,7 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
   })
 
   observe({
-    toggle('anal_buttons_panel', condition = !is_prev_anal())
+    toggle('anal_buttons_panel',anim = TRUE, condition = !is_prev_anal())
   })
 
 
@@ -928,7 +931,6 @@ selectedDrugStudy <- function(input, output, session, anal) {
   ))
 
 }
-
 
 
 
