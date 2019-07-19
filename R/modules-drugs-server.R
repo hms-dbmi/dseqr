@@ -200,20 +200,16 @@ selectedDrugStudy <- function(input, output, session, anal) {
 
 }
 
+
 #' Logic for advanced options in drugsForm
 #' @export
 #' @keywords internal
 advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
 
-  # available cell lines
-  cmap_cells <- cell_info$cmap
-  l1000_cells <- cell_info$l1000
-
   # update choices for cell lines based on selected study
   cell_choices <- shiny::reactive({
     req(drug_study())
-    if (drug_study() == 'L1000') return(l1000_cells)
-    else if (drug_study() == 'CMAP02') return(cmap_cells)
+    get_cell_choices(drug_study())
   })
 
   #  toggle  showing advanced options
@@ -343,3 +339,5 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
+
+

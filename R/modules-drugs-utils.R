@@ -1,3 +1,15 @@
+#' Get cell choices data.frame for CMAP02 or L1000
+#'
+#' @param drug_study either 'CMAP02' or 'L1000'
+#'
+#' @return data.frame
+#' @export
+#' @keywords internal
+get_cell_choices <- function(drug_study) {
+  if (drug_study == 'L1000') return(cell_info$l1000)
+  else if (drug_study == 'CMAP02') return(cell_info$cmap)
+}
+
 
 #' Limit Query Results to Specific Cell Lines
 #'
@@ -276,7 +288,6 @@ get_cors_html <- function(cors, titles, cors_range) {
 
   return(cors_html)
 }
-
 
 
 
