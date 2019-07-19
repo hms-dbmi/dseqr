@@ -20,9 +20,9 @@ Used for local development
 }
 \examples{
 
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD_20190712'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/IBD'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/sjia'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190712'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
 
 run_drugseqr(data_dir, test_data = TRUE)
 run_drugseqr(data_dir, test_data = FALSE)
