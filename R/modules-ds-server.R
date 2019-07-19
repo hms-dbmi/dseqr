@@ -115,8 +115,11 @@ dsPage <- function(input, output, session, data_dir) {
     pdata <- pdata[!is.na(pdata$group), ]
     pdata <- data.frame(pdata, row.names = pdata$title)
 
-    # run
-    diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
+    # run differential expression
+    anal <- diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
+
+    # run pathway analysis
+    path_anal <- diff_path(eset, prev_anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,

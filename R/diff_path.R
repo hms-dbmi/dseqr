@@ -22,7 +22,7 @@
 #'
 #' diff_path(eset, prev_anal)
 #'
-diff_path <- function(eset, prev_anal, rna_seq = TRUE){
+diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE){
 
   # remove replicates/duplicates and annotate with human ENTREZID
   dups <- iqr_replicates(eset, annot = 'ENTREZID_HS', rm.dup = TRUE)
@@ -48,6 +48,10 @@ diff_path <- function(eset, prev_anal, rna_seq = TRUE){
   # run padog
   padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4,
                               verbose = FALSE, rna_seq = rna_seq, pdata = prev_pdata)
+
+  # save results
+  fname <- paste0('diff_path_', anal_name, '.rds')
+  saveRDS(padog_table, file.path(data_dir, fname))
 
   return(padog_table)
 }
