@@ -1,5 +1,5 @@
 // styling if looking at cluster
-function renderCellOption(item, escape) {
+function cellOptions(item, escape) {
 
   var markup = "<div style='columns: 2;'>" +
     "<div>" +
@@ -12,3 +12,4 @@ function renderCellOption(item, escape) {
 
   return markup;
 }
+

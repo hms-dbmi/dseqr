@@ -76,7 +76,7 @@ advancedOptionsInput <- function(id) {
                        choices = NULL,
                        multiple = TRUE,
                        options = list(placeholder = "showing all",
-                                      render = I('{option: renderCellOption}'),
+                                      render = I('{option: cellOptions}'),
                                       optgroupField = 'primary_site'),
                        width = '100%'),
         shinyWidgets::radioGroupButtons(ns('sort_by'), 'Sort based on correlation:', choices = c('minimum' = 'min_cor', 'average' = 'avg_cor'), justified = TRUE)

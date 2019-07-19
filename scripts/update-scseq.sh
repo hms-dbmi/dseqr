@@ -9,7 +9,8 @@ R CMD build drugseqr
 sudo R CMD INSTALL drugseqr_0.1.0.tar.gz
 
 # replace the shiny app
-sudo rsync -a drugseqr/inst/app/ /srv/shiny-server/drugseqr/
+# sudo rsync -a drugseqr/inst/app/ /srv/shiny-server/drugseqr/
+sudo rsync -a drugseqr/inst/app/ /srv/shiny-server/drugseqr/test/
 
 # permission to write to data directory
 sudo chmod -R 0777 /srv/shiny-server/drugseqr/data_dir
