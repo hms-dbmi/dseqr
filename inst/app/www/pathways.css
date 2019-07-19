@@ -1,0 +1,15 @@
+.path-name {
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  max-width: calc(100% - 50px);
+  padding-right: 10px;
+}
+
+.path-fdr {
+  color: #A0A0A0;
+   white-space: 
+   nowrap;
+   width: 50px;
+   text-align: right;
+}

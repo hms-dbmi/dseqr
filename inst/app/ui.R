@@ -11,7 +11,7 @@ pathPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            plotly::plotlyOutput(ns('path_plot'))
+            shiny::plotOutput(ns('path_plot'), height = '500px')
     )
   })
 }
@@ -24,22 +24,25 @@ pathFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        selectizeInputWithValidation(ns('anal_name'), 'Select an analysis:'),
+        selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField= 'dataset_name')),
         selectizeInputWithValidation(ns('path_name'), 'Select a pathway:')
     )
   })
 }
 
-tabs <- c('Datasets', 'Single Cell', 'Drugs')
-active <- 'Single Cell'
+
+tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
+active <- 'Pathways'
 
 bootstrapPage(
   useShinyjs(),
   includeScript(path = 'www/contrasts.js'),
   includeScript(path = 'www/cellOptions.js'),
+  includeScript(path = 'www/pathOptions.js'),
   includeScript(path = 'www/toggleClinicalTitle.js'),
   includeCSS(path = 'www/custom.css'),
   includeCSS(path = 'www/drugs.css'),
+  includeCSS(path = 'www/pathways.css'),
   navbarUI(tabs, active),
   fluidPage(
     # make sure css/js loaded from packages where not using functions (not using default)
