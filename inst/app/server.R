@@ -1,3 +1,30 @@
+
+
+pathPage <- function(input, output, session) {
+
+  output$path_plot <- plotly::renderPlotly({
+
+    df <- data.frame(gene = c('CRX1', 'CRX2', 'CRX3'),
+                     dprime = c(5, -4, 9.2)
+                     )
+
+    g <-  ggplot2::ggplot(data = df,
+                          ggplot2::aes_string(x = 'gene', y = 'dprime')) +
+      ggplot2::geom_point() +
+      ggplot2::ylab("Dprime") +
+      ggplot2::xlab("") +
+      ggplot2::geom_hline(yintercept = 0, colour = '#999999') +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust=0.5),
+                     legend.title = ggplot2::element_blank())
+
+
+    pl <- plotly::plotly_build(g)
+
+    pl
+  })
+}
+
 server <- function(input, output, session) {
 
   # get arguments from calling function
@@ -34,6 +61,8 @@ server <- function(input, output, session) {
   drugsPage <- callModule(drugsPage, 'drug',
                           new_anal = dsPage$new_anal,
                           data_dir = data_dir)
+
+  pathPage <- callModule(pathPage, 'pathways')
 
 
 

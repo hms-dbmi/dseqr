@@ -53,7 +53,8 @@ td.sim-cell {
   stroke-dasharray: 3, 3;
 }
 
-.simplot.show-meanline line.meanline {
+.simplot.show-meanline line.meanline,
+.simplot:hover line.meanline {
   stroke-width: 1px;
   stroke: dodgerblue; 
   shape-rendering: crispEdges;
