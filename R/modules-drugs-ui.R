@@ -38,7 +38,7 @@ drugsFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        querySignatureInput(ns('signature'), label = 'Select query signature:'),
+        querySignatureInput(ns('signature')),
         selectedDrugStudyInput(ns('drug_study')),
         advancedOptionsInput(ns('advanced'))
 
@@ -54,7 +54,7 @@ querySignatureInput <- function(id) {
 
   withTags({
     div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('query')),
+        label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
         div(
           select(id = ns('query'), style = 'display: none'),
           script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))

@@ -15,7 +15,7 @@ tx2gene_unnest <- unnest(tx2gene, entrezid)
 tx2gene_unnest <- left_join(tx2gene_unnest, hs, by = c('entrezid' = 'ENTREZID'))
 
 
-summarise_symbol <- function(gnames, syms, entrezid) {
+summarise_symbol <- function(gnames, syms) {
 
   # use SYMBOL_9606 if available
   syms <- unique(toupper(na.omit(syms)))
@@ -28,17 +28,15 @@ summarise_symbol <- function(gnames, syms, entrezid) {
 
 # re-nest
 tx2gene <- group_by(tx2gene_unnest, tx_id) %>%
-  summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606, entrezid),
-            entrezid = list(unique(entrezid)),
+  summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606),
+            entrezid = entrezid[1],
             gene_id = unique(gene_id),
             seq_name = unique(seq_name))
 
-# only need tx_id and gene_name for salmon quant
+# need tx_id, gene_name and entrezid for load_seq
 # need gene_id for annotation
-# need seq_name to for mitochondrial genes
-tx2gene %>%
-  dplyr::select(tx_id, gene_name, gene_id, seq_name) %>%
-  saveRDS('data-raw/tx2gene/tx2gene.rds')
+# need seq_name for mitochondrial genes
+saveRDS(tx2gene, 'data-raw/tx2gene/tx2gene.rds')
 
 # check concordance with l1000_es/cmap_es ----
 cmap_es_ind <- readRDS("inst/extdata/cmap_es_ind.rds")

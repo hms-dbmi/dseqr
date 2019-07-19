@@ -30,8 +30,8 @@ pathFormInput <- function(id) {
   })
 }
 
-tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
-active <- 'Pathways'
+tabs <- c('Datasets', 'Single Cell', 'Drugs')
+active <- 'Single Cell'
 
 bootstrapPage(
   useShinyjs(),

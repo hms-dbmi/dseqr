@@ -1,9 +1,11 @@
 library(Seurat)
 library(drugseqr)
 
+sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
 
 # control lung analysis ----
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
+
 ctrl_scseq <- load_scseq(ctrl_dir, project = 'ctrl')
 ctrl_scseq <- ctrl_scseq[, ctrl_scseq$whitelist]
 ctrl_scseq <- preprocess_scseq(ctrl_scseq)
@@ -14,13 +16,10 @@ ctrl_scseq <- run_umap(ctrl_scseq)
 
 # get markers
 ctrl_markers <- get_scseq_markers(ctrl_scseq)
-ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers)
-saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/ctrl_lung_anal.rds')
+ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers, annot = names(ctrl_markers))
+save_scseq_data(ctrl_anal, 'sjia_lung_healthy', sjia_dir)
 
-
-ctrl_anal <- readRDS('data-raw/single-cell/example-data/ctrl_lung_anal.rds')
-explore_scseq_clusters(ctrl_anal$scseq, ctrl_anal$markers)
-
+explore_scseq_clusters(sjia_dir, test_data = FALSE)
 
 # Normal Annotations
 # put in order that want reports to appear
@@ -40,9 +39,6 @@ ctrl_anal$annot <- c('T-cells',
                      'Macrophages#2',
                      '6')
 
-saveRDS(ctrl_anal, 'data-raw/single-cell/example-data/sjia_lung_healthy.rds')
-
-ctrl_anal <- readRDS('data-raw/single-cell/example-data/sjia_lung_healthy.rds')
 levels(ctrl_anal$scseq$seurat_clusters) <- ctrl_anal$annot
 Idents(ctrl_anal$scseq) <- ctrl_anal$scseq$seurat_clusters
 names(ctrl_anal$markers) <- ctrl_anal$annot
@@ -60,16 +56,13 @@ test_scseq <- preprocess_scseq(test_scseq)
 # add clusters and run tsne
 test_scseq <- add_scseq_clusters(test_scseq)
 test_scseq <- run_umap(test_scseq)
-test_scseq <- jitter_umap(test_scseq)
-test_scseq <- jitter_umap(test_scseq)
 
 # get markers
 test_markers <- get_scseq_markers(test_scseq)
-test_anal <- list(scseq = test_scseq, markers = test_markers)
-# saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
+test_anal <- list(scseq = test_scseq, markers = test_markers, annot = names(test_markers))
+save_scseq_data(test_anal, 'sjia_lung_diseased', sjia_dir)
 
-test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
-explore_scseq_clusters(test_anal$scseq, test_anal$markers, pt.size = 2.5)
+explore_scseq_clusters(sjia_dir, test_data = FALSE)
 
 # Diseased Annotations
 # put in order that want reports to appear
@@ -102,16 +95,9 @@ test_annot <- c('Macrophages#1',
                 'Respiratory Cilia')
 
 test_anal$annot <- test_annot
-# saveRDS(test_anal, 'data-raw/single-cell/example-data/test_lung_anal.rds')
-
-test_anal <- readRDS('data-raw/single-cell/example-data/test_lung_anal.rds')
 levels(test_anal$scseq$seurat_clusters) <- test_anal$annot
 Idents(test_anal$scseq) <- test_anal$scseq$seurat_clusters
 names(test_anal$markers) <- test_anal$annot
-
-data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia/'
-explore_scseq_clusters(data_dir, pt.size = 2.5)
-
 
 save_scseq_reports(test_anal$scseq, markers = test_markers, pt.size = 3,
                    fname = 'data-raw/single-cell/example-data/lung_diseased_markers.pdf')

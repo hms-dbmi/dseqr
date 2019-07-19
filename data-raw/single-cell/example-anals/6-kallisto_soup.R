@@ -2,66 +2,33 @@ library(drugseqr)
 
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 test_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
+sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
 
 # load raw counts and remove non expressed genes
-ctrl_counts <- load_scseq_counts(ctrl_dir)
-test_counts <- load_scseq_counts(test_dir)
+ctrl_scseq <- load_scseq(ctrl_dir, project = 'ctrl', soupx = TRUE)
+test_scseq <- load_scseq(test_dir, project = 'test', soupx = TRUE)
 
-ctrl_counts <- ctrl_counts[Matrix::rowSums(ctrl_counts) > 0, ]
-test_counts <- test_counts[Matrix::rowSums(test_counts) > 0, ]
+ctrl_scseq <- ctrl_scseq[, ctrl_scseq$whitelist]
+test_scseq <- test_scseq[, test_scseq$whitelist]
 
-# calculate empty droplets
-ctrl_empty <- get_empty(ctrl_counts)
-test_empty <- get_empty(test_counts)
-
-# strain soup
-ctrl_strained <- strain_scseq(ctrl_counts, ctrl_empty, 'ctrl')
-test_strained <- strain_scseq(test_counts, test_empty, 'test')
-
-# quality control cells
-# generate/load whitelist
-whitelist <- get_scseq_whitelist(counts, data_dir)
-whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
-kneelist  <- readLines(file.path(data_dir, 'bus_output', 'kneelist.txt'))
-
-# get ambient expression profile/determine outlier genes
-pct_ambient <- get_pct_ambient(counts)
-out_ambient <- get_outliers(pct_ambient)
-
-# covert to Seurat object
-srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
-
-# sctransform norm/variance stabilization
 ctrl_scseq <- preprocess_scseq(ctrl_scseq)
 test_scseq <- preprocess_scseq(test_scseq)
 
-# add clusters
-ctrl_scseq <- add_scseq_clusters(ctrl_scseq, resolution = 1.6)
+# add clusters and run tsne
+ctrl_scseq <- add_scseq_clusters(ctrl_scseq, resolution = 1.4)
 test_scseq <- add_scseq_clusters(test_scseq)
 
-# run tnse
-ctrl_scseq <- run_tsne(ctrl_scseq)
-test_scseq <- run_tsne(test_scseq)
+ctrl_scseq <- run_umap(ctrl_scseq)
+test_scseq <- run_umap(test_scseq)
 
-# get markers and explore
+# get markers
 ctrl_markers <- get_scseq_markers(ctrl_scseq)
 test_markers <- get_scseq_markers(test_scseq)
 
-explore_scseq_clusters(ctrl_scseq, ctrl_markers)
-explore_scseq_clusters(test_scseq, test_markers)
+ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers, annot = names(ctrl_markers))
+test_anal <- list(scseq = test_scseq, markers = test_markers, annot = names(test_markers))
 
-# integrated analysis ------
+save_scseq_data(ctrl_anal, 'sjia_lung_healthy_soupx', sjia_dir)
+save_scseq_data(test_anal, 'sjia_lung_diseased_soupx', sjia_dir)
 
-# perform integration
-anchors <- FindIntegrationAnchors(object.list = list(ctrl_scseq, test_scseq))
-combined <- IntegrateData(anchors)
-DefaultAssay(combined) <- "integrated"
-combined <- ScaleData(combined, verbose = FALSE)
-
-# get clusters/tsne/markers
-combined <- add_scseq_clusters(combined)
-combined <- run_tsne(combined)
-markers <- get_scseq_markers(combined)
-
-# look at how integration changes cell groupings
-explore_scseq_clusters(combined, markers)
+explore_scseq_clusters(sjia_dir, test_data = FALSE)
