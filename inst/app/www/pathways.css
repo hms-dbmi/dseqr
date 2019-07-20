@@ -13,3 +13,8 @@
    width: 50px;
    text-align: right;
 }
+
+.scroll-plot {
+  overflow-x: scroll;
+  overflow-y: hidden;
+}

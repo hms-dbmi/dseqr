@@ -1,50 +1,89 @@
 
 
+get_path_df <- function(path_id, anal) {
+  # add dprimes and vardprime values
+  anal <- add_es(anal)
+  top_table <- anal$top_table
 
+  path_enids <- gslist[[path_id]]
+  path_genes <- names(path_enids)
+
+  # subset top table to genes in the pathway
+  top_table <- top_table[row.names(top_table) %in% path_genes, ]
+
+  path_df <- data.frame(
+    gene = row.names(top_table),
+    dprime = top_table$dprime,
+    vardprime = top_table$vardprime
+  )
+
+  path_df <- path_df %>%
+    arrange(desc(abs(dprime))) %>%
+    mutate(gene = factor(gene, levels = gene))
+
+  return(path_df)
+}
 
 pathPage <- function(input, output, session, new_anal) {
   form <- callModule(pathForm, 'form',
                      new_anal = new_anal)
 
-  output$path_plot <- shiny::renderPlot({
 
-    df <- data.frame(gene = c('CRX1', 'CRX2', 'CRX3'),
-                     dprime = c(5, -4, 9.2),
-                     sd = c(0.1, 1, 0.5)
-    )
+  plot_width <- reactiveVal('auto')
 
-    ggplot2::ggplot(data = df, ggplot2::aes_string(x = 'gene', y = 'dprime')) +
+  pl <- reactive({
+
+    diffs <- form$diffs()
+    path_id <- form$pathway()
+    anal <- diffs$anal
+
+    req(path_id, anal)
+
+    path_df <- get_path_df(path_id, anal)
+    plot_width(nrow(path_df)*30)
+
+    pl <- ggplot2::ggplot(data = path_df, ggplot2::aes_string(x = 'gene', y = 'dprime')) +
       ggplot2::geom_point(size = 2.5) +
-      ggplot2::geom_errorbar(ggplot2::aes(ymin=dprime-sd, ymax=dprime+sd), width = 0.03, size = 0.15) +
+      ggplot2::geom_errorbar(ggplot2::aes(ymin=dprime-vardprime, ymax=dprime+vardprime), width = 0.03, size = 0.15) +
       ggplot2::ylab("Dprime") +
       ggplot2::xlab("") +
       ggplot2::geom_hline(yintercept = 0, color = 'black', linetype = 2, size = .2) +
       ggplot2::theme_bw() +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust=0.5),
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 1, hjust = 1),
                      legend.title = ggplot2::element_blank(),
                      panel.grid.major = ggplot2::element_line(size = 0.2),
                      panel.border = ggplot2::element_rect(size = 0.05), text = element_text(size = 14.5))
 
-
+    return(pl)
 
   })
+
+  observe({
+    output$path_plot <- renderPlot({
+      pl()
+    }, width = plot_width())
+
+  })
+
 }
 
 
 pathForm <- function(input, output, session, new_anal) {
 
-  # reload query choices if new analysis
+  # reload analysis choices if new analysis
   anals <- reactive({
     new_anal()
     load_bulk_anals(data_dir)
   })
 
+  # update analysis choices
   observe({
     anals <- anals()
     req(anals)
     updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), server = TRUE)
   })
 
+  # get directory/name info about analysis
   anal <- reactive({
     row_num <- input$anal
     anals <- anals()
@@ -54,7 +93,7 @@ pathForm <- function(input, output, session, new_anal) {
   })
 
 
-  # paths to analysis and drug query results
+  # file paths to pathway and analysis results
   fpaths <- reactive({
     anal <- anal()
     dataset_dir <- file.path(data_dir, 'bulk', anal$dataset_dir)
@@ -66,7 +105,7 @@ pathForm <- function(input, output, session, new_anal) {
     )
   })
 
-  # the results
+  # load pathway and analysis results
   diffs <- reactive({
     fpaths <- fpaths()
 
@@ -76,6 +115,7 @@ pathForm <- function(input, output, session, new_anal) {
     )
   })
 
+  # update pathway dropdown
   observe({
     diffs <- diffs()
     res <- diffs$path$res
@@ -87,11 +127,16 @@ pathForm <- function(input, output, session, new_anal) {
       fdr = format.pval(res$Ppadog, eps = 0.001, digits = 2),
       stringsAsFactors = FALSE)
 
-    updateSelectizeInput(session, 'path_name',
+    updateSelectizeInput(session, 'pathway',
                          choices = path_choices,
                          options = list(render= I('{option: pathOptions}')),
                          server = TRUE)
   })
+
+  return(list(
+    diffs = diffs,
+    pathway = reactive(input$pathway)
+  ))
 
 
 

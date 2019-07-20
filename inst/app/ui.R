@@ -11,10 +11,14 @@ pathPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            shiny::plotOutput(ns('path_plot'), height = '500px')
+            div(class = 'scroll-plot',
+            plotOutput(ns('path_plot'), height = '550px')
+
+            )
     )
   })
 }
+
 
 #' Input form for pathways page
 #' @export
@@ -25,7 +29,7 @@ pathFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField= 'dataset_name')),
-        selectizeInputWithValidation(ns('path_name'), 'Select a pathway:')
+        selectizeInputWithValidation(ns('pathway'), 'Select a pathway:')
     )
   })
 }
