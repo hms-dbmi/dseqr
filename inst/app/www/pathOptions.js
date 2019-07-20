@@ -2,7 +2,7 @@ function pathOptions(item, escape) {
 
   var markup = 
   "<div>" +
-    "<div class = 'pull-left path-name' title = '" + escape(item.name) + "'>" +
+    "<div class = 'pull-left path-name-option' title = '" + escape(item.name) + "'>" +
         escape(item.name) +
     "</div>" +
     "<div class = 'pull-right path-fdr'>" +
@@ -10,6 +10,16 @@ function pathOptions(item, escape) {
     "</div>" +
     "<div class = 'clearfix'></div>" +
   "</div>";
+
+  return markup;
+}
+
+
+function pathItem(item, escape){
+  var markup = 
+    "<div class = 'item path-name-item' title = '" + escape(item.name) + "'>" +
+        escape(item.name) +
+    "</div>" 
 
   return markup;
 }

@@ -273,7 +273,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
             ),
             div(class = 'input-group-btn',
                 exclude_ambient_button,
-                actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'))
+                actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
             )
         )
     )

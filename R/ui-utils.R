@@ -109,7 +109,7 @@ textInputWithButtons <- function(id, label, ...) {
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, options = NULL, ...) {
+selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
 
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 

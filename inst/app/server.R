@@ -31,6 +31,7 @@ pathPage <- function(input, output, session, new_anal) {
 
   plot_width <- reactiveVal('auto')
 
+  # the gene plot
   pl <- reactive({
 
     diffs <- form$diffs()
@@ -40,6 +41,7 @@ pathPage <- function(input, output, session, new_anal) {
     req(path_id, anal)
 
     path_df <- get_path_df(path_id, anal)
+    # 30 pixels width per gene in pathway
     plot_width(nrow(path_df)*30)
 
     pl <- ggplot2::ggplot(data = path_df, ggplot2::aes_string(x = 'gene', y = 'dprime')) +
@@ -52,12 +54,13 @@ pathPage <- function(input, output, session, new_anal) {
       ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 1, hjust = 1),
                      legend.title = ggplot2::element_blank(),
                      panel.grid.major = ggplot2::element_line(size = 0.2),
-                     panel.border = ggplot2::element_rect(size = 0.05), text = element_text(size = 14.5))
+                     panel.border = ggplot2::element_rect(size = 0.05), text = ggplot2::element_text(size = 14.5))
 
     return(pl)
 
   })
 
+  # inside observe to allow dynamic width
   observe({
     output$path_plot <- renderPlot({
       pl()
@@ -129,8 +132,17 @@ pathForm <- function(input, output, session, new_anal) {
 
     updateSelectizeInput(session, 'pathway',
                          choices = path_choices,
-                         options = list(render= I('{option: pathOptions}')),
+                         options = list(render= I('{option: pathOptions, item: pathItem}')),
                          server = TRUE)
+  })
+
+
+  # open KEGG when click button
+  observeEvent(input$kegg, {
+    path_id <- input$pathway
+    req(path_id)
+    kegg_link <- paste0('https://www.genome.jp/kegg-bin/show_pathway?map', path_id)
+    runjs(paste0("window.open('", kegg_link, "')"))
   })
 
   return(list(

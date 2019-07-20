@@ -1,4 +1,4 @@
-.path-name {
+.path-name-option {
   white-space: nowrap; 
   overflow: hidden; 
   text-overflow: ellipsis;
@@ -6,10 +6,19 @@
   padding-right: 10px;
 }
 
+.path-name-item {
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+  max-width: 92%;
+  vertical-align: bottom;
+}
+
+
+
 .path-fdr {
   color: #A0A0A0;
-   white-space: 
-   nowrap;
+   white-space: nowrap;
    width: 50px;
    text-align: right;
 }

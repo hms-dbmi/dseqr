@@ -20,20 +20,18 @@ pathPageUI <- function(id, tab, active) {
 }
 
 
+
 #' Input form for pathways page
 #' @export
 #' @keywords internal
 pathFormInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = "well-form well-bg",
+    tags$div(class = "well-form well-bg",
         selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField= 'dataset_name')),
-        selectizeInputWithValidation(ns('pathway'), 'Select a pathway:')
+        selectizeInputWithButtons(ns('pathway'), 'Select a pathway:', actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'))
     )
-  })
 }
-
 
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
 active <- 'Pathways'
