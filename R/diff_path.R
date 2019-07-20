@@ -46,7 +46,7 @@ diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE){
   esetm  <- exprs(eset[, incon])
 
   # run padog
-  padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4,
+  padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names, gslist = gslist,
                               verbose = FALSE, rna_seq = rna_seq, pdata = prev_pdata)
 
   # save results

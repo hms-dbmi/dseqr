@@ -4,7 +4,7 @@
 \alias{diff_path}
 \title{Differential expression of KEGG pathways.}
 \usage{
-diff_path(eset, prev_anal, rna_seq = TRUE)
+diff_path(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE)
 }
 \arguments{
 \item{eset}{Expression set.}
