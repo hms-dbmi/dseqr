@@ -611,7 +611,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
     # exclude non-selected clusters
     scseq <-  scseq[, scseq$seurat_clusters %in% input$selected_clusters]
-    markers <- get_scseq_markers(scseq, ident.1 = 'test', ident.2 = 'ctrl', min.diff.pct = -Inf)
+    markers <- get_scseq_markers(scseq, ident.1 = 'test', ident.2 = 'ctrl', min.diff.pct = -Inf, test.use = 'limma')
 
     # set selected markers
     selected_markers(markers)
@@ -653,9 +653,18 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
       scseq <- scseq()
 
       fts <- scseq[['SCT']]@meta.features
-      ambient <- row.names(fts)[fts$out_ambient]
+      test.ambient <- row.names(fts)[fts$test_ambient]
+      ctrl.ambient <- row.names(fts)[fts$ctrl_ambient]
 
-      choices <- setdiff(choices, ambient)
+      # exclude test/ctrl ambient if positive/negative effect size
+      # opposite would decrease extent of gene expression difference but not direction
+      pos.test <- selected_markers[test.ambient, 't'] > 0
+      neg.ctrl <- selected_markers[ctrl.ambient, 't'] < 0
+
+      test.exclude <- test.ambient[pos.test]
+      ctrl.exclude <- ctrl.ambient[neg.ctrl]
+
+      choices <- setdiff(choices, c(test.exclude, ctrl.exclude))
     }
 
     # allow selecting non-marker genes (at bottom of list)

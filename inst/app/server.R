@@ -1,5 +1,4 @@
 
-
 get_path_df <- function(path_id, anal) {
   # add dprimes and vardprime values
   anal <- add_es(anal)
@@ -14,7 +13,7 @@ get_path_df <- function(path_id, anal) {
   path_df <- data.frame(
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
-    Vardprime = top_table$vardprime,
+    sd = sqrt(top_table$vardprime),
     Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
   )
 
@@ -49,15 +48,17 @@ pathPage <- function(input, output, session, new_anal) {
                     y = ~Dprime,
                     x = ~Gene,
                     text = ~Gene,
+                    customdata = ~sd,
                     type = 'scatter',
                     mode = 'markers',
                     width = plot_width,
                     height = 550,
                     marker = list(size = 5, color = '#000000'),
-                    error_y = ~list(array = Vardprime, color = '#000000', thickness = 0.5, width = 0),
+                    error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
                     hovertemplate = paste0(
-                      '<b>Gene</b>: %{text}<br>',
-                      '<b>Dprime</b>: %{y:.2f}',
+                      '<span style="color: crimson; font-weight: bold;">Gene</span>: %{text}<br>',
+                      '<span style="color: crimson; font-weight: bold;">Dprime</span>: %{y:.2f}<br>',
+                      '<span style="color: crimson; font-weight: bold;">SD</span>: %{customdata:.2f}',
                       '<extra></extra>')
                     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
@@ -73,7 +74,7 @@ pathPage <- function(input, output, session, new_anal) {
   })
 
   # inside observe to allow dynamic width
-  output$path_plot <- renderPlotly({
+  output$path_plot <- plotly::renderPlotly({
     pl()
   })
 

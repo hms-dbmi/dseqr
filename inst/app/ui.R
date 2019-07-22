@@ -12,12 +12,13 @@ pathPageUI <- function(id, tab, active) {
             ),
             hr(),
             div(class = 'scroll-plot',
-                plotlyOutput(ns('path_plot'), height = '550px')
+                plotly::plotlyOutput(ns('path_plot'), height = '550px')
 
             )
     )
   })
 }
+
 
 
 selectizeInputWithButtons <- function(id, label, ..., options = NULL) {

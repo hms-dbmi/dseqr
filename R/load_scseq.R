@@ -315,7 +315,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE) {
+get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE, test.use = "wilcox") {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
@@ -326,11 +326,17 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
-      markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
-                                     ident.1 = ident.1, ident.2 = ident.2,
-                                     min.diff.pct = min.diff.pct, only.pos = only.pos)
+      if (test.use == 'limma') {
+        markers <- find_limma_markers(scseq, ident.1 = ident.1, ident.2 = ident.2, only.pos = only.pos)
+
+      } else {
+        markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
+                                       ident.1 = ident.1, ident.2 = ident.2,
+                                       min.diff.pct = min.diff.pct, only.pos = only.pos, test.use = test.use)
+      }
 
     } else {
+
       markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = only.pos, min.diff.pct = min.diff.pct)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
@@ -340,11 +346,31 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   return(markers)
 }
 
+
+find_limma_markers <- function(scseq, ident.1, ident.2, only.pos) {
+
+  contrast = paste0(ident.1, '-', ident.2)
+
+  dat <- scseq[['SCT']]@data
+  group <- Seurat::Idents(scseq)
+  design <- stats::model.matrix(~0 + group)
+  colnames(design) <- levels(group)
+  fit <- limma::lmFit(dat, design)
+  cont.matrix <- limma::makeContrasts(contrasts = contrast, levels = design)
+  fit <- limma::contrasts.fit(fit, cont.matrix)
+  fit <- limma::eBayes(fit)
+
+  tt <- limma::topTable(fit, number = Inf)
+  if(only.pos) tt <- tt[tt$t > 0, ]
+
+  return(tt)
+}
+
 #' Integrate multiple scRNA-seq samples
 #'
 #' @param scseqs List of \code{Seurat} objects
 #'
-#' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
+#' @return Integrated \cdoe{Seurat} object with default assay of \code{"integrated"}
 #' @export
 integrate_scseqs <- function(scseqs) {
 
@@ -366,7 +392,7 @@ integrate_scseqs <- function(scseqs) {
 
 #' Mark ambient outliers in combined dataset
 #'
-#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the test datasets.
+#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
 #'
 #' @param scseqs the original scseqs
 #' @param combined the combined scseqs
@@ -381,13 +407,20 @@ add_ambient <- function(scseqs, combined) {
   is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
 
   # genes that are ambient in at least one test sample
-  ambient <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
-  ambient <- lapply(ambient, function(x) row.names(x)[x$out_ambient])
-  ambient <- unique(unlist(ambient))
+  ambient.test <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
+  ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
+  ambient.test <- unique(unlist(ambient.test))
+
+  # genes that are ambient in at least one ctrl sample
+  ambient.ctrl <- lapply(scseqs[!is.test], function(x) x[['RNA']]@meta.features)
+  ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
+  ambient.ctrl <- unique(unlist(ambient.ctrl))
 
   # set in combined
-  combined[['SCT']]@meta.features$out_ambient <- FALSE
-  combined[['SCT']]@meta.features$out_ambient[keep %in% ambient] <- TRUE
+  combined[['SCT']]@meta.features$test_ambient <- FALSE
+  combined[['SCT']]@meta.features$ctrl_ambient <- FALSE
+  combined[['SCT']]@meta.features$test_ambient[keep %in% ambient.test] <- TRUE
+  combined[['SCT']]@meta.features$ctrl_ambient[keep %in% ambient.ctrl] <- TRUE
 
   return(combined)
 }
