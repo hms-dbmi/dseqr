@@ -315,7 +315,7 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25) {
+get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
@@ -326,12 +326,12 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
-      markers <- Seurat::FindMarkers(scseq, assay = 'SCT', only.pos = TRUE,
+      markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
                                      ident.1 = ident.1, ident.2 = ident.2,
-                                     min.diff.pct = min.diff.pct)
+                                     min.diff.pct = min.diff.pct, only.pos = only.pos)
 
     } else {
-      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = TRUE, min.diff.pct = min.diff.pct)
+      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = only.pos, min.diff.pct = min.diff.pct)
       markers <- split(markers, markers$cluster)
       markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
     }
@@ -348,12 +348,14 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @export
 integrate_scseqs <- function(scseqs) {
 
+  anchor.features  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
+  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = anchor.features)
+
   k.filter <- min(200, min(sapply(scseqs, ncol)))
 
-  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter)
-  combined <- Seurat::IntegrateData(anchors)
-  Seurat::DefaultAssay(combined) <- "integrated"
-  combined <- Seurat::ScaleData(combined, verbose = FALSE)
+  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
+                                            anchor.features = anchor.features)
+  combined <- Seurat::IntegrateData(anchors, normalization.method = "SCT")
   combined$orig.ident <- factor(combined$orig.ident)
 
   # add ambient outlier info
