@@ -12,14 +12,15 @@ get_path_df <- function(path_id, anal) {
   top_table <- top_table[row.names(top_table) %in% path_genes, ]
 
   path_df <- data.frame(
-    gene = row.names(top_table),
-    dprime = top_table$dprime,
-    vardprime = top_table$vardprime
+    Gene = row.names(top_table),
+    Dprime = top_table$dprime,
+    Vardprime = top_table$vardprime,
+    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
   )
 
   path_df <- path_df %>%
-    arrange(desc(abs(dprime))) %>%
-    mutate(gene = factor(gene, levels = gene))
+    arrange(desc(abs(Dprime))) %>%
+    mutate(Gene = factor(Gene, levels = Gene))
 
   return(path_df)
 }
@@ -29,7 +30,6 @@ pathPage <- function(input, output, session, new_anal) {
                      new_anal = new_anal)
 
 
-  plot_width <- reactiveVal('auto')
 
   # the gene plot
   pl <- reactive({
@@ -42,31 +42,41 @@ pathPage <- function(input, output, session, new_anal) {
 
     path_df <- get_path_df(path_id, anal)
     # 30 pixels width per gene in pathway
-    plot_width(nrow(path_df)*30)
+    plot_width <- nrow(path_df)*25
 
-    pl <- ggplot2::ggplot(data = path_df, ggplot2::aes_string(x = 'gene', y = 'dprime')) +
-      ggplot2::geom_point(size = 2.5) +
-      ggplot2::geom_errorbar(ggplot2::aes(ymin=dprime-vardprime, ymax=dprime+vardprime), width = 0.03, size = 0.15) +
-      ggplot2::ylab("Dprime") +
-      ggplot2::xlab("") +
-      ggplot2::geom_hline(yintercept = 0, color = 'black', linetype = 2, size = .2) +
-      ggplot2::theme_bw() +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, vjust = 1, hjust = 1),
-                     legend.title = ggplot2::element_blank(),
-                     panel.grid.major = ggplot2::element_line(size = 0.2),
-                     panel.border = ggplot2::element_rect(size = 0.05), text = ggplot2::element_text(size = 14.5))
 
-    return(pl)
+    plotly::plot_ly(data = path_df,
+                    y = ~Dprime,
+                    x = ~Gene,
+                    text = ~Gene,
+                    type = 'scatter',
+                    mode = 'markers',
+                    width = plot_width,
+                    height = 550,
+                    marker = list(size = 5, color = '#000000'),
+                    error_y = ~list(array = Vardprime, color = '#000000', thickness = 0.5, width = 0),
+                    hovertemplate = paste0(
+                      '<b>Gene</b>: %{text}<br>',
+                      '<b>Dprime</b>: %{y:.2f}',
+                      '<extra></extra>')
+                    ) %>%
+      plotly::config(displayModeBar = FALSE) %>%
+      plotly::layout(yaxis = list(fixedrange = TRUE),
+                     xaxis = list(fixedrange = TRUE,
+                                  range = c(-2, nrow(path_df) + 1),
+                                  tickmode = 'array',
+                                  tickvals = 0:nrow(path_df),
+                                  ticktext = ~Link,
+                                  tickangle = -45),
+                     autosize = FALSE)
 
   })
 
   # inside observe to allow dynamic width
-  observe({
-    output$path_plot <- renderPlot({
-      pl()
-    }, width = plot_width())
-
+  output$path_plot <- renderPlotly({
+    pl()
   })
+
 
 }
 
@@ -132,7 +142,7 @@ pathForm <- function(input, output, session, new_anal) {
 
     updateSelectizeInput(session, 'pathway',
                          choices = path_choices,
-                         options = list(render= I('{option: pathOptions, item: pathItem}')),
+                         options = list(render= I('{option: pathOptions}')),
                          server = TRUE)
   })
 

@@ -124,7 +124,7 @@
 }
 
 .full-height-selectize .selectize-input {
-  display: block;
+  display: block !important; 
 }
 
 .full-height-selectize .selectize-control {

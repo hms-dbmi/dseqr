@@ -12,13 +12,32 @@ pathPageUI <- function(id, tab, active) {
             ),
             hr(),
             div(class = 'scroll-plot',
-            plotOutput(ns('path_plot'), height = '550px')
+                plotlyOutput(ns('path_plot'), height = '550px')
 
             )
     )
   })
 }
 
+
+selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
+
+  options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
+
+  tags$div(class = 'form-group selectize-fh',
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(class = 'input-group full-height-btn',
+                    tags$div(class = 'full-height-selectize',
+                      tags$select(id = id, style = 'display: none'),
+                      tags$script(type = 'application/json', `data-for` = id, HTML(options))
+                    ),
+                    tags$div(class = 'input-group-btn',
+                             # the buttons
+                             ...
+                    )
+           )
+  )
+}
 
 
 #' Input form for pathways page
@@ -32,6 +51,7 @@ pathFormInput <- function(id) {
         selectizeInputWithButtons(ns('pathway'), 'Select a pathway:', actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'))
     )
 }
+
 
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
 active <- 'Pathways'

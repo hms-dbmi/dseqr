@@ -14,13 +14,3 @@ function pathOptions(item, escape) {
   return markup;
 }
 
-
-function pathItem(item, escape){
-  var markup = 
-    "<div class = 'item path-name-item' title = '" + escape(item.name) + "'>" +
-        escape(item.name) +
-    "</div>" 
-
-  return markup;
-}
-
