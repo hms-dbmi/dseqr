@@ -43,7 +43,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
     path_df <- get_path_df(path_id, anal)
     # 30 pixels width per gene in pathway
-    plot_width <- nrow(path_df)*25 + 125
+    plot_width <- max(400, nrow(path_df)*25 + 125)
 
 
     plotly::plot_ly(data = path_df,
@@ -104,11 +104,13 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 }
 
 scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
+  # inputs/buttons that can access/disable
+  input_ids <- c('anal', 'kegg', 'pathway', 'run_comparison', 'selected_clusters', 'show_up')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   # differential and pathway analyses
-  diffs <- reactiveVal()
+  path_diffs <- reactiveVal()
 
   sc_dir <- reactive({
     req(is_sc())
@@ -145,27 +147,32 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
                          options = contrast_options, server = TRUE)
   })
 
+
   observeEvent(input$run_comparison, {
+    toggleAll(input_ids)
+
 
     # run differential expression analysis ----
     # set idents to ctrl and test
     scseq <- scseq()
     clusters <- input$selected_clusters
-    anal <- diff_expr_sc(scseq, clusters = clusters)
-
+    prev_anal <- diff_expr_sc(scseq, clusters = clusters)
 
     # run pathway analysis
     panal <- diff_path_sc(scseq,
-                          prev_anal = anal,
+                          prev_anal = prev_anal,
                           data_dir = sc_dir(),
                           anal_name = anal()$anal_name,
                           clusters = clusters)
 
-    diffs(list(anal = anal, path = panal))
+    toggleAll(input_ids)
+    path_diffs(list(anal = prev_anal, path = panal))
   })
 
+
   return(list(
-    diffs = diffs
+    path_diffs = path_diffs,
+    clusters = reactive(input$selected_clusters)
   ))
 
 
@@ -174,7 +181,7 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
 diff_path_sc <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 
   # load previous if exists
-  clusters_name <- paste(clusters, collapse = ',')
+  clusters_name <- paste(sort(clusters), collapse = ',')
   fname <- paste0('diff_path_', clusters_name, '.rds')
   fpath <- file.path(data_dir, anal_name, fname)
 
@@ -208,7 +215,6 @@ diff_path_sc <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 
   return(padog_table)
 }
-
 
 diff_expr_sc <- function(scseq, clusters, exclude_ambient = TRUE) {
   Seurat::Idents(scseq) <- scseq$orig.ident
@@ -273,6 +279,7 @@ get_ambient <- function(scseq, markers) {
 
 pathForm <- function(input, output, session, new_anal, data_dir) {
 
+
   # reload analysis choices if new analysis
   anals <- reactive({
     new_anal()
@@ -312,10 +319,10 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   })
 
   # get single-cell data
-  sc_inputs <- callModule(scPathClusters, 'sc_clusters',
-                          data_dir = data_dir,
-                          anal = anal,
-                          is_sc = is_sc)
+  sc_inputs <- scPathClusters(input, output, session,
+                              data_dir = data_dir,
+                              anal = anal,
+                              is_sc = is_sc)
 
 
 
@@ -340,7 +347,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   # load pathway and analysis results
   diffs <- reactive({
     fpaths <- fpaths()
-    if (is_sc()) return (sc_inputs$diffs())
+    if (is_sc()) return (sc_inputs$path_diffs())
 
 
     list(
@@ -411,6 +418,10 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     diffs = diffs,
     pathway = reactive(input$pathway)
   ))
+}
+
+toggleAll <- function(ids){
+  for(id in ids) shinyjs::toggleState(id)
 }
 
 get_path_directions <- function(top_table) {

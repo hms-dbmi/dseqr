@@ -68,7 +68,7 @@ pathFormInput <- function(id) {
   tags$div(class = "well-form well-bg",
            selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField = 'type')),
            tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-                    scPathClustersInput(ns('sc_clusters'))
+                    scPathClustersInput(ns)
            ),
            selectizeInputWithButtons(ns('pathway'),
                                      'Select a pathway:',
@@ -78,8 +78,7 @@ pathFormInput <- function(id) {
   )
 }
 
-scPathClustersInput <- function(id) {
-  ns <- NS(id)
+scPathClustersInput <- function(ns) {
 
   button <- actionButton(ns('run_comparison'), '',
                          icon = icon('chevron-right', 'far fa-fw'),
