@@ -51,7 +51,7 @@ dsDatasetInput <- function(id) {
                               button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
                                      `data-title` = 'Folder with fastq.gz files',
                                      title = 'Select folder with fastq.gz files',
-                                     i(class = 'far fa-folder')
+                                     i(class = 'far fa-folder fa-fw')
 
                               )
     )

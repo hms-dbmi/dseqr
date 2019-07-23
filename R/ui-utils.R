@@ -111,19 +111,28 @@ textInputWithButtons <- function(id, label, ...) {
 #' @keywords internal
 selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
 
+  mult <- isTRUE(options$multiple)
+  if(mult) {
+    select_tag <- tags$select(id = id, style = 'display: none', multiple = TRUE)
+  } else {
+    select_tag <- tags$select(id = id, style = 'display: none')
+  }
+
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   tags$div(class = 'form-group selectize-fh',
            tags$label(class = 'control-label', `for` = id, label),
-           tags$div(class = 'input-group',
-                    tags$div(
-                      tags$select(id = id, style = 'display: none'),
-                      tags$script(type = 'application/json', `data-for` = id, HTML(options))
+           tags$div(class = 'input-group full-height-btn',
+                    tags$div(class = 'full-height-selectize',
+                             select_tag,
+                             tags$script(type = 'application/json', `data-for` = id, HTML(options))
                     ),
-                    tags$div(class = 'input-group-btn',
-                             # the buttons
-                             ...
-                    )
+                    lapply(list(...), function(btn) {
+                      tags$div(class = 'input-group-btn',
+                               # the buttons
+                               btn
+                      )
+                    })
            )
   )
 }

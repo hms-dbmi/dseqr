@@ -357,7 +357,7 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #'
 #' @param scseqs List of \code{Seurat} objects
 #'
-#' @return Integrated \cdoe{Seurat} object with default assay of \code{"integrated"}
+#' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
 #' @export
 integrate_scseqs <- function(scseqs) {
 

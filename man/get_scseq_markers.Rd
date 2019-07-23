@@ -5,7 +5,8 @@
 \title{Get markers genes for single cell clusters}
 \usage{
 get_scseq_markers(scseq, assay.type = "logcounts", ident.1 = NULL,
-  ident.2 = NULL, min.diff.pct = 0.25)
+  ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE,
+  test.use = "wilcox")
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object.}

@@ -4,7 +4,7 @@
 \alias{load_bulk_anals}
 \title{Load previous bulk anals dataframe}
 \usage{
-load_bulk_anals(data_dir)
+load_bulk_anals(data_dir, with_type = FALSE)
 }
 \arguments{
 \item{data_dir}{Path to folder container \code{'bulk'} and \code{'single-cell'} directories}

@@ -4,7 +4,7 @@
 \alias{selectizeInputWithButtons}
 \title{selectizeInput with buttons}
 \usage{
-selectizeInputWithButtons(id, label, options = NULL, ...)
+selectizeInputWithButtons(id, label, ..., options = NULL)
 }
 \arguments{
 \item{label}{Display label for the control, or \code{NULL} for no label.}

@@ -15,5 +15,5 @@ add_ambient(scseqs, combined)
 \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
 }
 \description{
-A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the test datasets.
+A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
 }

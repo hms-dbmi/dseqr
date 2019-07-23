@@ -106,7 +106,10 @@ sampleComparisonInput <- function(id) {
                          icon = icon('chevron-right', 'far fa-fw'),
                          title = 'Compare test to control cells')
 
-  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = 'Compare samples for:',
+                            button,
+                            options = list(multiple = TRUE))
 }
 
 #' Input form to control/test/all groups for integrated datasets
