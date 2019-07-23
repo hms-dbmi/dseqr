@@ -28,7 +28,7 @@ validate_pdata <- function(pdata) {
 #' @return data.frame with columns "dataset_name" "dataset_dir" and "anal_name".
 #' @export
 #' @keywords internal
-load_bulk_anals <- function(data_dir) {
+load_bulk_anals <- function(data_dir, with_type = FALSE) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
 
   if (file.exists(anals_path)) {
@@ -42,6 +42,8 @@ load_bulk_anals <- function(data_dir) {
 
   anals$label <- anals$anal_name
   anals$value <- seq_len(nrow(anals))
+
+  if (with_type) anals$type <- paste0('Bulk - ', anals$dataset_name)
 
   return(anals)
 }

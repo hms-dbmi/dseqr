@@ -17,10 +17,12 @@
 #' @export
 #'
 #' @examples
-#' eset <- readRDS('/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/bulk/mono/eset.rds')
-#' prev_anal <- readRDS('/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/bulk/mono/diff_expr_symbol_ferritin.rds')
+#' eset <- readRDS('data-raw/patient_data/sjia/bulk/mono/eset.rds')
+#' prev_anal <- readRDS('data-raw/patient_data/sjia/bulk/mono/diff_expr_symbol_ferritin.rds')
+#' data_dir <- 'data-raw/patient_data/sjia/bulk/mono'
+#' anal_name <- 'ferritin'
 #'
-#' diff_path(eset, prev_anal)
+#' path_anal <- diff_path(eset, prev_anal, data_dir, anal_name)
 #'
 diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE){
 

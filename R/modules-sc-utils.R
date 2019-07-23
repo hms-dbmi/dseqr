@@ -3,11 +3,12 @@
 #'
 #' @param clusters Character vector of cluster names
 #' @param scseq \code{Seurat} object
+#' @param value Character vector for value column which is returned from \code{selectizeInput}. Default is \code{clusters}.
 #'
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, scseq) {
+get_cluster_choices <- function(clusters, scseq, value = clusters) {
 
   # show the cell numbers/percentages
   ncells <- tabulate(scseq$seurat_clusters)
@@ -17,7 +18,7 @@ get_cluster_choices <- function(clusters, scseq) {
   # cluster choices are the clusters themselves
   testColor <- get_palette(clusters)
   cluster_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                value = clusters,
+                                value = value,
                                 label = clusters,
                                 testColor,
                                 ncells, pcells, pspace, row.names = NULL)

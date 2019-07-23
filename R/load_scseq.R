@@ -327,7 +327,12 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
       if (test.use == 'limma') {
-        markers <- find_limma_markers(scseq, ident.1 = ident.1, ident.2 = ident.2, only.pos = only.pos)
+        ebayes_sv <- fit_ebayes_scseq(scseq, ident.1, ident.2)
+
+        tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
+        if(only.pos) tt <- tt[tt$t > 0, ]
+
+        markers <- tt
 
       } else {
         markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
@@ -347,24 +352,6 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 }
 
 
-find_limma_markers <- function(scseq, ident.1, ident.2, only.pos) {
-
-  contrast = paste0(ident.1, '-', ident.2)
-
-  dat <- scseq[['SCT']]@data
-  group <- Seurat::Idents(scseq)
-  design <- stats::model.matrix(~0 + group)
-  colnames(design) <- levels(group)
-  fit <- limma::lmFit(dat, design)
-  cont.matrix <- limma::makeContrasts(contrasts = contrast, levels = design)
-  fit <- limma::contrasts.fit(fit, cont.matrix)
-  fit <- limma::eBayes(fit)
-
-  tt <- limma::topTable(fit, number = Inf)
-  if(only.pos) tt <- tt[tt$t > 0, ]
-
-  return(tt)
-}
 
 #' Integrate multiple scRNA-seq samples
 #'

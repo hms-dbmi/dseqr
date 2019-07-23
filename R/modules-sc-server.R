@@ -623,6 +623,8 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 }
 
 
+
+
 #' @export
 #' @keywords internal#' Logic for selected gene to show plots for
 
@@ -642,6 +644,8 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
 
 
+
+
   # update marker genes based on cluster selection
   gene_choices <- reactive({
     selected_markers <- selected_markers()
@@ -652,19 +656,8 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
     if (exclude_ambient()) {
       scseq <- scseq()
 
-      fts <- scseq[['SCT']]@meta.features
-      test.ambient <- row.names(fts)[fts$test_ambient]
-      ctrl.ambient <- row.names(fts)[fts$ctrl_ambient]
-
-      # exclude test/ctrl ambient if positive/negative effect size
-      # opposite would decrease extent of gene expression difference but not direction
-      pos.test <- selected_markers[test.ambient, 't'] > 0
-      neg.ctrl <- selected_markers[ctrl.ambient, 't'] < 0
-
-      test.exclude <- test.ambient[pos.test]
-      ctrl.exclude <- ctrl.ambient[neg.ctrl]
-
-      choices <- setdiff(choices, c(test.exclude, ctrl.exclude))
+      ambient <- get_ambient(scseq, selected_markers)
+      choices <- setdiff(choices, ambient)
     }
 
     # allow selecting non-marker genes (at bottom of list)

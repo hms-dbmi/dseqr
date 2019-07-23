@@ -112,6 +112,10 @@
   min-width: 42px;
 }
 
+.full-height-btn .input-group-btn:not(:last-child) button {
+  border-radius: 0;
+}
+
 .full-height-btn button {
   position: absolute !important;
   top: 0;

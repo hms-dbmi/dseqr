@@ -80,28 +80,33 @@ scFormInput <- function(id) {
   })
 }
 
+selectizeInputMultWithButton <- function(id, label, button) {
+
+  tags$div(class = 'form-group selectize-fh',
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(class = 'input-group full-height-btn',
+                    tags$div(class = 'full-height-selectize',
+                             tags$select(id = id, style = 'display: none', multiple = TRUE),
+                             tags$script(type = 'application/json', `data-for` = id, HTML('{}'))
+                    ),
+                    tags$div(class = 'input-group-btn',
+                             button
+                    )
+           )
+  )
+}
+
 #' Selection form/button for sample comparisons (test vs control)
 #' @export
 #' @keywords internal
 sampleComparisonInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('selected_clusters'), 'Compare samples for:'),
-        div(class = 'input-group full-height-btn',
-            div(class = 'full-height-selectize',
-                select(id = ns('selected_clusters'), style = 'display: none', multiple = TRUE),
-                script(type = 'application/json', `data-for` = ns('selected_clusters'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                actionButton(ns('run_comparison'), '',
-                             icon = icon('chevron-right', 'far fa-fw'),
-                             title = 'Compare test to control cells')
-            )
-        )
-    )
-  })
+  button <- actionButton(ns('run_comparison'), '',
+                         icon = icon('chevron-right', 'far fa-fw'),
+                         title = 'Compare test to control cells')
+
+  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
 }
 
 #' Input form to control/test/all groups for integrated datasets

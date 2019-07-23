@@ -29,17 +29,35 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group full-height-btn',
                     tags$div(class = 'full-height-selectize',
-                      tags$select(id = id, style = 'display: none'),
-                      tags$script(type = 'application/json', `data-for` = id, HTML(options))
+                             tags$select(id = id, style = 'display: none'),
+                             tags$script(type = 'application/json', `data-for` = id, HTML(options))
                     ),
-                    tags$div(class = 'input-group-btn',
-                             # the buttons
-                             ...
-                    )
+                    lapply(list(...), function(btn) {
+                      tags$div(class = 'input-group-btn',
+                               # the buttons
+                               btn
+                      )
+                    })
            )
   )
 }
 
+
+selectizeInputMultWithButton <- function(id, label, button) {
+
+  tags$div(class = 'form-group selectize-fh',
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(class = 'input-group full-height-btn',
+                    tags$div(class = 'full-height-selectize',
+                             tags$select(id = id, style = 'display: none', multiple = TRUE),
+                             tags$script(type = 'application/json', `data-for` = id, HTML('{}'))
+                    ),
+                    tags$div(class = 'input-group-btn',
+                             button
+                    )
+           )
+  )
+}
 
 #' Input form for pathways page
 #' @export
@@ -47,10 +65,28 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
 pathFormInput <- function(id) {
   ns <- NS(id)
 
-    tags$div(class = "well-form well-bg",
-        selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField= 'dataset_name')),
-        selectizeInputWithButtons(ns('pathway'), 'Select a pathway:', actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'))
-    )
+  tags$div(class = "well-form well-bg",
+           selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField = 'type')),
+           tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
+                    scPathClustersInput(ns('sc_clusters'))
+           ),
+           selectizeInputWithButtons(ns('pathway'),
+                                     'Select a pathway:',
+                                     actionButton(ns('show_up'), '', icon = icon('chevron-up', 'fa-fw'), title = 'toggle direction'),
+                                     actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')))
+  )
+}
+
+scPathClustersInput <- function(id) {
+  ns <- NS(id)
+
+  button <- actionButton(ns('run_comparison'), '',
+                         icon = icon('chevron-right', 'far fa-fw'),
+                         title = 'Compare test to control cells')
+
+  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+
 }
 
 
