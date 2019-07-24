@@ -260,8 +260,9 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   selectizeInputWithButtons(id = ns('selected_gene'),
                             label = 'Show expression for:',
                             exclude_ambient_button,
+                            downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download'),
                             actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
-                            )
+  )
 }
 
 

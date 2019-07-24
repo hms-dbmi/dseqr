@@ -2,9 +2,10 @@
 % Please edit documentation in R/ui-utils.R
 \name{selectizeInputWithButtons}
 \alias{selectizeInputWithButtons}
-\title{selectizeInput with buttons}
+\title{selectizeInput with buttons and validation}
 \usage{
-selectizeInputWithButtons(id, label, ..., options = NULL)
+selectizeInputWithButtons(id, label, ..., options = NULL,
+  container_id = NULL, help_id = NULL)
 }
 \arguments{
 \item{label}{Display label for the control, or \code{NULL} for no label.}
@@ -12,6 +13,6 @@ selectizeInputWithButtons(id, label, ..., options = NULL)
 \item{...}{selectizeInput}
 }
 \description{
-selectizeInput with buttons
+selectizeInput with buttons and validation
 }
 \keyword{internal}

@@ -96,9 +96,10 @@ dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    selectizeInputWithValidation(
+    selectizeInputWithButtons(
       ns('anal_name'),
       'Analysis name:',
+      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
       options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
       container_id = ns('anal_name_container'),
       help_id = ns('anal_name_help')
@@ -118,6 +119,7 @@ dsFormAnalInput <- function(id) {
 }
 
 
+
 #' Tables for datasets page
 #' @export
 #' @keywords internal
@@ -125,8 +127,7 @@ dsTable <- function(id) {
   ns <- NS(id)
   withTags({
     div(class = 'dt-container',
-      DT::dataTableOutput(ns("pdata"))
+        DT::dataTableOutput(ns("pdata"))
     )
   })
 }
-

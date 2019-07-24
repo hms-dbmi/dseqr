@@ -56,24 +56,6 @@ id_from_tab <- function(tab) {
 }
 
 
-#' selectizeInput with validation
-#' @inheritParams shiny::selectizeInput
-#' @param container_id id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.
-#' @param help_id id of help block. Used to show help message in change shinyjs::html
-#' @export
-#' @keywords internal
-selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL) {
-  options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
-
-  tags$div(class = 'form-group selectize-fh', id = container_id,
-           tags$label(class = 'control-label', `for` = id, label),
-           tags$div(
-             tags$select(id = id, style = 'display: none'),
-             tags$script(type = 'application/json', `data-for` = id, HTML(options))
-           ),
-           tags$span(class = 'help-block', id = help_id)
-  )
-}
 
 #' textInput with validation
 #' @inheritParams shiny::textInput
@@ -104,12 +86,32 @@ textInputWithButtons <- function(id, label, ...) {
   )
 }
 
-#' selectizeInput with buttons
+
+#' selectizeInput with validation
+#' @inheritParams shiny::selectizeInput
+#' @param container_id id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.
+#' @param help_id id of help block. Used to show help message in change shinyjs::html
+#' @export
+#' @keywords internal
+selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL) {
+  options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
+
+  tags$div(class = 'form-group selectize-fh', id = container_id,
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(
+             tags$select(id = id, style = 'display: none'),
+             tags$script(type = 'application/json', `data-for` = id, HTML(options))
+           ),
+           tags$span(class = 'help-block', id = help_id)
+  )
+}
+
+#' selectizeInput with buttons and validation
 #' @inheritParams shiny::textInput
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
+selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL) {
 
   mult <- isTRUE(options$multiple)
   if(mult) {
@@ -118,24 +120,29 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL) {
     select_tag <- tags$select(id = id, style = 'display: none')
   }
 
+  buttons <- list(...)
+  buttons <- buttons[!sapply(buttons, is.null)]
+
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
-  tags$div(class = 'form-group selectize-fh',
+  tags$div(class = 'form-group selectize-fh', id = container_id,
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group full-height-btn',
                     tags$div(class = 'full-height-selectize',
                              select_tag,
                              tags$script(type = 'application/json', `data-for` = id, HTML(options))
                     ),
-                    lapply(list(...), function(btn) {
+                    lapply(buttons, function(btn) {
                       tags$div(class = 'input-group-btn',
                                # the buttons
                                btn
                       )
                     })
-           )
+           ),
+           tags$span(class = 'help-block', id = help_id)
   )
 }
+
 
 
 #' Full width button group with validation

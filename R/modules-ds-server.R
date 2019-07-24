@@ -458,6 +458,31 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     run_anal(input$run_anal)
   })
 
+  download_content <- reactive({
+    anal_name <- anal_name()
+    dataset_name <- dataset_name()
+
+    req(anal_name, dataset_name)
+
+    # path to analysis result
+    anal_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
+    anal_path <- file.path(data_dir, 'bulk', dataset_name, anal_file)
+    tt <- readRDS(anal_path)$top_table
+
+    tt[order(tt$P.Value), ]
+  })
+
+  output$download <- downloadHandler(
+    filename = function() {
+      date <- paste0(Sys.Date(), '.csv')
+      paste('bulk', dataset_name(), anal_name(), date , sep='_')
+    },
+    content = function(con) {
+      write.csv(download_content(), con)
+    }
+  )
+
+
   return(list(
     labels = labels,
     run_anal = run_anal,
@@ -807,3 +832,5 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   ))
 
 }
+
+

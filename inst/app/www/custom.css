@@ -105,6 +105,10 @@
   min-height: 34px;
 }
 
+.input-group-btn a {
+  z-index: 0 !important;
+}
+
 
 /* FULL HEIGHT BUTTON BESIDE INPUT */
 
