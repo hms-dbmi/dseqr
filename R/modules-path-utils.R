@@ -1,4 +1,62 @@
 
+
+#' Used by get_all_df and get_path_df to construct the return result
+#'
+#' @param top_table Filtered result of \code{\link[limma]{topTable}}
+#' @param nmax Maximum number of rows to keep. Default is all. Used be \code{construct_all_df}
+#' to limit number of plotted genes.
+#' @export
+#' @keywords internal
+construct_path_df <- function(top_table, nmax = nrow(top_table)) {
+
+  # show up to nmax genes
+  nkeep <- min(nmax, nrow(top_table))
+
+  path_df <- data.frame(
+    Gene = row.names(top_table),
+    Dprime = top_table$dprime,
+    sd = sqrt(top_table$vardprime),
+    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
+  )
+
+  path_df <- path_df %>%
+    arrange(desc(abs(Dprime))) %>%
+    mutate(Gene = factor(Gene, levels = Gene)) %>%
+    head(nkeep)
+
+
+  return(path_df)
+}
+
+
+#' Get data.frame for plotting gene expression values of top genes
+#'
+#' @param anal Result of call to \code{\link{diff_expr_scseq}}
+#' @param show_up Boolean. if \code{TRUE}, will return only upregulated genes.
+#' If \code{FALSE} will return only downregulated genes.
+#'
+#' @return \code{data.frame} with columns: \itemize{
+#'  \item Gene gene names.
+#'  \item Dprime standardized unbiased effect size values.
+#'  \item sd standard deviations of \code{Dprime}.
+#'  \item Link url to GeneCards page for gene.
+#' }
+#' @export
+get_all_df <- function(anal, show_up) {
+
+  # add dprimes and vardprime values
+  anal <- add_es(anal)
+  top_table <- anal$top_table
+
+  is.up <- top_table$t > 0
+  filter <- if (show_up) is.up else !is.up
+
+  top_table <- top_table[filter, ]
+
+  construct_path_df(top_table, nmax = 200)
+}
+
+
 #' Get data.frame for plotting gene expression values of a pathway
 #'
 #' @param path_id String with KEGG pathway id.
@@ -11,6 +69,7 @@
 #'  \item Link url to GeneCards page for gene.
 #' }
 #' @export
+#' @keywords internal
 get_path_df <- function(path_id, anal) {
 
   # add dprimes and vardprime values
@@ -23,19 +82,9 @@ get_path_df <- function(path_id, anal) {
   # subset top table to genes in the pathway
   top_table <- top_table[row.names(top_table) %in% path_genes, ]
 
-  path_df <- data.frame(
-    Gene = row.names(top_table),
-    Dprime = top_table$dprime,
-    sd = sqrt(top_table$vardprime),
-    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
-  )
-
-  path_df <- path_df %>%
-    arrange(desc(abs(Dprime))) %>%
-    mutate(Gene = factor(Gene, levels = Gene))
-
-  return(path_df)
+  construct_path_df(top_table)
 }
+
 
 #' Generate data.frame of saved single cell RNA-Seq analyses
 #'

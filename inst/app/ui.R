@@ -1,6 +1,6 @@
 
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
-active <- 'Pathways'
+active <- 'Single Cell'
 
 
 bootstrapPage(

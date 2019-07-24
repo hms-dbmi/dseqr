@@ -1,4 +1,3 @@
-
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
@@ -14,11 +13,17 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
     diffs <- form$diffs()
     path_id <- form$pathway()
+    show_up <- form$show_up()
     anal <- diffs$anal
 
     req(path_id, anal)
 
-    path_df <- get_path_df(path_id, anal)
+    if (path_id == 'all') {
+      path_df <- get_all_df(anal, show_up)
+    } else {
+      path_df <- get_path_df(path_id, anal)
+    }
+
     # 30 pixels width per gene in pathway
     plot_width <- max(400, nrow(path_df)*25 + 125)
 
@@ -41,7 +46,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                       '<extra></extra>')
     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
-      plotly::layout(yaxis = list(fixedrange = TRUE),
+      plotly::layout(yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
                      xaxis = list(fixedrange = TRUE,
                                   range = c(-2, nrow(path_df) + 1),
                                   tickmode = 'array',
@@ -167,18 +172,30 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     directions <- path_directions()
 
     if (is.null(res)) return(NULL)
-    is.up <- directions$is.up
+
+    # for showing top up/down regulated
+    all_choices <-  data.frame(
+      name = 'all',
+      value = 'all',
+      label = 'all',
+      direction_label = c('Mostly Up', 'Mostly Down'),
+      is.up = c(TRUE, FALSE),
+      fdr = c(NA, NA),
+      stringsAsFactors = FALSE
+    )
 
     path_choices <- data.frame(
       name = res$Name,
       value = res$ID,
       label = res$Name,
       direction_label = directions$label,
-      is.up = is.up,
+      is.up = directions$is.up,
       fdr = format.pval(res$Ppadog, eps = 0.001, digits = 2),
       stringsAsFactors = FALSE)
 
-    filter <- if (show_up()) is.up else !is.up
+    path_choices <- rbind(all_choices, path_choices)
+
+    filter <- if (show_up()) path_choices$is.up else !path_choices$is.up
 
     return(path_choices[filter, ])
   })
@@ -200,8 +217,13 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     runjs(paste0("window.open('", kegg_link, "')"))
   })
 
+  observe({
+    toggleState('kegg', condition = input$pathway != 'all')
+  })
+
   return(list(
     diffs = diffs,
+    show_up = show_up,
     pathway = reactive(input$pathway)
   ))
 }
@@ -283,5 +305,4 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
 
 
 }
-
 
