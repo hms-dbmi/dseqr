@@ -1,6 +1,7 @@
 
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
-active <- 'Single Cell'
+active <- 'Pathways'
+
 
 bootstrapPage(
   useShinyjs(),
@@ -26,3 +27,4 @@ bootstrapPage(
     )
   )
 )
+
