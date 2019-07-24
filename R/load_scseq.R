@@ -326,19 +326,9 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 
   } else if (class(scseq) == 'Seurat') {
     if (!is.null(ident.1) & !is.null(ident.2)) {
-      if (test.use == 'limma') {
-        ebayes_sv <- fit_ebayes_scseq(scseq, ident.1, ident.2)
-
-        tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
-        if(only.pos) tt <- tt[tt$t > 0, ]
-
-        markers <- tt
-
-      } else {
-        markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
-                                       ident.1 = ident.1, ident.2 = ident.2,
-                                       min.diff.pct = min.diff.pct, only.pos = only.pos, test.use = test.use)
-      }
+      markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
+                                     ident.1 = ident.1, ident.2 = ident.2,
+                                     min.diff.pct = min.diff.pct, only.pos = only.pos, test.use = test.use)
 
     } else {
 
@@ -349,6 +339,10 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   }
 
   return(markers)
+}
+
+get_cell_pcts <- function(scseq, ident.1, ident.2) {
+
 }
 
 

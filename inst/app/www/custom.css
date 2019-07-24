@@ -108,11 +108,13 @@
 
 /* FULL HEIGHT BUTTON BESIDE INPUT */
 
-.full-height-btn .input-group-btn {
+.full-height-btn .input-group-btn,
+.full-height-btn .input-group-btn a {
   min-width: 42px;
 }
 
-.full-height-btn .input-group-btn:not(:last-child) button {
+.full-height-btn .input-group-btn:not(:last-child) button,
+.full-height-btn .input-group-btn:not(:last-child) a {
   border-radius: 0;
 }
 

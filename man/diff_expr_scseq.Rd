@@ -4,14 +4,12 @@
 \alias{diff_expr_scseq}
 \title{Run limma differential expression between test and control groups in single cell RNA-Seq dataset}
 \usage{
-diff_expr_scseq(scseq, clusters, exclude_ambient = TRUE)
+diff_expr_scseq(scseq, clusters)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}
 
 \item{clusters}{Character vector of clusters to include in analysis}
-
-\item{exclude_ambient}{Boolean indicating if ambient genes should be excluded. Default is \code{TRUE}.}
 }
 \value{
 Named list with slots: \itemize{

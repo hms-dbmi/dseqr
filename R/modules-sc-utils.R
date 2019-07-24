@@ -1,4 +1,59 @@
 
+#' Get percentage of cells expressing each gene
+#'
+#' @param scseq \code{Seurat} object
+#' @param ident.1 Test group level in \code{Idents(scseq)}.
+#' @param ident.2 Control group level in \code{Idents(scseq)}.
+#'
+#' @return data.frame with columns pct.1 and pct.2 indicating fraction of cells that express each gene.
+#' @export
+#' @keywords internal
+get_cell_pcts <- function(scseq, ident.1, ident.2) {
+  data <- scseq[['SCT']]@data
+
+  cells <- Seurat::Idents(scseq)
+  cells.1 <- cells == ident.1
+  cells.2 <- cells == ident.2
+
+  pct.1 <- round(
+    x = Matrix::rowSums(x = data[, cells.1, drop = FALSE] > 0) / sum(cells.1),
+    digits = 3
+  )
+
+  pct.2 <- round(
+    x = Matrix::rowSums(x = data[, cells.2, drop = FALSE] > 0) / sum(cells.2),
+    digits = 3
+  )
+
+  return(cbind(pct.1, pct.2))
+}
+
+
+
+#' Utility to generate filename for single cell download csv
+#'
+#' @param cluster Character vector of cluster names
+#' @param anal result of diff_expr_scseq
+#' @param comparison_type either 'samples' or 'clusters'
+#'
+#' @return File name string
+#' @export
+#' @keywords internal
+sc_dl_filename <- function(cluster, anal, comparison_type) {
+
+  # remove underscores and spaces for cluster(s) and analysis name
+  cluster <- gsub('[_ ]', '-', cluster)
+  anal <- gsub('[_ ]', '-', anal)
+
+  if (comparison_type == 'samples')
+    cluster <- paste0('test-vs-ctrl_', paste(cluster, collapse = '-'))
+
+
+  paste('single-cell', anal, cluster, paste0(Sys.Date(), '.csv'), sep='_')
+}
+
+
+
 #' Get cluster choices data.frame for selectize dropdown
 #'
 #' @param clusters Character vector of cluster names

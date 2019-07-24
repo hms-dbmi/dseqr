@@ -1,3 +1,4 @@
+
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
@@ -285,6 +286,7 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
     scseq <- scseq()
     clusters <- input$selected_clusters
     prev_anal <- diff_expr_scseq(scseq, clusters = clusters)
+    prev_anal <- ambient.omit(scseq, anal = prev_anal)
 
     # run pathway analysis
     panal <- diff_path_scseq(scseq,
@@ -305,4 +307,3 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
 
 
 }
-

@@ -40,20 +40,6 @@ scPageUI <- function(id, tab, active) {
   })
 }
 
-#' @export
-#' @keywords internal
-bulkPageUI <- function(id, tab, active) {
-  ns <- NS(id)
-  active_class <- ifelse(tab == active, 'active', '')
-  withTags({
-    div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
-        div(class = 'row'),
-        hr(),
-        div(class = 'row')
-    )
-  })
-}
-
 
 #' Input form for Single Cell Exploration page
 #' @export
@@ -271,21 +257,11 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
                                            title = 'Toggle excluding ambient genes', class = 'squashed-btn')
 
 
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('selected_gene'), 'Show expression for:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('selected_gene'), style = 'display: none;'),
-              script(type = 'application/json', `data-for` = ns('selected_gene'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                exclude_ambient_button,
-                actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
-            )
-        )
-    )
-  })
+  selectizeInputWithButtons(id = ns('selected_gene'),
+                            label = 'Show expression for:',
+                            exclude_ambient_button,
+                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
+                            )
 }
 
 

@@ -78,6 +78,7 @@ scForm <- function(input, output, session, sc_dir) {
   comparisonType <- callModule(comparisonType, 'comparison',
                                scseq = scAnal$scseq)
 
+
   # the selected cluster/gene for cluster comparison ----
   scClusterComparison <- callModule(clusterComparison, 'cluster',
                                     selected_anal = scAnal$selected_anal,
@@ -87,9 +88,10 @@ scForm <- function(input, output, session, sc_dir) {
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               selected_anal = scAnal$selected_anal,
-                              selected_cluster = scClusterComparison$selected_cluster,
                               scseq = scAnal$scseq,
-                              selected_markers = scClusterComparison$selected_markers)
+                              selected_markers = scClusterComparison$selected_markers,
+                              selected_cluster = scClusterComparison$selected_cluster,
+                              comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison ----
 
@@ -103,9 +105,10 @@ scForm <- function(input, output, session, sc_dir) {
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              selected_anal = scAnal$selected_anal,
-                             selected_cluster = scSampleComparison$selected_cluster,
                              scseq = scAnal$scseq,
-                             selected_markers = scSampleComparison$selected_markers)
+                             selected_markers = scSampleComparison$selected_markers,
+                             selected_cluster = scSampleComparison$selected_cluster,
+                             comparison_type = comparisonType)
 
 
 
@@ -126,10 +129,10 @@ scForm <- function(input, output, session, sc_dir) {
     return(scseq)
   })
 
+
   show_samples <- reactive({
     comparisonType() == 'samples'
   })
-
 
   observe({
     toggle(id = "sample_comparison_inputs",  condition = show_samples())
@@ -393,7 +396,6 @@ comparisonType <- function(input, output, session, scseq) {
 
 #' @export
 #' @keywords internal#' Logic for cluster comparison input
-
 clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
 
 
@@ -548,19 +550,25 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
     sel <- selected_cluster()
     req(sel)
     selected_markers <- all_markers()[[sel]]
+
+    # remove redundant columns for saving csv
+    selected_markers$gene <- NULL
+    selected_markers$cluster <- NULL
+
     selected_markers(selected_markers)
   })
 
 
   return(list(
     annot = annot,
-    selected_markers = selected_markers
+    selected_markers = selected_markers,
+    selected_cluster = selected_cluster
   ))
 }
 
+
 #' @export
 #' @keywords internal#' Logic to for sample comparison input
-
 sampleComparison <- function(input, output, session, selected_anal, scseq, annot) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -608,27 +616,30 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
     # set idents to ctrl and test
     scseq <- annot_scseq()
     Seurat::Idents(scseq) <- scseq$orig.ident
+    clusters <- input$selected_clusters
 
-    # exclude non-selected clusters
-    scseq <-  scseq[, scseq$seurat_clusters %in% input$selected_clusters]
-    markers <- get_scseq_markers(scseq, ident.1 = 'test', ident.2 = 'ctrl', min.diff.pct = -Inf, test.use = 'limma')
+    # get markers
+    markers <- diff_expr_scseq(scseq, clusters)$top_table
+
+    # add cell percents
+    cell.pcts <- get_cell_pcts(scseq, 'test', 'ctrl')
+    markers <- cbind(markers, cell.pcts[row.names(markers), ])
 
     # set selected markers
     selected_markers(markers)
   })
 
   return(list(
-    selected_markers = selected_markers
+    selected_markers = selected_markers,
+    selected_cluster = reactive(input$selected_clusters)
   ))
 }
 
 
 
-
 #' @export
 #' @keywords internal#' Logic for selected gene to show plots for
-
-selectedGene <- function(input, output, session, selected_anal, selected_cluster, scseq, selected_markers) {
+selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, selected_cluster, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
 
@@ -642,23 +653,31 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
     toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
+  filtered_markers <- reactive({
+    markers <- selected_markers()
+    if (is.null(markers)) return(NULL)
+
+    if (exclude_ambient()) {
+      scseq <- scseq()
+      markers <- ambient.omit(scseq, top_table = markers)
+    }
+
+    # only show positively regulated genes for test vs ctrl
+    if (comparison_type() == 'samples') markers <- markers[markers$t > 0, ]
+
+    return(markers)
+  })
+
 
 
 
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
-    selected_markers <- selected_markers()
-    if (is.null(selected_markers)) return(NULL)
+    markers <- filtered_markers()
+    if (is.null(markers)) return(NULL)
 
-    choices <- row.names(selected_markers)
-
-    if (exclude_ambient()) {
-      scseq <- scseq()
-
-      ambient <- get_ambient(scseq, selected_markers)
-      choices <- setdiff(choices, ambient)
-    }
+    choices <- row.names(markers)
 
     # allow selecting non-marker genes (at bottom of list)
     choices <- c(choices, setdiff(row.names(scseq()), choices))
@@ -666,11 +685,30 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
     return(choices)
   })
 
-
+  # click genecards
   observeEvent(input$genecards, {
     gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
     runjs(paste0("window.open('", gene_link, "')"))
   })
+
+
+  # click download
+  output$download <- downloadHandler(
+    filename = function() {
+
+      browser()
+      sc_dl_filename(cluster = selected_cluster(),
+                     anal = selected_anal(),
+                     comparison_type = comparison_type())
+
+    },
+    content = function(con) {
+      write.csv(filtered_markers(), con)
+    }
+  )
+
+
+
 
 
   # reset selected gene if analysis changes
@@ -698,7 +736,6 @@ selectedGene <- function(input, output, session, selected_anal, selected_cluster
 
 #' @export
 #' @keywords internal#' Logic for cluster plots
-
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
   output$cluster_plot <- renderPlot({
@@ -739,11 +776,9 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
 
 #' @export
 #' @keywords internal#' Logic for BioGPS plot
-
 scBioGpsPlot <- function(input, output, session, selected_gene) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
     plot_biogps(selected_gene())
   })
 }
-

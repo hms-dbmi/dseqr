@@ -178,7 +178,6 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 #'
 #' @param scseq \code{Seurat} object
 #' @param clusters Character vector of clusters to include in analysis
-#' @param exclude_ambient Boolean indicating if ambient genes should be excluded. Default is \code{TRUE}.
 #' @seealso \code{\link{get_ambient}}
 #'
 #' @return Named list with slots: \itemize{
@@ -188,22 +187,13 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 #' }
 #' @export
 #' @keywords internal
-diff_expr_scseq <- function(scseq, clusters, exclude_ambient = TRUE) {
+diff_expr_scseq <- function(scseq, clusters) {
   Seurat::Idents(scseq) <- scseq$orig.ident
 
   # exclude non-selected clusters
   scseq <-  scseq[, scseq$seurat_clusters %in% clusters]
   ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
   tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
-
-
-  if (exclude_ambient) {
-    ambient <- get_ambient(scseq, tt)
-
-    scseq <- scseq[!row.names(scseq) %in% ambient, ]
-    ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
-    tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
-  }
 
   # need ebayes_sv and pdata for add_es to get dprimes and vardprimes
   pdata <- scseq[['orig.ident']]
@@ -216,6 +206,34 @@ diff_expr_scseq <- function(scseq, clusters, exclude_ambient = TRUE) {
 
   return(anal)
 }
+
+#' Omit ambient genes from analysis or top table
+#'
+#' Must provide one of anal or top_table
+#'
+#' @param scseq \code{Seurat} object
+#' @param anal Result of \code{diff_expr_scseq}
+#' @param top_table Usually from \code{anal$top_table}
+#'
+#' @return One of \code{anal} or \code{top_table} with entries corresponding to ambient genes omited.
+#' @export
+#' @keywords internal
+ambient.omit <- function(scseq, anal = NULL, top_table = anal$top_table) {
+  ambient.genes <- get_ambient(scseq, top_table)
+  is.ambient <- row.names(top_table) %in% ambient.genes
+  top_table <- top_table[!is.ambient, ]
+
+  if (!is.null(anal)) {
+    anal$top_table <- top_table
+    # need to make work with add_es
+    anal$ebayes_sv$df.residual <- anal$ebayes_sv$df.residual[!is.ambient]
+    return(anal)
+
+  } else {
+    return(top_table)
+  }
+}
+
 
 #' Fit limma eBayes on single cell RNA-seq dataset
 #'
