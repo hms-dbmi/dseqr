@@ -174,12 +174,32 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
 #'
 #' @return NULL
 #' @export
-save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE) {
+save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE, reduce_size = FALSE) {
   if (integrated) {
     int_path <- file.path(data_dir, 'integrated.rds')
     int_options <- readRDS(int_path)
     saveRDS(c(int_options, anal_name), int_path)
   }
+
+
+  if (reduce_size) {
+    # optionally seperate larger parts off
+    scseq <- scseq_data$scseq
+    sct <- scseq[['SCT']]
+
+    # keep @data which has corrected log counts for visualization
+    scseq[['SCT']]@scale.data <- matrix(nrow = 0, ncol = 0)
+    scseq[['SCT']]@counts <- matrix(nrow = 0, ncol = 0)
+    scseq[['SCT']]@misc <- NULL
+
+    # redundant
+    stopifnot(all.equal(scseq[['RNA']]@counts, scseq[['RNA']]@data))
+    scseq[['RNA']]@counts <- matrix(nrow = 0, ncol = 0)
+
+    scseq_data$scseq <- scseq
+    scseq_data$sct <- sct
+  }
+
 
   dir.create(file.path(data_dir, anal_name))
   for (type in names(scseq_data)) {
