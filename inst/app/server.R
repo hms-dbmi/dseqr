@@ -7,7 +7,7 @@ server <- function(input, output, session) {
   # get arguments from calling function
   # defaults for server
   # base directory contains data_dir folder
-  data_dir <- getShinyOption('data_dir', '/srv/shiny-server/drugseqr/data_dir')
+  data_dir <- getShinyOption('data_dir', 'data_dir')
 
   # for testing don't seem to be able to pass arguments as options
   if (isTRUE(getOption('shiny.testmode'))) {

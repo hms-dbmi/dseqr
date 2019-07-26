@@ -1,7 +1,7 @@
 library(Seurat)
 library(drugseqr)
 
-sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/single-cell/example-anals/sjia'
+sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
 
 # control lung analysis ----
 ctrl_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
@@ -17,7 +17,7 @@ ctrl_scseq <- run_umap(ctrl_scseq)
 # get markers
 ctrl_markers <- get_scseq_markers(ctrl_scseq)
 ctrl_anal <- list(scseq = ctrl_scseq, markers = ctrl_markers, annot = names(ctrl_markers))
-save_scseq_data(ctrl_anal, 'sjia_lung_healthy', sjia_dir)
+save_scseq_data(ctrl_anal, 'sjia_lung_healthy', file.path(sjia_dir, 'single-cell'))
 
 explore_scseq_clusters(sjia_dir, test_data = FALSE)
 

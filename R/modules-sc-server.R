@@ -696,7 +696,6 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
   output$download <- downloadHandler(
     filename = function() {
 
-      browser()
       sc_dl_filename(cluster = selected_cluster(),
                      anal = selected_anal(),
                      comparison_type = comparison_type())
