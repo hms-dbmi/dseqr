@@ -355,11 +355,6 @@ get_fastq_id1s <- function(fastq_paths) {
 #' @keywords internal
 detect_paired <- function(fastq_id1s) {
 
-  # TODO: handle SRA fastq files
-  # for now not implemented
-  if (any(grepl('^@SRR\\d+', fastq_id1s)))
-    stop('Detecting if SRA fastq files are paired is not yet implemented.')
-
   # older illumina sequence identifiers have 1 part
   # newer illumina sequence identifiers have 2 space-seperated parts
   id_parts <- strsplit(fastq_id1s, ' ')
@@ -377,6 +372,12 @@ detect_paired <- function(fastq_id1s) {
 
   } else {
     stop("fastq.gz files don't appear to be from older/newer Illumina software. Please contact package author.")
+  }
+
+  # SRA also accepts /1 and /2 at end of read name
+  is_sra <- any(grepl('^@SRR\\d+', fastq_id1s))
+  if (is_sra) {
+    pairs <- gsub('^.+?/([12]$)', '\\1', pairs)
   }
 
   # paired experiments will have '1' and '2'
