@@ -191,7 +191,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
       label = res$Name,
       direction_label = directions$label,
       is.up = directions$is.up,
-      fdr = format.pval(res$Ppadog, eps = 0.001, digits = 2),
+      fdr = format.pval(res$FDRpadog, eps = 0.001, digits = 2),
       stringsAsFactors = FALSE)
 
     path_choices <- rbind(all_choices, path_choices)
