@@ -43,7 +43,11 @@ load_bulk_anals <- function(data_dir, with_type = FALSE) {
   anals$label <- anals$anal_name
   anals$value <- seq_len(nrow(anals))
 
-  if (with_type) anals$type <- paste0('Bulk - ', anals$dataset_name)
+  if (with_type) {
+  anals$type <- anals$dataset_name
+  if (nrow(anals)) anals$type <- paste0('Bulk - ', anals$type)
+
+  }
 
   return(anals)
 }

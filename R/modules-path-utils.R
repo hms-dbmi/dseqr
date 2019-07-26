@@ -118,7 +118,7 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
   anals$label <- anals$anal_name
   anals$value <- seq_len(nrow(anals))
 
-  if (with_type) anals$type <- 'Single Cell'
+  if (with_type & nrow(anals)) anals$type <- 'Single Cell'
 
   return(anals)
 }
