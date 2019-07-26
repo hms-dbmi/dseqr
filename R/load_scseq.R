@@ -11,14 +11,21 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', soupx = FALSE) {
+load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cell_ranger'), soupx = FALSE) {
 
-  counts <- load_scseq_counts(data_dir)
+  # load counts
+  if (type[1] == 'kallisto') {
+    data_dir <- file.path(data_dir, 'bus_output')
+    counts <- load_kallisto_counts(data_dir)
+
+  } else if (type[1] == 'cell_ranger') {
+    counts <- load_cell_ranger_counts(data_dir)
+  }
 
   # generate/load whitelist
   whitelist <- get_scseq_whitelist(counts, data_dir)
   whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
-  kneelist  <- readLines(file.path(data_dir, 'bus_output', 'kneelist.txt'))
+  kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
   pct_ambient <- get_pct_ambient(counts)
@@ -34,19 +41,10 @@ load_scseq <- function(data_dir, type = 'Seurat', project = 'SeuratProject', sou
   srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
 
   # add ambient metadata for genes
-  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], pct_ambient, 'pct_ambient')
-  srt[['RNA']] <- Seurat::AddMetaData(srt[['RNA']], out_ambient, 'out_ambient')
+  srt[['RNA']]@meta.features$pct_ambient <- pct_ambient
+  srt[['RNA']]@meta.features$out_ambient <- out_ambient
 
-  if (type == 'Seurat') {
-    return(srt)
-
-  } else if (type == 'SingleCellExperiment') {
-    # convert to SingleCellExperiment
-    return(srt_to_sce(srt))
-
-  } else {
-    stop('type must be either Seurat or SingleCellExperiment')
-  }
+  return(srt)
 }
 
 #' Determine ambient percent for each gene
@@ -92,19 +90,54 @@ get_outliers <- function(x) {
 #'
 #' @return sparse dgTMatrix with barcodes in columns and genes in rows.
 #' @export
-load_scseq_counts <- function(data_dir) {
-  count_dir <- file.path(data_dir, 'bus_output', 'genecount')
+load_kallisto_counts <- function(data_dir) {
 
   # read sparse matrix
-  counts <- Matrix::readMM(file.path(count_dir, 'genes.mtx'))
+  counts <- Matrix::readMM(file.path(data_dir, 'genes.mtx'))
   counts <- Matrix::t(counts)
 
   # read annotations
-  row.names(counts) <- readLines(file.path(count_dir, 'genes.genes.txt'))
-  colnames(counts) <- readLines(file.path(count_dir, 'genes.barcodes.txt'))
+  row.names(counts) <- readLines(file.path(data_dir, 'genes.genes.txt'))
+  colnames(counts) <- readLines(file.path(data_dir, 'genes.barcodes.txt'))
 
   # remove non-expressed genes
   counts <- counts[Matrix::rowSums(counts) > 0, ]
+
+  return(counts)
+}
+
+#' Load cell ranger counts
+#'
+#' Mainly to avoid having to download massive datasets that have already been quantified.
+#'
+#' @param data_dir
+#' @importFrom magrittr "%>%"
+#'
+#' @return dgCMatrix
+#' @export
+load_cell_ranger_counts <- function(data_dir) {
+  # read the data in using ENSG features
+  counts <- Seurat::Read10X(data_dir, gene.column = 1)
+  if (class(counts) == 'list') counts <- counts$`Gene Expression`
+
+  counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
+
+  # name genes by tx2gene so that best match with cmap/l1000 data
+  map <- tx2gene %>%
+    dplyr::filter(gene_id %in% row.names(counts)) %>%
+    dplyr::select(gene_id, gene_name) %>%
+    dplyr::distinct() %>%
+    dplyr::arrange(match(gene_id, row.names(counts)))
+
+  stopifnot(setequal(row.names(counts), map$gene_id))
+
+  row.names(counts) <- map$gene_name
+
+  # remove non-expressed genes
+  counts <- counts[Matrix::rowSums(counts) > 0, ]
+
+  # sum counts in rows with same gene
+  counts <- Matrix.utils::aggregate.Matrix(counts, row.names(counts), fun = 'sum')
 
   return(counts)
 }
@@ -205,7 +238,7 @@ preprocess_scseq <- function(scseq) {
   }
 
   if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::SCTransform(scseq, verbose = FALSE, return.only.var.genes = FALSE)
+    scseq <- Seurat::SCTransform(scseq, verbose = FALSE)
 
   } else {
     stop('scseq must be either a SingleCellExperiment or Seurat object.')

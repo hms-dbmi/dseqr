@@ -4,8 +4,8 @@
 \alias{load_scseq}
 \title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir, type = "Seurat", project = "SeuratProject",
-  soupx = FALSE)
+load_scseq(data_dir, project = "SeuratProject", type = c("kallisto",
+  "cell_ranger"), soupx = FALSE)
 }
 \arguments{
 \item{type}{Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.}

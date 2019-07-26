@@ -10,7 +10,7 @@
 get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 
   # check for previous whitelist
-  whitelist_path <- file.path(data_dir, 'bus_output', 'whitelist.txt')
+  whitelist_path <- file.path(data_dir, 'whitelist.txt')
   if (file.exists(whitelist_path) & !overwrite) {
     whitelist <- readLines(whitelist_path)
     return(whitelist)
@@ -73,7 +73,7 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
   kneelist  <- colnames(sce_above)
 
   writeLines(whitelist, whitelist_path)
-  writeLines(kneelist, file.path(data_dir, 'bus_output', 'kneelist.txt'))
+  writeLines(kneelist, file.path(data_dir, 'kneelist.txt'))
   return(whitelist)
 }
 
