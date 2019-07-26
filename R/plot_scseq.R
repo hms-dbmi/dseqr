@@ -12,14 +12,12 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
   # make selected cluster and groups stand out
   cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$seurat_clusters) %in% selected_clusters, 1, 0.1))
 
-  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size) +
+  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
     theme_no_axis_vals() +
     ggplot2::xlab('UMAP1') +
     ggplot2::ylab('UMAP2') +
-    ggplot2::guides(colour=ggplot2::guide_legend(title=legend_title)) +
     theme_dimgray(with_nums = FALSE) +
-    ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'),
-          legend.text = ggplot2::element_text(colour = 'black'))
+    ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
 
   return(cluster_plot)
 }
@@ -151,17 +149,18 @@ get_palette <- function(levs) {
                        "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
                        "#CDCC5D", "#6DCCDA")
 
+
   nlevs <- length(levs)
   if (nlevs <= 10) {
     values <- head(tableau10medium, nlevs)
 
-  } else {
-    if (nlevs <= 20) {
-      values <- head(tableau20, nlevs)
+  } else if (nlevs <= 20) {
+    values <- head(tableau20, nlevs)
 
-    } else {
-      values <- viridisLite::cividis(nlevs)
-    }
+  } else {
+    set.seed(0)
+    values <- randomcoloR::distinctColorPalette(nlevs)
+
   }
   return(values)
 }

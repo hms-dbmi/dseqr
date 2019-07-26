@@ -24,7 +24,7 @@ function contrastOptions(item, escape) {
                "</div>";
 
   // either cluster or contrast element
-  return item.pcells ? clustEl : conEl;
+  return item.pcells !== 'undefined' ? clustEl : conEl;
 }
 
 
@@ -50,5 +50,5 @@ function contrastItem(item, escape) {
                "</div>";
 
   // either cluster or contrast element
-  return item.pcells ? clustEl : conEl;
+  return typeof item.pcells !== 'undefined' ? clustEl : conEl;
 }

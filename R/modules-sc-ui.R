@@ -271,7 +271,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @keywords internal
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('cluster_plot'))
+  plotOutput(ns('cluster_plot'), height = '500px')
 }
 
 #' Output plot of single cell markers
@@ -279,7 +279,7 @@ scClusterPlotOutput <- function(id) {
 #' @keywords internal
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('marker_plot'))
+  plotOutput(ns('marker_plot'), height = '500px')
 }
 
 #' Output plot of biogps data for a gene
@@ -287,5 +287,5 @@ scMarkerPlotOutput <- function(id) {
 #' @keywords internal
 scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('biogps_plot'))
+  plotOutput(ns('biogps_plot'), height = '500px')
 }
