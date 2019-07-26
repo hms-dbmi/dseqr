@@ -59,7 +59,7 @@ dsPage <- function(input, output, session, data_dir) {
     shinyjs::disable(selector = 'input')
 
     # Create a Progress object
-    progress <- Progress$quant(session, min=0, max = nrow(pdata)+1)
+    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
     progress$set(message = "Quantifying files", value = 0)
     # Close the progress when this reactive exits (even if there's an error)
     on.exit(progress$close())
@@ -83,7 +83,7 @@ dsPage <- function(input, output, session, data_dir) {
     new_dataset(dataset_name)
 
     # save to bulk datasets to indicate that has been quantified
-    add_bulk_dataset(dataset_name, dataset_dir, data_dir)
+    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
 
     # re-enable inputs
     shinyjs::enable(selector = 'input')
@@ -95,8 +95,7 @@ dsPage <- function(input, output, session, data_dir) {
     # visual that running
     disable(selector = 'input')
 
-    progress <- Progress$new(session, min=0, max = 2)
-    progress$set(message = "Differential expression", value = 1)
+    progress <- Progress$new(session, min=0, max = 3)
     on.exit(progress$close())
 
     # get what need
@@ -116,10 +115,12 @@ dsPage <- function(input, output, session, data_dir) {
     pdata <- data.frame(pdata, row.names = pdata$title)
 
     # run differential expression
+    progress$set(message = "Differential expression", value = 1)
     anal <- diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
 
     # run pathway analysis
-    path_anal <- diff_path(eset, prev_anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE)
+    progress$set(message = "Pathway analysis", value = 2)
+    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,
