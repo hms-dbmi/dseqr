@@ -280,6 +280,8 @@ showIntegration <- function(input, output, session) {
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
 
+  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration')
+
 
   integration_name <- reactive(input$integration_name)
   integration_options <- reactive(anal_options()$Individual)
@@ -322,7 +324,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     if (is.null(error_msg)) {
       # clear error and disable button
       removeClass('validate', 'has-error')
-      disable('submit_integration')
+      toggleAll(integration_inputs)
 
       # Create a Progress object
       progress <- Progress$new()
@@ -394,8 +396,9 @@ comparisonType <- function(input, output, session, scseq) {
   return(reactive(input$comparison_type))
 }
 
+#' Logic for cluster comparison input
 #' @export
-#' @keywords internal#' Logic for cluster comparison input
+#' @keywords internal
 clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
 
 
@@ -567,8 +570,9 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 }
 
 
+#' Logic to for sample comparison input
 #' @export
-#' @keywords internal#' Logic to for sample comparison input
+#' @keywords internal
 sampleComparison <- function(input, output, session, selected_anal, scseq, annot) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -637,8 +641,9 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
 
 
+#' Logic for selected gene to show plots for
 #' @export
-#' @keywords internal#' Logic for selected gene to show plots for
+#' @keywords internal
 selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, selected_cluster, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
@@ -733,8 +738,9 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 }
 
 
+#' Logic for cluster plots
 #' @export
-#' @keywords internal#' Logic for cluster plots
+#' @keywords internal
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
   output$cluster_plot <- renderPlot({
@@ -773,8 +779,9 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
 }
 
 
+#' Logic for BioGPS plot
 #' @export
-#' @keywords internal#' Logic for BioGPS plot
+#' @keywords internal
 scBioGpsPlot <- function(input, output, session, selected_gene) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({

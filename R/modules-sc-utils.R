@@ -136,20 +136,16 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
   n = 6
 
-  # get paths for saved scseqs
-  test_paths <- scseq_part_path(data_dir, test, 'scseq')
-  ctrl_paths <- scseq_part_path(data_dir, ctrl, 'scseq')
-
   updateProgress(1/n, 'loading')
-  test_scseqs <- lapply(test_paths, readRDS)
-  ctrl_scseqs <- lapply(ctrl_paths, readRDS)
+  test_scseqs <- load_scseqs_for_integration(test, data_dir = data_dir, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, data_dir = data_dir, ident = 'ctrl')
 
-  # set orig.ident to ctrl/test and integrate
-  test_scseqs <- lapply(test_scseqs, function(x) {x$orig.ident <- factor('test'); x})
-  ctrl_scseqs <- lapply(ctrl_scseqs, function(x) {x$orig.ident <- factor('ctrl'); x})
+  # preserve identity of original samples and integrate
+  scseqs <- c(test_scseqs, ctrl_scseqs)
+  scseqs <- add_project_scseqs(scseqs)
 
   updateProgress(2/n, 'integrating')
-  combined <- integrate_scseqs(c(test_scseqs, ctrl_scseqs))
+  combined <- integrate_scseqs(scseqs)
 
   updateProgress(3/n, 'clustering')
   combined <- add_scseq_clusters(combined)
@@ -163,6 +159,93 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
   updateProgress(6/n, 'saving')
   scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
   save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
+}
+
+
+#' Load scRNA-Seq datasets for integration
+#'
+#' Will restore SCT assay if was saved seperately. Downsamples very large datasets.
+#' Also sets orig.ident to \code{ident}.
+#'
+#' @param anal_names Character vector of single cell analysis names to load.
+#' @param data_dir The directory with single cell RNA seq datasets
+#' @param ident Either \code{'test'} or \code{'ctrl'}
+#'
+#' @return List of \code{Seurat} objects.
+#' @export
+#' @keywords internal
+load_scseqs_for_integration <- function(anal_names, data_dir, ident) {
+  sct_paths <- scseq_part_path(data_dir, anal_names, 'sct')
+  scseq_paths <- scseq_part_path(data_dir, anal_names, 'sct')
+
+  scseqs <- list()
+  for (anal in anal_names) {
+    sct_path <- scseq_part_path(data_dir, anal, 'sct')
+
+    scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
+    scseq <- readRDS(scseq_path)
+
+    # restore SCT assay
+    if (file.exists(sct_path)) {
+      sct <- readRDS(sct_path)
+      scseq[['SCT']] <- sct
+    }
+
+    # restore counts slot
+    scseq[['RNA']]@counts <- scseq[['RNA']]@data
+
+    # set orig.ident to ctrl/test
+    scseq$orig.ident <- factor(ident)
+    scseqs[[anal]] <- scseq
+
+    # downsample very large datasets
+    scseq <- downsample_scseq(scseq)
+  }
+
+  return(scseqs)
+}
+
+#' Downsample very large scseq objects for integration
+#'
+#' Used by \code{load_scseqs_for_integration}.
+#'
+#' @param scseq \code{Seurat} object
+#' @param max.cells Maximum number of cells to keep. Default is 10,000.
+#' @param seed Integer used for reproducibility.
+#'
+#' @return \code{scseq} with maximum \code{max.cells} cells.
+#' @export
+#' @keywords internal
+downsample_scseq <- function(scseq, max.cells = 10000, seed = 0L) {
+  if (ncol(scseq) > max.cells)
+    set.seed(seed)
+    scseq <- subset(scseq, cells = sample(Seurat::Cells(scseq), max.cells))
+
+  return(scseq)
+}
+
+
+#' Adds project name to meta.data of scseq
+#'
+#' Used to keep track of which sample is which for integrated datasets. This is used for generating pseudo-bulk
+#' counts for each sample.
+#'
+#' @param scseqs List of \code{Seurat} objects.
+#'
+#' @return \code{scseqs} with \code{meta.data$project} column equal to \code{project.name} slot.
+#' @export
+#' @keywords internal
+add_project_scseqs <- function(scseqs) {
+
+  # preserve identities of original samples
+  projects <- sapply(scseqs, function(x) x@project.name)
+  projects <- make.unique(projects)
+
+  for (i in seq_along(projects))
+    scseqs[[i]]@meta.data$project <- projects[i]
+
+  return(scseqs)
+
 }
 
 #' Save Single Cell RNA-seq data for app
