@@ -119,12 +119,17 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
       PROBE <- Biobase::fData(eset)$PROBE
     }
     expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
+    expr <- as.matrix(expr)
+
+    # remove low count genes to avoid sva error
+    if (rna_seq) expr <- expr[edgeR::filterByExpr(expr, mod), ]
 
     # sva or svaseq
     sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
 
+
     svobj <- tryCatch (
-      {utils::capture.output(svobj <- sva_fun(as.matrix(expr), mod, mod0)); svobj},
+      {utils::capture.output(svobj <- sva_fun(expr, mod, mod0)); svobj},
 
       error = function(cond) {
         message("sva failed - continuing without.")
