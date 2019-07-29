@@ -4,7 +4,7 @@
 \alias{integrate_saved_scseqs}
 \title{Integrate previously saved scseqs}
 \usage{
-integrate_saved_scseqs(data_dir, test, ctrl, anal_name,
+integrate_saved_scseqs(data_dir, test, ctrl, include_clusters, anal_name,
   updateProgress = NULL)
 }
 \arguments{

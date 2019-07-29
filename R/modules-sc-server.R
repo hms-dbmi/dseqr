@@ -1,3 +1,4 @@
+
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
@@ -280,7 +281,7 @@ showIntegration <- function(input, output, session) {
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
 
-  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration')
+  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'include_clusters')
 
 
   integration_name <- reactive(input$integration_name)
@@ -311,11 +312,23 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
   })
 
+  # update include clusters
+  observe({
+    anal_names <- c(test(), ctrl())
+    anal_colors <- get_palette(anal_names)
+    include_choices <- get_include_choices(anal_names, anal_colors, sc_dir)
+    updateSelectizeInput(session, 'include_clusters',
+                         choices = include_choices,
+                         options = list(render = I('{option: includeOptions, item: includeOptions}')),
+                         server = TRUE)
+  })
+
   # run integration
   observeEvent(input$submit_integration, {
 
     test_anals <- test()
     ctrl_anals <- ctrl()
+    include_clusters <- input$include_clusters
     anal_name <- input$integration_name
     anal_options <- anal_options()
 
@@ -346,6 +359,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
+                             include_clusters = include_clusters,
                              anal_name = anal_name,
                              updateProgress = updateProgress)
 
@@ -355,7 +369,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
       test(NULL)
       new_anal(anal_name)
       updateTextInput(session, 'integration_name', value = '')
-      enable('submit_integration')
+      toggleAll(integration_inputs)
 
     } else {
       # show error message
@@ -367,6 +381,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
   return(new_anal)
 }
+
 
 #' Logic for comparison type toggle for integrated analyses
 #' @export
@@ -521,6 +536,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
   # update UI for contrast/cluster choices
   observeEvent(choices(), {
+
     updateSelectizeInput(session, 'selected_cluster',
                          choices = choices(),
                          selected = selected_cluster(),
@@ -623,7 +639,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
     clusters <- input$selected_clusters
 
     # get markers
-    markers <- diff_expr_scseq(scseq, clusters)$top_table
+    markers <- diff_expr_scseq(scseq, clusters, pseudo_bulk = FALSE)$top_table
 
     # add cell percents
     cell.pcts <- get_cell_pcts(scseq, 'test', 'ctrl')
@@ -667,8 +683,6 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
       markers <- ambient.omit(scseq, top_table = markers)
     }
 
-    # only show positively regulated genes for test vs ctrl
-    if (comparison_type() == 'samples') markers <- markers[markers$t > 0, ]
 
     return(markers)
   })
@@ -682,12 +696,29 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
     markers <- filtered_markers()
     if (is.null(markers)) return(NULL)
 
-    choices <- row.names(markers)
+    markers <- markers[, c('pct.1', 'pct.2')]
 
-    # allow selecting non-marker genes (at bottom of list)
-    choices <- c(choices, setdiff(row.names(scseq()), choices))
+    if (comparison_type() == 'clusters') {
+      # get cell.pcts for all genes (previously just had for markers)
+      # allows selecting non-marker genes (at bottom of list)
+      scseq <- scseq()
+      ident.1 <- selected_cluster()
+      ident.2 <- setdiff(levels(Seurat::Idents(scseq)), ident.1)
+      cell_pcts <- get_cell_pcts(scseq, ident.1, ident.2)
+      cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
+      markers <- rbind(markers, cell_pcts)
 
-    return(choices)
+    }
+
+    markers$pct.1 <- round(markers$pct.1 * 100)
+    markers$pct.2 <- round(markers$pct.2 * 100)
+
+    pspace <- 2 - nchar(markers$pct.2)
+    pspace[pspace < 0] <- 0
+    markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
+
+    markers$label <- markers$value <- row.names(markers)
+    return(markers)
   })
 
   # click genecards
@@ -728,7 +759,10 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 
   # update choices
   observe({
-    updateSelectizeInput(session, 'selected_gene', choices = gene_choices(), selected = NULL, server = TRUE)
+    updateSelectizeInput(session, 'selected_gene',
+                         choices = gene_choices(), selected = NULL,
+                         options = list(render = I('{option: geneOption, item: geneItem}')),
+                         server = TRUE)
   })
 
   return(list(

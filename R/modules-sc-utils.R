@@ -12,8 +12,8 @@ get_cell_pcts <- function(scseq, ident.1, ident.2) {
   data <- scseq[['SCT']]@data
 
   cells <- Seurat::Idents(scseq)
-  cells.1 <- cells == ident.1
-  cells.2 <- cells == ident.2
+  cells.1 <- cells %in% ident.1
+  cells.2 <- cells %in% ident.2
 
   pct.1 <- round(
     x = Matrix::rowSums(x = data[, cells.1, drop = FALSE] > 0) / sum(cells.1),
@@ -52,6 +52,39 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
   paste('single-cell', anal, cluster, paste0(Sys.Date(), '.csv'), sep='_')
 }
 
+#' Get choices for included cluster in integration
+#' @param anal_names Names of analyses selected for integration
+#' @param anal_colors Character vector of colors to indicate analysis
+#' @param data_dir Directory with single cell analyses.
+#'
+#' @return data.frame with columns for rendering selectizeInput include choices
+#' @export
+#' @keywords internal
+get_include_choices <- function(anal_names, anal_colors, data_dir) {
+
+  if (is.null(anal_names)) return(NULL)
+
+  # load markers and annotation for each
+  annot_paths <- scseq_part_path(data_dir, anal_names, 'annot')
+  marker_paths <- scseq_part_path(data_dir, anal_names, 'markers')
+
+  annots <- lapply(annot_paths, readRDS)
+  clusters <- lapply(annots, function(x) seq(0, length(x)-1))
+  colors <- lapply(annots, get_palette)
+
+  include_choices <- lapply(seq_along(anal_names), function(i) {
+    data.frame(
+      name = stringr::str_trunc(annots[[i]], 27),
+      value = paste(anal_names[i], clusters[[i]], sep = '_'),
+      anal = anal_names[i],
+      label = annots[[i]],
+      color = anal_colors[i], stringsAsFactors = FALSE
+    )
+  })
+
+  do.call(rbind, include_choices)
+}
+
 
 
 #' Get cluster choices data.frame for selectize dropdown
@@ -80,6 +113,7 @@ get_cluster_choices <- function(clusters, scseq, value = clusters) {
 
   return(cluster_choices)
 }
+
 
 #' Get contrast choices data.frame for selectize dropdown
 #'
@@ -123,7 +157,7 @@ get_contrast_choices <- function(clusters, test) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgress = NULL) {
+integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_name, updateProgress = NULL) {
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -137,8 +171,8 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
   n = 6
 
   updateProgress(1/n, 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, data_dir = data_dir, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, data_dir = data_dir, ident = 'ctrl')
+  test_scseqs <- load_scseqs_for_integration(test, include_clusters = include_clusters, data_dir = data_dir, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, include_clusters = include_clusters, data_dir = data_dir, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -146,6 +180,7 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
 
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
+  rm(scseqs); gc()
 
   updateProgress(3/n, 'clustering')
   combined <- add_scseq_clusters(combined)
@@ -174,18 +209,22 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, anal_name, updateProgre
 #' @return List of \code{Seurat} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, data_dir, ident) {
+load_scseqs_for_integration <- function(anal_names, include_clusters, data_dir, ident) {
   sct_paths <- scseq_part_path(data_dir, anal_names, 'sct')
   scseq_paths <- scseq_part_path(data_dir, anal_names, 'sct')
 
+  include_anals <- gsub('^(.+?)_\\d+$', '\\1', include_clusters)
+  include_clusters <- gsub('^.+?_(\\d+)$', '\\1', include_clusters)
+
   scseqs <- list()
   for (anal in anal_names) {
-    sct_path <- scseq_part_path(data_dir, anal, 'sct')
 
+    # load scseq
     scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
     scseq <- readRDS(scseq_path)
 
     # restore SCT assay
+    sct_path <- scseq_part_path(data_dir, anal, 'sct')
     if (file.exists(sct_path)) {
       sct <- readRDS(sct_path)
       scseq[['SCT']] <- sct
@@ -196,10 +235,23 @@ load_scseqs_for_integration <- function(anal_names, data_dir, ident) {
 
     # set orig.ident to ctrl/test
     scseq$orig.ident <- factor(ident)
-    scseqs[[anal]] <- scseq
+
+    # only select included clusters if present
+    is.include <- include_anals == anal
+    if (any(is.include)) {
+      include <- include_clusters[is.include]
+      scseq <- scseq[, scseq$seurat_clusters %in% include]
+
+    }
 
     # downsample very large datasets
     scseq <- downsample_scseq(scseq)
+
+    # bug in Seurat, need for integration
+    scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
+
+    # add to scseqs
+    scseqs[[anal]] <- scseq
   }
 
   return(scseqs)
@@ -210,19 +262,22 @@ load_scseqs_for_integration <- function(anal_names, data_dir, ident) {
 #' Used by \code{load_scseqs_for_integration}.
 #'
 #' @param scseq \code{Seurat} object
-#' @param max.cells Maximum number of cells to keep. Default is 10,000.
+#' @param max.cells Maximum number of cells to keep. Default is 10000.
 #' @param seed Integer used for reproducibility.
 #'
 #' @return \code{scseq} with maximum \code{max.cells} cells.
 #' @export
 #' @keywords internal
-downsample_scseq <- function(scseq, max.cells = 10000, seed = 0L) {
-  if (ncol(scseq) > max.cells)
+downsample_scseq <- function(scseq, max.cells = 3000, seed = 0L) {
+  if (ncol(scseq) > max.cells) {
     set.seed(seed)
     scseq <- subset(scseq, cells = sample(Seurat::Cells(scseq), max.cells))
+    gc()
+  }
 
   return(scseq)
 }
+
 
 
 #' Adds project name to meta.data of scseq

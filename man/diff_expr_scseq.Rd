@@ -4,7 +4,7 @@
 \alias{diff_expr_scseq}
 \title{Run limma differential expression between test and control groups in single cell RNA-Seq dataset}
 \usage{
-diff_expr_scseq(scseq, clusters)
+diff_expr_scseq(scseq, clusters, pseudo_bulk = FALSE)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}

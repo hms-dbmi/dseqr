@@ -187,11 +187,41 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 #' }
 #' @export
 #' @keywords internal
-diff_expr_scseq <- function(scseq, clusters) {
+diff_expr_scseq <- function(scseq, clusters, pseudo_bulk = FALSE) {
   Seurat::Idents(scseq) <- scseq$orig.ident
 
   # exclude non-selected clusters
   scseq <-  scseq[, scseq$seurat_clusters %in% clusters]
+
+  if (pseudo_bulk) {
+    # pseudo bulk counts
+    summed <- scater::sumCountsAcrossCells(scseq[['SCT']]@counts, scseq$project)
+    summed <- as.matrix(summed)
+
+    # get pdata
+    pdata <- scseq@meta.data %>%
+      dplyr::select(project, orig.ident) %>%
+      dplyr::distinct() %>%
+      dplyr::rename(group = orig.ident)
+
+    # get normalization factors
+    row.names(pdata) <- pdata$project
+    pdata <- pdata[colnames(summed), ]
+    pdata$lib.size <- colSums(summed)
+    pdata$norm.factors <- edgeR::calcNormFactors(summed)
+
+    # construct eset
+    fdata <- data.frame(SYMBOL = row.names(summed), row.names = row.names(summed))
+    eset <- Biobase::ExpressionSet(summed,
+                                   phenoData = Biobase::AnnotatedDataFrame(pdata),
+                                   featureData = Biobase::AnnotatedDataFrame(fdata))
+
+    anal <- diff_expr(eset, getwd(), anal_name = 'blah', prev_anal = list(pdata = pdata))
+    return(anal)
+
+  }
+
+
   ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
   tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
 

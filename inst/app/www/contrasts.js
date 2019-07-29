@@ -24,7 +24,7 @@ function contrastOptions(item, escape) {
                "</div>";
 
   // either cluster or contrast element
-  return item.pcells !== 'undefined' ? clustEl : conEl;
+  return typeof item.pcells !== 'undefined' ? clustEl : conEl;
 }
 
 
@@ -51,4 +51,51 @@ function contrastItem(item, escape) {
 
   // either cluster or contrast element
   return typeof item.pcells !== 'undefined' ? clustEl : conEl;
+}
+
+
+function includeOptions(item, escape) {
+  var res = "<div>" +
+                "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                  escape(item.name) +
+            "</div>";
+
+  return res;
+}
+
+function integationOption(item, escape) {
+  var res = "<div>" +
+              "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                escape(item.label) +
+            "</div>";
+
+  return res;
+}
+
+function geneOption(item, escape) {
+  var res = "<div style='columns: 2;'>" +
+                  "<div style='margin-right: -80px'>" +
+                     escape(item.label) +
+                  "</div>" +
+                  "<div style='color: #A0A0A0;text-align:right;'>" +
+                   item["pct.1"] + " :: " + item.pspace + item["pct.2"] +
+                  "</div>" +
+                "</div>";
+
+
+  return res;
+}
+
+
+function geneItem(item, escape) {
+  // styling if looking at cluster
+  var res = "<div>" +
+                     escape(item.label) +
+                  "<span style='color: #A0A0A0;'>" +
+                     " (" + item["pct.1"] + " :: " + item["pct.2"] + ")" +
+                  "</span>" +
+                "</div>";
+
+  return res;
+
 }
