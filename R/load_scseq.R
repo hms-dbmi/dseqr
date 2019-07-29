@@ -93,12 +93,12 @@ get_outliers <- function(x) {
 load_kallisto_counts <- function(data_dir) {
 
   # read sparse matrix
-  counts <- Matrix::readMM(file.path(data_dir, 'genes.mtx'))
+  counts <- Matrix::readMM(file.path(data_dir, 'genecount', 'genes.mtx'))
   counts <- Matrix::t(counts)
 
   # read annotations
-  row.names(counts) <- readLines(file.path(data_dir, 'genes.genes.txt'))
-  colnames(counts) <- readLines(file.path(data_dir, 'genes.barcodes.txt'))
+  row.names(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.genes.txt'))
+  colnames(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.barcodes.txt'))
 
   # remove non-expressed genes
   counts <- counts[Matrix::rowSums(counts) > 0, ]
@@ -374,9 +374,6 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
   return(markers)
 }
 
-get_cell_pcts <- function(scseq, ident.1, ident.2) {
-
-}
 
 
 
@@ -390,32 +387,25 @@ integrate_scseqs <- function(scseqs) {
 
   anchor.features  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
   scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = anchor.features)
+  ambient <- get_integrated_ambient(scseqs)
 
   k.filter <- min(200, min(sapply(scseqs, ncol)))
 
   anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
                                             anchor.features = anchor.features)
+
+  rm(scseqs); gc()
+
   combined <- Seurat::IntegrateData(anchors, normalization.method = "SCT")
   combined$orig.ident <- factor(combined$orig.ident)
 
   # add ambient outlier info
-  combined <- add_ambient(scseqs, combined)
+  combined <- add_integrated_ambient(combined, ambient)
 
   return(combined)
 }
 
-#' Mark ambient outliers in combined dataset
-#'
-#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
-#'
-#' @param scseqs the original scseqs
-#' @param combined the combined scseqs
-#'
-#' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
-add_ambient <- function(scseqs, combined) {
-
-  # genes to keep in order that appear
-  keep <- row.names(combined[['SCT']])
+get_integrated_ambient <- function(scseqs) {
 
   # datasets that are test samples
   is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
@@ -430,11 +420,27 @@ add_ambient <- function(scseqs, combined) {
   ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
   ambient.ctrl <- unique(unlist(ambient.ctrl))
 
+  return(list(test = ambient.test, ctrl = ambient.ctrl))
+}
+
+#' Mark ambient outliers in combined dataset
+#'
+#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
+#'
+#' @param scseqs the original scseqs
+#' @param combined the combined scseqs
+#'
+#' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
+add_integrated_ambient <- function(combined, ambient) {
+
+  # genes to keep in order that appear
+  keep <- row.names(combined[['SCT']])
+
   # set in combined
   combined[['SCT']]@meta.features$test_ambient <- FALSE
   combined[['SCT']]@meta.features$ctrl_ambient <- FALSE
-  combined[['SCT']]@meta.features$test_ambient[keep %in% ambient.test] <- TRUE
-  combined[['SCT']]@meta.features$ctrl_ambient[keep %in% ambient.ctrl] <- TRUE
+  combined[['SCT']]@meta.features$test_ambient[keep %in% ambient$test] <- TRUE
+  combined[['SCT']]@meta.features$ctrl_ambient[keep %in% ambient$ctrl] <- TRUE
 
   return(combined)
 }
