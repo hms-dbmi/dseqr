@@ -1,18 +1,12 @@
 library(Seurat)
 library(drugseqr)
 
+sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
+
 # sample1 -----
 data_dir <- 'data-raw/single-cell/example-data/10X-Schulert-PID200673-20190218-3v3hg/fastqs'
 
-# check whitelisting
-scseq <- load_scseq(data_dir, project = 'sjia_blood1')
-scseq <- preprocess_scseq(scseq)
-scseq <- add_scseq_clusters(scseq)
-scseq <- run_umap(scseq)
-hist_scseq_whitelist(scseq)
-tsne_scseq_whitelist(scseq)
-
-# subset by whitelist and redo analysis
+scseq <- load_scseq(data_dir, project = 'sjia_pbmcs1')
 scseq <- scseq[, scseq$whitelist]
 scseq <- preprocess_scseq(scseq)
 scseq <- add_scseq_clusters(scseq)
@@ -20,13 +14,11 @@ scseq <- run_umap(scseq)
 
 # get markers and explore
 markers <- get_scseq_markers(scseq)
-anal1 <- list(scseq = scseq, markers = markers)
-saveRDS(anal1, 'data-raw/single-cell/example-data/sjia_blood1.rds')
+anal <- list(scseq = scseq, markers = markers, annot = names(markers))
+save_scseq_data(anal, 'sjia_pbmcs1', file.path(sjia_dir, 'single-cell'))
 
 
-anal1 <- readRDS('data-raw/single-cell/example-data/sjia_blood1.rds')
-explore_scseq_clusters(anal1$scseq, anal1$markers)
-
+run_drugseqr(sjia_dir, test_data = FALSE)
 
 # Normal Annotations
 # put in order that want reports to appear
@@ -52,32 +44,26 @@ save_scseq_reports(anal$scseq, markers = cluster_markers, pt.size = 3,
 # sample 2 ------
 data_dir <- 'data-raw/single-cell/example-data/10X-Schulert-PID200396-20190218-3v3hg/fastqs'
 
-# check whitelisting
-scseq <- load_scseq(data_dir, project = 'sjia_blood2')
-scseq <- preprocess_scseq(scseq)
-scseq <- add_scseq_clusters(scseq)
-scseq <- run_umap(scseq)
-hist_scseq_whitelist(scseq)
-tsne_scseq_whitelist(scseq)
-
-# subset by whitelist and redo analysis
+scseq <- load_scseq(data_dir, project = 'sjia_pbmcs2')
 scseq <- scseq[, scseq$whitelist]
 scseq <- preprocess_scseq(scseq)
 scseq <- add_scseq_clusters(scseq)
 scseq <- run_umap(scseq)
+
+
+# get markers and explore
+markers <- get_scseq_markers(scseq)
+anal <- list(scseq = scseq, markers = markers, annot = names(markers))
+save_scseq_data(anal, 'sjia_pbmcs2', file.path(sjia_dir, 'single-cell'))
+
+run_drugseqr(sjia_dir, test_data = FALSE)
+
 
 # cells that cluster with B-cells but mainly because of Ribosome genes
 select.cells <- Seurat::CellSelector(DimPlot(scseq))
 Idents(scseq, cells = select.cells) <- "3"
 scseq@active.ident <- scseq$seurat_clusters <- factor(Idents(scseq), levels = sort(levels(Idents(scseq))))
 
-# get markers and explore
-markers <- get_scseq_markers(scseq)
-anal2 <- list(scseq = scseq, markers = markers)
-saveRDS(anal2, 'data-raw/single-cell/example-data/sjia_blood2.rds')
-
-anal2 <- readRDS('data-raw/single-cell/example-data/sjia_blood2.rds')
-explore_scseq_clusters(anal2$scseq, anal2$markers)
 
 
 # Normal Annotations

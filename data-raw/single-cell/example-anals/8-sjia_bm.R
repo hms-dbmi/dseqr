@@ -2,33 +2,23 @@ library(Seurat)
 library(drugseqr)
 
 setwd("~/Documents/Batcave/zaklab/drugseqr")
+sjia_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
 
 # bone marrow analysis -----
 data_dir <- 'data-raw/single-cell/example-data/Run2622-10X-BoneMarrow-STA1/10X_STA-1_3hg'
 
-# check whitelisting
 scseq <- load_scseq(data_dir, project = 'sjia_bm')
-scseq <- preprocess_scseq(scseq)
-scseq <- add_scseq_clusters(scseq)
-scseq <- run_umap(scseq)
-hist_scseq_whitelist(scseq)
-tsne_scseq_whitelist(scseq)
-
-# subset by whitelist and redo analysis
 scseq <- scseq[, scseq$whitelist]
 scseq <- preprocess_scseq(scseq)
 scseq <- add_scseq_clusters(scseq)
 scseq <- run_umap(scseq)
-scseq <- jitter_umap(scseq)
 
 # get markers and explore
 markers <- get_scseq_markers(scseq)
-anal <- list(scseq = scseq, markers = markers)
-saveRDS(anal, 'data-raw/single-cell/example-data/bm_anal.rds')
+anal <- list(scseq = scseq, markers = markers, annot = names(markers))
+save_scseq_data(anal, 'sjia_bm', file.path(sjia_dir, 'single-cell'))
 
-
-anal <- readRDS('data-raw/single-cell/example-data/bm_anal.rds')
-explore_scseq_clusters(anal$scseq, anal$markers)
+run_drugseqr(sjia_dir, test_data = FALSE)
 
 
 # Normal Annotations
