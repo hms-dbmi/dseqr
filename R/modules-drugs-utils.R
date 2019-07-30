@@ -41,7 +41,7 @@ limit_cells <- function(query_table, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-get_top <- function(query_cors, arrange_by, ntop = 300) {
+get_top <- function(query_cors, arrange_by, ntop = 1500) {
   query_cors %>%
     dplyr::as_tibble() %>%
     dplyr::arrange(!!sym(arrange_by)) %>%
@@ -73,7 +73,8 @@ summarize_compound <- function(query_table) {
 
   # group by compound
   query_table <- query_table %>%
-    dplyr::group_by(Compound)
+    dplyr::group_by(Compound) %>%
+    dplyr::add_tally()
 
   # put all correlations together in list
   # keep minimum and average correlation for sorting

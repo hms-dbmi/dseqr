@@ -14,7 +14,8 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
              drug_study = form$drug_study,
              cells = form$cells,
              sort_by = form$sort_by,
-             show_clinical = form$show_clinical)
+             show_clinical = form$show_clinical,
+             min_signatures = form$min_signatures)
 
 
 
@@ -58,7 +59,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
     drug_study = drugStudy$drug_study,
     cells = advancedOptions$cells,
     sort_by = advancedOptions$sort_by,
-    show_clinical = drugStudy$show_clinical
+    show_clinical = drugStudy$show_clinical,
+    min_signatures = advancedOptions$min_signatures
   ))
 
 
@@ -82,7 +84,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   observe({
     anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'query', choices = rbind(rep(NA, 5), anals), server = TRUE)
+    updateSelectizeInput(session, 'query', choices = anals, server = TRUE)
   })
 
   anal <- reactive({
@@ -222,9 +224,11 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
     shiny::updateSelectizeInput(session, 'cells', choices = cell_choices(), selected = NULL, server = TRUE)
   })
 
+
   return(list(
     cells = reactive(input$cells),
-    sort_by = reactive(input$sort_by)
+    sort_by = reactive(input$sort_by),
+    min_signatures = reactive(input$min_signatures)
   ))
 
 }
@@ -233,7 +237,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by) {
+drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures) {
 
   # will update with proxy to analent redraw
   dummy_table <- data.frame('Correlation' = NA,
@@ -246,7 +250,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
                             'Indication' = NA,
                             'Vendor' = NA,
                             'Catalog #' = NA,
-                            'Vendor Name' = NA, check.names = FALSE)
+                            'Vendor Name' = NA,
+                            'n' = NA, check.names = FALSE)
   dummy_rendered <- reactiveVal(FALSE)
 
   # get either cmap or l1000 annotations
@@ -286,6 +291,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     if (is.null(query_table)) return(NULL)
     sort_by <- sort_by()
 
+    query_table <- dplyr::filter(query_table, n >= min_signatures())
+
     # subset by clinical phase
     if (show_clinical()) query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
 
@@ -315,6 +322,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       escape = FALSE, # to allow HTML in table
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
+                          list(targets = 11, visible=FALSE),
                           list(targets = c(4,5,6,7), render = DT::JS(
                             "function(data, type, row, meta) {",
                             "return type === 'display' && data !== null && data.length > 17 ?",
@@ -339,5 +347,3 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
-
-
