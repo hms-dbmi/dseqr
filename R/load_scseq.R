@@ -383,33 +383,12 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #'
 #' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
 #' @export
-integrate_scseqs <- function(scseqs) {
+integrate_scseqs <- function(scseqs, scalign = FALSE) {
 
   genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
   scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
 
-  sce.list <- lapply(scseqs, function(x) {
-    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
-                                                             scale.data = x[['SCT']]@scale.data[genes, ]))
-  })
-
   ambient <- get_integrated_ambient(scseqs)
-  rm(scseqs); gc()
-
-  sce.object = scAlign::scAlignCreateObject(sce.objects = sce.list, project.name = "sjia")
-
-  sce.object = scAlign::scAlignMulti(sce.object,
-                                     options=scAlign::scAlignOptions(steps=5000, log.every=1000, norm=TRUE, early.stop=FALSE),
-                                     encoder.data="scale.data",
-                                     supervised='none',
-                                     run.encoder=TRUE,
-                                     run.decoder=FALSE,
-                                     log.results=TRUE,
-                                     log.dir=file.path('./tmp'),
-                                     device="GPU")
-
-
-
   k.filter <- min(200, min(sapply(scseqs, ncol)))
 
   anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
@@ -425,6 +404,31 @@ integrate_scseqs <- function(scseqs) {
 
   return(combined)
 }
+
+scalign_scseqs <- function(scseqs, genes) {
+
+  sce.list <- lapply(scseqs, function(x) {
+    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
+                                                             scale.data = x[['SCT']]@scale.data[genes, ]))
+  })
+
+  sce.object = scAlign::scAlignCreateObject(sce.objects = sce.list, project.name = "sjia")
+
+  sce.object = scAlign::scAlignMulti(sce.object,
+                                     options=scAlign::scAlignOptions(steps=5000, log.every=5000, norm=TRUE, early.stop=FALSE, architecture="small"),
+                                     encoder.data="scale.data",
+                                     decoder.data="logcounts",
+                                     supervised='none',
+                                     run.encoder=TRUE,
+                                     run.decoder=TRUE,
+                                     log.results=TRUE,
+                                     log.dir=file.path('./tmp'),
+                                     device="CPU")
+
+  return(sce.object)
+}
+
+
 
 get_integrated_ambient <- function(scseqs) {
 
