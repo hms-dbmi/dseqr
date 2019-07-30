@@ -385,9 +385,30 @@ get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, i
 #' @export
 integrate_scseqs <- function(scseqs) {
 
-  anchor.features  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
-  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = anchor.features)
+  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
+  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
+
+  sce.list <- lapply(scseqs, function(x) {
+    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
+                                                             scale.data = x[['SCT']]@scale.data[genes, ]))
+  })
+
   ambient <- get_integrated_ambient(scseqs)
+  rm(scseqs); gc()
+
+  sce.object = scAlign::scAlignCreateObject(sce.objects = sce.list, project.name = "sjia")
+
+  sce.object = scAlign::scAlignMulti(sce.object,
+                                     options=scAlign::scAlignOptions(steps=5000, log.every=1000, norm=TRUE, early.stop=FALSE),
+                                     encoder.data="scale.data",
+                                     supervised='none',
+                                     run.encoder=TRUE,
+                                     run.decoder=FALSE,
+                                     log.results=TRUE,
+                                     log.dir=file.path('./tmp'),
+                                     device="GPU")
+
+
 
   k.filter <- min(200, min(sapply(scseqs, ncol)))
 
