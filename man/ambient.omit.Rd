@@ -4,7 +4,7 @@
 \alias{ambient.omit}
 \title{Omit ambient genes from analysis or top table}
 \usage{
-ambient.omit(scseq, anal = NULL, top_table = anal$top_table)
+ambient.omit(scseq, markers, cluster_markers)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}

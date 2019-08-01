@@ -4,7 +4,7 @@
 \alias{get_ambient}
 \title{Get ambient genes to exclude for diff_expr_scseq}
 \usage{
-get_ambient(scseq, top_table)
+get_ambient(scseq, markers, cluster_markers)
 }
 \arguments{
 \item{scseq}{\code{Suerat} object.}

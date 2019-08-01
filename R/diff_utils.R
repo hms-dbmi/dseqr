@@ -95,7 +95,6 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
 #' @seealso \code{\link{add_contrast}}, \code{\link{diff_expr}}.
 #' @return List with model matrix(mod), model matrix with surrogate
 #'         variables(modsv), and result of \code{sva} function.
-
 diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 
   # incase svanal FALSE
@@ -165,7 +164,6 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 #'    \item{eset}{Expression set with unique features at probe or gene level.}
 #'    \item{exprs_sva}{Expression data from eset with effect of surrogate
 #'       variable removed.}
-
 iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.dup = FALSE) {
 
   # for R CMD check
@@ -231,8 +229,6 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
 #' @seealso \code{\link{diff_expr}}.
 #' @return List, final result of \code{diff_expr}. Used for subsequent
 #'   meta-analysis.
-
-
 diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = TRUE){
 
   group_levels <- c('ctrl', 'test')
@@ -378,7 +374,6 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 #'
 #' @seealso \code{\link{get_contrast_esets}}.
 #' @return Expression data with effects of svs removed.
-
 clean_y <- function(y, mod, svs) {
 
   X = cbind(mod, svs)

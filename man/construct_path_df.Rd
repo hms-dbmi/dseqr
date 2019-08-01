@@ -9,7 +9,7 @@ construct_path_df(top_table, nmax = nrow(top_table))
 \arguments{
 \item{top_table}{Filtered result of \code{\link[limma]{topTable}}}
 
-\item{nmax}{Maximum number of rows to keep. Default is all. Used be \code{construct_all_df}
+\item{nmax}{Maximum number of rows to keep. Default is all. Used by \code{construct_all_df}
 to limit number of plotted genes.}
 }
 \description{

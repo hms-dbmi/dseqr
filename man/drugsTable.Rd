@@ -5,7 +5,7 @@
 \title{Logic for drug table}
 \usage{
 drugsTable(input, output, session, query_res, drug_study, cells,
-  show_clinical, sort_by)
+  show_clinical, sort_by, min_signatures)
 }
 \description{
 Logic for drug table

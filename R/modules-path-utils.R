@@ -3,7 +3,7 @@
 #' Used by get_all_df and get_path_df to construct the return result
 #'
 #' @param top_table Filtered result of \code{\link[limma]{topTable}}
-#' @param nmax Maximum number of rows to keep. Default is all. Used be \code{construct_all_df}
+#' @param nmax Maximum number of rows to keep. Default is all. Used by \code{construct_all_df}
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
@@ -32,8 +32,6 @@ construct_path_df <- function(top_table, nmax = nrow(top_table)) {
 #' Get data.frame for plotting gene expression values of top genes
 #'
 #' @param anal Result of call to \code{\link{diff_expr_scseq}}
-#' @param show_up Boolean. if \code{TRUE}, will return only upregulated genes.
-#' If \code{FALSE} will return only downregulated genes.
 #'
 #' @return \code{data.frame} with columns: \itemize{
 #'  \item Gene gene names.
@@ -42,19 +40,15 @@ construct_path_df <- function(top_table, nmax = nrow(top_table)) {
 #'  \item Link url to GeneCards page for gene.
 #' }
 #' @export
-get_all_df <- function(anal, show_up) {
+get_all_df <- function(anal) {
 
   # add dprimes and vardprime values
   anal <- add_es(anal)
   top_table <- anal$top_table
 
-  is.up <- top_table$t > 0
-  filter <- if (show_up) is.up else !is.up
-
-  top_table <- top_table[filter, ]
-
   construct_path_df(top_table, nmax = 200)
 }
+
 
 
 #' Get data.frame for plotting gene expression values of a pathway
@@ -137,6 +131,7 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 #' @export
 #' @keywords internal
 diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
+  assay <- get_scseq_assay(scseq)
 
   # load previous if exists
   clusters_name <- paste(sort(clusters), collapse = ',')
@@ -145,7 +140,7 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 
   if(file.exists(fpath)) return(readRDS(fpath))
 
-  Seurat::DefaultAssay(scseq) <- 'SCT'
+  Seurat::DefaultAssay(scseq) <- assay
   Seurat::Idents(scseq) <- scseq$orig.ident
 
   # subset to analysed gened (excludes ambient)
@@ -159,7 +154,7 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
   group <- ifelse(group == 'ctrl', 'c', 'd')
 
   # expression matrix
-  esetm  <- scseq[['SCT']]@data
+  esetm  <- scseq[[assay]]@data
 
   # already annotated with hgnc symbols
   gslist <- lapply(gslist, function(gs) {ret <- names(gs); names(ret) <- ret; return(ret)})
@@ -221,7 +216,6 @@ diff_expr_scseq <- function(scseq, clusters, pseudo_bulk = FALSE) {
 
   }
 
-
   ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
   tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
 
@@ -248,20 +242,13 @@ diff_expr_scseq <- function(scseq, clusters, pseudo_bulk = FALSE) {
 #' @return One of \code{anal} or \code{top_table} with entries corresponding to ambient genes omited.
 #' @export
 #' @keywords internal
-ambient.omit <- function(scseq, anal = NULL, top_table = anal$top_table) {
-  ambient.genes <- get_ambient(scseq, top_table)
-  is.ambient <- row.names(top_table) %in% ambient.genes
-  top_table <- top_table[!is.ambient, ]
+ambient.omit <- function(scseq, markers, cluster_markers) {
+  ambient.genes <- get_ambient(scseq, markers = markers, cluster_markers = cluster_markers)
 
-  if (!is.null(anal)) {
-    anal$top_table <- top_table
-    # need to make work with add_es
-    anal$ebayes_sv$df.residual <- anal$ebayes_sv$df.residual[!is.ambient]
-    return(anal)
+  is.ambient <- row.names(markers) %in% ambient.genes
+  markers <- markers[!is.ambient, ]
 
-  } else {
-    return(top_table)
-  }
+  return(markers)
 }
 
 
@@ -298,23 +285,28 @@ fit_ebayes_scseq <- function(scseq, ident.1, ident.2) {
 #' @return Character vector of HGNC symbols representing ambient genes to exclude
 #' @export
 #' @keywords internal
-get_ambient <- function(scseq, top_table) {
+get_ambient <- function(scseq, markers, cluster_markers) {
 
   fts <- scseq[['SCT']]@meta.features
-  test.ambient <- row.names(fts)[fts$test_ambient]
-  ctrl.ambient <- row.names(fts)[fts$ctrl_ambient]
+  rns <- row.names(markers)
+  fts <- fts[rns, ]
+  test.ambient <- rns[fts$test_ambient]
+  ctrl.ambient <- rns[fts$ctrl_ambient]
 
   # exclude test/ctrl ambient if positive/negative effect size
   # opposite would decrease extent of gene expression difference but not direction
-  pos.test <- top_table[test.ambient, 't'] > 0
-  neg.ctrl <- top_table[ctrl.ambient, 't'] < 0
+  pos.test <- markers[test.ambient, 'avg_logFC'] > 0
+  neg.ctrl <- markers[ctrl.ambient, 'avg_logFC'] < 0
 
   test.exclude <- test.ambient[pos.test]
   ctrl.exclude <- ctrl.ambient[neg.ctrl]
 
   ambient <- c(test.exclude, ctrl.exclude)
 
-  return(unique(ambient))
+  # dont include cluster markers in ambient
+  ambient <- setdiff(ambient, row.names(cluster_markers))
+
+  return(ambient)
 }
 
 #' Get direction of pathways

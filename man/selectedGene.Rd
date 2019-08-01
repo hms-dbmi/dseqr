@@ -5,7 +5,7 @@
 \title{Logic for selected gene to show plots for}
 \usage{
 selectedGene(input, output, session, selected_anal, scseq,
-  selected_markers, selected_cluster, comparison_type)
+  selected_markers, cluster_markers, selected_cluster, comparison_type)
 }
 \description{
 Logic for selected gene to show plots for

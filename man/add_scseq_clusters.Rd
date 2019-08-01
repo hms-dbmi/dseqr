@@ -4,16 +4,17 @@
 \alias{add_scseq_clusters}
 \title{Add clusters single cell RNA-seq object}
 \usage{
-add_scseq_clusters(scseq, use.dimred = "PCA", resolution = 0.8)
+add_scseq_clusters(scseq, reduction = "pca", resolution = 0.8,
+  dims = 1:30)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} returned by \code{\link{preprocess_scseq}}.}
 
-\item{use.dimred}{A string specifying reduced dimension to use e.g. \code{'PCA'} (default).
-Only used if \code{scseq} has class \code{SingleCellExperiment}.}
-
 \item{resolution}{Use larger values to obtain more clusters (default is 0.8).
 Only used if \code{scseq} has class \code{Seurat}.}
+
+\item{use.dimred}{A string specifying reduced dimension to use e.g. \code{'PCA'} (default).
+Only used if \code{scseq} has class \code{SingleCellExperiment}.}
 }
 \value{
 If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.

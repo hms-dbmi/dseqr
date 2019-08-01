@@ -64,6 +64,11 @@ scFormInput <- function(id) {
   })
 }
 
+#' selectizeInput with button
+#'
+#' Adjusts height is multiple.
+#' @export
+#' @keywords internal
 selectizeInputMultWithButton <- function(id, label, button) {
 
   tags$div(class = 'form-group selectize-fh',

@@ -91,6 +91,7 @@ scForm <- function(input, output, session, sc_dir) {
                               selected_anal = scAnal$selected_anal,
                               scseq = scAnal$scseq,
                               selected_markers = scClusterComparison$selected_markers,
+                              cluster_markers = NULL,
                               selected_cluster = scClusterComparison$selected_cluster,
                               comparison_type = comparisonType)
 
@@ -108,6 +109,7 @@ scForm <- function(input, output, session, sc_dir) {
                              selected_anal = scAnal$selected_anal,
                              scseq = scAnal$scseq,
                              selected_markers = scSampleComparison$selected_markers,
+                             cluster_marker = scSampleComparison$cluster_markers,
                              selected_cluster = scSampleComparison$selected_cluster,
                              comparison_type = comparisonType)
 
@@ -180,8 +182,10 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     scseq_path <- scseq_part_path(sc_dir, selected_anal(), 'scseq')
     scseq <- readRDS(scseq_path)
 
+    assay <- get_scseq_assay(scseq)
+
     if (Seurat::DefaultAssay(scseq) == 'integrated')
-      Seurat::DefaultAssay(scseq) <- 'SCT'
+      Seurat::DefaultAssay(scseq) <- assay
 
     levels(scseq$seurat_clusters) <- annot()
     Seurat::Idents(scseq) <- scseq$seurat_clusters
@@ -598,6 +602,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
   # data.frame of markers for selected sample
   selected_markers <- reactiveVal()
+  cluster_markers <- reactiveVal()
 
   cluster_choices <- reactive({
     req(annot())
@@ -609,6 +614,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
     selected_anal()
     annot()
     selected_markers(NULL)
+    cluster_markers(NULL)
   }, priority = 1)
 
   # update scseq with annotation
@@ -631,26 +637,38 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
   })
 
   observeEvent(input$run_comparison, {
+
     req(input$selected_clusters)
 
-    # set idents to ctrl and test
+    # get markers for selected cluster(s)
+    # so that don't exclude marker genes as ambient
     scseq <- annot_scseq()
+    selected_clusters <- input$selected_clusters
+
+    clusters <- as.character(Seurat::Idents(scseq))
+    in.sel <- clusters %in% selected_clusters
+
+    clusters[in.sel] <- 'ident.1'
+    Seurat::Idents(scseq) <- factor(clusters)
+
+    clus_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
+
+    # get markers for test group
     Seurat::Idents(scseq) <- scseq$orig.ident
-    clusters <- input$selected_clusters
-
-    # get markers
-    markers <- diff_expr_scseq(scseq, clusters, pseudo_bulk = FALSE)$top_table
-
-    # add cell percents
-    cell.pcts <- get_cell_pcts(scseq, 'test', 'ctrl')
-    markers <- cbind(markers, cell.pcts[row.names(markers), ])
+    scseq <- scseq[, in.sel]
+    con_markers <- get_scseq_markers(scseq,
+                                     ident.1 = 'test',
+                                     ident.2 = 'ctrl',
+                                     min.diff.pct = -Inf)
 
     # set selected markers
-    selected_markers(markers)
+    selected_markers(con_markers)
+    cluster_markers(clus_markers)
   })
 
   return(list(
     selected_markers = selected_markers,
+    cluster_markers = cluster_markers,
     selected_cluster = reactive(input$selected_clusters)
   ))
 }
@@ -660,7 +678,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, selected_cluster, comparison_type) {
+selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, cluster_markers, selected_cluster, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
 
@@ -674,13 +692,15 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
     toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
+
   filtered_markers <- reactive({
     markers <- selected_markers()
     if (is.null(markers)) return(NULL)
 
     if (exclude_ambient()) {
+      cluster_markers <- cluster_markers()
       scseq <- scseq()
-      markers <- ambient.omit(scseq, top_table = markers)
+      markers <- ambient.omit(scseq,  markers = markers, cluster_markers = cluster_markers)
     }
 
 
@@ -693,32 +713,17 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
+    scseq <- scseq()
     markers <- filtered_markers()
-    if (is.null(markers)) return(NULL)
+    selected_cluster <- selected_cluster()
+    comparison_type <- comparison_type()
+    if (is.null(markers) || is.null(selected_cluster)) return(NULL)
 
-    markers <- markers[, c('pct.1', 'pct.2')]
+    get_gene_choices(scseq,
+                     markers = markers,
+                     selected_cluster = selected_cluster,
+                     comparison_type = comparison_type)
 
-    if (comparison_type() == 'clusters') {
-      # get cell.pcts for all genes (previously just had for markers)
-      # allows selecting non-marker genes (at bottom of list)
-      scseq <- scseq()
-      ident.1 <- selected_cluster()
-      ident.2 <- setdiff(levels(Seurat::Idents(scseq)), ident.1)
-      cell_pcts <- get_cell_pcts(scseq, ident.1, ident.2)
-      cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
-      markers <- rbind(markers, cell_pcts)
-
-    }
-
-    markers$pct.1 <- round(markers$pct.1 * 100)
-    markers$pct.2 <- round(markers$pct.2 * 100)
-
-    pspace <- 2 - nchar(markers$pct.2)
-    pspace[pspace < 0] <- 0
-    markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
-
-    markers$label <- markers$value <- row.names(markers)
-    return(markers)
   })
 
   # click genecards

@@ -4,7 +4,7 @@
 \alias{run_umap}
 \title{Run UMAP for visualizing single cell data.}
 \usage{
-run_umap(scseq)
+run_umap(scseq, dims = 1:30, reduction = "pca")
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object.}

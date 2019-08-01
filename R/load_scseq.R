@@ -32,10 +32,11 @@ load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto',
   out_ambient <- get_outliers(pct_ambient)
 
   if (soupx) {
-    empty <- get_empty(counts)
+    empty <- !whitelist[[1]]
     counts <- strain_scseq(counts, empty)
     kneelist <- kneelist[kneelist %in% colnames(counts)]
   }
+
 
   # covert to Seurat object
   srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
@@ -230,19 +231,18 @@ add_qc_genes <- function(sce) {
 #'
 #' @return Normalized and variance stabilized \code{scseq}.
 #' @export
-preprocess_scseq <- function(scseq) {
+preprocess_scseq <- function(scseq, use_sctransform = TRUE) {
 
-  if (class(scseq) == 'SingleCellExperiment') {
-    scseq <- norm_scseq(scseq)
-    scseq <- stabilize_scseq(scseq)
-  }
-
-  if (class(scseq) == 'Seurat') {
+  if (use_sctransform) {
     scseq <- Seurat::SCTransform(scseq, verbose = FALSE)
-
-  } else {
-    stop('scseq must be either a SingleCellExperiment or Seurat object.')
   }
+
+  else {
+    scseq <- Seurat::NormalizeData(scseq)
+    scseq <- Seurat::FindVariableFeatures(scseq)
+    scseq <- Seurat::ScaleData(scseq)
+  }
+
   return(scseq)
 }
 
@@ -313,21 +313,13 @@ add_scseq_qc_metrics <- function(sce) {
 #' @return If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.
 #'  If \code{scseq} is a \code{Seurat} object, the result of \code{\link[Seurat]{FindClusters}} is returned.
 #' @export
-add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
+add_scseq_clusters <- function(scseq, reduction = 'pca', resolution = 0.8, dims = 1:30) {
 
-  if (class(scseq) == 'SingleCellExperiment') {
-    snn.gr <- scran::buildSNNGraph(scseq, use.dimred=use.dimred)
-    clusters <- igraph::cluster_walktrap(snn.gr)
-    scseq$cluster <- factor(clusters$membership - 1)
+  if (reduction == 'pca') suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
 
-  } else if (class(scseq) == 'Seurat') {
-    suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
-    scseq <- Seurat::FindNeighbors(scseq, dims=1:30, verbose = FALSE)
-    scseq <- Seurat::FindClusters(scseq, verbose = FALSE, resolution = resolution)
+  scseq <- Seurat::FindNeighbors(scseq, reduction = reduction, dims=dims, verbose = FALSE)
+  scseq <- Seurat::FindClusters(scseq, verbose = FALSE, resolution = resolution)
 
-  } else {
-    stop('scseq must be either class SingleCellExperiment or Seurat')
-  }
 
   return(scseq)
 }
@@ -348,27 +340,31 @@ add_scseq_clusters <- function(scseq, use.dimred = 'PCA', resolution = 0.8) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, assay.type = 'logcounts', ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE, test.use = "wilcox") {
+get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE, ...) {
+
+  assay <- ifelse('SCT' %in% names(scseq@assays), 'SCT', 'RNA')
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
-  if (class(scseq) == 'SingleCellExperiment') {
-    markers <- scran::findMarkers(scseq, clusters=scseq$cluster, direction="up", assay.type = assay.type)
+  if (!is.null(ident.1) | !is.null(ident.2)) {
+    markers <- Seurat::FindMarkers(scseq,
+                                   assay = assay,
+                                   ident.1 = ident.1,
+                                   ident.2 = ident.2,
+                                   only.pos = only.pos,
+                                   min.diff.pct = min.diff.pct,
+                                   ...)
 
-  } else if (class(scseq) == 'Seurat') {
-    if (!is.null(ident.1) & !is.null(ident.2)) {
-      markers <- Seurat::FindMarkers(scseq, assay = 'SCT',
-                                     ident.1 = ident.1, ident.2 = ident.2,
-                                     min.diff.pct = min.diff.pct, only.pos = only.pos, test.use = test.use)
-
-    } else {
-
-      markers <- Seurat::FindAllMarkers(scseq, assay = 'SCT', only.pos = only.pos, min.diff.pct = min.diff.pct)
-      markers <- split(markers, markers$cluster)
-      markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
-    }
+  } else {
+    markers <- Seurat::FindAllMarkers(scseq,
+                                      assay = assay,
+                                      only.pos = only.pos,
+                                      min.diff.pct = min.diff.pct,
+                                      ...)
+    markers <- split(markers, markers$cluster)
+    markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
   }
 
   return(markers)
@@ -517,14 +513,14 @@ exist_clusters <- function(scseq) {
 #'
 #' @return \code{scseq} with TSNE results.
 #' @export
-run_umap <- function(scseq) {
+run_umap <- function(scseq, dims = 1:30, reduction = 'pca') {
 
   set.seed(1000)
   if (class(scseq) == 'SingleCellExperiment') {
     scseq <- scater::runUMAP(scseq, use_dimred="PCA")
 
   } else if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::RunUMAP(scseq, dims = 1:30, verbose = FALSE)
+    scseq <- Seurat::RunUMAP(scseq, dims = dims, reduction = reduction, verbose = FALSE)
 
   } else {
     stop('scseq must be either class SingleCellExperiment or Seurat')

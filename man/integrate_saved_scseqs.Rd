@@ -5,7 +5,7 @@
 \title{Integrate previously saved scseqs}
 \usage{
 integrate_saved_scseqs(data_dir, test, ctrl, include_clusters, anal_name,
-  updateProgress = NULL)
+  updateProgress = NULL, use_scalign = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory with saved analyses.}

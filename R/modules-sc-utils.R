@@ -1,4 +1,3 @@
-
 #' Get percentage of cells expressing each gene
 #'
 #' @param scseq \code{Seurat} object
@@ -9,7 +8,8 @@
 #' @export
 #' @keywords internal
 get_cell_pcts <- function(scseq, ident.1, ident.2) {
-  data <- scseq[['SCT']]@data
+  assay <- get_scseq_assay(scseq)
+  data <- scseq[[assay]]@data
 
   cells <- Seurat::Idents(scseq)
   cells.1 <- cells %in% ident.1
@@ -142,6 +142,58 @@ get_contrast_choices <- function(clusters, test) {
 }
 
 
+#' Add cell percents to gene choices for single cell
+#'
+#' @param scseq Seurat object
+#' @param markers data.frame of marker genes.
+#' @param selected_cluster Character vector indicating selected cluster.
+#' @param comparison_type Either \code{'samples'} or \code{'clusters'}
+#'
+#' @return data.frame of all genes, with markers on top and cell percent columns
+#' @export
+#' @keywords internal
+get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) {
+  markers <- markers[, c('pct.1', 'pct.2')]
+  clusters <- Seurat::Idents(scseq)
+
+
+  # get cell.pcts for all genes (previously just had for markers)
+  # allows selecting non-marker genes (at bottom of list)
+  if (comparison_type == 'clusters') {
+    idents <- strsplit(selected_cluster, ' vs ')[[1]]
+
+    if (length(idents) == 2) {
+      ident.1 = idents[1]
+      ident.2 = idents[2]
+    } else {
+      ident.1 = idents
+      ident.2 = setdiff(levels(clusters), idents)
+    }
+
+  } else {
+    Seurat::Idents(scseq) <- scseq$orig.ident
+    scseq <- scseq[, clusters %in% selected_cluster]
+    ident.1 = 'test'
+    ident.2 = 'ctrl'
+  }
+
+  cell_pcts <- get_cell_pcts(scseq, ident.1, ident.2)
+  cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
+  markers <- rbind(markers, cell_pcts)
+
+
+  markers$pct.1 <- round(markers$pct.1 * 100)
+  markers$pct.2 <- round(markers$pct.2 * 100)
+
+  pspace <- 2 - nchar(markers$pct.2)
+  pspace[pspace < 0] <- 0
+  markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
+
+  markers$label <- markers$value <- row.names(markers)
+  return(markers)
+}
+
+
 
 #' Integrate previously saved scseqs
 #'
@@ -157,7 +209,10 @@ get_contrast_choices <- function(clusters, test) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_name, updateProgress = NULL) {
+integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
+
+  reduction <- ifelse(use_scalign, 'embed', 'pca')
+  dims <- if (use_scalign) 1:32 else 1:30
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -179,11 +234,11 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_
   scseqs <- add_project_scseqs(scseqs)
 
   updateProgress(2/n, 'integrating')
-  combined <- integrate_scseqs(scseqs)
+  combined <- integrate_scseqs(scseqs, use_scalign = use_scalign)
   rm(scseqs); gc()
 
   updateProgress(3/n, 'clustering')
-  combined <- add_scseq_clusters(combined)
+  combined <- add_scseq_clusters(combined, reduction = reduction, dims = dims)
 
   updateProgress(4/n, 'reducing')
   combined <- run_umap(combined)
@@ -222,6 +277,13 @@ load_scseqs_for_integration <- function(anal_names, include_clusters, data_dir, 
     # load scseq
     scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
     scseq <- readRDS(scseq_path)
+
+    # add annotation
+    annot_path <- scseq_part_path(data_dir, anal, 'annot')
+    annot <- readRDS(annot_path)
+
+    scseq$annot_clusters <- scseq$seurat_clusters
+    levels(scseq$annot_clusters) <- annot
 
     # restore SCT assay
     sct_path <- scseq_part_path(data_dir, anal, 'sct')
@@ -268,7 +330,7 @@ load_scseqs_for_integration <- function(anal_names, include_clusters, data_dir, 
 #' @return \code{scseq} with maximum \code{max.cells} cells.
 #' @export
 #' @keywords internal
-downsample_scseq <- function(scseq, max.cells = 3000, seed = 0L) {
+downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
   if (ncol(scseq) > max.cells) {
     set.seed(seed)
     scseq <- subset(scseq, cells = sample(Seurat::Cells(scseq), max.cells))
@@ -385,3 +447,179 @@ scseq_part_path <- function(data_dir, anal_name, part) {
   fname <- paste0(anal_name, '_', part, '.rds')
   file.path(data_dir, anal_name, fname)
 }
+
+
+#' Get genes that are ambient in at least one test and control sample
+#'
+#' @param scseqs List of Seurat objects.
+#'
+#' @return List with test and control ambient genes
+#' @export
+#' @keywords interal
+get_integrated_ambient <- function(scseqs) {
+
+  # datasets that are test samples
+  is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
+
+  # genes that are ambient in at least one test sample
+  ambient.test <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
+  ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
+  ambient.test <- unique(unlist(ambient.test))
+
+  # genes that are ambient in at least one ctrl sample
+  ambient.ctrl <- lapply(scseqs[!is.test], function(x) x[['RNA']]@meta.features)
+  ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
+  ambient.ctrl <- unique(unlist(ambient.ctrl))
+
+  return(list(test = ambient.test, ctrl = ambient.ctrl))
+}
+
+
+#' Integrate Seurat objects
+#'
+#' @param scseqs List of Seurat objects
+#' @param use_scalign whether or not to use scAlign. Default is \code{FALSE}
+#'
+#' @return Integrated Seurat object.
+#' @export
+#' @keywords internal
+integrate_scseqs <- function(scseqs, use_scalign = FALSE) {
+
+  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
+  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
+
+  ambient <- get_integrated_ambient(scseqs)
+
+  if (use_scalign) {
+    combined <- scalign_integrate(scseqs, genes)
+
+  } else {
+    combined <- cca_integrate(scseqs, genes)
+  }
+
+
+  # add ambient outlier info
+  combined <- add_integrated_ambient(combined, ambient)
+
+  return(combined)
+}
+
+#' Integrate with CCA from Seurat
+#'
+#' Uses SCT method
+#'
+#' @param scseqs Seurat objects
+#' @param genes Character vector of genes to integrate on
+#'
+#' @return Seurat object
+#' @export
+#' @keywords internal
+cca_integrate <- function(scseqs, genes) {
+
+  k.filter <- min(200, min(sapply(scseqs, ncol)))
+  k.score <- min(c(sapply(scseqs, ncol)-1, 30))
+  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
+                                            anchor.features = genes, dims = 1:k.score, k.score = k.score)
+
+  combined <- Seurat::IntegrateData(anchors, normalization.method = "SCT")
+  combined$orig.ident <- factor(combined$orig.ident)
+
+  return(combined)
+
+}
+
+#' Integrate Single Cell datasets using scAlign
+#'
+#' @param scseqs List of \code{Seurat} objects
+#' @param genes Highly variable genes to integrate with
+#' @importFrom SingleCellExperiment colData
+#'
+#' @return
+#' @export
+#' @keywords internal
+#'
+scalign_integrate <- function(scseqs, genes) {
+
+  common_meta <- lapply(scseqs, function(x) colnames(x@meta.data))
+  common_meta <- Reduce(intersect, common_meta)
+
+  scalign.list <- lapply(scseqs, function(x) {
+    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
+                                                             scale.data = x[['SCT']]@scale.data[genes, ]),
+                                               colData = x@meta.data[, common_meta])
+  })
+
+  scalign <- scAlign::scAlignCreateObject(sce.objects = scalign.list, project.name = "sjia")
+
+  scalign <- scAlign::scAlignMulti(scalign,
+                                   encoder.data="scale.data",
+                                   decoder.data="logcounts",
+                                   supervised='none',
+                                   run.encoder=TRUE,
+                                   run.decoder=TRUE,
+                                   log.results=TRUE,
+                                   log.dir=file.path('./tmp'),
+                                   device="GPU")
+
+  scseq <- scalign_to_scseq(scalign)
+
+  return(scseq)
+
+
+}
+
+
+
+#' Convert scAlign integrated dataset into Seurat object
+#'
+#' @param scalign SingleCellExperiment returned from \code{scalign_integrate}
+#'
+#' @return Seurat object
+#' @export
+#' @keywords internal
+scalign_to_scseq <- function(scalign) {
+
+  # empty RNA assay
+  empty_counts <- matrix(nrow = 0, ncol = ncol(scalign),dimnames = list(NULL, colnames(scalign)))
+
+  scseq <- Seurat::CreateSeuratObject(
+    empty_counts,
+    meta.data = as.data.frame(scalign@colData)
+  )
+
+  # add SCT assay
+  scseq[['SCT']] <- Seurat::CreateAssayObject(data = assay(scalign, 'logcounts'))
+  scseq[['SCT']]@scale.data <- assay(scalign, 'scale.data')
+
+  # embedding as reduced dim
+  embed <- SingleCellExperiment::reducedDim(scalign, 'ALIGNED-GENE')
+  row.names(embed) <- colnames(scalign)
+  colnames(embed) <- paste0('EMBED_', seq_len(ncol(embed)))
+  scseq@reductions$embed <- Seurat::CreateDimReducObject(embed, assay = 'SCT', key = 'EMBED_')
+
+  # each decoder output logcount matrix as seperate assay
+  decodes <- setdiff(SingleCellExperiment::reducedDimNames(scalign), 'ALIGNED-GENE')
+  for (decode in decodes) {
+    logcounts <- t(SingleCellExperiment::reducedDim(scalign, decode))
+    dimnames(logcounts) <- dimnames(scalign)
+    scseq[[decode]] <- Seurat::CreateAssayObject(data = logcounts)
+  }
+
+  return(scseq)
+}
+
+
+#' Get assay to use from Seurat object.
+#'
+#' Default is 'SCT' but if not present then 'RNA'
+#'
+#' @param scseq Seurat object
+#'
+#' @return either \code{'SCT'} or \code{'RNA'}
+#' @export
+#' @keywords internal
+get_scseq_assay <- function(scseq) {
+  ifelse('SCT' %in% names(scseq@assays), 'SCT', 'RNA')
+}
+
+

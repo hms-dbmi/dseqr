@@ -4,21 +4,20 @@
 \alias{get_scseq_markers}
 \title{Get markers genes for single cell clusters}
 \usage{
-get_scseq_markers(scseq, assay.type = "logcounts", ident.1 = NULL,
-  ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE,
-  test.use = "wilcox")
+get_scseq_markers(scseq, ident.1 = NULL, ident.2 = NULL,
+  min.diff.pct = 0.25, only.pos = TRUE, ...)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object.}
-
-\item{assay.type}{Only used if \code{scseq} has class \code{SingleCellExperiment}.
-A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"} (default).}
 
 \item{ident.1}{Identity class to define markers for.
 Only used if \code{scseq} has class \code{Seurat} and \code{ident.2} is not \code{NULL}.}
 
 \item{ident.2}{A second identity class for comparison.
 Only used if \code{scseq} has class \code{Seurat} and \code{ident.1} is not \code{NULL}.}
+
+\item{assay.type}{Only used if \code{scseq} has class \code{SingleCellExperiment}.
+A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"} (default).}
 }
 \value{
 List of \code{data.frame}s, one for each cluster.

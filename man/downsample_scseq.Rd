@@ -4,7 +4,7 @@
 \alias{downsample_scseq}
 \title{Downsample very large scseq objects for integration}
 \usage{
-downsample_scseq(scseq, max.cells = 3000, seed = 0L)
+downsample_scseq(scseq, max.cells = 1000, seed = 0L)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}

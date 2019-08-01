@@ -39,7 +39,8 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
   cells <- cells[scseq$orig.ident %in% selected_idents]
 
   # make sure not plotting combined markers
-  if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- 'SCT'
+  assay <- get_scseq_assay(scseq)
+  if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- assay
 
   gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'umap', order = TRUE, pt.size = pt.size) +
     theme_no_axis_vals() +

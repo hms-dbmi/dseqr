@@ -4,13 +4,10 @@
 \alias{get_all_df}
 \title{Get data.frame for plotting gene expression values of top genes}
 \usage{
-get_all_df(anal, show_up)
+get_all_df(anal)
 }
 \arguments{
 \item{anal}{Result of call to \code{\link{diff_expr_scseq}}}
-
-\item{show_up}{Boolean. if \code{TRUE}, will return only upregulated genes.
-If \code{FALSE} will return only downregulated genes.}
 }
 \value{
 \code{data.frame} with columns: \itemize{
