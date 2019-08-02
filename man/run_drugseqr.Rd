@@ -22,6 +22,7 @@ Used for local development
 
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190712'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
 
 run_drugseqr(data_dir, test_data = TRUE)

@@ -85,7 +85,8 @@ scForm <- function(input, output, session, sc_dir) {
                                     selected_anal = scAnal$selected_anal,
                                     scseq = scAnal$scseq,
                                     markers = scAnal$markers,
-                                    annot_path = scAnal$annot_path)
+                                    annot_path = scAnal$annot_path,
+                                    sc_dir = sc_dir)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               selected_anal = scAnal$selected_anal,
@@ -102,7 +103,8 @@ scForm <- function(input, output, session, sc_dir) {
   scSampleComparison <- callModule(sampleComparison, 'sample',
                                    selected_anal = scAnal$selected_anal,
                                    scseq = scAnal$scseq,
-                                   annot = scClusterComparison$annot)
+                                   annot = scClusterComparison$annot,
+                                   sc_dir = sc_dir)
 
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
@@ -176,7 +178,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     readRDS(annot_path())
   })
 
-  # load scseq and name using annot
+  # load scseq
   scseq <- reactive({
 
     scseq_path <- scseq_part_path(sc_dir, selected_anal(), 'scseq')
@@ -187,7 +189,6 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     if (Seurat::DefaultAssay(scseq) == 'integrated')
       Seurat::DefaultAssay(scseq) <- assay
 
-    levels(scseq$seurat_clusters) <- annot()
     Seurat::Idents(scseq) <- scseq$seurat_clusters
 
     return(scseq)
@@ -418,7 +419,7 @@ comparisonType <- function(input, output, session, scseq) {
 #' Logic for cluster comparison input
 #' @export
 #' @keywords internal
-clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path) {
+clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -460,19 +461,8 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
   all_markers <- reactive({
     con_markers <- con_markers()
     markers <- markers()
-    names(markers) <- annot()
+    names(markers) <- seq(0, along.with = markers)
     return(c(markers, con_markers))
-  })
-
-  # update scseq with annotation
-  annot_scseq <- reactive({
-    scseq <- scseq()
-    annot <- annot()
-    req(annot, scseq)
-
-    levels(scseq$seurat_clusters) <- annot
-    Seurat::Idents(scseq) <- scseq$seurat_clusters
-    return(scseq)
   })
 
   observe({ annot(readRDS(annot_path())) })
@@ -563,7 +553,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
     if (!sel %in% names(all_markers())) {
       con <- strsplit(sel, ' vs ')[[1]]
       con_markers <- con_markers()
-      con_markers[[sel]] <- get_scseq_markers(annot_scseq(), ident.1 = con[1], ident.2 = con[2])
+      con_markers[[sel]] <- get_scseq_markers(scseq(), ident.1 = con[1], ident.2 = con[2])
       con_markers(con_markers)
     }
   })
@@ -590,10 +580,11 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 }
 
 
+
 #' Logic to for sample comparison input
 #' @export
 #' @keywords internal
-sampleComparison <- function(input, output, session, selected_anal, scseq, annot) {
+sampleComparison <- function(input, output, session, selected_anal, scseq, annot, sc_dir) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
 
@@ -617,16 +608,6 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
     cluster_markers(NULL)
   }, priority = 1)
 
-  # update scseq with annotation
-  annot_scseq <- reactive({
-    scseq <- scseq()
-    annot <- annot()
-    req(annot, scseq)
-
-    levels(scseq$seurat_clusters) <- annot
-    Seurat::Idents(scseq) <- scseq$seurat_clusters
-    return(scseq)
-  })
 
 
   # update UI for contrast/cluster choices
@@ -638,28 +619,46 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
   observeEvent(input$run_comparison, {
 
-    req(input$selected_clusters)
+    selected_clusters <- input$selected_clusters
+    req(selected_clusters)
+
+    scseq <- scseq()
+    anal_name <- selected_anal()
+    selected_clusters_name <- paste(sort(as.numeric(selected_clusters)), collapse = ',')
+
+    markers_path <- scseq_part_path(sc_dir, anal_name, paste0('markers_', selected_clusters_name))
+    anal_path <- scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', selected_clusters_name))
 
     # get markers for selected cluster(s)
     # so that don't exclude marker genes as ambient
-    scseq <- annot_scseq()
-    selected_clusters <- input$selected_clusters
-
     clusters <- as.character(Seurat::Idents(scseq))
     in.sel <- clusters %in% selected_clusters
 
-    clusters[in.sel] <- 'ident.1'
-    Seurat::Idents(scseq) <- factor(clusters)
+    if (file.exists(markers_path)) {
+      clus_markers <- readRDS(markers_path)
 
-    clus_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
+    } else {
+
+      clusters[in.sel] <- 'ident.1'
+      Seurat::Idents(scseq) <- factor(clusters)
+
+      clus_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
+      saveRDS(clus_markers, markers_path)
+    }
 
     # get markers for test group
-    Seurat::Idents(scseq) <- scseq$orig.ident
-    scseq <- scseq[, in.sel]
-    con_markers <- get_scseq_markers(scseq,
-                                     ident.1 = 'test',
-                                     ident.2 = 'ctrl',
-                                     min.diff.pct = -Inf)
+    if (file.exists(anal_path)) {
+      con_markers <- readRDS(anal_path)$top_table
+
+    } else {
+      Seurat::Idents(scseq) <- scseq$orig.ident
+      scseq <- scseq[, in.sel]
+      con_markers <- diff_expr_scseq(scseq = scseq,
+                                     data_dir = sc_dir,
+                                     anal_name = anal_name,
+                                     clusters_name = selected_clusters_name)$top_table
+    }
+
 
     # set selected markers
     selected_markers(con_markers)
@@ -718,6 +717,8 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
     selected_cluster <- selected_cluster()
     comparison_type <- comparison_type()
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
+    if (comparison_type == 'samples' & !'t' %in% colnames(markers)) return(NULL)
+    if (comparison_type == 'clusters' & !'pct.1' %in% colnames(markers)) return(NULL)
 
     get_gene_choices(scseq,
                      markers = markers,
@@ -827,3 +828,4 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
+

@@ -259,6 +259,12 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     drug_study <- drug_study()
     req(drug_study)
 
+    # update globals when first use
+    if (is.null(cmap_annot)) {
+      cmap_annot <<- get_drugs_table('CMAP02')
+      l1000_annot <<- get_drugs_table('L1000')
+    }
+
     if (drug_study == 'CMAP02') return(cmap_annot)
     else if (drug_study == 'L1000') return(l1000_annot)
   })

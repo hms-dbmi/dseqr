@@ -182,38 +182,14 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
 #' }
 #' @export
 #' @keywords internal
-diff_expr_scseq <- function(scseq, clusters, pseudo_bulk = FALSE) {
-  Seurat::Idents(scseq) <- scseq$orig.ident
+diff_expr_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
 
-  # exclude non-selected clusters
-  scseq <-  scseq[, scseq$seurat_clusters %in% clusters]
-
-  if (pseudo_bulk) {
-    # pseudo bulk counts
-    summed <- scater::sumCountsAcrossCells(scseq[['SCT']]@counts, scseq$project)
-    summed <- as.matrix(summed)
-
-    # get pdata
-    pdata <- scseq@meta.data %>%
-      dplyr::select(project, orig.ident) %>%
-      dplyr::distinct() %>%
-      dplyr::rename(group = orig.ident)
-
-    # get normalization factors
-    row.names(pdata) <- pdata$project
-    pdata <- pdata[colnames(summed), ]
-    pdata$lib.size <- colSums(summed)
-    pdata$norm.factors <- edgeR::calcNormFactors(summed)
-
-    # construct eset
-    fdata <- data.frame(SYMBOL = row.names(summed), row.names = row.names(summed))
-    eset <- Biobase::ExpressionSet(summed,
-                                   phenoData = Biobase::AnnotatedDataFrame(pdata),
-                                   featureData = Biobase::AnnotatedDataFrame(fdata))
-
-    anal <- diff_expr(eset, getwd(), anal_name = 'blah', prev_anal = list(pdata = pdata))
-    return(anal)
-
+  # pseudo bulk analysis
+  has_replicates <- length(unique(scseq$project)) > 2
+  if (has_replicates) {
+    pbulk <- diff_expr_pbulk(scseq = scseq,
+                             data_dir = file.path(data_dir, anal_name),
+                             clusters_name = clusters_name)
   }
 
   ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
@@ -228,6 +204,43 @@ diff_expr_scseq <- function(scseq, clusters, pseudo_bulk = FALSE) {
                ebayes_sv = ebayes_sv,
                pdata = pdata)
 
+  # save to disk
+  save_name <- paste("diff_expr_symbol_scseq", clusters_name, sep = "_")
+  save_name <- paste0(save_name, ".rds")
+
+  saveRDS(anal, file.path(data_dir, anal_name, save_name))
+  return(anal)
+}
+
+#' Run pseudo bulk differential expression  analysis
+#'
+#' @param scseq \code{Seurat} object
+#' @param data_dir Path to folder to save analysis in.
+#' @param clusters_name String with comma seperated selected clusters.
+diff_expr_pbulk <- function(scseq, data_dir, clusters_name) {
+
+  summed <- scater::sumCountsAcrossCells(scseq[['RNA']]@counts, scseq$project)
+  summed <- as.matrix(summed)
+
+  # get pdata
+  pdata <- scseq@meta.data %>%
+    dplyr::select(project, orig.ident) %>%
+    dplyr::distinct() %>%
+    dplyr::rename(group = orig.ident)
+
+  # get normalization factors
+  row.names(pdata) <- pdata$project
+  pdata <- pdata[colnames(summed), ]
+  pdata$lib.size <- colSums(summed)
+  pdata$norm.factors <- edgeR::calcNormFactors(summed)
+
+  # construct eset
+  fdata <- data.frame(SYMBOL = row.names(summed), row.names = row.names(summed))
+  eset <- Biobase::ExpressionSet(summed,
+                                 phenoData = Biobase::AnnotatedDataFrame(pdata),
+                                 featureData = Biobase::AnnotatedDataFrame(fdata))
+
+  anal <- diff_expr(eset, data_dir = data_dir, anal_name = paste0('pbulk_', clusters_name), prev_anal = list(pdata = pdata))
   return(anal)
 }
 
@@ -264,6 +277,7 @@ ambient.omit <- function(scseq, markers, cluster_markers) {
 fit_ebayes_scseq <- function(scseq, ident.1, ident.2) {
   contrast = paste0(ident.1, '-', ident.2)
 
+  # use SCT corrected logcounts
   dat <- scseq[['SCT']]@data
   group <- Seurat::Idents(scseq)
   design <- stats::model.matrix(~0 + group)
@@ -295,8 +309,8 @@ get_ambient <- function(scseq, markers, cluster_markers) {
 
   # exclude test/ctrl ambient if positive/negative effect size
   # opposite would decrease extent of gene expression difference but not direction
-  pos.test <- markers[test.ambient, 'avg_logFC'] > 0
-  neg.ctrl <- markers[ctrl.ambient, 'avg_logFC'] < 0
+  pos.test <- markers[test.ambient, 't'] > 0
+  neg.ctrl <- markers[ctrl.ambient, 't'] < 0
 
   test.exclude <- test.ambient[pos.test]
   ctrl.exclude <- ctrl.ambient[neg.ctrl]

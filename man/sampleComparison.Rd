@@ -4,7 +4,8 @@
 \alias{sampleComparison}
 \title{Logic to for sample comparison input}
 \usage{
-sampleComparison(input, output, session, selected_anal, scseq, annot)
+sampleComparison(input, output, session, selected_anal, scseq, annot,
+  sc_dir)
 }
 \description{
 Logic to for sample comparison input

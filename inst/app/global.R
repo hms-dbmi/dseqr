@@ -7,5 +7,7 @@ library(dplyr)
 
 
 # setup Drugs table annotation
-cmap_annot <- get_drugs_table('CMAP02')
-l1000_annot <- get_drugs_table('L1000')
+# variable get updated when they are first needed
+cmap_annot <- NULL
+l1000_annot <- NULL
+

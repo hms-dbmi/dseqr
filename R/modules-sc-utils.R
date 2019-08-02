@@ -106,7 +106,7 @@ get_cluster_choices <- function(clusters, scseq, value = clusters) {
   # cluster choices are the clusters themselves
   testColor <- get_palette(clusters)
   cluster_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                value = value,
+                                value = seq(0, along.with = clusters),
                                 label = clusters,
                                 testColor,
                                 ncells, pcells, pspace, row.names = NULL)
@@ -126,16 +126,18 @@ get_cluster_choices <- function(clusters, scseq, value = clusters) {
 get_contrast_choices <- function(clusters, test) {
 
   # group choices are as compared to other clusters
-  ctrls <- clusters[clusters != test]
+  test_name <- clusters[as.numeric(test)+1]
+  ctrl_names <- clusters[clusters != test_name]
+  ctrls <- setdiff(seq(0, along.with = clusters), test)
 
   colours <- get_palette(clusters)
   names(colours) <- clusters
 
-  contrast_choices <- data.frame(test = stringr::str_trunc(test, 11, ellipsis = '..'),
-                                 ctrl = stringr::str_trunc(c('all', ctrls), 11, ellipsis = '..'),
+  contrast_choices <- data.frame(test = stringr::str_trunc(test_name, 11, ellipsis = '..'),
+                                 ctrl = stringr::str_trunc(c('all', ctrl_names), 11, ellipsis = '..'),
                                  value = c(test, paste0(test, ' vs ', ctrls)),
-                                 testColor = colours[test],
-                                 ctrlColor = c('white', colours[ctrls]), row.names = NULL)
+                                 testColor = colours[test_name],
+                                 ctrlColor = c('white', colours[ctrl_names]), row.names = NULL)
 
   return(contrast_choices)
 
@@ -153,34 +155,32 @@ get_contrast_choices <- function(clusters, test) {
 #' @export
 #' @keywords internal
 get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) {
-  markers <- markers[, c('pct.1', 'pct.2')]
   clusters <- Seurat::Idents(scseq)
-
 
   # get cell.pcts for all genes (previously just had for markers)
   # allows selecting non-marker genes (at bottom of list)
   if (comparison_type == 'clusters') {
+
+    markers <- markers[, c('pct.1', 'pct.2')]
     idents <- strsplit(selected_cluster, ' vs ')[[1]]
 
     if (length(idents) == 2) {
-      ident.1 = idents[1]
-      ident.2 = idents[2]
+      cell_pcts <- get_cell_pcts(scseq, idents[1], idents[2])
     } else {
-      ident.1 = idents
-      ident.2 = setdiff(levels(clusters), idents)
+      cell_pcts <- get_cell_pcts(scseq, idents, setdiff(levels(clusters), idents))
     }
+
+    cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
+    markers <- rbind(markers, cell_pcts)
 
   } else {
     Seurat::Idents(scseq) <- scseq$orig.ident
     scseq <- scseq[, clusters %in% selected_cluster]
-    ident.1 = 'test'
-    ident.2 = 'ctrl'
+    cell_pcts <- get_cell_pcts(scseq, 'test', 'ctrl')
+    # most positive on top
+    markers <- markers[order(markers$t, decreasing = TRUE), ]
+    markers <- as.data.frame(cell_pcts)[row.names(markers), ]
   }
-
-  cell_pcts <- get_cell_pcts(scseq, ident.1, ident.2)
-  cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
-  markers <- rbind(markers, cell_pcts)
-
 
   markers$pct.1 <- round(markers$pct.1 * 100)
   markers$pct.2 <- round(markers$pct.2 * 100)
@@ -444,7 +444,7 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
 #' @export
 #' @keywords internal
 scseq_part_path <- function(data_dir, anal_name, part) {
-  fname <- paste0(anal_name, '_', part, '.rds')
+  fname <- paste0(part, '.rds')
   file.path(data_dir, anal_name, fname)
 }
 
