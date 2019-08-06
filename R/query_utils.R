@@ -74,3 +74,12 @@ query_drugs <- function(query_genes, drug_es, ngenes = 200) {
   return(sim)
 }
 
+query_budger <- function(query_genes, drug_es) {
+
+  # use only common genes
+  query_genes <- query_genes[names(query_genes) %in% row.names(drug_es)]
+
+  sim <- colMeans(drug_es[names(query_genes), ])
+  sim <- sort(sim)
+}
+
