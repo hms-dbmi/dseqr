@@ -68,6 +68,8 @@ plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
 #' @keywords internal
 format_sample_gene_plot <- function(plot, group, selected_gene, scseq) {
 
+  selected_gene <- make.names(selected_gene)
+
   # the min and max gene expression value
   lims <- range(plot$data[[selected_gene]])
 
