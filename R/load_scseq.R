@@ -452,6 +452,8 @@ get_integrated_ambient <- function(scseqs) {
 #' @param combined the combined scseqs
 #'
 #' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
+#' @export
+#' @keywords internal
 add_integrated_ambient <- function(combined, ambient) {
 
   # genes to keep in order that appear

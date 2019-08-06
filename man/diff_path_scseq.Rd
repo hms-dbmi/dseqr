@@ -4,7 +4,7 @@
 \alias{diff_path_scseq}
 \title{Run PADOG pathway analysis on a single cell RNA-Seq dataset}
 \usage{
-diff_path_scseq(scseq, prev_anal, data_dir, anal_name, clusters)
+diff_path_scseq(scseq, prev_anal, ambient, data_dir, anal_name, clusters)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}

@@ -17,3 +17,4 @@ add_integrated_ambient(combined, ambient)
 \description{
 A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
 }
+\keyword{internal}

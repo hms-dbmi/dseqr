@@ -54,7 +54,7 @@ function contrastItem(item, escape) {
 }
 
 
-function includeOptions(item, escape) {
+function excludeOptions(item, escape) {
   var res = "<div>" +
                 "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
                   escape(item.name) +
