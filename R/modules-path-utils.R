@@ -130,7 +130,7 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 #' @return result of \code{\link[PADOG]{padog}}
 #' @export
 #' @keywords internal
-diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
+diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters) {
   assay <- get_scseq_assay(scseq)
 
   # load previous if exists
@@ -143,8 +143,9 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
   Seurat::DefaultAssay(scseq) <- assay
   Seurat::Idents(scseq) <- scseq$orig.ident
 
-  # subset to analysed gened (excludes ambient)
+  # subset to non-ambient genes and analysed clusters
   genes <- row.names(prev_anal$top_table)
+  genes <- genes[!genes %in% ambient]
   in.clusters <- scseq$seurat_clusters %in% clusters
 
   scseq <-  scseq[genes, in.clusters]
@@ -154,6 +155,7 @@ diff_path_scseq <- function(scseq, prev_anal, data_dir, anal_name, clusters) {
   group <- ifelse(group == 'ctrl', 'c', 'd')
 
   # expression matrix
+  # SCT corrected log counts
   esetm  <- scseq[[assay]]@data
 
   # already annotated with hgnc symbols
@@ -212,6 +214,8 @@ diff_expr_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
   return(anal)
 }
 
+
+
 #' Run pseudo bulk differential expression  analysis
 #'
 #' @param scseq \code{Seurat} object
@@ -220,6 +224,7 @@ diff_expr_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
 diff_expr_pbulk <- function(scseq, data_dir, clusters_name) {
 
   summed <- scater::sumCountsAcrossCells(scseq[['RNA']]@counts, scseq$project)
+  summed <- summed[edgeR::filterByExpr(summed), ]
   summed <- as.matrix(summed)
 
   # get pdata
