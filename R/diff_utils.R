@@ -120,12 +120,8 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
     expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
     expr <- as.matrix(expr)
 
-    # remove low count genes to avoid sva error
-    if (rna_seq) expr <- expr[edgeR::filterByExpr(expr, mod), ]
-
     # sva or svaseq
     sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
-
 
     svobj <- tryCatch (
       {utils::capture.output(svobj <- sva_fun(expr, mod, mod0)); svobj},
@@ -348,8 +344,8 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
   if (rna_seq) {
     # get normalized lib size and voom
     lib.size <- Biobase::pData(eset)$lib.size * Biobase::pData(eset)$norm.factors
-    v <- limma::voom(Biobase::exprs(eset), mod, lib.size)
-    fit  <- limma::lmFit(v)
+    v <- limma::voomWithQualityWeights(Biobase::exprs(eset), design = mod, lib.size = lib.size, plot = TRUE)
+    fit  <- limma::lmFit(v, design = mod)
 
   } else {
     fit <- limma::lmFit(Biobase::exprs(eset), mod)
@@ -357,7 +353,7 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 
   contrast_matrix <- limma::makeContrasts(contrasts = contrasts, levels = mod)
   fit <- limma::contrasts.fit(fit, contrast_matrix)
-  return (limma::eBayes(fit))
+  return (limma::eBayes(fit, robust = TRUE))
 }
 
 
