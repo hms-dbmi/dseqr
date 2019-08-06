@@ -184,7 +184,7 @@ integrationFormInput <- function(id) {
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('include_clusters'), 'Included clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal', placeholder = 'Includes all if none selected')),
+        selectizeInput(ns('exclude_clusters'), 'Excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
         div(class = 'form-group selectize-fh',
             label(class = 'control-label', `for` = ns('integration_name'), 'Name for new integrated analysis:'),
             div(class = 'validate-wrapper', id = ns('validate'),

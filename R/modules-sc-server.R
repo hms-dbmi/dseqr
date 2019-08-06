@@ -1,4 +1,3 @@
-
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
@@ -286,7 +285,7 @@ showIntegration <- function(input, output, session) {
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
 
-  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'include_clusters')
+  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters')
 
 
   integration_name <- reactive(input$integration_name)
@@ -317,14 +316,14 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
   })
 
-  # update include clusters
+  # update exclude clusters
   observe({
     anal_names <- c(test(), ctrl())
     anal_colors <- get_palette(anal_names)
-    include_choices <- get_include_choices(anal_names, anal_colors, sc_dir)
-    updateSelectizeInput(session, 'include_clusters',
-                         choices = include_choices,
-                         options = list(render = I('{option: includeOptions, item: includeOptions}')),
+    exclude_choices <- get_exclude_choices(anal_names, anal_colors, sc_dir)
+    updateSelectizeInput(session, 'exclude_clusters',
+                         choices = exclude_choices,
+                         options = list(render = I('{option: excludeOptions, item: excludeOptions}')),
                          server = TRUE)
   })
 
@@ -333,7 +332,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
     test_anals <- test()
     ctrl_anals <- ctrl()
-    include_clusters <- input$include_clusters
+    exclude_clusters <- input$exclude_clusters
     anal_name <- input$integration_name
     anal_options <- anal_options()
 
@@ -364,7 +363,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
-                             include_clusters = include_clusters,
+                             exclude_clusters = exclude_clusters,
                              anal_name = anal_name,
                              updateProgress = updateProgress)
 
@@ -523,8 +522,6 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
     # update annot and set selected cluster to new name
     annot(mod_annot)
-    selected_cluster(input$new_cluster_name)
-
   })
 
 
@@ -540,8 +537,10 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
   # update ui for renaming a cluster
   observe({
+    choices <- choices()
+    name <- choices[choices$value == input$selected_cluster, 'name']
     if (!show_rename())
-      updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', input$selected_cluster, '...'))
+      updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', name, '...'))
   })
 
 

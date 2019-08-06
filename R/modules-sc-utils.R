@@ -60,7 +60,7 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
 #' @return data.frame with columns for rendering selectizeInput include choices
 #' @export
 #' @keywords internal
-get_include_choices <- function(anal_names, anal_colors, data_dir) {
+get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
 
   if (is.null(anal_names)) return(NULL)
 
@@ -72,7 +72,7 @@ get_include_choices <- function(anal_names, anal_colors, data_dir) {
   clusters <- lapply(annots, function(x) seq(0, length(x)-1))
   colors <- lapply(annots, get_palette)
 
-  include_choices <- lapply(seq_along(anal_names), function(i) {
+  exclude_choices <- lapply(seq_along(anal_names), function(i) {
     data.frame(
       name = stringr::str_trunc(annots[[i]], 27),
       value = paste(anal_names[i], clusters[[i]], sep = '_'),
@@ -82,7 +82,7 @@ get_include_choices <- function(anal_names, anal_colors, data_dir) {
     )
   })
 
-  do.call(rbind, include_choices)
+  do.call(rbind, exclude_choices)
 }
 
 
@@ -109,7 +109,7 @@ get_cluster_choices <- function(clusters, scseq, value = clusters) {
                                 value = seq(0, along.with = clusters),
                                 label = clusters,
                                 testColor,
-                                ncells, pcells, pspace, row.names = NULL)
+                                ncells, pcells, pspace, row.names = NULL, stringsAsFactors = FALSE)
 
   return(cluster_choices)
 }
@@ -137,7 +137,7 @@ get_contrast_choices <- function(clusters, test) {
                                  ctrl = stringr::str_trunc(c('all', ctrl_names), 11, ellipsis = '..'),
                                  value = c(test, paste0(test, ' vs ', ctrls)),
                                  testColor = colours[test_name],
-                                 ctrlColor = c('white', colours[ctrl_names]), row.names = NULL)
+                                 ctrlColor = c('white', colours[ctrl_names]), row.names = NULL, stringsAsFactors = FALSE)
 
   return(contrast_choices)
 
@@ -209,7 +209,7 @@ get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) 
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
+integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
 
   reduction <- ifelse(use_scalign, 'embed', 'pca')
   dims <- if (use_scalign) 1:32 else 1:30
@@ -226,8 +226,8 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_
   n = 6
 
   updateProgress(1/n, 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, include_clusters = include_clusters, data_dir = data_dir, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, include_clusters = include_clusters, data_dir = data_dir, ident = 'ctrl')
+  test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, data_dir = data_dir, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, exclude_clusters = exclude_clusters, data_dir = data_dir, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -264,12 +264,12 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, include_clusters, anal_
 #' @return List of \code{Seurat} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, include_clusters, data_dir, ident) {
+load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, ident) {
   sct_paths <- scseq_part_path(data_dir, anal_names, 'sct')
   scseq_paths <- scseq_part_path(data_dir, anal_names, 'sct')
 
-  include_anals <- gsub('^(.+?)_\\d+$', '\\1', include_clusters)
-  include_clusters <- gsub('^.+?_(\\d+)$', '\\1', include_clusters)
+  exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
+  exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
   scseqs <- list()
   for (anal in anal_names) {
@@ -298,16 +298,16 @@ load_scseqs_for_integration <- function(anal_names, include_clusters, data_dir, 
     # set orig.ident to ctrl/test
     scseq$orig.ident <- factor(ident)
 
-    # only select included clusters if present
-    is.include <- include_anals == anal
-    if (any(is.include)) {
-      include <- include_clusters[is.include]
-      scseq <- scseq[, scseq$seurat_clusters %in% include]
+    # only remove excluded clusters if present
+    is.exclude <- exclude_anals == anal
+    if (any(is.exclude)) {
+      exclude <- exclude_clusters[is.exclude]
+      scseq <- scseq[, !scseq$seurat_clusters %in% exclude]
 
     }
 
     # downsample very large datasets
-    scseq <- downsample_scseq(scseq)
+    # scseq <- downsample_scseq(scseq)
 
     # bug in Seurat, need for integration
     scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
