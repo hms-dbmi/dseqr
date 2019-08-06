@@ -4,10 +4,11 @@
 \alias{diff_path_scseq}
 \title{Run PADOG pathway analysis on a single cell RNA-Seq dataset}
 \usage{
-diff_path_scseq(scseq, prev_anal, ambient, data_dir, anal_name, clusters)
+diff_path_scseq(scseq, prev_anal, ambient, data_dir, anal_name,
+  clusters_name)
 }
 \arguments{
-\item{scseq}{\code{Seurat} object}
+\item{scseq}{\code{Seurat} object subsetted to selected clusters}
 
 \item{prev_anal}{Result of call to \code{diff_expr_scseq}}
 
@@ -15,12 +16,12 @@ diff_path_scseq(scseq, prev_anal, ambient, data_dir, anal_name, clusters)
 
 \item{anal_name}{Name of folder in \code{data_dir} to save results to}
 
-\item{clusters}{Character vector of clusters in \code{scseq$seurat_clusters} to include}
+\item{clusters_name}{String with sorted comma seperated integers of selected clusters returned from \code{collapse_sorted}.}
 }
 \value{
 result of \code{\link[PADOG]{padog}}
 }
 \description{
-Analysis is performed comparing test to control cells for all included clusters.
+Analysis is performed comparing test to control cells for all selected clusters.
 }
 \keyword{internal}

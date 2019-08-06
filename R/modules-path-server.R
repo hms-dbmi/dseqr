@@ -73,8 +73,13 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   # reload analysis choices if new analysis
   anals <- reactive({
     new_anal()
-    bulk_anals <- load_bulk_anals(data_dir)
-    return(bulk_anals)
+    scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
+    bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
+
+    anals <- rbind(bulk_anals, scseq_anals)
+    anals$value <- seq_len(nrow(anals))
+
+    return(anals)
   })
 
 
@@ -94,12 +99,31 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     anals[row_num, ]
   })
 
+  # show/hide single cell stuff
+  is_sc <- reactive({
+    anal <- anal()
+    anal$type == 'Single Cell'
+  })
 
+  observe({
+    shinyjs::toggle('sc_clusters_container', condition = is_sc())
+  })
+
+  # get single-cell data
+  sc_inputs <- scPathClusters(input, output, session,
+                              data_dir = data_dir,
+                              anal = anal,
+                              is_sc = is_sc)
 
 
   # file paths to pathway and analysis results
   fpaths <- reactive({
     anal <- anal()
+    is_sc <- is_sc()
+
+    if (is_sc()) {
+      return(NULL)
+    }
 
     dataset_dir <-  file.path(data_dir, 'bulk', anal$dataset_dir)
     anal_name <- anal$anal_name
@@ -113,6 +137,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   # load pathway and analysis results
   diffs <- reactive({
     fpaths <- fpaths()
+    if (is_sc()) return (sc_inputs$path_diffs())
 
     list(
       path = readRDS(fpaths$diff_path),
@@ -174,4 +199,85 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     diffs = diffs,
     pathway = reactive(input$pathway)
   ))
+}
+
+
+#' Logic for single cell clusters selector for pathForm
+#' @export
+#' @keywords internal
+scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
+  # inputs/buttons that can access/disable
+  input_ids <- c('anal', 'kegg', 'pathway', 'run_comparison', 'selected_clusters')
+
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  # differential and pathway analyses
+  path_diffs <- reactiveVal()
+
+  sc_dir <- reactive({
+    req(is_sc())
+    file.path(data_dir, 'single-cell')
+  })
+
+  scseq <- reactive({
+    scseq_path <- scseq_part_path(sc_dir(), anal()$anal_name, 'scseq')
+    readRDS(scseq_path)
+  })
+
+  # TODO: update if annotation change from Single Cell tab
+  annot <- reactive({
+    annot_path <- scseq_part_path(sc_dir(), anal()$anal_name, 'annot')
+    readRDS(annot_path)
+  })
+
+
+  cluster_choices <- reactive({
+    # value is original cluster number so that saved pathway analysis name
+    # isn't affected by updates to cluster annotation
+    scseq <- scseq()
+    value <- levels(Seurat::Idents(scseq))
+    get_cluster_choices(clusters = annot(), scseq = scseq, value = value)
+  })
+
+
+
+
+  # update UI for contrast/cluster choices
+  observeEvent(cluster_choices(), {
+    updateSelectizeInput(session, 'selected_clusters',
+                         choices = cluster_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+
+
+  observeEvent(input$run_comparison, {
+
+    selected_clusters <- input$selected_clusters
+    req(selected_clusters)
+
+    toggleAll(input_ids)
+
+    scseq <- scseq()
+    sc_dir <- sc_dir()
+    anal_name <- anal()$anal_name
+
+
+    res <- run_comparison(scseq,
+                          selected_clusters = selected_clusters,
+                          sc_dir = sc_dir,
+                          anal_name = anal_name,
+                          with_path = TRUE)
+
+
+    toggleAll(input_ids)
+    path_diffs(res)
+  })
+
+
+  return(list(
+    path_diffs = path_diffs,
+    clusters = reactive(input$selected_clusters)
+  ))
+
+
 }

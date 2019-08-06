@@ -119,36 +119,29 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 
 #' Run PADOG pathway analysis on a single cell RNA-Seq dataset
 #'
-#' Analysis is performed comparing test to control cells for all included clusters.
+#' Analysis is performed comparing test to control cells for all selected clusters.
 #'
-#' @param scseq \code{Seurat} object
+#' @param scseq \code{Seurat} object subsetted to selected clusters
 #' @param prev_anal Result of call to \code{diff_expr_scseq}
 #' @param data_dir Directory to folders with single cell analyses
 #' @param anal_name Name of folder in \code{data_dir} to save results to
-#' @param clusters Character vector of clusters in \code{scseq$seurat_clusters} to include
+#' @param clusters_name String with sorted comma seperated integers of selected clusters returned from \code{collapse_sorted}.
 #'
 #' @return result of \code{\link[PADOG]{padog}}
 #' @export
 #' @keywords internal
-diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters) {
+diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name) {
   assay <- get_scseq_assay(scseq)
+  Seurat::DefaultAssay(scseq) <- assay
 
   # load previous if exists
-  clusters_name <- paste(sort(clusters), collapse = ',')
   fname <- paste0('diff_path_', clusters_name, '.rds')
   fpath <- file.path(data_dir, anal_name, fname)
 
   if(file.exists(fpath)) return(readRDS(fpath))
 
-  Seurat::DefaultAssay(scseq) <- assay
-  Seurat::Idents(scseq) <- scseq$orig.ident
-
-  # subset to non-ambient genes and analysed clusters
-  genes <- row.names(prev_anal$top_table)
-  genes <- genes[!genes %in% ambient]
-  in.clusters <- scseq$seurat_clusters %in% clusters
-
-  scseq <-  scseq[genes, in.clusters]
+  # subset to non-ambient geness
+  scseq <-  scseq[!row.names(scseq) %in% ambient, ]
 
   # get groups
   group <- as.character(scseq$orig.ident)

@@ -623,3 +623,95 @@ get_scseq_assay <- function(scseq) {
 }
 
 
+#' Run genes and pathways test vs ctrl scseq comparisons
+#'
+#' Used in Single Cell tab (no pathway analysis) and Pathways tab (with pathway analysis).
+#'
+#' @param scseq \code{Suerat} object
+#' @param selected_clusters the selected clusters in \code{Seurat::Idents(scseq)}
+#' @param sc_dir Path to directory with single cell analysis folders.
+#' @param anal_name Name of analysis. A directory in \code{sc_dir}.
+#' @param with_path Boolean to include pathway analysis or not.
+#'
+#' @return Named list with names. \code{anal} \code{cluster_markers} and optionally \code{path}.
+#' @export
+#' @keywords internal
+run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, with_path = FALSE) {
+
+
+  clusters_name <- collapse_sorted(selected_clusters)
+
+  markers_path <- scseq_part_path(sc_dir, anal_name, paste0('markers_', clusters_name))
+  anal_path <- scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', clusters_name))
+
+  # get markers for selected cluster(s)
+  # so that don't exclude marker genes as ambient
+  clusters <- as.character(Seurat::Idents(scseq))
+  in.sel <- clusters %in% selected_clusters
+
+  if (file.exists(markers_path)) {
+    cluster_markers <- readRDS(markers_path)
+
+  } else {
+
+    new.idents <- clusters
+    new.idents[in.sel] <- 'ident.1'
+    Seurat::Idents(scseq) <- factor(new.idents)
+
+    cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
+    saveRDS(cluster_markers, markers_path)
+  }
+
+  # get markers for test group
+  if (file.exists(anal_path)) {
+    anal <- readRDS(anal_path)
+
+  } else {
+
+    Seurat::Idents(scseq) <- scseq$orig.ident
+    scseq <- scseq[, in.sel]
+    anal <- diff_expr_scseq(scseq = scseq,
+                            data_dir = sc_dir,
+                            anal_name = anal_name,
+                            clusters_name = clusters_name)
+  }
+
+  res <- list(
+    cluster_markers = cluster_markers,
+    anal = anal)
+
+  if (with_path) {
+    # run pathway analysis (will load if exists)
+    ambient <- get_ambient(scseq, markers = anal$top_table, cluster_markers = cluster_markers)
+
+    Seurat::Idents(scseq) <- scseq$orig.ident
+    scseq <- scseq[, in.sel]
+    res$path <- diff_path_scseq(scseq,
+                                prev_anal = anal,
+                                ambient = ambient,
+                                data_dir = sc_dir,
+                                anal_name = anal_name,
+                                clusters_name = clusters_name)
+
+    # remove ambient from markers
+    is.ambient <-row.names(anal$top_table) %in% ambient
+
+    res$anal$top_table <- anal$top_table[!is.ambient, ]
+    res$anal$ebayes_sv$df.residual <- anal$ebayes_sv$df.residual[!is.ambient]
+
+  }
+
+  return(res)
+}
+
+
+#' Used to generate file names for single cell analyses.
+#'
+#' @param x Character vector of selected cluster numbers
+#' @return String with sorted cluster numbers comma collapsed.
+#' @export
+#' @keywords internal
+collapse_sorted <- function(x, collapse = ',') {
+  paste(sort(as.numeric(x)), collapse = ',')
+}
+

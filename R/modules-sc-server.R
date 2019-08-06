@@ -623,45 +623,12 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
     scseq <- scseq()
     anal_name <- selected_anal()
-    selected_clusters_name <- paste(sort(as.numeric(selected_clusters)), collapse = ',')
 
-    markers_path <- scseq_part_path(sc_dir, anal_name, paste0('markers_', selected_clusters_name))
-    anal_path <- scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', selected_clusters_name))
-
-    # get markers for selected cluster(s)
-    # so that don't exclude marker genes as ambient
-    clusters <- as.character(Seurat::Idents(scseq))
-    in.sel <- clusters %in% selected_clusters
-
-    if (file.exists(markers_path)) {
-      clus_markers <- readRDS(markers_path)
-
-    } else {
-
-      clusters[in.sel] <- 'ident.1'
-      Seurat::Idents(scseq) <- factor(clusters)
-
-      clus_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
-      saveRDS(clus_markers, markers_path)
-    }
-
-    # get markers for test group
-    if (file.exists(anal_path)) {
-      con_markers <- readRDS(anal_path)$top_table
-
-    } else {
-      Seurat::Idents(scseq) <- scseq$orig.ident
-      scseq <- scseq[, in.sel]
-      con_markers <- diff_expr_scseq(scseq = scseq,
-                                     data_dir = sc_dir,
-                                     anal_name = anal_name,
-                                     clusters_name = selected_clusters_name)$top_table
-    }
-
+    res <- run_comparison(scseq, selected_clusters, sc_dir, anal_name)
 
     # set selected markers
-    selected_markers(con_markers)
-    cluster_markers(clus_markers)
+    selected_markers(res$anal$top_table)
+    cluster_markers(res$cluster_markers)
   })
 
   return(list(

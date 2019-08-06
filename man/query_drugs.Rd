@@ -4,7 +4,7 @@
 \alias{query_drugs}
 \title{Get correlation between query and drug signatures.}
 \usage{
-query_drugs(query_genes, drug_es, ngenes = 200, sort = TRUE)
+query_drugs(query_genes, drug_es, ngenes = 200)
 }
 \arguments{
 \item{query_genes}{Named numeric vector of differential expression values for
