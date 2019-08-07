@@ -4,8 +4,8 @@
 \alias{run_comparison}
 \title{Run genes and pathways test vs ctrl scseq comparisons}
 \usage{
-run_comparison(scseq, selected_clusters, sc_dir, anal_name,
-  with_path = FALSE)
+run_comparison(scseq, selected_clusters, sc_dir, anal_name, session,
+  with_path = FALSE, with_drugs = FALSE)
 }
 \arguments{
 \item{scseq}{\code{Suerat} object}
@@ -16,7 +16,11 @@ run_comparison(scseq, selected_clusters, sc_dir, anal_name,
 
 \item{anal_name}{Name of analysis. A directory in \code{sc_dir}.}
 
+\item{session}{Shiny session object used for progress bar.}
+
 \item{with_path}{Boolean to include pathway analysis or not.}
+
+\item{with_drugs}{Boolean to include drug query results or not.}
 }
 \value{
 Named list with names. \code{anal} \code{cluster_markers} and optionally \code{path}.

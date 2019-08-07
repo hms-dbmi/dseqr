@@ -27,23 +27,67 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
 #' @keywords internal
 drugsForm <- function(input, output, session, new_anal, data_dir) {
 
+  cmap_res <- reactiveVal()
+  l1000_res <- reactiveVal()
+
   querySignature <- callModule(querySignature, 'signature',
                                new_anal = new_anal,
                                data_dir = data_dir)
 
+  # show/hide single cell stuff
+  is_sc <- reactive({
+    anal <- querySignature$anal()
+    anal$type == 'Single Cell'
+  })
+
+  observe({
+    shinyjs::toggle('sc_clusters_container', condition = is_sc())
+  })
+
+  input_ids <- c('run_comparison', 'selected_clusters')
+  sc_inputs <- scSampleComparison(input, output, session,
+                                  data_dir = data_dir,
+                                  anal = querySignature$anal,
+                                  is_sc = is_sc,
+                                  input_ids = input_ids,
+                                  with_drugs = TRUE)
+
+
+  # get saved cmap/l1000 query results
+  observe({
+    disable('signature')
+
+    if (is_sc())  {
+      res <- sc_inputs$results()
+
+    } else {
+      res_paths <- querySignature$res_paths()
+      res <- run_drugs_comparison(res_paths, session)
+    }
+
+
+    cmap_res(res$cmap)
+    l1000_res(res$l1000)
+
+    enable('signature')
+  })
+
+
   drugStudy <- callModule(selectedDrugStudy, 'drug_study',
                           anal = querySignature$anal)
 
+
+
   advancedOptions <- callModule(advancedOptions, 'advanced',
-                                cmap_res = querySignature$cmap_res,
-                                l1000_res = querySignature$l1000_res,
+                                cmap_res = cmap_res,
+                                l1000_res = l1000_res,
                                 drug_study = drugStudy$drug_study,
                                 show_advanced = drugStudy$show_advanced)
 
   query_res <- reactive({
     drug_study <- drugStudy$drug_study()
-    cmap_res <- querySignature$cmap_res()
-    l1000_res <- querySignature$l1000_res()
+    cmap_res <- cmap_res()
+    l1000_res <- l1000_res()
 
     if (drug_study == 'CMAP02') return(cmap_res)
     if (drug_study == 'L1000') return(l1000_res)
@@ -71,14 +115,17 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 #' @keywords internal
 querySignature <- function(input, output, session, new_anal, data_dir) {
 
-
-  cmap_res <- reactiveVal()
-  l1000_res <- reactiveVal()
-
   # reload query choices if new analysis
   anals <- reactive({
     new_anal()
-    load_bulk_anals(data_dir)
+
+    scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
+    bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
+
+    anals <- rbind(bulk_anals, scseq_anals)
+    anals$value <- seq_len(nrow(anals))
+
+    return(anals)
   })
 
   observe({
@@ -110,56 +157,10 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   })
 
 
-  # get saved cmap/l1000 query results
-  observe({
-    res_paths <- res_paths()
-
-    # load if available
-    if (file.exists(res_paths$cmap)) {
-      cmap_res <- readRDS(res_paths$cmap)
-      l1000_res <- readRDS(res_paths$l1000)
-
-
-    } else {
-      # otherwise run
-      disable('query')
-
-      progress <- Progress$new(session, min = 0, max = 4)
-      progress$set(message = "Querying drugs", value = 1)
-      on.exit(progress$close())
-
-      cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
-      l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
-
-      cmap_es  <- readRDS(cmap_path)
-      progress$inc(1)
-      l1000_es <- readRDS(l1000_path)
-      progress$inc(1)
-
-
-      # get dprime effect size values for analysis
-      anal <- readRDS(res_paths$anal)
-      dprimes <- get_dprimes(anal)
-
-      # get correlations between query and drug signatures
-      cmap_res <- query_drugs(dprimes, cmap_es)
-      l1000_res <- query_drugs(dprimes, l1000_es)
-      progress$inc(1)
-
-      saveRDS(cmap_res, res_paths$cmap)
-      saveRDS(l1000_res, res_paths$l1000)
-      enable('query')
-    }
-
-    cmap_res(cmap_res)
-    l1000_res(l1000_res)
-  })
-
 
 
   return(list(
-    cmap_res = cmap_res,
-    l1000_res = l1000_res,
+    res_paths = res_paths,
     anal = anal
   ))
 

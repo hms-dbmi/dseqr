@@ -110,10 +110,15 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   })
 
   # get single-cell data
-  sc_inputs <- scPathClusters(input, output, session,
-                              data_dir = data_dir,
-                              anal = anal,
-                              is_sc = is_sc)
+
+  # inputs/buttons that can access/disable
+  input_ids <- c('anal', 'kegg', 'pathway', 'run_comparison', 'selected_clusters')
+  sc_inputs <- scSampleComparison(input, output, session,
+                                  data_dir = data_dir,
+                                  anal = anal,
+                                  is_sc = is_sc,
+                                  input_ids = input_ids,
+                                  with_path = TRUE)
 
 
   # file paths to pathway and analysis results
@@ -205,14 +210,11 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 #' Logic for single cell clusters selector for pathForm
 #' @export
 #' @keywords internal
-scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
-  # inputs/buttons that can access/disable
-  input_ids <- c('anal', 'kegg', 'pathway', 'run_comparison', 'selected_clusters')
-
+scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, input_ids, with_path = FALSE, with_drugs = FALSE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-  # differential and pathway analyses
-  path_diffs <- reactiveVal()
+  # differentialexpression, pathway analyses, and drug queries
+  results <- reactiveVal()
 
   sc_dir <- reactive({
     req(is_sc())
@@ -266,16 +268,18 @@ scPathClusters <- function(input, output, session, data_dir, anal, is_sc) {
                           selected_clusters = selected_clusters,
                           sc_dir = sc_dir,
                           anal_name = anal_name,
-                          with_path = TRUE)
+                          session = session,
+                          with_path = with_path,
+                          with_drugs = with_drugs)
 
 
     toggleAll(input_ids)
-    path_diffs(res)
+    results(res)
   })
 
 
   return(list(
-    path_diffs = path_diffs,
+    results = results,
     clusters = reactive(input$selected_clusters)
   ))
 

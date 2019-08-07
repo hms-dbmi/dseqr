@@ -631,26 +631,135 @@ get_scseq_assay <- function(scseq) {
 #' @param selected_clusters the selected clusters in \code{Seurat::Idents(scseq)}
 #' @param sc_dir Path to directory with single cell analysis folders.
 #' @param anal_name Name of analysis. A directory in \code{sc_dir}.
+#' @param session Shiny session object used for progress bar.
 #' @param with_path Boolean to include pathway analysis or not.
+#' @param with_drugs Boolean to include drug query results or not.
 #'
 #' @return Named list with names. \code{anal} \code{cluster_markers} and optionally \code{path}.
 #' @export
 #' @keywords internal
-run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, with_path = FALSE) {
+run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, session, with_path = FALSE, with_drugs = FALSE) {
 
 
+  # paths to where results are/will be saved
   clusters_name <- collapse_sorted(selected_clusters)
 
-  markers_path <- scseq_part_path(sc_dir, anal_name, paste0('markers_', clusters_name))
-  anal_path <- scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', clusters_name))
+  res_paths <- list(
+    anal = scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', clusters_name)),
+    markers = scseq_part_path(sc_dir, anal_name, paste0('markers_', clusters_name)),
+    cmap = scseq_part_path(sc_dir, anal_name, paste0('cmap_res_', clusters_name)),
+    l1000 = scseq_part_path(sc_dir, anal_name, paste0('l1000_res_', clusters_name))
+  )
 
-  # get markers for selected cluster(s)
-  # so that don't exclude marker genes as ambient
+  # run differential expression analysis
+  # also get markers of cluster to exclude from ambient
+  res <- run_cluster_comparison(scseq,
+                                selected_clusters = selected_clusters,
+                                sc_dir = sc_dir,
+                                anal_name = anal_name,
+                                res_paths = res_paths)
+
+  # get ambient genes (used for pathways and drug queries)
+  ambient <- get_ambient(scseq,
+                         markers = res$anal$top_table,
+                         cluster_markers = res$cluster_markers)
+
+  # run pathway analysis
+  if (with_path)
+    res <- run_path_comparison(scseq,
+                               selected_clusters = selected_clusters,
+                               sc_dir = sc_dir,
+                               anal_name = anal_name,
+                               res = res,
+                               ambient = ambient)
+
+  # run drug queries
+  if (with_drugs)
+    res <- run_drugs_comparison(res_paths = res_paths,
+                                session = session,
+                                res = res,
+                                ambient = ambient)
+
+
+  return(res)
+}
+
+
+#' Run drugs comparison
+#'
+#' Used by run_comparison
+#'
+#' @param res_paths List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to
+#' saved cmap, l1000, and differential expression analysis results.
+#' @param session Shiny session object used for progress bar.
+#' @param res List to store drug query results in.
+#' @param ambient Character vector of ambient genes to exclude from drug queries.
+#'
+#' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
+run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NULL) {
+
+  # load if available
+  if (file.exists(res_paths$cmap)) {
+    res$cmap <- readRDS(res_paths$cmap)
+    res$l1000 <- readRDS(res_paths$l1000)
+
+  } else {
+
+    progress <- Progress$new(session, min = 0, max = 4)
+    progress$set(message = "Querying drugs", value = 1)
+    on.exit(progress$close())
+
+    cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
+
+    cmap_es  <- readRDS(cmap_path)
+    progress$inc(1)
+    l1000_es <- readRDS(l1000_path)
+    progress$inc(1)
+
+
+    # get dprime effect size values for analysis
+    anal <- readRDS(res_paths$anal)
+    dprimes <- get_dprimes(anal)
+
+    # exclude ambient (for single cell only)
+    dprimes <- dprimes[!names(dprimes) %in% ambient]
+
+    # get correlations between query and drug signatures
+    res$cmap <- query_drugs(dprimes, cmap_es)
+    res$l1000 <- query_drugs(dprimes, l1000_es)
+    progress$inc(1)
+
+    saveRDS(res$cmap, res_paths$cmap)
+    saveRDS(res$l1000, res_paths$l1000)
+  }
+  return(res)
+}
+
+#' Run single cell RNA-Seq test vs ctrl cluster comparison
+#'
+#' Used by \code{run_comparison} for differential expression analysis.
+#'
+#' @param scseq \code{Suerat} object
+#' @param selected_clusters Character vector of selected clusters to run comparison for.
+#' @param sc_dir Path to folder with single cell analyses.
+#' @param anal_name Folder name in \code{sc_dir} that contains single cell analysis.
+#' @param res_paths List of paths to saved results for markers of cells in \code{selected_clusters} and
+#'  differential expression analysis comparing test to control cells in \code{selected_clusters}.
+#'  Paths are stored in \code{'markers'} and \code{'anal'} slots.
+#'
+#' @return List with slots \code{'markers'} and \code{'anal'} containing results for markers of
+#'  cells in \code{selected_clusters} and differential expression analysis comparing test to control
+#'  cells in \code{selected_clusters}.
+run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res_paths) {
+
+  clusters_name <- collapse_sorted(selected_clusters)
   clusters <- as.character(Seurat::Idents(scseq))
   in.sel <- clusters %in% selected_clusters
 
-  if (file.exists(markers_path)) {
-    cluster_markers <- readRDS(markers_path)
+
+  if (file.exists(res_paths$markers)) {
+    cluster_markers <- readRDS(res_paths$markers)
 
   } else {
 
@@ -659,12 +768,12 @@ run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, with_pat
     Seurat::Idents(scseq) <- factor(new.idents)
 
     cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
-    saveRDS(cluster_markers, markers_path)
+    saveRDS(cluster_markers, res_paths$markers)
   }
 
   # get markers for test group
-  if (file.exists(anal_path)) {
-    anal <- readRDS(anal_path)
+  if (file.exists(res_paths$anal)) {
+    anal <- readRDS(res_paths$anal)
 
   } else {
 
@@ -678,31 +787,51 @@ run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, with_pat
 
   res <- list(
     cluster_markers = cluster_markers,
-    anal = anal)
+    anal = anal
+  )
+  return(res)
+}
 
-  if (with_path) {
-    # run pathway analysis (will load if exists)
-    ambient <- get_ambient(scseq, markers = anal$top_table, cluster_markers = cluster_markers)
+#' Run single cell RNA-Seq test vs ctrl pathway comparison
+#'
+#' Used by \code{run_comparison} for pathway analysis.
+#'
+#' @param scseq \code{Suerat} object
+#' @param selected_clusters Character vector of selected clusters to run comparison for.
+#' @param sc_dir Path to folder with single cell analyses.
+#' @param anal_name Folder name in \code{sc_dir} that contains single cell analysis.
+#' @param res List with previous differential expression analysis results in slot \code{'anal'}.
+#' @param ambient Character vector of ambient genes to exclude from pathway analysis.
+#'
+#' @return \code{res} with slot \code{'path'} containing pathway analysis results. The \code{'anal'}
+#'  slot is also subsetted such that ambient genes are excluded.
+run_path_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res, ambient) {
 
-    Seurat::Idents(scseq) <- scseq$orig.ident
-    scseq <- scseq[, in.sel]
-    res$path <- diff_path_scseq(scseq,
-                                prev_anal = anal,
-                                ambient = ambient,
-                                data_dir = sc_dir,
-                                anal_name = anal_name,
-                                clusters_name = clusters_name)
+  clusters_name <- collapse_sorted(selected_clusters)
+  clusters <- as.character(Seurat::Idents(scseq))
+  in.sel <- clusters %in% selected_clusters
 
-    # remove ambient from markers
-    is.ambient <-row.names(anal$top_table) %in% ambient
+  # run pathway analysis (will load if exists)
 
-    res$anal$top_table <- anal$top_table[!is.ambient, ]
-    res$anal$ebayes_sv$df.residual <- anal$ebayes_sv$df.residual[!is.ambient]
 
-  }
+  Seurat::Idents(scseq) <- scseq$orig.ident
+  scseq <- scseq[, in.sel]
+  res$path <- diff_path_scseq(scseq,
+                              prev_anal = anal,
+                              ambient = ambient,
+                              data_dir = sc_dir,
+                              anal_name = anal_name,
+                              clusters_name = clusters_name)
+
+  # remove ambient from markers
+  is.ambient <-row.names(res$anal$top_table) %in% ambient
+
+  res$anal$top_table <- res$anal$top_table[!is.ambient, ]
+  res$anal$ebayes_sv$df.residual <- res$anal$ebayes_sv$df.residual[!is.ambient]
 
   return(res)
 }
+
 
 
 #' Used to generate file names for single cell analyses.

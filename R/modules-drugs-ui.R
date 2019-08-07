@@ -39,11 +39,30 @@ drugsFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         querySignatureInput(ns('signature')),
+        tags$div(id = ns('sc_clusters_container'), style = '',
+                 scSampleComparisonInput(ns)
+        ),
         selectedDrugStudyInput(ns('drug_study')),
         advancedOptionsInput(ns('advanced'))
 
     )
   })
+}
+
+#' Input for Single Cell sample comparison
+#'
+#' Used in both Drugs and Pathways tab
+#'
+#' @export
+#' @keywords internal
+scSampleComparisonInput <- function(ns) {
+
+  button <- actionButton(ns('run_comparison'), '',
+                         icon = icon('chevron-right', 'far fa-fw'),
+                         title = 'Compare test to control cells')
+
+  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+
 }
 
 #' Query signature input for Drugs page
@@ -57,7 +76,7 @@ querySignatureInput <- function(id) {
         label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
         div(
           select(id = ns('query'), style = 'display: none'),
-          script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "dataset_name"}'))
+          script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "type"}'))
         )
     )
   })
@@ -112,3 +131,4 @@ selectedDrugStudyInput <- function(id) {
     )
   })
 }
+
