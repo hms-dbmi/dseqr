@@ -23,6 +23,8 @@ inst/indices
 # drug effect size data (new users dl from s3)
 inst/extdata/cmap_es_ind.rds
 inst/extdata/l1000_es.rds
+inst/extdata/l1000_drugs_es.rds
+inst/extdata/l1000_genes_es.rds
 
 # ensdb annotation
 inst/EnsDb

@@ -115,7 +115,21 @@ row.names(l1000_pdata) <- l1000_pdata$characteristics_ch1.1 <- NULL
 # remove string 'NA' pubchem cids
 l1000_pdata$`Pubchem CID`[l1000_pdata$`Pubchem CID` == 'NA'] <- NA
 
+
+# split l1000 by compounds/genetic perts & ligands
+is.genetic <- grepl('-oe_|-sh_|-lig_', colnames(l1000_es))
+genes <- gsub('^([^_]+)_.+?$', '\\1', colnames(l1000_es)[is.genetic])
+genes <- gsub('-oe|-sh|-lig', '', genes)
+
+l1000_genes_es <- l1000_es[, is.genetic]
+l1000_drugs_es <- l1000_es[, !is.genetic]
+
+l1000_genes_pdata <- l1000_pdata[is.genetic, ]
+l1000_drugs_pdata <- l1000_pdata[!is.genetic, ]
+
 # save pdata and overwrite existing l1000_es data with fixed names
 # ALSO UPDATE S3 DATA for l1000_es in drugseqr BUCKET IF ANYTHING CHANGES
-saveRDS(l1000_es, file.path(data_dir, 'l1000_es.rds'))
-saveRDS(l1000_pdata, file.path(data_dir, 'L1000_pdata.rds'))
+saveRDS(l1000_genes_es, file.path(data_dir, 'l1000_genes_es.rds'))
+saveRDS(l1000_drugs_es, file.path(data_dir, 'l1000_drugs_es.rds'))
+saveRDS(l1000_genes_pdata, file.path(data_dir, 'L1000_genes_pdata.rds'))
+saveRDS(l1000_drugs_pdata, file.path(data_dir, 'L1000_drugs_pdata.rds'))
