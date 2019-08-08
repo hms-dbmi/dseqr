@@ -102,21 +102,11 @@ summarize_compound <- function(query_table) {
     dplyr::summarize(cor_title = I(list(cor_title))) %>%
     dplyr::select(cor_title)
 
-  # keep furthest clinical phase
-  summarise_phase <- function(phases) {
-    if (all(is.na(phases))) return(phases[1])
-    max(phases, na.rm = TRUE)
-  }
-
-  query_phase <- query_table %>%
-    dplyr::select(`Clinical Phase`, Compound) %>%
-    dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
-    dplyr::pull(`Clinical Phase`)
-
 
   # summarize rest
+  rest_cols <- setdiff(colnames(query_table), c('Correlation', 'Clinical Phase', 'title', 'cor_title'))
   query_rest <- query_table %>%
-    dplyr::select(-Correlation, -`Clinical Phase`, -title, -cor_title) %>%
+    dplyr::select(dplyr::one_of(rest_cols)) %>%
     dplyr::summarize_all(function(x) {
       unqx <- na.omit(x)
       unqx <- as.character(unqx)
@@ -128,8 +118,25 @@ summarize_compound <- function(query_table) {
 
       # collapse distinct non-NA entries
       return(paste(unqx, collapse = ' | '))
-    }) %>%
-    tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
+    })
+
+  summarise_phase <- function(phases) {
+    if (all(is.na(phases))) return(phases[1])
+    max(phases, na.rm = TRUE)
+  }
+  # not in L1000 Genetic
+  if ('Clinical Phase' %in% colnames(query_table)) {
+
+    # keep furthest clinical phase
+    query_phase <- query_table %>%
+      dplyr::select(`Clinical Phase`, Compound) %>%
+      dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
+      dplyr::pull(`Clinical Phase`)
+
+    query_rest <- query_rest %>%
+      tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
+  }
+
 
   query_table <- dplyr::bind_cols(query_cors, query_rest, query_title)
   return(query_table)
@@ -153,6 +160,8 @@ summarize_compound <- function(query_table) {
 #' @return \code{query_res} with HTML for hyperlinks in \code{id_col}.
 #' @export
 add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, title = id_col) {
+
+  if (!id_col %in% colnames(query_res)) return(query_res)
 
   ids <- query_res[[id_col]]
   have_ids <- !is.na(ids)
@@ -206,12 +215,14 @@ add_table_html <- function(query_res) {
   pre_urls <- c('https://pubchem.ncbi.nlm.nih.gov/compound/',
                 'http://sideeffects.embl.de/drugs/',
                 'https://www.drugbank.ca/drugs/',
-                'https://en.wikipedia.org/wiki/')
+                'https://en.wikipedia.org/wiki/',
+                'https://www.genecards.org/cgi-bin/carddisp.pl?gene=')
 
   img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
                 'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
                 'https://www.drugbank.ca/favicons/favicon.ico',
-                'https://en.wikipedia.org/static/favicon/wikipedia.ico')
+                'https://en.wikipedia.org/static/favicon/wikipedia.ico',
+                'https://www.genecards.org/favicon.ico')
 
 
   # add linkout to Pubchem, SIDER, and DrugBank
@@ -219,9 +230,11 @@ add_table_html <- function(query_res) {
   query_res <- add_linkout(query_res, 'SIDER', img_urls[2], pre_urls[2])
   query_res <- add_linkout(query_res, 'DrugBank', img_urls[3], pre_urls[3])
   query_res <- add_linkout(query_res, 'Wikipedia', img_urls[4], pre_urls[4])
+  query_res <- add_linkout(query_res, 'Genecards', img_urls[5], pre_urls[5])
 
   # merge linkouts into single column
-  query_res <- merge_linkouts(query_res, c('Pubchem CID', 'Wikipedia', 'DrugBank', 'SIDER'))
+  cols_to_merge <- intersect(colnames(query_res), c('Pubchem CID', 'Wikipedia', 'DrugBank', 'SIDER', 'Genecards'))
+  query_res <- merge_linkouts(query_res, cols_to_merge)
 
   # replace correlation with svg element
   cors <- query_res$Correlation

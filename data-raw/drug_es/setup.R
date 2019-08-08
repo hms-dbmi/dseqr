@@ -124,7 +124,8 @@ genes <- gsub('-oe|-sh|-lig', '', genes)
 l1000_genes_es <- l1000_es[, is.genetic]
 l1000_drugs_es <- l1000_es[, !is.genetic]
 
-l1000_genes_pdata <- l1000_pdata[is.genetic, ]
+# pubchem cids don't exists for genes
+l1000_genes_pdata <- l1000_pdata[is.genetic, -2]
 l1000_drugs_pdata <- l1000_pdata[!is.genetic, ]
 
 # save pdata and overwrite existing l1000_es data with fixed names

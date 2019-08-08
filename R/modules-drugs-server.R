@@ -28,7 +28,8 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
 drugsForm <- function(input, output, session, new_anal, data_dir) {
 
   cmap_res <- reactiveVal()
-  l1000_res <- reactiveVal()
+  l1000_drugs_res <- reactiveVal()
+  l1000_genes_res <- reactiveVal()
 
   querySignature <- callModule(querySignature, 'signature',
                                new_anal = new_anal,
@@ -67,7 +68,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 
 
     cmap_res(res$cmap)
-    l1000_res(res$l1000)
+    l1000_drugs_res(res$l1000_drugs)
+    l1000_genes_res(res$l1000_genes)
 
     enable('signature')
   })
@@ -87,10 +89,12 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
   query_res <- reactive({
     drug_study <- drugStudy$drug_study()
     cmap_res <- cmap_res()
-    l1000_res <- l1000_res()
+    l1000_drugs_res <- l1000_drugs_res()
+    l1000_genes_res <- l1000_genes_res()
 
     if (drug_study == 'CMAP02') return(cmap_res)
-    if (drug_study == 'L1000') return(l1000_res)
+    else if (drug_study == 'L1000 Drugs') return(l1000_drugs_res)
+    else if (drug_study == 'L1000 Genetic') return(l1000_genes_res)
 
     return(NULL)
   })
@@ -152,7 +156,8 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
     list(
       anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
       cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
-      l1000 = file.path(dataset_dir, paste0('l1000_res_', anal_name, '.rds'))
+      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
+      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
     )
   })
 
@@ -181,7 +186,7 @@ selectedDrugStudy <- function(input, output, session, anal) {
 
   observe({
     req(anal())
-    updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000'), selected = NULL)
+    updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'), selected = NULL)
   })
 
   # toggle for clinical status
@@ -239,20 +244,9 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures) {
+  drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
+  gene_cols <- c('Correlation', 'Compound', 'Description', 'External Links', 'n')
 
-  # will update with proxy to analent redraw
-  dummy_table <- data.frame('Correlation' = NA,
-                            'Compound' = NA,
-                            'Clinical Phase' = NA,
-                            'External Links' = NA,
-                            'MOA' = NA,
-                            'Target' = NA,
-                            'Disease Area' = NA,
-                            'Indication' = NA,
-                            'Vendor' = NA,
-                            'Catalog #' = NA,
-                            'Vendor Name' = NA,
-                            'n' = NA, check.names = FALSE)
   dummy_rendered <- reactiveVal(FALSE)
 
   # get either cmap or l1000 annotations
@@ -263,17 +257,20 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     # update globals when first use
     if (is.null(cmap_annot)) {
       cmap_annot <<- get_drugs_table('CMAP02')
-      l1000_annot <<- get_drugs_table('L1000')
+      l1000_drugs_annot <<- get_drugs_table('L1000_drugs')
+      l1000_genes_annot <<- get_drugs_table('L1000_genes')
     }
 
     if (drug_study == 'CMAP02') return(cmap_annot)
-    else if (drug_study == 'L1000') return(l1000_annot)
+    else if (drug_study == 'L1000 Drugs') return(l1000_drugs_annot)
+    else if (drug_study == 'L1000 Genetic') return(l1000_genes_annot)
   })
 
   # add annotations to query result
   query_table_full <- reactive({
     query_res <- query_res()
     if (is.null(query_res)) return(NULL)
+
 
     drug_annot <- drug_annot()
     req(query_res, drug_annot)
@@ -301,7 +298,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_table <- dplyr::filter(query_table, n >= min_signatures())
 
     # subset by clinical phase
-    if (show_clinical()) query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
+    if (show_clinical() && 'Clinical Phase' %in% colnames(query_table))
+      query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
 
     if (sort_by == 'avg_cor') {
       query_table$Correlation <- gsub('simplot', 'simplot show-meanline', query_table$Correlation)
@@ -309,16 +307,27 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 
     # sort as desired
     dplyr::arrange(query_table, !!sym(sort_by)) %>%
-      select(-min_cor, -avg_cor)
+      dplyr::select(-min_cor, -avg_cor)
   })
+
+  # will update with proxy to prevent redraw
+  dummy_table <- reactive({
+    study <- drug_study()
+    dummy_rendered(FALSE)
+    cols <- if (study == 'L1000 Genetic') gene_cols else drug_cols
+
+    data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)))
+  },)
 
 
   # show query data
   output$query_table <- DT::renderDataTable({
     # ellipses for wide columns
+    dummy_table <- dummy_table()
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
     elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
+    n_target <- which(colnames(dummy_table) == 'n') - 1
     dummy_rendered(TRUE)
 
     DT::datatable(
@@ -329,8 +338,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       escape = FALSE, # to allow HTML in table
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
-                          list(targets = 11, visible=FALSE),
-                          list(targets = c(4,5,6,7), render = DT::JS(
+                          list(targets = n_target, visible=FALSE),
+                          list(targets = elipsis_targets, render = DT::JS(
                             "function(data, type, row, meta) {",
                             "return type === 'display' && data !== null && data.length > 17 ?",
                             "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",

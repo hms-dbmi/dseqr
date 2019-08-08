@@ -82,7 +82,9 @@ setup_genes_annot <- function(study) {
 
   # add gene descriptions
   study_annot <- study_annot %>%
-    left_join(tx2gene, by = c('Genecards' = 'gene_name'))
+    dplyr::mutate(gene_name = toupper(Genecards)) %>%
+    dplyr::left_join(tx2gene) %>%
+    dplyr::select(-gene_name)
 
   stopifnot(all.equal(study_annot$title, pdata$title))
 

@@ -22,3 +22,4 @@ saved cmap, l1000, and differential expression analysis results.}
 \description{
 Used by run_comparison
 }
+\keyword{internal}

@@ -648,7 +648,8 @@ run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, session,
     anal = scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', clusters_name)),
     markers = scseq_part_path(sc_dir, anal_name, paste0('markers_', clusters_name)),
     cmap = scseq_part_path(sc_dir, anal_name, paste0('cmap_res_', clusters_name)),
-    l1000 = scseq_part_path(sc_dir, anal_name, paste0('l1000_res_', clusters_name))
+    l1000_drugs = scseq_part_path(sc_dir, anal_name, paste0('l1000_drugs_res_', clusters_name)),
+    l1000_genes = scseq_part_path(sc_dir, anal_name, paste0('l1000_genes_res_', clusters_name))
   )
 
   # run differential expression analysis
@@ -696,12 +697,15 @@ run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, session,
 #' @param ambient Character vector of ambient genes to exclude from drug queries.
 #'
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
+#' @export
+#' @keywords internal
 run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NULL) {
 
   # load if available
-  if (file.exists(res_paths$cmap)) {
+  if (file.exists(res_paths$l1000_drugs)) {
     res$cmap <- readRDS(res_paths$cmap)
-    res$l1000 <- readRDS(res_paths$l1000)
+    res$l1000_drugs <- readRDS(res_paths$l1000_drugs)
+    res$l1000_genes <- readRDS(res_paths$l1000_genes)
 
   } else {
 
@@ -710,11 +714,13 @@ run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NUL
     on.exit(progress$close())
 
     cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
-    l1000_path <- system.file('extdata', 'l1000_es.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr', mustWork = TRUE)
 
     cmap_es  <- readRDS(cmap_path)
     progress$inc(1)
-    l1000_es <- readRDS(l1000_path)
+    l1000_drugs_es <- readRDS(l1000_drugs_path)
+    l1000_genes_es <- readRDS(l1000_genes_path)
     progress$inc(1)
 
 
@@ -727,11 +733,13 @@ run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NUL
 
     # get correlations between query and drug signatures
     res$cmap <- query_drugs(dprimes, cmap_es)
-    res$l1000 <- query_drugs(dprimes, l1000_es)
+    res$l1000_drugs <- query_drugs(dprimes, l1000_drugs_es)
+    res$l1000_genes <- query_drugs(dprimes, l1000_genes_es)
     progress$inc(1)
 
     saveRDS(res$cmap, res_paths$cmap)
-    saveRDS(res$l1000, res_paths$l1000)
+    saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
+    saveRDS(res$l1000_genes, res_paths$l1000_genes)
   }
   return(res)
 }
