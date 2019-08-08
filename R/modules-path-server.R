@@ -75,7 +75,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     new_anal()
     scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
     bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
-    bulk_anals <- bulk_anals[1, ]
+    bulk_anals <- bulk_anals[bulk_anals$dataset_name != 'raw', ]
 
     anals <- rbind(bulk_anals, scseq_anals)
     anals$value <- seq_len(nrow(anals))
