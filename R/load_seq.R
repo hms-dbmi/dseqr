@@ -177,7 +177,7 @@ get_ensdb_package <- function(species, release) {
 #'
 #' @keywords internal
 #'
-get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("tx_id", "gene_name", "entrezid", "gene_id", "seq_name")) {
+get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("tx_id", "gene_name", "entrezid", "gene_id", "seq_name", "description")) {
   is.installed('ensembldb', level = 'error')
 
   # load EnsDb package
@@ -195,6 +195,7 @@ get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("t
   # map from transcripts to genes
   tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=columns, return.type='data.frame')
   tx2gene[tx2gene == ""] <- NA
+  tx2gene$description <- gsub(' \\[Source.+?\\]', '', tx2gene$description)
   tx2gene <- tx2gene[!is.na(tx2gene$gene_name), ]
   return(tx2gene)
 }

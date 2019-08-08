@@ -31,11 +31,13 @@ tx2gene <- group_by(tx2gene_unnest, tx_id) %>%
   summarise(gene_name = summarise_symbol(gene_name, SYMBOL_9606),
             entrezid = entrezid[1],
             gene_id = unique(gene_id),
-            seq_name = unique(seq_name))
+            seq_name = unique(seq_name),
+            description = unique(description))
 
 # need tx_id, gene_name and entrezid for load_seq
 # need gene_id for annotation
 # need seq_name for mitochondrial genes
+# need description for app
 saveRDS(tx2gene, 'data-raw/tx2gene/tx2gene.rds')
 
 # check concordance with l1000_es/cmap_es ----
