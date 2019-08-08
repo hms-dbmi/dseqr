@@ -93,6 +93,7 @@ scForm <- function(input, output, session, sc_dir) {
                               selected_markers = scClusterComparison$selected_markers,
                               cluster_markers = NULL,
                               selected_cluster = scClusterComparison$selected_cluster,
+                              annot_path = scAnal$annot_path,
                               comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison ----
@@ -112,6 +113,7 @@ scForm <- function(input, output, session, sc_dir) {
                              selected_markers = scSampleComparison$selected_markers,
                              cluster_marker = scSampleComparison$cluster_markers,
                              selected_cluster = scSampleComparison$selected_cluster,
+                             annot_path = scAnal$annot_path,
                              comparison_type = comparisonType)
 
 
@@ -643,7 +645,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, cluster_markers, selected_cluster, comparison_type) {
+selectedGene <- function(input, output, session, selected_anal, scseq, selected_markers, cluster_markers, selected_cluster, annot_path, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
 
@@ -704,7 +706,10 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
   output$download <- downloadHandler(
     filename = function() {
 
-      sc_dl_filename(cluster = selected_cluster(),
+      annot <- readRDS(annot_path())
+      selected_idx <- as.numeric(selected_cluster()) + 1
+
+      sc_dl_filename(cluster = annot[selected_idx],
                      anal = selected_anal(),
                      comparison_type = comparison_type())
 
@@ -794,4 +799,3 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
-

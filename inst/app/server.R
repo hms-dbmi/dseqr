@@ -1,6 +1,3 @@
-
-
-
 server <- function(input, output, session) {
 
   # get arguments from calling function
