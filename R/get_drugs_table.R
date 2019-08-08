@@ -32,6 +32,10 @@ get_drugs_table <- function(study) {
     dplyr::mutate(cor_title = paste(stringr::str_replace(title, '^[^_]+_', ''), `Samples(n)`, sep = '_')) %>%
     dplyr::select(-`Samples(n)`)
 
+  # remove nonsense for L1000 genetic
+  if (study == 'L1000_genes')
+    drugs_table$cor_title <- gsub('_-700-666.0', '', drugs_table$cor_title)
+
 
   return(drugs_table)
 }
