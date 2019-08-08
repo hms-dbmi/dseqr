@@ -5,7 +5,7 @@ library(drugseqr)
 
 pkgconfig::set_config("dplyr::na_matches" = "never")
 
-# function definitions ----
+# function definitions
 
 # non UTF-8 encoded character cause DT alerts on filtering
 remove_non_utf8 <- function(df) {
@@ -55,6 +55,44 @@ destructure_title <- function(pdata, drop = TRUE, ...) {
 
   if (drop) pdata$title <- NULL
   return(pdata)
+}
+
+setup_genes_annot <- function(study) {
+
+  pdata <- readRDS(paste0('inst/extdata/', study, '_genes_pdata.rds'))
+
+  # add genecards link
+  study_annot <- pdata %>%
+    mutate(Genecards = gsub('^([^_]+)_.+?$', '\\1', title)) %>%
+    mutate(Genecards = gsub('-oe|-lig|-sh', '', Genecards))
+
+  # fix any discovered bad links
+  study_annot[study_annot$Genecards == '61E3.4', "Genecards"] <- 'SMG1'
+
+  # get gene description
+  tx2gene <- readRDS('data-raw/tx2gene/tx2gene.rds') %>%
+    dplyr::filter(gene_name %in% study_annot$Genecards) %>%
+    dplyr::select(description, gene_name)  %>%
+    distinct()
+
+  # remove single duplicate
+  tx2gene <- tx2gene[-which(tx2gene$gene_name == 'ALDOA')[1], ]
+
+  stopifnot(length(unique(tx2gene$gene_name)) == nrow(tx2gene))
+
+  # add gene descriptions
+  study_annot <- study_annot %>%
+    left_join(tx2gene, by = c('Genecards' = 'gene_name'))
+
+  stopifnot(all.equal(study_annot$title, pdata$title))
+
+  # keep what not already in pdata
+  study_annot <- study_annot %>%
+    dplyr::rename(Description = description) %>%
+    dplyr::select(Description, Genecards)
+
+  saveRDS(study_annot, paste0('inst/extdata/', study, '_genes_annot.rds'))
+
 }
 
 setup_annot <- function(annot, study) {
@@ -200,5 +238,7 @@ annot <- annot %>%
 # CMAP02/L1000 setup ----
 
 cmap_annot <- setup_annot(annot, 'CMAP02')
-l1000_annot <- setup_annot(annot, 'L1000')
+l1000_drugs_annot <- setup_annot(annot, 'L1000_drugs')
+l1000_genes_annot <- setup_genes_annot('L1000')
+
 
