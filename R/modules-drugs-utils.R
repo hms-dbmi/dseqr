@@ -6,8 +6,9 @@
 #' @export
 #' @keywords internal
 get_cell_choices <- function(drug_study) {
-  if (drug_study == 'L1000') return(cell_info$l1000)
-  else if (drug_study == 'CMAP02') return(cell_info$cmap)
+  if (drug_study == 'CMAP02') return(cell_info$cmap)
+  else if (drug_study == 'L1000 Drugs') return(cell_info$l1000_drugs)
+  else if (drug_study == 'L1000 Genetic') return(cell_info$l1000_genes)
 }
 
 

@@ -39,7 +39,7 @@ drugsFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         querySignatureInput(ns('signature')),
-        tags$div(id = ns('sc_clusters_container'), style = '',
+        tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
                  scSampleComparisonInput(ns)
         ),
         selectedDrugStudyInput(ns('drug_study')),

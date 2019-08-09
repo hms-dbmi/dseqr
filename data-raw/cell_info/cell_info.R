@@ -2,9 +2,13 @@ library(drugseqr)
 
 cmap_annot <- get_drugs_table('CMAP02')
 l1000_annot <- get_drugs_table('L1000')
+l1000_drugs_annot <- get_drugs_table('L1000_drugs')
+l1000_genes_annot <- get_drugs_table('L1000_genes')
 
 cmap_cells <- unique(cmap_annot$cell_line)
 l1000_cells <- unique(l1000_annot$cell_line)
+l1000_drugs_cells <- unique(l1000_drugs_annot$cell_line)
+l1000_genes_cells <- unique(l1000_genes_annot$cell_line)
 
 # GSE92742_Broad_LINCS_cell_info.txt.gz from https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE92742
 cell_info <- fread('data-raw/cell_info/GSE92742_Broad_LINCS_cell_info.txt')
@@ -67,9 +71,14 @@ cell_info$primary_site <- factor(cell_info$primary_site,
 
 cell_info <- cell_info[order(primary_site, sample_type), .SD, by = primary_site]
 
+# split L1000 by genetic
+
+
 cell_info <- list(
   cmap = cell_info[cell_id %in% cmap_cells],
-  l1000 = cell_info[cell_id %in% l1000_cells]
+  l1000 = cell_info[cell_id %in% l1000_cells],
+  l1000_drugs = cell_info[cell_id %in% l1000_drugs_cells],
+  l1000_genes = cell_info[cell_id %in% l1000_genes_cells]
 )
 
 saveRDS(cell_info, 'data-raw/cell_info/cell_info.rds')
