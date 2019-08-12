@@ -143,7 +143,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   # load pathway and analysis results
   diffs <- reactive({
     fpaths <- fpaths()
-    if (is_sc()) return (sc_inputs$path_diffs())
+    if (is_sc()) return (sc_inputs$results())
 
     list(
       path = readRDS(fpaths$diff_path),
