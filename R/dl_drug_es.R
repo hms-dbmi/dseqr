@@ -5,7 +5,7 @@
 #'
 #' @return NULL
 #' @export
-dl_drug_es <- function(files = c('cmap_es_ind.rds', 'l1000_es.rds'), check = FALSE) {
+dl_drug_es <- function(files = c('cmap_es_ind.rds', 'l1000_drugs_es.rds', 'l1000_genes_es.rds'), check = FALSE) {
 
   # make sure doesn't already exist
   dest_dir <- system.file('extdata', package = 'drugseqr', mustWork = TRUE)
