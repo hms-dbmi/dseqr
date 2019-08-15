@@ -19,6 +19,49 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
 
 }
 
+#' Logic for custom query form on Drugs page
+#' @export
+#' @keywords internal
+customQueryForm <- function(input, output, session, show_custom) {
+
+
+  # show hide custom query signature stuff
+  observe({
+    shinyjs::toggle('custom_query_container', anim = TRUE, condition = show_custom())
+  })
+
+
+  # update genes to downregulate
+  observe({
+    updateSelectizeInput(session, 'dn_genes', choices = genes, server = TRUE)
+    updateSelectizeInput(session, 'up_genes', choices = genes, server = TRUE)
+  })
+
+
+  observeEvent(input$submit_custom, {
+
+    error_msg <- validate_custom_query(dn_genes = input$dn_genes,
+                                       up_genes = input$up_genes,
+                                       custom_name = input$custom_name)
+
+    if (is.null(error_msg)) {
+      removeClass('validate', class = 'has-error')
+
+
+
+    } else {
+      html('error_msg', html = error_msg)
+      addClass('validate', class = 'has-error')
+    }
+
+
+  })
+
+
+  return(list(
+  ))
+}
+
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
@@ -50,11 +93,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
                                   input_ids = input_ids,
                                   with_drugs = TRUE)
 
-
-  # show hide custom query signature stuff
-  observe({
-    shinyjs::toggle('custom_query_container', anim = TRUE, condition = querySignature$show_custom())
-  })
+  custom_query <- callModule(customQueryForm, 'custom-query',
+                             show_custom = querySignature$show_custom)
 
 
   # get saved cmap/l1000 query results

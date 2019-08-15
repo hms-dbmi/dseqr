@@ -71,21 +71,22 @@ textInputWithValidation <- function(id, label, container_id = NULL, help_id = NU
   )
 }
 
+
 #' textInput with buttons
 #' @inheritParams shiny::textInput
 #' @param ... actionButtons
 #' @export
 #' @keywords internal
-textInputWithButtons <- function(id, label, ...) {
-  tags$div(class = 'form-group selectize-fh',
+textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL) {
+  tags$div(class = 'form-group selectize-fh', id = container_id, class = 'validate-wrapper',
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group',
                     tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
                     tags$span(class = 'input-group-btn', ...)
-           )
+           ),
+           tags$span(class = 'help-block', id = help_id)
   )
 }
-
 
 #' selectizeInput with validation
 #' @inheritParams shiny::selectizeInput

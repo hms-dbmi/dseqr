@@ -54,7 +54,6 @@
 .validate-wrapper .help-block {
   display: none;
   margin-top: 10px;
-  text-align: center;
 }
 
 
@@ -108,6 +107,7 @@
 .input-group-btn a {
   z-index: 0 !important;
 }
+
 
 
 /* FULL HEIGHT BUTTON BESIDE INPUT */

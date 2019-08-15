@@ -414,13 +414,13 @@ save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE,
 #' @param test Character vector of test dataset names
 #' @param ctrl Character vector of control dataset names
 #'
-#' @return \code{NULL} is valid, otherwise an error message
+#' @return \code{NULL} if valid, otherwise an error message
 #' @export
 #' @keywords internal
 validate_integration <- function(test, ctrl, anal_name, anal_options) {
   msg <- NULL
-  # make sure both control and test analyses provided
-  if (is.null(anal_name) || anal_name == '') {
+
+    if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
   } else if (anal_name %in% unlist(anal_options)) {

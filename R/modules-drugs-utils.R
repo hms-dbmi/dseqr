@@ -1,3 +1,39 @@
+#' Validate custom query
+#'
+#' @param dn_genes Character vector of genes to upregulate
+#' @param up_genes Character vector of genes to downregulate
+#' @param custom_name Name for new custom analysis
+#'
+#' @return \code{NULL} if valid, otherwise an error message
+#' @export
+#' @keywords internal
+validate_custom_query <- function(dn_genes, up_genes, custom_name) {
+  msg <- NULL
+
+  # genes in both lists
+  in.both <- intersect(dn_genes, up_genes)
+  na.genes <- setdiff(c(dn_genes, up_genes), genes)
+
+  # make sure custom name provided
+  if (is.null(custom_name) || custom_name == '') {
+    msg <- 'Provide a name for custom query'
+
+  } else if (length(in.both)) {
+    msg <- paste0('Genes must be in only one of up/down lists: ',
+                  paste(in.both, collapse = ', '))
+
+  } else if (length(na.genes)) {
+    msg <- paste0('Genes not measured in perturbation studies: ',
+                  paste(na.genes, collapse = ', '))
+
+  } else if (!length(c(dn_genes, up_genes))) {
+    msg <- 'Please provide genes to up and/or down regulate'
+  }
+
+  return(msg)
+}
+
+
 #' Get cell choices data.frame for CMAP02 or L1000
 #'
 #' @param drug_study either 'CMAP02' or 'L1000'

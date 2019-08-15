@@ -42,17 +42,42 @@ drugsFormInput <- function(id) {
         tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
                  scSampleComparisonInput(ns)
         ),
-        tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
-                 selectizeInput(ns('down_genes'), label = 'Genes to downregulate:', choices = NULL, multiple = TRUE, width = '100%'),
-                 selectizeInput(ns('up_genes'), label = 'Genes to upregulate:', choices = NULL, multiple = TRUE, width = '100%'),
-                 textInputWithButtons(id = ns('custom_name'), label = 'Name for custom query:',
-                                      actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')))
-        ),
+        customQueryFormInput(ns('custom-query')),
         selectedDrugStudyInput(ns('drug_study')),
         advancedOptionsInput(ns('advanced'))
 
     )
   })
+}
+
+#' Input form for custom query on Drugs page
+#' @export
+#' @keywords internal
+customQueryFormInput <- function(id) {
+  ns <- NS(id)
+
+  tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
+           selectizeInput(ns('dn_genes'),
+                          label = 'Genes to downregulate:',
+                          choices = NULL,
+                          multiple = TRUE,
+                          width = '100%',
+                          options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
+           ),
+           selectizeInput(ns('up_genes'),
+                          label = 'Genes to upregulate:',
+                          choices = NULL,
+                          multiple = TRUE,
+                          width = '100%',
+                          options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
+           ),
+           textInputWithButtons(id = ns('custom_name'),
+                                label = 'Name for custom query:',
+                                actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')),
+                                container_id = ns('validate'),
+                                help_id = ns('error_msg'))
+  )
+
 }
 
 #' Input for Single Cell sample comparison
