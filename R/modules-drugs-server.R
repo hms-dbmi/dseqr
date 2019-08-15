@@ -186,7 +186,12 @@ selectedDrugStudy <- function(input, output, session, anal) {
 
   observe({
     req(anal())
-    updateSelectizeInput(session, 'study', choices = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'), selected = NULL)
+    choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
+                          subset = c(NA, 'drugs', 'genetic'),
+                          value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
+                          stringsAsFactors = FALSE)
+
+    updateSelectizeInput(session, 'study', choices = choices, selected = NULL, options = list(render = I('{option: studyOption, item: studyItem}')),  server = TRUE)
   })
 
   # toggle for clinical status

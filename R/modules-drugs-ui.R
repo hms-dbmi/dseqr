@@ -109,26 +109,17 @@ advancedOptionsInput <- function(id) {
   })
 }
 
+
+
+
 #' Select drugs study (CMAP or L1000) for drugs page
 #' @export
 #' @keywords internal
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('study'), 'Select drug study:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('study'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('study'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                shinyBS::bsButton(ns('clinical'), label = '', icon = icon('pills'), style = 'default', onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                shinyBS::bsButton(ns('advanced'), label = '', icon = icon('cogs'), style = 'default', title = 'toggle advanced options')
-            )
-        )
-    )
-  })
-}
+  selectizeInputWithButtons(id = ns('study'), label = 'Select drug study:',
+                            shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
 
+}

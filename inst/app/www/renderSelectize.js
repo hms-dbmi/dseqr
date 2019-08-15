@@ -88,7 +88,6 @@ function geneOption(item, escape) {
 
 
 function geneItem(item, escape) {
-  // styling if looking at cluster
   var res = "<div>" +
                      escape(item.label) +
                   "<span style='color: #A0A0A0;'>" +
@@ -98,4 +97,72 @@ function geneItem(item, escape) {
 
   return res;
 
+}
+
+function cellOptions(item, escape) {
+
+  var markup = "<div style='columns: 2;'>" +
+    "<div>" +
+        escape(item.cell_id) +
+    "</div>" +
+    "<div style='color: #A0A0A0;text-align:right;'>" +
+        item.sample_type +
+    "</div>" +
+  "</div>";
+
+  return markup;
+}
+
+function pathOptions(item, escape) {
+
+  var fdr = item.fdr ? item.fdr : '';
+
+  var markup = 
+  "<div>" +
+    "<div class = 'pull-left path-name-option' title = '" + escape(item.name) + "'>" +
+        escape(item.name) +
+    "</div>" +
+    "<div class = 'pull-right path-fdr'>" +
+    fdr +
+    "</div>" +
+    "<div class = 'clearfix'></div>" +
+  "</div>";
+
+  return markup;
+}
+
+
+
+
+function studyOption(item, escape) {
+
+  subsetText = item.subset == null ? "" : item.subset;
+
+  var res = "<div style='columns: 2;'>" +
+                  "<div style='margin-right: -80px'>" +
+                     escape(item.study) +
+                  "</div>" +
+                  "<div style='color: #A0A0A0;text-align:right;'>" +
+                    subsetText  +
+                  "</div>" +
+                "</div>";
+
+
+  return res;  
+}
+
+
+function studyItem(item, escape) {
+  console.log(item);
+
+  var subsetMarkup = item.subset == null ? 
+  "" : 
+  "<span style='color: #A0A0A0;'>" + " (" + item.subset + ")" +"</span>";
+
+  var res = "<div>" +
+                  escape(item.study) +
+                  subsetMarkup +
+            "</div>";
+
+  return res;
 }
