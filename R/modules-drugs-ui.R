@@ -42,6 +42,12 @@ drugsFormInput <- function(id) {
         tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
                  scSampleComparisonInput(ns)
         ),
+        tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
+                 selectizeInput(ns('down_genes'), label = 'Genes to downregulate:', choices = NULL, multiple = TRUE, width = '100%'),
+                 selectizeInput(ns('up_genes'), label = 'Genes to upregulate:', choices = NULL, multiple = TRUE, width = '100%'),
+                 textInputWithButtons(id = ns('custom_name'), label = 'Name for custom query:',
+                                      actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')))
+        ),
         selectedDrugStudyInput(ns('drug_study')),
         advancedOptionsInput(ns('advanced'))
 
@@ -71,15 +77,9 @@ scSampleComparisonInput <- function(ns) {
 querySignatureInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('query'), 'Select query signature:'),
-        div(
-          select(id = ns('query'), style = 'display: none'),
-          script(type = 'application/json', `data-for` = ns('query'), HTML('{"optgroupField": "type"}'))
-        )
-    )
-  })
+  selectizeInputWithButtons(id = ns('query'), label = 'Select query signature:',
+                            shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
+                            options = list(optgroupField = 'type'))
 }
 
 #' advanced options input for drugs page
@@ -110,15 +110,13 @@ advancedOptionsInput <- function(id) {
 }
 
 
-
-
 #' Select drugs study (CMAP or L1000) for drugs page
 #' @export
 #' @keywords internal
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(id = ns('study'), label = 'Select drug study:',
+  selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
                             shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
                             shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
 

@@ -17,9 +17,6 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
              show_clinical = form$show_clinical,
              min_signatures = form$min_signatures)
 
-
-
-
 }
 
 # Logic for form on drugs page
@@ -52,6 +49,12 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
                                   is_sc = is_sc,
                                   input_ids = input_ids,
                                   with_drugs = TRUE)
+
+
+  # show hide custom query signature stuff
+  observe({
+    shinyjs::toggle('custom_query_container', anim = TRUE, condition = querySignature$show_custom())
+  })
 
 
   # get saved cmap/l1000 query results
@@ -119,6 +122,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 #' @keywords internal
 querySignature <- function(input, output, session, new_anal, data_dir) {
 
+
   # reload query choices if new analysis
   anals <- reactive({
     new_anal()
@@ -139,6 +143,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   })
 
   anal <- reactive({
+
     row_num <- input$query
     anals <- anals()
     req(row_num, anals)
@@ -150,6 +155,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   # paths to analysis and drug query results
   res_paths <- reactive({
     anal <- anal()
+    req(anal)
     dataset_dir <- file.path(data_dir, 'bulk', anal$dataset_dir)
     anal_name <- anal$anal_name
 
@@ -162,11 +168,19 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   })
 
 
+  show_custom <- reactive(input$show_custom %% 2 != 0)
+
+  # show/hide integration form
+  observe({
+    toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
+  })
+
 
 
   return(list(
     res_paths = res_paths,
-    anal = anal
+    anal = anal,
+    show_custom = show_custom
   ))
 
 }
@@ -187,7 +201,7 @@ selectedDrugStudy <- function(input, output, session, anal) {
   observe({
     req(anal())
     choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
-                          subset = c(NA, 'drugs', 'genetic'),
+                          subset = c('drugs', 'drugs', 'genetic'),
                           value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
                           stringsAsFactors = FALSE)
 
