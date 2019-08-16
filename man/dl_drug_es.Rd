@@ -4,7 +4,8 @@
 \alias{dl_drug_es}
 \title{Download drug effect size data.}
 \usage{
-dl_drug_es(files = c("cmap_es_ind.rds", "l1000_es.rds"), check = FALSE)
+dl_drug_es(files = c("cmap_es_ind.rds", "l1000_drugs_es.rds",
+  "l1000_genes_es.rds"), check = FALSE)
 }
 \arguments{
 \item{files}{Character vector of file names to download.}

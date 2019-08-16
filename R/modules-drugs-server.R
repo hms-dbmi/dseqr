@@ -22,7 +22,13 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
 #' Logic for custom query form on Drugs page
 #' @export
 #' @keywords internal
-customQueryForm <- function(input, output, session, show_custom) {
+customQueryForm <- function(input, output, session, show_custom, is_custom, anal, new_anal, data_dir) {
+
+  # setup choices and options
+  choices <- data.frame(gene = c(genes$common, genes$cmap_only), stringsAsFactors = FALSE)
+  choices$value <- choices$label <- choices$gene
+  choices$cmap_only <- choices$gene %in% genes$cmap_only
+  options <- list(render = I('{option: queryGenesOption, item: queryGenesItem}'))
 
 
   # show hide custom query signature stuff
@@ -33,8 +39,33 @@ customQueryForm <- function(input, output, session, show_custom) {
 
   # update genes to downregulate
   observe({
-    updateSelectizeInput(session, 'dn_genes', choices = genes, server = TRUE)
-    updateSelectizeInput(session, 'up_genes', choices = genes, server = TRUE)
+
+    # if current signature is custom, then load and show previously selected genes
+    if (is_custom()) {
+      fname <- paste0('query_genes_', anal()$anal_name, '.rds')
+      query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
+      sel_up <- query_genes$up
+      sel_dn <- query_genes$dn
+
+    } else {
+      sel_up <- sel_dn <- NULL
+    }
+
+    updateSelectizeInput(session, 'dn_genes', choices = choices, selected = sel_dn, options = options, server = TRUE)
+    updateSelectizeInput(session, 'up_genes', choices = choices, selected = sel_up, options = options, server = TRUE)
+  })
+
+  res_paths <- reactive({
+    custom_name <- input$custom_name
+    custom_dir <- file.path(data_dir, 'custom_queries')
+    if (!dir.exists(custom_dir)) dir.create(custom_dir)
+
+    list(
+      cmap = file.path(custom_dir, paste0('cmap_res_', custom_name, '.rds')),
+      l1000_drugs = file.path(custom_dir, paste0('l1000_drugs_res_', custom_name, '.rds')),
+      l1000_genes = file.path(custom_dir, paste0('l1000_genes_res_', custom_name, '.rds')),
+      query_genes = file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
+    )
   })
 
 
@@ -47,20 +78,21 @@ customQueryForm <- function(input, output, session, show_custom) {
     if (is.null(error_msg)) {
       removeClass('validate', class = 'has-error')
 
+      query_genes <- list(dn = input$dn_genes, up = input$up_genes)
+      res <- run_custom_query(query_genes = query_genes,
+                              res_paths = res_paths(),
+                              session = session)
+
+      new_anal(input$custom_name)
 
 
     } else {
       html('error_msg', html = error_msg)
       addClass('validate', class = 'has-error')
     }
-
-
   })
-
-
-  return(list(
-  ))
 }
+
 
 # Logic for form on drugs page
 #' @export
@@ -93,8 +125,19 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
                                   input_ids = input_ids,
                                   with_drugs = TRUE)
 
+
+  # if currently selected analysis is custom then show genes
+  is_custom <- reactive({
+    anal <- querySignature$anal()
+    anal$type == 'Custom'
+  })
+
   custom_query <- callModule(customQueryForm, 'custom-query',
-                             show_custom = querySignature$show_custom)
+                             show_custom = querySignature$show_custom,
+                             is_custom = is_custom,
+                             anal = querySignature$anal,
+                             new_anal = new_anal,
+                             data_dir = data_dir)
 
 
   # get saved cmap/l1000 query results
@@ -103,6 +146,10 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 
     if (is_sc())  {
       res <- sc_inputs$results()
+
+    } else if (is_custom()) {
+      res_paths <- querySignature$res_paths()
+      res <- load_custom_results(res_paths)
 
     } else {
       res_paths <- querySignature$res_paths()
@@ -157,6 +204,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 
 }
 
+
 #' Logic for query signature in drugsForm
 #' @export
 #' @keywords internal
@@ -169,8 +217,9 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
 
     scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
     bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
+    custom_anals <- load_custom_anals(data_dir)
 
-    anals <- rbind(bulk_anals, scseq_anals)
+    anals <- rbind(bulk_anals, scseq_anals, custom_anals)
     anals$value <- seq_len(nrow(anals))
 
     return(anals)
@@ -196,7 +245,11 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   res_paths <- reactive({
     anal <- anal()
     req(anal)
-    dataset_dir <- file.path(data_dir, 'bulk', anal$dataset_dir)
+
+    dataset_dir <- ifelse(anal$type == 'Custom',
+                          file.path(data_dir, 'custom_queries'),
+                          file.path(data_dir, 'bulk', anal$dataset_dir))
+
     anal_name <- anal$anal_name
 
     list(
@@ -422,3 +475,4 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
+

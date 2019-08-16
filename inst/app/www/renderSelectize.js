@@ -136,16 +136,12 @@ function pathOptions(item, escape) {
 
 function studyOption(item, escape) {
 
-  subsetText = item.subset == null ? "" : item.subset;
-
   var res = "<div style='columns: 2;'>" +
-                  "<div style='margin-right: -80px'>" +
-                     escape(item.study) +
-                  "</div>" +
-                  "<div style='color: #A0A0A0;text-align:right;'>" +
-                    subsetText  +
-                  "</div>" +
-                "</div>";
+              "<div style='margin-right: -80px'>" +
+                  escape(item.study) +
+              "</div>" +
+              "<div style='color: #A0A0A0;text-align:right;'>" + item.subset  + "</div>" +
+            "</div>";
 
 
   return res;  
@@ -153,15 +149,31 @@ function studyOption(item, escape) {
 
 
 function studyItem(item, escape) {
-  console.log(item);
-
-  var subsetMarkup = item.subset == null ? 
-  "" : 
-  "<span style='color: #A0A0A0;'>" + " (" + item.subset + ")" +"</span>";
 
   var res = "<div>" +
                   escape(item.study) +
-                  subsetMarkup +
+                  "<span style='color: #A0A0A0;'>" + " (" + item.subset + ")" +"</span>"; +
+            "</div>";
+
+  return res;
+}
+
+function queryGenesItem(item, escape) {
+  // color to indicate if in cmap alone or cmap and l1000
+  var bgColor = item.cmap_only ? '#f0ad4e' : '#efefef';
+  var res = "<div style='background-color:" + bgColor + "'>" + escape(item.gene) + "</div>";
+  return res;
+}
+
+function queryGenesOption(item, escape) {
+
+  var infoText = item.cmap_only ? 'ONLY CMAP02' : '';
+
+  var res = "<div style='columns: 2;'>" +
+              "<div style='margin-right: -80px'>" +
+                  escape(item.gene) +
+              "</div>" +
+              "<div style='color: #A0A0A0;text-align:right;'>" + infoText + "</div>" +
             "</div>";
 
   return res;

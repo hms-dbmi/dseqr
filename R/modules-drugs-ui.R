@@ -56,21 +56,21 @@ drugsFormInput <- function(id) {
 customQueryFormInput <- function(id) {
   ns <- NS(id)
 
+  options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
+
   tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
            selectizeInput(ns('dn_genes'),
                           label = 'Genes to downregulate:',
                           choices = NULL,
                           multiple = TRUE,
                           width = '100%',
-                          options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
-           ),
+                          options = options),
            selectizeInput(ns('up_genes'),
                           label = 'Genes to upregulate:',
                           choices = NULL,
                           multiple = TRUE,
                           width = '100%',
-                          options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
-           ),
+                          options = options),
            textInputWithButtons(id = ns('custom_name'),
                                 label = 'Name for custom query:',
                                 actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')),
@@ -79,6 +79,7 @@ customQueryFormInput <- function(id) {
   )
 
 }
+
 
 #' Input for Single Cell sample comparison
 #'
@@ -146,3 +147,4 @@ selectedDrugStudyInput <- function(id) {
                             shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
 
 }
+

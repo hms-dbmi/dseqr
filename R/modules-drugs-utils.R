@@ -1,3 +1,55 @@
+#' Run custom query
+#'
+#' @param query_genes Named list of character vectors with \code{'up'} indicating genes to upregulate and \code{'dn'}
+#'  containing genes to downregulate.
+#' @param res_paths List of paths to save results to.
+#' @param session session object from Shiny. Used to indicate progress.
+#'
+#' @return List with query results.
+#' @export
+#' @keywords internal
+run_custom_query <- function(query_genes, res_paths, session) {
+  res <- list()
+
+  progress <- Progress$new(session, min = 0, max = 4)
+  progress$set(message = "Querying drugs", value = 1)
+  on.exit(progress$close())
+
+  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+  cmap_es  <- readRDS(cmap_path)
+  progress$inc(1)
+
+  # get correlations between query and drug signatures
+  res$cmap <- query_budger(query_genes, cmap_es)
+  rm(cmap_es); gc()
+
+  saveRDS(res$cmap, res_paths$cmap)
+  saveRDS(query_genes, res_paths$query_genes)
+
+  # don't run l1000 if no genes from it selected
+  run.l1000 <- any(unlist(query_genes) %in% genes$common)
+  progress$inc(ifelse(run.l1000, 1, 2))
+
+  if (run.l1000) {
+    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr', mustWork = TRUE)
+
+    l1000_drugs_es <- readRDS(l1000_drugs_path)
+    res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
+    rm(l1000_drugs_es); gc()
+
+    l1000_genes_es <- readRDS(l1000_genes_path)
+    res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
+    rm(l1000_genes_es); gc()
+
+    saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
+    saveRDS(res$l1000_genes, res_paths$l1000_genes)
+    progress$inc(1)
+  }
+
+  return(res)
+}
+
 #' Validate custom query
 #'
 #' @param dn_genes Character vector of genes to upregulate
@@ -12,7 +64,9 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
 
   # genes in both lists
   in.both <- intersect(dn_genes, up_genes)
-  na.genes <- setdiff(c(dn_genes, up_genes), genes)
+
+  # genes not in pert studies
+  na.genes <- setdiff(c(dn_genes, up_genes), c(genes$common, genes$cmap_only))
 
   # make sure custom name provided
   if (is.null(custom_name) || custom_name == '') {
@@ -31,6 +85,56 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
   }
 
   return(msg)
+}
+
+
+#' Load results of previous custom query
+#'
+#' Will only load \code{res_paths} that exist. L1000 results won't exist
+#' if no genes selected for custom query were in the L1000 measured genes.
+#'
+#' @param res_paths List of named strings with paths to results.
+#'
+#' @return List of names results loaded from \code{res_paths}.
+#' @export
+#' @keywords internal
+load_custom_results <- function(res_paths) {
+  res <- list()
+  res_path_names <- names(res_paths)
+  for (i in seq_along(res_paths)) {
+    res_path <- res_paths[[i]]
+    res_name <- names(res_paths)[i]
+
+    if (file.exists(res_path)) res[[res_name]] <- readRDS(res_path)
+  }
+  return(res)
+}
+
+#' Load data.frame of custom anals for selectizeInput
+#'
+#' @param data_dir Path to directory containing \code{'custom_queries'} folder.
+#'
+#' @return \code{data.frame} used to show available custom queries in Drugs tab
+#' @export
+#' @keywords internal
+load_custom_anals <- function(data_dir) {
+  custom_dir <- file.path(data_dir, 'custom_queries')
+
+  anals <- NULL
+  if (dir.exists(custom_dir)) {
+    custom_names <- list.files(custom_dir, pattern = '^cmap_res_.+?.rds')
+    custom_names <- gsub('^cmap_res_(.+?).rds$', '\\1', custom_names)
+
+
+    anals <- data.frame(matrix(ncol = 6, nrow = 0), stringsAsFactors = FALSE)
+    colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name", "label", "value", "type")
+
+    for (i in seq_along(custom_names))
+      anals[i, ] <- c(NA, NA, custom_names[i], custom_names[i], i, 'Custom')
+
+  }
+
+  return(anals)
 }
 
 
