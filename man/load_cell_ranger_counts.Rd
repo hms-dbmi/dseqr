@@ -4,11 +4,18 @@
 \alias{load_cell_ranger_counts}
 \title{Load cell ranger counts}
 \usage{
-load_cell_ranger_counts(data_dir)
+load_cell_ranger_counts(data_dir, h5)
+}
+\arguments{
+\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files. Can also be path
+to 10X CellRanger hdf5 file if \code{type} is \code{'cell_ranger'} and \code{h5} is \code{TRUE}.}
+
+\item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} corresponds to an hdf5 file.}
 }
 \value{
 dgCMatrix
 }
 \description{
 Mainly to avoid having to download massive datasets that have already been quantified.
+))))
 }
