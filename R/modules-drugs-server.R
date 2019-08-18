@@ -388,6 +388,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     req(query_res, drug_annot)
     stopifnot(all.equal(drug_annot$title, names(query_res)))
 
+
     tibble::add_column(drug_annot, Correlation = query_res, .before=0)
   })
 
@@ -396,9 +397,11 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_table_full <- query_table_full()
     if (is.null(query_table_full)) return(NULL)
 
+    get_similar <- grepl('Genetic', drug_study())
+
     query_table <- query_table_full %>%
       limit_cells(cells()) %>%
-      summarize_compound() %>%
+      summarize_compound(get_similar = get_similar) %>%
       add_table_html()
   })
 
@@ -406,6 +409,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_table <- query_table_summarised()
     if (is.null(query_table)) return(NULL)
     sort_by <- sort_by()
+    drug_study <- drug_study()
 
     query_table <- dplyr::filter(query_table, n >= min_signatures())
 
@@ -417,9 +421,18 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       query_table$Correlation <- gsub('simplot', 'simplot show-meanline', query_table$Correlation)
     }
 
+    # show largest absolute correlations first for genetic
+    # as both directions are informative
+    if (drug_study == 'L1000 Genetic') {
+      query_table <- query_table %>%
+        dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
+        dplyr::mutate(avg_cor = -abs(avg_cor))
+    }
+
     # sort as desired
-    dplyr::arrange(query_table, !!sym(sort_by)) %>%
-      dplyr::select(-min_cor, -avg_cor)
+    query_table %>%
+      dplyr::arrange(!!sym(sort_by)) %>%
+      dplyr::select(-min_cor, -avg_cor, -max_cor)
   })
 
   # will update with proxy to prevent redraw
@@ -429,7 +442,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     cols <- if (study == 'L1000 Genetic') gene_cols else drug_cols
 
     data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)))
-  },)
+  })
 
 
   # show query data
@@ -439,7 +452,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
     elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
-    n_target <- which(colnames(dummy_table) == 'n') - 1
+    hide_target <- which(colnames(dummy_table) %in% c('n')) - 1
+
     dummy_rendered(TRUE)
 
     DT::datatable(
@@ -450,13 +464,14 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       escape = FALSE, # to allow HTML in table
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
-                          list(targets = n_target, visible=FALSE),
+                          list(targets = hide_target, visible=FALSE),
                           list(targets = elipsis_targets, render = DT::JS(
                             "function(data, type, row, meta) {",
                             "return type === 'display' && data !== null && data.length > 17 ?",
                             "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
-                            "}"))),
-        ordering=FALSE,
+                            "}"))
+        ),
+        ordering = FALSE,
         scrollX = TRUE,
         pageLength = 20,
         paging = TRUE,

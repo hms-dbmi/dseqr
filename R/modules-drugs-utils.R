@@ -182,13 +182,15 @@ limit_cells <- function(query_table, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-get_top <- function(query_cors, arrange_by, ntop = 1500) {
-  query_cors %>%
+get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
+  pre <- ifelse(decreasing, 1, -1)
+  arranged <- query_cors %>%
     dplyr::as_tibble() %>%
-    dplyr::arrange(!!sym(arrange_by)) %>%
+    dplyr::arrange(pre*!!sym(arrange_by)) %>%
     head(ntop) %>%
     dplyr::pull(Compound)
 }
+
 
 
 #' Summarize query results and annotations by perturbation
@@ -210,7 +212,7 @@ get_top <- function(query_cors, arrange_by, ntop = 1500) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-summarize_compound <- function(query_table) {
+summarize_compound <- function(query_table, get_similar = FALSE) {
 
   # group by compound
   query_table <- query_table %>%
@@ -222,13 +224,18 @@ summarize_compound <- function(query_table) {
   query_cors <- query_table %>%
     dplyr::select(Correlation, Compound) %>%
     dplyr::summarise(min_cor = min(Correlation),
+                     max_cor = max(Correlation),
                      avg_cor = mean(Correlation),
                      Correlation = I(list(Correlation)))
 
   # compounds in top min or avg cor
+  top_max <- if (get_similar) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
   top_min <- get_top(query_cors, 'min_cor')
-  top_avg <- get_top(query_cors, 'avg_cor')
-  top <- unique(c(top_min, top_avg))
+
+  top_avg_sim <- if (get_similar) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
+  top_avg_dis <- get_top(query_cors, 'avg_cor')
+
+  top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
 
   # filter based on top
   query_table <- query_table %>%

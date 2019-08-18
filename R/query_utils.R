@@ -101,8 +101,8 @@ query_budger <- function(query_genes, drug_es) {
 
   # put results between -1 and 1 with most negative result having most desired effect
   # so that consistent with query_drugs
-  norm <- apply(drug_es[query_genes, ], 1, min)
-  sim <- colMeans(drug_es[query_genes, ]) / abs(mean(norm))
+  norm <- apply(drug_es[query_genes,, drop = FALSE], 1, min)
+  sim <- colMeans(drug_es[query_genes,, drop = FALSE]) / abs(mean(norm))
 
   return(sim)
 }
