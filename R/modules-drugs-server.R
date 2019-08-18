@@ -441,7 +441,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     dummy_rendered(FALSE)
     cols <- if (study == 'L1000 Genetic') gene_cols else drug_cols
 
-    data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)))
+    data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)), check.names = FALSE)
   })
 
 
