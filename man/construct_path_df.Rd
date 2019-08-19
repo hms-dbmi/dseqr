@@ -4,7 +4,7 @@
 \alias{construct_path_df}
 \title{Used by get_all_df and get_path_df to construct the return result}
 \usage{
-construct_path_df(top_table, nmax = nrow(top_table))
+construct_path_df(top_table, nmax = min(nrow(top_table), 200))
 }
 \arguments{
 \item{top_table}{Filtered result of \code{\link[limma]{topTable}}}

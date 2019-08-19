@@ -7,8 +7,7 @@
 load_kallisto_counts(data_dir)
 }
 \arguments{
-\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files. Can also be path
-to 10X CellRanger hdf5 file if \code{type} is \code{'cell_ranger'} and \code{h5} is \code{TRUE}.}
+\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
 }
 \value{
 sparse dgTMatrix with barcodes in columns and genes in rows.

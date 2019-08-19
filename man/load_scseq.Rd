@@ -8,14 +8,13 @@ load_scseq(data_dir, project = "SeuratProject", type = c("kallisto",
   "cell_ranger"), h5 = FALSE, soupx = FALSE)
 }
 \arguments{
-\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files. Can also be path
-to 10X CellRanger hdf5 file if \code{type} is \code{'cell_ranger'} and \code{h5} is \code{TRUE}.}
+\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
 
 \item{project}{String identifying sample.}
 
 \item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.}
 
-\item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} corresponds to an hdf5 file.}
+\item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.}
 
 \item{soupx}{Boolean indicating if \code{SoupX} should be used to remove backgroud counts (defaul is \code{FALSE}).
 Experimental and not currently recommended.}

@@ -4,7 +4,7 @@
 \alias{summarize_compound}
 \title{Summarize query results and annotations by perturbation}
 \usage{
-summarize_compound(query_table)
+summarize_compound(query_table, get_similar = FALSE)
 }
 \arguments{
 \item{query_table}{\code{data.frame} of perturbation correlations and annotations.}

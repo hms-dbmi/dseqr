@@ -13,15 +13,12 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
     diffs <- form$diffs()
     path_id <- form$pathway()
+    path_genes <- form$custom_path_genes()
     anal <- diffs$anal
 
     req(path_id, anal)
 
-    if (path_id == 'all') {
-      path_df <- get_all_df(anal)
-    } else {
-      path_df <- get_path_df(path_id, anal)
-    }
+    path_df <- get_path_df(anal, path_id, path_genes)
 
     # 30 pixels width per gene in pathway
     plot_width <- max(400, nrow(path_df)*25 + 125)
@@ -63,6 +60,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
 
 }
+
 
 #' Logic for form in Pathways tab
 #' @export
@@ -151,8 +149,6 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     )
   })
 
-
-
   path_choices <- reactive({
     diffs <- diffs()
     res <- diffs$path$res
@@ -201,8 +197,29 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     toggleState('kegg', condition = input$pathway != 'all')
   })
 
+  # show custom pathway inputs
+  show_custom <- reactive(input$show_custom %% 2 != 0)
+
+  observe({
+    shinyjs::toggle('custom_path_container', anim = TRUE, condition = show_custom())
+    toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
+  })
+
+  # choices for custom pathway genes
+  gene_choices <- reactive({
+    diffs <- diffs()
+    req(diffs())
+    row.names(diffs$anal$top_table)
+  })
+
+  observe({
+    updateSelectizeInput(session, 'custom_path_genes', choices = gene_choices())
+  })
+
   return(list(
     diffs = diffs,
+    show_custom = show_custom,
+    custom_path_genes = reactive(input$custom_path_genes),
     pathway = reactive(input$pathway)
   ))
 }
@@ -286,3 +303,4 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
 
 
 }
+

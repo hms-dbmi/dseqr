@@ -34,7 +34,9 @@ pathFormInput <- function(id) {
            selectizeInputWithButtons(ns('pathway'),
                                      'Select a pathway:',
                                      actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')))
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup'))),
+           selectizeInput(ns('custom_path_genes'), 'Custom gene set:', choices = NULL, multiple = TRUE, width = '100%')
+
   )
 }
 

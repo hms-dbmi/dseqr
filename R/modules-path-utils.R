@@ -7,7 +7,7 @@
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
-construct_path_df <- function(top_table, nmax = nrow(top_table)) {
+construct_path_df <- function(top_table, nmax = min(nrow(top_table), 200)) {
 
   # show up to nmax genes
   nkeep <- min(nmax, nrow(top_table))
@@ -20,35 +20,12 @@ construct_path_df <- function(top_table, nmax = nrow(top_table)) {
   )
 
   path_df <- path_df %>%
-    arrange(desc(abs(Dprime))) %>%
     mutate(Gene = factor(Gene, levels = Gene)) %>%
     head(nkeep)
 
 
   return(path_df)
 }
-
-
-#' Get data.frame for plotting gene expression values of top genes
-#'
-#' @param anal Result of call to \code{\link{diff_expr_scseq}}
-#'
-#' @return \code{data.frame} with columns: \itemize{
-#'  \item Gene gene names.
-#'  \item Dprime standardized unbiased effect size values.
-#'  \item sd standard deviations of \code{Dprime}.
-#'  \item Link url to GeneCards page for gene.
-#' }
-#' @export
-get_all_df <- function(anal) {
-
-  # add dprimes and vardprime values
-  anal <- add_es(anal)
-  top_table <- anal$top_table
-
-  construct_path_df(top_table, nmax = 200)
-}
-
 
 
 #' Get data.frame for plotting gene expression values of a pathway
@@ -64,17 +41,28 @@ get_all_df <- function(anal) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(path_id, anal) {
+get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
+
+  preserve_order <- !is.null(path_genes)
 
   # add dprimes and vardprime values
   anal <- add_es(anal)
   top_table <- anal$top_table
+  top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
 
-  path_enids <- gslist[[path_id]]
-  path_genes <- names(path_enids)
+  # only show pathway if no custom genes selected
+  if (path_id %in% names(gslist) & is.null(path_genes)) {
+    path_enids <- gslist[[path_id]]
+    path_genes <- names(path_enids)
+  }
 
-  # subset top table to genes in the pathway
-  top_table <- top_table[row.names(top_table) %in% path_genes, ]
+  if (!is.null(path_genes)) {
+    # subset top table to genes in the pathway
+    top_table <- top_table[row.names(top_table) %in% path_genes, ]
+  }
+
+  # keep in order specified for custom gene sets
+  if (preserve_order) top_table <- top_table[path_genes,, drop = FALSE]
 
   construct_path_df(top_table)
 }
