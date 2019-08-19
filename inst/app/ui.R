@@ -2,6 +2,7 @@
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
 active <- 'Pathways'
 
+
 bootstrapPage(
   useShinyjs(),
   includeScript(path = 'www/renderSelectize.js'),

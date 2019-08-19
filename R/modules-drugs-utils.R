@@ -183,8 +183,8 @@ limit_cells <- function(query_table, cells) {
 #'
 #' @importFrom magrittr "%>%"
 get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
-  pre <- ifelse(decreasing, 1, -1)
-  arranged <- query_cors %>%
+  pre <- ifelse(decreasing, -1, 1)
+  query_cors %>%
     dplyr::as_tibble() %>%
     dplyr::arrange(pre*!!sym(arrange_by)) %>%
     head(ntop) %>%
