@@ -32,10 +32,11 @@ pathFormInput <- function(id) {
                     scSampleComparisonInput(ns)
            ),
            selectizeInputWithButtons(ns('pathway'),
-                                     'Select a pathway:',
+                                     label = tags$span('Select a pathway:', span(class='hover-info', icon('info', 'fa-fw'))),
                                      actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup'))),
-           selectizeInput(ns('custom_path_genes'), 'Custom gene set:', choices = NULL, multiple = TRUE, width = '100%')
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')),
+                                     label_title = 'Pathway (FDR)'),
+           selectizeInput(ns('custom_path_genes'), 'Custom gene set:', choices = NULL, multiple = TRUE, options = list(render = I('{option: pathGene, item: pathGene}')), width = '100%')
 
   )
 }
@@ -50,6 +51,10 @@ scSampleComparisonInput <- function(ns) {
                          icon = icon('chevron-right', 'far fa-fw'),
                          title = 'Compare test to control cells')
 
-  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
+                            button,
+                            options = list(multiple = TRUE),
+                            label_title = 'Cluster (n test :: n ctrl)')
 
 }

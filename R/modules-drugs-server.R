@@ -357,7 +357,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures) {
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
-  gene_cols <- c('Correlation', 'Compound', 'Description', 'External Links', 'n')
+  gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
   dummy_rendered <- reactiveVal(FALSE)
 
@@ -490,4 +490,3 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
-

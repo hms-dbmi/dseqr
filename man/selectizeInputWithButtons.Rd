@@ -5,7 +5,7 @@
 \title{selectizeInput with buttons and validation}
 \usage{
 selectizeInputWithButtons(id, label, ..., options = NULL,
-  container_id = NULL, help_id = NULL)
+  container_id = NULL, help_id = NULL, label_title = NULL)
 }
 \arguments{
 \item{label}{Display label for the control, or \code{NULL} for no label.}

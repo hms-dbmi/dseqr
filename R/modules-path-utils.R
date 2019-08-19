@@ -16,7 +16,9 @@ construct_path_df <- function(top_table, nmax = min(nrow(top_table), 200)) {
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
     sd = sqrt(top_table$vardprime),
-    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
+    description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
+    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
+    stringsAsFactors = FALSE
   )
 
   path_df <- path_df %>%

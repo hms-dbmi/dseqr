@@ -28,7 +28,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                     y = ~Dprime,
                     x = ~Gene,
                     text = ~Gene,
-                    customdata = ~sd,
+                    customdata = apply(path_df, 1, as.list),
                     type = 'scatter',
                     mode = 'markers',
                     width = plot_width,
@@ -37,8 +37,9 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                     error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
                     hovertemplate = paste0(
                       '<span style="color: crimson; font-weight: bold;">Gene</span>: %{text}<br>',
+                      '<span style="color: crimson; font-weight: bold;">Description</span>: %{customdata.description}<br>',
                       '<span style="color: crimson; font-weight: bold;">Dprime</span>: %{y:.2f}<br>',
-                      '<span style="color: crimson; font-weight: bold;">SD</span>: %{customdata:.2f}',
+                      '<span style="color: crimson; font-weight: bold;">SD</span>: %{customdata.sd:.2f}',
                       '<extra></extra>')
     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
@@ -209,11 +210,14 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   gene_choices <- reactive({
     diffs <- diffs()
     req(diffs())
-    row.names(diffs$anal$top_table)
+    gene <- row.names(diffs$anal$top_table)
+    description <- tx2gene$description[match(gene, tx2gene$gene_name)]
+
+    data.frame(gene, description, value = gene, label = gene, stringsAsFactors = FALSE)
   })
 
   observe({
-    updateSelectizeInput(session, 'custom_path_genes', choices = gene_choices())
+    updateSelectizeInput(session, 'custom_path_genes', choices = gene_choices(), options = list(render = I('{option: pathGene, item: pathGene}')), server = TRUE)
   })
 
   return(list(
@@ -256,7 +260,7 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
     # isn't affected by updates to cluster annotation
     scseq <- scseq()
     value <- levels(Seurat::Idents(scseq))
-    get_cluster_choices(clusters = annot(), scseq = scseq, value = value)
+    get_cluster_choices(clusters = annot(), scseq = scseq, value = value, sample_comparison = TRUE)
   })
 
 

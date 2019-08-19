@@ -1,3 +1,26 @@
+.hover-info {
+  border: 1px solid #ddd;
+  padding: 4px;
+  border-radius: 2px;
+  font-size: 12px;
+  position: relative;
+  left: 5px;
+  bottom: 12px;
+  color: #A0A0A0;
+  background: white;
+}
+
+.hover-info:hover {
+  background: #A0A0A0;
+  color: white;
+  border: 1px solid #A0A0A0;
+}
+
+.hover-info i {
+  vertical-align: middle;
+}
+
+
 .selectize-dropdown-content {
   max-height: 300px;
 }

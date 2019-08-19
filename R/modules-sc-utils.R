@@ -96,23 +96,33 @@ get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, scseq, value = clusters) {
+get_cluster_choices <- function(clusters, scseq, value = clusters, sample_comparison = FALSE) {
 
-  # show the cell numbers/percentages
-  ncells <- tabulate(scseq$seurat_clusters)
-  pcells <- round(ncells / sum(ncells) * 100)
-  pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
+  testColor <- get_palette(clusters)
 
   # cluster choices are the clusters themselves
-  testColor <- get_palette(clusters)
-  cluster_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                value = seq(0, along.with = clusters),
-                                label = clusters,
-                                testColor,
-                                ncells, pcells, pspace, row.names = NULL, stringsAsFactors = FALSE)
+  choices <- data.frame(name = stringr::str_trunc(clusters, 27),
+                        value = seq(0, along.with = clusters),
+                        label = clusters,
+                        testColor,
+                        row.names = NULL, stringsAsFactors = FALSE)
 
-  return(cluster_choices)
+  if (sample_comparison) {
+    choices$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
+    choices$nctrl <- format(tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl']))
+    choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
+
+  } else {
+    # show the cell numbers/percentages
+    choices$ncells <- tabulate(scseq$seurat_clusters)
+    choices$pcells <- round(choices$ncells / sum(choices$ncells) * 100)
+    choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
+
+  }
+
+  return(choices)
 }
+
 
 
 #' Get contrast choices data.frame for selectize dropdown
@@ -190,8 +200,12 @@ get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) 
   markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
 
   markers$label <- markers$value <- row.names(markers)
+
+  # add description for title
+  markers$description <- tx2gene$description[match(row.names(markers), tx2gene$gene_name)]
   return(markers)
 }
+
 
 
 

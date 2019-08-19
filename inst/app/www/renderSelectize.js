@@ -4,15 +4,23 @@
 // styling if looking at cluster
 function contrastOptions(item, escape) {
 
+  var infoContrasts =  "<div style='color: #A0A0A0;text-align:right;'>" +
+                        item.ncells + " :: " + item.pspace + item.pcells + "%" +
+                       "</div>";
+
+  var infoSamples =  "<div style='color: #A0A0A0;text-align:right;'>" +
+                       item.ntest + " :: " + item.nctrl + 
+                      "</div>";
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
+
   var clustEl = "<div style='columns: 2;'>" +
-                  "<div style='margin-right: -80px'>" +
-                    "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
-                     escape(item.name) +
-                  "</div>" +
-                  "<div style='color: #A0A0A0;text-align:right;'>" +
-                   item.ncells + " :: " + item.pspace + item.pcells + "%" +
-                  "</div>" +
-                "</div>";
+                            "<div style='margin-right: -80px'>" +
+                              "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
+                              escape(item.name) +
+                            "</div>" +
+                            info +
+                            "</div>";
+
 
   // styling if looking at contrast
   var conEl  = "<div>" +
@@ -24,20 +32,23 @@ function contrastOptions(item, escape) {
                "</div>";
 
   // either cluster or contrast element
-  return typeof item.pcells !== 'undefined' ? clustEl : conEl;
+  return (typeof item.pcells !== 'undefined' | typeof item.ntest !== 'undefined') ? clustEl : conEl;
 }
 
 
 
 //styling for current item
 function contrastItem(item, escape) {
+  var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pspace + item.pcells + "%" + ")</span>";
+  var infoSamples =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ")</span>";
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
+
+
   // styling if looking at cluster
   var clustEl = "<div>" +
                     "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
                      escape(item.name) +
-                  "<span style='color: #A0A0A0;'>" +
-                     " (" + item.ncells + " :: " + item.pcells + "%)" +
-                  "</span>" +
+                     info +
                 "</div>";
 
    // styling if looking at contrast
@@ -50,7 +61,7 @@ function contrastItem(item, escape) {
                "</div>";
 
   // either cluster or contrast element
-  return typeof item.pcells !== 'undefined' ? clustEl : conEl;
+  return (typeof item.pcells !== 'undefined' | typeof item.ntest !== 'undefined') ? clustEl : conEl;
 }
 
 
@@ -73,7 +84,7 @@ function integationOption(item, escape) {
 }
 
 function geneOption(item, escape) {
-  var res = "<div style='columns: 2;'>" +
+  var res = "<div style='columns: 2;' title='" + item.description + "'>" +
                   "<div style='margin-right: -80px'>" +
                      escape(item.label) +
                   "</div>" +
@@ -88,7 +99,7 @@ function geneOption(item, escape) {
 
 
 function geneItem(item, escape) {
-  var res = "<div>" +
+  var res = "<div title='" + item.description + "'>" +
                      escape(item.label) +
                   "<span style='color: #A0A0A0;'>" +
                      " (" + item["pct.1"] + " :: " + item["pct.2"] + ")" +
@@ -97,6 +108,11 @@ function geneItem(item, escape) {
 
   return res;
 
+}
+
+function pathGene(item, escape) {
+  var res = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";
+  return res;
 }
 
 function cellOptions(item, escape) {

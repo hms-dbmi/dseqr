@@ -64,28 +64,6 @@ scFormInput <- function(id) {
   })
 }
 
-#' selectizeInput with button
-#'
-#' Adjusts height is multiple.
-#' @export
-#' @keywords internal
-selectizeInputMultWithButton <- function(id, label, button) {
-
-  tags$div(class = 'form-group selectize-fh',
-           tags$label(class = 'control-label', `for` = id, label),
-           tags$div(class = 'input-group full-height-btn',
-                    tags$div(class = 'full-height-selectize',
-                             tags$select(id = id, style = 'display: none', multiple = TRUE),
-                             tags$script(type = 'application/json', `data-for` = id, HTML('{}'))
-                    ),
-                    tags$div(class = 'input-group-btn',
-                             button
-                    )
-           )
-  )
-}
-
-
 
 
 #' Selection form/button for sample comparisons (test vs control)
@@ -99,10 +77,12 @@ sampleComparisonInput <- function(id) {
                          title = 'Compare test to control cells')
 
   selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
+                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
                             button,
-                            options = list(multiple = TRUE))
+                            options = list(multiple = TRUE),
+                            label_title = 'Cluster (n test :: n ctrl)')
 }
+
 
 #' Input form to control/test/all groups for integrated datasets
 #' @export
@@ -206,7 +186,6 @@ integrationFormInput <- function(id) {
 
 
 
-
 #' Input form and buttons to select a cluster or contrast and rename a cluster
 #' @export
 #' @keywords internal
@@ -218,7 +197,7 @@ clusterComparisonInput <- function(id) {
       div(id = ns('selected_cluster_panel'),
           div(id = ns('select_panel'),
               div(class = 'form-group selectize-fh',
-                  label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:'),
+                  label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:', span(class = 'hover-info', icon('info', 'fa-fw')), title = 'Cluster (n cells :: % of total)'),
                   div(class = 'input-group',
                       div(
                         select(id = ns('selected_cluster'), style = 'display: none'),
@@ -269,10 +248,11 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),
-                            label = 'Show expression for:',
+                            label = tags$span('Show expression for:', span(class='hover-info', icon('info', 'fa-fw'))),
                             exclude_ambient_button,
                             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
-                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
+                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
+                            label_title = 'Gene (% exp test :: % exp ctrl)'
   )
 }
 
@@ -300,3 +280,4 @@ scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '500px')
 }
+

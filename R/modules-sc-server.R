@@ -598,7 +598,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
   cluster_choices <- reactive({
     req(annot())
-    get_cluster_choices(annot(), scseq())
+    get_cluster_choices(annot(), scseq(), sample_comparison = TRUE)
   })
 
   # reset if switch analysis or annotation updates

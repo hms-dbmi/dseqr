@@ -112,7 +112,7 @@ selectizeInputWithValidation <- function(id, label, options = NULL, container_id
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL) {
+selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL) {
 
   mult <- isTRUE(options$multiple)
   if(mult) {
@@ -127,7 +127,7 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   tags$div(class = 'form-group selectize-fh', id = container_id,
-           tags$label(class = 'control-label', `for` = id, label),
+           tags$label(class = 'control-label', `for` = id, label, title = label_title),
            tags$div(class = 'input-group full-height-btn',
                     tags$div(class = 'full-height-selectize',
                              select_tag,
