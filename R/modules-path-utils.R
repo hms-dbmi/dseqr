@@ -7,10 +7,7 @@
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
-construct_path_df <- function(top_table, nmax = min(nrow(top_table), 200)) {
-
-  # show up to nmax genes
-  nkeep <- min(nmax, nrow(top_table))
+construct_path_df <- function(top_table, nmax = 200) {
 
   path_df <- data.frame(
     Gene = row.names(top_table),
@@ -21,10 +18,14 @@ construct_path_df <- function(top_table, nmax = min(nrow(top_table), 200)) {
     stringsAsFactors = FALSE
   )
 
+  # keep up to nmax in common and cmap only genes
   path_df <- path_df %>%
-    mutate(Gene = factor(Gene, levels = Gene)) %>%
-    head(nkeep)
+    mutate(Gene = factor(Gene, levels = Gene))
 
+  common <- head(which(path_df$Gene %in% genes$common), nmax)
+  cmap <- head(which(path_df$Gene %in% genes$cmap_only), nmax)
+
+  path_df <- path_df[row.names(path_df) %in% c(common, cmap), ]
 
   return(path_df)
 }
@@ -68,7 +69,6 @@ get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
 
   construct_path_df(top_table)
 }
-
 
 #' Generate data.frame of saved single cell RNA-Seq analyses
 #'

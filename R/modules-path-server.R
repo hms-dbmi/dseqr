@@ -6,6 +6,10 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                      new_anal = new_anal,
                      data_dir)
 
+  observe({
+    toggle('l1000-label', condition = isTruthy(form$pathway()))
+  })
+
 
 
   # the gene plot
@@ -23,6 +27,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
     # 30 pixels width per gene in pathway
     plot_width <- max(400, nrow(path_df)*25 + 125)
 
+    pt.color <- ifelse(path_df$Gene %in% genes$common, 'red', 'black')
 
     plotly::plot_ly(data = path_df,
                     y = ~Dprime,
@@ -33,8 +38,9 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                     mode = 'markers',
                     width = plot_width,
                     height = 550,
-                    marker = list(size = 5, color = '#000000'),
+                    marker = list(size = 5, color = pt.color),
                     error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                    hoverlabel = list(bgcolor = '#000000'),
                     hovertemplate = paste0(
                       '<span style="color: crimson; font-weight: bold;">Gene</span>: %{text}<br>',
                       '<span style="color: crimson; font-weight: bold;">Description</span>: %{customdata.description}<br>',
@@ -158,10 +164,10 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 
     # for showing top up/down regulated
     all_choices <-  data.frame(
-      name = 'all',
-      value = 'all',
-      label = 'all',
-      fdr = c(NA, NA),
+      name = 'used for drug/genetic queries',
+      value = 'CMAP02/L1000 queries',
+      label = 'CMAP02/L1000 queries',
+      fdr = NA,
       stringsAsFactors = FALSE
     )
 
@@ -181,7 +187,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   observe({
     updateSelectizeInput(session, 'pathway',
                          choices = path_choices(),
-                         options = list(render= I('{option: pathOptions}')),
+                         options = list(render= I('{option: pathOptions, item: pathItem}')),
                          server = TRUE)
   })
 
@@ -307,4 +313,3 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
 
 
 }
-

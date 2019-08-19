@@ -12,6 +12,7 @@ pathPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
+            div(class = 'l1000-label', id = ns('l1000-label'), span(class = 'input-swatch'), 'L1000 gene'),
             div(class = 'scroll-plot',
                 plotly::plotlyOutput(ns('path_plot'), height = '550px')
 
@@ -19,6 +20,8 @@ pathPageUI <- function(id, tab, active) {
     )
   })
 }
+
+
 
 #' Input form for pathways page
 #' @export
@@ -58,3 +61,4 @@ scSampleComparisonInput <- function(ns) {
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }
+
