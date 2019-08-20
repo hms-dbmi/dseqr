@@ -28,6 +28,33 @@ get_cell_pcts <- function(scseq, ident.1, ident.2) {
   return(cbind(pct.1, pct.2))
 }
 
+#' Get label transfer choices data.frame
+#'
+#' Used for Single Cell tab label transfer selectizeInput
+#'
+#' @param anal_options Names list of analysis options with names \code{'Individual'} and \code{'Integrated'}.
+#' @param preds Named list of predicted cluster labels. Names are values in \code{anal_options} lists.
+#'
+#' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
+#' @export
+#' @keywords internal
+get_label_transfer_choices <- function(anal_options, preds) {
+
+  choices <- data.frame(
+    label = c(NA, unlist(anal_options, use.names = FALSE)),
+    type = c(NA,
+             rep('Individual', length(anal_options$Individual)),
+             rep('Integrated', length(anal_options$Integrated)))
+  )
+
+
+  choices$value <- choices$label
+  choices$preds <- choices$label %in% names(preds)
+
+  return(choices)
+}
+
+
 
 
 #' Utility to generate filename for single cell download csv

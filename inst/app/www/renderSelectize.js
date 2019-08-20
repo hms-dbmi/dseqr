@@ -207,3 +207,18 @@ function queryGenesOption(item, escape) {
 
   return res;
 }
+
+function transferLabelOption(item, escape) {
+  var predsMarkup = item.preds ? "<div class ='circle-swatch pull-right'></div>" : "<div></div>";
+
+  console.log(item.preds);
+
+  var res = "<div style='columns: 2;'>" +
+              "<div style='margin-right: -80px'>" +
+                  escape(item.label) +
+              "</div>" +
+              predsMarkup +
+            "</div>";
+
+  return res;
+}

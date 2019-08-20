@@ -73,6 +73,7 @@ scForm <- function(input, output, session, sc_dir) {
                               sc_dir = sc_dir,
                               anal_options = scAnal$anal_options,
                               show_integration = scAnal$show_integration,
+                              show_label_transfer = scAnal$show_label_transfer,
                               selected_anal = scAnal$selected_anal,
                               scseq = scAnal$scseq)
 
@@ -238,6 +239,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
   # get styles and integration info
   plot_styles <- callModule(plotStyles, 'styles')
   show_integration <- callModule(showIntegration, 'integration')
+  show_label_transfer <- callModule(showLabelTransfer, 'label-transfer')
 
 
   # return anal and options to app
@@ -249,7 +251,8 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     annot_path = annot_path,
     anal_options = anal_options,
     plot_styles = plot_styles,
-    show_integration = show_integration
+    show_integration = show_integration,
+    show_label_transfer = show_label_transfer
   ))
 }
 
@@ -282,11 +285,28 @@ showIntegration <- function(input, output, session) {
   return(show_integration)
 }
 
+#' Logic for show label transfer button in selectedAnal
+#' @export
+#' @keywords internal
+showLabelTransfer <- function(input, output, session) {
+
+  show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
+
+
+  # show/hide label transfer form
+  observe({
+    toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer())
+  })
+
+
+  return(show_label_transfer)
+}
+
 
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration, selected_anal, scseq) {
+integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration, show_label_transfer, selected_anal, scseq) {
 
   integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters', 'transfer_study', 'submit_transfer')
 
@@ -299,30 +319,34 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   new_anal <- reactiveVal()
   ref_preds <- reactiveVal()
 
-  # show/hide integration form
+  # show/hide integration/label transfer forms
   observe({
     toggle(id = "integration-form", anim = TRUE, condition = show_integration())
+    toggle(id = "label-transfer-form", anim = TRUE, condition = show_label_transfer())
   })
 
-  # show hide integration or label transfer
-  observe ({
-
-    if (input$integration_type == 'integration') {
-      shinyjs::show('integration')
-      shinyjs::hide('label-transfer')
-    } else {
-      shinyjs::show('label-transfer')
-      shinyjs::hide('integration')
-    }
-  })
 
   observe(ctrl(input$ctrl_integration))
   observe(test(input$test_integration))
 
   # update annotation transfer choices
   observe({
-    options <- lapply(anal_options(), setdiff, selected_anal())
-    updateSelectizeInput(session, 'ref_name', choices = c('', options), selected = '')
+    preds <- preds()
+    anal_options <- anal_options()
+    req(preds, anal_options)
+
+    choices <- get_label_transfer_choices(anal_options, preds)
+
+    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, options = list(render = I('{option: transferLabelOption}')))
+  })
+
+  preds <- reactive({
+    # new_preds()
+    query_name <- selected_anal()
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    if (file.exists(preds_path)) readRDS(preds_path) else list()
   })
 
 
@@ -333,9 +357,6 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     ref_name <- input$ref_name
     req(query_name, ref_name)
 
-    # load previously saved reference preds
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
 
     if (!ref_name %in% names(preds)) {
 

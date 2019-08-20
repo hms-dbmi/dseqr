@@ -5,7 +5,7 @@
 \title{Logic for integration form toggled by showIntegration}
 \usage{
 integrationForm(input, output, session, sc_dir, anal_options,
-  show_integration, selected_anal, scseq)
+  show_integration, show_label_transfer, selected_anal, scseq)
 }
 \description{
 Logic for integration form toggled by showIntegration

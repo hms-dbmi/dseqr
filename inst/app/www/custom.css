@@ -29,6 +29,7 @@
   margin-right: 5px;
 }
 
+/* swatch for Pathways plot L1000 label */
 .l1000-label .input-swatch {
   height: 8px; 
   width: 8px; 
@@ -40,9 +41,19 @@
 
 .l1000-label {
   display: none;
-  color: ##333;
+  color: #333;
   font-family: "Open Sans", verdana, arial, sans-serif;
   font-size: 14px;
+}
+
+/* swatch for label transfer in Single Cell page */
+.circle-swatch {
+  height: 8px;
+  width: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  background-color: #5cb85c;
+  margin-top: 6px;
 }
 
 .form-control {
@@ -63,8 +74,6 @@
   background-color: white;
 }
 
-
-
 .hidden-form {
   padding: 10px 0px 0px;
   border-width: 1px 0px;
@@ -72,6 +81,16 @@
   border-color: #e7e7e7;
   margin-bottom: 10px;
 }
+
+/* makes borders work when multiple hidden forms */
+.hidden-forms {
+  margin-bottom: 10px;
+}
+
+.hidden-forms .hidden-form {
+  margin-bottom: -1px;
+}
+
 
 /* VALIDATION RELATED */
 
@@ -120,7 +139,7 @@
   border-left-width: 0px;
 }
 
-.input-group-btn .dropdown .caret {
+.input-group-btn.dropdown .caret {
   display: none;
 }
 

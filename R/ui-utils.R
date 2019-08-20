@@ -134,10 +134,11 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
                              tags$script(type = 'application/json', `data-for` = id, HTML(options))
                     ),
                     lapply(buttons, function(btn) {
-                      tags$div(class = 'input-group-btn',
-                               # the buttons
-                               btn
-                      )
+
+                      if (!any(grepl('dropdown', unlist(btn$attribs))))
+                        btn <- tags$div(class = 'input-group-btn', btn)
+
+                      return(btn)
                     })
            ),
            tags$span(class = 'help-block', id = help_id)
