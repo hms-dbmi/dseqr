@@ -38,7 +38,9 @@ get_cell_pcts <- function(scseq, ident.1, ident.2) {
 #' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
 #' @export
 #' @keywords internal
-get_label_transfer_choices <- function(anal_options, preds) {
+get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
+
+  anal_options <- lapply(anal_options, setdiff, selected_anal)
 
   choices <- data.frame(
     label = c(NA, unlist(anal_options, use.names = FALSE)),

@@ -318,6 +318,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   test <- reactiveVal()
   new_anal <- reactiveVal()
   ref_preds <- reactiveVal()
+  new_preds <- reactiveVal()
 
   # show/hide integration/label transfer forms
   observe({
@@ -333,15 +334,16 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   observe({
     preds <- preds()
     anal_options <- anal_options()
+    selected_anal <- selected_anal()
     req(preds, anal_options)
 
-    choices <- get_label_transfer_choices(anal_options, preds)
+    choices <- get_label_transfer_choices(anal_options, selected_anal, preds)
 
     updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, options = list(render = I('{option: transferLabelOption}')))
   })
 
   preds <- reactive({
-    # new_preds()
+    new_preds()
     query_name <- selected_anal()
 
     # load previously saved reference preds
@@ -355,34 +357,59 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
     query_name <- selected_anal()
     ref_name <- input$ref_name
-    req(query_name, ref_name)
+    preds <- preds()
+    req(query_name, ref_name, preds)
 
 
-    if (!ref_name %in% names(preds)) {
+    # load anals
+    query <- scseq()
+    ref <- load_saved_scseq(ref_name, sc_dir)
 
-      # load anals
-      query <- scseq()
-      ref <- load_saved_scseq(ref_name, sc_dir)
+    # transfer labels to query cells
+    predictions <- transfer_labels(ref, query)
+    predictions$orig <- query$seurat_clusters
 
-      # transfer labels to query cells
-      predictions <- transfer_labels(ref, query)
-      predictions$orig <- query$seurat_clusters
+    # get most common label for originally identified clusters
+    predictions <- predictions %>%
+      group_by(orig) %>%
+      count(predicted.id) %>%
+      top_n(1) %>%
+      pull(predicted.id)
 
-      # get most common label for originally identified clusters
-      predictions <- predictions %>%
-        group_by(orig) %>%
-        count(predicted.id) %>%
-        top_n(1) %>%
-        pull(predicted.id)
 
-      preds[[ref_name]] <- predictions
-      saveRDS(preds, preds_path)
-    }
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds[[ref_name]] <- predictions
+    saveRDS(preds, preds_path)
+
+    new_preds(preds[[ref_name]])
     ref_preds(preds[[ref_name]])
   })
 
   observe({
     shinyjs::toggleState('submit_transfer', condition = is.null(ref_preds()))
+  })
+
+  # overwrite annotation
+  observeEvent(input$overwrite_annot, {
+
+    anal_name <- selected_anal()
+    ref_name <- input$ref_name
+    preds <- preds()
+    preds <- preds[[ref_name]]
+
+    req(anal_name, ref_name, preds)
+
+    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+
+    # overwrite
+    ref_preds_idx <- as.numeric(preds) + 1
+    ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+    ref_annot <- readRDS(ref_annot_path)
+    new_annot <- ref_annot[ref_preds_idx]
+    new_annot <- make.unique(new_annot, '_')
+
+    saveRDS(new_annot, annot_path)
+
   })
 
   # show transfered labels immediately upon selection if have
@@ -496,6 +523,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     ref_preds = ref_preds_annot
   ))
 }
+
 
 
 #' Logic for comparison type toggle for integrated analyses

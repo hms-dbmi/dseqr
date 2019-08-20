@@ -115,7 +115,9 @@ selectedAnalInput <- function(id) {
   )
 }
 
-
+#' Button with to toggle display of label transfer inputs
+#' @export
+#' @keywords internal
 showLabelTransferButton <- function(id) {
   ns <- NS(id)
 

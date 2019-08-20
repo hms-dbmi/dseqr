@@ -4,7 +4,7 @@
 \alias{get_label_transfer_choices}
 \title{Get label transfer choices data.frame}
 \usage{
-get_label_transfer_choices(anal_options, preds)
+get_label_transfer_choices(anal_options, selected_anal, preds)
 }
 \arguments{
 \item{anal_options}{Names list of analysis options with names \code{'Individual'} and \code{'Integrated'}.}
