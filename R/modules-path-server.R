@@ -40,12 +40,12 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                     height = 550,
                     marker = list(size = 5, color = pt.color),
                     error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
-                    hoverlabel = list(bgcolor = '#000000'),
+                    hoverlabel = list(bgcolor = '#000000', align = 'left'),
                     hovertemplate = paste0(
-                      '<span style="color: crimson; font-weight: bold;">Gene</span>: %{text}<br>',
-                      '<span style="color: crimson; font-weight: bold;">Description</span>: %{customdata.description}<br>',
-                      '<span style="color: crimson; font-weight: bold;">Dprime</span>: %{y:.2f}<br>',
-                      '<span style="color: crimson; font-weight: bold;">SD</span>: %{customdata.sd:.2f}',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
                       '<extra></extra>')
     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
@@ -165,8 +165,8 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     # for showing top up/down regulated
     all_choices <-  data.frame(
       name = 'used for drug/genetic queries',
-      value = 'CMAP02/L1000 queries',
-      label = 'CMAP02/L1000 queries',
+      value = 'Drug and genetic query genes',
+      label = 'Drug and genetic query genes',
       fdr = NA,
       stringsAsFactors = FALSE
     )
