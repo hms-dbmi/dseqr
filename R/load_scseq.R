@@ -489,15 +489,19 @@ add_integrated_ambient <- function(combined, ambient) {
 #' @export
 transfer_labels <- function(reference, query) {
 
+  # query can't be integrated assay (error)
+  Seurat::DefaultAssay(query) <- get_scseq_assay(query)
+
   k.filter <- min(201, ncol(reference), ncol(query))-1
 
   anchors <- Seurat::FindTransferAnchors(reference, query, k.filter = k.filter)
   predictions <- Seurat::TransferData(anchorset = anchors,
-                                      refdata = reference$seurat_clusters,
+                                      refdata = Seurat::Idents(reference),
                                       dims = 1:30)
 
   return(predictions)
 }
+
 
 
 #' Test is there is at lest two clusters
