@@ -279,35 +279,13 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
 #' @export
 #' @keywords internal
 load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, ident) {
-  sct_paths <- scseq_part_path(data_dir, anal_names, 'sct')
-  scseq_paths <- scseq_part_path(data_dir, anal_names, 'sct')
 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
-  scseqs <- list()
-  for (anal in anal_names) {
-
-    # load scseq
-    scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
-    scseq <- readRDS(scseq_path)
-
-    # add annotation
-    annot_path <- scseq_part_path(data_dir, anal, 'annot')
-    annot <- readRDS(annot_path)
-
-    scseq$annot_clusters <- scseq$seurat_clusters
-    levels(scseq$annot_clusters) <- annot
-
-    # restore SCT assay
-    sct_path <- scseq_part_path(data_dir, anal, 'sct')
-    if (file.exists(sct_path)) {
-      sct <- readRDS(sct_path)
-      scseq[['SCT']] <- sct
-    }
-
-    # restore counts slot
-    scseq[['RNA']]@counts <- scseq[['RNA']]@data
+  scseqs <- lapply(anal_names, load_saved_scseq, data_dir)
+  scseqs <- lapply(anal_names, function(anal) {
+    scseq <- scseqs[[anal]]
 
     # set orig.ident to ctrl/test
     scseq$orig.ident <- factor(ident)
@@ -317,21 +295,56 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
     if (any(is.exclude)) {
       exclude <- exclude_clusters[is.exclude]
       scseq <- scseq[, !scseq$seurat_clusters %in% exclude]
-
     }
 
-    # downsample very large datasets
-    # scseq <- downsample_scseq(scseq)
-
-    # bug in Seurat, need for integration
-    scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
-
-    # add to scseqs
-    scseqs[[anal]] <- scseq
-  }
+    return(scseq)
+  })
 
   return(scseqs)
 }
+
+#' Load saved single cell RNA-seq dataset
+#'
+#' Used for both dataset integration and label transfer.
+#'
+#' @param anal Name of single cell analysis and containing folder.
+#' @param data_dir Path to directory containing \code{anal} folder.
+#' @param downsample Should the loaded Seurat object be downsampled? For reducing speed/memory burden. Default is FALSE.
+#'
+#' @return \code{Seurat} object
+#' @export
+#' @keywords internal
+load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
+  # load scseq
+  scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
+  scseq <- readRDS(scseq_path)
+
+  # add annotation
+  annot_path <- scseq_part_path(data_dir, anal, 'annot')
+  annot <- readRDS(annot_path)
+
+  scseq$annot_clusters <- scseq$seurat_clusters
+  levels(scseq$annot_clusters) <- annot
+
+  # restore SCT assay
+  sct_path <- scseq_part_path(data_dir, anal, 'sct')
+  if (file.exists(sct_path)) {
+    sct <- readRDS(sct_path)
+    scseq[['SCT']] <- sct
+  }
+
+  # restore counts slot
+  scseq[['RNA']]@counts <- scseq[['RNA']]@data
+
+  # downsample very large datasets
+  if (downsample) scseq <- downsample_scseq(scseq)
+
+  # bug in Seurat, need for integration
+  scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
+
+  return(scseq)
+}
+
 
 #' Downsample very large scseq objects for integration
 #'
