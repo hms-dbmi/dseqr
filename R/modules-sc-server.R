@@ -59,7 +59,7 @@ scForm <- function(input, output, session, sc_dir) {
 
   # updates if new integrated dataset
   new_anal <- reactive({
-    scIntegration()
+    scIntegration$new_anal()
   })
 
 
@@ -72,7 +72,9 @@ scForm <- function(input, output, session, sc_dir) {
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
                               anal_options = scAnal$anal_options,
-                              show_integration = scAnal$show_integration)
+                              show_integration = scAnal$show_integration,
+                              selected_anal = scAnal$selected_anal,
+                              scseq = scAnal$scseq)
 
   # comparison type
   comparisonType <- callModule(comparisonType, 'comparison',
@@ -85,7 +87,8 @@ scForm <- function(input, output, session, sc_dir) {
                                     scseq = scAnal$scseq,
                                     markers = scAnal$markers,
                                     annot_path = scAnal$annot_path,
-                                    sc_dir = sc_dir)
+                                    sc_dir = sc_dir,
+                                    ref_preds = scIntegration$ref_preds)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               selected_anal = scAnal$selected_anal,
@@ -97,8 +100,6 @@ scForm <- function(input, output, session, sc_dir) {
                               comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison ----
-
-
 
   scSampleComparison <- callModule(sampleComparison, 'sample',
                                    selected_anal = scAnal$selected_anal,
@@ -285,9 +286,9 @@ showIntegration <- function(input, output, session) {
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
+integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration, selected_anal, scseq) {
 
-  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters')
+  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters', 'transfer_study', 'submit_transfer')
 
 
   integration_name <- reactive(input$integration_name)
@@ -296,14 +297,98 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   ctrl <- reactiveVal()
   test <- reactiveVal()
   new_anal <- reactiveVal()
+  ref_preds <- reactiveVal()
 
   # show/hide integration form
   observe({
     toggle(id = "integration-form", anim = TRUE, condition = show_integration())
   })
 
+  # show hide integration or label transfer
+  observe ({
+
+    if (input$integration_type == 'integration') {
+      shinyjs::show('integration')
+      shinyjs::hide('label-transfer')
+    } else {
+      shinyjs::show('label-transfer')
+      shinyjs::hide('integration')
+    }
+  })
+
   observe(ctrl(input$ctrl_integration))
   observe(test(input$test_integration))
+
+  # update annotation transfer choices
+  observe({
+    options <- lapply(anal_options(), setdiff, selected_anal())
+    updateSelectizeInput(session, 'ref_name', choices = c('', options), selected = '')
+  })
+
+
+  # submit annotation transfer
+  observeEvent(input$submit_transfer, {
+
+    query_name <- selected_anal()
+    ref_name <- input$ref_name
+    req(query_name, ref_name)
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+
+    if (!ref_name %in% names(preds)) {
+
+      # load anals
+      query <- scseq()
+      ref <- load_saved_scseq(ref_name, sc_dir)
+
+      # transfer labels to query cells
+      predictions <- transfer_labels(ref, query)
+      predictions$orig <- query$seurat_clusters
+
+      # get most common label for originally identified clusters
+      predictions <- predictions %>%
+        group_by(orig) %>%
+        count(predicted.id) %>%
+        top_n(1) %>%
+        pull(predicted.id)
+
+      preds[[ref_name]] <- predictions
+      saveRDS(preds, preds_path)
+    }
+    ref_preds(preds[[ref_name]])
+  })
+
+  observe({
+    shinyjs::toggleState('submit_transfer', condition = is.null(ref_preds()))
+  })
+
+  # show transfered labels immediately upon selection if have
+  observe({
+    query_name <- selected_anal()
+    ref_name <- input$ref_name
+    req(query_name)
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+
+    ref_preds(preds[[ref_name]])
+  })
+
+  ref_preds_annot <- reactive({
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    if (is.null(ref_preds)) return(NULL)
+
+    annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+    annot <- readRDS(annot_path)
+
+    ref_preds <- as.numeric(ref_preds) + 1
+    ref_preds_annot <- annot[ref_preds]
+    make.unique(ref_preds_annot, sep = '_')
+  })
 
 
   # update test dataset choices
@@ -385,7 +470,10 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
   })
 
-  return(new_anal)
+  return(list(
+    new_anal = new_anal,
+    ref_preds = ref_preds_annot
+  ))
 }
 
 
@@ -420,7 +508,7 @@ comparisonType <- function(input, output, session, scseq) {
 #' Logic for cluster comparison input
 #' @export
 #' @keywords internal
-clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir) {
+clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir, ref_preds) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -466,7 +554,11 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
     return(c(markers, con_markers))
   })
 
-  observe({ annot(readRDS(annot_path())) })
+  observe({
+    ref_preds <- ref_preds()
+    if (!is.null(ref_preds)) annot(ref_preds)
+    else annot(readRDS(annot_path()))
+  })
 
   # set to first cluster if switch to showing contrasts
   observeEvent(input$show_contrasts, {

@@ -5,7 +5,7 @@
 \title{Logic for cluster comparison input}
 \usage{
 clusterComparison(input, output, session, selected_anal, scseq, markers,
-  annot_path, sc_dir)
+  annot_path, sc_dir, ref_preds)
 }
 \description{
 Logic for cluster comparison input

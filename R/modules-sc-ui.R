@@ -149,7 +149,7 @@ showIntegrationButton <- function(id) {
 
   actionButton(ns('show_integration'), '',
                icon = icon('object-group', 'far fa-fw'),
-               title = 'Toggle dataset integration', class = 'squashed-btn')
+               title = 'Toggle dataset label transfer & integration', class = 'squashed-btn')
 }
 
 
@@ -162,23 +162,25 @@ integrationFormInput <- function(id) {
   ns <- NS(id)
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('exclude_clusters'), 'Excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
-        div(class = 'form-group selectize-fh',
-            label(class = 'control-label', `for` = ns('integration_name'), 'Name for new integrated analysis:'),
-            div(class = 'validate-wrapper', id = ns('validate'),
+        shinyWidgets::radioGroupButtons(ns('integration_type'), "Select an option:",
+                                        choices = c('label transfer', 'integration'),
+                                        selected = 'label transfer', justified = TRUE),
 
-                div(class = 'input-group',
-                    input(id = ns('integration_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
-                    span(class = 'input-group-btn',
-                         actionButton(ns('submit_integration'), '',
-                                      icon = icon('plus', 'fa-fw'),
-                                      title = 'Integrate datasets')
-                    )
-                ),
-                span(id = ns('error_msg'), class = 'help-block')
+        div(id = ns('label-transfer'),
+            selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
+                                      actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
+                                      actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels')
             )
+        ),
+
+        div(id = ns('integration'), style = 'display:',
+            selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
+            selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
+            selectizeInput(ns('exclude_clusters'), 'Excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
+            textInputWithButtons(ns('integration_name'),
+                                 'Name for new integrated analysis:',
+                                 actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
+                                 help_id = ns('error_msg'))
         )
     )
   })
@@ -280,4 +282,3 @@ scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '500px')
 }
-
