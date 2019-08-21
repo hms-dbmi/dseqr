@@ -1,3 +1,12 @@
+#' Modified shinyWidgets dropdownButton
+#'
+#' Button is wrapped in input-group-btn class to allow inline with forms. Also includes title parameter.
+#'
+#' @inheritParams shinyWidgets::dropdownButton
+#' @param title title attribute for button
+#'
+#' @export
+#' @keywords internal
 dropdownButton <- function(..., circle = TRUE, status = "default",
                            size = "default", icon = NULL,
                            label = NULL, tooltip = FALSE,

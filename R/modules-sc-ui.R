@@ -48,7 +48,10 @@ scFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         selectedAnalInput(ns('anal')),
-        integrationFormInput(ns('integration')),
+        div(class = 'hidden-forms',
+            labelTransferFormInput(ns('transfer')),
+            integrationFormInput(ns('integration'))
+        ),
         comparisonTypeToggle(ns('comparison')),
         # inputs for comparing clusters
         div(id = ns('cluster_comparison_inputs'),
@@ -159,32 +162,38 @@ showIntegrationButton <- function(id) {
 }
 
 
+#' Input form for transfering labels between single cell datasets
+#' @export
+#' @keywords internal
+labelTransferFormInput <- function(id) {
+  ns <- NS(id)
+  withTags({
+    div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
+                                  actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
+                                  actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels'),
+                                  options = list(optgroupField = 'type', render = I('{option: transferLabelOption}'))
+        )
+    )
+  })
+}
+
+
 #' Input form for integrating single cell datasets
 #' @export
 #' @keywords internal
 integrationFormInput <- function(id) {
   ns <- NS(id)
-  withTags({
-    tagList(
-      div(class = 'hidden-forms',
-          div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
-              selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
-                                        actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
-                                        actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels'),
-                                        options = list(optgroupField = 'type', render = I('{option: transferLabelOption}'))
-              )
-          ),
 
-          div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-              selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
-              selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
-              selectizeInput(ns('exclude_clusters'), 'Integration excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
-              textInputWithButtons(ns('integration_name'),
-                                   'Name for new integrated analysis:',
-                                   actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
-                                   help_id = ns('error_msg'))
-          )
-      )
+  withTags({
+    div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
+        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
+        selectizeInput(ns('exclude_clusters'), 'Integration excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
+        textInputWithButtons(ns('integration_name'),
+                             'Name for new integrated analysis:',
+                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
+                             help_id = ns('error_msg'))
     )
   })
 }

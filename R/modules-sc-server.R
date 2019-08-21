@@ -59,7 +59,7 @@ scForm <- function(input, output, session, sc_dir) {
 
   # updates if new integrated dataset
   new_anal <- reactive({
-    scIntegration$new_anal()
+    scIntegration()
   })
 
 
@@ -68,14 +68,20 @@ scForm <- function(input, output, session, sc_dir) {
                        sc_dir = sc_dir,
                        new_anal = new_anal)
 
-  # integration stuff
+
+  # label transfer between datasets
+  scLabelTransfer <- callModule(labelTransferForm, 'transfer',
+                                sc_dir = sc_dir,
+                                anal_options = scAnal$anal_options,
+                                show_label_transfer = scAnal$show_label_transfer,
+                                selected_anal = scAnal$selected_anal,
+                                scseq = scAnal$scseq)
+
+  # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
                               anal_options = scAnal$anal_options,
-                              show_integration = scAnal$show_integration,
-                              show_label_transfer = scAnal$show_label_transfer,
-                              selected_anal = scAnal$selected_anal,
-                              scseq = scAnal$scseq)
+                              show_integration = scAnal$show_integration)
 
   # comparison type
   comparisonType <- callModule(comparisonType, 'comparison',
@@ -89,7 +95,7 @@ scForm <- function(input, output, session, sc_dir) {
                                     markers = scAnal$markers,
                                     annot_path = scAnal$annot_path,
                                     sc_dir = sc_dir,
-                                    ref_preds = scIntegration$ref_preds)
+                                    ref_preds = scLabelTransfer)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               selected_anal = scAnal$selected_anal,
@@ -303,45 +309,21 @@ showLabelTransfer <- function(input, output, session) {
 }
 
 
-#' Logic for integration form toggled by showIntegration
+#' Logic for label transfer between datasets
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration, show_label_transfer, selected_anal, scseq) {
+labelTransferForm <- function(input, output, session, sc_dir, anal_options, show_label_transfer, selected_anal, scseq) {
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer')
 
-  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters', 'transfer_study', 'submit_transfer')
-
-
-  integration_name <- reactive(input$integration_name)
-  integration_options <- reactive(anal_options()$Individual)
-
-  ctrl <- reactiveVal()
-  test <- reactiveVal()
-  new_anal <- reactiveVal()
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
 
-  # show/hide integration/label transfer forms
+  # show/hide label transfer forms
   observe({
-    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
     toggle(id = "label-transfer-form", anim = TRUE, condition = show_label_transfer())
   })
 
-
-  observe(ctrl(input$ctrl_integration))
-  observe(test(input$test_integration))
-
-  # update annotation transfer choices
-  observe({
-    preds <- preds()
-    anal_options <- anal_options()
-    selected_anal <- selected_anal()
-    req(preds, anal_options)
-
-    choices <- get_label_transfer_choices(anal_options, selected_anal, preds)
-
-    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, options = list(render = I('{option: transferLabelOption}')))
-  })
-
+  # saved label transfer predictions
   preds <- reactive({
     new_preds()
     query_name <- selected_anal()
@@ -351,6 +333,16 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     if (file.exists(preds_path)) readRDS(preds_path) else list()
   })
 
+  # update annotation transfer choices
+  observe({
+    preds <- preds()
+    anal_options <- anal_options()
+    selected_anal <- selected_anal()
+    req(preds, anal_options)
+
+    choices <- get_label_transfer_choices(anal_options, selected_anal, preds)
+    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, options = list(render = I('{option: transferLabelOption}')))
+  })
 
   # submit annotation transfer
   observeEvent(input$submit_transfer, {
@@ -385,9 +377,25 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     ref_preds(preds[[ref_name]])
   })
 
+  # disable submit label transfer when already have preds
   observe({
     shinyjs::toggleState('submit_transfer', condition = is.null(ref_preds()))
   })
+
+
+  # show transfered labels immediately upon selection if have
+  observe({
+    query_name <- selected_anal()
+    ref_name <- input$ref_name
+    req(query_name)
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+
+    ref_preds(preds[[ref_name]])
+  })
+
 
   # overwrite annotation
   observeEvent(input$overwrite_annot, {
@@ -409,23 +417,10 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     new_annot <- make.unique(new_annot, '_')
 
     saveRDS(new_annot, annot_path)
-
-  })
-
-  # show transfered labels immediately upon selection if have
-  observe({
-    query_name <- selected_anal()
-    ref_name <- input$ref_name
-    req(query_name)
-
-    # load previously saved reference preds
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
-
-    ref_preds(preds[[ref_name]])
   })
 
   ref_preds_annot <- reactive({
+
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
     if (is.null(ref_preds)) return(NULL)
@@ -437,6 +432,35 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     ref_preds_annot <- annot[ref_preds]
     make.unique(ref_preds_annot, sep = '_')
   })
+
+  return(ref_preds_annot)
+}
+
+#' Logic for integration form toggled by showIntegration
+#' @export
+#' @keywords internal
+integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
+
+  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters')
+
+
+  integration_name <- reactive(input$integration_name)
+  integration_options <- reactive(anal_options()$Individual)
+
+  ctrl <- reactiveVal()
+  test <- reactiveVal()
+  new_anal <- reactiveVal()
+
+  # show/hide integration forms
+  observe({
+    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
+  })
+
+  observe(ctrl(input$ctrl_integration))
+  observe(test(input$test_integration))
+
+
+
 
 
   # update test dataset choices
@@ -518,10 +542,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
   })
 
-  return(list(
-    new_anal = new_anal,
-    ref_preds = ref_preds_annot
-  ))
+  return(new_anal)
 }
 
 
