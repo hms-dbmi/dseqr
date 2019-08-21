@@ -313,7 +313,7 @@ showLabelTransfer <- function(input, output, session) {
 #' @export
 #' @keywords internal
 labelTransferForm <- function(input, output, session, sc_dir, anal_options, show_label_transfer, selected_anal, scseq) {
-  label_transfer_inputs <- c('transfer_study', 'submit_transfer')
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
@@ -336,6 +336,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   # update annotation transfer choices
   observe({
     preds <- preds()
+
     anal_options <- anal_options()
     selected_anal <- selected_anal()
     req(preds, anal_options)
@@ -352,29 +353,48 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     preds <- preds()
     req(query_name, ref_name, preds)
 
+    toggleAll(label_transfer_inputs)
+
+    # Create a Progress object
+    progress <- Progress$new()
+    progress$set(message = "Transfering labels", value = 0)
+    # Close the progress when this reactive exits (even if there's an error)
+    on.exit(progress$close())
+
+    # Create a callback function to update progress.
+    updateProgress <- function(value = NULL, detail = NULL) {
+      if (is.null(value)) {
+        value <- progress$getValue()
+        value <- value + (progress$getMax() - value) / 2
+      }
+      progress$set(value = value, detail = detail)
+    }
+    n = 3
 
     # load anals
     query <- scseq()
     ref <- load_saved_scseq(ref_name, sc_dir)
+    updateProgress(1/n)
 
     # transfer labels to query cells
-    predictions <- transfer_labels(ref, query)
+    predictions <- transfer_labels(ref, query, updateProgress = updateProgress, n = n, n_init = 2)
     predictions$orig <- query$seurat_clusters
 
-    # get most common label for originally identified clusters
-    predictions <- predictions %>%
-      group_by(orig) %>%
-      count(predicted.id) %>%
-      top_n(1) %>%
-      pull(predicted.id)
+    # score as sum of percent in cluster with label and mean score
+    pred_pcts <- predictions %>%
+      group_by(orig, predicted.id) %>%
+      summarise(mean.score = mean(prediction.score.max), n = n()) %>%
+      top_n(1)
 
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds[[ref_name]] <- predictions
+    preds[[ref_name]] <- pred_pcts
     saveRDS(preds, preds_path)
 
     new_preds(preds[[ref_name]])
     ref_preds(preds[[ref_name]])
+
+    toggleAll(label_transfer_inputs)
   })
 
   # disable submit label transfer when already have preds
@@ -397,44 +417,63 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   })
 
 
-  # overwrite annotation
-  observeEvent(input$overwrite_annot, {
 
-    anal_name <- selected_anal()
-    ref_name <- input$ref_name
-    preds <- preds()
-    preds <- preds[[ref_name]]
-
-    req(anal_name, ref_name, preds)
-
-    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
-
-    # overwrite
-    ref_preds_idx <- as.numeric(preds) + 1
-    ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
-    ref_annot <- readRDS(ref_annot_path)
-    new_annot <- ref_annot[ref_preds_idx]
-    new_annot <- make.unique(new_annot, '_')
-
-    saveRDS(new_annot, annot_path)
-  })
-
-  ref_preds_annot <- reactive({
+  pred_annot <- reactive({
 
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    if (is.null(ref_preds)) return(NULL)
+    anal_name <- selected_anal()
 
-    annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
-    annot <- readRDS(annot_path)
+    # show saved annot if nothing selected or label transfer not open
+    if (is.null(ref_preds) | !show_label_transfer()) return(NULL)
 
-    ref_preds <- as.numeric(ref_preds) + 1
-    ref_preds_annot <- annot[ref_preds]
-    make.unique(ref_preds_annot, sep = '_')
+    get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
   })
 
-  return(ref_preds_annot)
+  # overwrite annotation
+  transferModal <- function() {
+    modalDialog(
+      tags$div('Saved annotation will be overwriten. This action cannot be undone.'),
+      title = 'Are you sure?',
+      size = 's',
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton(session$ns("confirm_overwrite"), "Overwrite", class = 'pull-left btn-warning')
+      )
+    )
+  }
+
+  # Show modal when button is clicked.
+  observeEvent(input$overwrite_annot, {
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    anal_name <- selected_anal()
+
+    req(anal_name, ref_name, ref_preds)
+
+    showModal(transferModal())
+  })
+
+  observeEvent(input$confirm_overwrite, {
+
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    anal_name <- selected_anal()
+
+    req(anal_name, ref_name, ref_preds)
+
+    pred_annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+    saveRDS(pred_annot, annot_path)
+
+  })
+
+
+
+  return(pred_annot)
 }
+
 
 #' Logic for integration form toggled by showIntegration
 #' @export
@@ -672,14 +711,17 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
   # modify/save annot if rename a cluster
   observeEvent(input$rename_cluster, {
+
     req(input$new_cluster_name)
 
     # update reactive annotation
-    mod_annot <- annot()
+    choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- which(mod_annot == sel_clust)
+    sel_idx <- which(choices$value == sel_clust)
+
+    mod_annot <- annot()
     mod_annot[sel_idx] <- input$new_cluster_name
-    mod_annot <- make.unique(mod_annot)
+    mod_annot <- make.unique(mod_annot, '_')
 
     # save on disc
     saveRDS(mod_annot, annot_path())

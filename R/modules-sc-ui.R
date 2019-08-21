@@ -136,7 +136,7 @@ showLabelTransferButton <- function(id) {
 #' @keywords internal
 plotStylesButton <- function(id) {
   ns <- NS(id)
-  dropdownButton(
+  drugseqr::dropdownButton(
     sliderInput(ns('point_size'), 'Point size:',
                 width = '100%', ticks = FALSE,
                 min = 0.5, max = 4, value = 2.5, step = 0.5),

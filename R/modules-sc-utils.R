@@ -1,3 +1,39 @@
+#' Get predicted annotation for label transfer
+#'
+#' Clusters with an average prediction scores below \code{min.score} retain their original labels.
+#'
+#' @param ref_preds data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}
+#' @param ref_name Name of reference analysis that labels are transfered from.
+#' @param anal_name Name of analysis that labels are transfered to.
+#' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{anal_name}.
+#' @param min.score Minimum average prediction score used for label transfer.
+#'
+#' @return Character vector of predicted labels from \code{ref_name}.
+#' @export
+#' @keywords internal
+get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir, min.score = 0.9) {
+
+  # load reference annotation
+  ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+  ref_annot <- readRDS(ref_annot_path)
+
+  # load query annotation
+  query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+  query_annot <- readRDS(query_annot_path)
+
+  # get predicted annotation
+  pred.idx <- as.numeric(ref_preds$predicted.id) + 1
+  pred_annot <- ref_annot[pred.idx]
+
+  # use original query annotation below min score threshold
+  poor.pred <- ref_preds$mean.score < min.score
+  pred_annot[poor.pred] <- query_annot[poor.pred]
+  pred_annot <- make.unique(pred_annot, '_')
+
+  return(pred_annot)
+}
+
+
 #' Get percentage of cells expressing each gene
 #'
 #' @param scseq \code{Seurat} object

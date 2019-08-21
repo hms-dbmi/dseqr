@@ -487,7 +487,8 @@ add_integrated_ambient <- function(combined, ambient) {
 #'
 #' @return \code{data.frame} with predictions
 #' @export
-transfer_labels <- function(reference, query) {
+transfer_labels <- function(reference, query, updateProgress = NULL, n = 3, n_init = 2) {
+  if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
 
   # query can't be integrated assay (error)
   Seurat::DefaultAssay(query) <- get_scseq_assay(query)
@@ -495,10 +496,12 @@ transfer_labels <- function(reference, query) {
   k.filter <- min(201, ncol(reference), ncol(query))-1
 
   anchors <- Seurat::FindTransferAnchors(reference, query, k.filter = k.filter)
+  updateProgress(n_init/n)
   predictions <- Seurat::TransferData(anchorset = anchors,
                                       refdata = Seurat::Idents(reference),
                                       dims = 1:30)
 
+  updateProgress((n_init + 1)/n)
   return(predictions)
 }
 
