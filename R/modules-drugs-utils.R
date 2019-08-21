@@ -192,7 +192,6 @@ get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
 }
 
 
-
 #' Summarize query results and annotations by perturbation
 #'
 #' Takes a \code{data.frame} with one row per signatures and summarizes to one row per compound.
@@ -205,6 +204,7 @@ get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
 #' all unique entries are paste together seperated by \code{'|'}.
 #'
 #' @param query_table \code{data.frame} of perturbation correlations and annotations.
+#' @param is_genetic is \code{query_table} from L1000 genetic perts?
 #'
 #' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
 #' @export
@@ -212,81 +212,73 @@ get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-summarize_compound <- function(query_table, get_similar = FALSE) {
+summarize_compound <- function(query_table, is_genetic = FALSE) {
 
-  # group by compound
-  query_table <- query_table %>%
-    dplyr::group_by(Compound) %>%
-    dplyr::add_tally()
+  query_table <- data.table(query_table, key = 'Compound')
 
   # put all correlations together in list
-  # keep minimum and average correlation for sorting
-  query_cors <- query_table %>%
-    dplyr::select(Correlation, Compound) %>%
-    dplyr::summarise(min_cor = min(Correlation),
-                     max_cor = max(Correlation),
-                     avg_cor = mean(Correlation),
-                     Correlation = I(list(Correlation)))
+  query_cors <- query_table[, .(Correlation = I(list(Correlation)),
+                                max_cor = max(Correlation),
+                                min_cor = min(Correlation),
+                                avg_cor = mean(Correlation),
+                                cor_title = I(list(cor_title)),
+                                n = .N),
+                            by = Compound]
+
 
   # compounds in top min or avg cor
-  top_max <- if (get_similar) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
+  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
   top_min <- get_top(query_cors, 'min_cor')
 
-  top_avg_sim <- if (get_similar) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
+  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
   top_avg_dis <- get_top(query_cors, 'avg_cor')
 
   top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
 
   # filter based on top
-  query_table <- query_table %>%
-    dplyr::filter(Compound %in% top)
+  query_cors <- query_cors[Compound %in% top, ]
+  query_table <- query_table[Compound %in% top, ]
 
-  query_cors <- query_cors %>%
-    dplyr::filter(Compound %in% top) %>%
-    dplyr::select(-Compound)
+  # split joined cols
+  joined_cols <- intersect(colnames(query_table), c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name'))
+  if (length(joined_cols))
+    query_table[,
+                (joined_cols) := lapply(.SD, strsplit, ' | ', fixed = TRUE),
+                .SDcols = joined_cols]
 
-  query_title <- query_table %>%
-    dplyr::select(cor_title, Compound) %>%
-    dplyr::summarize(cor_title = I(list(cor_title))) %>%
-    dplyr::select(cor_title)
+  # summarize rest cols
+  rest_cols <- setdiff(colnames(query_table), c('Compound', 'Correlation', 'Clinical Phase', 'title', 'cor_title'))
+  query_rest <- query_table[,
+                            lapply(.SD, function(x) {paste(unique(unlist(x)), collapse = ' | ')}),
+                            by = Compound,
+                            .SDcols = rest_cols]
+
+  query_rest[query_rest == 'NA'] <- NA_character_
 
 
-  # summarize rest
-  rest_cols <- setdiff(colnames(query_table), c('Correlation', 'Clinical Phase', 'title', 'cor_title'))
-  query_rest <- query_table %>%
-    dplyr::select(dplyr::one_of(rest_cols)) %>%
-    dplyr::summarize_all(function(x) {
-      unqx <- na.omit(x)
-      unqx <- as.character(unqx)
-      unqx <- unlist(strsplit(unqx, '|', fixed = TRUE))
-      unqx <- unique(unqx)
-
-      # keep as NA if they all are
-      if (!length(unqx)) return(NA_character_)
-
-      # collapse distinct non-NA entries
-      return(paste(unqx, collapse = ' | '))
-    })
-
-  summarise_phase <- function(phases) {
-    if (all(is.na(phases))) return(phases[1])
-    max(phases, na.rm = TRUE)
-  }
   # not in L1000 Genetic
   if ('Clinical Phase' %in% colnames(query_table)) {
 
-    # keep furthest clinical phase
-    query_phase <- query_table %>%
-      dplyr::select(`Clinical Phase`, Compound) %>%
-      dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
-      dplyr::pull(`Clinical Phase`)
+    summarise_phase <- function(phases) {
+      if (all(is.na(phases))) return(phases[1])
+      max(phases, na.rm = TRUE)
+    }
+    query_phase <- query_table[,
+                               .(summarise_phase(`Clinical Phase`)),
+                               by = Compound]$V1
+
 
     query_rest <- query_rest %>%
       tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
+
   }
 
+  query_rest <- query_rest[, -('Compound')]
 
-  query_table <- dplyr::bind_cols(query_cors, query_rest, query_title)
+
+  query_table <- dplyr::bind_cols(query_cors, query_rest) %>%
+    as.data.frame()
+
   return(query_table)
 }
 
@@ -418,7 +410,7 @@ merge_linkouts <- function(query_res, cols) {
 
   # paste cols with non-NA values
   paste.na <- function(x) paste(x[!is.na(x)], collapse = '')
-  new_vals <- apply(query_res[ ,cols] , 1, paste.na)
+  new_vals <- apply(query_res[ ,cols, drop = FALSE] , 1, paste.na)
 
   # remove cols that pasted
   query_res <- query_res %>%

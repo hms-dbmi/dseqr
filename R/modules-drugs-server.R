@@ -397,12 +397,14 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_table_full <- query_table_full()
     if (is.null(query_table_full)) return(NULL)
 
-    get_similar <- grepl('Genetic', drug_study())
+    is_genetic <- grepl('Genetic', drug_study())
+    cols <- if(is_genetic) gene_cols else drug_cols
 
     query_table <- query_table_full %>%
       limit_cells(cells()) %>%
-      summarize_compound(get_similar = get_similar) %>%
-      add_table_html()
+      summarize_compound(is_genetic = is_genetic) %>%
+      add_table_html() %>%
+      select(cols, everything())
   })
 
   query_table_final <- reactive({

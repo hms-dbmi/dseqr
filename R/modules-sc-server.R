@@ -342,7 +342,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     req(preds, anal_options)
 
     choices <- get_label_transfer_choices(anal_options, selected_anal, preds)
-    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, options = list(render = I('{option: transferLabelOption}')))
+    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption}')))
   })
 
   # submit annotation transfer
@@ -391,7 +391,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     preds[[ref_name]] <- pred_pcts
     saveRDS(preds, preds_path)
 
-    new_preds(preds[[ref_name]])
+    new_preds(ref_name)
     ref_preds(preds[[ref_name]])
 
     toggleAll(label_transfer_inputs)
