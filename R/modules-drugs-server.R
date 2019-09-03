@@ -359,9 +359,13 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
   gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
-  runjs('initContextMenu();')
+  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
 
   dummy_rendered <- reactiveVal(FALSE)
+
+  observeEvent(input$pert_query_name, {
+    print(input$pert_query_name)
+  })
 
   # get either cmap or l1000 annotations
   drug_annot <- reactive({
@@ -496,4 +500,5 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     runjs('setupContextMenu();')
   })
 }
+
 

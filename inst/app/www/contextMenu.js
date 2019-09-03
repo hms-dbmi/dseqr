@@ -28,14 +28,17 @@ function setupContextMenu() {
   });
 }
 
-function initContextMenu() {
+function initContextMenu(nsId) {
    // If the menu element is clicked
+
+   console.log(nsId);
    $("#cor-menu li").click(function() {
     // This is the triggered action name
     switch ($(this).attr("data-action")) {
       // A case for each action. Your actions here
       case "load":
         console.log(title);
+        Shiny.onInputChange(nsId, title);
         break;
       case "clear":
         alert("second");

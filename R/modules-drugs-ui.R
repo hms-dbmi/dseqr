@@ -51,6 +51,7 @@ drugsFormInput <- function(id) {
   })
 }
 
+
 #' Input form for custom query on Drugs page
 #' @export
 #' @keywords internal
@@ -138,6 +139,7 @@ advancedOptionsInput <- function(id) {
     )
   })
 }
+
 
 
 #' Select drugs study (CMAP or L1000) for drugs page
