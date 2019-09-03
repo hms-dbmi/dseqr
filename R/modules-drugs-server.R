@@ -492,3 +492,5 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
+
+

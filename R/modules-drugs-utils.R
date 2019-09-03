@@ -216,28 +216,9 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
 
   query_table <- data.table(query_table, key = 'Compound')
 
-  # put all correlations together in list
-  query_cors <- query_table[, .(Correlation = I(list(Correlation)),
-                                max_cor = max(Correlation),
-                                min_cor = min(Correlation),
-                                avg_cor = mean(Correlation),
-                                cor_title = I(list(cor_title)),
-                                n = .N),
-                            by = Compound]
 
-
-  # compounds in top min or avg cor
-  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
-  top_min <- get_top(query_cors, 'min_cor')
-
-  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
-  top_avg_dis <- get_top(query_cors, 'avg_cor')
-
-  top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
-
-  # filter based on top
-  query_cors <- query_cors[Compound %in% top, ]
-  query_table <- query_table[Compound %in% top, ]
+  query_cors <- get_top_cors(query_table, is_genetic = is_genetic)
+  query_table <- query_table[Compound %in% query_cors$Compound, ]
 
   # split joined cols
   joined_cols <- intersect(colnames(query_table), c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name'))
@@ -248,11 +229,12 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
 
   # summarize rest cols
   rest_cols <- setdiff(colnames(query_table), c('Compound', 'Correlation', 'Clinical Phase', 'title', 'cor_title'))
-  query_rest <- query_table[,
-                            lapply(.SD, function(x) {paste(unique(unlist(x)), collapse = ' | ')}),
-                            by = Compound,
-                            .SDcols = rest_cols]
+  query <- c('cor_title = I(list(cor_title))',
+             paste0('`', rest_cols, '`', ' = paste(unique(unlist(`', rest_cols, '`)), collapse = " | ")'))
+  query <- paste(query, collapse = ', ')
+  query <- paste0('query_table[, .(', query, '), by = Compound]')
 
+  query_rest <- eval(parse(text = query))
   query_rest[query_rest == 'NA'] <- NA_character_
 
 
@@ -280,6 +262,40 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
     as.data.frame()
 
   return(query_table)
+}
+
+#' Get top correlated compounds for drug query
+#'
+#' @param query_table data.frame with columns \code{'Correlation'} and \code{'Compound'}.
+#' @param is_genetic Boolean indicating if the query results are from L1000 genetic perturbations.
+#'
+#' @return data.table summarized by Compound with top results.
+#' @export
+#' @keywords internal
+get_top_cors <- function(query_table, is_genetic = FALSE) {
+  query_table <- data.table(query_table, key = 'Compound')
+
+  # put all correlations together in list
+  query_cors <- query_table[, .(Correlation = I(list(Correlation)),
+                                max_cor = max(Correlation),
+                                min_cor = min(Correlation),
+                                avg_cor = mean(Correlation),
+                                n = .N),
+                            by = Compound]
+
+
+  # compounds in top min or avg cor
+  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
+  top_min <- get_top(query_cors, 'min_cor')
+
+  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
+  top_avg_dis <- get_top(query_cors, 'avg_cor')
+
+  top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
+
+  # filter based on top
+  query_cors <- query_cors[Compound %in% top, ]
+  return(query_cors)
 }
 
 #' Add linkout HTML

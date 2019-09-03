@@ -399,6 +399,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
 
   # disable submit label transfer when already have preds
   observe({
+    ref_name <- input$ref_name
     shinyjs::toggleState('submit_transfer', condition = is.null(ref_preds()))
   })
 
@@ -450,7 +451,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     ref_preds <- ref_preds()
     anal_name <- selected_anal()
 
-    req(anal_name, ref_name, ref_preds)
+    req(anal_name)
 
     showModal(transferModal())
   })
@@ -461,7 +462,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     ref_preds <- ref_preds()
     anal_name <- selected_anal()
 
-    req(anal_name, ref_name, ref_preds)
+    req(anal_name)
 
     pred_annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
     annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
@@ -1003,3 +1004,4 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
+
