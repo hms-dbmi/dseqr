@@ -6,6 +6,7 @@ drugsPageUI <- function(id, tab, active) {
 
   withTags({
     tabPane(tab, active,
+            rightClickMenu(),
             div(class = 'row',
                 div(class = 'col-sm-6',
                     drugsFormInput(ns('form'))
@@ -93,7 +94,10 @@ scSampleComparisonInput <- function(ns) {
                          icon = icon('chevron-right', 'far fa-fw'),
                          title = 'Compare test to control cells')
 
-  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = 'Compare samples for:',
+                            button,
+                            options = list(multiple = TRUE))
 
 }
 
@@ -148,3 +152,15 @@ selectedDrugStudyInput <- function(id) {
 
 }
 
+
+#' Custom right click menu for selecting correlation point as query
+#' @export
+#' @keywords internal
+rightClickMenu <- function() {
+  withTags({
+    ul(
+      class = 'custom-menu', id = 'cor-menu',
+      li('data-action' = 'load', 'Load signature')
+    )
+  })
+}

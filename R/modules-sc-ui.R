@@ -172,7 +172,8 @@ labelTransferFormInput <- function(id) {
         selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
                                   actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
                                   actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels'),
-                                  options = list(optgroupField = 'type', render = I('{option: transferLabelOption}'))
+                                  options = list(optgroupField = 'type', placeholder = 'Select none to reset labels',
+                                                 render = I('{option: transferLabelOption}'))
         )
     )
   })

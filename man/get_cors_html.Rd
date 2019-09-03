@@ -4,7 +4,7 @@
 \alias{get_cors_html}
 \title{Get HTML for correlation values.}
 \usage{
-get_cors_html(cors, titles, cors_range)
+get_cors_html(cors, titles, cor_titles, cors_range)
 }
 \arguments{
 \item{cors}{List of numeric vectors of pearson correlations.}

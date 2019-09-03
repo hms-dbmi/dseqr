@@ -359,6 +359,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
   gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
+  runjs('initContextMenu();')
+
   dummy_rendered <- reactiveVal(FALSE)
 
   # get either cmap or l1000 annotations
@@ -473,6 +475,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
                             "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
                             "}"))
         ),
+        drawCallback = DT::JS('function(setting, json) { setupContextMenu(); }'),
         ordering = FALSE,
         scrollX = TRUE,
         pageLength = 20,
@@ -490,7 +493,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     req(dummy_rendered())
     query_table <- query_table_final()
     DT::replaceData(proxy, query_table, rownames = FALSE)
+    runjs('setupContextMenu();')
   })
 }
-
 

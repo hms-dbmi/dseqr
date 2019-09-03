@@ -228,8 +228,9 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
                 .SDcols = joined_cols]
 
   # summarize rest cols
-  rest_cols <- setdiff(colnames(query_table), c('Compound', 'Correlation', 'Clinical Phase', 'title', 'cor_title'))
-  query <- c('cor_title = I(list(cor_title))',
+  rest_cols <- setdiff(colnames(query_table), c('Compound', 'Correlation', 'Clinical Phase', 'cor_title', 'title'))
+  query <- c('title = I(list(title))',
+             'cor_title = I(list(cor_title))',
              paste0('`', rest_cols, '`', ' = paste(unique(unlist(`', rest_cols, '`)), collapse = " | ")'))
   query <- paste(query, collapse = ', ')
   query <- paste0('query_table[, .(', query, '), by = Compound]')
@@ -273,14 +274,14 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
 #' @export
 #' @keywords internal
 get_top_cors <- function(query_table, is_genetic = FALSE) {
-  query_table <- data.table(query_table, key = 'Compound')
+  query_table <- data.table::data.table(query_table, key = 'Compound')
 
   # put all correlations together in list
-  query_cors <- query_table[, .(Correlation = I(list(Correlation)),
-                                max_cor = max(Correlation),
-                                min_cor = min(Correlation),
-                                avg_cor = mean(Correlation),
-                                n = .N),
+  query_cors <- query_table[, list(Correlation = I(list(Correlation)),
+                                   max_cor = max(Correlation),
+                                   min_cor = min(Correlation),
+                                   avg_cor = mean(Correlation),
+                                   n = .N),
                             by = Compound]
 
 
@@ -395,19 +396,21 @@ add_table_html <- function(query_res) {
   # replace correlation with svg element
   cors <- query_res$Correlation
 
-  # move titles to plots
-  titles <- query_res$cor_title
-  query_res$cor_title <- NULL
+  # move cor titles to plots
+  titles <- query_res$title
+  cor_titles <- query_res$cor_title
+  query_res$title <- query_res$cor_title <- NULL
 
 
   cors_range <- range(unlist(cors))
   xcenter <- calcx(0, cors_range)
   xmean <- calcx(query_res$avg_cor, cors_range)
+  compounds <- query_res$Compound
 
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">',
                                   paste0('<line class="meanline" x1="', xmean,'" x2="', xmean,'" y1="0" y2="8"></line>'),
                                   '<line class="centerline" x1="', xcenter,'" x2="', xcenter,'" y1="0" y2="38"></line>',
-                                  get_cors_html(cors, titles, cors_range),
+                                  get_cors_html(cors, titles, cor_titles, cors_range),
                                   '</svg>')
 
   return(query_res)
@@ -444,17 +447,21 @@ merge_linkouts <- function(query_res, cols) {
 #'
 #' @return Character vector of HTML markup for the title/circle/text for a correlation plot.
 #' @export
-get_cors_html <- function(cors, titles, cors_range) {
+get_cors_html <- function(cors, titles, cor_titles, cors_range) {
+
 
   cors_html <- sapply(seq_along(cors), function(i) {
     x <- cors[[i]]
-    xtitle <- titles[[i]]
+    title <- titles[[i]]
+    cor_title <- cor_titles[[i]]
     paste0('<g class="cor-point">
-              <title>', xtitle, '</title>
+              <title>', cor_title, '</title>
               <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
-              <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor"></circle></g>
+              <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor" title="', title, '"></circle></g>
             </g>', collapse = '\n')
   })
+
+
 
   return(cors_html)
 }
