@@ -28,43 +28,48 @@ pb <- txtProgressBar(max = iterations, style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
 
-# for each genetic signature query cmap_es and l1000_drugs_es
+# for each genetic signature query drug signatures (cmap_es)
 res_cmap <- foreach(i = seq_len(iterations), .options.snow = opts) %dopar% {
+  require(drugseqr)
+  require(rlang)
   query_genes <- l1000_genes[, i]
-  cat('Working on', i, 'of', ncol(l1000_genes), '\n')
+  query_name <- colnames(l1000_genes)[i]
 
   # get query results
   res <- drugseqr::query_drugs(query_genes, cmap_es)
 
   # not feasible to save everything
-  res <- data.table(Compound = cmap_compounds,
-                         Correlation = res, key = 'Compound')
+  # store vector of top results
+  res_table <- data.table::data.table(Compound = cmap_compounds,
+                    Correlation = res, key = 'Compound')
 
-  drugseqr::get_top_cors(res, is_genetic = TRUE)
+  top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
+  res[res_table$Compound %in% top_cors$Compound]
 }
 close(pb)
 stopCluster(cl)
+names(res_cmap) <- colnames(l1000_genes)
 
-
+# for each genetic signature query drug signatures (l1000_drugs_es)
 res_l1000 <- foreach(i = seq_len(ncol(l1000_genes))) %dopar% {
+  require(drugseqr)
+  require(rlang)
   query_genes <- l1000_genes[, i]
-  cat('Working on', i, 'of', ncol(l1000_genes), '\n')
+  query_name <- colnames(l1000_genes)[i]
 
   # get query results
-  res_cmap <- query_drugs(query_genes, cmap_es)
-  res_l1000 <- query_drugs(query_genes, l1000_drugs)
+  res <- drugseqr::query_drugs(query_genes, l1000_drugs)
 
   # not feasible to save everything
-  res_cmap <- data.table(Compound = cmap_compounds,
-                         Correlation = res_cmap, key = 'Compound')
+  # store vector of top results
+  res_table <- data.table::data.table(Compound = l1000_compounds,
+                                      Correlation = res, key = 'Compound')
 
-  res_l1000 <- data.table(Compound = l1000_compounds,
-                          Correlation = res_l1000, key = 'Compound')
-
-  res_cmap <- get_top_cors(res_cmap, is_genetic = TRUE)
-  res_l1000 <- get_top_cors(res_l1000, is_genetic = TRUE)
+  top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
+  res[res_table$Compound %in% top_cors$Compound]
 }
 close(pb)
 stopCluster(cl)
+names(res_cmap) <- colnames(l1000_genes)
 
 
