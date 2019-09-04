@@ -15,7 +15,8 @@ drugsPage <- function(input, output, session, new_anal, data_dir) {
              cells = form$cells,
              sort_by = form$sort_by,
              show_clinical = form$show_clinical,
-             min_signatures = form$min_signatures)
+             min_signatures = form$min_signatures,
+             is_pert = form$is_pert)
 
 }
 
@@ -107,6 +108,11 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
                                new_anal = new_anal,
                                data_dir = data_dir)
 
+  is_pert <- reactive({
+    anal <- querySignature$anal()
+    anal$type == 'CMAP02/L1000 Perturbations'
+  })
+
   # show/hide single cell stuff
   is_sc <- reactive({
     anal <- querySignature$anal()
@@ -147,7 +153,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
     if (is_sc())  {
       res <- sc_inputs$results()
 
-    } else if (is_custom()) {
+    } else if (is_custom() || is_pert()) {
       res_paths <- querySignature$res_paths()
       res <- load_custom_results(res_paths)
 
@@ -198,7 +204,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
     cells = advancedOptions$cells,
     sort_by = advancedOptions$sort_by,
     show_clinical = drugStudy$show_clinical,
-    min_signatures = advancedOptions$min_signatures
+    min_signatures = advancedOptions$min_signatures,
+    is_pert = is_pert
   ))
 
 
@@ -210,12 +217,6 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 #' @keywords internal
 querySignature <- function(input, output, session, new_anal, data_dir) {
 
-  # right click load signature logic
-  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
-
-  observe({
-    updateSelectizeInput(session, 'query', selected = input$pert_query_name, server = TRUE)
-  })
 
 
   # reload query choices if new analysis
@@ -233,11 +234,28 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
     return(anals)
   })
 
+
   observe({
     anals <- anals()
     req(anals)
     updateSelectizeInput(session, 'query', choices = anals, server = TRUE)
   })
+
+  # right click load signature logic
+  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
+
+  observe({
+    sel <- input$pert_query_name
+    req(sel)
+
+    anals <- anals()
+    sel_idx <- which(anals$anal_name == sel)
+
+    updateSelectizeInput(session, 'query', choices = anals, selected = sel_idx, server = TRUE)
+  })
+
+
+
 
   anal <- reactive({
 
@@ -254,12 +272,12 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
     anal <- anal()
     req(anal)
 
-    dataset_dir <- swtich(anal$type,
+    dataset_dir <- switch(anal$type,
                           'Custom' = file.path(data_dir, 'custom_queries'),
                           'CMAP02/L1000 Perturbations' = pert_query_dir,
                           file.path(data_dir, 'bulk', anal$dataset_dir))
 
-    anal_name <- anal$anal_name
+    anal_name <-  fs::path_sanitize(anal$anal_name)
 
     list(
       anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
@@ -364,7 +382,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures) {
+drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert) {
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
   gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
@@ -393,13 +411,21 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_res <- query_res()
     if (is.null(query_res)) return(NULL)
 
-
     drug_annot <- drug_annot()
     req(query_res, drug_annot)
+    drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
     stopifnot(all.equal(drug_annot$title, names(query_res)))
 
-
     tibble::add_column(drug_annot, Correlation = query_res, .before=0)
+  })
+
+  is_genetic <- reactive({
+    drug_study() == 'L1000 Genetic'
+  })
+
+  # sort by absolute if either is genetic or is CMAP/L1000 pert
+  sort_abs <- reactive({
+    is_genetic() | is_pert()
   })
 
   # subset to selected cells, summarize by compound, and add html
@@ -407,12 +433,11 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     query_table_full <- query_table_full()
     if (is.null(query_table_full)) return(NULL)
 
-    is_genetic <- grepl('Genetic', drug_study())
-    cols <- if(is_genetic) gene_cols else drug_cols
+    cols <- if(is_genetic()) gene_cols else drug_cols
 
     query_table <- query_table_full %>%
       limit_cells(cells()) %>%
-      summarize_compound(is_genetic = is_genetic) %>%
+      summarize_compound(is_genetic = sort_abs()) %>%
       add_table_html() %>%
       select(cols, everything())
   })
@@ -433,9 +458,9 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       query_table$Correlation <- gsub('simplot', 'simplot show-meanline', query_table$Correlation)
     }
 
-    # show largest absolute correlations first for genetic
+    # show largest absolute correlations first for genetic and pert queries
     # as both directions are informative
-    if (drug_study == 'L1000 Genetic') {
+    if (sort_abs()) {
       query_table <- query_table %>%
         dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
         dplyr::mutate(avg_cor = -abs(avg_cor))
@@ -504,3 +529,4 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     runjs('setupContextMenu();')
   })
 }
+

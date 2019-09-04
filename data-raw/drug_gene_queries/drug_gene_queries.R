@@ -56,7 +56,8 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
     res_table <- data.table::data.table(Compound = compounds,
                                         Correlation = res, key = 'Compound')
 
-    top_cors <- drugseqr::get_top_cors(res_table, is_genetic = is_genetic)
+    # always run with is_genetic TRUE so that can show most similar absolute results for pert queries
+    top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
     res <- res[res_table$Compound %in% top_cors$Compound]
 
     saveRDS(res, query_path)
@@ -65,7 +66,7 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 }
 
 # run each query_es against each drug_es (cmap_es, l1000_drugs, l1000_genes)
-run_pert_queries(cmap_es, cmap_es, 'cmap_res_', cmap_compounds)
+# run_pert_queries(cmap_es, cmap_es, 'cmap_res_', cmap_compounds)
 run_pert_queries(cmap_es, l1000_genes, 'cmap_res_', cmap_compounds)
 run_pert_queries(cmap_es, l1000_drugs, 'cmap_res_', cmap_compounds)
 
