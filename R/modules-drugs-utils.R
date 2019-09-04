@@ -137,6 +137,21 @@ load_custom_anals <- function(data_dir) {
   return(anals)
 }
 
+#' Load data.frame of CMAP02/L1000 perturbations for right click load signature on correlation points
+#'
+#' @return \code{data.frame} used to show available pertubation queries in Drugs tab
+#' @export
+#' @keywords internal
+load_pert_anals <- function() {
+  anals <- data.frame(matrix(NA, ncol = 6, nrow = length(pert_names)), stringsAsFactors = FALSE)
+  colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name", "label", "value", "type")
+
+  anals$anal_name <- anals$label <- pert_names
+  anals$type <- 'CMAP02/L1000 Perturbations'
+
+  return(anals)
+}
+
 
 #' Get cell choices data.frame for CMAP02 or L1000
 #'
@@ -378,7 +393,7 @@ add_table_html <- function(query_res) {
   img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
                 'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
                 'https://www.drugbank.ca/favicons/favicon.ico',
-                'https://en.wikipedia.org/static/favicon/wikipedia.ico',
+                'https://upload.wikimedia.org/wikipedia/commons/5/5a/Wikipedia%27s_W.svg',
                 'https://www.genecards.org/favicon.ico')
 
 
@@ -455,16 +470,16 @@ get_cors_html <- function(cors, titles, cor_titles, cors_range) {
     title <- titles[[i]]
     cor_title <- cor_titles[[i]]
     paste0('<g class="cor-point">
-              <title>', cor_title, '</title>
-              <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
-              <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor" title="', title, '"></circle></g>
-            </g>', collapse = '\n')
+           <title>', cor_title, '</title>
+           <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
+           <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor" title="', title, '"></circle></g>
+           </g>', collapse = '\n')
   })
 
 
 
   return(cors_html)
-}
+  }
 
 
 
@@ -483,3 +498,4 @@ calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   range[2] <- range[2] + pad
   (cor - range[1])/diff(range) * width
 }
+

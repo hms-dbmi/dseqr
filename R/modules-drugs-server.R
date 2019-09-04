@@ -210,6 +210,13 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 #' @keywords internal
 querySignature <- function(input, output, session, new_anal, data_dir) {
 
+  # right click load signature logic
+  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
+
+  observe({
+    updateSelectizeInput(session, 'query', selected = input$pert_query_name, server = TRUE)
+  })
+
 
   # reload query choices if new analysis
   anals <- reactive({
@@ -218,8 +225,9 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
     scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
     bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
     custom_anals <- load_custom_anals(data_dir)
+    pert_anals <- load_pert_anals()
 
-    anals <- rbind(bulk_anals, scseq_anals, custom_anals)
+    anals <- rbind(bulk_anals, scseq_anals, custom_anals, pert_anals)
     anals$value <- seq_len(nrow(anals))
 
     return(anals)
@@ -246,8 +254,9 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
     anal <- anal()
     req(anal)
 
-    dataset_dir <- ifelse(anal$type == 'Custom',
-                          file.path(data_dir, 'custom_queries'),
+    dataset_dir <- swtich(anal$type,
+                          'Custom' = file.path(data_dir, 'custom_queries'),
+                          'CMAP02/L1000 Perturbations' = pert_query_dir,
                           file.path(data_dir, 'bulk', anal$dataset_dir))
 
     anal_name <- anal$anal_name
@@ -359,13 +368,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
   gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
-  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
 
   dummy_rendered <- reactiveVal(FALSE)
-
-  observeEvent(input$pert_query_name, {
-    print(input$pert_query_name)
-  })
 
   # get either cmap or l1000 annotations
   drug_annot <- reactive({
@@ -500,5 +504,3 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     runjs('setupContextMenu();')
   })
 }
-
-
