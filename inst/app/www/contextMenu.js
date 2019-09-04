@@ -19,7 +19,7 @@ function setupContextMenu() {
       });
   });
   // If the document is clicked somewhere
-  $(document).off().on("mousedown", function(e) {
+  $(document).on("mousedown", function(e) {
     // If the clicked element is not the menu
     if (!$(e.target).parents(".custom-menu").length > 0) {
       // Hide it

@@ -526,7 +526,6 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     req(dummy_rendered())
     query_table <- query_table_final()
     DT::replaceData(proxy, query_table, rownames = FALSE)
-    runjs('setupContextMenu();')
   })
 }
 
