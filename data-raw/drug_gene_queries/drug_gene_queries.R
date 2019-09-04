@@ -1,7 +1,6 @@
 library(drugseqr)
 library(data.table)
-library(foreach)
-library(doSNOW)
+library(rlang)
 
 # drug by genetic pert searches
 
@@ -17,59 +16,63 @@ l1000_drugs <- readRDS(l1000_drugs_path)
 
 cmap_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(cmap_es))
 l1000_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(l1000_drugs))
+l1000_genetic <- gsub('^([^_]+)_.+?$', '\\1', colnames(l1000_genes))
 
-#setup parallel backend to use many processors
-cl <- makeCluster(4) #not to overload your computer
-registerDoSNOW(cl)
+# check that l1000 and cmap compounds are unique
+length(intersect(colnames(cmap_es), colnames(l1000_drugs)))
+# [1] 0
 
-# progress
-iterations <- ncol(l1000_genes)
-pb <- txtProgressBar(max = iterations, style = 3)
-progress <- function(n) setTxtProgressBar(pb, n)
-opts <- list(progress = progress)
+save_dir <- 'data-raw/drug_gene_queries/data'
+dir.create(save_dir)
 
-# for each genetic signature query drug signatures (cmap_es)
-res_cmap <- foreach(i = seq_len(iterations), .options.snow = opts) %dopar% {
-  require(drugseqr)
-  require(rlang)
-  query_genes <- l1000_genes[, i]
-  query_name <- colnames(l1000_genes)[i]
+#' Run queries for drug by gene signatures
+#'
+#' @param drug_es matrix that is queried against.
+#' @param query_es matrix of signatures to query with.
+#' @param prefix Appended to start of saved query results.
+#'   Either 'cmap_res_', 'l1000_genes_res_', or 'l1000_drugs_res_'. Use based on \code{drug_es}.
+#' @param compounds The compound names for \code{drug_es}.
+run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 
-  # get query results
-  res <- drugseqr::query_drugs(query_genes, cmap_es)
+  is_genetic <- prefix == 'l1000_genes_res_'
 
-  # not feasible to save everything
-  # store vector of top results
-  res_table <- data.table::data.table(Compound = cmap_compounds,
-                    Correlation = res, key = 'Compound')
+  # progress
+  iterations <- ncol(query_es)
+  pb <- txtProgressBar(max = iterations, style = 3)
 
-  top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
-  res[res_table$Compound %in% top_cors$Compound]
+  for (i in seq_len(iterations)) {
+    # remove illegal path characters
+    query_name <- colnames(query_es)[i]
+    query_name <- fs::path_sanitize(query_name)
+
+    query_path <- file.path(save_dir, paste0(prefix, query_name, '.rds'))
+
+    # get query results
+    query_genes <- query_es[, i]
+    res <- drugseqr::query_drugs(query_genes, drug_es)
+
+    # not feasible to save everything
+    # save vector of top results
+    res_table <- data.table::data.table(Compound = compounds,
+                                        Correlation = res, key = 'Compound')
+
+    top_cors <- drugseqr::get_top_cors(res_table, is_genetic = is_genetic)
+    res <- res[res_table$Compound %in% top_cors$Compound]
+
+    saveRDS(res, query_path)
+    setTxtProgressBar(pb, i)
+  }
 }
-close(pb)
-stopCluster(cl)
-names(res_cmap) <- colnames(l1000_genes)
 
-# for each genetic signature query drug signatures (l1000_drugs_es)
-res_l1000 <- foreach(i = seq_len(ncol(l1000_genes))) %dopar% {
-  require(drugseqr)
-  require(rlang)
-  query_genes <- l1000_genes[, i]
-  query_name <- colnames(l1000_genes)[i]
+# run each query_es against each drug_es (cmap_es, l1000_drugs, l1000_genes)
+run_pert_queries(cmap_es, cmap_es, 'cmap_res_', cmap_compounds)
+run_pert_queries(cmap_es, l1000_genes, 'cmap_res_', cmap_compounds)
+run_pert_queries(cmap_es, l1000_drugs, 'cmap_res_', cmap_compounds)
 
-  # get query results
-  res <- drugseqr::query_drugs(query_genes, l1000_drugs)
+# run_pert_queries(l1000_genes, cmap_es, 'l1000_genes_res_', l1000_genetic)
+run_pert_queries(l1000_genes, l1000_genes, 'l1000_genes_res_', l1000_genetic)
+run_pert_queries(l1000_genes, l1000_drugs, 'l1000_genes_res_', l1000_genetic)
 
-  # not feasible to save everything
-  # store vector of top results
-  res_table <- data.table::data.table(Compound = l1000_compounds,
-                                      Correlation = res, key = 'Compound')
-
-  top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
-  res[res_table$Compound %in% top_cors$Compound]
-}
-close(pb)
-stopCluster(cl)
-names(res_cmap) <- colnames(l1000_genes)
-
-
+run_pert_queries(l1000_drugs, cmap_es, 'l1000_drugs_res_', l1000_compounds)
+run_pert_queries(l1000_drugs, l1000_genes, 'l1000_drugs_res_', l1000_compounds)
+run_pert_queries(l1000_drugs, l1000_drugs, 'l1000_drugs_res_', l1000_compounds)
