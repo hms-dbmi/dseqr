@@ -4,7 +4,6 @@
 # contains raw IBD FASTQ files for dev purposes
 data-raw/patient_data/*
 data-raw/single-cell/example-data/*
-data-raw/indices*
 !generate_examples.R
 !mds-sva.R
 !mds-sva.png
@@ -17,9 +16,6 @@ data-raw/drug_gene_queries/data/*
 
 # contains PUG-View files from Pubchem
 data-raw/drug_annot/pug_view/views/*
-
-# salmon/alevin indices
-inst/indices
 
 # ensdb annotation
 inst/EnsDb

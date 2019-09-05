@@ -13,11 +13,6 @@ run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
 \item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
 
 \item{bus_args}{Character vector of arguments to bustools.}
-
-\item{species}{The species. Default is \code{homo_sapiens}.}
-
-\item{release}{ensembl release. Default is \code{94} (latest in release for AnnotationHub -
-needs to match with \code{\link{build_ensdb}}).}
 }
 \description{
 Run kallisto/bustools for quantifying 10X scRNA-seq data

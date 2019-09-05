@@ -77,7 +77,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
                                        custom_name = input$custom_name)
 
     if (is.null(error_msg)) {
-      removeClass('validate', class = 'has-error')
+      shinyjs::removeClass('validate', class = 'has-error')
 
       query_genes <- list(dn = input$dn_genes, up = input$up_genes)
       res <- run_custom_query(query_genes = query_genes,
