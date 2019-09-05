@@ -45,9 +45,7 @@ dsPage <- function(input, output, session, data_dir) {
 
   # run quantification for quant dataset
   observeEvent(dsForm$run_quant(), {
-    #TODO make not hardcoded
-    indices_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/indices/kallisto'
-
+    indices_dir <- system.file('indices/kallisto', package = 'drugseqr.data', mustWork = TRUE)
 
     # setup
     pdata <- dsQuantTable$pdata()
@@ -833,5 +831,3 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   ))
 
 }
-
-
