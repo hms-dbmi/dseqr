@@ -921,7 +921,8 @@ run_path_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res
                               ambient = ambient,
                               data_dir = sc_dir,
                               anal_name = anal_name,
-                              clusters_name = clusters_name)
+                              clusters_name = clusters_name,
+                              NI = 24)
 
   # remove ambient from markers
   is.ambient <-row.names(res$anal$top_table) %in% ambient

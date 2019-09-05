@@ -5,7 +5,7 @@
 \title{Differential expression of KEGG pathways.}
 \usage{
 diff_path(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE,
-  browse = FALSE)
+  browse = FALSE, NI = 1000)
 }
 \arguments{
 \item{eset}{Expression set.}
@@ -22,7 +22,7 @@ prev_anal <- readRDS('data-raw/patient_data/sjia/bulk/mono/diff_expr_symbol_ferr
 data_dir <- 'data-raw/patient_data/sjia/bulk/mono'
 anal_name <- 'ferritin'
 
-path_anal <- diff_path(eset, prev_anal, data_dir, anal_name)
+path_anal <- diff_path(eset, prev_anal, data_dir, anal_name, NI = 24)
 
 }
 \references{

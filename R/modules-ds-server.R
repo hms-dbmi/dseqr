@@ -120,7 +120,7 @@ dsPage <- function(input, output, session, data_dir) {
 
     # run pathway analysis
     progress$set(message = "Pathway analysis", value = 2)
-    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE)
+    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE, NI = 24)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,

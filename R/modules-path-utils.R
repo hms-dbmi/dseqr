@@ -120,7 +120,7 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 #' @return result of \code{\link[PADOG]{padog}}
 #' @export
 #' @keywords internal
-diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name) {
+diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name, NI = 1000) {
   assay <- get_scseq_assay(scseq)
   Seurat::DefaultAssay(scseq) <- assay
 
@@ -146,7 +146,7 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 
   # run padog
   padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names, gslist = gslist,
-                              verbose = FALSE, rna_seq = FALSE)
+                              verbose = FALSE, rna_seq = FALSE, NI = NI)
 
   # save results
   saveRDS(padog_table, fpath)
