@@ -45,7 +45,7 @@ get_dprimes <- function(diff_exprs) {
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
 #' cmap_es <- readRDS(cmap_path)
 #'
 #' # load previous differential expression analysis

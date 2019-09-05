@@ -31,7 +31,6 @@ drugsTableOutput <- function(id) {
   })
 }
 
-
 #' Input form for Drugs page
 #' @export
 #' @keywords internal

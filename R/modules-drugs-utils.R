@@ -15,7 +15,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$set(message = "Querying drugs", value = 1)
   on.exit(progress$close())
 
-  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
   cmap_es  <- readRDS(cmap_path)
   progress$inc(1)
 
@@ -31,8 +31,8 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$inc(ifelse(run.l1000, 1, 2))
 
   if (run.l1000) {
-    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
-    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr', mustWork = TRUE)
+    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 
     l1000_drugs_es <- readRDS(l1000_drugs_path)
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)

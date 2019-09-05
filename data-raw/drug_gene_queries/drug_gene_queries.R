@@ -5,10 +5,10 @@ library(rlang)
 # drug by genetic pert searches
 
 # load data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
 cmap_es <- readRDS(cmap_path)
 
-l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr', mustWork = TRUE)
+l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_genes <- readRDS(l1000_genes_path)
 
 l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
@@ -67,11 +67,11 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 
 # run each query_es against each drug_es (cmap_es, l1000_drugs, l1000_genes)
 # run_pert_queries(cmap_es, cmap_es, 'cmap_res_', cmap_compounds)
-run_pert_queries(cmap_es, l1000_genes, 'cmap_res_', cmap_compounds)
-run_pert_queries(cmap_es, l1000_drugs, 'cmap_res_', cmap_compounds)
+# run_pert_queries(cmap_es, l1000_genes, 'cmap_res_', cmap_compounds)
+# run_pert_queries(cmap_es, l1000_drugs, 'cmap_res_', cmap_compounds)
 
 # run_pert_queries(l1000_genes, cmap_es, 'l1000_genes_res_', l1000_genetic)
-run_pert_queries(l1000_genes, l1000_genes, 'l1000_genes_res_', l1000_genetic)
+# run_pert_queries(l1000_genes, l1000_genes, 'l1000_genes_res_', l1000_genetic)
 run_pert_queries(l1000_genes, l1000_drugs, 'l1000_genes_res_', l1000_genetic)
 
 run_pert_queries(l1000_drugs, cmap_es, 'l1000_drugs_res_', l1000_compounds)
