@@ -6,10 +6,10 @@ dsPageUI <- function(id, tab, active) {
   withTags({
     tabPane(tab, active,
             div(class = 'row',
-                div(class = 'col-sm-6',
+                div(class = 'col-sm-5',
                     dsFormInput(ns('form'))
                 ),
-                div(class = 'col-sm-6',
+                div(class = 'col-sm-7 mobile-margin',
                     dsMDSplotlyUI(ns('mds_plotly'))
                 )
             ),

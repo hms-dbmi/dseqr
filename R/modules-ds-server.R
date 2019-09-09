@@ -17,7 +17,8 @@ dsPage <- function(input, output, session, data_dir) {
   callModule(dsMDSplotly, 'mds_plotly',
              data_dir = data_dir,
              dataset_dir = dsForm$dataset_dir,
-             anal_name = dsForm$anal_name)
+             anal_name = dsForm$anal_name,
+             new_anal = new_anal)
 
 
   observe({
@@ -147,7 +148,7 @@ dsPage <- function(input, output, session, data_dir) {
 
 }
 
-dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name) {
+dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name, new_anal) {
 
   # path to saved analysis
   anal_path <- reactive({
@@ -159,11 +160,17 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
     file.path(data_dir, 'bulk', dataset_dir, group_file)
   })
 
+  anal <- reactive({
+    anal_path <- anal_path()
+    req(file.exists(anal_path))
+    readRDS(anal_path)
+  })
+
 
   # MDS plot
   output$plotly <- plotly::renderPlotly({
-
-    readRDS(anal_path())$plotly
+    new_anal()
+    anal()$plotly
   })
 
 
@@ -707,7 +714,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' @keywords internal
 dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dataset_dir, anal_name) {
 
-  background <- '#e9305d url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
+  background <- '#337ab7 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
   # things user will update and return
   pdata_r <- reactiveVal()

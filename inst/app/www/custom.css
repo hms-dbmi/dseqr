@@ -7,6 +7,17 @@
   color: #A0A0A0;
 }
 
+.mobile-margin {
+  margin-top: 50px;
+}
+
+@media (min-width: 768px) {
+  .mobile-margin {
+    margin-top: 0px;
+  
+  }
+}
+
 .hover-info:hover {
   color: cornflowerblue;
 }
