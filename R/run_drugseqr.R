@@ -63,10 +63,17 @@ run_drugseqr <- function(data_dir, test = FALSE, test_data = TRUE) {
 #' init_drugseqr('example')
 #'
 init_drugseqr <- function(app_name) {
-  app_dir <- file.path('/srv/shiny-server/drugseqr', app)
-  data_dir <- file.path(app_dir, 'data_dir')
 
-  dir.create(file.path(data_dir, 'bulk'), recursive = TRUE)
+  # sync the drugseqr app components
+  drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
+  app_dir <- file.path('/srv/shiny-server/drugseqr', app)
+  dir.create(app_dir, recursive = TRUE)
+
+  system2('rsync', args = c('-a', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
+
+  # create necessary folders/blank files to initialize new app
+  data_dir <- file.path(app_dir, 'data_dir')
+  dir.create(file.path(data_dir, 'bulk'))
   dir.create(file.path(data_dir, 'single-cell'))
   dir.create(file.path(data_dir, 'custom_queries'))
 
