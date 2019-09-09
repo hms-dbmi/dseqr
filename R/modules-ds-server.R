@@ -14,6 +14,11 @@ dsPage <- function(input, output, session, data_dir) {
                        msg_anal = msg_anal,
                        new_anal = new_anal)
 
+  callModule(dsMDSplotly, 'mds_plotly',
+             data_dir = data_dir,
+             dataset_dir = dsForm$dataset_dir,
+             anal_name = dsForm$anal_name)
+
 
   observe({
     toggle('quant_table_container', condition = dsForm$show_quant())
@@ -138,6 +143,28 @@ dsPage <- function(input, output, session, data_dir) {
     new_anal = new_anal,
     data_dir = dsForm$fastq_dir
   ))
+
+
+}
+
+dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name) {
+
+  # path to saved analysis
+  anal_path <- reactive({
+    anal_name <- anal_name()
+    req(anal_name)
+    dataset_dir <- dataset_dir()
+
+    group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
+    file.path(data_dir, 'bulk', dataset_dir, group_file)
+  })
+
+
+  # MDS plot
+  output$plotly <- plotly::renderPlotly({
+
+    readRDS(anal_path())$plotly
+  })
 
 
 }

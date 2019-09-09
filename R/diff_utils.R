@@ -247,10 +247,10 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
   pdata <- Biobase::pData(eset)
 
   # MDS plot
-  plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
+  plotly <- plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
 
   # save to disk
-  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot)
+  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, plotly = plotly)
   save_name <- paste("diff_expr", tolower(annot), anal_name, sep = "_")
   save_name <- paste0(save_name, ".rds")
 
@@ -300,8 +300,8 @@ plotMDS <- function(exprs, exprs_sva, group) {
 
   mds_plot <- ggplot2::ggplot(scaling) +
     ggplot2::aes(MDS_dimension_1, MDS_dimension_2, color = Group, label = Sample, alpha = 0.7) +
-    ggplot2::facet_wrap( ~ SVA, ncol=1) +
-    ggplot2::geom_point(position = jitter, size = 3) +
+    ggplot2::facet_wrap( ~ SVA, ncol=2) +
+    ggplot2::geom_point(position = jitter, size = 1) +
     ggplot2::ggtitle("Sammon MDS Plots") +
     ggplot2::xlab('MDS Dimension 1') +
     ggplot2::ylab('MDS Dimension 2') +
@@ -318,7 +318,7 @@ plotMDS <- function(exprs, exprs_sva, group) {
     p <- mds_plot
   }
 
-  print(p)
+  return(p)
 }
 
 
@@ -380,4 +380,3 @@ clean_y <- function(y, mod, svs) {
   P = ncol(mod)
   return(y - t(as.matrix(X[,-c(1:P)]) %*% beta[-c(1:P),]))
 }
-
