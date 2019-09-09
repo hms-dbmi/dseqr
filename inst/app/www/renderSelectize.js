@@ -222,3 +222,13 @@ function transferLabelOption(item, escape) {
 
   return res;
 }
+
+function querySignatureItem(item, escape) {
+ 
+  var res = "<div>" +
+              escape(item.label) +
+              "<span style='color: #A0A0A0;'>" + " (" + item.type.toLowerCase() + ")" +"</span>"; +
+            "</div>";
+
+  return res;
+}

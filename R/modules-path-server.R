@@ -1,3 +1,4 @@
+
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
@@ -93,7 +94,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   observe({
     anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), server = TRUE)
+    updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), options = list(render = I('{item: querySignatureItem}')), server = TRUE)
   })
 
   # get directory/name info about analysis

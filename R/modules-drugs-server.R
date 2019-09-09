@@ -238,7 +238,7 @@ querySignature <- function(input, output, session, new_anal, data_dir) {
   observe({
     anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'query', choices = anals, server = TRUE)
+    updateSelectizeInput(session, 'query', choices = anals, server = TRUE, options = list(render = I('{item: querySignatureItem}')))
   })
 
   # right click load signature logic
@@ -325,7 +325,8 @@ selectedDrugStudy <- function(input, output, session, anal) {
                           value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
                           stringsAsFactors = FALSE)
 
-    updateSelectizeInput(session, 'study', choices = choices, selected = NULL, options = list(render = I('{option: studyOption, item: studyItem}')),  server = TRUE)
+    updateSelectizeInput(session, 'study', choices = choices, selected = NULL,
+                         options = list(render = I('{option: studyOption, item: studyItem}')), server = TRUE)
   })
 
   # toggle for clinical status
