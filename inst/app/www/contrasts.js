@@ -99,3 +99,32 @@ function geneItem(item, escape) {
   return res;
 
 }
+
+function cellOption(item, escape) {
+  var res = "<div style='columns: 2;'>" +
+                  "<div style='margin-right: -80px'>" +
+                     escape(item.study) +
+                  "</div>" +
+                  "<div style='color: #A0A0A0;text-align:right;'>" +
+                   item.subset +
+                  "</div>" +
+                "</div>";
+
+
+  return res;  
+}
+
+
+function cellItem(item, escape) {
+
+  var subsetMarkup = typeof item.subset == 'undefined'? 
+  "" : 
+  "<span style='color: #A0A0A0;'>" + " (" + item.subset + ")" +"</span>";
+
+  var res = "<div>" +
+                  escape(item.study) +
+                  subsetMarkup +
+            "</div>";
+
+  return res;
+}
