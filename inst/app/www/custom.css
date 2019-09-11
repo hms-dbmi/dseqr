@@ -7,6 +7,8 @@
   color: #A0A0A0;
 }
 
+/* MDS plots */
+
 .mobile-margin {
   margin-top: 50px;
 }
@@ -17,6 +19,7 @@
   
   }
 }
+
 
 .hover-info:hover {
   color: cornflowerblue;

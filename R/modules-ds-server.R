@@ -148,6 +148,9 @@ dsPage <- function(input, output, session, data_dir) {
 
 }
 
+#' Logic for Dataset MDS plotly
+#' @export
+#' @keywords internal
 dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name, new_anal) {
 
   # path to saved analysis
@@ -170,7 +173,7 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
   # MDS plot
   output$plotly <- plotly::renderPlotly({
     # get mds scaling
-    mds <- anal()$scaling
+    mds <- anal()$mds
 
     # plot
     plotMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)

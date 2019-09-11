@@ -1,4 +1,3 @@
-
 #' Differential expression analysis of eset.
 #'
 #' After selecting control and test samples for a contrast, surrogate variable
@@ -281,9 +280,6 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
 #' @export
 get_mds <- function(exprs, exprs_sva, group) {
 
-  suggests <- c('factoextra', 'MASS', 'plotly')
-  if (!is.installed(suggests, level = 'message')) return(NULL)
-
   # get_dist acts on rows
   exprs <- t(exprs[complete.cases(exprs), ])
   exprs_sva <- t(exprs_sva[complete.cases(exprs_sva), ])
@@ -312,6 +308,7 @@ get_mds <- function(exprs, exprs_sva, group) {
 #' @export
 plotMDS <- function(scaling, scaling_sva) {
 
+  if(is.null(scaling)) return(NULL)
   # make x and y same range
   xrange <- range(c(scaling$MDS1, scaling_sva$MDS1))
   yrange <- range(c(scaling$MDS2, scaling_sva$MDS2))
@@ -322,28 +319,33 @@ plotMDS <- function(scaling, scaling_sva) {
   xrange <- xrange + c(-addx, addx)
   yrange <- yrange + c(-addy, addy)
 
+
   p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
     plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
-      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange),
-      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange)
+      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
+                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1),
+      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange,
+                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
     )
 
   p2 <- plotly::plot_ly(scaling_sva, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
     plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
-      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange),
-      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange)
+      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
+                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1),
+      yaxis = list(title = '', zeroline = FALSE, showticklabels = FALSE, range = yrange,
+                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
     )
 
-  plotly::subplot(p1, p2, shareY = TRUE, shareX = TRUE, titleX = TRUE, titleY = TRUE) %>%
+  pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
     plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
                    margin = list(t = 60),
                    annotations = list(
-                     list(x = 0.2 , y = 1.045, text = "Without SVA", showarrow = F, xref='paper', yref='paper'),
-                     list(x = 0.8 , y = 1.045, text = "With SVA", showarrow = F, xref='paper', yref='paper')),
+                     list(x = 0.2 , y = 1.065, text = "Without SVA", showarrow = F, xref='paper', yref='paper'),
+                     list(x = 0.8 , y = 1.065, text = "With SVA", showarrow = F, xref='paper', yref='paper')),
                    shapes = list(
                      type = "rect",
                      x0 = 0,
@@ -354,13 +356,11 @@ plotMDS <- function(scaling, scaling_sva) {
                      yanchor = 1,
                      yref = "paper",
                      ysizemode = "pixel",
-                     fillcolor = toRGB("gray80"),
-                     line = list(color = "transparent")))
+                     fillcolor = '#cccccc',
+                     line = list(color = "#cccccc")))
 
   return(pl)
 }
-
-
 
 
 #' Perform eBayes analysis from limma.
@@ -394,8 +394,6 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
   fit <- limma::contrasts.fit(fit, contrast_matrix)
   return (limma::eBayes(fit, robust = TRUE))
 }
-
-
 
 
 #' Adjusts expression data for surrogate variables.

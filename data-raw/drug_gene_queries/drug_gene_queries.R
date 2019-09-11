@@ -72,7 +72,7 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 
 # run_pert_queries(l1000_genes, cmap_es, 'l1000_genes_res_', l1000_genetic)
 # run_pert_queries(l1000_genes, l1000_genes, 'l1000_genes_res_', l1000_genetic)
-run_pert_queries(l1000_genes, l1000_drugs, 'l1000_genes_res_', l1000_genetic)
+# run_pert_queries(l1000_genes, l1000_drugs, 'l1000_genes_res_', l1000_genetic)
 
 run_pert_queries(l1000_drugs, cmap_es, 'l1000_drugs_res_', l1000_compounds)
 run_pert_queries(l1000_drugs, l1000_genes, 'l1000_drugs_res_', l1000_compounds)
