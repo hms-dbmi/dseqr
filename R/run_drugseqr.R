@@ -73,6 +73,7 @@ init_drugseqr <- function(app_name) {
 
   # create necessary folders/blank files to initialize new app
   data_dir <- file.path(app_dir, 'data_dir')
+  dir.create(data_dir)
   dir.create(file.path(data_dir, 'bulk'))
   dir.create(file.path(data_dir, 'single-cell'))
   dir.create(file.path(data_dir, 'custom_queries'))
