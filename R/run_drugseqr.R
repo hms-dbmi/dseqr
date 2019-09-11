@@ -21,7 +21,6 @@
 #' run_drugseqr(data_dir, test_data = TRUE)
 #' run_drugseqr(data_dir, test_data = FALSE)
 #'
-
 run_drugseqr <- function(data_dir, test = FALSE, test_data = TRUE) {
 
   app_dir <- 'inst/app'
@@ -47,4 +46,41 @@ run_drugseqr <- function(data_dir, test = FALSE, test_data = TRUE) {
   options(shiny.autoreload = TRUE)
   shiny::runApp(app_dir, launch.browser = TRUE)
 
+}
+
+
+#' Initialize drugseqr folders/files for a new app
+#'
+#' Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
+#'
+#' @param app_name Name for new drugseqr app.
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+#'
+#' init_drugseqr('example')
+#'
+init_drugseqr <- function(app_name) {
+
+  # sync the drugseqr app components
+  drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
+  app_dir <- file.path('/srv/shiny-server/drugseqr', app)
+  dir.create(app_dir, recursive = TRUE)
+
+  system2('rsync', args = c('-a', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
+
+  # create necessary folders/blank files to initialize new app
+  data_dir <- file.path(app_dir, 'data_dir')
+  dir.create(file.path(data_dir, 'bulk'))
+  dir.create(file.path(data_dir, 'single-cell'))
+  dir.create(file.path(data_dir, 'custom_queries'))
+
+  anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
+  colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
+  saveRDS(anals, file.path(data_dir, 'bulk', 'anals.rds'))
+
+  saveRDS(NULL, file.path(data_dir, 'bulk', 'datasets.rds'))
+  saveRDS(NULL, file.path(data_dir, 'single-cell', 'integrated.rds'))
 }

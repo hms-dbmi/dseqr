@@ -1,3 +1,39 @@
+#' Get predicted annotation for label transfer
+#'
+#' Clusters with an average prediction scores below \code{min.score} retain their original labels.
+#'
+#' @param ref_preds data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}
+#' @param ref_name Name of reference analysis that labels are transfered from.
+#' @param anal_name Name of analysis that labels are transfered to.
+#' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{anal_name}.
+#' @param min.score Minimum average prediction score used for label transfer.
+#'
+#' @return Character vector of predicted labels from \code{ref_name}.
+#' @export
+#' @keywords internal
+get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir, min.score = 0.9) {
+
+  # load reference annotation
+  ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+  ref_annot <- readRDS(ref_annot_path)
+
+  # load query annotation
+  query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+  query_annot <- readRDS(query_annot_path)
+
+  # get predicted annotation
+  pred.idx <- as.numeric(ref_preds$predicted.id) + 1
+  pred_annot <- ref_annot[pred.idx]
+
+  # use original query annotation below min score threshold
+  poor.pred <- ref_preds$mean.score < min.score
+  pred_annot[poor.pred] <- query_annot[poor.pred]
+  pred_annot <- make.unique(pred_annot, '_')
+
+  return(pred_annot)
+}
+
+
 #' Get percentage of cells expressing each gene
 #'
 #' @param scseq \code{Seurat} object
@@ -27,6 +63,35 @@ get_cell_pcts <- function(scseq, ident.1, ident.2) {
 
   return(cbind(pct.1, pct.2))
 }
+
+#' Get label transfer choices data.frame
+#'
+#' Used for Single Cell tab label transfer selectizeInput
+#'
+#' @param anal_options Names list of analysis options with names \code{'Individual'} and \code{'Integrated'}.
+#' @param preds Named list of predicted cluster labels. Names are values in \code{anal_options} lists.
+#'
+#' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
+#' @export
+#' @keywords internal
+get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
+
+  anal_options <- lapply(anal_options, setdiff, selected_anal)
+
+  choices <- data.frame(
+    label = c(NA, unlist(anal_options, use.names = FALSE)),
+    type = c(NA,
+             rep('Individual', length(anal_options$Individual)),
+             rep('Integrated', length(anal_options$Integrated)))
+  )
+
+
+  choices$value <- choices$label
+  choices$preds <- choices$label %in% names(preds)
+
+  return(choices)
+}
+
 
 
 
@@ -96,23 +161,33 @@ get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, scseq, value = clusters) {
+get_cluster_choices <- function(clusters, scseq, value = clusters, sample_comparison = FALSE) {
 
-  # show the cell numbers/percentages
-  ncells <- tabulate(scseq$seurat_clusters)
-  pcells <- round(ncells / sum(ncells) * 100)
-  pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(pcells))
+  testColor <- get_palette(clusters)
 
   # cluster choices are the clusters themselves
-  testColor <- get_palette(clusters)
-  cluster_choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                                value = seq(0, along.with = clusters),
-                                label = clusters,
-                                testColor,
-                                ncells, pcells, pspace, row.names = NULL, stringsAsFactors = FALSE)
+  choices <- data.frame(name = stringr::str_trunc(clusters, 27),
+                        value = seq(0, along.with = clusters),
+                        label = clusters,
+                        testColor,
+                        row.names = NULL, stringsAsFactors = FALSE)
 
-  return(cluster_choices)
+  if (sample_comparison) {
+    choices$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
+    choices$nctrl <- format(tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl']))
+    choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
+
+  } else {
+    # show the cell numbers/percentages
+    choices$ncells <- tabulate(scseq$seurat_clusters)
+    choices$pcells <- round(choices$ncells / sum(choices$ncells) * 100)
+    choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
+
+  }
+
+  return(choices)
 }
+
 
 
 #' Get contrast choices data.frame for selectize dropdown
@@ -190,8 +265,12 @@ get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) 
   markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
 
   markers$label <- markers$value <- row.names(markers)
+
+  # add description for title
+  markers$description <- tx2gene$description[match(row.names(markers), tx2gene$gene_name)]
   return(markers)
 }
+
 
 
 
@@ -265,35 +344,13 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
 #' @export
 #' @keywords internal
 load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, ident) {
-  sct_paths <- scseq_part_path(data_dir, anal_names, 'sct')
-  scseq_paths <- scseq_part_path(data_dir, anal_names, 'sct')
 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
-  scseqs <- list()
-  for (anal in anal_names) {
-
-    # load scseq
-    scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
-    scseq <- readRDS(scseq_path)
-
-    # add annotation
-    annot_path <- scseq_part_path(data_dir, anal, 'annot')
-    annot <- readRDS(annot_path)
-
-    scseq$annot_clusters <- scseq$seurat_clusters
-    levels(scseq$annot_clusters) <- annot
-
-    # restore SCT assay
-    sct_path <- scseq_part_path(data_dir, anal, 'sct')
-    if (file.exists(sct_path)) {
-      sct <- readRDS(sct_path)
-      scseq[['SCT']] <- sct
-    }
-
-    # restore counts slot
-    scseq[['RNA']]@counts <- scseq[['RNA']]@data
+  scseqs <- lapply(anal_names, load_saved_scseq, data_dir)
+  scseqs <- lapply(anal_names, function(anal) {
+    scseq <- scseqs[[anal]]
 
     # set orig.ident to ctrl/test
     scseq$orig.ident <- factor(ident)
@@ -303,21 +360,56 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
     if (any(is.exclude)) {
       exclude <- exclude_clusters[is.exclude]
       scseq <- scseq[, !scseq$seurat_clusters %in% exclude]
-
     }
 
-    # downsample very large datasets
-    # scseq <- downsample_scseq(scseq)
-
-    # bug in Seurat, need for integration
-    scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
-
-    # add to scseqs
-    scseqs[[anal]] <- scseq
-  }
+    return(scseq)
+  })
 
   return(scseqs)
 }
+
+#' Load saved single cell RNA-seq dataset
+#'
+#' Used for both dataset integration and label transfer.
+#'
+#' @param anal Name of single cell analysis and containing folder.
+#' @param data_dir Path to directory containing \code{anal} folder.
+#' @param downsample Should the loaded Seurat object be downsampled? For reducing speed/memory burden. Default is FALSE.
+#'
+#' @return \code{Seurat} object
+#' @export
+#' @keywords internal
+load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
+  # load scseq
+  scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
+  scseq <- readRDS(scseq_path)
+
+  # add annotation
+  annot_path <- scseq_part_path(data_dir, anal, 'annot')
+  annot <- readRDS(annot_path)
+
+  scseq$annot_clusters <- scseq$seurat_clusters
+  levels(scseq$annot_clusters) <- annot
+
+  # restore SCT assay
+  sct_path <- scseq_part_path(data_dir, anal, 'sct')
+  if (file.exists(sct_path)) {
+    sct <- readRDS(sct_path)
+    scseq[['SCT']] <- sct
+  }
+
+  # restore counts slot
+  scseq[['RNA']]@counts <- scseq[['RNA']]@data
+
+  # downsample very large datasets
+  if (downsample) scseq <- downsample_scseq(scseq)
+
+  # bug in Seurat, need for integration
+  scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
+
+  return(scseq)
+}
+
 
 #' Downsample very large scseq objects for integration
 #'
@@ -414,13 +506,13 @@ save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE,
 #' @param test Character vector of test dataset names
 #' @param ctrl Character vector of control dataset names
 #'
-#' @return \code{NULL} is valid, otherwise an error message
+#' @return \code{NULL} if valid, otherwise an error message
 #' @export
 #' @keywords internal
 validate_integration <- function(test, ctrl, anal_name, anal_options) {
   msg <- NULL
-  # make sure both control and test analyses provided
-  if (is.null(anal_name) || anal_name == '') {
+
+    if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
   } else if (anal_name %in% unlist(anal_options)) {
@@ -713,9 +805,9 @@ run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NUL
     progress$set(message = "Querying drugs", value = 1)
     on.exit(progress$close())
 
-    cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
-    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
-    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr', mustWork = TRUE)
+    cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 
     cmap_es  <- readRDS(cmap_path)
     progress$inc(1)
@@ -829,7 +921,8 @@ run_path_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res
                               ambient = ambient,
                               data_dir = sc_dir,
                               anal_name = anal_name,
-                              clusters_name = clusters_name)
+                              clusters_name = clusters_name,
+                              NI = 24)
 
   # remove ambient from markers
   is.ambient <-row.names(res$anal$top_table) %in% ambient

@@ -4,12 +4,12 @@
 \alias{get_path_df}
 \title{Get data.frame for plotting gene expression values of a pathway}
 \usage{
-get_path_df(path_id, anal)
+get_path_df(anal, path_id = NULL, path_genes = NULL)
 }
 \arguments{
-\item{path_id}{String with KEGG pathway id.}
-
 \item{anal}{Result of call to \code{\link{diff_expr_scseq}}}
+
+\item{path_id}{String with KEGG pathway id.}
 }
 \value{
 \code{data.frame} with columns: \itemize{

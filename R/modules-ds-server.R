@@ -14,6 +14,12 @@ dsPage <- function(input, output, session, data_dir) {
                        msg_anal = msg_anal,
                        new_anal = new_anal)
 
+  callModule(dsMDSplotly, 'mds_plotly',
+             data_dir = data_dir,
+             dataset_dir = dsForm$dataset_dir,
+             anal_name = dsForm$anal_name,
+             new_anal = new_anal)
+
 
   observe({
     toggle('quant_table_container', condition = dsForm$show_quant())
@@ -45,9 +51,7 @@ dsPage <- function(input, output, session, data_dir) {
 
   # run quantification for quant dataset
   observeEvent(dsForm$run_quant(), {
-    #TODO make not hardcoded
-    indices_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/indices/kallisto'
-
+    indices_dir <- system.file('indices/kallisto', package = 'drugseqr.data', mustWork = TRUE)
 
     # setup
     pdata <- dsQuantTable$pdata()
@@ -120,7 +124,7 @@ dsPage <- function(input, output, session, data_dir) {
 
     # run pathway analysis
     progress$set(message = "Pathway analysis", value = 2)
-    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE)
+    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE, NI = 24)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,
@@ -140,6 +144,34 @@ dsPage <- function(input, output, session, data_dir) {
     new_anal = new_anal,
     data_dir = dsForm$fastq_dir
   ))
+
+
+}
+
+dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name, new_anal) {
+
+  # path to saved analysis
+  anal_path <- reactive({
+    anal_name <- anal_name()
+    req(anal_name)
+    dataset_dir <- dataset_dir()
+
+    group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
+    file.path(data_dir, 'bulk', dataset_dir, group_file)
+  })
+
+  anal <- reactive({
+    anal_path <- anal_path()
+    req(file.exists(anal_path))
+    readRDS(anal_path)
+  })
+
+
+  # MDS plot
+  output$plotly <- plotly::renderPlotly({
+    new_anal()
+    anal()$plotly
+  })
 
 
 }
@@ -682,7 +714,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' @keywords internal
 dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dataset_dir, anal_name) {
 
-  background <- '#e9305d url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
+  background <- '#337ab7 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
   # things user will update and return
   pdata_r <- reactiveVal()
@@ -833,5 +865,3 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   ))
 
 }
-
-

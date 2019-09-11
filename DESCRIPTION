@@ -10,6 +10,7 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
+biocViews:
 SystemRequirements:
   kallisto (0.46.0)
 Imports:
@@ -19,6 +20,7 @@ Imports:
     ggplot2 (>= 3.1.0),
     Biobase (>= 2.42.0),
     limma (>= 3.40.2),
+    randomcoloR (>= 1.1.0),
     shiny (>= 1.2.0),
     shinyjs (>= 1.0),
     shinyWidgets (>= 0.4.8),
@@ -26,10 +28,14 @@ Imports:
     scran (>= 1.12.0),
     scater (>= 1.12.2),
     Seurat (>= 3.0.1),
+    sva,
     magrittr (>= 1.5),
+    Matrix.utils (>= 0.9.7),
     metaMA (>= 3.1.2),
     miniUI (>= 0.1.1.1),
+    mvoutlier (>= 2.0.9),
     DT (>= 0.5),
+    DropletUtils (>= 1.4.3),
     tibble (>= 2.0.1),
     PADOG
 Suggests: 

@@ -68,7 +68,16 @@ scForm <- function(input, output, session, sc_dir) {
                        sc_dir = sc_dir,
                        new_anal = new_anal)
 
-  # integration stuff
+
+  # label transfer between datasets
+  scLabelTransfer <- callModule(labelTransferForm, 'transfer',
+                                sc_dir = sc_dir,
+                                anal_options = scAnal$anal_options,
+                                show_label_transfer = scAnal$show_label_transfer,
+                                selected_anal = scAnal$selected_anal,
+                                scseq = scAnal$scseq)
+
+  # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
                               anal_options = scAnal$anal_options,
@@ -85,7 +94,8 @@ scForm <- function(input, output, session, sc_dir) {
                                     scseq = scAnal$scseq,
                                     markers = scAnal$markers,
                                     annot_path = scAnal$annot_path,
-                                    sc_dir = sc_dir)
+                                    sc_dir = sc_dir,
+                                    ref_preds = scLabelTransfer)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               selected_anal = scAnal$selected_anal,
@@ -97,8 +107,6 @@ scForm <- function(input, output, session, sc_dir) {
                               comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison ----
-
-
 
   scSampleComparison <- callModule(sampleComparison, 'sample',
                                    selected_anal = scAnal$selected_anal,
@@ -237,6 +245,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
   # get styles and integration info
   plot_styles <- callModule(plotStyles, 'styles')
   show_integration <- callModule(showIntegration, 'integration')
+  show_label_transfer <- callModule(showLabelTransfer, 'label-transfer')
 
 
   # return anal and options to app
@@ -248,7 +257,8 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     annot_path = annot_path,
     anal_options = anal_options,
     plot_styles = plot_styles,
-    show_integration = show_integration
+    show_integration = show_integration,
+    show_label_transfer = show_label_transfer
   ))
 }
 
@@ -281,6 +291,190 @@ showIntegration <- function(input, output, session) {
   return(show_integration)
 }
 
+#' Logic for show label transfer button in selectedAnal
+#' @export
+#' @keywords internal
+showLabelTransfer <- function(input, output, session) {
+
+  show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
+
+
+  # show/hide label transfer form
+  observe({
+    toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer())
+  })
+
+
+  return(show_label_transfer)
+}
+
+
+#' Logic for label transfer between datasets
+#' @export
+#' @keywords internal
+labelTransferForm <- function(input, output, session, sc_dir, anal_options, show_label_transfer, selected_anal, scseq) {
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
+
+  ref_preds <- reactiveVal()
+  new_preds <- reactiveVal()
+
+  # show/hide label transfer forms
+  observe({
+    toggle(id = "label-transfer-form", anim = TRUE, condition = show_label_transfer())
+  })
+
+  # saved label transfer predictions
+  preds <- reactive({
+    new_preds()
+    query_name <- selected_anal()
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    if (file.exists(preds_path)) readRDS(preds_path) else list()
+  })
+
+  # update annotation transfer choices
+  observe({
+    preds <- preds()
+
+    anal_options <- anal_options()
+    selected_anal <- selected_anal()
+    req(preds, anal_options)
+
+    choices <- get_label_transfer_choices(anal_options, selected_anal, preds)
+    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption}')))
+  })
+
+  # submit annotation transfer
+  observeEvent(input$submit_transfer, {
+
+    query_name <- selected_anal()
+    ref_name <- input$ref_name
+    preds <- preds()
+    req(query_name, ref_name, preds)
+
+    toggleAll(label_transfer_inputs)
+
+    # Create a Progress object
+    progress <- Progress$new()
+    progress$set(message = "Transfering labels", value = 0)
+    # Close the progress when this reactive exits (even if there's an error)
+    on.exit(progress$close())
+
+    # Create a callback function to update progress.
+    updateProgress <- function(value = NULL, detail = NULL) {
+      if (is.null(value)) {
+        value <- progress$getValue()
+        value <- value + (progress$getMax() - value) / 2
+      }
+      progress$set(value = value, detail = detail)
+    }
+    n = 3
+
+    # load anals
+    query <- scseq()
+    ref <- load_saved_scseq(ref_name, sc_dir)
+    updateProgress(1/n)
+
+    # transfer labels to query cells
+    predictions <- transfer_labels(ref, query, updateProgress = updateProgress, n = n, n_init = 2)
+    predictions$orig <- query$seurat_clusters
+
+    # score as sum of percent in cluster with label and mean score
+    pred_pcts <- predictions %>%
+      group_by(orig, predicted.id) %>%
+      summarise(mean.score = mean(prediction.score.max), n = n()) %>%
+      top_n(1)
+
+
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds[[ref_name]] <- pred_pcts
+    saveRDS(preds, preds_path)
+
+    new_preds(ref_name)
+    ref_preds(preds[[ref_name]])
+
+    toggleAll(label_transfer_inputs)
+  })
+
+  # disable submit label transfer when already have preds
+  observe({
+    ref_name <- input$ref_name
+    shinyjs::toggleState('submit_transfer', condition = is.null(ref_preds()))
+  })
+
+
+  # show transfered labels immediately upon selection if have
+  observe({
+    query_name <- selected_anal()
+    ref_name <- input$ref_name
+    req(query_name)
+
+    # load previously saved reference preds
+    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+
+    ref_preds(preds[[ref_name]])
+  })
+
+
+
+  pred_annot <- reactive({
+
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    anal_name <- selected_anal()
+
+    # show saved annot if nothing selected or label transfer not open
+    if (is.null(ref_preds) | !show_label_transfer()) return(NULL)
+
+    get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+  })
+
+  # overwrite annotation
+  transferModal <- function() {
+    modalDialog(
+      tags$div('Saved annotation will be overwriten. This action cannot be undone.'),
+      title = 'Are you sure?',
+      size = 's',
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton(session$ns("confirm_overwrite"), "Overwrite", class = 'pull-left btn-warning')
+      )
+    )
+  }
+
+  # Show modal when button is clicked.
+  observeEvent(input$overwrite_annot, {
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    anal_name <- selected_anal()
+
+    req(anal_name)
+
+    showModal(transferModal())
+  })
+
+  observeEvent(input$confirm_overwrite, {
+
+    ref_name <- input$ref_name
+    ref_preds <- ref_preds()
+    anal_name <- selected_anal()
+
+    req(anal_name)
+
+    pred_annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+    saveRDS(pred_annot, annot_path)
+
+  })
+
+
+
+  return(pred_annot)
+}
+
 
 #' Logic for integration form toggled by showIntegration
 #' @export
@@ -297,13 +491,16 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   test <- reactiveVal()
   new_anal <- reactiveVal()
 
-  # show/hide integration form
+  # show/hide integration forms
   observe({
     toggle(id = "integration-form", anim = TRUE, condition = show_integration())
   })
 
   observe(ctrl(input$ctrl_integration))
   observe(test(input$test_integration))
+
+
+
 
 
   # update test dataset choices
@@ -389,6 +586,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 }
 
 
+
 #' Logic for comparison type toggle for integrated analyses
 #' @export
 #' @keywords internal
@@ -420,7 +618,7 @@ comparisonType <- function(input, output, session, scseq) {
 #' Logic for cluster comparison input
 #' @export
 #' @keywords internal
-clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir) {
+clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir, ref_preds) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -466,7 +664,11 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
     return(c(markers, con_markers))
   })
 
-  observe({ annot(readRDS(annot_path())) })
+  observe({
+    ref_preds <- ref_preds()
+    if (!is.null(ref_preds)) annot(ref_preds)
+    else annot(readRDS(annot_path()))
+  })
 
   # set to first cluster if switch to showing contrasts
   observeEvent(input$show_contrasts, {
@@ -510,14 +712,17 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
 
   # modify/save annot if rename a cluster
   observeEvent(input$rename_cluster, {
+
     req(input$new_cluster_name)
 
     # update reactive annotation
-    mod_annot <- annot()
+    choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- which(mod_annot == sel_clust)
+    sel_idx <- which(choices$value == sel_clust)
+
+    mod_annot <- annot()
     mod_annot[sel_idx] <- input$new_cluster_name
-    mod_annot <- make.unique(mod_annot)
+    mod_annot <- make.unique(mod_annot, '_')
 
     # save on disc
     saveRDS(mod_annot, annot_path())
@@ -598,7 +803,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
   cluster_choices <- reactive({
     req(annot())
-    get_cluster_choices(annot(), scseq())
+    get_cluster_choices(annot(), scseq(), sample_comparison = TRUE)
   })
 
   # reset if switch analysis or annotation updates
@@ -799,3 +1004,4 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
+

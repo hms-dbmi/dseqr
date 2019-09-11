@@ -1,9 +1,13 @@
 #' Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.
 #'
-#' @param  Directory with raw and kallisto/bustools-quantified single-cell RNA-Seq files.
-#' @param  type Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.
+#' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
+#' @param project String identifying sample.
+#' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.
+#' @param h5 Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.
+#' @param soupx Boolean indicating if \code{SoupX} should be used to remove backgroud counts (defaul is \code{FALSE}).
+#'    Experimental and not currently recommended.
 #'
-#' @return \code{Seurat} (default) or \code{SingleCellExperiment} with whitelist meta data.
+#' @return \code{Seurat} object with whitelist meta data.
 #' @export
 #'
 #' @examples
@@ -11,7 +15,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cell_ranger'), soupx = FALSE) {
+load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cell_ranger'), h5 = FALSE, soupx = FALSE) {
 
   # load counts
   if (type[1] == 'kallisto') {
@@ -19,7 +23,7 @@ load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto',
     counts <- load_kallisto_counts(data_dir)
 
   } else if (type[1] == 'cell_ranger') {
-    counts <- load_cell_ranger_counts(data_dir)
+    counts <- load_cell_ranger_counts(data_dir, h5 = h5)
   }
 
   # generate/load whitelist
@@ -110,15 +114,23 @@ load_kallisto_counts <- function(data_dir) {
 #' Load cell ranger counts
 #'
 #' Mainly to avoid having to download massive datasets that have already been quantified.
-#'
-#' @param data_dir
+#'))))
+#' @inheritParams load_scseq
+#' @param h5
 #' @importFrom magrittr "%>%"
 #'
 #' @return dgCMatrix
 #' @export
-load_cell_ranger_counts <- function(data_dir) {
+load_cell_ranger_counts <- function(data_dir, h5) {
   # read the data in using ENSG features
-  counts <- Seurat::Read10X(data_dir, gene.column = 1)
+  if (h5) {
+    h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+    counts <- Seurat::Read10X_h5(h5file, use.names = FALSE)
+
+  } else {
+    counts <- Seurat::Read10X(data_dir, gene.column = 1)
+  }
+
   if (class(counts) == 'list') counts <- counts$`Gene Expression`
 
   counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
@@ -475,17 +487,24 @@ add_integrated_ambient <- function(combined, ambient) {
 #'
 #' @return \code{data.frame} with predictions
 #' @export
-transfer_labels <- function(reference, query) {
+transfer_labels <- function(reference, query, updateProgress = NULL, n = 3, n_init = 2) {
+  if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
+
+  # query can't be integrated assay (error)
+  Seurat::DefaultAssay(query) <- get_scseq_assay(query)
 
   k.filter <- min(201, ncol(reference), ncol(query))-1
 
   anchors <- Seurat::FindTransferAnchors(reference, query, k.filter = k.filter)
+  updateProgress(n_init/n)
   predictions <- Seurat::TransferData(anchorset = anchors,
-                                      refdata = reference$seurat_clusters,
+                                      refdata = Seurat::Idents(reference),
                                       dims = 1:30)
 
+  updateProgress((n_init + 1)/n)
   return(predictions)
 }
+
 
 
 #' Test is there is at lest two clusters

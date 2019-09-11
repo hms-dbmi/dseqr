@@ -25,16 +25,18 @@ get_drugs_table <- function(study) {
 
   # compound used for grouping
   drugs_table <- tibble::add_column(drugs_table,
-                     Compound = stringr::str_extract(drugs_table$title, '^[^_]+'), .before = 1)
+                                    Compound = stringr::str_extract(drugs_table$title, '^[^_]+'), .before = 1)
 
   # titles for correlation points
   drugs_table <- drugs_table %>%
     dplyr::mutate(cor_title = paste(stringr::str_replace(title, '^[^_]+_', ''), `Samples(n)`, sep = '_')) %>%
     dplyr::select(-`Samples(n)`)
 
-  # remove nonsense for L1000 genetic
-  if (study == 'L1000_genes')
+  if (study == 'L1000_genes') {
+    # remove nonsense for L1000 genetic and reorder
     drugs_table$cor_title <- gsub('_-700-666.0', '', drugs_table$cor_title)
+    drugs_table <- drugs_table[, c('Compound', 'title', 'Genecards', 'Description', 'cell_line', 'cor_title')]
+  }
 
 
   return(drugs_table)

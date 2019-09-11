@@ -1,3 +1,4 @@
+
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
@@ -6,6 +7,10 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
                      new_anal = new_anal,
                      data_dir)
 
+  observe({
+    toggle('l1000-label', condition = isTruthy(form$pathway()))
+  })
+
 
 
   # the gene plot
@@ -13,35 +18,35 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
     diffs <- form$diffs()
     path_id <- form$pathway()
+    path_genes <- form$custom_path_genes()
     anal <- diffs$anal
 
     req(path_id, anal)
 
-    if (path_id == 'all') {
-      path_df <- get_all_df(anal)
-    } else {
-      path_df <- get_path_df(path_id, anal)
-    }
+    path_df <- get_path_df(anal, path_id, path_genes)
 
     # 30 pixels width per gene in pathway
     plot_width <- max(400, nrow(path_df)*25 + 125)
 
+    pt.color <- ifelse(path_df$Gene %in% genes$common, 'red', 'black')
 
     plotly::plot_ly(data = path_df,
                     y = ~Dprime,
                     x = ~Gene,
                     text = ~Gene,
-                    customdata = ~sd,
+                    customdata = apply(path_df, 1, as.list),
                     type = 'scatter',
                     mode = 'markers',
                     width = plot_width,
                     height = 550,
-                    marker = list(size = 5, color = '#000000'),
+                    marker = list(size = 5, color = pt.color),
                     error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                    hoverlabel = list(bgcolor = '#000000', align = 'left'),
                     hovertemplate = paste0(
-                      '<span style="color: crimson; font-weight: bold;">Gene</span>: %{text}<br>',
-                      '<span style="color: crimson; font-weight: bold;">Dprime</span>: %{y:.2f}<br>',
-                      '<span style="color: crimson; font-weight: bold;">SD</span>: %{customdata:.2f}',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
                       '<extra></extra>')
     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
@@ -63,6 +68,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 
 
 }
+
 
 #' Logic for form in Pathways tab
 #' @export
@@ -88,7 +94,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   observe({
     anals <- anals()
     req(anals)
-    updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), server = TRUE)
+    updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), options = list(render = I('{item: querySignatureItem}')), server = TRUE)
   })
 
   # get directory/name info about analysis
@@ -143,15 +149,13 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   # load pathway and analysis results
   diffs <- reactive({
     fpaths <- fpaths()
-    if (is_sc()) return (sc_inputs$path_diffs())
+    if (is_sc()) return (sc_inputs$results())
 
     list(
       path = readRDS(fpaths$diff_path),
       anal = readRDS(fpaths$diff_anal)
     )
   })
-
-
 
   path_choices <- reactive({
     diffs <- diffs()
@@ -161,10 +165,10 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 
     # for showing top up/down regulated
     all_choices <-  data.frame(
-      name = 'all',
-      value = 'all',
-      label = 'all',
-      fdr = c(NA, NA),
+      name = 'used for drug/genetic queries',
+      value = 'Drug and genetic query genes',
+      label = 'Drug and genetic query genes',
+      fdr = NA,
       stringsAsFactors = FALSE
     )
 
@@ -184,7 +188,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
   observe({
     updateSelectizeInput(session, 'pathway',
                          choices = path_choices(),
-                         options = list(render= I('{option: pathOptions}')),
+                         options = list(render= I('{option: pathOptions, item: pathItem}')),
                          server = TRUE)
   })
 
@@ -201,8 +205,32 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
     toggleState('kegg', condition = input$pathway != 'all')
   })
 
+  # show custom pathway inputs
+  show_custom <- reactive(input$show_custom %% 2 != 0)
+
+  observe({
+    shinyjs::toggle('custom_path_container', anim = TRUE, condition = show_custom())
+    toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
+  })
+
+  # choices for custom pathway genes
+  gene_choices <- reactive({
+    diffs <- diffs()
+    req(diffs())
+    gene <- row.names(diffs$anal$top_table)
+    description <- tx2gene$description[match(gene, tx2gene$gene_name)]
+
+    data.frame(gene, description, value = gene, label = gene, stringsAsFactors = FALSE)
+  })
+
+  observe({
+    updateSelectizeInput(session, 'custom_path_genes', choices = gene_choices(), options = list(render = I('{option: pathGene, item: pathGene}')), server = TRUE)
+  })
+
   return(list(
     diffs = diffs,
+    show_custom = show_custom,
+    custom_path_genes = reactive(input$custom_path_genes),
     pathway = reactive(input$pathway)
   ))
 }
@@ -239,7 +267,7 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
     # isn't affected by updates to cluster annotation
     scseq <- scseq()
     value <- levels(Seurat::Idents(scseq))
-    get_cluster_choices(clusters = annot(), scseq = scseq, value = value)
+    get_cluster_choices(clusters = annot(), scseq = scseq, value = value, sample_comparison = TRUE)
   })
 
 

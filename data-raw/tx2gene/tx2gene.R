@@ -41,8 +41,9 @@ tx2gene <- group_by(tx2gene_unnest, tx_id) %>%
 saveRDS(tx2gene, 'data-raw/tx2gene/tx2gene.rds')
 
 # check concordance with l1000_es/cmap_es ----
-cmap_es_ind <- readRDS("inst/extdata/cmap_es_ind.rds")
-l1000_es <- readRDS("inst/extdata/l1000_es.rds")
+data_dir <- system.file('extdata', package = 'drugseqr.data')
+cmap_es_ind <- readRDS(file.path(data_dir, "inst/extdata/cmap_es_ind.rds"))
+l1000_es <- readRDS(file.path(data_dir, "inst/extdata/l1000_es.rds"))
 
 sum(!row.names(cmap_es_ind) %in% tx2gene$gene_name)
 # EnsDb89: 207

@@ -1,3 +1,4 @@
+
 #' Differential expression analysis of eset.
 #'
 #' After selecting control and test samples for a contrast, surrogate variable
@@ -38,7 +39,6 @@
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
 #' anal <- diff_expr(eset, data_dir)
-
 diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
 
   # check for annot column
@@ -203,6 +203,16 @@ iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.
 }
 
 
+format_scaling <- function(scaling, with_sva, group, exprs) {
+
+  scaling %>%
+    dplyr::rename('MDS1' = V1, 'MDS2' = V2) %>%
+    dplyr::mutate(Sample = row.names(exprs)) %>%
+    dplyr::mutate(Group = factor(group)) %>%
+    dplyr::mutate(Group =  dplyr::recode(Group, ctrl = 'Control', test = 'Test')) %>%
+    dplyr::mutate(Title = ifelse(with_sva, 'with sva', 'without sva'))
+}
+
 
 #' Run limma analysis.
 #'
@@ -247,10 +257,10 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
   pdata <- Biobase::pData(eset)
 
   # MDS plot
-  plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
+  plotly <- plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
 
   # save to disk
-  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot)
+  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, plotly = plotly)
   save_name <- paste("diff_expr", tolower(annot), anal_name, sep = "_")
   save_name <- paste0(save_name, ".rds")
 
@@ -270,6 +280,9 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
 #' @return NULL
 #' @export
 plotMDS <- function(exprs, exprs_sva, group) {
+
+  browser()
+
   suggests <- c('factoextra', 'MASS', 'plotly')
   if (!is.installed(suggests, level = 'message')) return(NULL)
 
@@ -282,43 +295,59 @@ plotMDS <- function(exprs, exprs_sva, group) {
 
   # sammon scaling for dimensionality reduction
   capture.output({
-    scaling <- tibble::as_tibble(MASS::sammon(dist, k = 2)$points)
-    scaling_sva <- tibble::as_tibble(MASS::sammon(dist_sva, k = 2)$points)
+    scaling <- tibble::as_tibble(MASS::sammon(dist, k = 2)$points) %>%
+      format_scaling(with_sva = FALSE, group = group, exprs = exprs)
+
+    scaling_sva <- tibble::as_tibble(MASS::sammon(dist_sva, k = 2)$points) %>%
+      format_scaling(with_sva = TRUE, group = group, exprs = exprs)
   })
 
-  # setup for ggplot
-  scaling <- dplyr::bind_rows(scaling, scaling_sva) %>%
-    dplyr::rename('MDS_dimension_1' = V1,'MDS_dimension_2' = V2) %>%
-    dplyr::mutate(Sample = rep(row.names(exprs), 2)) %>%
-    dplyr::mutate(Group = rep(factor(group, levels = c('ctrl', 'test')), 2)) %>%
-    dplyr::mutate(SVA = rep(c('Without Surrogate Variable Analysis', 'With Surrogate Variable Analysis'), each = nrow(exprs)))
+  # make x and y same range
+  xrange <- range(c(scaling$MDS1, scaling_sva$MDS1))
+  yrange <- range(c(scaling$MDS2, scaling_sva$MDS2))
 
-  # jitter by 2% of range
-  jitter <- ggplot2::position_jitter(width = diff(range(scaling$MDS_dimension_1))*.02,
-                                     height = diff(range(scaling$MDS_dimension_2))*.02,
-                                     seed = 0)
+  addx <- diff(xrange) * .10
+  addy <- diff(yrange) * .10
 
-  mds_plot <- ggplot2::ggplot(scaling) +
-    ggplot2::aes(MDS_dimension_1, MDS_dimension_2, color = Group, label = Sample, alpha = 0.7) +
-    ggplot2::facet_wrap( ~ SVA, ncol=1) +
-    ggplot2::geom_point(position = jitter, size = 3) +
-    ggplot2::ggtitle("Sammon MDS Plots") +
-    ggplot2::xlab('MDS Dimension 1') +
-    ggplot2::ylab('MDS Dimension 2') +
-    ggplot2::scale_color_brewer(palette = 'Set1', direction = -1) +
-    ggplot2::theme_light() +
-    ggplot2::coord_equal() +
-    ggplot2::guides(alpha = FALSE, size = FALSE)
+  xrange <- xrange + c(-addx, addx)
+  yrange <- yrange + c(-addy, addy)
 
-  if (is.installed('plotly', level = 'message')) {
-    p <- plotly::ggplotly(mds_plot, tooltip = "Sample") %>%
-      plotly::config(displayModeBar = FALSE)
+  p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
+    plotly::config(displayModeBar = FALSE) %>%
+    plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
+    plotly::layout(
+      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange),
+      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange)
+    )
 
-  } else {
-    p <- mds_plot
-  }
+  p2 <- plotly::plot_ly(scaling_sva, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
+    plotly::config(displayModeBar = FALSE) %>%
+    plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
+    plotly::layout(
+      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange),
+      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange)
+    )
 
-  print(p)
+  plotly::subplot(p1, p2, shareY = TRUE, shareX = TRUE, titleX = TRUE, titleY = TRUE) %>%
+    plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
+                   margin = list(t = 60),
+                   annotations = list(
+                     list(x = 0.2 , y = 1.045, text = "Without SVA", showarrow = F, xref='paper', yref='paper'),
+                     list(x = 0.8 , y = 1.045, text = "With SVA", showarrow = F, xref='paper', yref='paper')),
+                   shapes = list(
+                     type = "rect",
+                     x0 = 0,
+                     x1 = 1,
+                     xref = "paper",
+                     y0 = 0,
+                     y1 = 16,
+                     yanchor = 1,
+                     yref = "paper",
+                     ysizemode = "pixel",
+                     fillcolor = toRGB("gray80"),
+                     line = list(color = "transparent")))
+
+  return(pl)
 }
 
 
@@ -380,4 +409,3 @@ clean_y <- function(y, mod, svs) {
   P = ncol(mod)
   return(y - t(as.matrix(X[,-c(1:P)]) %*% beta[-c(1:P),]))
 }
-

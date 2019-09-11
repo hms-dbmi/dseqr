@@ -4,10 +4,12 @@
 \alias{summarize_compound}
 \title{Summarize query results and annotations by perturbation}
 \usage{
-summarize_compound(query_table)
+summarize_compound(query_table, is_genetic = FALSE)
 }
 \arguments{
 \item{query_table}{\code{data.frame} of perturbation correlations and annotations.}
+
+\item{is_genetic}{is \code{query_table} from L1000 genetic perts?}
 }
 \value{
 \code{data.frame} of perturbation correlations and annotations summarized by perturbation.

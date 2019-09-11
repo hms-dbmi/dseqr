@@ -1,3 +1,158 @@
+#' Run custom query
+#'
+#' @param query_genes Named list of character vectors with \code{'up'} indicating genes to upregulate and \code{'dn'}
+#'  containing genes to downregulate.
+#' @param res_paths List of paths to save results to.
+#' @param session session object from Shiny. Used to indicate progress.
+#'
+#' @return List with query results.
+#' @export
+#' @keywords internal
+run_custom_query <- function(query_genes, res_paths, session) {
+  res <- list()
+
+  progress <- Progress$new(session, min = 0, max = 4)
+  progress$set(message = "Querying drugs", value = 1)
+  on.exit(progress$close())
+
+  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+  cmap_es  <- readRDS(cmap_path)
+  progress$inc(1)
+
+  # get correlations between query and drug signatures
+  res$cmap <- query_budger(query_genes, cmap_es)
+  rm(cmap_es); gc()
+
+  saveRDS(res$cmap, res_paths$cmap)
+  saveRDS(query_genes, res_paths$query_genes)
+
+  # don't run l1000 if no genes from it selected
+  run.l1000 <- any(unlist(query_genes) %in% genes$common)
+  progress$inc(ifelse(run.l1000, 1, 2))
+
+  if (run.l1000) {
+    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+
+    l1000_drugs_es <- readRDS(l1000_drugs_path)
+    res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
+    rm(l1000_drugs_es); gc()
+
+    l1000_genes_es <- readRDS(l1000_genes_path)
+    res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
+    rm(l1000_genes_es); gc()
+
+    saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
+    saveRDS(res$l1000_genes, res_paths$l1000_genes)
+    progress$inc(1)
+  }
+
+  return(res)
+}
+
+#' Validate custom query
+#'
+#' @param dn_genes Character vector of genes to upregulate
+#' @param up_genes Character vector of genes to downregulate
+#' @param custom_name Name for new custom analysis
+#'
+#' @return \code{NULL} if valid, otherwise an error message
+#' @export
+#' @keywords internal
+validate_custom_query <- function(dn_genes, up_genes, custom_name) {
+  msg <- NULL
+
+  # genes in both lists
+  in.both <- intersect(dn_genes, up_genes)
+
+  # genes not in pert studies
+  na.genes <- setdiff(c(dn_genes, up_genes), c(genes$common, genes$cmap_only))
+
+  # make sure custom name provided
+  if (is.null(custom_name) || custom_name == '') {
+    msg <- 'Provide a name for custom query'
+
+  } else if (length(in.both)) {
+    msg <- paste0('Genes must be in only one of up/down lists: ',
+                  paste(in.both, collapse = ', '))
+
+  } else if (length(na.genes)) {
+    msg <- paste0('Genes not measured in perturbation studies: ',
+                  paste(na.genes, collapse = ', '))
+
+  } else if (!length(c(dn_genes, up_genes))) {
+    msg <- 'Please provide genes to up and/or down regulate'
+  }
+
+  return(msg)
+}
+
+
+#' Load results of previous custom query
+#'
+#' Will only load \code{res_paths} that exist. L1000 results won't exist
+#' if no genes selected for custom query were in the L1000 measured genes.
+#'
+#' @param res_paths List of named strings with paths to results.
+#'
+#' @return List of names results loaded from \code{res_paths}.
+#' @export
+#' @keywords internal
+load_custom_results <- function(res_paths) {
+  res <- list()
+  res_path_names <- names(res_paths)
+  for (i in seq_along(res_paths)) {
+    res_path <- res_paths[[i]]
+    res_name <- names(res_paths)[i]
+
+    if (file.exists(res_path)) res[[res_name]] <- readRDS(res_path)
+  }
+  return(res)
+}
+
+#' Load data.frame of custom anals for selectizeInput
+#'
+#' @param data_dir Path to directory containing \code{'custom_queries'} folder.
+#'
+#' @return \code{data.frame} used to show available custom queries in Drugs tab
+#' @export
+#' @keywords internal
+load_custom_anals <- function(data_dir) {
+  custom_dir <- file.path(data_dir, 'custom_queries')
+
+  anals <- NULL
+  if (dir.exists(custom_dir)) {
+    custom_names <- list.files(custom_dir, pattern = '^cmap_res_.+?.rds')
+    custom_names <- gsub('^cmap_res_(.+?).rds$', '\\1', custom_names)
+
+
+    anals <- data.frame(matrix(ncol = 6, nrow = 0), stringsAsFactors = FALSE)
+    colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name", "label", "value", "type")
+
+    for (i in seq_along(custom_names))
+      anals[i, ] <- c(NA, NA, custom_names[i], custom_names[i], i, 'Custom')
+
+  }
+
+  return(anals)
+}
+
+#' Load data.frame of CMAP02/L1000 perturbations for right click load signature on correlation points
+#'
+#' @return \code{data.frame} used to show available pertubation queries in Drugs tab
+#' @export
+#' @keywords internal
+load_pert_anals <- function() {
+  anals <- data.frame(matrix(NA, ncol = 6, nrow = length(pert_names)), stringsAsFactors = FALSE)
+  colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name", "label", "value", "type")
+
+  anals$anal_name <- anals$label <- pert_names
+  anals$type <- 'CMAP02/L1000 Perturbations'
+
+  return(anals)
+}
+
+
 #' Get cell choices data.frame for CMAP02 or L1000
 #'
 #' @param drug_study either 'CMAP02' or 'L1000'
@@ -42,10 +197,11 @@ limit_cells <- function(query_table, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-get_top <- function(query_cors, arrange_by, ntop = 1500) {
+get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
+  pre <- ifelse(decreasing, -1, 1)
   query_cors %>%
     dplyr::as_tibble() %>%
-    dplyr::arrange(!!sym(arrange_by)) %>%
+    dplyr::arrange(pre*!!sym(arrange_by)) %>%
     head(ntop) %>%
     dplyr::pull(Compound)
 }
@@ -63,6 +219,7 @@ get_top <- function(query_cors, arrange_by, ntop = 1500) {
 #' all unique entries are paste together seperated by \code{'|'}.
 #'
 #' @param query_table \code{data.frame} of perturbation correlations and annotations.
+#' @param is_genetic is \code{query_table} from L1000 genetic perts?
 #'
 #' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
 #' @export
@@ -70,77 +227,91 @@ get_top <- function(query_cors, arrange_by, ntop = 1500) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-summarize_compound <- function(query_table) {
+summarize_compound <- function(query_table, is_genetic = FALSE) {
 
-  # group by compound
-  query_table <- query_table %>%
-    dplyr::group_by(Compound) %>%
-    dplyr::add_tally()
-
-  # put all correlations together in list
-  # keep minimum and average correlation for sorting
-  query_cors <- query_table %>%
-    dplyr::select(Correlation, Compound) %>%
-    dplyr::summarise(min_cor = min(Correlation),
-                     avg_cor = mean(Correlation),
-                     Correlation = I(list(Correlation)))
-
-  # compounds in top min or avg cor
-  top_min <- get_top(query_cors, 'min_cor')
-  top_avg <- get_top(query_cors, 'avg_cor')
-  top <- unique(c(top_min, top_avg))
-
-  # filter based on top
-  query_table <- query_table %>%
-    dplyr::filter(Compound %in% top)
-
-  query_cors <- query_cors %>%
-    dplyr::filter(Compound %in% top) %>%
-    dplyr::select(-Compound)
-
-  query_title <- query_table %>%
-    dplyr::select(cor_title, Compound) %>%
-    dplyr::summarize(cor_title = I(list(cor_title))) %>%
-    dplyr::select(cor_title)
+  query_table <- data.table(query_table, key = 'Compound')
 
 
-  # summarize rest
-  rest_cols <- setdiff(colnames(query_table), c('Correlation', 'Clinical Phase', 'title', 'cor_title'))
-  query_rest <- query_table %>%
-    dplyr::select(dplyr::one_of(rest_cols)) %>%
-    dplyr::summarize_all(function(x) {
-      unqx <- na.omit(x)
-      unqx <- as.character(unqx)
-      unqx <- unlist(strsplit(unqx, '|', fixed = TRUE))
-      unqx <- unique(unqx)
+  query_cors <- get_top_cors(query_table, is_genetic = is_genetic)
+  query_table <- query_table[Compound %in% query_cors$Compound, ]
 
-      # keep as NA if they all are
-      if (!length(unqx)) return(NA_character_)
+  # split joined cols
+  joined_cols <- intersect(colnames(query_table), c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name'))
+  if (length(joined_cols))
+    query_table[,
+                (joined_cols) := lapply(.SD, strsplit, ' | ', fixed = TRUE),
+                .SDcols = joined_cols]
 
-      # collapse distinct non-NA entries
-      return(paste(unqx, collapse = ' | '))
-    })
+  # summarize rest cols
+  rest_cols <- setdiff(colnames(query_table), c('Compound', 'Correlation', 'Clinical Phase', 'cor_title', 'title'))
+  query <- c('title = I(list(title))',
+             'cor_title = I(list(cor_title))',
+             paste0('`', rest_cols, '`', ' = paste(unique(unlist(`', rest_cols, '`)), collapse = " | ")'))
+  query <- paste(query, collapse = ', ')
+  query <- paste0('query_table[, .(', query, '), by = Compound]')
 
-  summarise_phase <- function(phases) {
-    if (all(is.na(phases))) return(phases[1])
-    max(phases, na.rm = TRUE)
-  }
+  query_rest <- eval(parse(text = query))
+  query_rest[query_rest == 'NA'] <- NA_character_
+
+
   # not in L1000 Genetic
   if ('Clinical Phase' %in% colnames(query_table)) {
 
-    # keep furthest clinical phase
-    query_phase <- query_table %>%
-      dplyr::select(`Clinical Phase`, Compound) %>%
-      dplyr::summarise(`Clinical Phase` = summarise_phase(`Clinical Phase`)) %>%
-      dplyr::pull(`Clinical Phase`)
+    summarise_phase <- function(phases) {
+      if (all(is.na(phases))) return(phases[1])
+      max(phases, na.rm = TRUE)
+    }
+    query_phase <- query_table[,
+                               .(summarise_phase(`Clinical Phase`)),
+                               by = Compound]$V1
+
 
     query_rest <- query_rest %>%
       tibble::add_column('Clinical Phase' = query_phase, .after = 'Compound')
+
   }
 
+  query_rest <- query_rest[, -('Compound')]
 
-  query_table <- dplyr::bind_cols(query_cors, query_rest, query_title)
+
+  query_table <- dplyr::bind_cols(query_cors, query_rest) %>%
+    as.data.frame()
+
   return(query_table)
+}
+
+#' Get top correlated compounds for drug query
+#'
+#' @param query_table data.frame with columns \code{'Correlation'} and \code{'Compound'}.
+#' @param is_genetic Boolean indicating if the query results are from L1000 genetic perturbations.
+#'
+#' @return data.table summarized by Compound with top results.
+#' @export
+#' @keywords internal
+get_top_cors <- function(query_table, is_genetic = FALSE) {
+  query_table <- data.table::data.table(query_table, key = 'Compound')
+
+  # put all correlations together in list
+  query_cors <- query_table[, list(Correlation = I(list(Correlation)),
+                                   max_cor = max(Correlation),
+                                   min_cor = min(Correlation),
+                                   avg_cor = mean(Correlation),
+                                   n = .N),
+                            by = Compound]
+
+
+  # compounds in top min or avg cor
+  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
+  top_min <- get_top(query_cors, 'min_cor')
+
+  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
+  top_avg_dis <- get_top(query_cors, 'avg_cor')
+
+  top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
+
+  # filter based on top
+  query_cors <- query_cors[Compound %in% top, ]
+  return(query_cors)
 }
 
 #' Add linkout HTML
@@ -222,7 +393,7 @@ add_table_html <- function(query_res) {
   img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
                 'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
                 'https://www.drugbank.ca/favicons/favicon.ico',
-                'https://en.wikipedia.org/static/favicon/wikipedia.ico',
+                'https://upload.wikimedia.org/wikipedia/commons/5/5a/Wikipedia%27s_W.svg',
                 'https://www.genecards.org/favicon.ico')
 
 
@@ -240,19 +411,21 @@ add_table_html <- function(query_res) {
   # replace correlation with svg element
   cors <- query_res$Correlation
 
-  # move titles to plots
-  titles <- query_res$cor_title
-  query_res$cor_title <- NULL
+  # move cor titles to plots
+  titles <- query_res$title
+  cor_titles <- query_res$cor_title
+  query_res$title <- query_res$cor_title <- NULL
 
 
   cors_range <- range(unlist(cors))
   xcenter <- calcx(0, cors_range)
   xmean <- calcx(query_res$avg_cor, cors_range)
+  compounds <- query_res$Compound
 
   query_res$Correlation <- paste0('<svg class="simplot" width="180" height="38">',
                                   paste0('<line class="meanline" x1="', xmean,'" x2="', xmean,'" y1="0" y2="8"></line>'),
                                   '<line class="centerline" x1="', xcenter,'" x2="', xcenter,'" y1="0" y2="38"></line>',
-                                  get_cors_html(cors, titles, cors_range),
+                                  get_cors_html(cors, titles, cor_titles, cors_range),
                                   '</svg>')
 
   return(query_res)
@@ -271,7 +444,7 @@ merge_linkouts <- function(query_res, cols) {
 
   # paste cols with non-NA values
   paste.na <- function(x) paste(x[!is.na(x)], collapse = '')
-  new_vals <- apply(query_res[ ,cols] , 1, paste.na)
+  new_vals <- apply(query_res[ ,cols, drop = FALSE] , 1, paste.na)
 
   # remove cols that pasted
   query_res <- query_res %>%
@@ -289,20 +462,24 @@ merge_linkouts <- function(query_res, cols) {
 #'
 #' @return Character vector of HTML markup for the title/circle/text for a correlation plot.
 #' @export
-get_cors_html <- function(cors, titles, cors_range) {
+get_cors_html <- function(cors, titles, cor_titles, cors_range) {
+
 
   cors_html <- sapply(seq_along(cors), function(i) {
     x <- cors[[i]]
-    xtitle <- titles[[i]]
+    title <- titles[[i]]
+    cor_title <- cor_titles[[i]]
     paste0('<g class="cor-point">
-              <title>', xtitle, '</title>
-              <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
-              <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor"></circle></g>
-            </g>', collapse = '\n')
+           <title>', cor_title, '</title>
+           <g><text x="', calcx(x, cors_range), '" y="38" class="x text" dy="-2">', signif(x, 3), '</text></g>
+           <g><circle cx="', calcx(x, cors_range), '" cy="19" r="5" class="cor" title="', title, '"></circle></g>
+           </g>', collapse = '\n')
   })
 
+
+
   return(cors_html)
-}
+  }
 
 
 
@@ -321,3 +498,4 @@ calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   range[2] <- range[2] + pad
   (cor - range[1])/diff(range) * width
 }
+

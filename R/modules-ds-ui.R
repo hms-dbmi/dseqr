@@ -6,8 +6,11 @@ dsPageUI <- function(id, tab, active) {
   withTags({
     tabPane(tab, active,
             div(class = 'row',
-                div(class = 'col-sm-6',
+                div(class = 'col-sm-5',
                     dsFormInput(ns('form'))
+                ),
+                div(class = 'col-sm-7 mobile-margin',
+                    dsMDSplotlyUI(ns('mds_plotly'))
                 )
             ),
             hr(),
@@ -19,6 +22,14 @@ dsPageUI <- function(id, tab, active) {
             )
     )
   })
+}
+
+#' Plotly MDS output
+#' @export
+#' @keywords internal
+dsMDSplotlyUI <- function(id) {
+  ns <- NS(id)
+  plotly::plotlyOutput(ns('plotly'))
 }
 
 #' Input form for datasets page
@@ -117,8 +128,6 @@ dsFormAnalInput <- function(id) {
     )
   )
 }
-
-
 
 #' Tables for datasets page
 #' @export

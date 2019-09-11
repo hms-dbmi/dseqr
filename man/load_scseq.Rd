@@ -5,15 +5,22 @@
 \title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
 load_scseq(data_dir, project = "SeuratProject", type = c("kallisto",
-  "cell_ranger"), soupx = FALSE)
+  "cell_ranger"), h5 = FALSE, soupx = FALSE)
 }
 \arguments{
-\item{type}{Object type to return. Either \code{'Seurat'} or \code{'SingleCellExperiment'}.}
+\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
 
-\item{Directory}{with raw and kallisto/bustools-quantified single-cell RNA-Seq files.}
+\item{project}{String identifying sample.}
+
+\item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.}
+
+\item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.}
+
+\item{soupx}{Boolean indicating if \code{SoupX} should be used to remove backgroud counts (defaul is \code{FALSE}).
+Experimental and not currently recommended.}
 }
 \value{
-\code{Seurat} (default) or \code{SingleCellExperiment} with whitelist meta data.
+\code{Seurat} object with whitelist meta data.
 }
 \description{
 Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.

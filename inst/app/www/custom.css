@@ -1,3 +1,32 @@
+.hover-info {
+  font-size: 10px;
+  position: relative;
+  padding: 4px;
+  left: -4px;
+  bottom: 10px;
+  color: #A0A0A0;
+}
+
+.mobile-margin {
+  margin-top: 50px;
+}
+
+@media (min-width: 768px) {
+  .mobile-margin {
+    margin-top: 0px;
+  
+  }
+}
+
+.hover-info:hover {
+  color: cornflowerblue;
+}
+
+.hover-info i {
+  vertical-align: middle;
+}
+
+
 .selectize-dropdown-content {
   max-height: 300px;
 }
@@ -9,6 +38,33 @@
   border: 1px solid #54575a;
   display: inline-block; 
   margin-right: 5px;
+}
+
+/* swatch for Pathways plot L1000 label */
+.l1000-label .input-swatch {
+  height: 8px; 
+  width: 8px; 
+  border: none;
+  border-radius: 50%;
+  margin-right: 6px;
+  background-color: red;
+}
+
+.l1000-label {
+  display: none;
+  color: #333;
+  font-family: "Open Sans", verdana, arial, sans-serif;
+  font-size: 14px;
+}
+
+/* swatch for label transfer in Single Cell page */
+.circle-swatch {
+  height: 8px;
+  width: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  background-color: #5cb85c;
+  margin-top: 6px;
 }
 
 .form-control {
@@ -29,8 +85,6 @@
   background-color: white;
 }
 
-
-
 .hidden-form {
   padding: 10px 0px 0px;
   border-width: 1px 0px;
@@ -38,6 +92,16 @@
   border-color: #e7e7e7;
   margin-bottom: 10px;
 }
+
+/* makes borders work when multiple hidden forms */
+.hidden-forms {
+  margin-bottom: 10px;
+}
+
+.hidden-forms .hidden-form {
+  margin-bottom: -1px;
+}
+
 
 /* VALIDATION RELATED */
 
@@ -54,7 +118,6 @@
 .validate-wrapper .help-block {
   display: none;
   margin-top: 10px;
-  text-align: center;
 }
 
 
@@ -87,7 +150,7 @@
   border-left-width: 0px;
 }
 
-.input-group-btn .dropdown .caret {
+.input-group-btn.dropdown .caret {
   display: none;
 }
 
@@ -108,6 +171,7 @@
 .input-group-btn a {
   z-index: 0 !important;
 }
+
 
 
 /* FULL HEIGHT BUTTON BESIDE INPUT */

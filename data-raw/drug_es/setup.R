@@ -1,5 +1,6 @@
 # this script sets up CMAP02_pdata.rds and L1000_pdata.rds
 # which are used to match Pubchem CIDS to signatures
+# TODO: migrate cmap_es_ind.rds and l1000_es.rds to drugseqr.data
 
 library(Biobase)
 data_dir <- file.path('inst', 'extdata')

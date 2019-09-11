@@ -48,7 +48,10 @@ scFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         selectedAnalInput(ns('anal')),
-        integrationFormInput(ns('integration')),
+        div(class = 'hidden-forms',
+            labelTransferFormInput(ns('transfer')),
+            integrationFormInput(ns('integration'))
+        ),
         comparisonTypeToggle(ns('comparison')),
         # inputs for comparing clusters
         div(id = ns('cluster_comparison_inputs'),
@@ -64,28 +67,6 @@ scFormInput <- function(id) {
   })
 }
 
-#' selectizeInput with button
-#'
-#' Adjusts height is multiple.
-#' @export
-#' @keywords internal
-selectizeInputMultWithButton <- function(id, label, button) {
-
-  tags$div(class = 'form-group selectize-fh',
-           tags$label(class = 'control-label', `for` = id, label),
-           tags$div(class = 'input-group full-height-btn',
-                    tags$div(class = 'full-height-selectize',
-                             tags$select(id = id, style = 'display: none', multiple = TRUE),
-                             tags$script(type = 'application/json', `data-for` = id, HTML('{}'))
-                    ),
-                    tags$div(class = 'input-group-btn',
-                             button
-                    )
-           )
-  )
-}
-
-
 
 
 #' Selection form/button for sample comparisons (test vs control)
@@ -99,10 +80,12 @@ sampleComparisonInput <- function(id) {
                          title = 'Compare test to control cells')
 
   selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
+                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
                             button,
-                            options = list(multiple = TRUE))
+                            options = list(multiple = TRUE),
+                            label_title = 'Cluster (n test :: n ctrl)')
 }
+
 
 #' Input form to control/test/all groups for integrated datasets
 #' @export
@@ -128,38 +111,44 @@ comparisonTypeToggle <- function(id) {
 selectedAnalInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = 'form-group selectize-fh',
-        label(class = 'control-label', `for` = ns('selected_anal'), 'Select a dataset:'),
-        div(class = 'input-group',
-            div(
-              select(id = ns('selected_anal'), style = 'display: none'),
-              script(type = 'application/json', `data-for` = ns('selected_anal'), HTML('{}'))
-            ),
-            div(class = 'input-group-btn',
-                showIntegrationButton(ns('integration')),
-                plotStylesButton(ns('styles'))
-            )
-        )
-    )
-  })
+  selectizeInputWithButtons(ns('selected_anal'), 'Select a dataset:',
+                            showLabelTransferButton(ns('label-transfer')),
+                            showIntegrationButton(ns('integration')),
+                            plotStylesButton(ns('styles'))
+  )
 }
+
+#' Button with to toggle display of label transfer inputs
+#' @export
+#' @keywords internal
+showLabelTransferButton <- function(id) {
+  ns <- NS(id)
+
+  actionButton(ns('show_label_transfer'), '',
+               icon = icon('tag', 'fa-fw'),
+               title = 'Toggle label transfer', class = 'squashed-btn')
+}
+
+
 
 #' Button with sliders for adjusting plot jitter and point size
 #' @export
 #' @keywords internal
 plotStylesButton <- function(id) {
   ns <- NS(id)
-  shinyWidgets::dropdownButton(
+  drugseqr::dropdownButton(
     sliderInput(ns('point_size'), 'Point size:',
                 width = '100%', ticks = FALSE,
                 min = 0.5, max = 4, value = 2.5, step = 0.5),
     sliderInput(ns('point_jitter'), 'Point jitter:',
                 width = '100%', ticks = FALSE,
                 min = 0, max = 3, value = 0, step = 0.5),
-    circle = FALSE, right = TRUE, icon = icon('cog', 'fa-fw')
+    circle = FALSE, right = TRUE, icon = icon('cog', 'fa-fw'),
+    title = 'Show plot style controls'
   )
 }
+
+
 
 #' Button with to toggle display of integrationFormInput
 #' @export
@@ -173,6 +162,22 @@ showIntegrationButton <- function(id) {
 }
 
 
+#' Input form for transfering labels between single cell datasets
+#' @export
+#' @keywords internal
+labelTransferFormInput <- function(id) {
+  ns <- NS(id)
+  withTags({
+    div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
+                                  actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
+                                  actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels'),
+                                  options = list(optgroupField = 'type', placeholder = 'Select none to reset labels',
+                                                 render = I('{option: transferLabelOption}'))
+        )
+    )
+  })
+}
 
 
 #' Input form for integrating single cell datasets
@@ -180,30 +185,19 @@ showIntegrationButton <- function(id) {
 #' @keywords internal
 integrationFormInput <- function(id) {
   ns <- NS(id)
+
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Test datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('ctrl_integration'), 'Control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('exclude_clusters'), 'Excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
-        div(class = 'form-group selectize-fh',
-            label(class = 'control-label', `for` = ns('integration_name'), 'Name for new integrated analysis:'),
-            div(class = 'validate-wrapper', id = ns('validate'),
-
-                div(class = 'input-group',
-                    input(id = ns('integration_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
-                    span(class = 'input-group-btn',
-                         actionButton(ns('submit_integration'), '',
-                                      icon = icon('plus', 'fa-fw'),
-                                      title = 'Integrate datasets')
-                    )
-                ),
-                span(id = ns('error_msg'), class = 'help-block')
-            )
-        )
+        selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
+        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
+        selectizeInput(ns('exclude_clusters'), 'Integration excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
+        textInputWithButtons(ns('integration_name'),
+                             'Name for new integrated analysis:',
+                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
+                             help_id = ns('error_msg'))
     )
   })
 }
-
 
 
 
@@ -218,7 +212,7 @@ clusterComparisonInput <- function(id) {
       div(id = ns('selected_cluster_panel'),
           div(id = ns('select_panel'),
               div(class = 'form-group selectize-fh',
-                  label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:'),
+                  label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:', span(class = 'hover-info', icon('info', 'fa-fw')), title = 'Cluster (n cells :: % of total)'),
                   div(class = 'input-group',
                       div(
                         select(id = ns('selected_cluster'), style = 'display: none'),
@@ -269,10 +263,11 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),
-                            label = 'Show expression for:',
+                            label = tags$span('Show expression for:', span(class='hover-info', icon('info', 'fa-fw'))),
                             exclude_ambient_button,
                             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
-                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
+                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
+                            label_title = 'Gene (% exp test :: % exp ctrl)'
   )
 }
 

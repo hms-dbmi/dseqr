@@ -12,7 +12,7 @@ validate_integration(test, ctrl, anal_name, anal_options)
 \item{ctrl}{Character vector of control dataset names}
 }
 \value{
-\code{NULL} is valid, otherwise an error message
+\code{NULL} if valid, otherwise an error message
 }
 \description{
 Validate dataset selection for integration

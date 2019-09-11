@@ -7,48 +7,28 @@
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
-construct_path_df <- function(top_table, nmax = nrow(top_table)) {
-
-  # show up to nmax genes
-  nkeep <- min(nmax, nrow(top_table))
+construct_path_df <- function(top_table, nmax = 200) {
 
   path_df <- data.frame(
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
     sd = sqrt(top_table$vardprime),
-    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"), stringsAsFactors = FALSE
+    description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
+    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
+    stringsAsFactors = FALSE
   )
 
+  # keep up to nmax in common and cmap only genes
   path_df <- path_df %>%
-    arrange(desc(abs(Dprime))) %>%
-    mutate(Gene = factor(Gene, levels = Gene)) %>%
-    head(nkeep)
+    mutate(Gene = factor(Gene, levels = Gene))
 
+  common <- head(which(path_df$Gene %in% genes$common), nmax)
+  cmap <- head(which(path_df$Gene %in% genes$cmap_only), nmax)
+
+  path_df <- path_df[row.names(path_df) %in% c(common, cmap), ]
 
   return(path_df)
 }
-
-
-#' Get data.frame for plotting gene expression values of top genes
-#'
-#' @param anal Result of call to \code{\link{diff_expr_scseq}}
-#'
-#' @return \code{data.frame} with columns: \itemize{
-#'  \item Gene gene names.
-#'  \item Dprime standardized unbiased effect size values.
-#'  \item sd standard deviations of \code{Dprime}.
-#'  \item Link url to GeneCards page for gene.
-#' }
-#' @export
-get_all_df <- function(anal) {
-
-  # add dprimes and vardprime values
-  anal <- add_es(anal)
-  top_table <- anal$top_table
-
-  construct_path_df(top_table, nmax = 200)
-}
-
 
 
 #' Get data.frame for plotting gene expression values of a pathway
@@ -64,21 +44,31 @@ get_all_df <- function(anal) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(path_id, anal) {
+get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
+
+  preserve_order <- !is.null(path_genes)
 
   # add dprimes and vardprime values
   anal <- add_es(anal)
   top_table <- anal$top_table
+  top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
 
-  path_enids <- gslist[[path_id]]
-  path_genes <- names(path_enids)
+  # only show pathway if no custom genes selected
+  if (path_id %in% names(gslist) & is.null(path_genes)) {
+    path_enids <- gslist[[path_id]]
+    path_genes <- names(path_enids)
+  }
 
-  # subset top table to genes in the pathway
-  top_table <- top_table[row.names(top_table) %in% path_genes, ]
+  if (!is.null(path_genes)) {
+    # subset top table to genes in the pathway
+    top_table <- top_table[row.names(top_table) %in% path_genes, ]
+  }
+
+  # keep in order specified for custom gene sets
+  if (preserve_order) top_table <- top_table[path_genes,, drop = FALSE]
 
   construct_path_df(top_table)
 }
-
 
 #' Generate data.frame of saved single cell RNA-Seq analyses
 #'
@@ -130,7 +120,7 @@ load_scseq_anals <- function(data_dir, with_type = FALSE) {
 #' @return result of \code{\link[PADOG]{padog}}
 #' @export
 #' @keywords internal
-diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name) {
+diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name, NI = 1000) {
   assay <- get_scseq_assay(scseq)
   Seurat::DefaultAssay(scseq) <- assay
 
@@ -156,7 +146,7 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 
   # run padog
   padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names, gslist = gslist,
-                              verbose = FALSE, rna_seq = FALSE)
+                              verbose = FALSE, rna_seq = FALSE, NI = NI)
 
   # save results
   saveRDS(padog_table, fpath)

@@ -12,6 +12,7 @@ pathPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
+            div(class = 'l1000-label', id = ns('l1000-label'), span(class = 'input-swatch'), 'L1000 gene'),
             div(class = 'scroll-plot',
                 plotly::plotlyOutput(ns('path_plot'), height = '550px')
 
@@ -19,6 +20,8 @@ pathPageUI <- function(id, tab, active) {
     )
   })
 }
+
+
 
 #' Input form for pathways page
 #' @export
@@ -32,9 +35,12 @@ pathFormInput <- function(id) {
                     scSampleComparisonInput(ns)
            ),
            selectizeInputWithButtons(ns('pathway'),
-                                     'Select a pathway:',
+                                     label = tags$span('Select a pathway:', span(class='hover-info', icon('info', 'fa-fw'))),
                                      actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')))
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')),
+                                     label_title = 'Pathway (FDR)'),
+           selectizeInput(ns('custom_path_genes'), 'Custom gene set:', choices = NULL, multiple = TRUE, options = list(render = I('{option: pathGene, item: pathGene}')), width = '100%')
+
   )
 }
 
@@ -48,6 +54,11 @@ scSampleComparisonInput <- function(ns) {
                          icon = icon('chevron-right', 'far fa-fw'),
                          title = 'Compare test to control cells')
 
-  selectizeInputMultWithButton(ns('selected_clusters'), label = 'Compare samples for:', button = button)
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
+                            button,
+                            options = list(multiple = TRUE),
+                            label_title = 'Cluster (n test :: n ctrl)')
 
 }
+

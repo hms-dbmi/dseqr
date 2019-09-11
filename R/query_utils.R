@@ -45,7 +45,7 @@ get_dprimes <- function(diff_exprs) {
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr', mustWork = TRUE)
+#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
 #' cmap_es <- readRDS(cmap_path)
 #'
 #' # load previous differential expression analysis
@@ -74,12 +74,37 @@ query_drugs <- function(query_genes, drug_es, ngenes = 200) {
   return(sim)
 }
 
+#' Find drugs that maximally affect a selection of genes
+#'
+#' Results are based on the average effect on the query genes. Genes to upregulate are multiplied by -1 so that
+#' strong positive results for these genes contribute towards a more negative average effect. All results are divided
+#' by the absolute of the average minimum effect (after -1 multiplication of genes to upregulate) of the query genes.
+#' This ensures that results will be between -1 and 1 for consistency with correlation values for \code{\link{query_drugs}}.
+#'
+#' @param query_genes Named list of character vectors with \code{'dn'} indicating genes that want to down-regulated and
+#'   \code{'up'} indicating genes that want to up-regulate.
+#' @inheritParams query_drugs
+#'
+#' @return Named numeric vector where most negative results are predicted to have the strongest desired effect as
+#'  indicated by \code{query_genes.
+#' @export
+#' @keywords internal
 query_budger <- function(query_genes, drug_es) {
 
-  # use only common genes
-  query_genes <- query_genes[names(query_genes) %in% row.names(drug_es)]
+  # will sort by increasing so multiply upregulated genes by -1
+  is.up <- row.names(drug_es) %in% query_genes$up
+  drug_es[is.up, ] <- drug_es[is.up, ] * -1
 
-  sim <- colMeans(drug_es[names(query_genes), ])
-  sim <- sort(sim)
+  # use only common genes
+  query_genes <- unlist(query_genes, use.names = FALSE)
+  query_genes <- query_genes[query_genes %in% row.names(drug_es)]
+
+  # put results between -1 and 1 with most negative result having most desired effect
+  # so that consistent with query_drugs
+  norm <- apply(drug_es[query_genes,, drop = FALSE], 1, min)
+  sim <- colMeans(drug_es[query_genes,, drop = FALSE]) / abs(mean(norm))
+
+  return(sim)
 }
+
 
