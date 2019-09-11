@@ -12,6 +12,15 @@ sudo apt-get install gdebi-core
 wget https://download3.rstudio.org/ubuntu-14.04/x86_64/shiny-server-1.5.9.923-amd64.deb
 sudo gdebi shiny-server-1.5.9.923-amd64.deb
 
+# install devtools/drugseqr
+sudo apt install libcurl4-openssl-dev libxml2-dev libssl-dev libv8-dev
+sudo R
+# install.packages('remotes') instead?
+install.packages('devtools')
+devtools::install_github("hms-dbmi/drugseqr", auth_token = 'e13eb58d90b1a6a62798c995485ad437be5e008f')
+devtools::install_github("hms-dbmi/drugseqr.data", auth_token = 'e13eb58d90b1a6a62798c995485ad437be5e008f')
+# devtools::install_github("hms-dbmi/drugseqr@*release", auth_token = 'e13eb58d90b1a6a62798c995485ad437be5e008f')
+
 # install app
 git clone https://github.com/hms-dbmi/drugseqr.git
 
