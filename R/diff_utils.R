@@ -256,11 +256,11 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
   # only store phenoData (exprs and fData large)
   pdata <- Biobase::pData(eset)
 
-  # MDS plot
-  plotly <- plotMDS(Biobase::exprs(eset), exprs_sva, pdata$group)
+  # for MDS plot
+  mds <- get_mds(Biobase::exprs(eset), exprs_sva, pdata$group)
 
   # save to disk
-  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, plotly = plotly)
+  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, mds = mds)
   save_name <- paste("diff_expr", tolower(annot), anal_name, sep = "_")
   save_name <- paste0(save_name, ".rds")
 
@@ -268,20 +268,18 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
   return(diff_expr)
 }
 
-#' Plot sammon MDS with and without SVA
+#' Get scalings for MDS plots
 #'
-#' Plots interactive MDS plot of expression values with and without surrogate variable analysis.
+#' For interactive MDS plot of expression values with and without surrogate variable analysis.
 #'
 #' @param exprs \code{matrix} of expression values.
 #' @param exprs_sva \code{matrix} of expression values with surrogate variables regressed out.
 #' @param group Character vector with values \code{'control'} and \code{'test'} indicating group membership.
 #' @importFrom magrittr "%>%"
 #'
-#' @return NULL
+#' @return List of tibbles with MDS scalings with and without SVA
 #' @export
-plotMDS <- function(exprs, exprs_sva, group) {
-
-  browser()
+get_mds <- function(exprs, exprs_sva, group) {
 
   suggests <- c('factoextra', 'MASS', 'plotly')
   if (!is.installed(suggests, level = 'message')) return(NULL)
@@ -301,6 +299,18 @@ plotMDS <- function(exprs, exprs_sva, group) {
     scaling_sva <- tibble::as_tibble(MASS::sammon(dist_sva, k = 2)$points) %>%
       format_scaling(with_sva = TRUE, group = group, exprs = exprs)
   })
+
+  return(list(scaling = scaling, scaling_sva = scaling_sva))
+}
+
+#' Plot MDS plots
+#'
+#' @param scaling tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA
+#' @param scaling_sva tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA
+#'
+#' @return plotly object
+#' @export
+plotMDS <- function(scaling, scaling_sva) {
 
   # make x and y same range
   xrange <- range(c(scaling$MDS1, scaling_sva$MDS1))

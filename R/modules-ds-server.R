@@ -169,8 +169,11 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
 
   # MDS plot
   output$plotly <- plotly::renderPlotly({
-    new_anal()
-    anal()$plotly
+    # get mds scaling
+    mds <- anal()$scaling
+
+    # plot
+    plotMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
   })
 
 

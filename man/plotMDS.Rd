@@ -2,17 +2,18 @@
 % Please edit documentation in R/diff_utils.R
 \name{plotMDS}
 \alias{plotMDS}
-\title{Plot sammon MDS with and without SVA}
+\title{Plot MDS plots}
 \usage{
-plotMDS(exprs, exprs_sva, group)
+plotMDS(scaling, scaling_sva)
 }
 \arguments{
-\item{exprs}{\code{matrix} of expression values.}
+\item{scaling}{tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA}
 
-\item{exprs_sva}{\code{matrix} of expression values with surrogate variables regressed out.}
-
-\item{group}{Character vector with values \code{'control'} and \code{'test'} indicating group membership.}
+\item{scaling_sva}{tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA}
+}
+\value{
+plotly object
 }
 \description{
-Plots interactive MDS plot of expression values with and without surrogate variable analysis.
+Plot MDS plots
 }

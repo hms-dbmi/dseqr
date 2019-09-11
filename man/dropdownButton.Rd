@@ -33,8 +33,6 @@ Or use an arbitrary strings to add a custom class, e.g. : with \code{status = 'm
 
 \item{margin}{Value of the dropdown margin-right and margin-left menu content.}
 
-\item{inline}{use an inline (\code{span()}) or block container (\code{div()}) for the output.}
-
 \item{inputId}{Optional, id for the button, the button act like an \code{actionButton},
 and you can use the id to toggle the dropdown menu server-side with \code{\link{toggleDropdownButton}}.}
 
