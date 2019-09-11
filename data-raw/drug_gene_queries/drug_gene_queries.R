@@ -11,7 +11,7 @@ cmap_es <- readRDS(cmap_path)
 l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_genes <- readRDS(l1000_genes_path)
 
-l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr', mustWork = TRUE)
+l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_drugs <- readRDS(l1000_drugs_path)
 
 cmap_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(cmap_es))

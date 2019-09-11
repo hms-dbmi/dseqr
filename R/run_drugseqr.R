@@ -66,10 +66,10 @@ init_drugseqr <- function(app_name) {
 
   # sync the drugseqr app components
   drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
-  app_dir <- file.path('/srv/shiny-server/drugseqr', app)
+  app_dir <- file.path('/srv/shiny-server/drugseqr', app_name)
   dir.create(app_dir, recursive = TRUE)
 
-  system2('rsync', args = c('-a', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
+  system2('rsync', args = c('-av', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
 
   # create necessary folders/blank files to initialize new app
   data_dir <- file.path(app_dir, 'data_dir')
