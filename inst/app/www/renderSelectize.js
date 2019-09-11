@@ -161,8 +161,6 @@ function pathItem(item, escape) {
 }
 
 
-
-
 function studyOption(item, escape) {
 
   var res = "<div style='columns: 2;'>" +
@@ -224,10 +222,11 @@ function transferLabelOption(item, escape) {
 }
 
 function querySignatureItem(item, escape) {
+
+  var info = item.type === "CMAP02/L1000 Perturbations" ? "" : "<span style='color: #A0A0A0;'>" + " (" + item.type.toLowerCase() + ")" +"</span>";
  
   var res = "<div>" +
-              escape(item.label) +
-              "<span style='color: #A0A0A0;'>" + " (" + item.type.toLowerCase() + ")" +"</span>"; +
+              escape(item.label) + info +
             "</div>";
 
   return res;
