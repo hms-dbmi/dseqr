@@ -88,9 +88,11 @@ load_bulk_datasets <-function(data_dir) {
   }
 
   datasets$value <-  datasets$label <- datasets$dataset_name
+  datasets$type <- 'Bulk'
 
   return(datasets)
 }
+
 
 #' Save new dataset info to datasets dataframe
 #'

@@ -4,7 +4,7 @@
 \alias{dsFormQuant}
 \title{Logic for dataset quantification part of dsForm}
 \usage{
-dsFormQuant(input, output, session, fastq_dir, error_msg)
+dsFormQuant(input, output, session, fastq_dir, error_msg, is.sc)
 }
 \description{
 Logic for dataset quantification part of dsForm

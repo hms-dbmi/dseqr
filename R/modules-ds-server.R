@@ -169,14 +169,10 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
     readRDS(anal_path)
   })
 
-
   # MDS plot
   output$plotly <- plotly::renderPlotly({
-    # get mds scaling
     mds <- anal()$mds
-
-    # plot
-    plotMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
+    plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
   })
 
 
@@ -209,7 +205,8 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
 
   quant <- callModule(dsFormQuant, 'quant_form',
                       fastq_dir = dataset$fastq_dir,
-                      error_msg = msg_quant)
+                      error_msg = msg_quant,
+                      is.sc = dataset$is.sc)
 
   anal <- callModule(dsFormAnal, 'anal_form',
                      error_msg = msg_anal,
@@ -241,7 +238,7 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
 
 
   # get directory with fastqs
-  roots <- c('bulk' = file.path(data_dir, 'bulk'))
+  roots <- c('data_dir' = data_dir)
   shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
 
 
@@ -263,7 +260,7 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
 
   observe({
     req(datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 4), datasets()), server = TRUE)
+    updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 5), datasets()), server = TRUE)
   })
 
   # add disabled class if not creating
@@ -281,13 +278,16 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
   })
 
   dataset_dir <- reactive({
+
     dataset_name <- dataset_name()
     req(dataset_name)
 
     if (is.create()) {
-      req(input$dataset_dir)
+      req(!'integer' %in% class(input$dataset_dir))
+      type <- input$dataset_dir$path[[2]]
       dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
-      dir <- basename(as.character(dir))
+      dir <- as.character(dir)
+      dir <- gsub(paste0(data_dir, '/'), '', dir)
     }
     else {
       datasets <- datasets()
@@ -297,18 +297,16 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
     return(dir)
   })
 
+  is.sc <- reactive(grepl('^single-cell/', dataset_dir()))
 
-  fastq_dir <- reactive({
-    dataset_dir <- dataset_dir()
-    req(dataset_dir)
-    file.path(data_dir, 'bulk', dataset_dir)
-  })
+  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
 
 
   return(list(
     fastq_dir = fastq_dir,
     dataset_name = dataset_name,
     dataset_dir = dataset_dir,
+    is.sc = is.sc,
     is.create = is.create
   ))
 
@@ -318,12 +316,18 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
 #' Logic for dataset quantification part of dsForm
 #' @export
 #' @keywords internal
-dsFormQuant <- function(input, output, session, fastq_dir, error_msg) {
+dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
+
 
   paired <- callModule(dsEndType, 'end_type',
-                       fastq_dir = fastq_dir)
+                       fastq_dir = fastq_dir,
+                       is.sc = is.sc)
 
   observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
+
+  observe({
+    toggle('bulk_controls', condition = !is.sc())
+  })
 
 
   reset <- reactive(input$reset)
@@ -383,7 +387,7 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg) {
 #' Logic for end type selection is dsFormQuant
 #' @export
 #' @keywords internal
-dsEndType <- function(input, output, session, fastq_dir) {
+dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 
 
   # get fastq files in directory
@@ -396,6 +400,7 @@ dsEndType <- function(input, output, session, fastq_dir) {
 
   # auto detected if paired
   detected_paired <- reactive({
+    if (is.sc()) return(TRUE)
     fastqs <- fastq_files()
     fastq_dir <- fastq_dir()
     req(fastqs, fastq_dir)
@@ -557,7 +562,6 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
   observeEvent(fastq_dir(), {
     fastq_dir <- fastq_dir()
     req(fastq_dir)
-
 
     pdata_path <- file.path(fastq_dir, 'pdata.rds')
 

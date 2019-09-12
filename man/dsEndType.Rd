@@ -4,7 +4,7 @@
 \alias{dsEndType}
 \title{Logic for end type selection is dsFormQuant}
 \usage{
-dsEndType(input, output, session, fastq_dir)
+dsEndType(input, output, session, fastq_dir, is.sc)
 }
 \description{
 Logic for end type selection is dsFormQuant

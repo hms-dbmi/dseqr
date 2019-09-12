@@ -58,7 +58,8 @@ dsDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:', options = list(create = TRUE, placeholder = 'Type name to add new dataset'),
+    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:',
+                              options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
                               button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
                                      `data-title` = 'Folder with fastq.gz files',
                                      title = 'Select folder with fastq.gz files',
@@ -76,14 +77,16 @@ dsFormQuantInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    dsEndTypeInput(ns('end_type')),
-    justifiedButtonGroup(
-      container_id = ns('quant_labels'),
-      label = 'Label selected rows:',
-      help_id = ns('error_msg'),
-      actionButton(ns('pair'), 'Paired'),
-      actionButton(ns('rep'), 'Replicate'),
-      actionButton(ns('reset'), 'Reset')
+    tags$div(id = ns('bulk_controls'),
+             dsEndTypeInput(ns('end_type')),
+             justifiedButtonGroup(
+               container_id = ns('quant_labels'),
+               label = 'Label selected rows:',
+               help_id = ns('error_msg'),
+               actionButton(ns('pair'), 'Paired'),
+               actionButton(ns('rep'), 'Replicate'),
+               actionButton(ns('reset'), 'Reset')
+             )
     ),
     actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-warning')
   )
