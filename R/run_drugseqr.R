@@ -21,7 +21,7 @@
 #' run_drugseqr(data_dir, test_data = TRUE)
 #' run_drugseqr(data_dir, test_data = FALSE)
 #'
-run_drugseqr <- function(data_dir, test = FALSE, test_data = TRUE) {
+run_drugseqr <- function(data_dir, test = FALSE, test_data = FALSE) {
 
   app_dir <- 'inst/app'
 

@@ -230,6 +230,10 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
     individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
+    # exclude individual without scseq (e.g. folder with fastq.gz files only)
+    has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+    individual <- individual[has.scseq]
+
     # must be a list if length one for option groups to work
     if (length(integrated) == 1) integrated <- list(integrated)
     if (length(individual) == 1) individual <- list(individual)
@@ -457,7 +461,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   })
 
   observeEvent(input$confirm_overwrite, {
-
+    removeModal()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
     anal_name <- selected_anal()
@@ -1004,4 +1008,3 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
-

@@ -11,25 +11,32 @@
 #' @return Character vector of predicted labels from \code{ref_name}.
 #' @export
 #' @keywords internal
-get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir, min.score = 0.9) {
+get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir, min.score = 0) {
 
-  # load reference annotation
-  ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
-  ref_annot <- readRDS(ref_annot_path)
-
-  # load query annotation
+  # load reference and query annotation
   query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
   query_annot <- readRDS(query_annot_path)
 
-  # get predicted annotation
-  pred.idx <- as.numeric(ref_preds$predicted.id) + 1
-  pred_annot <- ref_annot[pred.idx]
+  # for resetting annotation
+  if (ref_name == '') {
+    pred_annot <- as.character(seq_along(query_annot)-1)
 
-  # use original query annotation below min score threshold
-  poor.pred <- ref_preds$mean.score < min.score
-  pred_annot[poor.pred] <- query_annot[poor.pred]
-  pred_annot <- make.unique(pred_annot, '_')
+  } else {
+    ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+    ref_annot <- readRDS(ref_annot_path)
 
+    # load query annotation
+
+    # get predicted annotation
+    pred.idx <- as.numeric(ref_preds$predicted.id) + 1
+    pred_annot <- ref_annot[pred.idx]
+
+    # use original query annotation below min score threshold
+    # not sure of utility so default is take all preds
+    poor.pred <- ref_preds$mean.score < min.score
+    pred_annot[poor.pred] <- query_annot[poor.pred]
+    pred_annot <- make.unique(pred_annot, '_')
+  }
   return(pred_annot)
 }
 
