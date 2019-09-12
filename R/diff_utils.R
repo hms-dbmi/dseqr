@@ -299,14 +299,14 @@ get_mds <- function(exprs, exprs_sva, group) {
   return(list(scaling = scaling, scaling_sva = scaling_sva))
 }
 
-#' Plot MDS plots
+#' Plot MDS plotlys
 #'
 #' @param scaling tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA
 #' @param scaling_sva tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA
 #'
 #' @return plotly object
 #' @export
-plotMDS <- function(scaling, scaling_sva) {
+plotlyMDS <- function(scaling, scaling_sva) {
 
   if(is.null(scaling)) return(NULL)
   # make x and y same range
@@ -342,6 +342,8 @@ plotMDS <- function(scaling, scaling_sva) {
 
   pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
     plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
+                   xaxis = list(fixedrange=TRUE),
+                   yaxis = list(fixedrange=TRUE),
                    margin = list(t = 60),
                    annotations = list(
                      list(x = 0.2 , y = 1.065, text = "Without SVA", showarrow = F, xref='paper', yref='paper'),
