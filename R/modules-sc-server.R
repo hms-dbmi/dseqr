@@ -321,6 +321,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
+  new_annot <- reactiveVal()
 
   # show/hide label transfer forms
   observe({
@@ -425,14 +426,22 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
 
   pred_annot <- reactive({
 
+    # react to new annotation
+    new_annot()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
     anal_name <- selected_anal()
 
     # show saved annot if nothing selected or label transfer not open
-    if (is.null(ref_preds) | !show_label_transfer()) return(NULL)
+    if (is.null(ref_preds) | !show_label_transfer()) {
+      annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+      annot <- readRDS(annot_path)
 
-    get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+    } else {
+      annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+    }
+
+    return(annot)
   })
 
   # overwrite annotation
@@ -472,6 +481,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
     saveRDS(pred_annot, annot_path)
 
+    new_annot(pred_annot)
   })
 
 
