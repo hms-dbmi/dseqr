@@ -51,43 +51,80 @@ dsPage <- function(input, output, session, data_dir) {
 
   # run quantification for quant dataset
   observeEvent(dsForm$run_quant(), {
-    indices_dir <- system.file('indices/kallisto', package = 'drugseqr.data', mustWork = TRUE)
-
-    # setup
-    pdata <- dsQuantTable$pdata()
-    paired <- dsForm$paired()
-    dataset_dir <- dsForm$dataset_dir()
-    dataset_name <- dsForm$dataset_name()
-
     # disable inputs
     shinyjs::disable(selector = 'input')
 
+    # setup
+    is.sc <- dsForm$is.sc()
+    dataset_dir <- dsForm$dataset_dir()
+    dataset_name <- dsForm$dataset_name()
+    fastq_dir <- file.path(data_dir, dataset_dir)
+    indices_dir <- system.file('indices/kallisto', package = 'drugseqr.data', mustWork = TRUE)
+
     # Create a Progress object
-    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
-    progress$set(message = "Quantifying files", value = 0)
+    progress <- Progress$new(session, min=0, max = ifelse(is.sc, 8, nrow(pdata)+1))
     # Close the progress when this reactive exits (even if there's an error)
     on.exit(progress$close())
 
-    # Create a callback function to update progress.
-    updateProgress <- function(amount = NULL, detail = NULL) {
-      progress$inc(amount = amount, detail = detail)
+
+    if (is.sc) {
+      progress$set(message = "Quantifying files", value = 0)
+      progress$set(value = 1)
+      run_kallisto_scseq(indices_dir, fastq_dir)
+
+      progress$set(message = "Loading and QC", value = 2)
+      scseq <- load_scseq(fastq_dir, project = dataset_name)
+      scseq <- scseq[, scseq$whitelist]
+      gc()
+
+      progress$set(message = "Preprocessing", value = 3)
+      scseq <- preprocess_scseq(scseq)
+      gc()
+
+      progress$set(message = "Clustering", value = 4)
+      scseq <- add_scseq_clusters(scseq)
+      gc()
+
+      progress$set(message = "Reducing dimensions", value = 5)
+      scseq <- run_umap(scseq)
+      gc()
+
+      progress$set(message = "Getting markers", value = 6)
+      markers <- get_scseq_markers(scseq)
+      gc()
+
+      progress$set(message = "Saving", value = 7)
+      anal <- list(scseq = scseq, markers = markers, annot = names(markers))
+      save_scseq_data(anal, dataset_name, file.path(data_dir, 'single-cell'))
+
+    } else {
+      # Create a callback function to update progress.
+      progress$set(message = "Quantifying files", value = 0)
+      updateProgress <- function(amount = NULL, detail = NULL) {
+        progress$inc(amount = amount, detail = detail)
+      }
+
+      # setup bulk
+      pdata <- dsQuantTable$pdata()
+      paired <- dsForm$paired()
+
+
+      # quantification
+      run_kallisto_bulk(indices_dir = indices_dir,
+                        data_dir = fastq_dir,
+                        pdata = pdata,
+                        paired = paired,
+                        updateProgress = updateProgress)
+
+      # generate eset and save
+      progress$set(message = 'Annotating dataset')
+      eset <- load_seq(fastq_dir)
+      new_dataset(dataset_name)
+
+      # save to bulk datasets to indicate that has been quantified
+      save_bulk_dataset(dataset_name, dataset_dir, data_dir)
+
     }
-
-    # quantification
-    fastq_dir <- file.path(data_dir, dataset_dir)
-    run_kallisto_bulk(indices_dir = indices_dir,
-                      data_dir = fastq_dir,
-                      pdata = pdata,
-                      paired = paired,
-                      updateProgress = updateProgress)
-
-    # generate eset and save
-    progress$set(message = 'Annotating dataset')
-    eset <- load_seq(fastq_dir)
-    new_dataset(dataset_name)
-
-    # save to bulk datasets to indicate that has been quantified
-    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
 
     # re-enable inputs
     shinyjs::enable(selector = 'input')
