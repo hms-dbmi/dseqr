@@ -74,7 +74,7 @@ dsPage <- function(input, output, session, data_dir) {
     }
 
     # quantification
-    fastq_dir <- file.path(data_dir, 'bulk', dataset_dir)
+    fastq_dir <- file.path(data_dir, dataset_dir)
     run_kallisto_bulk(indices_dir = indices_dir,
                       data_dir = fastq_dir,
                       pdata = pdata,
@@ -160,7 +160,7 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
     dataset_dir <- dataset_dir()
 
     group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    file.path(data_dir, 'bulk', dataset_dir, group_file)
+    file.path(data_dir, dataset_dir, group_file)
   })
 
   anal <- reactive({
@@ -212,6 +212,7 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
                      error_msg = msg_anal,
                      data_dir = data_dir,
                      dataset_name = dataset$dataset_name,
+                     dataset_dir = dataset$dataset_dir,
                      new_anal = new_anal)
 
 
@@ -226,7 +227,8 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
     dataset_dir = dataset$dataset_dir,
     anal_name = anal$anal_name,
     show_quant = show_quant,
-    show_anal = show_anal
+    show_anal = show_anal,
+    is.sc = dataset$is.sc
   ))
 
 }
@@ -342,9 +344,9 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   })
 
-  quantModal <- function() {
-    modalDialog(
-      withTags({
+  quantModal <- function(is.sc = FALSE) {
+    if (!is.sc) {
+      UI <- withTags({
         dl(
           dt('End type:'),
           dd('Experiment is selected as single ended'),
@@ -352,7 +354,19 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
           dt('Replicates:'),
           dd('If any - e.g. same sample sequenced in replicate. These will be treated as a single library.')
         )
-      }),
+      })
+
+    } else {
+      UI <- withTags({
+        dl(
+          dt('Are you sure?'),
+          dd('This will take a while.')
+        )
+      })
+    }
+
+    modalDialog(
+      UI,
       title = 'Double check:',
       size = 's',
       footer = tagList(
@@ -364,7 +378,7 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   # Show modal when button is clicked.
   observeEvent(input$run_quant, {
-    showModal(quantModal())
+    showModal(quantModal(is.sc()))
   })
 
   run_quant <- reactive({
@@ -427,7 +441,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal) {
+dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal, dataset_dir) {
 
 
   run_anal <- reactiveVal()
@@ -502,15 +516,16 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     run_anal(input$run_anal)
   })
 
+
   download_content <- reactive({
     anal_name <- anal_name()
-    dataset_name <- dataset_name()
+    dataset_dir <- dataset_dir()
 
-    req(anal_name, dataset_name)
+    req(anal_name, dataset_dir)
 
     # path to analysis result
     anal_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    anal_path <- file.path(data_dir, 'bulk', dataset_name, anal_file)
+    anal_path <- file.path(data_dir, dataset_dir, anal_file)
     tt <- readRDS(anal_path)$top_table
 
     tt[order(tt$P.Value), ]
@@ -754,7 +769,7 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
     if (anal_name == '') return(NULL)
 
     group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    file.path(data_dir, 'bulk', dataset_dir, group_file)
+    file.path(data_dir, dataset_dir, group_file)
   })
 
 
