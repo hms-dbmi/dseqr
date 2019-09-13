@@ -5,8 +5,8 @@ library(rlang)
 # drug by genetic pert searches
 
 # load data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-cmap_es <- readRDS(cmap_path)
+# cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+# cmap_es <- readRDS(cmap_path)
 
 l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_genes <- readRDS(l1000_genes_path)
@@ -14,12 +14,12 @@ l1000_genes <- readRDS(l1000_genes_path)
 l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_drugs <- readRDS(l1000_drugs_path)
 
-cmap_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(cmap_es))
+# cmap_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(cmap_es))
 l1000_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(l1000_drugs))
 l1000_genetic <- gsub('^([^_]+)_.+?$', '\\1', colnames(l1000_genes))
 
 # check that l1000 and cmap compounds are unique
-length(intersect(colnames(cmap_es), colnames(l1000_drugs)))
+# length(intersect(colnames(cmap_es), colnames(l1000_drugs)))
 # [1] 0
 
 save_dir <- 'data-raw/drug_gene_queries/data'
@@ -74,6 +74,10 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 # run_pert_queries(l1000_genes, l1000_genes, 'l1000_genes_res_', l1000_genetic)
 # run_pert_queries(l1000_genes, l1000_drugs, 'l1000_genes_res_', l1000_genetic)
 
-run_pert_queries(l1000_drugs, cmap_es, 'l1000_drugs_res_', l1000_compounds)
-run_pert_queries(l1000_drugs, l1000_genes, 'l1000_drugs_res_', l1000_compounds)
-run_pert_queries(l1000_drugs, l1000_drugs, 'l1000_drugs_res_', l1000_compounds)
+# run_pert_queries(l1000_drugs, cmap_es, 'l1000_drugs_res_', l1000_compounds)
+# run_pert_queries(l1000_drugs, l1000_genes, 'l1000_drugs_res_', l1000_compounds)
+# run_pert_queries(l1000_drugs, l1000_drugs, 'l1000_drugs_res_', l1000_compounds)
+
+
+# sync to s3
+# aws s3 sync ~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data s3://drugseqr/pert_query_dir
