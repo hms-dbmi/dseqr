@@ -88,7 +88,7 @@ load_bulk_datasets <-function(data_dir) {
   }
 
   datasets$value <-  datasets$label <- datasets$dataset_name
-  datasets$type <- 'Bulk'
+  if (nrow(datasets)) datasets$type <- 'Bulk'
 
   return(datasets)
 }

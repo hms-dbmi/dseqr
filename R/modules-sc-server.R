@@ -231,8 +231,9 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
     individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
     # exclude individual without scseq (e.g. folder with fastq.gz files only)
+    # unlist for case when no individual scseqs
     has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
-    individual <- individual[has.scseq]
+    individual <- individual[unlist(has.scseq)]
 
     # must be a list if length one for option groups to work
     if (length(integrated) == 1) integrated <- list(integrated)
