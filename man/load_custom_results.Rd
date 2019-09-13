@@ -4,7 +4,7 @@
 \alias{load_custom_results}
 \title{Load results of previous custom query}
 \usage{
-load_custom_results(res_paths)
+load_custom_results(res_paths, is_pert)
 }
 \arguments{
 \item{res_paths}{List of named strings with paths to results.}

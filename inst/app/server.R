@@ -2,8 +2,13 @@ server <- function(input, output, session) {
 
   # get arguments from calling function
   # defaults for server
+
   # base directory contains data_dir folder
   data_dir <- getShinyOption('data_dir', 'data_dir')
+
+  # path where drug gene queries will be stored
+  pert_query_dir <- getShinyOption('pert_query_dir', file.path('pert_query_dir', package = 'drugseqr.data', mustWork = TRUE))
+  if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
 
   # for testing don't seem to be able to pass arguments as options
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -33,7 +38,8 @@ server <- function(input, output, session) {
 
   drugsPage <- callModule(drugsPage, 'drug',
                           new_anal = dsPage$new_anal,
-                          data_dir = data_dir)
+                          data_dir = data_dir,
+                          pert_query_dir = pert_query_dir)
 
   pathPage <- callModule(pathPage, 'pathways',
                          new_anal = dsPage$new_anal,

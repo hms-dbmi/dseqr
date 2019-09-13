@@ -17,16 +17,17 @@
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
+#' pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
 #'
-#' run_drugseqr(data_dir, test_data = TRUE)
-#' run_drugseqr(data_dir, test_data = FALSE)
+#' run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)
+#' run_drugseqr(data_dir, pert_query_dir, test_data = FALSE)
 #'
-run_drugseqr <- function(data_dir, test = FALSE, test_data = FALSE) {
+run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_data = FALSE) {
 
   app_dir <- 'inst/app'
 
   # pass arguments to app through options then run
-  shiny::shinyOptions(data_dir = data_dir)
+  shiny::shinyOptions(data_dir = data_dir, pert_query_dir = pert_query_dir)
 
 
   if (test) {

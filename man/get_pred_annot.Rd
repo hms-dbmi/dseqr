@@ -4,7 +4,7 @@
 \alias{get_pred_annot}
 \title{Get predicted annotation for label transfer}
 \usage{
-get_pred_annot(ref_preds, ref_name, anal_name, sc_dir, min.score = 0.9)
+get_pred_annot(ref_preds, ref_name, anal_name, sc_dir, min.score = 0)
 }
 \arguments{
 \item{ref_preds}{data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}}

@@ -4,7 +4,8 @@
 \alias{run_drugseqr}
 \title{Run drugseqr app}
 \usage{
-run_drugseqr(data_dir, test = FALSE, test_data = TRUE)
+run_drugseqr(data_dir, pert_query_dir = NULL, test = FALSE,
+  test_data = FALSE)
 }
 \arguments{
 \item{data_dir}{Directory containing folders \code{'bulk'} and \code{'single-cell'}.
@@ -24,8 +25,9 @@ data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
+pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
 
-run_drugseqr(data_dir, test_data = TRUE)
-run_drugseqr(data_dir, test_data = FALSE)
+run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)
+run_drugseqr(data_dir, pert_query_dir, test_data = FALSE)
 
 }

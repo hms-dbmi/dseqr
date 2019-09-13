@@ -98,16 +98,34 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
 #' @return List of names results loaded from \code{res_paths}.
 #' @export
 #' @keywords internal
-load_custom_results <- function(res_paths) {
+load_custom_results <- function(res_paths, is_pert) {
   res <- list()
   res_path_names <- names(res_paths)
   for (i in seq_along(res_paths)) {
     res_path <- res_paths[[i]]
     res_name <- names(res_paths)[i]
 
-    if (file.exists(res_path)) res[[res_name]] <- readRDS(res_path)
+    if (file.exists(res_path)) {
+      res[[res_name]] <- readRDS(res_path)
+
+    } else if (is_pert) {
+      # download requested pert result
+      dl_pert_result(res_path)
+    }
   }
   return(res)
+}
+
+#' Download CMAP02/L1000 pert query result from S3
+#'
+#' @param res_path Path to download file to.
+#'
+#' @return NULL
+#' @export
+dl_pert_result <- function(res_path) {
+  # name of the file being requested
+  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/pert_query_dir/', basename(res_path))
+  download.file(dl_url, res_path)
 }
 
 #' Load data.frame of custom anals for selectizeInput

@@ -1,12 +1,13 @@
 #' Logic for Drugs page
 #' @export
 #' @keywords internal
-drugsPage <- function(input, output, session, new_anal, data_dir) {
+drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
                      new_anal = new_anal,
-                     data_dir = data_dir)
+                     data_dir = data_dir,
+                     pert_query_dir = pert_query_dir)
 
   # the output table
   callModule(drugsTable, 'table',
@@ -98,7 +99,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
-drugsForm <- function(input, output, session, new_anal, data_dir) {
+drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir) {
 
   cmap_res <- reactiveVal()
   l1000_drugs_res <- reactiveVal()
@@ -106,7 +107,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 
   querySignature <- callModule(querySignature, 'signature',
                                new_anal = new_anal,
-                               data_dir = data_dir)
+                               data_dir = data_dir,
+                               pert_query_dir = pert_query_dir)
 
   is_pert <- reactive({
     anal <- querySignature$anal()
@@ -149,19 +151,21 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
   # get saved cmap/l1000 query results
   observe({
     disable('signature')
+    is_sc <- is_sc()
+    is_pert <- is_pert()
+    is_custom <- is_custom()
 
-    if (is_sc())  {
+    if (is_sc)  {
       res <- sc_inputs$results()
 
-    } else if (is_custom() || is_pert()) {
+    } else if (is_custom || is_pert) {
       res_paths <- querySignature$res_paths()
-      res <- load_custom_results(res_paths)
+      res <- load_custom_results(res_paths, is_pert = is_pert)
 
     } else {
       res_paths <- querySignature$res_paths()
       res <- run_drugs_comparison(res_paths, session)
     }
-
 
     cmap_res(res$cmap)
     l1000_drugs_res(res$l1000_drugs)
@@ -215,7 +219,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir) {
 #' Logic for query signature in drugsForm
 #' @export
 #' @keywords internal
-querySignature <- function(input, output, session, new_anal, data_dir) {
+querySignature <- function(input, output, session, new_anal, data_dir, pert_query_dir) {
 
 
 

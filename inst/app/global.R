@@ -11,6 +11,3 @@ library(dplyr)
 cmap_annot <- NULL
 l1000_drugs_annot <- NULL
 l1000_genes_annot <- NULL
-
-# TODO make not hardcoded
-pert_query_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
