@@ -4,7 +4,7 @@
 \alias{querySignature}
 \title{Logic for query signature in drugsForm}
 \usage{
-querySignature(input, output, session, new_anal, data_dir)
+querySignature(input, output, session, new_anal, data_dir, pert_query_dir)
 }
 \description{
 Logic for query signature in drugsForm
