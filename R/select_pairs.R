@@ -158,7 +158,7 @@ select_pairs <- function(data_dir) {
       rows  <- input$pdata_rows_selected
 
       # check for incomplete/wrong input
-      if (validate_pairs(pairs, rows, reps)) {
+      if (is.null(validate_pairs(pairs, rows, reps))) {
 
         # add rows as a pair
         pair_num <- length(unique(setdiff(pairs, NA))) + 1

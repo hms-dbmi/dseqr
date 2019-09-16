@@ -21,7 +21,7 @@
 #' run_salmon_bulk(indices_dir, data_dir, pdata_path)
 #'
 run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo_sapiens',
-                       flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
+                            flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
   # TODO: make it handle single and paired-end data
   # now assumes single end
 
@@ -61,27 +61,40 @@ run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo
     # include any replicates
     rep_num <- pdata$Replicate[row_num]
     if (!is.null(rep_num) && !is.na(rep_num)) {
-      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name']
+      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name', drop = TRUE]
+    }
+
+    # include any pairs
+    pair_num <- pdata$Pair[row_num]
+    if (!is.null(pair_num) && !is.na(pair_num)) {
+      fastq_file <- pdata[pdata$Pair %in% pair_num, 'File Name', drop = TRUE]
     }
 
     # remove fastq_files for next quant loop
     fastq_files <- setdiff(fastq_files, fastq_file)
 
     # possibly spaces in file names
-    fastq_path <- paste(shQuote(file.path(data_dir, fastq_file)), collapse = ' ')
+    fastq_path <- shQuote(file.path(data_dir, fastq_file))
+
+    # flags based on end type
+    end_type_flags <- ifelse(paired,
+                             paste(c('-1', '-2'), fastq_path , collapse = ' '),
+                             paste0('-r', paste(fastq_path, collapse = ' ')))
+
 
     # save each sample in it's own folder
-    # use the first file name in any replicates
+    # use the first file name in any replicates/pairs
     sample_name <- gsub('.fastq.gz$', '', fastq_file[1])
     out_dir <- file.path(quants_dir, sample_name)
     dir.create(out_dir)
 
+
     # run salmon
-    system2(command,
+    system2('salmon',
             args=c('quant',
                    '-i', salmon_idx,
                    '-l', 'A',
-                   '-r', fastq_path, # single-end flag
+                   end_type_flags,
                    flags,
                    '-o', shQuote(out_dir)))
   }
