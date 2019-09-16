@@ -12,7 +12,14 @@
 #' @examples
 #'
 #' srp_meta <- get_srp_meta('GSE117570')
-get_srp_meta <- function(gse_name) {
+get_srp_meta <- function(gse_name, data_dir = getwd()) {
+
+  gse_dir <- file.path(data_dir, gse_name)
+  if (!dir.exists(gse_dir)) dir.create(gse_dir)
+
+  # load srp meta from file if exists
+  srp_meta_path <- file.path(gse_dir, 'srp_meta.rds')
+  if (file.exists(srp_meta_path)) return(readRDS(srp_meta_path))
 
   # get GSM names ----
 
@@ -124,6 +131,8 @@ get_srp_meta <- function(gse_name) {
       }
     }
   }
+
+  saveRDS(srp_meta, srp_meta_path)
   return(srp_meta)
 }
 
