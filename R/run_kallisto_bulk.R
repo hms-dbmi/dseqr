@@ -21,7 +21,7 @@
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_kallisto_bulk(indices_dir, data_dir, pdata_path)
 #'
-run_kallisto_bulk <- function(indices_dir, data_dir, paired, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
+run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 
   # TODO: implement interaction between pairs and duplicates
 
@@ -32,15 +32,20 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired, pdata = NULL, speci
 
   # get index_path
   kallisto_version <- get_pkg_version('kallisto')
-  index_path <- file.path(indices_dir, paste0('kallisto_', kallisto_version), paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
-  if (!dir.exists(index_path)) stop('No index found. See ?drugseqr.data::build_kallisto_index')
+
+  index_path <- file.path(indices_dir, paste0('kallisto_', kallisto_version))
+  index_path <- list.files(index_path, paste0(species, '.+?.cdna.all.release-', release, '_k31.idx'), full.names = TRUE)
+  if (!file.exists(index_path)) stop('No index found. See ?drugseqr.data::build_kallisto_index')
 
   if (is.null(pdata)) pdata <- select_pairs(data_dir)
 
   # save quants here
-  quants_dir <- file.path(data_dir, 'quants')
+  quants_dir <- file.path(data_dir, paste0('kallisto_quants_', kallisto_version))
   unlink(quants_dir, recursive = TRUE)
   dir.create(quants_dir)
+
+  # if not supplied from app, then from select_pairs pdata
+  if (is.null(paired)) paired <- 'Pair' %in% colnames(pdata)
 
   # specific flags for single end experiments
   flags <- NULL
