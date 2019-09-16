@@ -4,12 +4,14 @@
 \alias{load_seq}
 \title{Load bulk RNA-Seq data into an ExpressionSet.}
 \usage{
-load_seq(data_dir, species = "Homo sapiens", release = "94",
-  load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE,
-  filter = TRUE)
+load_seq(data_dir, type = "kallisto", species = "Homo sapiens",
+  release = "94", load_saved = TRUE, save_eset = TRUE,
+  save_dgel = FALSE, filter = TRUE)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
+
+\item{type}{Either \code{'salmon'} or \code{'kallisto'}. The package used for quantification. Must be on the PATH.}
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 

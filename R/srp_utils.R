@@ -202,15 +202,11 @@ get_fastqs <- function(gse_name, srp_meta, data_dir) {
 
   # download everything
   for (i in seq_along(srr_names_list)) {
-    gsm_name <- names(srr_names_list)[i]
-    gsm_dir <- file.path(gse_dir, gsm_name)
-    dir.create(gsm_dir)
-
     srr_names <- srr_names_list[[1]]
 
     for (srr_name in srr_names) {
       # try to get fastq from ebi
-      get_ebi_fastqs(srp_meta, srr_name, gsm_dir)
+      get_ebi_fastqs(srp_meta, srr_name, gse_dir)
 
       # download/fasterq-dump SRA files
       # run_fasterq_dump(srr_name, out_dir = file.path(gse_dir, srr_name))
@@ -225,12 +221,12 @@ get_fastqs <- function(gse_name, srp_meta, data_dir) {
 #'
 #' @param srp_meta Result from \code{get_srp_meta}.
 #' @param srr_name Run accession as string.
-#' @param gsm_dir Folder to save fastq.gz files in
+#' @param gse_dir Folder to save fastq.gz files in
 #' @param method One of either \code{'aspera'} (Default) or \code{'ftp'}.
 #'
 #' @export
 #'
-get_ebi_fastqs <- function(srp_meta, srr_name, gsm_dir, method = c('aspera', 'ftp')) {
+get_ebi_fastqs <- function(srp_meta, srr_name, gse_dir, method = c('aspera', 'ftp')) {
   url <- paste0('ftp://ftp.sra.ebi.ac.uk/vol1/fastq/', srp_meta[srr_name, 'ebi_dir'], '/.')
   fnames <- unlist(strsplit(getURL(url, dirlistonly = TRUE), '\n'))
 
@@ -240,11 +236,11 @@ get_ebi_fastqs <- function(srp_meta, srr_name, gsm_dir, method = c('aspera', 'ft
 
     ascpCMD <- paste('ascp -QT -l 1g -P33001 -i', ascp_pubkey)
     files <- paste0('era-fasp@fasp.sra.ebi.ac.uk:vol1/fastq/', srp_meta[srr_name, 'ebi_dir'], '/', fnames)
-    ascpR(ascpCMD, files, gsm_dir)
+    ascpR(ascpCMD, files, gse_dir)
 
   } else if (method[1] == 'ftp') {
     files <- paste0('ftp://ftp.sra.ebi.ac.uk/vol1/fastq/', srp_meta[srr_name, 'ebi_dir'], '/', fnames)
-    download.file(files, file.path(gsm_dir, fnames))
+    download.file(files, file.path(gse_dir, fnames))
   }
 }
 

@@ -4,14 +4,14 @@
 \alias{get_ebi_fastqs}
 \title{Download fastqs from EBI}
 \usage{
-get_ebi_fastqs(srp_meta, srr_name, gsm_dir, method = c("aspera", "ftp"))
+get_ebi_fastqs(srp_meta, srr_name, gse_dir, method = c("aspera", "ftp"))
 }
 \arguments{
 \item{srp_meta}{Result from \code{get_srp_meta}.}
 
 \item{srr_name}{Run accession as string.}
 
-\item{gsm_dir}{Folder to save fastq.gz files in}
+\item{gse_dir}{Folder to save fastq.gz files in}
 
 \item{method}{One of either \code{'aspera'} (Default) or \code{'ftp'}.}
 }

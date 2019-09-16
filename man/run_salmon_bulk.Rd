@@ -4,24 +4,19 @@
 \alias{run_salmon_bulk}
 \title{Runs salmon quantification.}
 \usage{
-run_salmon_bulk(indices_dir, data_dir, pdata_path = NULL, pdata = NULL,
-  species = "homo_sapiens", command = "salmon",
-  flags = c("--validateMappings", "--posBias", "--seqBias", "--gcBias"))
+run_salmon_bulk(indices_dir, data_dir, pdata = NULL,
+  species = "homo_sapiens", flags = c("--validateMappings",
+  "--posBias", "--seqBias", "--gcBias"))
 }
 \arguments{
 \item{indices_dir}{Directory with salmon indices. See \code{\link{build_ensdb_index}}.}
 
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
 
-\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-The first column should contain sample ids that match a single raw rna-seq data file name.}
-
 \item{pdata}{Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.}
 
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}
-
-\item{command}{System command to invoke salmon with.}
 
 \item{flags}{Character vector of flags to pass to salmon.}
 }
@@ -31,7 +26,7 @@ For pair-ended experiments, reads for each pair should be in a seperate file.
 \examples{
 
 # first place IBD data in data-raw/example-data
-indices_dir <- 'data-raw/indices'
+indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
 data_dir <- file.path('data-raw', 'example-data')
 pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 run_salmon_bulk(indices_dir, data_dir, pdata_path)

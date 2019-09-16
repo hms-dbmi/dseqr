@@ -16,20 +16,26 @@
 #' @examples
 #'
 #' # first place IBD data in data-raw/example-data
-#' indices_dir <- 'data-raw/indices/kallisto'
+#' indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
 #' data_dir <- file.path('data-raw', 'example-data')
 #' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
 #' run_kallisto_bulk(indices_dir, data_dir, pdata_path)
 #'
-run_kallisto_bulk <- function(indices_dir, data_dir, pdata, paired, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
+run_kallisto_bulk <- function(indices_dir, data_dir, paired, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 
   # TODO: implement interaction between pairs and duplicates
+
+  species <- gsub(' ', '_', tolower(species))
 
   # default updateProgress and number of steps
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
 
   # get index_path
-  index_path <- file.path(indices_dir, paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
+  kallisto_version <- get_pkg_version('kallisto')
+  index_path <- file.path(indices_dir, paste0('kallisto_', kallisto_version), paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
+  if (!dir.exists(index_path)) stop('No index found. See ?drugseqr.data::build_kallisto_index')
+
+  if (is.null(pdata)) pdata <- select_pairs(data_dir)
 
   # save quants here
   quants_dir <- file.path(data_dir, 'quants')

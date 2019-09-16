@@ -1,6 +1,7 @@
 #' Load bulk RNA-Seq data into an ExpressionSet.
 #'
 #' @param data_dir Directory with raw and quantified RNA-Seq files.
+#' @param type Either \code{'salmon'} or \code{'kallisto'}. The package used for quantification. Must be on the PATH.
 #' @param species Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.
 #' @param release EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.
 #' @param load_saved If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.
@@ -29,17 +30,15 @@
 #' data_dir <- 'data-raw/example-data'
 #' eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
 #'
-load_seq <- function(data_dir, species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
+load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
   if (load_saved & file.exists(eset_path))
     return(readRDS(eset_path))
 
-  if (species != 'Homo sapiens') stop('only implemented for Homo sapiens')
-
   # import quants and filter low counts
-  quants <- import_quants(data_dir, filter)
+  quants <- import_quants(data_dir, filter, type = type)
 
   # construct eset
   annot <- get_ensdb_package(species, release)
@@ -121,7 +120,7 @@ setup_fdata <- function() {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter) {
+import_quants <- function(data_dir, filter, type) {
 
   # don't ignoreTxVersion if dots in tx2gene
   ignore <- TRUE
@@ -129,13 +128,18 @@ import_quants <- function(data_dir, filter) {
 
   # import quants using tximport
   # using limma::voom for differential expression (see tximport vignette)
-  qdirs   <- list.files(file.path(data_dir, paste0('quants')))
-  quants_paths <- file.path(data_dir, 'quants', qdirs, 'abundance.h5')
+  pkg_version <- get_pkg_version(type)
+  qdirs   <- list.files(file.path(data_dir, paste0(type, pkg_version, 'quants', sep = '_')))
+
+
+  quants_paths <- ifelse(type == 'kallisto',
+                         file.path(data_dir, 'quants', qdirs, 'abundance.h5'),
+                         file.path(data_dir, 'quants', qdirs, 'quant.sf'))
 
   # use folders as names (used as sample names)
   names(quants_paths) <- qdirs
 
-  txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = "kallisto",
+  txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
                             ignoreTxVersion = ignore, countsFromAbundance = "lengthScaledTPM")
 
   quants <- edgeR::DGEList(txi$counts)

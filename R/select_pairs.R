@@ -43,8 +43,6 @@ select_pairs <- function(data_dir) {
   fastq_id1s <- get_fastq_id1s(file.path(data_dir, fastqs))
   paired <- detect_paired(fastq_id1s)
 
-  if (paired) stop ('pair-ended experiments not yet implemented.')
-
   # select and mark auto-detected pair type
   end_types <- c('single-ended', 'pair-ended')
   if (paired) end_types <- end_types[c(2, 1)]

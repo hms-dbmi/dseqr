@@ -4,7 +4,7 @@
 \alias{get_srp_meta}
 \title{Get metadata needed to download RNA-seq data for GSE}
 \usage{
-get_srp_meta(gse_name)
+get_srp_meta(gse_name, data_dir = getwd())
 }
 \arguments{
 \item{gse_name}{GEO study name to get metadata for}

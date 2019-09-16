@@ -4,12 +4,14 @@
 \alias{import_quants}
 \title{Import kallisto quants}
 \usage{
-import_quants(data_dir, filter)
+import_quants(data_dir, filter, type)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
 
 \item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
+
+\item{type}{Either \code{'salmon'} or \code{'kallisto'}. The package used for quantification. Must be on the PATH.}
 }
 \value{
 \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
