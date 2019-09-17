@@ -45,7 +45,7 @@ run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo
   dir.create(quants_dir)
 
   # gcBias is experimental for single-end experiments
-  paired <- 'Pair' %in% colnames(pdata)
+  paired <- sum(!is.na(pdata$Pair)) > 0
   if (!paired) flags <- setdiff(flags, '--gcBias')
 
   # loop through fastq files and quantify

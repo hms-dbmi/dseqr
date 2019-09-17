@@ -45,7 +45,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
   dir.create(quants_dir)
 
   # if not supplied from app, then from select_pairs pdata
-  if (is.null(paired)) paired <- 'Pair' %in% colnames(pdata)
+  if (is.null(paired)) paired <- sum(!is.na(pdata$Pair)) > 0
 
   # specific flags for single end experiments
   flags <- NULL

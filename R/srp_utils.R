@@ -202,7 +202,7 @@ get_fastqs <- function(gse_name, srp_meta, data_dir = getwd()) {
 
   # download everything
   for (i in seq_along(srr_names_list)) {
-    srr_names <- srr_names_list[[1]]
+    srr_names <- srr_names_list[[i]]
 
     for (srr_name in srr_names) {
       # try to get fastq from ebi
