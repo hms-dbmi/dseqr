@@ -4,7 +4,7 @@
 \alias{get_fastqs}
 \title{Download and fasterq-dump RNA-seq data from GEO}
 \usage{
-get_fastqs(gse_name, srp_meta, data_dir)
+get_fastqs(gse_name, srp_meta, data_dir = getwd())
 }
 \arguments{
 \item{gse_name}{GSE name. Will create folder with this name in \code{data_dir} and download data there.}

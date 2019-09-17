@@ -30,7 +30,6 @@ For pair-ended experiments, reads for each pair should be in a seperate file.
 # first place IBD data in data-raw/example-data
 indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
 data_dir <- file.path('data-raw', 'example-data')
-pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-run_kallisto_bulk(indices_dir, data_dir, pdata_path)
+run_kallisto_bulk(indices_dir, data_dir)
 
 }

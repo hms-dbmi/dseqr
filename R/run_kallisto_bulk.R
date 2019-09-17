@@ -18,8 +18,7 @@
 #' # first place IBD data in data-raw/example-data
 #' indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
 #' data_dir <- file.path('data-raw', 'example-data')
-#' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-#' run_kallisto_bulk(indices_dir, data_dir, pdata_path)
+#' run_kallisto_bulk(indices_dir, data_dir)
 #'
 run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 

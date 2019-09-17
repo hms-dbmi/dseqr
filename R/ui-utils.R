@@ -136,7 +136,7 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
                     lapply(buttons, function(btn) {
 
                       if (!any(grepl('dropdown', unlist(btn$attribs))))
-                        btn <- tags$div(class = 'input-group-btn', btn)
+                        btn <- tags$div(class = 'input-group-btn', id = paste0(btn$attribs$id, '-parent'), style = btn$attribs$`parent-style`, btn)
 
                       return(btn)
                     })

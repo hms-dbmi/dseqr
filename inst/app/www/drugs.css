@@ -37,11 +37,14 @@ td.sim-cell {
   cursor: crosshair;
 }
 
-.cor-point:hover text.x {
+.cor-point:hover text.x,
+.cor-point.clicked text.x {
   fill: #443;
 }
 
-.cor-point:hover circle {
+.cor-point:hover circle,
+.cor-point.clicked circle
+ {
   fill: red; 
   stroke: #443;
 }

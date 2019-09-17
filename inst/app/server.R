@@ -7,7 +7,10 @@ server <- function(input, output, session) {
   data_dir <- getShinyOption('data_dir', 'data_dir')
 
   # path where drug gene queries will be stored
-  pert_query_dir <- getShinyOption('pert_query_dir', file.path('pert_query_dir', package = 'drugseqr.data', mustWork = TRUE))
+  pert_query_dir <- getShinyOption(
+    'pert_query_dir',
+    file.path(system.file(package = 'drugseqr.data', mustWork = TRUE), 'pert_query_dir'))
+
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
 
   # for testing don't seem to be able to pass arguments as options
