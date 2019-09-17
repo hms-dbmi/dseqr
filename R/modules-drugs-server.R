@@ -17,7 +17,8 @@ drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir
              sort_by = form$sort_by,
              show_clinical = form$show_clinical,
              min_signatures = form$min_signatures,
-             is_pert = form$is_pert)
+             is_pert = form$is_pert,
+             direction = form$direction)
 
 }
 
@@ -176,7 +177,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
 
 
   drugStudy <- callModule(selectedDrugStudy, 'drug_study',
-                          anal = querySignature$anal)
+                          anal = querySignature$anal,
+                          is_pert = is_pert)
 
 
 
@@ -209,7 +211,8 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
     sort_by = advancedOptions$sort_by,
     show_clinical = drugStudy$show_clinical,
     min_signatures = advancedOptions$min_signatures,
-    is_pert = is_pert
+    is_pert = is_pert,
+    direction = drugStudy$direction
   ))
 
 
@@ -312,8 +315,7 @@ querySignature <- function(input, output, session, new_anal, data_dir, pert_quer
 #' Logic for selected drug study in drugsForm
 #' @export
 #' @keywords internal
-selectedDrugStudy <- function(input, output, session, anal) {
-
+selectedDrugStudy <- function(input, output, session, anal, is_pert) {
 
   drug_study <- reactive(input$study)
 
@@ -337,17 +339,44 @@ selectedDrugStudy <- function(input, output, session, anal) {
   show_clinical <- reactive({
     input$clinical %% 2 != 0
   })
+
+
   observe({
     toggleClass('advanced', 'btn-primary', condition = show_advanced())
     toggleClass('clinical', 'btn-primary', condition = show_clinical())
   })
 
 
+  # toggle correlation direction filter and icon
+  direction <- reactive({
+    switch((input$direction %% 3) + 1,
+           'both',
+           'similar',
+           'opposing')
+  })
+
+  direction_icon <- reactive({
+    switch(direction(),
+           'both' = 'arrows-alt-v',
+           'similar' = 'chevron-up',
+           'opposing' = 'chevron-down')
+  })
+
+  observe(updateActionButton(session, 'direction', icon = icon(direction_icon(), 'fa-fw')))
+
+  # disable buttons based on genetic/pert
+  is_genetic <- reactive(drug_study() == 'L1000 Genetic')
+
+  # sort by absolute if either is genetic or is CMAP/L1000 pert
+  observe(toggle('direction-parent', condition = is_genetic() | is_pert()))
+  observe(toggle('clinical-parent', condition = !is_genetic()))
+
 
   return(list(
     drug_study = drug_study,
     show_clinical = show_clinical,
-    show_advanced = show_advanced
+    show_advanced = show_advanced,
+    direction = direction
   ))
 
 }
@@ -387,7 +416,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert) {
+drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
   drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
   gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
 
@@ -466,15 +495,36 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     # show largest absolute correlations first for genetic and pert queries
     # as both directions are informative
     if (sort_abs()) {
+
+      # filter none, opposing, or similar signatures based on direction toggle
+      if (sort_by == 'avg_cor') {
+        is.similar <- query_table$avg_cor > 0
+      } else {
+        mm <- query_table[, c('min_cor', 'max_cor')]
+        mcol <- max.col(abs(mm), ties.method = 'last')
+        is.similar <- mcol == 2 & mm[, 2] > 0
+      }
+
+      query_table <- switch(direction(),
+                            'both' = query_table,
+                            'similar' = query_table[is.similar, ],
+                            'opposing' = query_table[!is.similar, ])
+
+
       query_table <- query_table %>%
         dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
         dplyr::mutate(avg_cor = -abs(avg_cor))
+
+
+
     }
 
     # sort as desired
-    query_table %>%
+    query_table <- query_table %>%
       dplyr::arrange(!!sym(sort_by)) %>%
       dplyr::select(-min_cor, -avg_cor, -max_cor)
+
+    return(query_table)
   })
 
   # will update with proxy to prevent redraw
@@ -533,4 +583,3 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
 }
-

@@ -141,7 +141,6 @@ advancedOptionsInput <- function(id) {
 }
 
 
-
 #' Select drugs study (CMAP or L1000) for drugs page
 #' @export
 #' @keywords internal
@@ -149,6 +148,7 @@ selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
   selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
+                            shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
                             shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
                             shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
 
@@ -162,7 +162,7 @@ rightClickMenu <- function() {
   withTags({
     ul(
       class = 'custom-menu', id = 'cor-menu',
-      li('data-action' = 'load', 'Load signature')
+      li('data-action' = 'load', id = 'cor-signature', 'Load signature')
     )
   })
 }
