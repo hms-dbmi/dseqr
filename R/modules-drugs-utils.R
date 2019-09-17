@@ -100,18 +100,16 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
 #' @keywords internal
 load_custom_results <- function(res_paths, is_pert) {
   res <- list()
-  res_path_names <- names(res_paths)
   for (i in seq_along(res_paths)) {
     res_path <- res_paths[[i]]
     res_name <- names(res_paths)[i]
 
-    if (file.exists(res_path)) {
-      res[[res_name]] <- readRDS(res_path)
-
-    } else if (is_pert) {
-      # download requested pert result
+    # download requested pert result
+    if (!file.exists(res_path) && is_pert && !grepl('diff_expr_symbol_.+?.rds$', res_path))
       dl_pert_result(res_path)
-    }
+
+    if (file.exists(res_path))
+      res[[res_name]] <- readRDS(res_path)
   }
   return(res)
 }
