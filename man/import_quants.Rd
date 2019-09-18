@@ -4,7 +4,8 @@
 \alias{import_quants}
 \title{Import kallisto quants}
 \usage{
-import_quants(data_dir, filter, type)
+import_quants(data_dir, filter, type, species = "Homo sapiens",
+  release = "94")
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -12,6 +13,10 @@ import_quants(data_dir, filter, type)
 \item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
 
 \item{type}{Either \code{'salmon'} or \code{'kallisto'}. The package used for quantification. Must be on the PATH.}
+
+\item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
+
+\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
 }
 \value{
 \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.

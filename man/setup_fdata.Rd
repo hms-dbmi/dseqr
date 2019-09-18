@@ -4,7 +4,7 @@
 \alias{setup_fdata}
 \title{Setup feature annotation data}
 \usage{
-setup_fdata()
+setup_fdata(species = "Homo sapiens")
 }
 \value{
 \code{data.table} with columns \code{SYMBOL} and \code{ENTREZID_HS} corresponding to

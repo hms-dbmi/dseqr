@@ -33,16 +33,17 @@
 load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
 
   # check if already have
-  eset_path  <- file.path(data_dir, 'eset.rds')
+  pkg_version <- get_pkg_version(type)
+  eset_path  <- file.path(data_dir, paste(type, pkg_version, 'eset.rds', sep = '_'))
   if (load_saved & file.exists(eset_path))
     return(readRDS(eset_path))
 
   # import quants and filter low counts
-  quants <- import_quants(data_dir, filter, type = type)
+  quants <- import_quants(data_dir, filter, type = type, species = species, release = release)
 
   # construct eset
   annot <- get_ensdb_package(species, release)
-  fdata <- setup_fdata()
+  fdata <- setup_fdata(species)
   eset <- construct_eset(quants, fdata, annot)
 
   if (save_dgel) {
@@ -72,7 +73,7 @@ construct_eset <- function(quants, fdata, annot) {
   mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
 
   # merge exprs and fdata
-  dt <- merge(fdata, mat, by.y = 'rn', by.x = 'SYMBOL', all.y = TRUE, sort = FALSE)
+  dt <- merge(fdata, mat, by.y = 'rn', by.x = key(fdata), all.y = TRUE, sort = FALSE)
   dt <- as.data.frame(dt)
   row.names(dt) <- make.unique(dt[[1]])
 
@@ -96,18 +97,39 @@ construct_eset <- function(quants, fdata, annot) {
 #' @keywords internal
 #' @export
 #'
-setup_fdata <- function() {
+setup_fdata <- function(species = 'Homo sapiens') {
 
   # unlist entrezids
   fdata <- data.table::data.table(tx2gene)
-  fdata <- fdata[, list(ENTREZID_HS = as.character(unlist(entrezid)))
+  fdata <- fdata[, list(ENTREZID = as.character(unlist(entrezid)))
                  , by = c('tx_id', 'gene_name')]
 
-  fdata[, tx_id := NULL]
-  fdata <- unique(fdata)
+  # add homologene
+  fdata <- merge(unique(fdata), homologene, by = 'ENTREZID', all.x = TRUE, sort = FALSE)
 
-  # setup so that will work with crossmeta
-  fdata <- fdata[, .(SYMBOL = gene_name, ENTREZID_HS)]
+  # add HGNC
+  exist_homologues <- sum(!is.na(fdata$ENTREZID_HS)) != 0
+  if (!exist_homologues) {
+    fdata[, tx_id := NULL]
+    fdata <- unique(fdata)
+
+  } else {
+    # where no homology, use original entrez id (useful if human platform):
+    if (grepl('sapiens', species)) {
+      filt <- is.na(fdata$ENTREZID_HS)
+      fdata[filt, "ENTREZID_HS"] <- fdata$ENTREZID[filt]
+    }
+
+    # map human entrez id to human symbol
+    fdata$SYMBOL <- toupper(hs[fdata$ENTREZID_HS, SYMBOL_9606])
+    fdata[, tx_id := NULL]
+    fdata <- unique(fdata)
+
+    # keep duplicate gene_name -> SYMBOL only if non NA
+    fdata <- fdata[-fdata[, .I[any(!is.na(SYMBOL)) & is.na(SYMBOL)], by=gene_name]$V1]
+  }
+
+  setkeyv(fdata, 'gene_name')
   return(fdata)
 }
 
@@ -120,7 +142,11 @@ setup_fdata <- function() {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter, type) {
+import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94') {
+
+  if (!grepl('sapiens', species)) {
+    tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
+  }
 
   # don't ignoreTxVersion if dots in tx2gene
   ignore <- TRUE
@@ -129,12 +155,13 @@ import_quants <- function(data_dir, filter, type) {
   # import quants using tximport
   # using limma::voom for differential expression (see tximport vignette)
   pkg_version <- get_pkg_version(type)
-  qdirs   <- list.files(file.path(data_dir, paste0(type, pkg_version, 'quants', sep = '_')))
+  qdirs <- list.files(file.path(data_dir, paste(type, pkg_version, 'quants', sep = '_')), full.names = TRUE)
 
-
-  quants_paths <- ifelse(type == 'kallisto',
-                         file.path(data_dir, 'quants', qdirs, 'abundance.h5'),
-                         file.path(data_dir, 'quants', qdirs, 'quant.sf'))
+  if (type == 'kallisto') {
+    quants_paths <- file.path(qdirs, 'abundance.h5')
+  } else if (type == 'salmon') {
+    quants_paths <- file.path(qdirs, 'quant.sf')
+  }
 
   # use folders as names (used as sample names)
   names(quants_paths) <- qdirs
@@ -191,6 +218,7 @@ get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("t
     require(ensdb_package, character.only = TRUE)
   }
 
+  # for printing available columns in EnsDb package
   if (columns[1] == 'list') {
     print(ensembldb::listColumns(get(ensdb_package)))
     return(NULL)
@@ -199,8 +227,11 @@ get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("t
   # map from transcripts to genes
   tx2gene <- ensembldb::transcripts(get(ensdb_package), columns=columns, return.type='data.frame')
   tx2gene[tx2gene == ""] <- NA
-  tx2gene$description <- gsub(' \\[Source.+?\\]', '', tx2gene$description)
   tx2gene <- tx2gene[!is.na(tx2gene$gene_name), ]
+
+  if ('description' %in% columns)
+    tx2gene$description <- gsub(' \\[Source.+?\\]', '', tx2gene$description)
+
   return(tx2gene)
 }
 
