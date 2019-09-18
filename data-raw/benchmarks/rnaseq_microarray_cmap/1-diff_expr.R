@@ -17,9 +17,44 @@ library(Biobase)
 # microarray GSE47875 ----
 data_dir <- 'data-raw/benchmarks/rnaseq_microarray_cmap'
 gse_name <- 'GSE47875'
+gse_dir <- file.path(data_dir, gse_name)
 
-crossmeta::get_raw(gse_name, data_dir)
-eset <- crossmeta::load_raw(gse_name, data_dir)
+# crossmeta::get_raw(gse_name, data_dir)
+eset <- crossmeta::load_raw(gse_name, data_dir)[[1]]
+pdata <- pData(eset)
+
+
+# setup for differential expression analyses
+chemicals <- as.character(pdata$characteristics_ch1.2)
+chemicals <- gsub('^chemical: ', '', chemicals)
+
+# fix up mismatch annotation in columns
+ch1.4_vehicle <- apply(pdata[, c('characteristics_ch1.3', 'characteristics_ch1.4')], 1, function(x) grep('^vehicle: ', x) == 2)
+vehicles <- as.character(pdata$characteristics_ch1.3)
+vehicles[ch1.4_vehicle] <- as.character(pdata$characteristics_ch1.4)[ch1.4_vehicle]
+
+# just run for drugs also assayed in CMAP
+gse_drugs <- c('BETA-ESTRADIOL', 'BEZAFIBRATE', 'CLOFIBRIC ACID', 'CLOTRIMAZOLE', 'ECONAZOLE', 'GEMFIBROZIL', 'IFOSFAMIDE',
+               'LEFLUNOMIDE', 'LOVASTATIN', 'MICONAZOLE', 'PIRINIXIC ACID', 'ROSIGLITAZONE', 'SIMVASTATIN')
+
+
+for (drug in gse_drugs) {
+  anal_pdata <- pdata
+  anal_pdata$group <- NA
+
+  # use as control samples treated with the vehicle for the drug
+  is.drug <- chemicals == drug
+  is.ctrl <- chemicals == 'Vehicle' & vehicles == unique(vehicles[is.drug])
+
+  anal_pdata$group[is.drug] <- 'test'
+  anal_pdata$group[is.ctrl] <- 'ctrl'
+  anal_pdata <- anal_pdata[!is.na(anal_pdata$group), ]
+
+  # run differential expression analysis
+  anal_name <- paste('microarray', drug, sep = '_')
+  anal <- diff_expr(eset, gse_dir, anal_name = anal_name, prev_anal = list(pdata = anal_pdata))
+}
+
 
 
 # RNA-Seq GSE55347 ----
@@ -40,10 +75,11 @@ pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
 pdata$Pair <- rep(seq_len(nrow(pdata)/2), each = 2)
 
 # run quantification
-run_kallisto_bulk(indices_dir, data_dir, pdata = pdata, species = species)
-run_salmon_bulk(indices_dir, data_dir, pdata = pdata, species = species)
+# run_kallisto_bulk(indices_dir, data_dir, pdata = pdata, species = species)
+# run_salmon_bulk(indices_dir, data_dir, pdata = pdata, species = species)
 
 # load quants (run for both kallisto and salmon)
+# type <- 'salmon'
 type <- 'kallisto'
 eset <- drugseqr::load_seq(data_dir, type = type, species = species)
 
@@ -67,25 +103,23 @@ pData(eset) <- data.frame(pdata)
 # setup for differential expression analyses
 chemicals <- as.character(pdata$characteristics_ch1.3)
 chemicals <- gsub('^chemical: ', '', chemicals)
-unique_chemicals <- setdiff(chemicals, 'Vehicle')
 
 vehicles <- as.character(pdata$characteristics_ch1.5)
 
 # just run for drugs also assayed in CMAP
-# estradiol, bezafibrate, clofibrate, clotrimazole, econazole, gemfibrozil, ifosfamide, leflunomide, lovastatin, miconazole, pirinixic acid, rosiglitazone, simvastatin
-cmap_drugs <- c('BETA-ESTRADIOL', 'BEZAFIBRATE', 'CLOFIBRIC ACID', 'ECONAZOLE', 'GEMFIBROZIL', 'IFOSFAMIDE',
+gse_drugs <- c('BETA-ESTRADIOL', 'BEZAFIBRATE', 'CLOFIBRIC ACID', 'CLOTRIMAZOLE', 'ECONAZOLE', 'GEMFIBROZIL', 'IFOSFAMIDE',
                 'LEFLUNOMIDE', 'LOVASTATIN', 'MICONAZOLE', 'PIRINIXIC ACID', 'ROSIGLITAZONE', 'SIMVASTATIN')
 
 pkg_version <- get_pkg_version(type)
 prefix <- paste(type, pkg_version, sep = '_')
 
-for (drug in cmap_drugs) {
+for (drug in gse_drugs) {
   anal_pdata <- pdata
   anal_pdata$group <- NA
 
   # use as control samples treated with the vehicle for the drug
   is.drug <- chemicals == drug
-  is.ctrl <- vehicles == unique(vehicles[is.drug]) & !is.drug
+  is.ctrl <- chemicals == 'Vehicle' & vehicles == unique(vehicles[is.drug])
 
   anal_pdata$group[is.drug] <- 'test'
   anal_pdata$group[is.ctrl] <- 'ctrl'
