@@ -43,7 +43,7 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
 
   # construct eset
   annot <- get_ensdb_package(species, release)
-  fdata <- setup_fdata(species)
+  fdata <- setup_fdata(species, release)
   eset <- construct_eset(quants, fdata, annot)
 
   if (save_dgel) {
@@ -97,7 +97,11 @@ construct_eset <- function(quants, fdata, annot) {
 #' @keywords internal
 #' @export
 #'
-setup_fdata <- function(species = 'Homo sapiens') {
+setup_fdata <- function(species = 'Homo sapiens', release = '94') {
+
+  if (!grepl('sapiens', species)) {
+    tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
+  }
 
   # unlist entrezids
   fdata <- data.table::data.table(tx2gene)
