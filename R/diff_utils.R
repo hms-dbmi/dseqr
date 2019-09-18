@@ -37,7 +37,7 @@
 #'
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
-#' anal <- diff_expr(eset, data_dir)
+#' anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
 diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
 
   # check for annot column
