@@ -39,7 +39,7 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
   if (is.null(pdata)) pdata <- select_pairs(data_dir)
 
   # save quants here
-  quants_dir <- file.path(data_dir, paste0('kallisto_quants_', kallisto_version))
+  quants_dir <- file.path(data_dir, paste('kallisto', kallisto_version, 'quants', sep = '_'))
   unlink(quants_dir, recursive = TRUE)
   dir.create(quants_dir)
 

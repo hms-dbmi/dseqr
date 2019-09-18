@@ -22,8 +22,6 @@
 #'
 run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo_sapiens',
                             flags = c('--validateMappings', '--posBias', '--seqBias', '--gcBias')) {
-  # TODO: make it handle single and paired-end data
-  # now assumes single end
 
   species <- gsub(' ', '_', tolower(species))
 
@@ -40,7 +38,7 @@ run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo
   saveRDS(pdata, file.path(data_dir, 'pdata.rds'))
 
   # save quants here
-  quants_dir <- file.path(data_dir, paste0('salmon_quants_', salmon_version))
+  quants_dir <- file.path(data_dir, paste('salmon', salmon_version, 'quants', sep = '_'))
   unlink(quants_dir, recursive = TRUE)
   dir.create(quants_dir)
 
