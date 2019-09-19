@@ -89,3 +89,65 @@ td.sim-cell {
 .custom-menu li:hover {
   background-color: #DEF;
 }
+
+
+/* column visibility buttons consistent with btn-default */
+
+a.dt-button {
+  display: inline-block;
+  padding: 6px 12px;
+  margin-bottom: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-image: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
+
+a.dt-button:active,
+a.dt-button:hover {
+  color: #333 !important;
+  background-color: #e6e6e6 !important;
+  border-color: #adadad !important;
+}
+
+a.dt-button:focus {
+  color: #333;
+  background-color: #d4d4d4 !important;
+  border-color: #8c8c8c !important;
+}
+
+/* search box styling consistent with form-control */
+.dataTables_filter input {
+  display: inline-block;
+  height: 34px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #555;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+  -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+  -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+  box-shadow: inset 0px 0px 0px 0px red;
+}

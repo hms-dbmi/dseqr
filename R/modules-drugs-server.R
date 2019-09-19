@@ -417,8 +417,8 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
-  drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name', 'n')
-  gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description', 'n')
+  drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
+  gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description')
 
 
   dummy_rendered <- reactiveVal(FALSE)
@@ -522,7 +522,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     # sort as desired
     query_table <- query_table %>%
       dplyr::arrange(!!sym(sort_by)) %>%
-      dplyr::select(-min_cor, -avg_cor, -max_cor)
+      dplyr::select(-min_cor, -avg_cor, -max_cor, -n)
 
     return(query_table)
   })
@@ -544,7 +544,10 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
     elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
-    hide_target <- which(colnames(dummy_table) %in% c('n')) - 1
+    hide_target <- which(colnames(dummy_table) %in% c('Vendor', 'Catalog #', 'Vendor Name')) - 1
+
+    # don't show column visibility button for genetic
+    dom <- ifelse(is_genetic(), 'ftp', 'Bfrtip')
 
     dummy_rendered(TRUE)
 
@@ -554,13 +557,14 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       rownames = FALSE,
       selection = 'none',
       escape = FALSE, # to allow HTML in table
+      extensions = 'Buttons',
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
                           list(targets = hide_target, visible=FALSE),
                           list(targets = elipsis_targets, render = DT::JS(
                             "function(data, type, row, meta) {",
-                            "return type === 'display' && data !== null && data.length > 17 ?",
-                            "'<span title=\"' + data + '\">' + data.substr(0, 17) + '...</span>' : data;",
+                            "return type === 'display' && data !== null && data.length > 27 ?",
+                            "'<span title=\"' + data + '\">' + data.substr(0, 27) + '...</span>' : data;",
                             "}"))
         ),
         drawCallback = DT::JS('function(setting, json) { setupContextMenu(); }'),
@@ -569,7 +573,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
         pageLength = 20,
         paging = TRUE,
         bInfo = 0,
-        dom = 'ftp'
+        buttons = list(list(extend = 'colvis', columns = hide_target)),
+        dom = dom
       )
     )
   }, server = TRUE)
