@@ -159,12 +159,13 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
   # import quants using tximport
   # using limma::voom for differential expression (see tximport vignette)
   pkg_version <- get_pkg_version(type)
-  qdirs <- list.files(file.path(data_dir, paste(type, pkg_version, 'quants', sep = '_')), full.names = TRUE)
+  qdir <- paste(type, pkg_version, 'quants', sep = '_')
+  qdirs <- list.files(file.path(data_dir, qdir))
 
   if (type == 'kallisto') {
-    quants_paths <- file.path(qdirs, 'abundance.h5')
+    quants_paths <- file.path(data_dir, qdir, qdirs, 'abundance.h5')
   } else if (type == 'salmon') {
-    quants_paths <- file.path(qdirs, 'quant.sf')
+    quants_paths <- file.path(data_dir, qdir, qdirs, 'quant.sf')
   }
 
   # use folders as names (used as sample names)
