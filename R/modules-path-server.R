@@ -137,7 +137,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
       return(NULL)
     }
 
-    dataset_dir <-  file.path(data_dir, 'bulk', anal$dataset_dir)
+    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
     anal_name <- anal$anal_name
 
     list(

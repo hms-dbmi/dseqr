@@ -56,10 +56,12 @@ dsPage <- function(input, output, session, data_dir) {
 
     # setup
     is.sc <- dsForm$is.sc()
+    pdata <- dsQuantTable$pdata()
     dataset_dir <- dsForm$dataset_dir()
     dataset_name <- dsForm$dataset_name()
     fastq_dir <- file.path(data_dir, dataset_dir)
-    indices_dir <- system.file('indices/kallisto', package = 'drugseqr.data', mustWork = TRUE)
+
+    indices_dir <- system.file('indices', package = 'drugseqr.data', mustWork = TRUE)
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = ifelse(is.sc, 8, nrow(pdata)+1))
@@ -784,7 +786,8 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
 
   eset <- reactive({
     fastq_dir <- fastq_dir()
-    eset_path <- file.path(fastq_dir, 'eset.rds')
+    kal_version <- get_pkg_version('kallisto')
+    eset_path <- file.path(fastq_dir, paste('kallisto', kal_version, 'eset.rds', sep = '_'))
 
     req(file.exists(eset_path))
     readRDS(eset_path)

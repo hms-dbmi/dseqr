@@ -17,6 +17,7 @@
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
 #' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
+#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/example'
 #' pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
 #'
 #' run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)
@@ -61,19 +62,24 @@ run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_dat
 #'
 #' @examples
 #'
-#' init_drugseqr('example')
+#' init_drugseqr('example', local_dir = 'data-raw/patient_data')
 #'
-init_drugseqr <- function(app_name) {
+init_drugseqr <- function(app_name, local_dir = NULL) {
 
-  # sync the drugseqr app components
-  drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
-  app_dir <- file.path('/srv/shiny-server/drugseqr', app_name)
-  dir.create(app_dir, recursive = TRUE)
+  if (is.null(local_dir)) {
+    # sync the drugseqr app components
+    drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
+    app_dir <- file.path('/srv/shiny-server/drugseqr', app_name)
+    dir.create(app_dir, recursive = TRUE)
 
-  system2('rsync', args = c('-av', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
+    system2('rsync', args = c('-av', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
 
-  # create necessary folders/blank files to initialize new app
-  data_dir <- file.path(app_dir, 'data_dir')
+    # create necessary folders/blank files to initialize new app
+    data_dir <- file.path(app_dir, 'data_dir')
+  } else {
+    data_dir <- file.path(local_dir, app_name)
+  }
+
   dir.create(data_dir)
   dir.create(file.path(data_dir, 'bulk'))
   dir.create(file.path(data_dir, 'single-cell'))
@@ -83,6 +89,9 @@ init_drugseqr <- function(app_name) {
   colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
   saveRDS(anals, file.path(data_dir, 'bulk', 'anals.rds'))
 
-  saveRDS(NULL, file.path(data_dir, 'bulk', 'datasets.rds'))
+  datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
+  colnames(datasets) <- c("dataset_name", "dataset_dir")
+  saveRDS(datasets, file.path(data_dir, 'bulk', 'datasets.rds'))
+
   saveRDS(NULL, file.path(data_dir, 'single-cell', 'integrated.rds'))
 }

@@ -223,7 +223,7 @@ function transferLabelOption(item, escape) {
 
 function querySignatureItem(item, escape) {
 
-  var info = item.type === "CMAP02/L1000 Perturbations" ? "" : "<span style='color: #A0A0A0;'>" + " (" + item.type.toLowerCase() + ")" +"</span>";
+  var info = item.type === "CMAP02/L1000 Perturbations" ? "" : "<span style='color: #A0A0A0;'>" + " (" + item.type + ")" +"</span>";
  
   var res = "<div>" +
               escape(item.label) + info +

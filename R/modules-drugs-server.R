@@ -282,7 +282,7 @@ querySignature <- function(input, output, session, new_anal, data_dir, pert_quer
     dataset_dir <- switch(anal$type,
                           'Custom' = file.path(data_dir, 'custom_queries'),
                           'CMAP02/L1000 Perturbations' = pert_query_dir,
-                          file.path(data_dir, 'bulk', anal$dataset_dir))
+                          file.path(data_dir, anal$dataset_dir))
 
     anal_name <-  fs::path_sanitize(anal$anal_name)
 

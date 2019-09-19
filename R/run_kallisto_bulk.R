@@ -23,7 +23,7 @@
 run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 
   # TODO: implement interaction between pairs and duplicates
-
+  data_dir <- path.expand(data_dir)
   species <- gsub(' ', '_', tolower(species))
 
   # default updateProgress and number of steps
