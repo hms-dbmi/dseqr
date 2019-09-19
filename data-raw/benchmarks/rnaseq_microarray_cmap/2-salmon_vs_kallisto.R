@@ -28,27 +28,24 @@ load_query_genes <- function(drug, prefix) {
 kal_query_genes <- lapply(gse_drugs, load_query_genes, kal_prefix)
 sal_query_genes <- lapply(gse_drugs, load_query_genes, sal_prefix)
 
-kal_query_res <- lapply(kal_query_genes, query_drugs, drug_es = cmap_es)
-sal_query_res <- lapply(sal_query_genes, query_drugs, drug_es = cmap_es)
+# sort by decreasing similarity and take first instance of each drug (current app display)
+get_query_ranks <- function(query_genes, drug_es, cmap_drug) {
+  res <- query_drugs(query_genes, drug_es)
+  res <- sort(res, decreasing = TRUE)
+  drugs <- gsub('^([^_]+)_.+?$', '\\1', names(res))
+  res <- res[!duplicated(drugs)]
+
+  # minimum rank of correct drug
+  grep(paste0('^', cmap_drug, '_'), names(res))
+}
 
 # equivalent drug names in cmap database
 cmap_drugs <- c('estradiol', 'bezafibrate', 'clofibrate', 'clotrimazole', 'econazole', 'gemfibrozil', 'ifosfamide',
                 'leflunomide', 'lovastatin', 'miconazole', 'pirinixic acid', 'rosiglitazone', 'simvastatin')
 
-# get smallest ranks ordered by similarity
-get_query_ranks <- function(query_res, cmap_drug) {
 
-  # sort result by decreasing similarity
-  query_res <- sort(query_res, decreasing = TRUE)
-
-  # get minimum rank of correct drug
-  grep(paste0('^', cmap_drug, '_'),names(query_res))
-}
-
-kal_ranks <- sapply(seq_along(kal_query_res), function(i) get_query_ranks(kal_query_res[[i]], cmap_drugs[i]))
-sal_ranks <- sapply(seq_along(sal_query_res), function(i) get_query_ranks(sal_query_res[[i]], cmap_drugs[i]))
-kal_ranks <- unlist(kal_ranks)
-sal_ranks <- unlist(sal_ranks)
+kal_ranks <- sapply(seq_along(kal_query_genes), function(i) get_query_ranks(kal_query_genes[[i]], cmap_es, cmap_drugs[i]))
+sal_ranks <- sapply(seq_along(sal_query_genes), function(i) get_query_ranks(sal_query_genes[[i]], cmap_es, cmap_drugs[i]))
 
 df <- data.frame(type = rep(c('salmon', 'kallisto'), each = length(sal_ranks)),
                  rank = c(sal_ranks, kal_ranks))
@@ -65,7 +62,7 @@ get_rates <- function(res) {
   tpr <- c(0)
   fpr <- c(0)
 
-  for (i in 1:ncol(cmap_es)) {
+  for (i in 1:1309) {
 
     # add to tpr num results that are correct at this position
     tpr <- c(tpr, tail(tpr, 1) + (sum(res == i)))
@@ -81,12 +78,12 @@ get_rates <- function(res) {
 kal_rates <- get_rates(kal_ranks)
 kal_rates_df <- data.frame(kal_rates, Approach = "Kallisto")
 MESS::auc(x = kal_rates_df$fpr, y = kal_rates_df$tpr)
-# [1] 0.6101993
+# [1] 0.727123
 
 sal_rates <- get_rates(sal_ranks)
 sal_rates_df <- data.frame(sal_rates, Approach = "Salmon")
 MESS::auc(x = sal_rates_df$fpr, y = sal_rates_df$tpr)
-# [1] 0.6080014
+# [1] 0.6972477
 
 # plot together
 library(ggplot2)
