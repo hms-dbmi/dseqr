@@ -553,7 +553,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
     elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
-    hide_target <- which(colnames(dummy_table) %in% c('Vendor', 'Catalog #', 'Vendor Name')) - 1
+    hide_target <- which(colnames(dummy_table) %in% c('Rank', 'Vendor', 'Catalog #', 'Vendor Name')) - 1
 
     # don't show column visibility button for genetic
     dom <- ifelse(is_genetic(), 'ftp', 'Bfrtip')
