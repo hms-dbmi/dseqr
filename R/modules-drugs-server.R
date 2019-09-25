@@ -521,11 +521,17 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
         dplyr::mutate(avg_cor = -abs(avg_cor))
     }
 
+    # indicate total number of unique perts in title for rank
+    rank_title <- switch(drug_study(),
+                         'CMAP02' = 'out of 1,309',
+                         'L1000 Genetic' = 'out of 6,943',
+                         'L1000 Drugs' = 'out of 19,360' )
+
     # sort as desired then add rank
     query_table <- query_table %>%
       dplyr::arrange(!!sym(sort_by)) %>%
       dplyr::select(-min_cor, -avg_cor, -max_cor, -n) %>%
-      dplyr::mutate(Rank = paste0('<span class="rank-label label label-default">', 1:nrow(query_table), '</span>'))
+      dplyr::mutate(Rank = paste0('<span class="rank-label label label-default" title="', rank_title, '">', 1:nrow(query_table), '</span>'))
 
     return(query_table)
   })
