@@ -127,6 +127,7 @@ load_custom_results <- function(res_paths, is_pert) {
 dl_pert_result <- function(res_path) {
   # name of the file being requested
   dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/pert_query_dir/', basename(res_path))
+  dl_url <- utils::URLencode(dl_url)
   download.file(dl_url, res_path)
 }
 
@@ -175,7 +176,7 @@ load_pert_anals <- function() {
 
 #' Get cell choices data.frame for CMAP02 or L1000
 #'
-#' @param drug_study either 'CMAP02' or 'L1000'
+#' @param drug_study either 'CMAP02', 'L1000 Drugs', or 'L1000 Genetic'
 #'
 #' @return data.frame
 #' @export
