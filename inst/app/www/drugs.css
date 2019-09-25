@@ -90,6 +90,19 @@ td.sim-cell {
   background-color: #DEF;
 }
 
+/* Rank labels */
+.rank-label {
+  border: 1px solid #ddd;
+  color: #54575a;
+  border-radius: 0;
+  font-weight: 400;
+  background-color: #fff;
+}
+
+td.dt-rank {
+  padding: 0 !important;
+  text-align: center;
+}
 
 /* column visibility buttons consistent with btn-default */
 

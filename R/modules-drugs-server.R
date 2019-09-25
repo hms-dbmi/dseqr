@@ -331,7 +331,10 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
                           value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
                           stringsAsFactors = FALSE)
 
-    updateSelectizeInput(session, 'study', choices = choices, selected = NULL,
+    prev_selected <- isolate(input$study)
+    if (prev_selected == '') prev_selected <- NULL
+
+    updateSelectizeInput(session, 'study', choices = choices, selected = prev_selected,
                          options = list(render = I('{option: studyOption, item: studyItem}')), server = TRUE)
   })
 
@@ -417,8 +420,8 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
-  drug_cols <- c('Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
-  gene_cols <- c('Correlation', 'Compound', 'External Links', 'Description')
+  drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
+  gene_cols <- c('Rank', 'Correlation', 'Compound', 'External Links', 'Description')
 
 
   dummy_rendered <- reactiveVal(FALSE)
@@ -450,7 +453,10 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
     stopifnot(all.equal(drug_annot$title, names(query_res)))
 
-    tibble::add_column(drug_annot, Correlation = query_res, .before=0)
+    tibble::add_column(drug_annot,
+                       Rank = NA,
+                       Correlation = query_res,
+                       .before=0)
   })
 
   is_genetic <- reactive({
@@ -510,19 +516,16 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
                             'similar' = query_table[is.similar, ],
                             'opposing' = query_table[!is.similar, ])
 
-
       query_table <- query_table %>%
         dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
         dplyr::mutate(avg_cor = -abs(avg_cor))
-
-
-
     }
 
-    # sort as desired
+    # sort as desired then add rank
     query_table <- query_table %>%
       dplyr::arrange(!!sym(sort_by)) %>%
-      dplyr::select(-min_cor, -avg_cor, -max_cor, -n)
+      dplyr::select(-min_cor, -avg_cor, -max_cor, -n) %>%
+      dplyr::mutate(Rank = paste0('<span class="rank-label label label-default">', 1:nrow(query_table), '</span>'))
 
     return(query_table)
   })
@@ -559,7 +562,8 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
       escape = FALSE, # to allow HTML in table
       extensions = 'Buttons',
       options = list(
-        columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 0),
+        columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 1),
+                          list(className = 'dt-rank', targets = 0, width=50),
                           list(targets = hide_target, visible=FALSE),
                           list(targets = elipsis_targets, render = DT::JS(
                             "function(data, type, row, meta) {",
