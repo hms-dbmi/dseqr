@@ -15,7 +15,9 @@ Make sure that port 3838 is open to all inbound traffic so that the shiny server
 
 ssh into your instance and run [setup-aws.sh](scripts/setup-aws.sh). This will take 20 minutes or so:
 
+```bash
 wget -O - https://e13eb58d90b1a6a62798c995485ad437be5e008f@raw.githubusercontent.com/hms-dbmi/drugseqr/master/scripts/setup-aws.sh | sudo bash
+```
 
 You should now be able to navigate your browser to  [EC2 Public DNS]:3838/drugseqr/example/ where EC2 Public DNS can be found in the EC2 instance description.
 
