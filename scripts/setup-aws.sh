@@ -32,7 +32,7 @@ echo "install.packages(\"remotes\", repos=\"https://cran.rstudio.com\")" | sudo 
 
 # this takes a while to download drugseqr dependencies
 # TODO: once public and release, remove access token and specify release
-echo "remotes::install_github(\"hms-dbmi/drugseqr\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\")" | sudo R --no-save
+echo "remotes::install_github(\"hms-dbmi/drugseqr\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\", upgrade = FALSE)" | sudo R --no-save
 echo "remotes::install_github(\"hms-dbmi/drugseqr.data\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\")" | sudo R --no-save
 
 # download CMAP02/LINCS data and build kallisto index
