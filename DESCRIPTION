@@ -29,7 +29,6 @@ Imports:
     scran (>= 1.12.0),
     scater (>= 1.12.2),
     Seurat (>= 3.0.1),
-    HDF5Array (== 1.10.1),
     sva,
     magrittr (>= 1.5),
     Matrix.utils (>= 0.9.7),
@@ -38,7 +37,6 @@ Imports:
     mvoutlier (>= 2.0.9),
     plotly (>= 4.8.0),
     DT (>= 0.5),
-    DropletUtils (>= 1.4.3),
     tibble (>= 2.0.1),
     PADOG
 Suggests: 
