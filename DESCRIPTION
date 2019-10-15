@@ -29,6 +29,7 @@ Imports:
     scran (>= 1.12.0),
     scater (>= 1.12.2),
     Seurat (>= 3.0.1),
+    HDF5Array (== 1.10.1),
     sva,
     magrittr (>= 1.5),
     Matrix.utils (>= 0.9.7),
