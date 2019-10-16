@@ -10,7 +10,6 @@ source ~/.bashrc
 
 # add miniconda to PATH for Rstudio session (local)
 echo 'PATH=${HOME}/miniconda/bin:${PATH}' >> ~/.Renviron
->>>>>>> 5508c49b09be4741f846d6eca0d3b4f5705cee48
 
 # setup bioconda channels
 conda config --add channels defaults

@@ -41,9 +41,8 @@ load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto',
     kneelist <- kneelist[kneelist %in% colnames(counts)]
   }
 
-
   # covert to Seurat object
-  srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist, project = project)
+  srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist[kneelist,, drop=FALSE], project = project)
 
   # add ambient metadata for genes
   srt[['RNA']]@meta.features$pct_ambient <- pct_ambient
