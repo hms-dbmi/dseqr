@@ -111,11 +111,11 @@ run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo
 get_pkg_version <- function(type) {
   # possibly use older salmon with version appended to executable name
   if (type == 'salmon') {
-    version <- system(paste('source ~/.bashrc &&', type, '--version'), intern = TRUE)
+    version <- system(paste(type, '--version'), intern = TRUE)
     version <- gsub('^salmon ', '', version)
 
   } else if (type == 'kallisto') {
-    version <- system(paste('source ~/.bashrc &&', type, 'version'), intern = TRUE)
+    version <- system(paste(type, 'version'), intern = TRUE)
     version <- gsub('^kallisto, version ', '', version)
 
   } else {
