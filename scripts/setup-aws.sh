@@ -4,7 +4,12 @@
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
 bash ~/miniconda.sh -b -p $HOME/miniconda
 echo 'export PATH=$HOME/miniconda/bin:$PATH' >> ~/.bashrc
+
+# add miniconda to PATH
 source ~/.bashrc
+
+# add miniconda to PATH for Rstudio session (local)
+echo 'export PATH=${HOME}/miniconda/bin:${PATH}' >> ~/.Renviron
 
 # setup bioconda channels
 conda config --add channels defaults
