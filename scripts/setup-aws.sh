@@ -13,6 +13,7 @@ conda config --add channels conda-forge
 
 # install kallisto
 conda install kallisto -y
+conda install -c bioconda bustools -y
 
 # get R 3.6
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
