@@ -392,6 +392,8 @@ get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, min.diff.pc
 #' @export
 integrate_scseqs <- function(scseqs, scalign = FALSE) {
 
+  browser()
+
   genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
   scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
 
@@ -491,10 +493,17 @@ transfer_labels <- function(reference, query, updateProgress = NULL, n = 3, n_in
 
   # query can't be integrated assay (error)
   Seurat::DefaultAssay(query) <- get_scseq_assay(query)
-
   k.filter <- min(201, ncol(reference), ncol(query))-1
 
-  anchors <- Seurat::FindTransferAnchors(reference, query, k.filter = k.filter)
+  scseqs <- list(reference, query)
+  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 2000)
+
+  genes <- genes[genes %in% row.names(scseqs[[1]]@assays$SCT@scale.data)]
+  genes <- genes[genes %in% row.names(scseqs[[2]]@assays$SCT@scale.data)]
+
+  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
+
+  anchors <- Seurat::FindTransferAnchors(scseqs[[1]], scseqs[[2]], k.filter = k.filter, features = genes)
   updateProgress(n_init/n)
   predictions <- Seurat::TransferData(anchorset = anchors,
                                       refdata = Seurat::Idents(reference),
