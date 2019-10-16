@@ -10,7 +10,7 @@
 #'
 #' @examples
 #'
-#' indices_dir <- 'data-raw/indices/kallisto'
+#' indices_dir <- 'data-raw/indices'
 #' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
 #'
 #' run_kallisto_scseq(indices_dir, data_dir)
@@ -22,7 +22,8 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
   whitepath <- get_10x_whitepath(indices_dir, bus_args)
 
   # get index_path
-  index_path <- file.path(indices_dir, paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
+  kal_version <- get_pkg_version('kallisto')
+  index_path <- file.path(indices_dir, paste0('kallisto_', kal_version), paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
 
   # get CB and read fastq files
   cb_fastqs <- identify_sc_files(data_dir, 'R1')
