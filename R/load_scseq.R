@@ -491,17 +491,17 @@ add_integrated_ambient <- function(combined, ambient) {
 transfer_labels <- function(reference, query, updateProgress = NULL, n = 3, n_init = 2) {
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
 
+
   # query can't be integrated assay (error)
   Seurat::DefaultAssay(query) <- get_scseq_assay(query)
   k.filter <- min(201, ncol(reference), ncol(query))-1
 
-  scseqs <- list(reference, query)
-  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 2000)
+  # use common genes in SCT assays
+  genes <- intersect(row.names(reference@assays$SCT@scale.data),
+                     row.names(query@assays$SCT@scale.data))
 
-  genes <- genes[genes %in% row.names(scseqs[[1]]@assays$SCT@scale.data)]
-  genes <- genes[genes %in% row.names(scseqs[[2]]@assays$SCT@scale.data)]
-
-  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
+  # subsets the SCT@scale.data to genes
+  scseqs <- Seurat::PrepSCTIntegration(object.list = list(reference, query), anchor.features = genes)
 
   anchors <- Seurat::FindTransferAnchors(scseqs[[1]], scseqs[[2]], k.filter = k.filter, features = genes)
   updateProgress(n_init/n)
