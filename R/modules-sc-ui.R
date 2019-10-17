@@ -192,6 +192,7 @@ integrationFormInput <- function(id) {
         selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('exclude_clusters'), 'Integration excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
         textInputWithButtons(ns('integration_name'),
+                             container_id = ns('validate'),
                              'Name for new integrated analysis:',
                              actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
                              help_id = ns('error_msg'))

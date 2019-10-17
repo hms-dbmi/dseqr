@@ -356,7 +356,10 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
   scseqs <- lapply(anal_names, load_saved_scseq, data_dir)
-  scseqs <- lapply(anal_names, function(anal) {
+  names(scseqs) <- anal_names
+
+  for (i in seq_along(scseqs)) {
+    anal <- names(scseqs)[i]
     scseq <- scseqs[[anal]]
 
     # set orig.ident to ctrl/test
@@ -368,9 +371,10 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
       exclude <- exclude_clusters[is.exclude]
       scseq <- scseq[, !scseq$seurat_clusters %in% exclude]
     }
+    scseqs[[anal]] <- scseq
+  }
 
-    return(scseq)
-  })
+
 
   return(scseqs)
 }
