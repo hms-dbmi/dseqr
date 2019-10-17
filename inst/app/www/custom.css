@@ -7,6 +7,11 @@
   color: #A0A0A0;
 }
 
+/* fix for FixedColumns styling in Datasets tab */
+.DTFC_RightWrapper {
+  right: unset !important;
+}
+
 /* MDS plots */
 
 .mobile-margin {
