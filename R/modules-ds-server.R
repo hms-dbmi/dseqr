@@ -796,7 +796,6 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
 
   eset <- reactive({
     fastq_dir <- fastq_dir()
-    kal_version <- get_pkg_version('kallisto')
     eset_path <- file.path(fastq_dir, 'eset.rds')
 
     req(file.exists(eset_path))
@@ -940,5 +939,6 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   ))
 
 }
+
 
 

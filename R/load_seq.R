@@ -33,8 +33,7 @@
 load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
 
   # check if already have
-  pkg_version <- get_pkg_version(type)
-  eset_path  <- file.path(data_dir, paste(type, pkg_version, 'eset.rds', sep = '_'))
+  eset_path  <- file.path(data_dir, 'eset.rds')
   if (load_saved & file.exists(eset_path))
     return(readRDS(eset_path))
 
