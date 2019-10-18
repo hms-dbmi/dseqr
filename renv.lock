@@ -783,13 +783,6 @@
       "Repository": "CRAN",
       "Hash": "11e41e6de0eacd27f3a227ae44742689"
     },
-    "drugseqr": {
-      "Package": "drugseqr",
-      "Version": "0.1.0",
-      "Source": "Bioconductor",
-      "Remotes": "alexvpickering/PADOG",
-      "Hash": "cd63de12c104fe1c19dd85c59c56cd39"
-    },
     "drugseqr.data": {
       "Package": "drugseqr.data",
       "Version": "0.1.0",
