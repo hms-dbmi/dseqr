@@ -29,7 +29,7 @@ Imports:
     scran (>= 1.12.0),
     scater (>= 1.12.2),
     Seurat (>= 3.0.1),
-    sva,
+    sva (>= 3.32.1),
     magrittr (>= 1.5),
     Matrix.utils (>= 0.9.7),
     metaMA (>= 3.1.2),
@@ -39,7 +39,8 @@ Imports:
     DT (>= 0.5),
     DropletUtils(>= 1.4.3),
     tibble (>= 2.0.1),
-    PADOG
+    PADOG,
+    drugseqr.data
 Suggests: 
     testthat,
     AnnotationDbi (>= 1.44.0),
@@ -49,4 +50,6 @@ Depends:
     R (>= 3.6.0),
     data.table (>= 1.12.0),
     shinyBS(>= 0.61)
-Remotes: alexvpickering/PADOG
+Remotes: 
+    alexvpickering/PADOG,
+    hms-dbmi/drugseqr.data
