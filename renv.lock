@@ -40,6 +40,13 @@
       "Source": "Bioconductor",
       "Hash": "0e4a1c136ce54159dbc4743379861d92"
     },
+    "BiocManager": {
+      "Package": "BiocManager",
+      "Version": "1.30.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "902a92d65e68dd2051c6dd12cc09dc4d"
+    },
     "BiocNeighbors": {
       "Package": "BiocNeighbors",
       "Version": "1.2.0",
@@ -218,14 +225,14 @@
     "PADOG": {
       "Package": "PADOG",
       "Version": "2.1.0",
-      "Source": "Bioconductor",
+      "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "PADOG",
       "RemoteUsername": "alexvpickering",
+      "RemoteRepo": "PADOG",
       "RemoteRef": "master",
-      "RemoteSha": "db682223686a928c672fd26fa4ee223efe726c1c",
-      "Hash": "5f2fb375b9b523a21c8143d3cd1a9669"
+      "RemoteSha": "2d9e435424c1ef36069edc07ba991dadc7057a91",
+      "Hash": "8c43f20350ee0dcc2ddd6a68da56cfc3"
     },
     "ProtGenerics": {
       "Package": "ProtGenerics",
@@ -1728,6 +1735,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "830aa73278dce9beba583bfe57a5c015"
+    },
+    "renv": {
+      "Package": "renv",
+      "Version": "0.7.1-20",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "renv",
+      "RemoteUsername": "rstudio",
+      "RemoteRef": "master",
+      "RemoteSha": "e8857e7d46ea4c2188169d908481808a4a3e4563",
+      "Hash": "3775ef1f40a06b4c0ecc5aa4aa9c9a28"
     },
     "reshape": {
       "Package": "reshape",
