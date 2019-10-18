@@ -26,7 +26,14 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
   ncount <- ncount[ncount.ord]
   nabove <- sum(ncount > knee)
   nbelow <- max(0.2*nabove, 1000)
-  keep <- 1:(nabove + nbelow)
+
+  # if already filtered cellranger matrix file then keep everything
+  if (min(ncount) > 10) {
+    keep <- seq_len(ncol(counts))
+
+  } else {
+    keep <- 1:(nabove + nbelow)
+  }
 
   # add qc metrics
   scseq <- Seurat::CreateSeuratObject(counts[, keep])
@@ -41,34 +48,48 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
   # below knee is low quality
   df <- as.data.frame(sce@colData)
 
-  df$quality <- NA
-  df$quality[sce$total_counts <= knee] <- 'low'
 
-  # devide above evenly into high and ambiguous
-  midpnt <- round(nabove/2)
-  df$quality[1:midpnt] <- 'high'
-  df$quality[(midpnt+1):nabove] <- 'ambig'
+  # if filtered cellranger then just drop outliers, no modeling
+  if (min(ncount) > 10) {
+    df$quality <- 'high'
+    df$quality[sce$total_counts <= knee] <- 'low'
 
-  # set outliers above the knee as low quality
-  df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
-  df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
+    # set outliers above the knee as low quality
+    df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
+    df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
 
-  # clean df
-  nunique <- function(x) { length(unique(na.omit(x))) != 1 }
-  df <- df[, apply(df, 2, nunique)]
-  df <- df[, !duplicated(t(df))]
+  } else {
+    df$quality <- NA
+    df$quality[sce$total_counts <= knee] <- 'low'
 
-  # run model/get preds
-  df$quality <- factor(df$quality)
-  train <- df[df$quality != 'ambig', ]
-  test  <- df[df$quality == 'ambig', ]
+    # devide above evenly into high and ambiguous
+    midpnt <- round(nabove/2)
+    df$quality[1:midpnt] <- 'high'
+    df$quality[(midpnt+1):nabove] <- 'ambig'
 
-  svm_model <- e1071::svm(quality ~ ., data = train)
-  svm_preds <- predict(svm_model, newdata = test)
+    # set outliers above the knee as low quality
+    df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
+    df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
 
-  # determine what to keep and save for future
-  test$quality <- svm_preds
-  df <- rbind(train, test)
+    # clean df
+    nunique <- function(x) { length(unique(na.omit(x))) != 1 }
+    df <- df[, apply(df, 2, nunique)]
+    df <- df[, !duplicated(t(df))]
+
+    # run model/get preds
+    df$quality <- factor(df$quality)
+    train <- df[df$quality != 'ambig', ]
+    test  <- df[df$quality == 'ambig', ]
+
+    svm_model <- e1071::svm(quality ~ ., data = train)
+    svm_preds <- predict(svm_model, newdata = test)
+
+    # determine what to keep and save for future
+    test$quality <- svm_preds
+    df <- rbind(train, test)
+
+  }
+
   whitelist <- row.names(df)[df$quality == 'high']
   kneelist  <- colnames(sce_above)
 

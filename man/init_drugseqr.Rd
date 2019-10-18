@@ -4,16 +4,18 @@
 \alias{init_drugseqr}
 \title{Initialize drugseqr folders/files for a new app}
 \usage{
-init_drugseqr(app_name)
+init_drugseqr(app_name, local_dir = NULL)
 }
 \arguments{
 \item{app_name}{Name for new drugseqr app.}
+
+\item{local_dir}{Path to local directory to initialize app. Default \code{NULL} assumes a shiny-server environment.}
 }
 \description{
 Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
 }
 \examples{
 
-init_drugseqr('example')
+init_drugseqr('example', local_dir = 'data-raw/patient_data')
 
 }

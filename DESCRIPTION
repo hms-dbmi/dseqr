@@ -37,6 +37,7 @@ Imports:
     mvoutlier (>= 2.0.9),
     plotly (>= 4.8.0),
     DT (>= 0.5),
+    DropletUtils(>= 1.4.3),
     tibble (>= 2.0.1),
     PADOG
 Suggests: 

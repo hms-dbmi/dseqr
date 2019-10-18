@@ -7,7 +7,7 @@
 get_cell_choices(drug_study)
 }
 \arguments{
-\item{drug_study}{either 'CMAP02' or 'L1000'}
+\item{drug_study}{either 'CMAP02', 'L1000 Drugs', or 'L1000 Genetic'}
 }
 \value{
 data.frame

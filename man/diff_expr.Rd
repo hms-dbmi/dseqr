@@ -49,5 +49,5 @@ and supplied to the \code{prev_anal} parameter. In this case, previous selection
 
 data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 eset <- load_seq(data_dir)
-anal <- diff_expr(eset, data_dir)
+anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
 }

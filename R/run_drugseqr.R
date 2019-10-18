@@ -56,6 +56,7 @@ run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_dat
 #' Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
 #'
 #' @param app_name Name for new drugseqr app.
+#' @param local_dir Path to local directory to initialize app. Default \code{NULL} assumes a shiny-server environment.
 #'
 #' @return NULL
 #' @export

@@ -15,15 +15,15 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cell_ranger'), h5 = FALSE, soupx = FALSE) {
+load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cellranger'), soupx = FALSE) {
 
   # load counts
   if (type[1] == 'kallisto') {
     data_dir <- file.path(data_dir, 'bus_output')
     counts <- load_kallisto_counts(data_dir)
 
-  } else if (type[1] == 'cell_ranger') {
-    counts <- load_cell_ranger_counts(data_dir, h5 = h5)
+  } else if (type[1] == 'cellranger') {
+    counts <- load_cellranger_counts(data_dir)
   }
 
   # generate/load whitelist
@@ -32,8 +32,16 @@ load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto',
   kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
-  pct_ambient <- get_pct_ambient(counts)
-  out_ambient <- get_outliers(pct_ambient)
+  # if pre-filtered cellranger, can't determine outliers
+  ncount <- Matrix::colSums(counts)
+  if (min(ncount) > 10) {
+    pct_ambient <- 0
+    out_ambient <- FALSE
+
+  } else {
+    pct_ambient <- get_pct_ambient(counts)
+    out_ambient <- get_outliers(pct_ambient)
+  }
 
   if (soupx) {
     empty <- !whitelist[[1]]
@@ -115,17 +123,15 @@ load_kallisto_counts <- function(data_dir) {
 #' Mainly to avoid having to download massive datasets that have already been quantified.
 #'))))
 #' @inheritParams load_scseq
-#' @param h5
 #' @importFrom magrittr "%>%"
 #'
 #' @return dgCMatrix
 #' @export
-load_cell_ranger_counts <- function(data_dir, h5) {
+load_cellranger_counts <- function(data_dir) {
   # read the data in using ENSG features
-  if (h5) {
-    h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+  h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+  if (length(h5file)) {
     counts <- Seurat::Read10X_h5(h5file, use.names = FALSE)
-
   } else {
     counts <- Seurat::Read10X(data_dir, gene.column = 1)
   }
@@ -153,6 +159,44 @@ load_cell_ranger_counts <- function(data_dir, h5) {
 
   return(counts)
 }
+
+#' Determine if the selected folder has CellRanger files
+#'
+#' @param data_dir path to directory to check.
+#'
+#' @return \code{TRUE} if CellRanger files detected, otherwise \code{FALSE}.
+#' @export
+check_is_cellranger <- function(data_dir) {
+
+  # cellranger file names
+  files <- list.files(data_dir)
+  mtx.file <- grep('.mtx', files, fixed = TRUE, value = TRUE)
+  genes.file <- grep('features.tsv|genes.tsv', files, value = TRUE)
+  barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
+
+  if (length(mtx.file) & length(genes.file) & length(barcodes.file)) return(TRUE)
+  return(FALSE)
+}
+
+#' Rename CellRanger files for loading by Seurat::Read10X
+#'
+#' @param data_dir Path to folder with CellRanger files.
+#'
+#' @return NULL
+#' @export
+standardize_cellranger <- function(data_dir) {
+
+  # cellranger file names
+  files <- list.files(data_dir)
+  mtx.file <- grep('.mtx', files, fixed = TRUE, value = TRUE)
+  genes.file <- grep('features.tsv|genes.tsv', files, value = TRUE)
+  barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
+
+  # rename for ?Seurat::Read10X
+  file.rename(file.path(data_dir, c(mtx.file, genes.file, barcodes.file)),
+              file.path(data_dir, c('matrix.mtx', 'genes.tsv', 'barcodes.tsv')))
+}
+
 
 
 #' Convert Seurat object to SingleCellExperiment

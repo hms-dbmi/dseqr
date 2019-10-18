@@ -11,8 +11,8 @@ selectizeInputWithValidation(id, label, options = NULL,
 \item{label}{Display label for the control, or \code{NULL} for no label.}
 
 \item{options}{A list of options. See the documentation of \pkg{selectize.js}
-for possible options (character option values inside \code{\link[base]{I}()} will
-be treated as literal JavaScript code; see \code{\link{renderDataTable}()}
+for possible options (character option values inside \code{\link[base:I]{base::I()}} will
+be treated as literal JavaScript code; see \code{\link[=renderDataTable]{renderDataTable()}}
 for details).}
 
 \item{container_id}{id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.}

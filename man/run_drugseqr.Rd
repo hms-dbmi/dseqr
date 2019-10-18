@@ -25,6 +25,7 @@ data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
 data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
+data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/example'
 pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
 
 run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)

@@ -56,6 +56,8 @@ dsPage <- function(input, output, session, data_dir) {
 
     # setup
     is.sc <- dsForm$is.sc()
+    is.cellranger <- dsForm$is.cellranger()
+
     pdata <- dsQuantTable$pdata()
     dataset_dir <- dsForm$dataset_dir()
     dataset_name <- dsForm$dataset_name()
@@ -72,10 +74,11 @@ dsPage <- function(input, output, session, data_dir) {
     if (is.sc) {
       progress$set(message = "Quantifying files", value = 0)
       progress$set(value = 1)
-      run_kallisto_scseq(indices_dir, fastq_dir)
+      if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
 
       progress$set(message = "Loading and QC", value = 2)
-      scseq <- load_scseq(fastq_dir, project = dataset_name)
+      type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
+      scseq <- load_scseq(fastq_dir, project = dataset_name, type = type)
       scseq <- scseq[, scseq$whitelist]
       gc()
 
@@ -267,7 +270,8 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
     anal_name = anal$anal_name,
     show_quant = show_quant,
     show_anal = show_anal,
-    is.sc = dataset$is.sc
+    is.sc = dataset$is.sc,
+    is.cellranger = dataset$is.cellranger
   ))
 
 }
@@ -338,16 +342,20 @@ dsDataset <- function(input, output, session, data_dir, new_dataset) {
     return(dir)
   })
 
-  is.sc <- reactive(grepl('^single-cell/', dataset_dir()))
 
   fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
 
+  is.sc <- reactive(grepl('^single-cell/', dataset_dir()))
+  is.cellranger <- reactive(check_is_cellranger(fastq_dir()))
+
+  observe(if (is.cellranger()) standardize_cellranger(fastq_dir()))
 
   return(list(
     fastq_dir = fastq_dir,
     dataset_name = dataset_name,
     dataset_dir = dataset_dir,
     is.sc = is.sc,
+    is.cellranger = is.cellranger,
     is.create = is.create
   ))
 
@@ -621,7 +629,9 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
     # initial creation of saved pdata
     if (!file.exists(pdata_path)) {
+
       fastqs <- list.files(fastq_dir, '.fastq.gz$')
+      if (!length(fastqs)) fastqs <- NA
       pdata <- tibble::tibble('File Name' = fastqs)
       pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
       saveRDS(pdata, pdata_path)
@@ -930,3 +940,5 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   ))
 
 }
+
+

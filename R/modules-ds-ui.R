@@ -61,8 +61,8 @@ dsDatasetInput <- function(id) {
     selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:',
                               options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
                               button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
-                                     `data-title` = 'Folder with fastq.gz files',
-                                     title = 'Select folder with fastq.gz files',
+                                     `data-title` = 'Folder with fastq.gz or cellranger files',
+                                     title = 'Select folder with fastq.gz or cellranger files',
                                      i(class = 'far fa-folder fa-fw')
 
                               )
