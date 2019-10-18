@@ -42,10 +42,9 @@ Imports:
     PADOG
 Suggests: 
     testthat,
-    curl (>= 3.3),
     AnnotationDbi (>= 1.44.0),
     ensembldb (>= 2.8.0),
-    MASS (>= 7.3.51.1),
+    MASS (>= 7.3.51.1)
 Depends: 
     R (>= 3.6.0),
     data.table (>= 1.12.0),
