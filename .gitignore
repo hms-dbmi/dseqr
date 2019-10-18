@@ -19,8 +19,6 @@ data-raw/drug_gene_queries/data/*
 # contains PUG-View files from Pubchem
 data-raw/drug_annot/pug_view/views/*
 
-# ensdb annotation
-inst/EnsDb
 
 # test stuff for app
 inst/app/tests/**/*.png
@@ -32,5 +30,3 @@ data-raw/single-cell/alevin-args/*.gz
 data-raw/single-cell/kallisto-args/*
 
 data-raw/single-cell/reference-data/*
-packrat/lib*/
-packrat/src/

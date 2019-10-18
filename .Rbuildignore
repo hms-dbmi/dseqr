@@ -4,3 +4,5 @@
 ^data-raw$
 
 ^packrat/
+^renv$
+^renv\.lock$
