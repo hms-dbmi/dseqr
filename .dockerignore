@@ -1,8 +1,7 @@
-tests/
-scripts/
-renv/library/
-data-raw/
-inst/app/tests/
+# Ignore everything
+**
 
-.Rproj.user
-.Rhistory
+# Allow files and directories
+!/Dockerfile
+!/renv.lock
+!/.Renviron

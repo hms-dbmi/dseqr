@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y \
     libv8-dev \
     libxml2-dev \
     libssl-dev \
+    libbz2-dev \
+    liblzma-dev \
     git \
-    wget
+    wget && rm -rf /var/lib/apt
 
 
 
@@ -19,20 +21,23 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -
 ENV PATH="/root/miniconda/bin:$PATH"
 
 
-RUN conda config --add channels defaults && \
-    conda config --add channels bioconda && \
+RUN conda config --add channels bioconda && \
     conda config --add channels conda-forge && \
     conda install kallisto=0.46.0 -y && \
     conda install -c bioconda bustools=0.39.3 -y
 
 
-# install drugseqr
-RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))"
-RUN R -e "remotes::install_github('rstudio/renv@0.7.1-20')"
+# install drugseqr dependencies from renv.lock file
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
+    R -e "remotes::install_github('rstudio/renv@0.7.1-20')"
 
-# clone the code base
-RUN git clone https://e13eb58d90b1a6a62798c995485ad437be5e008f@github.com/hms-dbmi/drugseqr.git
+COPY renv.lock .
+COPY .Renviron .
 
 # restore the package environment
-RUN R -e 'setwd("./drugseqr"); renv::restore()'
+RUN R -e 'options(renv.consent = TRUE); renv::restore()'
+
+# clone the code base
+# RUN git clone https://e13eb58d90b1a6a62798c995485ad437be5e008f@github.com/hms-dbmi/drugseqr.git
+
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # get miniconda
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O ~/miniconda.sh
 bash ~/miniconda.sh -b -p $HOME/miniconda
 echo 'export PATH=$HOME/miniconda/bin:$PATH' >> ~/.bashrc
 
@@ -39,7 +39,7 @@ echo "install.packages(\"remotes\", repos=\"https://cran.rstudio.com\")" | sudo 
 # this takes a while to download drugseqr dependencies
 # TODO: once public and release, remove access token and specify release
 echo "remotes::install_github(\"hms-dbmi/drugseqr\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\", upgrade = FALSE)" | sudo R --no-save
-echo "remotes::install_github(\"hms-dbmi/drugseqr.data\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\")" | sudo R --no-save
+echo "remotes::install_github(\"hms-dbmi/drugseqr.data@0.1.0\", auth_token = \"e13eb58d90b1a6a62798c995485ad437be5e008f\")" | sudo R --no-save
 
 # download CMAP02/LINCS data and build kallisto index
 echo "drugseqr.data::dl_drug_es()" | sudo R --no-save

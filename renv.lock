@@ -65,6 +65,12 @@
       "Source": "Bioconductor",
       "Hash": "57ffad663a00180f0247654000cb54d1"
     },
+    "BiocVersion": {
+      "Package": "BiocVersion",
+      "Version": "3.9.0",
+      "Source": "Bioconductor",
+      "Hash": "7ecece6a1cbb29b32109ec9443e8abad"
+    },
     "Biostrings": {
       "Package": "Biostrings",
       "Version": "2.52.0",
