@@ -9,7 +9,7 @@ server <- function(input, output, session) {
   # path where drug gene queries will be stored
   pert_query_dir <- getShinyOption(
     'pert_query_dir',
-    file.path(system.file(package = 'drugseqr.data', mustWork = TRUE), 'pert_query_dir'))
+    'pert_query_dir')
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
 

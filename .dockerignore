@@ -5,3 +5,5 @@
 !/Dockerfile
 !/renv.lock
 !/.Renviron
+!/inst/app
+inst/app/tests
