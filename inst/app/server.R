@@ -9,12 +9,12 @@ server <- function(input, output, session) {
   # path where drug gene queries will be stored
   pert_query_dir <- getShinyOption(
     'pert_query_dir',
-    '/srv/shiny-server/pert_query_dir')
+    '/srv/shiny-server/drugseqr/pert_query_dir')
 
   # path where kallisto index is downloaded and stored
   indices_dir <- getShinyOption(
     'indices_dir',
-    '/srv/shiny-server/indices')
+    '/srv/shiny-server/drugseqr/indices')
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
 

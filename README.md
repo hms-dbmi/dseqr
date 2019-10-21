@@ -52,7 +52,7 @@ Build kallisto index (optional - if will quantify bulk/sc fastq files on the ser
 ```bash
 sudo docker run --user shiny --rm \
   -v /srv/shiny-server:/srv/shiny-server \
-  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/indices')"
+  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/drugseqr/indices')"
 ```
 
 Now run a container to host the example app:

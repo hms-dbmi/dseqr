@@ -797,9 +797,9 @@
       "RemoteHost": "api.github.com",
       "RemoteRepo": "drugseqr.data",
       "RemoteUsername": "hms-dbmi",
-      "RemoteRef": "master",
-      "RemoteSha": "32c0dec2edffa1f61f2786e03de30aba80fa7df1",
-      "Hash": "0d3774df1ec74d3c8b64367964daa042"
+      "RemoteRef": "0.1.1",
+      "RemoteSha": "db40b4cfb41421301524c0e8d3f36d88b844d3c0",
+      "Hash": "e44773b7f4c3c97853afec777402c317"
     },
     "dynamicTreeCut": {
       "Package": "dynamicTreeCut",
