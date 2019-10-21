@@ -47,6 +47,14 @@ sudo chmod -R 0777 /srv/shiny-server/
 sudo chmod -R 0777 /var/log/shiny-server/
 ```
 
+Build kallisto index (optional - if will quantify bulk/sc fastq files on the server):
+
+```bash
+sudo docker run --user shiny --rm \
+  -v /srv/shiny-server:/srv/shiny-server \
+  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/indices')"
+```
+
 Now run a container to host the example app:
 
 ```bash
