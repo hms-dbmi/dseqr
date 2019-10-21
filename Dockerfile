@@ -1,25 +1,27 @@
 FROM rocker/shiny:3.6.1
 
 # install Ubuntu packages
-RUN apt-get update && apt-get install -y \
-    sudo \
-    libcurl4-openssl-dev \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libcurl4-openssl-dev \
     libv8-dev \
     libxml2-dev \
     libssl-dev \
     libbz2-dev \
     liblzma-dev \
     git \
-    wget && rm -rf /var/lib/apt
+    wget && rm -rf /var/lib/apt/lists/*
 
+# ensure that conda and R libraries are usable by shiny user
+RUN chown shiny: /usr/local/lib/R/site-library && \
+    chmod u+w /usr/local/lib/R/site-library
 
+USER shiny
 
 # Download miniconda and kallisto/bustools
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O ~/miniconda.sh && \
-    bash ~/miniconda.sh -b -p $HOME/miniconda
+    bash ~/miniconda.sh -b -p ~/miniconda
 
-ENV PATH="/root/miniconda/bin:$PATH"
-
+ENV PATH="/home/shiny/miniconda/bin:$PATH"
 
 RUN conda config --add channels bioconda && \
     conda config --add channels conda-forge && \
@@ -39,5 +41,3 @@ RUN R -e 'options(renv.consent = TRUE); renv::restore()'
 
 # clone the code base
 RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.0', dependencies = FALSE, upgrade = FALSE)"
-
-RUN R -e "drugseqr::init_drugseqr('example')"

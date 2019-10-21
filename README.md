@@ -7,19 +7,55 @@ The goal of drugseqr (*drug-seek-R*) is to find CMAP02/L1000 compounds that oppo
 
 ## EC2 setup
 
-Launch an Ubuntu Server 18.04 AMI instance with sufficient resources to meet your requirements. For example, I will launch a r4.large spot instance with a 50GiB SSD. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
+Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
 
-Make sure that port 3838 is open to all inbound traffic so that the shiny server can be accessed.
+Make sure that port 80 is open to all inbound traffic so that the shiny server can be accessed.
 
 ## Setup the server
 
-ssh into your instance and run [setup-aws.sh](scripts/setup-aws.sh). This will take 20 minutes or so:
+
+ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/).
+
+Next, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
 
 ```bash
-curl -s https://e13eb58d90b1a6a62798c995485ad437be5e008f@raw.githubusercontent.com/hms-dbmi/drugseqr/master/scripts/setup-aws.sh | sudo bash
+# retrieve pre-built drugseqr docker image
+wget https://drugseqr.s3.us-east-2.amazonaws.com/drugseqr_latest.tar.gz
+sudo docker load < drugseqr_latest.tar.gz
+rm drugseqr_latest.tar.gz
+
+# permission change needed so that can init new app with user shiny
+sudo mkdir -p /srv/shiny-server/
+sudo chmod -R 0777 /srv/shiny-server/
+
+# init new example app by running container
+# host:container mounted volume in order to persist example app folders on host machine
+sudo docker run --user shiny --rm \
+  -v /srv/shiny-server:/srv/shiny-server \
+  drugseqr R -e "drugseqr::init_drugseqr('example')"
 ```
 
-You should now be able to navigate your browser to  [EC2 Public DNS]:3838/drugseqr/example/ where EC2 Public DNS can be found in the EC2 instance description.
+
+Then download example data and sync with previously initialized app:
+
+```bash
+wget https://drugseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
+tar -xzvf example_data.tar.gz
+rm example_data.tar.gz
+sudo rsync -av example/ /srv/shiny-server/drugseqr/example/data_dir/
+sudo chmod -R 0777 /srv/shiny-server/
+```
+
+Now run a container to host your app:
+
+```bash
+sudo docker run --user shiny --rm -p 80:3838 \
+  -v /srv/shiny-server/drugseqr/example:/srv/shiny-server/drugseqr/example \
+  -v /srv/shiny-server/drugseqr/pert_query_dir:/srv/shiny-server/drugseqr/pert_query_dir \
+  drugseqr
+```
+
+You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr/example/ where EC2 Public DNS can be found in the EC2 instance description.
 
 
 ## Adding datasets

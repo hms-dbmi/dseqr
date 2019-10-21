@@ -23,3 +23,8 @@ scseq <- drugseqr::downsample_scseq(scseq, 3000)
 scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
 
 saveRDS(scseq, 'data-raw/patient_data/example/single-cell/GSM2560248_pbmc_ctrl/scseq.rds')
+
+
+# sync to s3 after integration, labeling, etc (whatever want pre-done for app)
+# tar cvzf example_data.tar.gz --directory=/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data example
+# aws s3 cp example_data.tar.gz s3://drugseqr/example_data.tar.gz

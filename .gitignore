@@ -30,3 +30,5 @@ data-raw/single-cell/alevin-args/*.gz
 data-raw/single-cell/kallisto-args/*
 
 data-raw/single-cell/reference-data/*
+
+*.tar.gz
