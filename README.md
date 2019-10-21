@@ -24,12 +24,12 @@ wget https://drugseqr.s3.us-east-2.amazonaws.com/drugseqr_latest.tar.gz
 sudo docker load < drugseqr_latest.tar.gz
 rm drugseqr_latest.tar.gz
 
-# permission change needed so that can init new app with user shiny
+# permission change needed so that can init new app with user shiny inside the container
 sudo mkdir -p /srv/shiny-server/
 sudo chmod -R 0777 /srv/shiny-server/
 
 # init new example app by running container
-# host:container mounted volume in order to persist example app folders on host machine
+# host:container mounted volume in order to persist example app folders that are created inside the container
 sudo docker run --user shiny --rm \
   -v /srv/shiny-server:/srv/shiny-server \
   drugseqr R -e "drugseqr::init_drugseqr('example')"
@@ -44,14 +44,15 @@ tar -xzvf example_data.tar.gz
 rm example_data.tar.gz
 sudo rsync -av example/ /srv/shiny-server/drugseqr/example/data_dir/
 sudo chmod -R 0777 /srv/shiny-server/
+sudo chmod -R 0777 /var/log/shiny-server/
 ```
 
-Now run a container to host your app:
+Now run a container to host the example app:
 
 ```bash
-sudo docker run --user shiny --rm -p 80:3838 \
-  -v /srv/shiny-server/drugseqr/example:/srv/shiny-server/drugseqr/example \
-  -v /srv/shiny-server/drugseqr/pert_query_dir:/srv/shiny-server/drugseqr/pert_query_dir \
+sudo docker run -d --user shiny --rm -p 80:3838 \
+  -v /srv/shiny-server/:/srv/shiny-server/ \
+  -v /var/log/shiny-server/:/var/log/shiny-server/ \
   drugseqr
 ```
 

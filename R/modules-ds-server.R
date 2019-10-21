@@ -63,12 +63,22 @@ dsPage <- function(input, output, session, data_dir) {
     dataset_name <- dsForm$dataset_name()
     fastq_dir <- file.path(data_dir, dataset_dir)
 
-    indices_dir <- system.file('indices', package = 'drugseqr.data', mustWork = TRUE)
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = ifelse(is.sc, 8, nrow(pdata)+1))
     # Close the progress when this reactive exits (even if there's an error)
     on.exit(progress$close())
+
+    indices_dir <- tryCatch(system.file('indices', package = 'drugseqr.data', mustWork = TRUE),
+                            error = function(e) {
+                              # build index if doesn't exist
+                              progress$set(message = "Building index", value = 0)
+                              progress$set(value = 1)
+
+                              drugseqr.data::build_kallisto_index()
+                              indices_dir <- system.file('indices', package = 'drugseqr.data', mustWork = TRUE)
+                              return(indices_dir)
+                            })
 
 
     if (is.sc) {
