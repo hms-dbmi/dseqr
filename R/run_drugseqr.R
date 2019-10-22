@@ -2,8 +2,9 @@
 #'
 #' Used for local development
 #'
-#' @param data_dir Directory containing folders \code{'bulk'} and \code{'single-cell'}.
+#' @param data_dir Directory containing folders \code{'bulk'} \code{'single-cell'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
+#' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}

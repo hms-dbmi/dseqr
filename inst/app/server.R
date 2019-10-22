@@ -22,8 +22,8 @@ server <- function(input, output, session) {
   if (isTRUE(getOption('shiny.testmode'))) {
 
     # reset data for testing
-    data_dir <- 'tests/data/test'
-    static_dir <- 'tests/data/static'
+    data_dir <- 'tests/data/test/example'
+    static_dir <- 'tests/data/static/example'
     unlink(data_dir, recursive = TRUE)
     dir.create(data_dir)
     file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
