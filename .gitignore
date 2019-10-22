@@ -4,16 +4,12 @@
 # contains raw IBD FASTQ files for dev purposes
 data-raw/patient_data/*
 data-raw/patient_data/*
-data-raw/single-cell/example-data/*
 !generate_examples.R
 !mds-sva.R
 !mds-sva.png
 
 *.fastq.gz
 data-raw/benchmarks/rnaseq_microarray_cmap/GSE*/*
-data-raw/single-cell/example-anals/GSE1133/*
-data-raw/single-cell/example-anals/sjia/*
-data-raw/single-cell/biogps/U133AGNF1B.gcrma.avg.csv
 data-raw/drug_gene_queries/data/*
 
 # contains PUG-View files from Pubchem
@@ -24,6 +20,9 @@ data-raw/drug_annot/pug_view/views/*
 inst/app/tests/**/*.png
 inst/app/tests/*-current/*
 inst/app/tests/data/test/*
+
+# until shinytest works
+inst/app/tests/data/static/*
 
 # txp2gene for alevin
 data-raw/single-cell/alevin-args/*.gz
