@@ -14,7 +14,7 @@ Make sure that port 80 is open to all inbound traffic so that the shiny server c
 ## Setup the server
 
 
-ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/).
+ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI.
 
 Next, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
 

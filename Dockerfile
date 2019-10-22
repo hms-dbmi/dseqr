@@ -8,6 +8,7 @@ RUN apt-get update && \
     libssl-dev \
     libbz2-dev \
     liblzma-dev \
+    rsync \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
@@ -40,7 +41,7 @@ COPY .Renviron .
 RUN R -e 'options(renv.consent = TRUE); renv::restore()'
 
 # clone the code base
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.1', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.2', dependencies = FALSE, upgrade = FALSE)"
 
 # download drug effect size data
 RUN R -e "drugseqr.data::dl_drug_es()"
