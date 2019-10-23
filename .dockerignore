@@ -6,4 +6,5 @@
 !/renv.lock
 !/.Renviron
 !/inst/app
+!/shiny-server.conf
 inst/app/tests

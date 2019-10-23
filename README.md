@@ -52,10 +52,12 @@ Build kallisto index (optional - if will quantify bulk/sc fastq files on the ser
 ```bash
 sudo docker run --user shiny --rm \
   -v /srv/shiny-server:/srv/shiny-server \
-  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/drugseqr/indices')"
+  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/drugseqr')"
 ```
 
-Now run a container to host the example app:
+## Run the app
+
+Run a container to host the example app:
 
 ```bash
 sudo docker run -d --user shiny --rm -p 80:3838 \
@@ -67,9 +69,65 @@ sudo docker run -d --user shiny --rm -p 80:3838 \
 You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr/example/ where EC2 Public DNS can be found in the EC2 instance description.
 
 
-## Adding datasets
+## Adding single-cell datasets
 
-Use `rsync` to sync local and server data:
+Add single cell fastq.gz or CellRanger files to a directory in `single-cell`. For example, download CellRanger files:
+
+```bash
+# directory to store single cell sample data in  
+cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
+mkdir GSM2560249_pbmc_ifnb_full
+cd GSM2560249_pbmc_ifnb_full
+
+# get CellRanger files
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5F2%2E2%2Emtx%2Egz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5Fbarcodes%2Etsv%2Egz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583%5Fbatch2%2Egenes%2Etsv%2Egz
+
+# make sure permissions okay
+sudo chmod -R 0777 /srv/shiny-server/
+```
+
+Run the app as before, create a new dataset, and select the created folder. Single cell 10X fastq.gz files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to FASTQ:
+
+```bash
+# download bamtofastq into directory on the path
+wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
+
+# directory to store single cell sample data in  
+cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
+mkdir GSM3304014_lung_healthy
+cd GSM3304014_lung_healthy
+
+# download 10XBAM
+wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genome_bam.bam.1
+
+# convert to fastq
+bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
+
+# make sure permissions okay
+sudo chmod -R 0777 /srv/shiny-server/
+```
+
+Run the app again, create a new dataset, and select the folder with the fastq files.
+
+## Adding bulk datasets
+
+Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk datasets particularly easy. For example, install `GEOfastq` then:
+
+```R
+# download bulk fastqs to appropriate directory for example app
+data_dir <- '/srv/shiny-server/drugseqr/example/data_dir/bulk'
+gse_name <- 'GSE35296'
+
+# first four samples for demonstration
+srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
+GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
+```
+
+## Sync local data with server
+
+One way to this is is with `rsync`. For example:
 
 ```bash
 rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" \

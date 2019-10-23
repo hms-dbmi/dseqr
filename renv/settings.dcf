@@ -1,4 +1,4 @@
 external.libraries:
-ignored.packages: drugseqr, renv
+ignored.packages: renv, drugseqr
 snapshot.type: packrat
 use.cache: TRUE

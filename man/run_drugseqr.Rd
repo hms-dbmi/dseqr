@@ -8,8 +8,10 @@ run_drugseqr(data_dir, pert_query_dir = NULL, test = FALSE,
   test_data = FALSE)
 }
 \arguments{
-\item{data_dir}{Directory containing folders \code{'bulk'} and \code{'single-cell'}.
+\item{data_dir}{Directory containing folders \code{'bulk'} \code{'single-cell'}.
 Ignored if \code{test_data} is \code{TRUE}.}
+
+\item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 If \code{TRUE} test data will be used.}
