@@ -12,17 +12,11 @@ RUN apt-get update && \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
-# ensure that conda and R libraries are usable by shiny user
-RUN chown shiny: /usr/local/lib/R/site-library && \
-    chmod u+w /usr/local/lib/R/site-library
-
-USER shiny
-
 # Download miniconda and kallisto/bustools
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O ~/miniconda.sh && \
     bash ~/miniconda.sh -b -p ~/miniconda
 
-ENV PATH="/home/shiny/miniconda/bin:$PATH"
+ENV PATH="/root/miniconda/bin:$PATH"
 
 RUN conda config --add channels bioconda && \
     conda config --add channels conda-forge && \
