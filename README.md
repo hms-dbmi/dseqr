@@ -24,9 +24,10 @@ wget https://drugseqr.s3.us-east-2.amazonaws.com/drugseqr_latest.tar.gz
 sudo docker load < drugseqr_latest.tar.gz
 rm drugseqr_latest.tar.gz
 
-# init new example app by running container
-# use your user id so that
-# host:container mounted volume in order to persist example app folders that are created inside the container
+# init new example app by running container with your user id (should be 1000)
+# shiny-server will run as user docker (also userid 1000)
+# doing this allows both host and container to read/write without permission issues
+# we mount host:container volume in order to persist example app folders that are created inside the container
 sudo docker run --user $UID --rm \
   -v ~/srv/shiny-server:/srv/shiny-server \
   drugseqr R -e "drugseqr::init_drugseqr('example')"
@@ -107,7 +108,7 @@ Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https
 
 ```R
 # download bulk fastqs to appropriate directory for example app
-data_dir <- '/srv/shiny-server/drugseqr/example/data_dir/bulk'
+data_dir <- '~/srv/shiny-server/drugseqr/example/data_dir/bulk'
 gse_name <- 'GSE35296'
 
 # first four samples for demonstration
