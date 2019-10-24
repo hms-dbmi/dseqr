@@ -389,12 +389,14 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   })
 
-  quantModal <- function(is.sc = FALSE) {
+  quantModal <- function(is.sc, paired) {
+    end_type <- ifelse(paired, 'pair ended', 'single ended')
+
     if (!is.sc) {
       UI <- withTags({
         dl(
           dt('End type:'),
-          dd('Experiment is selected as single ended'),
+          dd(paste('Experiment is selected as', end_type)),
           hr(),
           dt('Replicates:'),
           dd('If any - e.g. same sample sequenced in replicate. These will be treated as a single library.')
@@ -423,7 +425,7 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   # Show modal when button is clicked.
   observeEvent(input$run_quant, {
-    showModal(quantModal(is.sc()))
+    showModal(quantModal(is.sc(), paired()))
   })
 
   run_quant <- reactive({
