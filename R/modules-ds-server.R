@@ -862,11 +862,9 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
       class = 'cell-border dt-fake-height',
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
-      extensions = "FixedColumns",
       options = list(
         columnDefs = list(list(className = 'dt-nopad', targets = 0)),
         scrollX = TRUE,
-        fixedColumns = TRUE,
         paging = FALSE,
         bInfo = 0
       )
