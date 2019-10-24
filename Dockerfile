@@ -12,17 +12,6 @@ RUN apt-get update && \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
-# Download miniconda and kallisto/bustools
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O ~/miniconda.sh && \
-    bash ~/miniconda.sh -b -p ~/miniconda
-
-ENV PATH="/root/miniconda/bin:$PATH"
-
-RUN conda config --add channels bioconda && \
-    conda config --add channels conda-forge && \
-    conda install kallisto=0.46.0 -y && \
-    conda install -c bioconda bustools=0.39.3 -y
-
 
 # install drugseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
@@ -34,7 +23,23 @@ COPY .Renviron .
 # restore the package environment
 RUN R -e 'options(renv.consent = TRUE); renv::restore()'
 
-# clone the code base
+# Download miniconda and kallisto/bustools
+# install in system-wide location
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O ~/miniconda.sh && \
+    bash ~/miniconda.sh -b -p /opt/miniconda
+
+# this sets path for current (root) user
+# shiny server will be run as user shiny and this will be lost
+# so also add miniconda to path for user shiny permanently
+ENV PATH="/opt/miniconda/bin:$PATH"
+RUN echo 'export PATH="/opt/miniconda/bin:$PATH"' >> /home/shiny/.profile
+
+RUN conda config --add channels bioconda && \
+    conda config --add channels conda-forge && \
+    conda install kallisto=0.46.0 -y && \
+    conda install -c bioconda bustools=0.39.3 -y
+
+# install drugseqr
 RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.3', dependencies = FALSE, upgrade = FALSE)"
 
 # download drug effect size data

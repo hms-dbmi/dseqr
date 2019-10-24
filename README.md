@@ -24,12 +24,10 @@ wget https://drugseqr.s3.us-east-2.amazonaws.com/drugseqr_latest.tar.gz
 sudo docker load < drugseqr_latest.tar.gz
 rm drugseqr_latest.tar.gz
 
-# init new example app by running container with your user id (should be 1000)
-# shiny-server will run as user docker (also userid 1000)
-# doing this allows both host and container to read/write without permission issues
+
 # we mount host:container volume in order to persist example app folders that are created inside the container
-sudo docker run --user $UID --rm \
-  -v ~/srv/shiny-server:/srv/shiny-server \
+sudo docker run --rm \
+  -v /srv/shiny-server:/srv/shiny-server \
   drugseqr R -e "drugseqr::init_drugseqr('example')"
 ```
 
@@ -40,14 +38,14 @@ Then download example data and sync with previously initialized app:
 wget https://drugseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
 tar -xzvf example_data.tar.gz
 rm example_data.tar.gz
-rsync -av example/ ~/srv/shiny-server/drugseqr/example/data_dir/
+sudo rsync -av example/ /srv/shiny-server/drugseqr/example/data_dir/
 ```
 
 Build kallisto index (optional - if will quantify bulk/sc fastq files on the server):
 
 ```bash
-sudo docker run --user $UID --rm \
-  -v ~/srv/shiny-server:/srv/shiny-server \
+sudo docker run --rm \
+  -v /srv/shiny-server:/srv/shiny-server \
   drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/drugseqr')"
 ```
 
@@ -56,9 +54,13 @@ sudo docker run --user $UID --rm \
 Run a container to host the example app:
 
 ```bash
-sudo docker run -d --user $UID --rm -p 80:3838 \
-  -v ~/srv/shiny-server:/srv/shiny-server \
-  -v ~/var/log/shiny-server:/var/log/shiny-server \
+# makes sure user shiny has permission to read/write
+# NOTE: repeat this before running app
+sudo chmod 0777 -R /srv/shiny-server  
+
+sudo docker run -it --rm -p 80:3838 \
+  -v /srv/shiny-server:/srv/shiny-server \
+  -v /var/log/shiny-server:/var/log/shiny-server \
   drugseqr
 ```
 
@@ -71,7 +73,7 @@ Add single cell fastq.gz or CellRanger files to a directory in `single-cell`. Fo
 
 ```bash
 # directory to store single cell sample data in  
-cd ~/srv/shiny-server/drugseqr/example/data_dir/single-cell
+cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
 mkdir GSM2560249_pbmc_ifnb_full
 cd GSM2560249_pbmc_ifnb_full
 
@@ -89,7 +91,7 @@ Run the app as before, create a new dataset, and select the created folder. Sing
 wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
 
 # directory to store single cell sample data in  
-cd ~/srv/shiny-server/drugseqr/example/data_dir/single-cell
+cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
 mkdir GSM3304014_lung_healthy
 cd GSM3304014_lung_healthy
 
@@ -108,7 +110,7 @@ Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https
 
 ```R
 # download bulk fastqs to appropriate directory for example app
-data_dir <- '~/srv/shiny-server/drugseqr/example/data_dir/bulk'
+data_dir <- '/srv/shiny-server/drugseqr/example/data_dir/bulk'
 gse_name <- 'GSE35296'
 
 # first four samples for demonstration
@@ -123,5 +125,5 @@ One way to this is is with `rsync`. For example:
 ```bash
 rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" \
        ~/path/to/local/data_dir/ \ 
-       ubuntu@[EC2 Public DNS]:~/srv/shiny-server/drugseqr/example/data_dir/
+       ubuntu@[EC2 Public DNS]:/srv/shiny-server/drugseqr/example/data_dir/
 ```
