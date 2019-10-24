@@ -122,12 +122,13 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
       # generate eset and save
       progress$set(message = 'Annotating dataset')
       eset <- load_seq(fastq_dir)
-      new_dataset(dataset_name)
 
       # save to bulk datasets to indicate that has been quantified
       save_bulk_dataset(dataset_name, dataset_dir, data_dir)
 
     }
+    # trigger to update rest of app
+    new_dataset(dataset_name)
 
     # re-enable inputs
     shinyjs::enable(selector = 'input')
