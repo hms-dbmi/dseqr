@@ -40,7 +40,7 @@ RUN conda config --add channels bioconda && \
     conda install -c bioconda bustools=0.39.3 -y
 
 # install drugseqr
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.3', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.4', dependencies = FALSE, upgrade = FALSE)"
 
 # download drug effect size data
 RUN R -e "drugseqr.data::dl_drug_es()"
