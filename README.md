@@ -13,13 +13,13 @@ Make sure that port 80 is open to all inbound traffic so that the shiny server c
 
 ## Setup the server
 
-The basic setup is going to by a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
+The basic setup is going to be a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
 
 ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI. You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
 
-Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image by following these [instructions](https://github.com/hms-dbmi/drugseqr.sp).
+Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image. To do so, follow these [instructions](https://github.com/hms-dbmi/drugseqr.sp).
 
-The `drugseqr` app won't work yet. To get it working, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
+The `drugseqr` app won't work yet. To get it working, download the `drugseqr` image, load it, and initialize the example app:
 
 ```bash
 # retrieve pre-built drugseqr docker image
@@ -28,7 +28,7 @@ sudo docker load < drugseqr_latest.tar.gz
 rm drugseqr_latest.tar.gz
 
 
-# we mount host:container volume in order to persist example app folders that are created inside the container
+# we mount host:container volume in order to persist example app files/folders that are created inside the container
 sudo docker run --rm \
   -v /srv/drugseqr:/srv/drugseqr \
   drugseqr R -e "drugseqr::init_drugseqr('example')"
@@ -53,14 +53,14 @@ sudo docker run --rm \
 
 ## Run the app
 
-Run the drugseqr ShinyProxy:
+Run a ShinyProxy container in detached mode `-d` and set the policy to always [restart](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy):
 
 ```bash
-sudo docker run -it -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
+sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
 ```
 
 You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr where EC2 Public DNS can be found in the EC2 instance description.
-
+At this point, you could save an AMI image of your instance and [set up a scaled and load-balanced app](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-register-lbs-with-asg.html).
 
 ## Adding single-cell datasets
 
@@ -86,7 +86,7 @@ Run the app as before, create a new dataset, and select the created folder. Sing
 wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
 
 # directory to store single cell sample data in  
-cd /srv/drugseqr/data_dir/single-cell
+cd /srv/drugseqr/example/single-cell
 mkdir GSM3304014_lung_healthy
 cd GSM3304014_lung_healthy
 
@@ -105,7 +105,7 @@ Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https
 
 ```R
 # download bulk fastqs to appropriate directory for example app
-data_dir <- '/srv/drugseqr/example/data_dir/bulk'
+data_dir <- '/srv/drugseqr/example/bulk'
 gse_name <- 'GSE35296'
 
 # first four samples for demonstration

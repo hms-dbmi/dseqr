@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libbz2-dev \
     liblzma-dev \
+    zlib1g-dev \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
@@ -15,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # install drugseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
     R -e "remotes::install_github('rstudio/renv@0.7.1-20')"
+
 
 COPY renv.lock .
 COPY .Renviron .
