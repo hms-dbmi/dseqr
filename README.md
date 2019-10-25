@@ -17,33 +17,9 @@ The basic setup is going to by a docker container running ShinyProxy which will 
 
 ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI. You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
 
-Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image:
+Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image by following these [instructions](https://github.com/hms-dbmi/drugseqr.sp).
 
-```bash
-# create the docker network
-sudo docker network create sp-example-net
-
-# build ShinyProxy image
-mkdir drugseqr.sp
-cd drugseqr.sp
-wget Dockerfile
-
-# customize application.yml before building based on the name of your app/authentication/etc.
-wget application.yml
-sudo docker build -t drugseqr.sp .
-```
-Optionally, double check that ShinyProxy works:
-
-```bash
-# pull example image for testing
-sudo docker pull openanalytics/shinyproxy-demo
-
-# run shiny proxy container
-sudo docker run -it -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
-```
-
-Navigate to http://localhost and check that e.g. 'Hello Application' works. The `drugseqr` app won't work yet.
-To get it working, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
+The `drugseqr` app won't work yet. To get it working, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
 
 ```bash
 # retrieve pre-built drugseqr docker image
@@ -77,10 +53,10 @@ sudo docker run --rm \
 
 ## Run the app
 
-Run a container to host the example app:
+Run the drugseqr ShinyProxy:
 
 ```bash
-java -jar shinyproxy-2.3.0.jar
+sudo docker run -it -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
 ```
 
 You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr where EC2 Public DNS can be found in the EC2 instance description.

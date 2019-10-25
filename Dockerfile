@@ -35,11 +35,12 @@ RUN conda config --add channels bioconda && \
     conda install kallisto=0.46.0 -y && \
     conda install -c bioconda bustools=0.39.3 -y
 
-# install drugseqr
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.5', dependencies = FALSE, upgrade = FALSE)"
-
 # download drug effect size data
 RUN R -e "drugseqr.data::dl_drug_es()"
+
+# install drugseqr last as will have to redo often
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.5', dependencies = FALSE, upgrade = FALSE)"
+
 
 # save image to a tar.gz file and upload to s3
 # sudo docker save drugseqr:latest | gzip > drugseqr_latest.tar.gz
