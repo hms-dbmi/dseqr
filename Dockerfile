@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libbz2-dev \
     liblzma-dev \
     zlib1g-dev \
+    libpng-dev \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
