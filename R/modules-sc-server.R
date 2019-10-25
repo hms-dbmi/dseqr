@@ -1,10 +1,11 @@
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
-scPage <- function(input, output, session, sc_dir) {
+scPage <- function(input, output, session, sc_dir, new_dataset) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
+                       new_dataset = new_dataset,
                        sc_dir = sc_dir)
 
 
@@ -55,7 +56,7 @@ scPage <- function(input, output, session, sc_dir) {
 #' Logic for form on Single Cell Exploration page
 #' @export
 #' @keywords internal
-scForm <- function(input, output, session, sc_dir) {
+scForm <- function(input, output, session, sc_dir, new_dataset) {
 
   # updates if new integrated dataset
   new_anal <- reactive({
@@ -66,7 +67,8 @@ scForm <- function(input, output, session, sc_dir) {
   # the analysis and options
   scAnal <- callModule(selectedAnal, 'anal',
                        sc_dir = sc_dir,
-                       new_anal = new_anal)
+                       new_anal = new_anal,
+                       new_dataset = new_dataset)
 
 
   # label transfer between datasets
@@ -170,7 +172,7 @@ scForm <- function(input, output, session, sc_dir) {
 #' Logic for selected analysis part of scForm
 #' @export
 #' @keywords internal
-selectedAnal <- function(input, output, session, sc_dir, new_anal) {
+selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) {
 
   selected_anal <- reactive({
     req(input$selected_anal)
@@ -219,8 +221,9 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal) {
 
   # available analyses
   anal_options <- reactive({
-    # reactive to new anals
+    # reactive to new anals and new sc datasets
     new_anal()
+    new_dataset()
 
     # make sure integrated rds exists
     int_path <- file.path(sc_dir, 'integrated.rds')

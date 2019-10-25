@@ -183,6 +183,7 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
 
   return(list(
     new_anal = new_anal,
+    new_dataset = new_dataset,
     data_dir = dsForm$fastq_dir
   ))
 

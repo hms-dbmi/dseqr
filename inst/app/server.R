@@ -4,17 +4,13 @@ server <- function(input, output, session) {
   # defaults for server
 
   # base directory contains data_dir folder
-  data_dir <- getShinyOption('data_dir', 'data_dir')
+  data_dir <- getShinyOption('data_dir')
 
   # path where drug gene queries will be stored
-  pert_query_dir <- getShinyOption(
-    'pert_query_dir',
-    '/srv/shiny-server/drugseqr/pert_query_dir')
+  pert_query_dir <- getShinyOption('pert_query_dir')
 
   # path where kallisto index is downloaded and stored
-  indices_dir <- getShinyOption(
-    'indices_dir',
-    '/srv/shiny-server/drugseqr/indices')
+  indices_dir <- getShinyOption('indices_dir')
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
 
@@ -36,14 +32,14 @@ server <- function(input, output, session) {
   dir.create(bulk_dir, showWarnings = FALSE)
 
 
-  # single cell analysis and options
-  scPage <- callModule(scPage, 'sc',
-                       sc_dir = sc_dir)
 
   dsPage <- callModule(dsPage, 'datasets',
                        data_dir = data_dir,
                        indices_dir = indices_dir)
 
+  scPage <- callModule(scPage, 'sc',
+                       sc_dir = sc_dir,
+                       new_dataset = dsPage$new_dataset)
 
   drugsPage <- callModule(drugsPage, 'drug',
                           new_anal = dsPage$new_anal,

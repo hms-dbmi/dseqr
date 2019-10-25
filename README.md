@@ -13,10 +13,37 @@ Make sure that port 80 is open to all inbound traffic so that the shiny server c
 
 ## Setup the server
 
+The basic setup is going to by a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
 
-ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI.
+ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI. You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
 
-Next, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
+Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image:
+
+```bash
+# create the docker network
+sudo docker network create sp-example-net
+
+# build ShinyProxy image
+mkdir drugseqr.sp
+cd drugseqr.sp
+wget Dockerfile
+
+# customize application.yml before building based on the name of your app/authentication/etc.
+wget application.yml
+sudo docker build -t drugseqr.sp .
+```
+Optionally, double check that ShinyProxy works:
+
+```bash
+# pull example image for testing
+sudo docker pull openanalytics/shinyproxy-demo
+
+# run shiny proxy container
+sudo docker run -it -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
+```
+
+Navigate to http://localhost and check that e.g. 'Hello Application' works. The `drugseqr` app won't work yet.
+To get it working, download the `drugseqr` image, load it, and initialize an empty `drugseqr` app:
 
 ```bash
 # retrieve pre-built drugseqr docker image
@@ -27,10 +54,9 @@ rm drugseqr_latest.tar.gz
 
 # we mount host:container volume in order to persist example app folders that are created inside the container
 sudo docker run --rm \
-  -v /srv/shiny-server:/srv/shiny-server \
+  -v /srv/drugseqr:/srv/drugseqr \
   drugseqr R -e "drugseqr::init_drugseqr('example')"
 ```
-
 
 Then download example data and sync with previously initialized app:
 
@@ -38,15 +64,15 @@ Then download example data and sync with previously initialized app:
 wget https://drugseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
 tar -xzvf example_data.tar.gz
 rm example_data.tar.gz
-sudo rsync -av example/ /srv/shiny-server/drugseqr/example/data_dir/
+sudo rsync -av example/ /srv/drugseqr/example/
 ```
 
 Build kallisto index (optional - if will quantify bulk/sc fastq files on the server):
 
 ```bash
 sudo docker run --rm \
-  -v /srv/shiny-server:/srv/shiny-server \
-  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/shiny-server/drugseqr')"
+  -v /srv/drugseqr:/srv/drugseqr \
+  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/drugseqr')"
 ```
 
 ## Run the app
@@ -54,17 +80,10 @@ sudo docker run --rm \
 Run a container to host the example app:
 
 ```bash
-# makes sure user shiny has permission to read/write
-# NOTE: repeat this before running app
-sudo chmod 0777 -R /srv/shiny-server  
-
-sudo docker run -it --rm -p 80:3838 \
-  -v /srv/shiny-server:/srv/shiny-server \
-  -v /var/log/shiny-server:/var/log/shiny-server \
-  drugseqr
+java -jar shinyproxy-2.3.0.jar
 ```
 
-You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr/example/ where EC2 Public DNS can be found in the EC2 instance description.
+You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr where EC2 Public DNS can be found in the EC2 instance description.
 
 
 ## Adding single-cell datasets
@@ -73,7 +92,7 @@ Add single cell fastq.gz or CellRanger files to a directory in `single-cell`. Fo
 
 ```bash
 # directory to store single cell sample data in  
-cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
+cd /srv/drugseqr/example/single-cell
 mkdir GSM2560249_pbmc_ifnb_full
 cd GSM2560249_pbmc_ifnb_full
 
@@ -91,7 +110,7 @@ Run the app as before, create a new dataset, and select the created folder. Sing
 wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
 
 # directory to store single cell sample data in  
-cd /srv/shiny-server/drugseqr/example/data_dir/single-cell
+cd /srv/drugseqr/data_dir/single-cell
 mkdir GSM3304014_lung_healthy
 cd GSM3304014_lung_healthy
 
@@ -110,7 +129,7 @@ Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https
 
 ```R
 # download bulk fastqs to appropriate directory for example app
-data_dir <- '/srv/shiny-server/drugseqr/example/data_dir/bulk'
+data_dir <- '/srv/drugseqr/example/data_dir/bulk'
 gse_name <- 'GSE35296'
 
 # first four samples for demonstration
@@ -124,6 +143,6 @@ One way to this is is with `rsync`. For example:
 
 ```bash
 rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" \
-       ~/path/to/local/data_dir/ \ 
-       ubuntu@[EC2 Public DNS]:/srv/shiny-server/drugseqr/example/data_dir/
+       ~/path/to/local/example/ \ 
+       ubuntu@[EC2 Public DNS]:/srv/drugseqr/example/
 ```

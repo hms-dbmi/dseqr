@@ -2,8 +2,9 @@
 #'
 #' Used for local development
 #'
-#' @param data_dir Directory containing folders \code{'bulk'} \code{'single-cell'}.
+#' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
+#' @param
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
@@ -14,22 +15,28 @@
 #'
 #' @examples
 #'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190712'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
-#' data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/example'
-#' pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
+#' # override default app_dir for development
+#' app_dir <- 'inst/app'
+#' data_dir <- 'data-raw/patient_data/example'
+#' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #'
-#' run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)
-#' run_drugseqr(data_dir, pert_query_dir, test_data = FALSE)
+#' run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = TRUE)
+#' run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = FALSE)
 #'
-run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_data = FALSE) {
+run_drugseqr <- function(data_dir,
+                         app_dir = system.file('app', package = 'drugseqr', mustWork = TRUE),
+                         pert_query_dir = '/srv/drugseqr/pert_query_dir',
+                         indices_dir = '/srv/drugseqr/indices',
+                         test = FALSE,
+                         test_data = FALSE,
+                         host = '0.0.0.0',
+                         port = 3838) {
 
-  app_dir <- 'inst/app'
 
   # pass arguments to app through options then run
-  shiny::shinyOptions(data_dir = data_dir, pert_query_dir = pert_query_dir)
+  shiny::shinyOptions(data_dir = normalizePath(data_dir),
+                      pert_query_dir = normalizePath(pert_query_dir),
+                      indices_dir = normalizePath(indices_dir))
 
 
   if (test) {
@@ -47,8 +54,7 @@ run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_dat
 
   # auto-reload if update app files
   options(shiny.autoreload = TRUE)
-  shiny::runApp(app_dir, launch.browser = TRUE)
-
+  shiny::runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 
 
@@ -57,32 +63,20 @@ run_drugseqr <- function(data_dir, pert_query_dir = NULL, test = FALSE, test_dat
 #' Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
 #'
 #' @param app_name Name for new drugseqr app.
-#' @param local_dir Path to local directory to initialize app. Default \code{NULL} assumes a shiny-server environment.
+#' @param app_dir Path to put \code{app_name} directory where app will be initialized. Default is \code{'/srv/drugseqr'} for shiny.
 #'
 #' @return NULL
 #' @export
 #'
 #' @examples
 #'
-#' init_drugseqr('example', local_dir = 'data-raw/patient_data')
+#' # app_dir for local development
+#' init_drugseqr('example', app_dir = 'data-raw/patient_data')
 #'
-init_drugseqr <- function(app_name, local_dir = NULL) {
+init_drugseqr <- function(app_name, app_dir = '/srv/drugseqr') {
 
-  if (is.null(local_dir)) {
-    # sync the drugseqr app components
-    drugseqr_dir <- system.file('app', package = 'drugseqr', mustWork = TRUE)
-    app_dir <- file.path('/srv/shiny-server/drugseqr', app_name)
-    dir.create(app_dir, recursive = TRUE)
-
-    system2('rsync', args = c('-av', paste0(drugseqr_dir, '/'), paste0(app_dir, '/')))
-
-    # create necessary folders/blank files to initialize new app
-    data_dir <- file.path(app_dir, 'data_dir')
-  } else {
-    data_dir <- file.path(local_dir, app_name)
-  }
-
-  dir.create(data_dir)
+  data_dir <- file.path(app_dir, app_name)
+  dir.create(data_dir, recursive = TRUE)
   dir.create(file.path(data_dir, 'bulk'))
   dir.create(file.path(data_dir, 'single-cell'))
   dir.create(file.path(data_dir, 'custom_queries'))
