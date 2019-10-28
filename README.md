@@ -9,13 +9,13 @@ The goal of drugseqr (*drug-seek-R*) is to find CMAP02/L1000 compounds that oppo
 
 Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
 
-Make sure that port 80 is open to all inbound traffic so that the shiny server can be accessed.
+Make sure that port 8080 is open to all inbound traffic so that the web app can be accessed.
 
 ## Setup the server
 
 The basic setup is going to be a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
 
-ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). Use [these instructions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html#install_docker) for Amazon Linux 2 AMI. You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
+ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
 
 Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image. To do so, follow these [instructions](https://github.com/hms-dbmi/drugseqr.sp).
 
@@ -56,11 +56,10 @@ sudo docker run --rm \
 Run a ShinyProxy container in detached mode `-d` and set the policy to always [restart](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy):
 
 ```bash
-sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 80:80 drugseqr.sp
+sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 8080:8080 drugseqr.sp
 ```
 
-You should now be able to navigate your browser to  [EC2 Public DNS]/drugseqr where EC2 Public DNS can be found in the EC2 instance description.
-At this point, you could save an AMI image of your instance and [set up a scaled and load-balanced app](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-register-lbs-with-asg.html).
+You should now be able to navigate your browser to  [EC2 Public DNS]:8080/app/example where EC2 Public DNS can be found in the EC2 instance description.
 
 ## Adding single-cell datasets
 
