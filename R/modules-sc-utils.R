@@ -355,8 +355,10 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
-  scseqs <- lapply(anal_names, load_saved_scseq, data_dir)
-  names(scseqs) <- anal_names
+  scseqs <- list()
+  for (anal in anal_names) {
+    scseqs[[anal]] <- load_saved_scseq(anal, data_dir)
+  }
 
   for (i in seq_along(scseqs)) {
     anal <- names(scseqs)[i]
@@ -395,12 +397,8 @@ load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
   scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
   scseq <- readRDS(scseq_path)
 
-  # add annotation
-  annot_path <- scseq_part_path(data_dir, anal, 'annot')
-  annot <- readRDS(annot_path)
-
-  scseq$annot_clusters <- scseq$seurat_clusters
-  levels(scseq$annot_clusters) <- annot
+  # add original clusters
+  scseq$orig_clusters <- scseq$seurat_clusters
 
   # restore SCT assay
   sct_path <- scseq_part_path(data_dir, anal, 'sct')
@@ -467,6 +465,7 @@ add_project_scseqs <- function(scseqs) {
   return(scseqs)
 
 }
+
 
 #' Save Single Cell RNA-seq data for app
 #'

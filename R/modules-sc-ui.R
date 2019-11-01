@@ -52,7 +52,9 @@ scFormInput <- function(id) {
             labelTransferFormInput(ns('transfer')),
             integrationFormInput(ns('integration'))
         ),
-        comparisonTypeToggle(ns('comparison')),
+        div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
+            comparisonTypeToggle(ns('comparison'))
+        ),
         # inputs for comparing clusters
         div(id = ns('cluster_comparison_inputs'),
             clusterComparisonInput(ns('cluster')),
@@ -62,6 +64,9 @@ scFormInput <- function(id) {
         div(id = ns('sample_comparison_inputs'), style = 'display: none',
             sampleComparisonInput(ns('sample')),
             selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
+        ),
+        div(id = ns('label_comparison_inputs'), style = 'display: none;',
+            selectedAnnotDatasetInput(ns('annot'))
         )
     )
   })
@@ -93,16 +98,14 @@ sampleComparisonInput <- function(id) {
 comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(style = 'display: none;', id = ns('comparison_type_container'), class = 'selectize-fh form-group',
-        shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
-                                        choices = c('clusters', 'samples'),
-                                        selected = 'clusters', justified = TRUE)
+  shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
+                                  choices = c('clusters', 'samples', 'labels'),
+                                  selected = 'clusters', justified = TRUE)
+}
 
-    )
-
-  })
-
+selectedAnnotDatasetInput <- function(id) {
+  ns <- NS(id)
+  selectizeInput(ns('integration_anals'), 'Show original labels for:', multiple = TRUE, choices = '', width = '100%', options = list(maxItems = 2))
 }
 
 #' Input form/associated buttons for selecting single cell analysis
@@ -117,6 +120,7 @@ selectedAnalInput <- function(id) {
                             plotStylesButton(ns('styles'))
   )
 }
+
 
 #' Button with to toggle display of label transfer inputs
 #' @export

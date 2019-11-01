@@ -71,6 +71,7 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
                        new_dataset = new_dataset)
 
 
+
   # label transfer between datasets
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
@@ -85,9 +86,16 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
                               anal_options = scAnal$anal_options,
                               show_integration = scAnal$show_integration)
 
+  # show original labels for integrated datasets
+  integrationAnnotAnals <- callModule(selectedAnnot, 'annot',
+                                      scseq = scAnal$scseq,
+                                      is.integrated = scAnal$is.integrated,
+                                      sc_dir = sc_dir)
+
   # comparison type
   comparisonType <- callModule(comparisonType, 'comparison',
-                               scseq = scAnal$scseq)
+                               scseq = scAnal$scseq,
+                               is.integrated = scAnal$is.integrated)
 
 
   # the selected cluster/gene for cluster comparison ----
@@ -145,14 +153,18 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
     return(scseq)
   })
 
-
-  show_samples <- reactive({
-    comparisonType() == 'samples'
+  # show the toggle if dataset is integrated
+  observe({
+    toggle(id = "comparison_toggle_container",  condition = scAnal$is.integrated())
   })
 
+
+
+  # show appropriate inputs based on comparison type
   observe({
-    toggle(id = "sample_comparison_inputs",  condition = show_samples())
-    toggle(id = "cluster_comparison_inputs", condition = !show_samples())
+    toggle(id = "label_comparison_inputs",  condition = comparisonType() == 'labels')
+    toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
+    toggle(id = "cluster_comparison_inputs", condition = comparisonType() == 'clusters')
   })
 
   # return values ----
@@ -163,9 +175,14 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
     plot_styles = scAnal$plot_styles,
     selected_gene_cluster = scClusterGene$selected_gene,
     selected_gene_sample = scSampleGene$selected_gene,
-    comparison_type = comparisonType
+    comparison_type = comparisonType,
+    integration_annot_anals = integrationAnnotAnals
 
   ))
+}
+
+explorationType <- function(input, output, session) {
+  return(reactive(input$exploration_type))
 }
 
 
@@ -203,6 +220,13 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) 
     Seurat::Idents(scseq) <- scseq$seurat_clusters
 
     return(scseq)
+  })
+
+  is.integrated <- reactive({
+    scseq <- scseq()
+    req(scseq)
+
+    return('integrated' %in% names(scseq@assays))
   })
 
 
@@ -247,7 +271,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) 
 
   # update if options change
   observe({
-    updateSelectizeInput(session, 'selected_anal', selected = 'sjia_lung', choices = anal_options())
+    updateSelectizeInput(session, 'selected_anal', choices = anal_options())
   })
 
   # get styles and integration info
@@ -266,7 +290,8 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) 
     anal_options = anal_options,
     plot_styles = plot_styles,
     show_integration = show_integration,
-    show_label_transfer = show_label_transfer
+    show_label_transfer = show_label_transfer,
+    is.integrated = is.integrated
   ))
 }
 
@@ -603,30 +628,31 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   return(new_anal)
 }
 
+selectedAnnot <- function(input, output, session, scseq, is.integrated, sc_dir) {
 
+
+  orig_anals <- reactive({
+    req(is.integrated())
+    scseq <- scseq()
+    return(unique(scseq$project))
+  })
+
+  observe({
+    updateSelectizeInput(session, 'integration_anals', choices = orig_anals())
+  })
+
+  anals <- reactive(input$integration_anals)
+  return(anals)
+}
 
 #' Logic for comparison type toggle for integrated analyses
 #' @export
 #' @keywords internal
-comparisonType <- function(input, output, session, scseq) {
-
-  # groups to show (e.g. ctrl and test)
-  available_groups <- shiny::reactive({
-    unique(as.character(scseq()$orig.ident))
-  })
-
-  show_groups <- reactive({
-    length(available_groups()) > 1
-  })
-
-  # show UI component if more than one available groups
-  observe({
-    toggle(id = "comparison_type_container", condition = show_groups())
-  })
+comparisonType <- function(input, output, session, scseq, is.integrated) {
 
   # always show clusters if not integrated
   observe({
-    if( !show_groups())
+    if(!is.integrated())
       updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
   })
 
@@ -907,6 +933,10 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
     comparison_type <- comparison_type()
+
+    # will error if labels
+    req(comparison_type %in% c('samples', 'clusters'))
+
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
     if (comparison_type == 'samples' & !'t' %in% colnames(markers)) return(NULL)
     if (comparison_type == 'clusters' & !'pct.1' %in% colnames(markers)) return(NULL)
@@ -977,7 +1007,9 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 #' @keywords internal
 scClusterPlot <- function(input, output, session, scseq, plot_styles) {
 
+
   output$cluster_plot <- renderPlot({
+
     plot_umap_cluster(scseq(), pt.size = plot_styles$size())
   })
 }
@@ -1022,3 +1054,5 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
+
+
