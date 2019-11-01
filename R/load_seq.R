@@ -145,7 +145,7 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94') {
+import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94', method = 'limma') {
 
   if (!grepl('sapiens', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
@@ -169,9 +169,12 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 
   # use folders as names (used as sample names)
   names(quants_paths) <- qdirs
+  countsFromAbundance <- ifelse(method == 'limma', 'lengthScaledTPM', 'no')
 
   txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
-                            ignoreTxVersion = ignore, countsFromAbundance = "lengthScaledTPM")
+                            ignoreTxVersion = ignore, countsFromAbundance = countsFromAbundance)
+
+  if (method == 'DESeq2') return(txi)
 
   quants <- edgeR::DGEList(txi$counts)
 
