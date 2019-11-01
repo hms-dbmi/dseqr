@@ -6,7 +6,7 @@
 #'
 #' @param eset \code{ExpressionSet}
 #'
-#' @return \code{eset} with selected samples retained and column \code{group} with values \code{'control'} and \code{'test'}.
+#' @return \code{eset} with selected samples retained and column \code{group} with values \code{'ctrl'} and \code{'test'}.
 #' @export
 #'
 #' @examples
@@ -170,7 +170,7 @@ select_contrast <- function(eset) {
       } else {
         group <- rep(NA, ncol(eset))
         group[sels$test] <- 'test'
-        group[sels$ctrl] <- 'control'
+        group[sels$ctrl] <- 'ctrl'
         Biobase::pData(eset)$group <- group
 
         # retain selected samples only
