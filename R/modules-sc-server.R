@@ -9,9 +9,11 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
                        sc_dir = sc_dir)
 
 
-  callModule(scClusterPlot, 'cluster_plot',
-             scseq = scForm$scseq,
-             plot_styles = scForm$plot_styles)
+  scCluster <- callModule(scClusterPlot, 'cluster_plot',
+                          scseq = scForm$scseq,
+                          plot_styles = scForm$plot_styles,
+                          selected_group = NULL,
+                          cached_plot = reactive(NULL))
 
   # showing cluster comparison ----
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
@@ -39,16 +41,42 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
              selected_group = 'ctrl',
              cached_plot = scMarkerSample$plot)
 
-  show_samples <- reactive({
-    scForm$comparison_type() == 'samples'
+  # showing labels comparison --------
+
+  label_plot1 <- reactive({
+    anal <- scForm$label_anals()[1]
+    req(anal)
+
+    plot <- scCluster$plot()
+    scseq <- scForm$scseq()
+    annot <- readRDS(scseq_part_path(sc_dir, anal, 'annot'))
+
+    get_label_plot(anal, scseq, annot, plot)
   })
+
+  label_plot2 <- reactive({
+    anal <- scForm$label_anals()[2]
+    req(anal)
+    plot <- scCluster$plot()
+    scseq <- scForm$scseq()
+    annot <- readRDS(scseq_part_path(sc_dir, anal, 'annot'))
+
+    get_label_plot(anal, scseq, annot, plot)
+  })
+
+  callModule(scClusterPlot, 'label_plot1',
+             cached_plot = label_plot1,
+             plot_styles = scForm$plot_styles)
+
+  callModule(scClusterPlot, 'label_plot2',
+             cached_plot = label_plot2,
+             plot_styles = scForm$plot_styles)
 
   observe({
-    toggle(id = "sample_comparison_row",  condition = show_samples())
-    toggle(id = "cluster_comparison_row", condition = !show_samples())
+    toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
+    toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
+    toggle(id = "label_comparison_row", condition = scForm$comparison_type() == 'labels')
   })
-
-
 
   return(NULL)
 }
@@ -175,16 +203,11 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
     plot_styles = scAnal$plot_styles,
     selected_gene_cluster = scClusterGene$selected_gene,
     selected_gene_sample = scSampleGene$selected_gene,
-    comparison_type = comparisonType,
-    integration_annot_anals = integrationAnnotAnals
+    label_anals = integrationAnnotAnals,
+    comparison_type = comparisonType
 
   ))
 }
-
-explorationType <- function(input, output, session) {
-  return(reactive(input$exploration_type))
-}
-
 
 #' Logic for selected analysis part of scForm
 #' @export
@@ -418,7 +441,8 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     pred_pcts <- predictions %>%
       group_by(orig, predicted.id) %>%
       summarise(mean.score = mean(prediction.score.max), n = n()) %>%
-      top_n(1)
+      arrange(desc(n), desc(mean.score)) %>%
+      slice(1)
 
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
@@ -628,6 +652,9 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   return(new_anal)
 }
 
+#' Logic for selected anals in integrated dataset to show original annotation plots for.
+#' @export
+#' @keywords internal
 selectedAnnot <- function(input, output, session, scseq, is.integrated, sc_dir) {
 
 
@@ -932,7 +959,7 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
     scseq <- scseq()
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
-    comparison_type <- comparison_type()
+    comparison_type <- isolate(comparison_type())
 
     # will error if labels
     req(comparison_type %in% c('samples', 'clusters'))
@@ -1005,19 +1032,30 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, plot_styles) {
+scClusterPlot <- function(input, output, session, scseq, plot_styles, selected_group, cached_plot) {
 
-
-  output$cluster_plot <- renderPlot({
+  plot <- reactive({
+    cached_plot <- cached_plot()
+    if (!is.null(cached_plot)) return(cached_plot)
 
     plot_umap_cluster(scseq(), pt.size = plot_styles$size())
+
   })
+
+  output$cluster_plot <- renderPlot({
+    plot()
+  })
+
+  return(list(
+    plot = plot
+  ))
 }
 
 #' Logic for marker gene plots
 #' @export
 #' @keywords internal
 scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles, selected_group, cached_plot) {
+
 
   plot <- reactive({
     # cached plot if showing test samples
@@ -1054,5 +1092,3 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
-
-

@@ -4,7 +4,7 @@
 \alias{scForm}
 \title{Logic for form on Single Cell Exploration page}
 \usage{
-scForm(input, output, session, sc_dir)
+scForm(input, output, session, sc_dir, new_dataset)
 }
 \description{
 Logic for form on Single Cell Exploration page

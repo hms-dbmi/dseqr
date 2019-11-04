@@ -33,6 +33,15 @@ scPageUI <- function(id, tab, active) {
             div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
                 scMarkerPlotOutput(ns('marker_plot_test'))
             )
+        ),
+        # row for labels comparison
+        div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;',
+            div(class = "col-sm-6 col-lg-6 col-lg-push-6",
+                scClusterPlotOutput(ns('label_plot2'))
+            ),
+            div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
+                scClusterPlotOutput(ns('label_plot1'))
+            )
         )
     )
   })
@@ -103,6 +112,9 @@ comparisonTypeToggle <- function(id) {
                                   selected = 'clusters', justified = TRUE)
 }
 
+#' Input for selecting datasets to show original labels for
+#' @export
+#' @keywords internal
 selectedAnnotDatasetInput <- function(id) {
   ns <- NS(id)
   selectizeInput(ns('integration_anals'), 'Show original labels for:', multiple = TRUE, choices = '', width = '100%', options = list(maxItems = 2))
@@ -300,3 +312,4 @@ scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '500px')
 }
+

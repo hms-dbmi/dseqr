@@ -6,7 +6,7 @@
 \usage{
 plot_umap_cluster(scseq,
   selected_clusters = levels(scseq$seurat_clusters), pt.size = 3,
-  legend_title = "Cluster")
+  legend_title = "Cluster", cols = NULL)
 }
 \arguments{
 \item{scseq}{\code{Seurat}.}

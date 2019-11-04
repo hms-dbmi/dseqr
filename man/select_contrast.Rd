@@ -10,7 +10,7 @@ select_contrast(eset)
 \item{eset}{\code{ExpressionSet}}
 }
 \value{
-\code{eset} with selected samples retained and column \code{group} with values \code{'control'} and \code{'test'}.
+\code{eset} with selected samples retained and column \code{group} with values \code{'ctrl'} and \code{'test'}.
 }
 \description{
 Used to select a contrast (control and test group samples) for an experiment.

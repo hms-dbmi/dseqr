@@ -955,3 +955,95 @@ collapse_sorted <- function(x, collapse = ',') {
   paste(sort(as.numeric(x)), collapse = ',')
 }
 
+
+#' Search for closest row in a truth matrix for each row in a test matrix.
+#'
+#' from Stack Overflow: 40668623
+#'
+#' @param truth matrix to pick nearest from for all rows in \code{test}.
+#' @param test matrix to test each row of and find closest rows in \code{truth}.
+#'
+#' @return vector of rows in \code{truth} that are the nearest to each row in \code{test}.
+#' @export
+#'
+#' @examples
+#' set.seed(123)  ## for reproducibility
+#' D <- 2 #amount of dimensions
+#' K <- 5
+#' events <- 2*K #number of events
+#' truth <- matrix(data=runif(events, min = 0, max = 1), nrow=K)
+#' E <- 2
+#' test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
+#'
+#' get_nearest_row(truth, test)
+#' #[1] 4 3
+get_nearest_row <- function(truth, test) {
+  diffs   <- truth[rep(1:nrow(truth), nrow(test)),] -test[rep(1:nrow(test), each=nrow(truth)),]
+  eucdiff <- function(x) sqrt(rowSums(x^2))
+  max.col(-matrix(eucdiff(diffs), nrow=nrow(test), byrow=TRUE), "first")
+}
+
+#' Get plot to compare original labels for integrated single cell dataset.
+#'
+#' @param anal Name of original analysis in \code{scseq$project} to plot.
+#' @param scseq Integrated \code{Seurat} object.
+#' @param annot Character vector of original labels for \code{anal}.
+#' @param plot \code{ggplot} object from integrated \code{scseq}.
+#'
+#' @return \code{ggplot} object showing cells in \code{anal} with original labels but coordinates from \code{plot}
+#'  of integrated \code{scseq}.
+get_label_plot <- function(anal, scseq, annot, plot) {
+
+  # current colors used in plot with associated cluster
+  cols <- get_palette(levels(scseq$seurat_clusters))
+  names(cols) <- levels(scseq$seurat_clusters)
+
+  # median coordinates for clusters for integrated dataset
+  plot_data <- plot$data
+  int_coords <- get_umap_coords(plot_data)
+
+  # median coordinates for clusters for individual dataset
+  in_anal <- scseq$project %in% anal
+  scseq <- scseq[, in_anal]
+  plot_data <- plot_data[colnames(scseq), ]
+  plot_data$ident <- scseq$orig_clusters
+  anal_coords <- get_umap_coords(plot_data)
+
+  # closest match for each anal cluster
+  match <- get_nearest_row(int_coords[ ,-1], anal_coords[, -1])
+  anal_coords <- anal_coords %>%
+    mutate(match = int_coords$ident[match]) %>%
+    arrange(as.numeric(ident))
+
+  # change identity to previous labels
+  cl <- scseq$orig_clusters
+  lv <- as.character(sort(unique(as.numeric(cl))))
+  names(annot) <- 0:(length(annot)-1)
+
+  scseq$seurat_clusters <- factor(cl, levels = lv)
+  levels(scseq$seurat_clusters) <- annot[lv]
+  Seurat::Idents(scseq) <- scseq$seurat_clusters
+
+  # expand to best match
+  anal_coords$cols <- cols[anal_coords$match]
+
+  # replace any duplicates
+  is.dup <- which(duplicated(anal_coords$cols))
+  if (length(is.dup)) {
+    new_cols <- setdiff(get_palette(lv), anal_coords$cols)
+    anal_coords[is.dup, 'cols'] <- new_cols[seq_along(is.dup)]
+  }
+
+  plot_umap_cluster(scseq, cols=anal_coords$cols)
+}
+
+#' Get median x-y coordinates for clusters in UMAP plot data
+#'
+#' @param plot_data data.frame with columns \code{'ident'}, \code{'UMAP_1'}, and \code{'UMAP_2'}.
+get_umap_coords <- function(plot_data) {
+  plot_data %>%
+    group_by(ident) %>%
+    summarise(UMAP_1 = median(UMAP_1),
+              UMAP_2 = median(UMAP_2))
+}
+

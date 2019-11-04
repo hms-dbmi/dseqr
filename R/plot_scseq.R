@@ -5,9 +5,10 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster') {
+plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster', cols = NULL) {
 
-  cols <- get_palette(levels(scseq$seurat_clusters))
+
+  if (is.null(cols)) cols <- get_palette(levels(scseq$seurat_clusters))
 
   # make selected cluster and groups stand out
   cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$seurat_clusters) %in% selected_clusters, 1, 0.1))

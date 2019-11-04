@@ -4,7 +4,7 @@
 \alias{scPage}
 \title{Logic for Single Cell Exploration page}
 \usage{
-scPage(input, output, session, sc_dir)
+scPage(input, output, session, sc_dir, new_dataset)
 }
 \description{
 Logic for Single Cell Exploration page

@@ -4,11 +4,13 @@
 \alias{run_drugseqr}
 \title{Run drugseqr app}
 \usage{
-run_drugseqr(data_dir, pert_query_dir = NULL, test = FALSE,
-  test_data = FALSE)
+run_drugseqr(data_dir, app_dir = system.file("app", package = "drugseqr",
+  mustWork = TRUE), pert_query_dir = "/srv/drugseqr/pert_query_dir",
+  indices_dir = "/srv/drugseqr/indices", test = FALSE,
+  test_data = FALSE, host = "0.0.0.0", port = 3838)
 }
 \arguments{
-\item{data_dir}{Directory containing folders \code{'bulk'} \code{'single-cell'}.
+\item{data_dir}{Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 Ignored if \code{test_data} is \code{TRUE}.}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
@@ -23,14 +25,14 @@ Used for local development
 }
 \examples{
 
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD_20190712'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/IBD'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/amnon'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia'
-data_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/example'
-pert_query_dir <- '~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data'
+library(drugseqr)
 
-run_drugseqr(data_dir, pert_query_dir, test_data = TRUE)
-run_drugseqr(data_dir, pert_query_dir, test_data = FALSE)
+# override default app_dir for development
+app_dir <- 'inst/app'
+data_dir <- 'data-raw/patient_data/sjia'
+pert_query_dir <- 'data-raw/drug_gene_queries/data'
+
+run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = TRUE)
+run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = FALSE)
 
 }

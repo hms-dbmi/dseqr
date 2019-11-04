@@ -15,9 +15,11 @@
 #'
 #' @examples
 #'
+#' library(drugseqr)
+#'
 #' # override default app_dir for development
 #' app_dir <- 'inst/app'
-#' data_dir <- 'data-raw/patient_data/example'
+#' data_dir <- 'data-raw/patient_data/sjia'
 #' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #'
 #' run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = TRUE)

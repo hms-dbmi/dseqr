@@ -5,7 +5,7 @@
 \title{Import kallisto quants}
 \usage{
 import_quants(data_dir, filter, type, species = "Homo sapiens",
-  release = "94")
+  release = "94", method = "limma")
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
