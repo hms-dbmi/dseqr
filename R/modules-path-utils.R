@@ -1,40 +1,30 @@
-
-
-#' Used by get_all_df and get_path_df to construct the return result
+#' Used by get_path_df to construct the return result
 #'
 #' @param top_table Filtered result of \code{\link[limma]{topTable}}
-#' @param nmax Maximum number of rows to keep. Default is all. Used by \code{construct_all_df}
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
-construct_path_df <- function(top_table, nmax = 200) {
+construct_path_df <- function(top_table) {
 
-  path_df <- data.frame(
+  data.frame(
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
     sd = sqrt(top_table$vardprime),
     description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
     Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
     stringsAsFactors = FALSE
-  )
-
-  # keep up to nmax in common and cmap only genes
-  path_df <- path_df %>%
+  ) %>%
     mutate(Gene = factor(Gene, levels = Gene))
-
-  common <- head(which(path_df$Gene %in% genes$common), nmax)
-  cmap <- head(which(path_df$Gene %in% genes$cmap_only), nmax)
-
-  path_df <- path_df[row.names(path_df) %in% c(common, cmap), ]
-
-  return(path_df)
 }
 
 
 #' Get data.frame for plotting gene expression values of a pathway
 #'
+#' @param anal Result of call to \code{\link{diff_expr_scseq}}.
 #' @param path_id String with KEGG pathway id.
-#' @param anal Result of call to \code{\link{diff_expr_scseq}}
+#' @param path_genes Character vector of custom genes to construct pathway data.frame for.
+#' @param nmax Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200
+#'  so that all drug and genetic query genes are shown.
 #'
 #' @return \code{data.frame} with columns: \itemize{
 #'  \item Gene gene names.
@@ -44,7 +34,7 @@ construct_path_df <- function(top_table, nmax = 200) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
+get_path_df <- function(anal, path_id = NULL, path_genes = NULL, nmax = 200) {
 
   preserve_order <- !is.null(path_genes)
 
@@ -54,8 +44,8 @@ get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
   top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
 
   # only show pathway if no custom genes selected
-  if (path_id %in% names(gslist) & is.null(path_genes)) {
-    path_enids <- gslist[[path_id]]
+  if (path_id %in% names(gslist.kegg) & is.null(path_genes)) {
+    path_enids <- gslist.kegg[[path_id]]
     path_genes <- names(path_enids)
   }
 
@@ -67,7 +57,18 @@ get_path_df <- function(anal, path_id = NULL, path_genes = NULL) {
   # keep in order specified for custom gene sets
   if (preserve_order) top_table <- top_table[path_genes,, drop = FALSE]
 
-  construct_path_df(top_table)
+  path_df <- construct_path_df(top_table)
+
+
+  # for drug/genetic queries: keep up to nmax in cmap/l1000 common and nmax in cmap only genes
+  is.drugs <- path_id == 'Drug and genetic query genes' & is.null(path_genes)
+  if (is.drugs) {
+    common <- head(which(path_df$Gene %in% genes$common), nmax)
+    cmap <- head(which(path_df$Gene %in% genes$cmap_only), nmax)
+    path_df <- path_df[row.names(path_df) %in% c(common, cmap), ]
+  }
+
+  return(path_df)
 }
 
 #' Generate data.frame of saved single cell RNA-Seq analyses
@@ -125,7 +126,7 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
   Seurat::DefaultAssay(scseq) <- assay
 
   # load previous if exists
-  fname <- paste0('diff_path_', clusters_name, '.rds')
+  fname <- paste0('diff_path_kegg', clusters_name, '.rds')
   fpath <- file.path(data_dir, anal_name, fname)
 
   if(file.exists(fpath)) return(readRDS(fpath))
@@ -142,10 +143,10 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
   esetm  <- scseq[[assay]]@data
 
   # already annotated with hgnc symbols
-  gslist <- lapply(gslist, function(gs) {ret <- names(gs); names(ret) <- ret; return(ret)})
+  gslist.kegg <- lapply(gslist.kegg, function(gs) {ret <- names(gs); names(ret) <- ret; return(ret)})
 
   # run padog
-  padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names, gslist = gslist,
+  padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names.kegg, gslist = gslist.kegg,
                               verbose = FALSE, rna_seq = FALSE, NI = NI)
 
   # save results
@@ -323,7 +324,7 @@ get_ambient <- function(scseq, markers, cluster_markers) {
 #' @export
 get_path_directions <- function(top_table) {
 
-  is.up <- sapply(gslist, function(gs) {
+  is.up <- sapply(gslist.kegg, function(gs) {
     in.gs <- row.names(top_table) %in% names(gs)
     mean(top_table[in.gs, 't']) > 0
   })
@@ -344,4 +345,3 @@ get_path_directions <- function(top_table) {
 toggleAll <- function(ids){
   for(id in ids) shinyjs::toggleState(id)
 }
-

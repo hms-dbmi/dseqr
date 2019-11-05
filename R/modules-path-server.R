@@ -142,7 +142,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 
     list(
       diff_anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      diff_path = file.path(dataset_dir, paste0('diff_path_', anal_name, '.rds'))
+      diff_path = file.path(dataset_dir, paste0('diff_path_kegg', anal_name, '.rds'))
     )
   })
 

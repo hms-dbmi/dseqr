@@ -24,7 +24,7 @@
 #'
 #' path_anal <- diff_path(eset, prev_anal, data_dir, anal_name, NI = 24)
 #'
-diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, browse = FALSE, NI = 1000){
+diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, browse = FALSE, NI = 1000, type = c('KEGG', 'GO')){
 
   # remove replicates/duplicates and annotate with human ENTREZID
   dups <- iqr_replicates(eset, annot = 'ENTREZID_HS', rm.dup = TRUE)
@@ -47,12 +47,20 @@ diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, brow
   # other padog inputs
   esetm  <- Biobase::exprs(eset[, incon])
 
+  if (type[1] == 'KEGG') {
+    gs.names <- gs.names.kegg
+    gslist <- gslist.kegg
+  } else if (type[1] == 'GO') {
+    gs.names <- gs.names.go
+    gslist <- gslist.go
+  }
+
   # run padog
   padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names, gslist = gslist,
                               verbose = FALSE, rna_seq = rna_seq, pdata = prev_pdata, browse = browse, NI = NI)
 
   # save results
-  fname <- paste0('diff_path_', anal_name, '.rds')
+  fname <- paste0('diff_path_', tolower(type[1]), '_', anal_name, '.rds')
   saveRDS(padog_table, file.path(data_dir, fname))
 
   return(padog_table)
