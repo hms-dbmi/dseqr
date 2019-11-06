@@ -100,9 +100,7 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
 
   # add pert signature data
   if (!is.null(pert_signature)) {
-
-
-    pert_signature <- pert_signature[path_df$Gene]
+    pert_signature <- pert_signature[as.character(path_df$Gene)]
     pert_df <- path_df
     pert_df$Dprime <- pert_signature
 
