@@ -6,13 +6,17 @@ server <- function(input, output, session) {
   # base directory contains data_dir folder
   data_dir <- getShinyOption('data_dir')
 
-  # path where drug gene queries will be stored
+  # path where pert queries will be stored
   pert_query_dir <- getShinyOption('pert_query_dir')
+
+  # path where pert signatures will be stored
+  pert_signature_dir <- getShinyOption('pert_signature_dir')
 
   # path where kallisto index is downloaded and stored
   indices_dir <- getShinyOption('indices_dir')
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
+  if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
 
   # for testing don't seem to be able to pass arguments as options
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -48,7 +52,8 @@ server <- function(input, output, session) {
 
   pathPage <- callModule(pathPage, 'pathways',
                          new_anal = dsPage$new_anal,
-                         data_dir = data_dir)
+                         data_dir = data_dir,
+                         pert_signature_dir = pert_signature_dir)
 
 
 

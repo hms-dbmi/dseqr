@@ -4,21 +4,35 @@
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.
 #' @export
 #' @keywords internal
-load_pert_signature <- function(pert, pert_type) {
-  # TODO: save individual signatures so that only have to load one, as opposed to all
-  if (pert_type == 'cmap') {
-    data_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-  } else if (pert_type == 'l1000_drugs') {
-    data_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-  } else if (pert_type == 'l1000_genes') {
-    data_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
+  type_dir <- file.path(pert_signature_dir, pert_type)
+  if (!file.exists(type_dir)) dir.create(type_dir)
 
-  }
 
-  pert_data <- readRDS(data_path)
-  pert_data <- pert_data[, pert]
+  fname <- paste0(pert, '.rds')
+  sig_path <- file.path(type_dir, fs::path_sanitize(fname))
+  if (!file.exists(sig_path)) dl_pert_signature(sig_path, pert_type)
 
-  return(pert_data)
+  sig <- readRDS(sig_path)
+  return(sig)
+}
+
+#' Download CMAP02/L1000 pert signature from S3
+#'
+#' @param sig_path Path to download file to.
+#' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
+#'
+#' @return NULL
+#' @export
+#' @example
+#' sig_path <- 'cmap_res_BRD-K45319408_PC3_5um_24h.rds'
+#' dl_pert_result(res_path)
+#'
+dl_pert_signature <- function(sig_path, pert_type) {
+  # name of the file being requested
+  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_es_dir/', pert_type, '/', basename(sig_path))
+  dl_url <- utils::URLencode(dl_url)
+  download.file(dl_url, sig_path, )
 }
 
 #' Used by get_path_df to construct the return result

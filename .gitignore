@@ -4,6 +4,7 @@
 # contains raw IBD FASTQ files for dev purposes
 data-raw/patient_data/*
 data-raw/patient_data/*
+data-raw/drug_es/signatures/*
 !generate_examples.R
 !mds-sva.R
 !mds-sva.png

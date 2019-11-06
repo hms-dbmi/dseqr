@@ -2,10 +2,11 @@
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
-pathPage <- function(input, output, session, new_anal, data_dir) {
+pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_dir) {
   form <- callModule(pathForm, 'form',
                      new_anal = new_anal,
-                     data_dir)
+                     data_dir = data_dir,
+                     pert_signature_dir = pert_signature_dir)
 
   observe({
     toggle('pert-legend', condition = isTruthy(form$pert_signature()))
@@ -71,7 +72,7 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 #' Logic for form in Pathways tab
 #' @export
 #' @keywords internal
-pathForm <- function(input, output, session, new_anal, data_dir) {
+pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_dir) {
 
 
   # reload analysis choices if new analysis
@@ -193,8 +194,17 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 
   })
 
-  cmap2Pert <- callModule(pathPert, 'cmap2', type = 'CMAP02', queries = queries)
-  l1000Pert <- callModule(pathPert, 'l1000', type = 'L1000', queries = queries)
+  cmap2Pert <- callModule(pathPert,
+                          'cmap2',
+                          type = 'CMAP02',
+                          queries = queries,
+                          pert_signature_dir = pert_signature_dir)
+
+  l1000Pert <- callModule(pathPert,
+                          'l1000',
+                          type = 'L1000',
+                          queries = queries,
+                          pert_signature_dir = pert_signature_dir)
 
 
   # get gex signature from drug/genetic query selection
@@ -265,7 +275,7 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
 #' Logic for perturbation selection in Pathways tab
 #' @export
 #' @keywords internal
-pathPert <- function(input, output, session, type, queries) {
+pathPert <- function(input, output, session, type, queries, pert_signature_dir) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
   # update toggle for l1000 drugs/genes
@@ -316,7 +326,7 @@ pathPert <- function(input, output, session, type, queries) {
     pert <- input$pert
     pert_type <- pert_type()
     if (pert == '' | is.null(pert)) return(NULL)
-    load_pert_signature(pert, pert_type)
+    load_pert_signature(pert, pert_type, pert_signature_dir)
   })
 
 
