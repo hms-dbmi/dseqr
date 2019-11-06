@@ -231,3 +231,35 @@ function querySignatureItem(item, escape) {
 
   return res;
 }
+
+
+function pertOptions(item, escape) {
+
+  var cor = item.cor ? item.cor : '';
+
+  var markup = 
+  "<div>" +
+    "<div class = 'pull-left path-name-option'>" +
+        escape(item.label) +
+    "</div>" +
+    "<div class = 'pull-right path-fdr'>" +
+    cor+
+    "</div>" +
+    "<div class = 'clearfix'></div>" +
+  "</div>";
+
+  return markup;
+}
+
+function pertItem(item, escape) {
+
+  var cor = item.cor ? item.cor : '';
+
+  var markup = 
+    "<div>" +
+        escape(item.label) +
+        "<span class = 'path-fdr'>" + " (" + cor + ")"  + "</span>" +
+    "</div>";
+
+  return markup;
+}

@@ -1,5 +1,5 @@
 tabs <- c('Datasets', 'Single Cell', 'Pathways', 'Drugs')
-active <- 'Datasets'
+active <- 'Pathways'
 
 bootstrapPage(
   useShinyjs(),
@@ -16,7 +16,6 @@ bootstrapPage(
     tags$div(style = 'display: none;', shinyFiles::shinyDirButton("blah2", title='', label='', icon=icon('plus'))),
 
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
-             # single cell tab
              scPageUI("sc", tab = 'Single Cell', active),
              drugsPageUI("drug", tab = 'Drugs', active),
              dsPageUI('datasets', tab = 'Datasets', active),

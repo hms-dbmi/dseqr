@@ -1,3 +1,26 @@
+#' Get perturbation signature
+#'
+#' @param pert Name of perturbation signature.
+#' @param pert_type One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.
+#' @export
+#' @keywords internal
+load_pert_signature <- function(pert, pert_type) {
+  # TODO: save individual signatures so that only have to load one, as opposed to all
+  if (pert_type == 'cmap') {
+    data_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+  } else if (pert_type == 'l1000_drugs') {
+    data_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+  } else if (pert_type == 'l1000_genes') {
+    data_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+
+  }
+
+  pert_data <- readRDS(data_path)
+  pert_data <- pert_data[, pert]
+
+  return(pert_data)
+}
+
 #' Used by get_path_df to construct the return result
 #'
 #' @param top_table Filtered result of \code{\link[limma]{topTable}}
@@ -34,38 +57,50 @@ construct_path_df <- function(top_table) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(anal, path_id = NULL, path_genes = NULL, nmax = 200) {
-
-  preserve_order <- !is.null(path_genes)
+get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200) {
 
   # add dprimes and vardprime values
   anal <- add_es(anal)
   top_table <- anal$top_table
   top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
 
-  # only show pathway if no custom genes selected
-  if (path_id %in% names(gslist.kegg) & is.null(path_genes)) {
+  # only show pathway if in kegg
+  if (path_id %in% names(gslist.kegg)) {
     path_enids <- gslist.kegg[[path_id]]
     path_genes <- names(path_enids)
   }
 
-  if (!is.null(path_genes)) {
-    # subset top table to genes in the pathway
-    top_table <- top_table[row.names(top_table) %in% path_genes, ]
+  path_df <- construct_path_df(top_table)
+  path_df$color = 'black'
+
+  # for drug/genetic queries: keep up to nmax in cmap/l1000
+  is.cmap2 <- path_id == 'Query genes - CMAP02'
+  is.l1000 <- path_id == 'Query genes - L1000'
+
+  if (is.l1000 | is.cmap2) {
+    if (is.cmap2) keep <- head(which(path_df$Gene %in% unlist(genes)), nmax)
+    if (is.l1000) keep <- head(which(path_df$Gene %in% genes$common), nmax)
+
+    path_df <- path_df[row.names(path_df) %in% keep, ]
   }
 
-  # keep in order specified for custom gene sets
-  if (preserve_order) top_table <- top_table[path_genes,, drop = FALSE]
-
-  path_df <- construct_path_df(top_table)
+  # add pert signature data
+  if (!is.null(pert_signature)) {
 
 
-  # for drug/genetic queries: keep up to nmax in cmap/l1000 common and nmax in cmap only genes
-  is.drugs <- path_id == 'Drug and genetic query genes' & is.null(path_genes)
-  if (is.drugs) {
-    common <- head(which(path_df$Gene %in% genes$common), nmax)
-    cmap <- head(which(path_df$Gene %in% genes$cmap_only), nmax)
-    path_df <- path_df[row.names(path_df) %in% c(common, cmap), ]
+    pert_signature <- pert_signature[path_df$Gene]
+    pert_df <- path_df
+    pert_df$Dprime <- pert_signature
+
+    # get colors based on signs
+    path_signs <- sign(path_df$Dprime)
+    pert_signs  <- sign(pert_df$Dprime)
+    pert_df$color <- ifelse(pert_signs == path_signs, 'red', 'blue')
+
+    # TODO show pert variances
+    pert_df$sd <- NA
+    path_df <- rbind(path_df, pert_df)
+
   }
 
   return(path_df)
@@ -126,9 +161,14 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
   Seurat::DefaultAssay(scseq) <- assay
 
   # load previous if exists
-  fname <- paste0('diff_path_kegg', clusters_name, '.rds')
+  fname <- paste0('diff_path_kegg_', clusters_name, '.rds')
   fpath <- file.path(data_dir, anal_name, fname)
 
+  # for compatibility with previous versions
+  fname_old <- paste0('diff_path_', clusters_name, '.rds')
+  fpath_old <- file.path(data_dir, anal_name, fname_old)
+
+  if(file.exists(fpath_old)) file.rename(fpath_old, fpath)
   if(file.exists(fpath)) return(readRDS(fpath))
 
   # subset to non-ambient geness

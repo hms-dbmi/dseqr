@@ -49,16 +49,24 @@
 }
 
 /* swatch for Pathways plot L1000 label */
-.l1000-label .input-swatch {
-  height: 8px; 
-  width: 8px; 
+.pert-label .input-swatch {
+  height: 6px; 
+  width: 6px; 
   border: none;
   border-radius: 50%;
-  margin-right: 6px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.pert-label .input-swatch.same {
   background-color: red;
 }
 
-.l1000-label {
+.pert-label .input-swatch.opposite {
+  background-color: blue;
+}
+
+.pert-label {
   display: none;
   color: #333;
   font-family: "Open Sans", verdana, arial, sans-serif;

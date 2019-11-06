@@ -94,11 +94,11 @@ textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = 
 #' @param help_id id of help block. Used to show help message in change shinyjs::html
 #' @export
 #' @keywords internal
-selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL) {
+selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL, label_title = NULL) {
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   tags$div(class = 'form-group selectize-fh', id = container_id,
-           tags$label(class = 'control-label', `for` = id, label),
+           tags$label(class = 'control-label', `for` = id, label, title = label_title),
            tags$div(
              tags$select(id = id, style = 'display: none'),
              tags$script(type = 'application/json', `data-for` = id, HTML(options))
