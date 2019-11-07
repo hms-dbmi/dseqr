@@ -63,7 +63,7 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
 
   # remove rows with duplicated/NA annot (SYMBOL or ENTREZID)
   dups <- tryCatch ({
-    iqr_replicates(eset, setup$mod, setup$svobj, annot)
+    iqr_replicates(eset, setup$mod, setup$svobj, annot, rna_seq = rna_seq)
 
   }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
 
@@ -159,17 +159,17 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 #'    \item{eset}{Expression set with unique features at probe or gene level.}
 #'    \item{exprs_sva}{Expression data from eset with effect of surrogate
 #'       variable removed.}
-iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.dup = FALSE) {
+iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.dup = FALSE, rna_seq = TRUE) {
 
   # for R CMD check
   iqrange = SYMBOL = NULL
 
-  if (length(svobj) > 0) {
-    # get eset with surrogate variables modeled out
-    exprs_sva <- clean_y(Biobase::exprs(eset), mod, svobj$sv)
-  } else {
-    exprs_sva <- Biobase::exprs(eset)
-  }
+  # get DESeq::vsd transformed counts for RNA-Seq
+  el <- ifelse(rna_seq, 'vsd', 'exprs')
+  exprs_sva <- Biobase::assayDataElement(eset, el)
+
+  if (length(svobj) > 0)
+    exprs_sva <- clean_y(exprs_sva, mod, svobj$sv)
 
   # add inter-quartile ranges, row, and feature data to exprs data
   data <- as.data.frame(exprs_sva)
@@ -245,18 +245,13 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
   # get results
   top_table <- limma::topTable(ebayes_sv, coef = 1, n = Inf)
 
-  # voom (normalize/log) on exprs_sva for MDS plot
-  if (rna_seq) {
-    lib.size <- Biobase::pData(eset)$lib.size * Biobase::pData(eset)$norm.factors
-    exprs_sva <- exprs_sva[edgeR::filterByExpr(exprs_sva), ]
-    exprs_sva <- limma::voom(exprs_sva, modsv, lib.size)$E
-  }
-
   # only store phenoData (exprs and fData large)
   pdata <- Biobase::pData(eset)
 
-  # for MDS plot
-  mds <- get_mds(Biobase::exprs(eset), exprs_sva, pdata$group)
+  # for MDS plot use DEseq2::vsd normalized as baseline if RNA-Seq
+  el <- ifelse(rna_seq, 'vsd', 'exprs')
+  exprs_nosva <- Biobase::assayDataElement(eset, el)
+  mds <- get_mds(exprs_nosva, exprs_sva, pdata$group)
 
   # save to disk
   diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, mds = mds)
