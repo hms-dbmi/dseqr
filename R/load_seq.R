@@ -38,17 +38,17 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
     return(readRDS(eset_path))
 
   # import quants and filter low counts
-  quants <- import_quants(data_dir, filter, type = type, species = species, release = release)
+  q <- import_quants(data_dir, filter, type = type, species = species, release = release)
 
   # construct eset
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(species, release)
-  eset <- construct_eset(quants, fdata, annot)
+  eset <- construct_eset(q$quants, q$vsd, fdata, annot)
 
   if (save_dgel) {
     # used for testing purposes
     dgel_path <- gsub('eset', 'dgel', eset_path)
-    saveRDS(quants, dgel_path)
+    saveRDS(q$quants, dgel_path)
   }
 
   # save eset and return
@@ -66,10 +66,11 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
 #' @keywords internal
 #' @export
 #'
-construct_eset <- function(quants, fdata, annot) {
+construct_eset <- function(quants, vsd, fdata, annot) {
   # remove duplicate rows of counts
   rn <- row.names(quants$counts)
-  mat <- unique(data.table::data.table(quants$counts, rn, key = 'rn'))
+  colnames(vsd) <- paste0(colnames(vsd), '_deseq')
+  mat <- unique(data.table::data.table(quants$counts, SummarizedExperiment::assay(vsd), rn, key = 'rn'))
 
   # merge exprs and fdata
   dt <- merge(fdata, mat, by.y = 'rn', by.x = key(fdata), all.y = TRUE, sort = FALSE)
@@ -80,8 +81,14 @@ construct_eset <- function(quants, fdata, annot) {
   pdata <- quants$samples
   pdata$group <- NULL
 
+  # create environment with counts for limma and vsd normalized log2 counts for plots
+  e <- new.env()
+  e$exprs <- as.matrix(dt[, row.names(pdata), drop=FALSE])
+  e$vsd <- as.matrix(dt[, paste0(row.names(pdata), '_deseq'), drop=FALSE])
+  colnames(e$vsd) <- gsub('_deseq$', '', colnames(e$vsd))
+
   # seperate fdata and exprs and transfer to eset
-  eset <- Biobase::ExpressionSet(as.matrix(dt[, row.names(pdata), drop=FALSE]),
+  eset <- Biobase::ExpressionSet(e,
                                  phenoData=Biobase::AnnotatedDataFrame(pdata),
                                  featureData=Biobase::AnnotatedDataFrame(dt[, colnames(fdata), drop=FALSE]),
                                  annotation=annot)
@@ -145,7 +152,7 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94', method = 'limma') {
+import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94') {
 
   if (!grepl('sapiens', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
@@ -169,24 +176,33 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 
   # use folders as names (used as sample names)
   names(quants_paths) <- qdirs
-  countsFromAbundance <- ifelse(method == 'limma', 'lengthScaledTPM', 'no')
 
-  txi <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
-                            ignoreTxVersion = ignore, countsFromAbundance = countsFromAbundance)
+  # import limma for differential expression analysis
+  txi.limma <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
+                            ignoreTxVersion = ignore, countsFromAbundance = 'lengthScaledTPM')
 
-  if (method == 'DESeq2') return(txi)
+  quants <- edgeR::DGEList(txi.limma$counts)
+  quants <- edgeR::calcNormFactors(quants)
 
-  quants <- edgeR::DGEList(txi$counts)
+  # import DESeq2 for exploratory analysis (plots)
+  txi.deseq <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
+                                  ignoreTxVersion = ignore, countsFromAbundance = 'no')
+
+
+  dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, data.frame(title = colnames(txi.deseq$counts)), design = ~1)
+  dds <- DESeq2::estimateSizeFactors(dds)
+  vsd <- DESeq2::vst(dds)
 
   # filtering low counts (as in tximport vignette)
   if (filter) {
     keep <- edgeR::filterByExpr(quants)
     quants <- quants[keep, ]
+    vsd <- vsd[keep, ]
     if (!nrow(quants)) stop("No genes with reads after filtering")
   }
 
-  quants <- edgeR::calcNormFactors(quants)
-  return(quants)
+  return(list(quants = quants, vsd = vsd))
+
 }
 
 #' Get ensembldb package name
