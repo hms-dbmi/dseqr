@@ -4,7 +4,7 @@
 \alias{pathPage}
 \title{Logic for Pathways tab}
 \usage{
-pathPage(input, output, session, new_anal, data_dir)
+pathPage(input, output, session, new_anal, data_dir, pert_signature_dir)
 }
 \description{
 Logic for Pathways tab

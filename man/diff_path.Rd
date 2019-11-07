@@ -5,7 +5,7 @@
 \title{Differential expression of KEGG pathways.}
 \usage{
 diff_path(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE,
-  browse = FALSE, NI = 1000)
+  browse = FALSE, NI = 1000, type = c("KEGG", "GO"))
 }
 \arguments{
 \item{eset}{Expression set.}

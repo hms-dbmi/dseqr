@@ -5,7 +5,7 @@
 \title{Removes features with replicated annotation.}
 \usage{
 iqr_replicates(eset, mod = NULL, svobj = NULL, annot = "SYMBOL",
-  rm.dup = FALSE)
+  rm.dup = FALSE, rna_seq = TRUE)
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{\link{load_seq}}.}
@@ -17,6 +17,8 @@ iqr_replicates(eset, mod = NULL, svobj = NULL, annot = "SYMBOL",
 \item{annot}{feature to use to remove replicates.}
 
 \item{rm.dup}{remove duplicates (same measure, multiple ids)?}
+
+\item{rna_seq}{Is this an RNA-seq experiment? Inferred from \code{eset} in \code{\link{diff_expr}}.}
 }
 \value{
 List with:

@@ -6,6 +6,7 @@
 \usage{
 run_drugseqr(data_dir, app_dir = system.file("app", package = "drugseqr",
   mustWork = TRUE), pert_query_dir = "/srv/drugseqr/pert_query_dir",
+  pert_signature_dir = "/srv/drugseqr/pert_signature_dir",
   indices_dir = "/srv/drugseqr/indices", test = FALSE,
   test_data = FALSE, host = "0.0.0.0", port = 3838)
 }
@@ -27,12 +28,13 @@ Used for local development
 
 library(drugseqr)
 
-# override default app_dir for development
+# override default app_dir etc for development
 app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data/sjia'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
+pert_signature_dir <- 'data-raw/drug_es/signatures'
 
-run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = TRUE)
-run_drugseqr(data_dir, app_dir, pert_query_dir, test_data = FALSE)
+run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
+run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
 
 }

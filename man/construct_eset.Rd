@@ -4,7 +4,7 @@
 \alias{construct_eset}
 \title{Construct expression set}
 \usage{
-construct_eset(quants, fdata, annot)
+construct_eset(quants, vsd, fdata, annot)
 }
 \arguments{
 \item{quants}{\code{DGEList} with RNA-seq counts.}

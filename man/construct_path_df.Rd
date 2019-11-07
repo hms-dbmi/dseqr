@@ -2,17 +2,15 @@
 % Please edit documentation in R/modules-path-utils.R
 \name{construct_path_df}
 \alias{construct_path_df}
-\title{Used by get_all_df and get_path_df to construct the return result}
+\title{Used by get_path_df to construct the return result}
 \usage{
-construct_path_df(top_table, nmax = 200)
+construct_path_df(top_table)
 }
 \arguments{
-\item{top_table}{Filtered result of \code{\link[limma]{topTable}}}
-
-\item{nmax}{Maximum number of rows to keep. Default is all. Used by \code{construct_all_df}
+\item{top_table}{Filtered result of \code{\link[limma]{topTable}}
 to limit number of plotted genes.}
 }
 \description{
-Used by get_all_df and get_path_df to construct the return result
+Used by get_path_df to construct the return result
 }
 \keyword{internal}
