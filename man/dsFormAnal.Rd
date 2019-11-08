@@ -5,7 +5,7 @@
 \title{Logic for differential expression analysis part of dsForm}
 \usage{
 dsFormAnal(input, output, session, error_msg, dataset_name, data_dir,
-  new_anal, dataset_dir)
+  new_anal, dataset_dir, eset)
 }
 \description{
 Logic for differential expression analysis part of dsForm

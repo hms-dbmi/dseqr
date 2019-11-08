@@ -21,6 +21,80 @@ validate_pdata <- function(pdata) {
   return(msg)
 }
 
+#' Generate boxplotly for vsd normalized gene data by group for Datasets tab
+#'
+#' @param eset ExpressionSet object with \code{'vsd'} assayDataElement
+#' @param explore_genes Character vector of genes to plot
+#' @param pdata data.frame with columns \code{'Group name'} (character) and \code{'Group'} (integer).
+#'
+#' @return plotly
+#' @export
+#'
+plotlyGene <- function(eset, explore_genes, pdata) {
+
+  dat <- Biobase::assayDataElement(eset, 'vsd')
+
+  dfs <- list()
+  for (gene in explore_genes) {
+    dfs[[gene]] <- data.frame(Sample = row.names(pdata),
+                              Gene = gene,
+                              Expression = dat[gene, row.names(pdata)],
+                              Name = as.character(pdata$`Group name`),
+                              Num = pdata$Group,
+                              stringsAsFactors = FALSE)
+
+  }
+
+  df <- do.call(rbind, dfs)
+  group_levels <- as.character(sort(unique(df$Num)))
+
+  nbox <- length(group_levels) * length(explore_genes)
+  boxgap <- ifelse(nbox > 5, 0.4, 0.6)
+  boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
+
+  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
+  if (length(group_levels) <= 2)
+    group_levels <- c(group_levels, 'NA')
+
+  df$Num <- factor(df$Num, levels = group_levels)
+  df$Gene <- factor(df$Gene, levels = explore_genes)
+
+  l <- list(
+    font = list(
+      family = "sans-serif",
+      size = 12,
+      color = "#000"),
+    bgcolor = "#f8f8f8",
+    bordercolor = "#e7e7e7",
+    borderwidth = 1)
+
+  pl <- df %>%
+    plotly::plot_ly() %>%
+    plotly::add_trace(x = ~ Gene,
+                      y = ~Expression,
+                      color = ~Num,
+                      text = ~Sample,
+                      name = ~Name,
+                      type = 'box',
+                      boxpoints = 'all',
+                      jitter = 0.8,
+                      pointpos = 0,
+                      fillcolor = 'transparent',
+                      hoverinfo = 'text',
+                      whiskerwidth = 0.1,
+                      hoveron = 'points',
+                      marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
+    plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
+                   xaxis = list(fixedrange=TRUE),
+                   yaxis = list(fixedrange=TRUE, title = 'Normalized Expression'),
+                   legend = l) %>%
+    plotly::config(displayModeBar = FALSE)
+
+  return(pl)
+
+}
+
+
 
 #' Load previous bulk anals dataframe
 #'

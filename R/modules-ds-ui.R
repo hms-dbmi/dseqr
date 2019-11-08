@@ -9,8 +9,11 @@ dsPageUI <- function(id, tab, active) {
                 div(class = 'col-sm-5',
                     dsFormInput(ns('form'))
                 ),
-                div(class = 'col-sm-7 mobile-margin',
-                    dsMDSplotlyUI(ns('mds_plotly'))
+                div(id = ns('mds_plotly_container'), class = 'col-sm-7 mobile-margin',  style = 'display: none;',
+                    dsPlotlyUI(ns('mds_plotly'))
+                ),
+                div(id = ns('gene_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
+                    dsPlotlyUI(ns('gene_plotly'))
                 )
             ),
             hr(),
@@ -19,6 +22,9 @@ dsPageUI <- function(id, tab, active) {
             ),
             div(id = ns('anal_table_container'), style = 'display: none;',
                 dsTable(ns('anal'))
+            ),
+            div(id = ns('explore_table_container'), style = 'display: none;',
+                dsTable(ns('explore'))
             )
     )
   })
@@ -27,10 +33,11 @@ dsPageUI <- function(id, tab, active) {
 #' Plotly MDS output
 #' @export
 #' @keywords internal
-dsMDSplotlyUI <- function(id) {
+dsPlotlyUI <- function(id) {
   ns <- NS(id)
   plotly::plotlyOutput(ns('plotly'))
 }
+
 
 #' Input form for datasets page
 #' @export
@@ -50,6 +57,7 @@ dsFormInput <- function(id) {
     )
   })
 }
+
 
 #' Dataset selection input for dsFormInput
 #' @export
@@ -110,26 +118,55 @@ dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    selectizeInputWithButtons(
-      ns('anal_name'),
-      'Analysis name:',
-      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
-      options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
-      container_id = ns('anal_name_container'),
-      help_id = ns('anal_name_help')
-    ),
-    div(id = ns('anal_buttons_panel'),
-        justifiedButtonGroup(
-          container_id = ns('anal_labels'),
-          label = 'Label selected rows:',
-          help_id = ns('labels_help'),
-          actionButton(ns('test'), 'Test'),
-          actionButton(ns('ctrl'), 'Control'),
-          actionButton(ns('reset'), 'Reset')
+    analysisTypeToggle(ns),
+    div(id = ns('diff_panel'),
+        selectizeInputWithButtons(
+          ns('anal_name'),
+          'Analysis name:',
+          downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
+          options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
+          container_id = ns('anal_name_container'),
+          help_id = ns('anal_name_help')
         ),
-        actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
+        div(id = ns('anal_buttons_panel'), style = 'display: none;',
+            justifiedButtonGroup(
+              container_id = ns('anal_labels'),
+              label = 'Label selected rows:',
+              help_id = ns('labels_help'),
+              actionButton(ns('test'), 'test'),
+              actionButton(ns('ctrl'), 'control'),
+              actionButton(ns('reset'), 'reset')
+            ),
+            actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
+        )
+
+    ),
+    div(id = ns('explore_panel'), style = 'display: none;',
+
+        selectizeInputWithButtons(ns('explore_genes'),
+                                  'Show expression for:',
+                                  actionButton(ns('show_dtangle'), '', icon = icon('object-group', 'far fa-fw'), title = 'Show cell-type deconvolution'),
+                                  options = list(maxItems = 5, multiple = TRUE)),
+        textInputWithButtons(ns('explore_group_name'),
+                             container_id = ns('validate'),
+                             'Group name for selected rows:',
+                             actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
+                             actionButton(ns('reset_explore'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Clear all groups'),
+                             help_id = ns('error_msg')
+        )
+
     )
   )
+}
+
+#' Input form to control/test/all groups for integrated datasets
+#' @export
+#' @keywords internal
+analysisTypeToggle <- function(ns) {
+
+  shinyWidgets::radioGroupButtons(ns('anal_type'), "Select analysis type:",
+                                  choices = c('differential expression', 'exploratory'),
+                                  selected = 'differential expression', justified = TRUE)
 }
 
 #' Tables for datasets page

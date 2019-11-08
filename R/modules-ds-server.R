@@ -14,6 +14,8 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
                        msg_anal = msg_anal,
                        new_anal = new_anal)
 
+
+
   callModule(dsMDSplotly, 'mds_plotly',
              data_dir = data_dir,
              dataset_dir = dsForm$dataset_dir,
@@ -21,9 +23,17 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
              new_anal = new_anal)
 
 
+  # toggle tables
   observe({
     toggle('quant_table_container', condition = dsForm$show_quant())
-    toggle('anal_table_container', condition = dsForm$show_anal())
+    toggle('anal_table_container', condition = dsForm$show_anal() & !dsForm$is.explore())
+    toggle('explore_table_container', condition = dsForm$is.explore())
+  })
+
+  # toggle plots
+  observe({
+    toggle('mds_plotly_container', condition = dsForm$show_anal() & !dsForm$is.explore())
+    toggle('gene_plotly_container', condition = dsForm$is.explore())
   })
 
   dsQuantTable <- callModule(dsQuantTable, 'quant',
@@ -32,11 +42,22 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
                              paired = dsForm$paired)
 
   dsAnalTable <- callModule(dsAnalTable, 'anal',
-                            fastq_dir = dsForm$fastq_dir,
+                            eset = dsForm$eset,
                             labels = dsForm$anal_labels,
                             data_dir = data_dir,
                             dataset_dir = dsForm$dataset_dir,
                             anal_name = dsForm$anal_name)
+
+  dsExploreTable <- callModule(dsExploreTable, 'explore',
+                               eset = dsForm$eset,
+                               labels = dsForm$explore_labels,
+                               data_dir = data_dir,
+                               dataset_dir = dsForm$dataset_dir)
+
+  callModule(dsGenePlotly, 'gene_plotly',
+             eset = dsForm$eset,
+             explore_genes = dsForm$explore_genes,
+             pdata = dsExploreTable$pdata)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
@@ -220,6 +241,30 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
 
 }
 
+#' Logic for Dataset Gene plotly
+#' @export
+#' @keywords internal
+dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata) {
+
+  # MDS plot
+  output$plotly <- plotly::renderPlotly({
+
+    # need at least two groups
+    pdata <- pdata()
+    pdata <- pdata[!is.na(pdata$Group), ]
+    req(length(unique(pdata$Group)) > 1)
+
+    # need eset and at least one gene
+    eset <- eset()
+    explore_genes <- explore_genes()
+    req(eset, explore_genes)
+
+    plotlyGene(eset, explore_genes, pdata)
+  })
+
+}
+
+
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
@@ -230,6 +275,15 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
                         new_dataset = new_dataset)
 
 
+  eset <- reactive({
+    fastq_dir <- dataset$fastq_dir()
+    eset_path <- file.path(fastq_dir, 'eset.rds')
+
+    req(file.exists(eset_path))
+    readRDS(eset_path)
+  })
+
+
   # show quant, anals or neither
   show_quant <- reactive({
     dataset$dataset_name() != '' && dataset$is.create()
@@ -238,6 +292,7 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
   show_anal <- reactive({
     dataset$dataset_name() != '' && !dataset$is.create()
   })
+
 
 
   observe({
@@ -255,7 +310,9 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
                      data_dir = data_dir,
                      dataset_name = dataset$dataset_name,
                      dataset_dir = dataset$dataset_dir,
-                     new_anal = new_anal)
+                     new_anal = new_anal,
+                     eset = eset)
+
 
 
   return(list(
@@ -263,6 +320,8 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
     paired = quant$paired,
     quant_labels = quant$labels,
     anal_labels = anal$labels,
+    explore_labels = anal$explore_labels,
+    explore_genes = anal$explore_genes,
     run_quant = quant$run_quant,
     run_anal = anal$run_anal,
     dataset_name = dataset$dataset_name,
@@ -271,7 +330,9 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
     show_quant = show_quant,
     show_anal = show_anal,
     is.sc = dataset$is.sc,
-    is.cellranger = dataset$is.cellranger
+    is.cellranger = dataset$is.cellranger,
+    is.explore = anal$is.explore,
+    eset = eset
   ))
 
 }
@@ -490,7 +551,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal, dataset_dir) {
+dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal, dataset_dir, eset) {
 
 
   run_anal <- reactiveVal()
@@ -500,10 +561,27 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     reset = reactive(input$reset)
   )
 
+  explore_group_name <- reactive(input$explore_group_name)
+
+
+  observeEvent(input$grouped, {
+    updateTextInput(session, 'explore_group_name', value = '')
+  })
+
+  explore_labels <- list(
+    grouped = reactive(input$grouped),
+    reset = reactive(input$reset_explore),
+    explore_group_name = explore_group_name
+  )
+
   anal_name <- reactive(input$anal_name)
   has_anal_name <- reactive(anal_name() != '')
 
 
+
+  observe({
+    updateSelectizeInput(session, 'explore_genes', choices = c(NA, row.names(eset())), server = TRUE)
+  })
 
   # analyses (can be multiple) from dataset
   dataset_anals <- reactive({
@@ -524,8 +602,24 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     anal_name() %in% setdiff(dataset_anals(), '')
   })
 
+  # show anal buttons if new analysis name
   observe({
-    toggle('anal_buttons_panel', condition = !is_prev_anal())
+    toggle('anal_buttons_panel', condition = !is_prev_anal() & isTruthy(anal_name()))
+  })
+
+  # enable download results if previous analysis
+  observe({
+    toggleState('download', condition = is_prev_anal())
+  })
+
+  is.explore <- reactive({
+    input$anal_type == 'exploratory'
+  })
+
+  # toggle analysis type
+  observe({
+    toggle('diff_panel', condition = !is.explore())
+    toggle('explore_panel', condition = is.explore())
   })
 
 
@@ -593,8 +687,11 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
 
   return(list(
     labels = labels,
+    explore_labels = explore_labels,
+    explore_genes = reactive(input$explore_genes),
     run_anal = run_anal,
-    anal_name = anal_name
+    anal_name = anal_name,
+    is.explore = is.explore
   ))
 }
 
@@ -788,7 +885,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' Logic for differential expression analysis table
 #' @export
 #' @keywords internal
-dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dataset_dir, anal_name) {
+dsAnalTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, anal_name) {
 
   background <- '#337ab7 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
@@ -796,13 +893,6 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
   pdata_r <- reactiveVal()
   group_r <- reactiveVal()
 
-  eset <- reactive({
-    fastq_dir <- fastq_dir()
-    eset_path <- file.path(fastq_dir, 'eset.rds')
-
-    req(file.exists(eset_path))
-    readRDS(eset_path)
-  })
 
   # pdata that gets returned with group column
   returned_pdata <- reactive({
@@ -941,4 +1031,160 @@ dsAnalTable <- function(input, output, session, fastq_dir, labels, data_dir, dat
 }
 
 
+#' Logic for differential expression analysis table
+#' @export
+#' @keywords internal
+dsExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir) {
 
+  # colors
+  group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
+  ncolors <- length(group_colors)
+
+  # things user will update and return
+  pdata_r <- reactiveVal()
+  group_r <- reactiveVal()
+  name_r <- reactiveVal()
+  table_rendered <- reactiveVal()
+
+
+  # path to saved pdata
+  pdata_path <- reactive(file.path(data_dir, dataset_dir(), 'pdata_explore.rds'))
+
+
+  # pdata that gets returned with group column
+  returned_pdata <- reactive({
+    pdata_path <- pdata_path()
+    pdata <- pdata_r()
+    req(pdata, pdata_path)
+
+    pdata$Group <- group_r()
+    pdata$`Group name` <- name_r()
+
+    saveRDS(pdata, pdata_path)
+    return(pdata)
+  })
+
+  # reset when new eset or analysis name
+  observe({
+    eset <- eset()
+    pdata_path <- pdata_path()
+    req(eset, pdata_path)
+
+    pdata <- Biobase::pData(eset) %>%
+      dplyr::select(-lib.size, -norm.factors) %>%
+      tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
+
+    group <- name <- rep(NA, nrow(pdata))
+    # load pdata from previous if available
+    if (file.exists(pdata_path)) {
+      saved <- readRDS(pdata_path)
+      group <- saved$Group
+      name  <- saved$`Group name`
+    }
+
+    table_rendered(FALSE)
+
+    pdata_r(pdata)
+    group_r(group)
+    name_r(name)
+  })
+
+
+  # redraw table when new pdata (otherwise update data using proxy)
+  output$pdata <- DT::renderDataTable({
+
+    table_rendered(TRUE)
+
+    DT::datatable(
+      pdata_r(),
+      class = 'cell-border dt-fake-height',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      options = list(
+        columnDefs = list(list(className = 'dt-nopad', targets = 0)),
+        scrollX = TRUE,
+        paging = FALSE,
+        bInfo = 0
+      )
+    )
+  })
+
+
+  html_pdata <- reactive({
+
+    # things that trigger update
+    pdata <- returned_pdata()
+    group <- pdata$Group
+    name  <- pdata$`Group name`
+    req(pdata)
+
+
+    # update pdata Group column
+    not.na <- !is.na(group)
+    group_nums  <- unique(group[not.na])
+    group_names <- unique(name[not.na])
+    ind <- order(group_nums)
+
+    group_nums  <- group_nums[ind]
+    group_names <- group_names[ind]
+
+    for (i in seq_along(group_nums)) {
+      group_num <- group_nums[i]
+      group_name <- group_names[i]
+
+      # plotly color bug when two groups
+      color <- group_colors[group_num]
+
+      rows <- which(group == group_num)
+      pdata[rows, 'Group'] <- paste('<div style="background-color:', color, ';"></div>')
+      pdata[rows, 'Group name'] <- group_name
+    }
+
+    return(pdata)
+  })
+
+
+  # proxy used to replace data
+  proxy <- DT::dataTableProxy("pdata")
+  shiny::observe({
+    req(html_pdata(), table_rendered())
+    DT::replaceData(proxy, html_pdata(), rownames = FALSE)
+  })
+
+
+
+  # click 'grouped'
+  shiny::observeEvent(labels$grouped(), {
+    group_name <- labels$explore_group_name()
+    req(group_name)
+    group <- group_r()
+    name <- name_r()
+
+    rows  <- input$pdata_rows_selected
+    group_num <- length(unique(setdiff(group, NA))) + 1
+
+
+    group[rows] <- group_num
+    name[rows] <- group_name
+    group_r(group)
+    name_r(name)
+  })
+
+
+
+  # click 'Reset'
+  shiny::observeEvent(labels$reset(), {
+    req(labels$reset())
+    group <- group_r()
+    clear <- rep(NA, length(group))
+    group_r(clear)
+    name_r(clear)
+
+  })
+
+
+  return(list(
+    pdata = returned_pdata
+  ))
+
+}
