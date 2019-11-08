@@ -146,7 +146,7 @@ dsFormAnalInput <- function(id) {
         selectizeInputWithButtons(ns('explore_genes'),
                                   'Show expression for:',
                                   actionButton(ns('show_dtangle'), '', icon = icon('object-group', 'far fa-fw'), title = 'Show cell-type deconvolution'),
-                                  options = list(maxItems = 5, multiple = TRUE)),
+                                  options = list(maxItems = 6, multiple = TRUE)),
         textInputWithButtons(ns('explore_group_name'),
                              container_id = ns('validate'),
                              'Group name for selected rows:',

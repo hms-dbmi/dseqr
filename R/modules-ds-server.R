@@ -8,6 +8,7 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
   msg_quant <- reactiveVal()
   msg_anal <- reactiveVal()
 
+
   dsForm <- callModule(dsForm, 'form', data_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
@@ -57,7 +58,8 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
   callModule(dsGenePlotly, 'gene_plotly',
              eset = dsForm$eset,
              explore_genes = dsForm$explore_genes,
-             pdata = dsExploreTable$pdata)
+             pdata = dsExploreTable$pdata,
+             dataset_name = dsForm$dataset_name)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
@@ -244,11 +246,10 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
 #' Logic for Dataset Gene plotly
 #' @export
 #' @keywords internal
-dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata) {
+dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata, dataset_name) {
 
   # MDS plot
   output$plotly <- plotly::renderPlotly({
-
     # need at least two groups
     pdata <- pdata()
     pdata <- pdata[!is.na(pdata$Group), ]
@@ -259,8 +260,9 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata) {
     explore_genes <- explore_genes()
     req(eset, explore_genes)
 
-    plotlyGene(eset, explore_genes, pdata)
+    plotlyGene(eset, explore_genes, pdata, dataset_name())
   })
+
 
 }
 
@@ -561,8 +563,19 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     reset = reactive(input$reset)
   )
 
-  explore_group_name <- reactive(input$explore_group_name)
+  # toggle analysis type
+  is.explore <- reactive({
+    input$anal_type == 'exploratory'
+  })
 
+  observe({
+    toggle('diff_panel', condition = !is.explore())
+    toggle('explore_panel', condition = is.explore())
+  })
+
+
+  # logic for group name buttons
+  explore_group_name <- reactive(input$explore_group_name)
 
   observeEvent(input$grouped, {
     updateTextInput(session, 'explore_group_name', value = '')
@@ -577,11 +590,16 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
   anal_name <- reactive(input$anal_name)
   has_anal_name <- reactive(anal_name() != '')
 
-
-
+  # gene choices
   observe({
     updateSelectizeInput(session, 'explore_genes', choices = c(NA, row.names(eset())), server = TRUE)
   })
+
+
+  # -------------------------------
+  # Differential Expression Section
+  # -------------------------------
+  # TODO: refactor into seperate module
 
   # analyses (can be multiple) from dataset
   dataset_anals <- reactive({
@@ -612,15 +630,6 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     toggleState('download', condition = is_prev_anal())
   })
 
-  is.explore <- reactive({
-    input$anal_type == 'exploratory'
-  })
-
-  # toggle analysis type
-  observe({
-    toggle('diff_panel', condition = !is.explore())
-    toggle('explore_panel', condition = is.explore())
-  })
 
 
   # clear anal name error if type

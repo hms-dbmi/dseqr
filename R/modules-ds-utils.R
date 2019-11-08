@@ -30,7 +30,7 @@ validate_pdata <- function(pdata) {
 #' @return plotly
 #' @export
 #'
-plotlyGene <- function(eset, explore_genes, pdata) {
+plotlyGene <- function(eset, explore_genes, pdata, dataset_name) {
 
   dat <- Biobase::assayDataElement(eset, 'vsd')
 
@@ -48,6 +48,7 @@ plotlyGene <- function(eset, explore_genes, pdata) {
   df <- do.call(rbind, dfs)
   group_levels <- as.character(sort(unique(df$Num)))
 
+  # adjust gaps within/between group based on number of boxs (chosen by trial and error)
   nbox <- length(group_levels) * length(explore_genes)
   boxgap <- ifelse(nbox > 5, 0.4, 0.6)
   boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
@@ -68,7 +69,11 @@ plotlyGene <- function(eset, explore_genes, pdata) {
     bordercolor = "#e7e7e7",
     borderwidth = 1)
 
-  pl <- df %>%
+  # name for saving plot
+  fname <- paste(explore_genes, collapse = '_')
+  fname <- paste('bulk', dataset_name, fname, Sys.Date(), sep='_')
+
+  df %>%
     plotly::plot_ly() %>%
     plotly::add_trace(x = ~ Gene,
                       y = ~Expression,
@@ -88,9 +93,14 @@ plotlyGene <- function(eset, explore_genes, pdata) {
                    xaxis = list(fixedrange=TRUE),
                    yaxis = list(fixedrange=TRUE, title = 'Normalized Expression'),
                    legend = l) %>%
-    plotly::config(displayModeBar = FALSE)
-
-  return(pl)
+    plotly::config(displaylogo = FALSE,
+                   displayModeBar = 'hover',
+                   modeBarButtonsToRemove = c('lasso2d',
+                                              'select2d',
+                                              'toggleSpikelines',
+                                              'hoverClosestCartesian',
+                                              'hoverCompareCartesian'),
+                   toImageButtonOptions = list(format = "svg", filename = fname))
 
 }
 

@@ -304,3 +304,10 @@ td.dt-nopad span {
 .dt-container {
   white-space: nowrap;
 }
+
+
+/* download button in input-group */
+.input-group-btn:last-child > .btn, 
+.input-group-btn:last-child > .btn-group {
+  border-left: 1px solid #ccc;
+}
