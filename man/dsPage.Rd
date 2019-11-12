@@ -4,7 +4,7 @@
 \alias{dsPage}
 \title{Logic Datasets page}
 \usage{
-dsPage(input, output, session, data_dir, indices_dir)
+dsPage(input, output, session, data_dir, sc_dir, indices_dir)
 }
 \description{
 Logic Datasets page

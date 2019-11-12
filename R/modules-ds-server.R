@@ -1,7 +1,7 @@
 #' Logic Datasets page
 #' @export
 #' @keywords internal
-dsPage <- function(input, output, session, data_dir, indices_dir) {
+dsPage <- function(input, output, session, data_dir, sc_dir, indices_dir) {
 
   new_anal <- reactiveVal()
   new_dataset <- reactiveVal()
@@ -9,7 +9,9 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
   msg_anal <- reactiveVal()
 
 
-  dsForm <- callModule(dsForm, 'form', data_dir,
+  dsForm <- callModule(dsForm, 'form',
+                       data_dir = data_dir,
+                       sc_dir = sc_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
                        msg_anal = msg_anal,
@@ -121,7 +123,10 @@ dsPage <- function(input, output, session, data_dir, indices_dir) {
 
       progress$set(message = "Saving", value = 7)
       anal <- list(scseq = scseq, markers = markers, annot = names(markers))
-      save_scseq_data(anal, dataset_name, file.path(data_dir, 'single-cell'))
+      save_scseq_data(anal, dataset_name, sc_dir)
+
+      # get and save cluster stats for selectizeInputs
+      get_cluster_stats(sc_dir, dataset_name, scseq)
 
     } else {
       # Create a callback function to update progress.
@@ -270,7 +275,7 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata, dat
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg_anal, new_anal) {
+dsForm <- function(input, output, session, data_dir, sc_dir, new_dataset, msg_quant, msg_anal, new_anal) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -308,11 +313,13 @@ dsForm <- function(input, output, session, data_dir, new_dataset, msg_quant, msg
                       is.sc = dataset$is.sc)
 
   anal <- callModule(dsFormAnal, 'anal_form',
-                     error_msg = msg_anal,
                      data_dir = data_dir,
+                     sc_dir = sc_dir,
+                     error_msg = msg_anal,
                      dataset_name = dataset$dataset_name,
                      dataset_dir = dataset$dataset_dir,
                      new_anal = new_anal,
+                     new_dataset = new_dataset,
                      eset = eset)
 
 
@@ -553,7 +560,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir, new_anal, dataset_dir, eset) {
+dsFormAnal <- function(input, output, session, data_dir, sc_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, eset) {
 
 
   run_anal <- reactiveVal()
@@ -572,6 +579,18 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     toggle('diff_panel', condition = !is.explore())
     toggle('explore_panel', condition = is.explore())
   })
+
+  # toggle cell-type deconvolution
+  show_decon <- reactive(input$show_decon %% 2 != 0)
+
+  observe({
+    toggleClass(id = "show_decon", 'btn-primary', condition = show_decon())
+  })
+
+  deconForm <- callModule(deconvolutionForm, 'decon',
+                          show_decon = show_decon,
+                          new_dataset = new_dataset,
+                          sc_dir = sc_dir)
 
 
   # logic for group name buttons
@@ -702,6 +721,67 @@ dsFormAnal <- function(input, output, session, error_msg, dataset_name, data_dir
     anal_name = anal_name,
     is.explore = is.explore
   ))
+}
+
+#' Logic for deconvolution form
+#' @export
+#' @keywords internal
+deconvolutionForm <- function(input, output, session, show_decon, new_dataset, sc_dir) {
+  exclude_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  # show deconvolution form toggle
+  observe({
+    toggle(id = "decon_form", anim = TRUE, condition = show_decon())
+  })
+
+  # available single cell datasets for deconvolution
+  ref_anals <- reactive({
+
+    # reactive to new sc datasets
+    new_dataset()
+
+    # make sure integrated rds exists
+    int_path <- file.path(sc_dir, 'integrated.rds')
+    if (!file.exists(int_path)) saveRDS(NULL, int_path)
+
+    # use saved anals as options
+    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+    return(individual)
+  })
+
+
+
+  # update reference dataset choices
+  observe({
+    ref_anals <- ref_anals()
+    req(ref_anals)
+    updateSelectizeInput(session, 'decon_anal', choices = c('', ref_anals))
+  })
+
+  annot <- reactive({
+    anal_name <- input$decon_anal
+    req(anal_name)
+    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+    readRDS(annot_path)
+  })
+
+  # update exclude cluster choices
+  exclude_choices <- reactive({
+    clusters <- annot()
+    anal_name <- input$decon_anal
+    get_cluster_choices(clusters, anal_name, sc_dir)
+  })
+
+  observe({
+    choices <- exclude_choices()
+    updateSelectizeInput(session, 'exclude_clusters', choices = choices, options = exclude_options, server = TRUE)
+  })
+
+  observeEvent(input$submit_decon, {
+    browser()
+
+  })
 }
 
 

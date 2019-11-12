@@ -4,7 +4,7 @@
 \alias{plotlyGene}
 \title{Generate boxplotly for vsd normalized gene data by group for Datasets tab}
 \usage{
-plotlyGene(eset, explore_genes, pdata)
+plotlyGene(eset, explore_genes, pdata, dataset_name)
 }
 \arguments{
 \item{eset}{ExpressionSet object with \code{'vsd'} assayDataElement}

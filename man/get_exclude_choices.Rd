@@ -4,14 +4,14 @@
 \alias{get_exclude_choices}
 \title{Get choices for included cluster in integration}
 \usage{
-get_exclude_choices(anal_names, anal_colors, data_dir)
+get_exclude_choices(anal_names, data_dir, anal_colors = NA)
 }
 \arguments{
 \item{anal_names}{Names of analyses selected for integration}
 
-\item{anal_colors}{Character vector of colors to indicate analysis}
-
 \item{data_dir}{Directory with single cell analyses.}
+
+\item{anal_colors}{Character vector of colors to indicate analysis}
 }
 \value{
 data.frame with columns for rendering selectizeInput include choices

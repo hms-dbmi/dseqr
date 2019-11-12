@@ -721,7 +721,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
       choices <- get_contrast_choices(clusters, test)
 
     } else {
-      choices <- get_cluster_choices(clusters, scseq())
+      choices <- get_cluster_choices(clusters, selected_anal(), sc_dir)
     }
 
     return(choices)
@@ -865,16 +865,13 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
 
-  # TODO: make it so that annotation changes don't require re-computing markers
-  # TODO store markers that have been previously computed
-
   # data.frame of markers for selected sample
   selected_markers <- reactiveVal()
   cluster_markers <- reactiveVal()
 
   cluster_choices <- reactive({
     req(annot())
-    get_cluster_choices(annot(), scseq(), sample_comparison = TRUE)
+    get_cluster_choices(annot(), selected_anal(), sc_dir, sample_comparison = TRUE)
   })
 
   # reset if switch analysis or annotation updates
@@ -1092,3 +1089,4 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
     plot_biogps(selected_gene())
   })
 }
+

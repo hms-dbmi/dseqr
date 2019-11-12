@@ -132,7 +132,7 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
 #' @return data.frame with columns for rendering selectizeInput include choices
 #' @export
 #' @keywords internal
-get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
+get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
 
   if (is.null(anal_names)) return(NULL)
 
@@ -142,7 +142,6 @@ get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
 
   annots <- lapply(annot_paths, readRDS)
   clusters <- lapply(annots, function(x) seq(0, length(x)-1))
-  colors <- lapply(annots, get_palette)
 
   exclude_choices <- lapply(seq_along(anal_names), function(i) {
     data.frame(
@@ -164,35 +163,74 @@ get_exclude_choices <- function(anal_names, anal_colors, data_dir) {
 #' @param clusters Character vector of cluster names
 #' @param scseq \code{Seurat} object
 #' @param value Character vector for value column which is returned from \code{selectizeInput}. Default is \code{clusters}.
+#' @param sample_comparison is this for test vs control comparion? Default is \code{FALSE}.
 #'
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, scseq, value = clusters, sample_comparison = FALSE) {
+get_cluster_choices <- function(clusters, anal_name, sc_dir, sample_comparison = FALSE) {
 
   testColor <- get_palette(clusters)
 
   # cluster choices are the clusters themselves
+  # value is original cluster number so that saved pathway analysis name
+  # isn't affected by updates to cluster annotation
   choices <- data.frame(name = stringr::str_trunc(clusters, 27),
                         value = seq(0, along.with = clusters),
                         label = clusters,
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
 
+  cluster_stats <- get_cluster_stats(sc_dir, anal_name)
+
   if (sample_comparison) {
-    choices$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
-    choices$nctrl <- format(tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl']))
+    choices$ntest <- cluster_stats$ntest
+    choices$nctrl <- format(cluster_stats$nctrl)
     choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
 
   } else {
     # show the cell numbers/percentages
-    choices$ncells <- tabulate(scseq$seurat_clusters)
-    choices$pcells <- round(choices$ncells / sum(choices$ncells) * 100)
+    choices$ncells <- cluster_stats$ncells
+    choices$pcells <- round(cluster_stats$pcells)
     choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
 
   }
 
   return(choices)
+}
+
+#' Get/Save cluster stats for single-cell related selectizeInputs
+#'
+#' @param sc_dir Path to directory containing single-cell dataset folders
+#' @param anal_name Name of single cell analysis to get/save stats for
+#' @param scseq \code{Seurat} object to get/save stats for. if \code{NULL} (Default), will be loaded.
+#'
+#' @return List with cluster stats
+#' @export
+get_cluster_stats <- function(sc_dir, anal_name, scseq = NULL) {
+
+  # return previously saved stats if exists
+  stats_path <- scseq_part_path(sc_dir, anal_name, 'cluster_stats')
+  if (file.exists(stats_path)) return(readRDS(stats_path))
+
+  # otherwise generate and save
+  if (is.null(scseq)) {
+    scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
+    scseq <- readRDS(scseq_path)
+  }
+
+  ncells <- tabulate(scseq$seurat_clusters)
+  pcells <- ncells / sum(ncells) * 100
+  stats <- list(ncells = ncells, pcells = pcells)
+
+  is.integrated <- 'integrated' %in% names(scseq@assays)
+  if (is.integrated) {
+    stats$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
+    stats$nctrl <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl'])
+  }
+
+  saveRDS(stats, stats_path)
+  return(stats)
 }
 
 
@@ -335,6 +373,11 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
   updateProgress(6/n, 'saving')
   scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
   save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
+
+  # get and save cluster stats
+  get_cluster_stats(data_dir, anal_name, combined)
+
+  return(NULL)
 }
 
 
@@ -522,7 +565,7 @@ save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE,
 validate_integration <- function(test, ctrl, anal_name, anal_options) {
   msg <- NULL
 
-    if (is.null(anal_name) || anal_name == '') {
+  if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
   } else if (anal_name %in% unlist(anal_options)) {

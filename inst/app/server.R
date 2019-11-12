@@ -1,3 +1,5 @@
+
+
 server <- function(input, output, session) {
 
   # get arguments from calling function
@@ -39,6 +41,7 @@ server <- function(input, output, session) {
 
   dsPage <- callModule(dsPage, 'datasets',
                        data_dir = data_dir,
+                       sc_dir = sc_dir,
                        indices_dir = indices_dir)
 
   scPage <- callModule(scPage, 'sc',

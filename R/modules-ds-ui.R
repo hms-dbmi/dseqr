@@ -145,8 +145,11 @@ dsFormAnalInput <- function(id) {
 
         selectizeInputWithButtons(ns('explore_genes'),
                                   'Show expression for:',
-                                  actionButton(ns('show_dtangle'), '', icon = icon('object-group', 'far fa-fw'), title = 'Show cell-type deconvolution'),
+                                  actionButton(ns('show_decon'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
                                   options = list(maxItems = 6, multiple = TRUE)),
+        div(class = 'hidden-forms',
+            deconvolutionFormInput(ns('decon'))
+        ),
         textInputWithButtons(ns('explore_group_name'),
                              container_id = ns('validate'),
                              'Group name for selected rows:',
@@ -177,6 +180,25 @@ dsTable <- function(id) {
   withTags({
     div(class = 'dt-container',
         DT::dataTableOutput(ns("pdata"))
+    )
+  })
+}
+
+
+#' Input form for single-cell deconvolution
+#' @export
+#' @keywords internal
+deconvolutionFormInput <- function(id) {
+  ns <- NS(id)
+
+  withTags({
+    div(id = ns('decon_form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInput(ns('decon_anal'), 'Reference single-cell dataset:', choices = '', width = '100%'),
+        selectizeInputWithButtons(ns('exclude_clusters'),
+                                  'Clusters to exclude:',
+                                  options = list(multiple = TRUE),
+                                  actionButton(ns('submit_decon'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
+        )
     )
   })
 }
