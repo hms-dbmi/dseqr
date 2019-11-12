@@ -134,7 +134,8 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
                                   anal = anal,
                                   is_sc = is_sc,
                                   input_ids = input_ids,
-                                  with_path = TRUE)
+                                  with_path = TRUE,
+                                  with_drugs = TRUE)
 
 
   # file paths to pathway, analysis, and drug query results
@@ -179,17 +180,25 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
   queries <- reactive({
     fpaths <- fpaths()
 
-    # TODO: implement for single cell
-    if (is_sc()) return(NULL)
+    if (is_sc()) {
+      sc_res <- sc_inputs$res()
+      req(sc_res)
+
+      cmap <- sc_res$cmap
+      l1000_genes <- sc_res$l1000_genes
+      l1000_drugs <- sc_res$l1000_drugs
+
+    } else {
+      cmap <- readRDS(fpaths$cmap)
+      l1000_genes <- readRDS(fpaths$l1000_genes)
+      l1000_drugs <- readRDS(fpaths$l1000_drugs)
+    }
 
     # order pert choices same as in drugs
-    l1000_genes <- readRDS(fpaths$l1000_genes)
-    l1000_genes <- l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
-
     list(
-      cmap = sort(readRDS(fpaths$cmap)),
-      l1000_drugs = sort(readRDS(fpaths$l1000_drugs)),
-      l1000_genes = l1000_genes
+      cmap = sort(cmap),
+      l1000_drugs = sort(l1000_drugs),
+      l1000_genes = l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
     )
 
   })
@@ -365,11 +374,8 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
 
 
   cluster_choices <- reactive({
-    # value is original cluster number so that saved pathway analysis name
-    # isn't affected by updates to cluster annotation
-    scseq <- scseq()
-    value <- levels(Seurat::Idents(scseq))
-    get_cluster_choices(clusters = annot(), scseq = scseq, value = value, sample_comparison = TRUE)
+    anal_name <- anal()$anal_name
+    get_cluster_choices(clusters = annot(), anal_name, sc_dir(), sample_comparison = TRUE)
   })
 
 
