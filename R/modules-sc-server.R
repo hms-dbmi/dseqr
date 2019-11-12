@@ -289,7 +289,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) 
     if (length(integrated) == 1) integrated <- list(integrated)
     if (length(individual) == 1) individual <- list(individual)
 
-    list(Individual = individual, Integrated = integrated)
+    list(Individual = c('', individual), Integrated = integrated)
   })
 
   # update if options change
