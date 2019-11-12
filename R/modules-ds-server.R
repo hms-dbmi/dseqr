@@ -1,7 +1,7 @@
 #' Logic Datasets page
 #' @export
 #' @keywords internal
-dsPage <- function(input, output, session, data_dir, sc_dir, indices_dir) {
+dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
   new_anal <- reactiveVal()
   new_dataset <- reactiveVal()
@@ -12,6 +12,7 @@ dsPage <- function(input, output, session, data_dir, sc_dir, indices_dir) {
   dsForm <- callModule(dsForm, 'form',
                        data_dir = data_dir,
                        sc_dir = sc_dir,
+                       bulk_dir = bulk_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
                        msg_anal = msg_anal,
@@ -275,7 +276,7 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata, dat
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, new_dataset, msg_quant, msg_anal, new_anal) {
+dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, msg_anal, new_anal) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -315,6 +316,7 @@ dsForm <- function(input, output, session, data_dir, sc_dir, new_dataset, msg_qu
   anal <- callModule(dsFormAnal, 'anal_form',
                      data_dir = data_dir,
                      sc_dir = sc_dir,
+                     bulk_dir = bulk_dir,
                      error_msg = msg_anal,
                      dataset_name = dataset$dataset_name,
                      dataset_dir = dataset$dataset_dir,
@@ -560,7 +562,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, sc_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, eset) {
+dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, eset) {
 
 
   run_anal <- reactiveVal()
@@ -590,7 +592,11 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, error_msg, data
   deconForm <- callModule(deconvolutionForm, 'decon',
                           show_decon = show_decon,
                           new_dataset = new_dataset,
-                          sc_dir = sc_dir)
+                          sc_dir = sc_dir,
+                          bulk_dir = bulk_dir,
+                          dataset_name = dataset_name,
+                          eset = eset,
+                          dataset_dir = dataset_dir)
 
 
   # logic for group name buttons
@@ -620,7 +626,7 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, error_msg, data
   # -------------------------------
   # TODO: refactor into seperate module
 
-  # analyses (can be multiple) from dataset
+  # analysis info table (can be multiple) from dataset
   dataset_anals <- reactive({
     # reload if new analysis
     new_anal()
@@ -726,8 +732,10 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, error_msg, data
 #' Logic for deconvolution form
 #' @export
 #' @keywords internal
-deconvolutionForm <- function(input, output, session, show_decon, new_dataset, sc_dir) {
-  exclude_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+deconvolutionForm <- function(input, output, session, show_decon, new_dataset, sc_dir, bulk_dir, eset, dataset_dir, dataset_name) {
+  include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  final_est <- reactiveVal()
 
   # show deconvolution form toggle
   observe({
@@ -767,21 +775,107 @@ deconvolutionForm <- function(input, output, session, show_decon, new_dataset, s
   })
 
   # update exclude cluster choices
-  exclude_choices <- reactive({
+  include_choices <- reactive({
     clusters <- annot()
     anal_name <- input$decon_anal
     get_cluster_choices(clusters, anal_name, sc_dir)
   })
 
   observe({
-    choices <- exclude_choices()
-    updateSelectizeInput(session, 'exclude_clusters', choices = choices, options = exclude_options, server = TRUE)
+    choices <- include_choices()
+    updateSelectizeInput(session, 'include_clusters', choices = choices, options = include_options, server = TRUE)
+  })
+
+  # scseq for deconvolution
+  scseq <- reactive({
+    anal_name <- input$decon_anal
+    scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
+    readRDS(scseq_path)
   })
 
   observeEvent(input$submit_decon, {
-    browser()
+    dataset_name <- dataset_name()
+    include_clusters <- input$include_clusters
 
+    # check for saved
+    clusters_name <- collapse_sorted(include_clusters)
+    res_path <- scseq_part_path(bulk_dir, dataset_name, paste0('dtangle_', clusters_name))
+    if (file.exists(res_path)) {
+      dc <- readRDS(res_path)
+
+    } else {
+      scseq <- scseq()
+      eset <- eset()
+
+
+      # if select non deconvolute using all clusters
+      if (!length(include_clusters)) {
+        include_choices <- include_choices()
+        include_clusters <- as.character(include_choices$value)
+      }
+
+      # subset to selected clusters
+      scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
+
+      # get DESeq2::vst normalized values from eset
+      vsd <- Biobase::assayDataElement(eset, 'vsd')
+
+      # common genes only
+      commongenes <- intersect (rownames(vsd), rownames(scseq))
+      vsd <- vsd[commongenes, ]
+      scseq <- scseq[commongenes, ]
+
+      # quantile normalize scseq and rnaseq dataset
+      y <- cbind(as.matrix(scseq[['RNA']]@data), vsd)
+
+      y <- limma::normalizeBetweenArrays(y)
+      y <- t(y)
+
+
+      # indicies for cells in each included cluster
+      pure_samples <- list()
+      for (i in seq_along(include_clusters))
+        pure_samples[[include_clusters[i]]] <-
+        which(scseq$seurat_clusters == include_clusters[i])
+
+      # markers for each included cluster
+      marker_list = dtangle::find_markers(y,
+                                          pure_samples = pure_samples,
+                                          data_type = "rna-seq",
+                                          marker_method='ratio')
+
+      # use markers in top 10th quantile with a minimum of 3
+      q = 0.1
+      quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
+      K = length(pure_samples)
+      n_markers = sapply(seq_len(K),function(i){
+        max(3, which(marker_list$V[[i]] > quantiles[[i]]))
+      })
+
+      # run deconvolution and get get proportion estimates
+      marks <- marker_list$L
+      dc <- dtangle::dtangle(y,
+                             pure_samples = pure_samples,
+                             n_markers = n_markers,
+                             data_type = 'rna-seq',
+                             markers = marks)
+
+      dc <- dc$estimates[colnames(eset), ]
+
+
+      # save results
+      saveRDS(dc, res_path)
+
+    }
+
+
+    final_est(dc)
   })
+
+
+  return(list(
+    final_est = final_est
+  ))
 }
 
 
