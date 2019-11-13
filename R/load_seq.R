@@ -43,7 +43,7 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
   # construct eset
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(species, release)
-  eset <- construct_eset(q$quants, q$vsd, fdata, annot)
+  eset <- construct_eset(q$quants, q$txi.deseq, fdata, annot)
 
   if (save_dgel) {
     # used for testing purposes
@@ -66,11 +66,20 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
 #' @keywords internal
 #' @export
 #'
-construct_eset <- function(quants, vsd, fdata, annot) {
+construct_eset <- function(quants, txi.deseq, fdata, annot) {
   # remove duplicate rows of counts
   rn <- row.names(quants$counts)
-  colnames(vsd) <- paste0(colnames(vsd), '_deseq')
-  mat <- unique(data.table::data.table(quants$counts, SummarizedExperiment::assay(vsd), rn, key = 'rn'))
+
+  txi.deseq <- txi.deseq[1:3]
+  for (name in names(txi.deseq))
+    colnames(txi.deseq[[name]]) <-
+    paste(colnames(txi.deseq[[name]]), name, sep = '_')
+
+
+  mat <- unique(data.table::data.table(quants$counts,
+                                       txi.deseq$abundance,
+                                       txi.deseq$counts,
+                                       txi.deseq$length, rn, key = 'rn'))
 
   # merge exprs and fdata
   dt <- merge(fdata, mat, by.y = 'rn', by.x = key(fdata), all.y = TRUE, sort = FALSE)
@@ -81,11 +90,16 @@ construct_eset <- function(quants, vsd, fdata, annot) {
   pdata <- quants$samples
   pdata$group <- NULL
 
-  # create environment with counts for limma and vsd normalized log2 counts for plots
+  # create environment with counts for limma and txi.deseq values for plots
   e <- new.env()
   e$exprs <- as.matrix(dt[, row.names(pdata), drop=FALSE])
-  e$vsd <- as.matrix(dt[, paste0(row.names(pdata), '_deseq'), drop=FALSE])
-  colnames(e$vsd) <- gsub('_deseq$', '', colnames(e$vsd))
+  e$abundance <- as.matrix(dt[, paste0(row.names(pdata), '_abundance'), drop=FALSE])
+  e$counts <- as.matrix(dt[, paste0(row.names(pdata), '_counts'), drop=FALSE])
+  e$length <- as.matrix(dt[, paste0(row.names(pdata), '_length'), drop=FALSE])
+
+  colnames(e$abundance) <- gsub('_abundance$', '', colnames(e$abundance))
+  colnames(e$counts) <- gsub('_counts$', '', colnames(e$counts))
+  colnames(e$length) <- gsub('_length$', '', colnames(e$length))
 
   # seperate fdata and exprs and transfer to eset
   eset <- Biobase::ExpressionSet(e,
@@ -147,12 +161,13 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #'
 #' @inheritParams setup_fdata
 #' @inheritParams load_seq
+#' @inheritParams return_deseq if \code{TRUE}, returns DESeq2 object after \code{estimateSizeFactors}
 #'
 #' @return \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94') {
+import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94', return_deseq = FALSE) {
 
   if (!grepl('sapiens', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
@@ -179,7 +194,7 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 
   # import limma for differential expression analysis
   txi.limma <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
-                            ignoreTxVersion = ignore, countsFromAbundance = 'lengthScaledTPM')
+                                  ignoreTxVersion = ignore, countsFromAbundance = 'lengthScaledTPM')
 
   quants <- edgeR::DGEList(txi.limma$counts)
   quants <- edgeR::calcNormFactors(quants)
@@ -189,20 +204,39 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
                                   ignoreTxVersion = ignore, countsFromAbundance = 'no')
 
 
-  dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, data.frame(title = colnames(txi.deseq$counts)), design = ~1)
-  dds <- DESeq2::estimateSizeFactors(dds)
-  vsd <- DESeq2::vst(dds)
-
   # filtering low counts (as in tximport vignette)
   if (filter) {
     keep <- edgeR::filterByExpr(quants)
     quants <- quants[keep, ]
-    vsd <- vsd[keep, ]
+    txi.deseq[1:3] <- lapply(txi.deseq[1:3], function(x) x[keep, ])
     if (!nrow(quants)) stop("No genes with reads after filtering")
   }
 
-  return(list(quants = quants, vsd = vsd))
+  if(return_deseq) return(txi.deseq)
+  return(list(quants = quants, txi.deseq = txi.deseq))
+}
 
+#' Add VST normalized assay data element to expression set
+#'
+#' @param eset ExpressionSet with group column in \code{pData(eset)}
+#'
+#' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
+#' @export
+add_vsd <- function(eset) {
+
+  pdata <- Biobase::pData(eset)
+  txi.deseq <- list(countsFromAbundance = 'no',
+                    abundance = Biobase::assayDataElement(eset, 'abundance'),
+                    counts = Biobase::assayDataElement(eset, 'counts'),
+                    length = Biobase::assayDataElement(eset, 'length')
+  )
+
+  dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, pdata, design = ~group)
+  dds <- DESeq2::estimateSizeFactors(dds)
+  vsd <- DESeq2::vst(dds, blind = FALSE)
+
+  Biobase::assayDataElement(eset, 'vsd') <- SummarizedExperiment::assay(vsd)
+  return(eset)
 }
 
 #' Get ensembldb package name

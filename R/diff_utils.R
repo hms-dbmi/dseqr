@@ -58,6 +58,9 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
     eset <- select_contrast(eset)
   }
 
+  # add vsd element for plots
+  eset <- add_vsd(eset)
+
   # setup for differential expression
   setup <- diff_setup(eset, svanal, rna_seq)
 
