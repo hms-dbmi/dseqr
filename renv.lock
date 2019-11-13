@@ -88,6 +88,12 @@
       "Repository": "CRAN",
       "Hash": "2b2b6ea2111e1e57e192765d5013a3c5"
     },
+    "DESeq2": {
+      "Package": "DESeq2",
+      "Version": "1.24.0",
+      "Source": "Bioconductor",
+      "Hash": "b33f72eafb5334d80415532d1d76cdda"
+    },
     "DEoptimR": {
       "Package": "DEoptimR",
       "Version": "1.0-8",
@@ -134,6 +140,13 @@
       "Repository": "CRAN",
       "Hash": "b1f07a0d5e5b38978da4c5c0f42eb743"
     },
+    "Formula": {
+      "Package": "Formula",
+      "Version": "1.2-3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f9553de47f7d1a96f855f8bc6dff1dfe"
+    },
     "GGally": {
       "Package": "GGally",
       "Version": "1.4.0",
@@ -164,6 +177,13 @@
       "Version": "1.12.3",
       "Source": "Bioconductor",
       "Hash": "5fe63a4e783814be825a54291869dc8d"
+    },
+    "Hmisc": {
+      "Package": "Hmisc",
+      "Version": "4.3-0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "734709b1d7c91916c3fe8cb5237197dd"
     },
     "IRanges": {
       "Package": "IRanges",
@@ -309,6 +329,13 @@
       "Repository": "CRAN",
       "Hash": "db553fcc13163a30d85d438c0b81e018"
     },
+    "RcppArmadillo": {
+      "Package": "RcppArmadillo",
+      "Version": "0.9.800.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e60ca677f31a2d149c5865f72498f9d8"
+    },
     "RcppEigen": {
       "Package": "RcppEigen",
       "Version": "0.3.3.5.0",
@@ -437,6 +464,13 @@
       "Repository": "CRAN",
       "Hash": "14cdb8eed4adcbe6e463b0dd82bd778c"
     },
+    "acepack": {
+      "Package": "acepack",
+      "Version": "1.4.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3794f982df501c9d1503ea0d32648042"
+    },
     "annotate": {
       "Package": "annotate",
       "Version": "1.62.0",
@@ -560,6 +594,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "2cd2a065192f3ba08a919d8800dba7e0"
+    },
+    "checkmate": {
+      "Package": "checkmate",
+      "Version": "1.9.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "51788d50ba2a6ac3bf71efadaf1f76d9"
     },
     "class": {
       "Package": "class",
@@ -865,6 +906,12 @@
       "Source": "Bioconductor",
       "Hash": "e8e433dbc8e2ee2869245a447f2f22e2"
     },
+    "geneplotter": {
+      "Package": "geneplotter",
+      "Version": "1.62.0",
+      "Source": "Bioconductor",
+      "Hash": "22bfcc9953a603827229e175d812bc81"
+    },
     "ggbeeswarm": {
       "Package": "ggbeeswarm",
       "Version": "0.6.0",
@@ -977,12 +1024,26 @@
       "Repository": "CRAN",
       "Hash": "dd1a219a8e8212b1808640670893274e"
     },
+    "highr": {
+      "Package": "highr",
+      "Version": "0.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "43e36bc8bca1d8256f86933659c46349"
+    },
     "hms": {
       "Package": "hms",
       "Version": "0.5.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "5c9cbb0d6f49109be1a771d963801847"
+    },
+    "htmlTable": {
+      "Package": "htmlTable",
+      "Version": "1.13.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4b209d9e222f7fe844c752100b06c091"
     },
     "htmltools": {
       "Package": "htmltools",
@@ -1054,6 +1115,13 @@
       "Repository": "CRAN",
       "Hash": "0cba23147e995da0c811b93faedec212"
     },
+    "knitr": {
+      "Package": "knitr",
+      "Version": "1.26",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4a9bc248b52335212d8d36f9a4c6a6f0"
+    },
     "labeling": {
       "Package": "labeling",
       "Version": "0.3",
@@ -1088,6 +1156,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "6f7aa123115b33bc9ad1ca800874b1de"
+    },
+    "latticeExtra": {
+      "Package": "latticeExtra",
+      "Version": "0.6-28",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "693779e46ee894695df882436c360bbe"
     },
     "lazyeval": {
       "Package": "lazyeval",
@@ -1171,6 +1246,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "4cd7905afbadb0621dab6a2070638fc9"
+    },
+    "markdown": {
+      "Package": "markdown",
+      "Version": "1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "80e1f73841614fa35f82a85d66fb41da"
     },
     "matrixStats": {
       "Package": "matrixStats",
@@ -1535,6 +1617,13 @@
       "Repository": "CRAN",
       "Hash": "275cc8197da046f7f01f7f4c284200be"
     },
+    "rpart": {
+      "Package": "rpart",
+      "Version": "4.1-15",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0d0e7f0e3c22944bb9bf67d0d5636e50"
+    },
     "rrcov": {
       "Package": "rrcov",
       "Version": "1.4-7",
@@ -1789,6 +1878,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "7c9aef08038f47e6c1532ed574a0e087"
+    },
+    "xfun": {
+      "Package": "xfun",
+      "Version": "0.11",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "7d51266ba491e922f72026a90552378b"
     },
     "xtable": {
       "Package": "xtable",

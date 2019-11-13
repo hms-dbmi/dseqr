@@ -7,7 +7,7 @@
 dl_10x_whitelists(indices_dir)
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}
+\item{indices_dir}{Directory with kallisto indices.}
 }
 \description{
 Download 10X whitelists for kallisto bustools correction

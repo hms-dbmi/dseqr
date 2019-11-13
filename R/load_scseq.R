@@ -436,8 +436,6 @@ get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, min.diff.pc
 #' @export
 integrate_scseqs <- function(scseqs, scalign = FALSE) {
 
-  browser()
-
   genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
   scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
 

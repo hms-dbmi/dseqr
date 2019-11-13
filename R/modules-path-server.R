@@ -157,8 +157,8 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
     if(file.exists(diff_path_old)) file.rename(diff_path_old, diff_path)
 
     list(
-      diff_anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      diff_path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds')),
+      anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
+      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds')),
       cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
       l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
       l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
@@ -171,8 +171,8 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
     if (is_sc()) return (sc_inputs$results())
 
     list(
-      path = readRDS(fpaths$diff_path),
-      anal = readRDS(fpaths$diff_anal)
+      path = readRDS(fpaths$path),
+      anal = readRDS(fpaths$anal)
     )
   })
 
@@ -189,9 +189,10 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
       l1000_drugs <- sc_res$l1000_drugs
 
     } else {
-      cmap <- readRDS(fpaths$cmap)
-      l1000_genes <- readRDS(fpaths$l1000_genes)
-      l1000_drugs <- readRDS(fpaths$l1000_drugs)
+      res <- run_drugs_comparison(fpaths, session)
+      cmap <- res$cmap
+      l1000_genes <- res$l1000_genes
+      l1000_drugs <- res$l1000_drugs
     }
 
     # order pert choices same as in drugs

@@ -22,3 +22,4 @@ get_label_plot(anal, scseq, annot, plot)
 \description{
 Get plot to compare original labels for integrated single cell dataset.
 }
+\keyword{internal}

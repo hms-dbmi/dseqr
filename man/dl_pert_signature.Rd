@@ -14,3 +14,8 @@ dl_pert_signature(sig_path, pert_type)
 \description{
 Download CMAP02/L1000 pert signature from S3
 }
+\examples{
+sig_path <- 'cmap_res_BRD-K45319408_PC3_5um_24h.rds'
+dl_pert_result(res_path)
+
+}

@@ -679,7 +679,6 @@ cca_integrate <- function(scseqs, genes) {
 #' @param genes Highly variable genes to integrate with
 #' @importFrom SingleCellExperiment colData
 #'
-#' @return
 #' @export
 #' @keywords internal
 #'
@@ -1035,6 +1034,9 @@ get_nearest_row <- function(truth, test) {
 #'
 #' @return \code{ggplot} object showing cells in \code{anal} with original labels but coordinates from \code{plot}
 #'  of integrated \code{scseq}.
+#' @export
+#' @keywords internal
+#'
 get_label_plot <- function(anal, scseq, annot, plot) {
 
   # current colors used in plot with associated cluster

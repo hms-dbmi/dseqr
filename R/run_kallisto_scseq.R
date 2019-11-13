@@ -1,9 +1,8 @@
 #' Run kallisto/bustools for quantifying 10X scRNA-seq data
 #'
-#' @param indices_dir Directory with kallisto indices. See \code{\link{build_kallisto_index}}.
+#' @param indices_dir Directory with kallisto indices.
 #' @param data_dir Path to folder with 10X fastq.gz scRNA-seq files
 #' @param bus_args Character vector of arguments to bustools.
-#' @inheritParams build_kallisto_index
 #'
 #' @return NULL
 #' @export

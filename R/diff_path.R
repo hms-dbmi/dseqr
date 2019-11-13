@@ -26,17 +26,19 @@
 #'
 diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, browse = FALSE, NI = 1000, type = c('KEGG', 'GO')){
 
+  # subset eset to previously analysed samples
+  prev_pdata <- prev_anal$pdata
+  eset <- eset[, row.names(prev_pdata)]
+  Biobase::pData(eset)$group <- prev_pdata$group
+
+  if (rna_seq) eset <- add_vsd(eset)
+
   # remove replicates/duplicates and annotate with human ENTREZID
   dups <- iqr_replicates(eset, annot = 'ENTREZID_HS', rm.dup = TRUE)
   eset <- dups$eset
 
-  # subset eset to previously analysis samples
-  prev_pdata <- prev_anal$pdata
-  eset <- eset[, row.names(prev_pdata)]
-
-  groups <- prev_pdata$group
-
   # contrast levels
+  groups <- prev_pdata$group
   ctrl <- 'ctrl'
   test <- 'test'
 

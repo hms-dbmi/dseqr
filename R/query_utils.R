@@ -86,7 +86,7 @@ query_drugs <- function(query_genes, drug_es, ngenes = 200) {
 #' @inheritParams query_drugs
 #'
 #' @return Named numeric vector where most negative results are predicted to have the strongest desired effect as
-#'  indicated by \code{query_genes.
+#'  indicated by \code{query_genes}.
 #' @export
 #' @keywords internal
 query_budger <- function(query_genes, drug_es) {

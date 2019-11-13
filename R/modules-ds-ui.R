@@ -198,7 +198,7 @@ dtangleFormInput <- function(id) {
     div(id = ns('dtangle_form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('dtangle_anal'), 'Reference single-cell dataset:', choices = '', width = '100%'),
         selectizeInputWithButtons(ns('include_clusters'),
-                                  label = tags$span('Clusters to include:', span(class='hover-info', icon('info', 'fa-fw'), title = '')),
+                                  label = tags$span('Clusters to include:', span(class='hover-info', icon('info', 'fa-fw'), title = 'Select cell types that are expected in the bulk dataset')),
                                   options = list(multiple = TRUE, placeholder = 'Select none to include all'),
                                   actionButton(ns('submit_dtangle'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
         )

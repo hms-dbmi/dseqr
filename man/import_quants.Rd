@@ -17,6 +17,8 @@ import_quants(data_dir, filter, type, species = "Homo sapiens",
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
 \item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
+
+\item{return_deseq}{if \code{TRUE}, returns tximport result for DESeq2 workflow.}
 }
 \value{
 \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.

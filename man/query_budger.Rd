@@ -12,6 +12,10 @@ query_budger(query_genes, drug_es)
 
 \item{drug_es}{A matrix of differential expression values for drugs.}
 }
+\value{
+Named numeric vector where most negative results are predicted to have the strongest desired effect as
+ indicated by \code{query_genes}.
+}
 \description{
 Results are based on the average effect on the query genes. Genes to upregulate are multiplied by -1 so that
 strong positive results for these genes contribute towards a more negative average effect. All results are divided

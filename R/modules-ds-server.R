@@ -289,82 +289,6 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_na
 
 }
 
-plotlyGene <- function(eset, explore_genes, dataset_name) {
-
-  dat <- Biobase::assayDataElement(eset, 'vsd')
-  pdata <- Biobase::pData(eset)
-
-  dfs <- list()
-  for (gene in explore_genes) {
-    dfs[[gene]] <- data.frame(Sample = row.names(pdata),
-                              Gene = gene,
-                              Expression = dat[gene, row.names(pdata)],
-                              Name = as.character(pdata$`Group name`),
-                              Num = pdata$Group,
-                              stringsAsFactors = FALSE)
-
-  }
-
-  df <- do.call(rbind, dfs)
-  group_levels <- as.character(sort(unique(df$Num)))
-
-  # adjust gaps within/between group based on number of boxs (chosen by trial and error)
-  nbox <- length(group_levels) * length(explore_genes)
-  boxgap <- ifelse(nbox > 5, 0.4, 0.6)
-  boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
-
-  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
-  if (length(group_levels) <= 2)
-    group_levels <- c(group_levels, 'NA')
-
-  df$Num <- factor(df$Num, levels = group_levels)
-  df$Gene <- factor(df$Gene, levels = explore_genes)
-
-  l <- list(
-    font = list(
-      family = "sans-serif",
-      size = 12,
-      color = "#000"),
-    bgcolor = "#f8f8f8",
-    bordercolor = "#e7e7e7",
-    borderwidth = 1)
-
-  # name for saving plot
-  fname <- paste(explore_genes, collapse = '_')
-  fname <- paste('bulk', dataset_name, fname, Sys.Date(), sep='_')
-
-  df %>%
-    plotly::plot_ly() %>%
-    plotly::add_trace(x = ~ Gene,
-                      y = ~Expression,
-                      color = ~Num,
-                      text = ~Sample,
-                      name = ~Name,
-                      type = 'box',
-                      boxpoints = 'all',
-                      jitter = 0.8,
-                      pointpos = 0,
-                      fillcolor = 'transparent',
-                      hoverinfo = 'text',
-                      whiskerwidth = 0.1,
-                      hoveron = 'points',
-                      marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
-    plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
-                   xaxis = list(fixedrange=TRUE),
-                   yaxis = list(fixedrange=TRUE, title = 'Normalized Expression'),
-                   legend = l) %>%
-    plotly::config(displaylogo = FALSE,
-                   displayModeBar = 'hover',
-                   modeBarButtonsToRemove = c('lasso2d',
-                                              'select2d',
-                                              'toggleSpikelines',
-                                              'hoverClosestCartesian',
-                                              'hoverCompareCartesian'),
-                   toImageButtonOptions = list(format = "svg", filename = fname))
-
-}
-
-
 #' Logic for Dataset Cell Type deconvolution plotly
 #' @export
 #' @keywords internal
@@ -1494,4 +1418,3 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   ))
 
 }
-

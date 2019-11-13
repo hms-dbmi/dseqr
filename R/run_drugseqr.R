@@ -4,7 +4,7 @@
 #'
 #' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
-#' @param
+#' @param app_dir Directory containing drugseqr shiny app files.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.

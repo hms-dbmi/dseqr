@@ -8,7 +8,7 @@ run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
   "-t 4"), species = "homo_sapiens", release = "94")
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}
+\item{indices_dir}{Directory with kallisto indices.}
 
 \item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
 

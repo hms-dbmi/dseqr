@@ -586,7 +586,7 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   observe({
     anal_names <- c(test(), ctrl())
     anal_colors <- get_palette(anal_names)
-    exclude_choices <- get_exclude_choices(anal_names, anal_colors, sc_dir)
+    exclude_choices <- get_exclude_choices(anal_names, sc_dir, anal_colors)
     updateSelectizeInput(session, 'exclude_clusters',
                          choices = exclude_choices,
                          options = list(render = I('{option: excludeOptions, item: excludeOptions}')),

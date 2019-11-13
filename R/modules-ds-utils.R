@@ -33,6 +33,7 @@ validate_pdata <- function(pdata) {
 plotlyGene <- function(eset, explore_genes, dataset_name) {
 
   dat <- Biobase::assayDataElement(eset, 'vsd')
+  pdata <- Biobase::pData(eset)
 
   dfs <- list()
   for (gene in explore_genes) {

@@ -14,6 +14,8 @@ run_drugseqr(data_dir, app_dir = system.file("app", package = "drugseqr",
 \item{data_dir}{Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 Ignored if \code{test_data} is \code{TRUE}.}
 
+\item{app_dir}{Directory containing drugseqr shiny app files.}
+
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).

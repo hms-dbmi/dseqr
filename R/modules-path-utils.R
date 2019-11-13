@@ -24,7 +24,7 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
 #'
 #' @return NULL
 #' @export
-#' @example
+#' @examples
 #' sig_path <- 'cmap_res_BRD-K45319408_PC3_5um_24h.rds'
 #' dl_pert_result(res_path)
 #'

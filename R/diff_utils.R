@@ -59,7 +59,7 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
   }
 
   # add vsd element for plots
-  eset <- add_vsd(eset)
+  if (rna_seq) eset <- add_vsd(eset)
 
   # setup for differential expression
   setup <- diff_setup(eset, svanal, rna_seq)

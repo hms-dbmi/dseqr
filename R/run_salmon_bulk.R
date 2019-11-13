@@ -107,7 +107,6 @@ run_salmon_bulk <- function(indices_dir, data_dir, pdata = NULL, species = 'homo
 #' @export
 #' @keywords internal
 #'
-#' @examples
 get_pkg_version <- function(type) {
   # possibly use older salmon with version appended to executable name
   if (type == 'salmon') {

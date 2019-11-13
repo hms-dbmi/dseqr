@@ -161,7 +161,7 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #'
 #' @inheritParams setup_fdata
 #' @inheritParams load_seq
-#' @inheritParams return_deseq if \code{TRUE}, returns DESeq2 object after \code{estimateSizeFactors}
+#' @param return_deseq if \code{TRUE}, returns tximport result for DESeq2 workflow.
 #'
 #' @return \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
 #' @keywords internal
@@ -223,6 +223,9 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 #' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 #' @export
 add_vsd <- function(eset) {
+
+  # for cases where manually added (e.g. nanostring dataset)
+  if ('vsd' %in% Biobase::assayDataElementNames(eset)) return(eset)
 
   pdata <- Biobase::pData(eset)
   txi.deseq <- list(countsFromAbundance = 'no',
