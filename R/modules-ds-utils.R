@@ -30,7 +30,7 @@ validate_pdata <- function(pdata) {
 #' @return plotly
 #' @export
 #'
-plotlyGene <- function(eset, explore_genes, pdata, dataset_name) {
+plotlyGene <- function(eset, explore_genes, dataset_name) {
 
   dat <- Biobase::assayDataElement(eset, 'vsd')
 
@@ -92,6 +92,87 @@ plotlyGene <- function(eset, explore_genes, pdata, dataset_name) {
     plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
                    xaxis = list(fixedrange=TRUE),
                    yaxis = list(fixedrange=TRUE, title = 'Normalized Expression'),
+                   legend = l) %>%
+    plotly::config(displaylogo = FALSE,
+                   displayModeBar = 'hover',
+                   modeBarButtonsToRemove = c('lasso2d',
+                                              'select2d',
+                                              'toggleSpikelines',
+                                              'hoverClosestCartesian',
+                                              'hoverCompareCartesian'),
+                   toImageButtonOptions = list(format = "svg", filename = fname))
+
+}
+
+
+#' Generate boxplotly for vsd normalized gene data by group for Datasets tab
+#'
+#' @param eset ExpressionSet object with \code{'vsd'} assayDataElement
+#' @param explore_genes Character vector of genes to plot
+#' @param pdata data.frame with columns \code{'Group name'} (character) and \code{'Group'} (integer).
+#'
+#' @return plotly
+#' @export
+#'
+plotlyCells <- function(pdata, dtangle_est) {
+
+  common <- intersect(row.names(dtangle_est), row.names(pdata))
+  dtangle_est <- as.data.frame(dtangle_est)[common, ]
+  pdata <- pdata[common, c('Title', 'Group name', 'Group')]
+  colnames(pdata) <- c('Title', 'Name', 'Num')
+
+  df <- stack(dtangle_est)
+  colnames(df) <- c('Proportion', 'Cluster')
+
+  df <- cbind(pdata, df)
+  group_levels <- as.character(sort(unique(df$Num)))
+  clus_levels <- colnames(dtangle_est)
+
+  # adjust gaps within/between group based on number of boxs (chosen by trial and error)
+  nbox <- length(group_levels) * length(clus_levels)
+  boxgap <- ifelse(nbox > 5, 0.4, 0.6)
+  boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
+
+  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
+  if (length(group_levels) <= 2)
+    group_levels <- c(group_levels, 'NA')
+
+
+  df$Num <- factor(df$Num, levels = group_levels)
+  df$Cluster <- factor(df$Cluster, levels = clus_levels)
+
+  l <- list(
+    font = list(
+      family = "sans-serif",
+      size = 12,
+      color = "#000"),
+    bgcolor = "#f8f8f8",
+    bordercolor = "#e7e7e7",
+    borderwidth = 1)
+
+  # name for saving plot
+  fname <- paste(clus_levels, collapse = '_')
+  fname <- paste('bulk', 'blah', fname, Sys.Date(), sep='_')
+
+  df %>%
+    plotly::plot_ly() %>%
+    plotly::add_trace(x = ~Cluster,
+                      y = ~Proportion,
+                      color = ~Num,
+                      text = ~Title,
+                      name = ~Name,
+                      type = 'box',
+                      boxpoints = 'all',
+                      jitter = 0.8,
+                      pointpos = 0,
+                      fillcolor = 'transparent',
+                      hoverinfo = 'text',
+                      whiskerwidth = 0.1,
+                      hoveron = 'points',
+                      marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
+    plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
+                   xaxis = list(fixedrange=TRUE),
+                   yaxis = list(fixedrange=TRUE, title = 'Proportion'),
                    legend = l) %>%
     plotly::config(displaylogo = FALSE,
                    displayModeBar = 'hover',

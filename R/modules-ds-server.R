@@ -8,6 +8,21 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   msg_quant <- reactiveVal()
   msg_anal <- reactiveVal()
 
+  explore_eset <- reactive({
+    # need at least two groups
+    pdata <- dsExploreTable$pdata()
+    keep <- row.names(pdata)[!is.na(pdata$Group)]
+    pdata <- pdata[keep, ]
+    req(length(unique(pdata$Group)) > 1)
+
+    # add vst normalized data
+    eset <- dsForm$eset()
+    eset <- eset[, keep]
+    pdata$group <- pdata$`Group name`
+    Biobase::pData(eset) <- pdata
+    add_vsd(eset)
+  })
+
 
   dsForm <- callModule(dsForm, 'form',
                        data_dir = data_dir,
@@ -16,7 +31,8 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
                        msg_anal = msg_anal,
-                       new_anal = new_anal)
+                       new_anal = new_anal,
+                       explore_eset = explore_eset)
 
 
 
@@ -37,7 +53,8 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   # toggle plots
   observe({
     toggle('mds_plotly_container', condition = dsForm$show_anal() & !dsForm$is.explore())
-    toggle('gene_plotly_container', condition = dsForm$is.explore())
+    toggle('gene_plotly_container', condition = dsForm$is.explore() & !dsForm$show_dtangle())
+    toggle('cells_plotly_container', condition = dsForm$show_dtangle())
   })
 
   dsQuantTable <- callModule(dsQuantTable, 'quant',
@@ -58,11 +75,15 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
                                data_dir = data_dir,
                                dataset_dir = dsForm$dataset_dir)
 
+
   callModule(dsGenePlotly, 'gene_plotly',
-             eset = dsForm$eset,
+             eset = explore_eset,
              explore_genes = dsForm$explore_genes,
-             pdata = dsExploreTable$pdata,
              dataset_name = dsForm$dataset_name)
+
+  callModule(dsCellsPlotly, 'cells_plotly',
+             dtangle_est = dsForm$dtangle_est,
+             pdata = dsExploreTable$pdata)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
@@ -252,7 +273,102 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
 #' Logic for Dataset Gene plotly
 #' @export
 #' @keywords internal
-dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata, dataset_name) {
+dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
+
+  # MDS plot
+  output$plotly <- plotly::renderPlotly({
+
+    # need eset and at least one gene
+    explore_genes <- explore_genes()
+    req(explore_genes)
+    eset <- eset()
+
+    plotlyGene(eset, explore_genes, dataset_name())
+  })
+
+
+}
+
+plotlyGene <- function(eset, explore_genes, dataset_name) {
+
+  dat <- Biobase::assayDataElement(eset, 'vsd')
+  pdata <- Biobase::pData(eset)
+
+  dfs <- list()
+  for (gene in explore_genes) {
+    dfs[[gene]] <- data.frame(Sample = row.names(pdata),
+                              Gene = gene,
+                              Expression = dat[gene, row.names(pdata)],
+                              Name = as.character(pdata$`Group name`),
+                              Num = pdata$Group,
+                              stringsAsFactors = FALSE)
+
+  }
+
+  df <- do.call(rbind, dfs)
+  group_levels <- as.character(sort(unique(df$Num)))
+
+  # adjust gaps within/between group based on number of boxs (chosen by trial and error)
+  nbox <- length(group_levels) * length(explore_genes)
+  boxgap <- ifelse(nbox > 5, 0.4, 0.6)
+  boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
+
+  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
+  if (length(group_levels) <= 2)
+    group_levels <- c(group_levels, 'NA')
+
+  df$Num <- factor(df$Num, levels = group_levels)
+  df$Gene <- factor(df$Gene, levels = explore_genes)
+
+  l <- list(
+    font = list(
+      family = "sans-serif",
+      size = 12,
+      color = "#000"),
+    bgcolor = "#f8f8f8",
+    bordercolor = "#e7e7e7",
+    borderwidth = 1)
+
+  # name for saving plot
+  fname <- paste(explore_genes, collapse = '_')
+  fname <- paste('bulk', dataset_name, fname, Sys.Date(), sep='_')
+
+  df %>%
+    plotly::plot_ly() %>%
+    plotly::add_trace(x = ~ Gene,
+                      y = ~Expression,
+                      color = ~Num,
+                      text = ~Sample,
+                      name = ~Name,
+                      type = 'box',
+                      boxpoints = 'all',
+                      jitter = 0.8,
+                      pointpos = 0,
+                      fillcolor = 'transparent',
+                      hoverinfo = 'text',
+                      whiskerwidth = 0.1,
+                      hoveron = 'points',
+                      marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
+    plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
+                   xaxis = list(fixedrange=TRUE),
+                   yaxis = list(fixedrange=TRUE, title = 'Normalized Expression'),
+                   legend = l) %>%
+    plotly::config(displaylogo = FALSE,
+                   displayModeBar = 'hover',
+                   modeBarButtonsToRemove = c('lasso2d',
+                                              'select2d',
+                                              'toggleSpikelines',
+                                              'hoverClosestCartesian',
+                                              'hoverCompareCartesian'),
+                   toImageButtonOptions = list(format = "svg", filename = fname))
+
+}
+
+
+#' Logic for Dataset Cell Type deconvolution plotly
+#' @export
+#' @keywords internal
+dsCellsPlotly <- function(input, output, session, dtangle_est, pdata) {
 
   # MDS plot
   output$plotly <- plotly::renderPlotly({
@@ -261,22 +377,17 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, pdata, dat
     pdata <- pdata[!is.na(pdata$Group), ]
     req(length(unique(pdata$Group)) > 1)
 
-    # need eset and at least one gene
-    eset <- eset()
-    explore_genes <- explore_genes()
-    req(eset, explore_genes)
+    dtangle_est <- dtangle_est()
+    req(dtangle_est)
 
-    plotlyGene(eset, explore_genes, pdata, dataset_name())
+    plotlyCells(pdata, dtangle_est)
   })
-
-
 }
-
 
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, msg_anal, new_anal) {
+dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, msg_anal, new_anal, explore_eset) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -322,7 +433,7 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
                      dataset_dir = dataset$dataset_dir,
                      new_anal = new_anal,
                      new_dataset = new_dataset,
-                     eset = eset)
+                     explore_eset = explore_eset)
 
 
 
@@ -343,7 +454,9 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     is.sc = dataset$is.sc,
     is.cellranger = dataset$is.cellranger,
     is.explore = anal$is.explore,
-    eset = eset
+    eset = eset,
+    dtangle_est = anal$dtangle_est,
+    show_dtangle = anal$show_dtangle
   ))
 
 }
@@ -562,7 +675,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, eset) {
+dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, explore_eset) {
 
 
   run_anal <- reactiveVal()
@@ -583,20 +696,21 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
   })
 
   # toggle cell-type deconvolution
-  show_decon <- reactive(input$show_decon %% 2 != 0)
+  show_dtangle <- reactive(input$show_dtangle %% 2 != 0)
 
   observe({
-    toggleClass(id = "show_decon", 'btn-primary', condition = show_decon())
+    toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
   })
 
-  deconForm <- callModule(deconvolutionForm, 'decon',
-                          show_decon = show_decon,
-                          new_dataset = new_dataset,
-                          sc_dir = sc_dir,
-                          bulk_dir = bulk_dir,
-                          dataset_name = dataset_name,
-                          eset = eset,
-                          dataset_dir = dataset_dir)
+  dtangleForm <- callModule(dtangleForm, 'dtangle',
+                            show_dtangle = show_dtangle,
+                            new_dataset = new_dataset,
+                            sc_dir = sc_dir,
+                            bulk_dir = bulk_dir,
+                            dataset_name = dataset_name,
+                            explore_eset = explore_eset,
+                            dataset_dir = dataset_dir)
+
 
 
   # logic for group name buttons
@@ -617,7 +731,7 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
 
   # gene choices
   observe({
-    updateSelectizeInput(session, 'explore_genes', choices = c(NA, row.names(eset())), server = TRUE)
+    updateSelectizeInput(session, 'explore_genes', choices = c(NA, row.names(explore_eset())), server = TRUE)
   })
 
 
@@ -725,21 +839,24 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
     explore_genes = reactive(input$explore_genes),
     run_anal = run_anal,
     anal_name = anal_name,
-    is.explore = is.explore
+    is.explore = is.explore,
+    dtangle_est = dtangleForm$dtangle_est,
+    show_dtangle = show_dtangle
   ))
 }
 
 #' Logic for deconvolution form
 #' @export
 #' @keywords internal
-deconvolutionForm <- function(input, output, session, show_decon, new_dataset, sc_dir, bulk_dir, eset, dataset_dir, dataset_name) {
+dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  input_ids <- c('include_clusters', 'dtangle_anal', 'submit_dtangle')
 
-  final_est <- reactiveVal()
+  dtangle_est <- reactiveVal()
 
   # show deconvolution form toggle
   observe({
-    toggle(id = "decon_form", anim = TRUE, condition = show_decon())
+    toggle(id = "dtangle_form", anim = TRUE, condition = show_dtangle())
   })
 
   # available single cell datasets for deconvolution
@@ -764,11 +881,11 @@ deconvolutionForm <- function(input, output, session, show_decon, new_dataset, s
   observe({
     ref_anals <- ref_anals()
     req(ref_anals)
-    updateSelectizeInput(session, 'decon_anal', choices = c('', ref_anals))
+    updateSelectizeInput(session, 'dtangle_anal', choices = c('', ref_anals))
   })
 
   annot <- reactive({
-    anal_name <- input$decon_anal
+    anal_name <- input$dtangle_anal
     req(anal_name)
     annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
     readRDS(annot_path)
@@ -777,7 +894,7 @@ deconvolutionForm <- function(input, output, session, show_decon, new_dataset, s
   # update exclude cluster choices
   include_choices <- reactive({
     clusters <- annot()
-    anal_name <- input$decon_anal
+    anal_name <- input$dtangle_anal
     get_cluster_choices(clusters, anal_name, sc_dir)
   })
 
@@ -788,93 +905,99 @@ deconvolutionForm <- function(input, output, session, show_decon, new_dataset, s
 
   # scseq for deconvolution
   scseq <- reactive({
-    anal_name <- input$decon_anal
+    anal_name <- input$dtangle_anal
     scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
     readRDS(scseq_path)
   })
 
-  observeEvent(input$submit_decon, {
+  observeEvent(input$submit_dtangle, {
+
+    # disable inputs
+    toggleAll(input_ids)
+
+    # Create a Progress object
+    progress <- Progress$new(session, min=0, max = 4)
+    # Close the progress when this reactive exits (even if there's an error)
+    on.exit(progress$close())
+
+    progress$set(message = "Deconvoluting", value = 0)
+    progress$set(value = 1)
+
+    anal_name <- input$dtangle_anal
     dataset_name <- dataset_name()
+
+    # get names of clusters
     include_clusters <- input$include_clusters
+    include_choices <- include_choices()
+    row.names(include_choices) <- include_choices$value
+    include_names <- include_choices[include_clusters, ]$name
 
-    # check for saved
-    clusters_name <- collapse_sorted(include_clusters)
-    res_path <- scseq_part_path(bulk_dir, dataset_name, paste0('dtangle_', clusters_name))
-    if (file.exists(res_path)) {
-      dc <- readRDS(res_path)
+    # require at least two labeled groups
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
 
-    } else {
-      scseq <- scseq()
-      eset <- eset()
+    # if select none deconvolute using all clusters
+    if (!length(include_clusters))
+      include_clusters <- as.character(include_choices$value)
 
+    # subset to selected clusters
+    scseq <- scseq()
+    scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
 
-      # if select non deconvolute using all clusters
-      if (!length(include_clusters)) {
-        include_choices <- include_choices()
-        include_clusters <- as.character(include_choices$value)
-      }
+    # get DESeq2::vst normalized values from eset
+    vsd <- Biobase::assayDataElement(eset, 'vsd')
 
-      # subset to selected clusters
-      scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
+    # common genes only
+    commongenes <- intersect (rownames(vsd), rownames(scseq))
+    vsd <- vsd[commongenes, ]
+    scseq <- scseq[commongenes, ]
 
-      # get DESeq2::vst normalized values from eset
-      vsd <- Biobase::assayDataElement(eset, 'vsd')
+    # quantile normalize scseq and rnaseq dataset
+    progress$set(value = 2)
+    y <- cbind(as.matrix(scseq[['SCT']]@data), vsd)
 
-      # common genes only
-      commongenes <- intersect (rownames(vsd), rownames(scseq))
-      vsd <- vsd[commongenes, ]
-      scseq <- scseq[commongenes, ]
-
-      # quantile normalize scseq and rnaseq dataset
-      y <- cbind(as.matrix(scseq[['RNA']]@data), vsd)
-
-      y <- limma::normalizeBetweenArrays(y)
-      y <- t(y)
+    y <- limma::normalizeBetweenArrays(y)
+    y <- t(y)
 
 
-      # indicies for cells in each included cluster
-      pure_samples <- list()
-      for (i in seq_along(include_clusters))
-        pure_samples[[include_clusters[i]]] <-
-        which(scseq$seurat_clusters == include_clusters[i])
+    progress$set(value = 3)
+    # indicies for cells in each included cluster
+    pure_samples <- list()
+    for (i in seq_along(include_clusters))
+      pure_samples[[include_names[i]]] <-
+      which(scseq$seurat_clusters == include_clusters[i])
 
-      # markers for each included cluster
-      marker_list = dtangle::find_markers(y,
-                                          pure_samples = pure_samples,
-                                          data_type = "rna-seq",
-                                          marker_method='ratio')
+    # markers for each included cluster
+    marker_list = dtangle::find_markers(y,
+                                        pure_samples = pure_samples,
+                                        data_type = "rna-seq",
+                                        marker_method='ratio')
 
-      # use markers in top 10th quantile with a minimum of 3
-      q = 0.1
-      quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
-      K = length(pure_samples)
-      n_markers = sapply(seq_len(K),function(i){
-        max(3, which(marker_list$V[[i]] > quantiles[[i]]))
-      })
+    # use markers in top 10th quantile with a minimum of 3
+    q = 0.1
+    quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
+    K = length(pure_samples)
+    n_markers = sapply(seq_len(K),function(i){
+      max(3, which(marker_list$V[[i]] > quantiles[[i]]))
+    })
 
-      # run deconvolution and get get proportion estimates
-      marks <- marker_list$L
-      dc <- dtangle::dtangle(y,
-                             pure_samples = pure_samples,
-                             n_markers = n_markers,
-                             data_type = 'rna-seq',
-                             markers = marks)
+    # run deconvolution and get get proportion estimates
+    marks <- marker_list$L
+    dc <- dtangle::dtangle(y,
+                           pure_samples = pure_samples,
+                           n_markers = n_markers,
+                           data_type = 'rna-seq',
+                           markers = marks)
 
-      dc <- dc$estimates[colnames(eset), ]
-
-
-      # save results
-      saveRDS(dc, res_path)
-
-    }
-
-
-    final_est(dc)
+    dc <- dc$estimates[colnames(eset), ]
+    dtangle_est(dc)
+    toggleAll(input_ids)
+    progress$set(value = 4)
   })
 
 
   return(list(
-    final_est = final_est
+    dtangle_est = dtangle_est
   ))
 }
 
@@ -1371,3 +1494,4 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   ))
 
 }
+

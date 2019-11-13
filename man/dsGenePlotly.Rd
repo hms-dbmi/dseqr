@@ -4,8 +4,7 @@
 \alias{dsGenePlotly}
 \title{Logic for Dataset Gene plotly}
 \usage{
-dsGenePlotly(input, output, session, eset, explore_genes, pdata,
-  dataset_name)
+dsGenePlotly(input, output, session, eset, explore_genes, dataset_name)
 }
 \description{
 Logic for Dataset Gene plotly

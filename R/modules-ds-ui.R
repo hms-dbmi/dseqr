@@ -14,6 +14,9 @@ dsPageUI <- function(id, tab, active) {
                 ),
                 div(id = ns('gene_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
                     dsPlotlyUI(ns('gene_plotly'))
+                ),
+                div(id = ns('cells_plotly_container'), class = 'col-sm-7 mobile-margin', style = '',
+                    dsPlotlyUI(ns('cells_plotly'))
                 )
             ),
             hr(),
@@ -145,10 +148,10 @@ dsFormAnalInput <- function(id) {
 
         selectizeInputWithButtons(ns('explore_genes'),
                                   'Show expression for:',
-                                  actionButton(ns('show_decon'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
+                                  actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
                                   options = list(maxItems = 6, multiple = TRUE)),
         div(class = 'hidden-forms',
-            deconvolutionFormInput(ns('decon'))
+            dtangleFormInput(ns('dtangle'))
         ),
         textInputWithButtons(ns('explore_group_name'),
                              container_id = ns('validate'),
@@ -188,16 +191,16 @@ dsTable <- function(id) {
 #' Input form for single-cell deconvolution
 #' @export
 #' @keywords internal
-deconvolutionFormInput <- function(id) {
+dtangleFormInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(id = ns('decon_form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('decon_anal'), 'Reference single-cell dataset:', choices = '', width = '100%'),
-        selectizeInputWithButtons(ns('exclude_clusters'),
-                                  'Clusters to exclude:',
-                                  options = list(multiple = TRUE),
-                                  actionButton(ns('submit_decon'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
+    div(id = ns('dtangle_form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInput(ns('dtangle_anal'), 'Reference single-cell dataset:', choices = '', width = '100%'),
+        selectizeInputWithButtons(ns('include_clusters'),
+                                  label = tags$span('Clusters to include:', span(class='hover-info', icon('info', 'fa-fw'), title = '')),
+                                  options = list(multiple = TRUE, placeholder = 'Select none to include all'),
+                                  actionButton(ns('submit_dtangle'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
         )
     )
   })
