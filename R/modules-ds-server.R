@@ -54,7 +54,7 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   observe({
     toggle('mds_plotly_container', condition = dsForm$show_anal() & !dsForm$is.explore())
     toggle('gene_plotly_container', condition = dsForm$is.explore() & !dsForm$show_dtangle())
-    toggle('cells_plotly_container', condition = dsForm$show_dtangle())
+    toggle('cells_plotly_container', condition = dsForm$is.explore() & dsForm$show_dtangle())
   })
 
   dsQuantTable <- callModule(dsQuantTable, 'quant',

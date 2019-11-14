@@ -1,12 +1,15 @@
 # things loaded in here are loaded once (even if multiple users)
-library(drugseqr)
-library(shiny)
-library(shinyjs)
-library(shinyWidgets)
-library(dplyr)
 
-# Seurat fails to load during cell-type deconvolution
-library(Seurat)
+suppressPackageStartupMessages({
+  library(drugseqr)
+  library(shiny)
+  library(shinyjs)
+  library(shinyWidgets)
+  library(dplyr)
+  # Seurat fails to load during cell-type deconvolution
+  library(Seurat)
+})
+
 
 
 # setup Drugs table annotation
