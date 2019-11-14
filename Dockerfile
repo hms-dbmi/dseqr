@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # install drugseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.7.1-20')"
+    R -e "remotes::install_github('rstudio/renv@0.8.3-16')"
 
 
 COPY renv.lock .

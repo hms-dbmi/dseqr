@@ -1,5 +1,5 @@
 #create example app
-drugseqr::init_drugseqr('example', local_dir = 'data-raw/patient_data')
+drugseqr::init_drugseqr('example', app_dir = 'data-raw/patient_data')
 
 # data for example app was downloaded into example app folder:
 
@@ -17,9 +17,20 @@ app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data/example'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
 pert_signature_dir <- 'data-raw/drug_es/signatures'
-run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
+run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE, port=3840)
 
 # make single cell datasets smaller for example purposes
+data_dir <- 'data-raw/patient_data/example/single-cell/GSM2560249_pbmc_ifnb'
+dir.create(data_dir)
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583_batch2.genes.tsv.gz', file.path(data_dir, 'GSE96583_batch2.genes.tsv.gz'))
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249_barcodes.tsv.gz', file.path(data_dir, 'GSM2560249_barcodes.tsv.gz'))
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249_2.2.mtx.gz', file.path(data_dir, 'GSM2560249_2.2.mtx.gz'))
+
+data_dir <- 'data-raw/patient_data/example/single-cell/GSM2560248_pbmc_ctrl'
+dir.create(data_dir)
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583_batch2.genes.tsv.gz', file.path(data_dir, 'GSE96583_batch2.genes.tsv.gz'))
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560248/suppl/GSM2560248_2.1.mtx.gz', file.path(data_dir, 'GSM2560248_2.1.mtx.gz'))
+download.file('ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560248/suppl/GSM2560248_barcodes.tsv.gz', file.path(data_dir, 'GSM2560248_barcodes.tsv.gz'))
 
 # for IFNb stimulated
 scseq <- readRDS('data-raw/patient_data/example/single-cell/GSM2560249_pbmc_ifnb/scseq.rds')

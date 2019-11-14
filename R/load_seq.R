@@ -27,8 +27,8 @@
 #'
 #' @examples
 #'
-#' data_dir <- 'data-raw/example-data'
-#' eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
+#' data_dir <- 'data-raw/patient_data/sjia/bulk/mono'
+#' eset <- load_seq(data_dir, load_saved = FALSE)
 #'
 load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
 

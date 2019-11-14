@@ -1,7 +1,5 @@
 external.libraries:
-ignored.packages: callr, debugme, evaluate, parsedate, pingr, praise, processx,
-    ps, rematch2, rstudioapi, shinytest, showimage, testthat, webdriver, renv,
-    drugseqr, brew, commonmark, desc, pkgbuild, roxygen2, rprojroot, xml2,
-    pkgload
+ignored.packages:
 snapshot.type: packrat
 use.cache: TRUE
+vcs.ignore.library: TRUE
