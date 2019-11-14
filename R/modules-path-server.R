@@ -24,6 +24,7 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
 
     pert_signature <- form$pert_signature()
     path_df <- get_path_df(anal, path_id, pert_signature)
+    path_df$sd[is.na(path_df$sd)] <- 'NA'
 
     # 30 pixels width per gene in pathway
     ngenes <- length(unique(path_df$Gene))
