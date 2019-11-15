@@ -7,9 +7,9 @@
 strain_scseq(counts, empty)
 }
 \arguments{
-\item{counts}{sparse dgTMatrix returned by \code{\link{load_kallisto}}.}
+\item{counts}{sparse dgTMatrix of counts.}
 
-\item{empty}{Boolean indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}}
+\item{empty}{Boolean indicating columns in \code{counts} that are empty droplets.}
 }
 \value{
 \code{counts} corrected for ambient contamination.

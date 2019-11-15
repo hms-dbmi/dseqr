@@ -4,8 +4,14 @@
 \alias{add_linkout}
 \title{Add linkout HTML}
 \usage{
-add_linkout(query_res, id_col, img_url, pre_url, post_url = NULL,
-  title = id_col)
+add_linkout(
+  query_res,
+  id_col,
+  img_url,
+  pre_url,
+  post_url = NULL,
+  title = id_col
+)
 }
 \arguments{
 \item{query_res}{\code{data.frame} returned by \code{\link{summarize_compound}}.}

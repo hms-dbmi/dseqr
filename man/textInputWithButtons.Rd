@@ -4,8 +4,7 @@
 \alias{textInputWithButtons}
 \title{textInput with buttons}
 \usage{
-textInputWithButtons(id, label, ..., container_id = NULL,
-  help_id = NULL)
+textInputWithButtons(id, label, ..., container_id = NULL, help_id = NULL)
 }
 \arguments{
 \item{label}{Display label for the control, or \code{NULL} for no label.}

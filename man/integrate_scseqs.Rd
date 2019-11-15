@@ -9,11 +9,9 @@ integrate_scseqs(scseqs, use_scalign = FALSE)
 integrate_scseqs(scseqs, use_scalign = FALSE)
 }
 \arguments{
-\item{scseqs}{List of \code{Seurat} objects}
+\item{scseqs}{List of Seurat objects}
 
 \item{use_scalign}{whether or not to use scAlign. Default is \code{FALSE}}
-
-\item{scseqs}{List of Seurat objects}
 }
 \value{
 Integrated \code{Seurat} object with default assay of \code{"integrated"}

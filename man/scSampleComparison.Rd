@@ -4,8 +4,17 @@
 \alias{scSampleComparison}
 \title{Logic for single cell clusters selector for pathForm}
 \usage{
-scSampleComparison(input, output, session, data_dir, anal, is_sc,
-  input_ids, with_path = FALSE, with_drugs = FALSE)
+scSampleComparison(
+  input,
+  output,
+  session,
+  data_dir,
+  anal,
+  is_sc,
+  input_ids,
+  with_path = FALSE,
+  with_drugs = FALSE
+)
 }
 \description{
 Logic for single cell clusters selector for pathForm

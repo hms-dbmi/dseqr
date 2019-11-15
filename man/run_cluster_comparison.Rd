@@ -4,8 +4,7 @@
 \alias{run_cluster_comparison}
 \title{Run single cell RNA-Seq test vs ctrl cluster comparison}
 \usage{
-run_cluster_comparison(scseq, selected_clusters, sc_dir, anal_name,
-  res_paths)
+run_cluster_comparison(scseq, selected_clusters, sc_dir, anal_name, res_paths)
 }
 \arguments{
 \item{scseq}{\code{Suerat} object}

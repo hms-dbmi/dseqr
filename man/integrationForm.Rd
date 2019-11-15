@@ -4,8 +4,7 @@
 \alias{integrationForm}
 \title{Logic for integration form toggled by showIntegration}
 \usage{
-integrationForm(input, output, session, sc_dir, anal_options,
-  show_integration)
+integrationForm(input, output, session, sc_dir, anal_options, show_integration)
 }
 \description{
 Logic for integration form toggled by showIntegration

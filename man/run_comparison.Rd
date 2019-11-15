@@ -4,8 +4,15 @@
 \alias{run_comparison}
 \title{Run genes and pathways test vs ctrl scseq comparisons}
 \usage{
-run_comparison(scseq, selected_clusters, sc_dir, anal_name, session,
-  with_path = FALSE, with_drugs = FALSE)
+run_comparison(
+  scseq,
+  selected_clusters,
+  sc_dir,
+  anal_name,
+  session,
+  with_path = FALSE,
+  with_drugs = FALSE
+)
 }
 \arguments{
 \item{scseq}{\code{Suerat} object}

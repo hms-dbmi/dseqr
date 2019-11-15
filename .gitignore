@@ -24,6 +24,7 @@ inst/app/tests/data/test/*
 
 # until shinytest works
 inst/app/tests/data/static/*
+inst/app/tests/shinytests/*
 
 # txp2gene for alevin
 data-raw/single-cell/alevin-args/*.gz

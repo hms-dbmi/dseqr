@@ -4,8 +4,14 @@
 \alias{import_quants}
 \title{Import kallisto quants}
 \usage{
-import_quants(data_dir, filter, type, species = "Homo sapiens",
-  release = "94", return_deseq = FALSE)
+import_quants(
+  data_dir,
+  filter,
+  type,
+  species = "Homo sapiens",
+  release = "94",
+  return_deseq = FALSE
+)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -16,7 +22,7 @@ import_quants(data_dir, filter, type, species = "Homo sapiens",
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
-\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
+\item{release}{EnsemblDB release. Should be same as used in \code{\link[drugseqr.data]{build_kallisto_index}}.}
 
 \item{return_deseq}{if \code{TRUE}, returns tximport result for DESeq2 workflow.}
 }

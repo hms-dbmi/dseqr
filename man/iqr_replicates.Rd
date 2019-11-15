@@ -4,8 +4,14 @@
 \alias{iqr_replicates}
 \title{Removes features with replicated annotation.}
 \usage{
-iqr_replicates(eset, mod = NULL, svobj = NULL, annot = "SYMBOL",
-  rm.dup = FALSE, rna_seq = TRUE)
+iqr_replicates(
+  eset,
+  mod = NULL,
+  svobj = NULL,
+  annot = "SYMBOL",
+  rm.dup = FALSE,
+  rna_seq = TRUE
+)
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{\link{load_seq}}.}

@@ -4,8 +4,12 @@
 \alias{load_scseq}
 \title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir, project = "SeuratProject", type = c("kallisto",
-  "cellranger"), soupx = FALSE)
+load_scseq(
+  data_dir,
+  project = "SeuratProject",
+  type = c("kallisto", "cellranger"),
+  soupx = FALSE
+)
 }
 \arguments{
 \item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}

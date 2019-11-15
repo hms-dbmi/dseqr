@@ -4,8 +4,16 @@
 \alias{customQueryForm}
 \title{Logic for custom query form on Drugs page}
 \usage{
-customQueryForm(input, output, session, show_custom, is_custom, anal,
-  new_anal, data_dir)
+customQueryForm(
+  input,
+  output,
+  session,
+  show_custom,
+  is_custom,
+  anal,
+  new_anal,
+  data_dir
+)
 }
 \description{
 Logic for custom query form on Drugs page

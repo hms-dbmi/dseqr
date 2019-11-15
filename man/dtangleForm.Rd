@@ -4,8 +4,18 @@
 \alias{dtangleForm}
 \title{Logic for deconvolution form}
 \usage{
-dtangleForm(input, output, session, show_dtangle, new_dataset, sc_dir,
-  bulk_dir, explore_eset, dataset_dir, dataset_name)
+dtangleForm(
+  input,
+  output,
+  session,
+  show_dtangle,
+  new_dataset,
+  sc_dir,
+  bulk_dir,
+  explore_eset,
+  dataset_dir,
+  dataset_name
+)
 }
 \description{
 Logic for deconvolution form

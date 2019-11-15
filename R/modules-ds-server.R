@@ -262,10 +262,13 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
   })
 
   # MDS plot
-  output$plotly <- plotly::renderPlotly({
-    mds <- anal()$mds
-    plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
-  })
+  output$plotly <- snapshotPreprocessOutput(
+    plotly::renderPlotly({
+      mds <- anal()$mds
+      plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
+    }),
+    function(value) { 'ds_mds_plotly' }
+  )
 
 
 }
@@ -275,16 +278,19 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
 #' @keywords internal
 dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
 
-  # MDS plot
-  output$plotly <- plotly::renderPlotly({
+  # Gene plotly
+  output$plotly <- snapshotPreprocessOutput(
+    plotly::renderPlotly({
 
-    # need eset and at least one gene
-    explore_genes <- explore_genes()
-    req(explore_genes)
-    eset <- eset()
+      # need eset and at least one gene
+      explore_genes <- explore_genes()
+      req(explore_genes)
+      eset <- eset()
 
-    plotlyGene(eset, explore_genes, dataset_name())
-  })
+      plotlyGene(eset, explore_genes, dataset_name())
+    }),
+    function(value) { 'ds_gene_plotly' }
+  )
 
 
 }
@@ -295,17 +301,20 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_na
 dsCellsPlotly <- function(input, output, session, dtangle_est, pdata) {
 
   # MDS plot
-  output$plotly <- plotly::renderPlotly({
-    # need at least two groups
-    pdata <- pdata()
-    pdata <- pdata[!is.na(pdata$Group), ]
-    req(length(unique(pdata$Group)) > 1)
+  output$plotly <- snapshotPreprocessOutput(
+    plotly::renderPlotly({
+      # need at least two groups
+      pdata <- pdata()
+      pdata <- pdata[!is.na(pdata$Group), ]
+      req(length(unique(pdata$Group)) > 1)
 
-    dtangle_est <- dtangle_est()
-    req(dtangle_est)
+      dtangle_est <- dtangle_est()
+      req(dtangle_est)
 
-    plotlyCells(pdata, dtangle_est)
-  })
+      plotlyCells(pdata, dtangle_est)
+    }),
+    function(value) { 'dataset_cells_plotly' }
+  )
 }
 
 #' Logic for Datasets form

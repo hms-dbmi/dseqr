@@ -4,8 +4,7 @@
 \alias{save_combined_scseq_reports}
 \title{Save PDF of combined scRNA-seq reports}
 \usage{
-save_combined_scseq_reports(scseq, markers, orig_clusters, fname,
-  pt.size = 3)
+save_combined_scseq_reports(scseq, markers, orig_clusters, fname, pt.size = 3)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object with \code{scseq$orig_clusters} providing the originally identified clusters for

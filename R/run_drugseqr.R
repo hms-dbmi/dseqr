@@ -46,13 +46,6 @@ run_drugseqr <- function(data_dir,
 
 
   if (test) {
-    # reset data for testing
-    data_dir <- 'inst/app/tests/data/test/example'
-    static_dir <- 'inst/app/tests/data/static/example'
-    unlink(data_dir, recursive = TRUE)
-    dir.create(data_dir)
-    file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
-
     # run test and return
     shinytest::recordTest(app_dir, seed = 0)
     return(NULL)

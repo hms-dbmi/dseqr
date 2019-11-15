@@ -4,12 +4,16 @@
 \alias{run_salmon_bulk}
 \title{Runs salmon quantification.}
 \usage{
-run_salmon_bulk(indices_dir, data_dir, pdata = NULL,
-  species = "homo_sapiens", flags = c("--validateMappings",
-  "--posBias", "--seqBias", "--gcBias"))
+run_salmon_bulk(
+  indices_dir,
+  data_dir,
+  pdata = NULL,
+  species = "homo_sapiens",
+  flags = c("--validateMappings", "--posBias", "--seqBias", "--gcBias")
+)
 }
 \arguments{
-\item{indices_dir}{Directory with salmon indices. See \code{\link{build_ensdb_index}}.}
+\item{indices_dir}{Directory with salmon indices. See \code{\link[drugseqr.data]{build_salmon_index}}.}
 
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
 

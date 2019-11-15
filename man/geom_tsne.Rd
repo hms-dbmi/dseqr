@@ -4,8 +4,14 @@
 \alias{geom_tsne}
 \title{Generates individual tsne plots for tsne_scseq_whitelist}
 \usage{
-geom_tsne(sce, colour_by, name = colour_by, xlab = "", ylab = "",
-  scale = "distiller")
+geom_tsne(
+  sce,
+  colour_by,
+  name = colour_by,
+  xlab = "",
+  ylab = "",
+  scale = "distiller"
+)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment}}

@@ -311,3 +311,42 @@ td.dt-nopad span {
 .input-group-btn:last-child > .btn-group {
   border-left: 1px solid #ccc;
 }
+
+/* downloadable plots */
+
+.downloadable-plot:hover .visible-plot.downloadable-plot-btn {
+  animation: 0.2s fadeIn;
+  animation-fill-mode: forwards;
+}
+
+.downloadable-plot-btn {
+  visibility: hidden;
+}
+
+.downloadable-plot-btn i {
+  color: rgba(68, 68, 68, 0.3);
+}
+
+.downloadable-plot-btn:hover i {
+  color: rgba(68, 68, 68, 0.7);
+}
+
+.downloadable-plot-btn .btn {
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.downloadable-plot-btn .btn {
+  border: none;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    visibility: visible;
+    opacity: 1;
+  }
+}

@@ -4,8 +4,7 @@
 \alias{add_scseq_clusters}
 \title{Add clusters single cell RNA-seq object}
 \usage{
-add_scseq_clusters(scseq, reduction = "pca", resolution = 0.8,
-  dims = 1:30)
+add_scseq_clusters(scseq, reduction = "pca", resolution = 0.8, dims = 1:30)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} or \code{Seurat} returned by \code{\link{preprocess_scseq}}.}

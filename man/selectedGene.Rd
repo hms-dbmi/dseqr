@@ -4,9 +4,18 @@
 \alias{selectedGene}
 \title{Logic for selected gene to show plots for}
 \usage{
-selectedGene(input, output, session, selected_anal, scseq,
-  selected_markers, cluster_markers, selected_cluster, annot_path,
-  comparison_type)
+selectedGene(
+  input,
+  output,
+  session,
+  selected_anal,
+  scseq,
+  selected_markers,
+  cluster_markers,
+  selected_cluster,
+  annot_path,
+  comparison_type
+)
 }
 \description{
 Logic for selected gene to show plots for

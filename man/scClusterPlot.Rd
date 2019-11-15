@@ -4,8 +4,16 @@
 \alias{scClusterPlot}
 \title{Logic for cluster plots}
 \usage{
-scClusterPlot(input, output, session, scseq, plot_styles, selected_group,
-  cached_plot)
+scClusterPlot(
+  input,
+  output,
+  session,
+  scseq,
+  plot_styles,
+  cached_plot,
+  fname_fun = function() { },
+  downloadable = FALSE
+)
 }
 \description{
 Logic for cluster plots

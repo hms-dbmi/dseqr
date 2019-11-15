@@ -2,7 +2,7 @@
 #'
 #' For pair-ended experiments, reads for each pair should be in a seperate file.
 #'
-#' @param indices_dir Directory with salmon indices. See \code{\link{build_ensdb_index}}.
+#' @param indices_dir Directory with salmon indices. See \code{\link[drugseqr.data]{build_salmon_index}}.
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
 #' @param pdata Previous result of call to \code{run_salmon} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.

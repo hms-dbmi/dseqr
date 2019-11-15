@@ -4,8 +4,13 @@
 \alias{run_kallisto_scseq}
 \title{Run kallisto/bustools for quantifying 10X scRNA-seq data}
 \usage{
-run_kallisto_scseq(indices_dir, data_dir, bus_args = c("-x 10xv2",
-  "-t 4"), species = "homo_sapiens", release = "94")
+run_kallisto_scseq(
+  indices_dir,
+  data_dir,
+  bus_args = c("-x 10xv2", "-t 4"),
+  species = "homo_sapiens",
+  release = "94"
+)
 }
 \arguments{
 \item{indices_dir}{Directory with kallisto indices.}

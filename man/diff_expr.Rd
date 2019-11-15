@@ -4,8 +4,14 @@
 \alias{diff_expr}
 \title{Differential expression analysis of eset.}
 \usage{
-diff_expr(eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE,
-  prev_anal = NULL)
+diff_expr(
+  eset,
+  data_dir,
+  anal_name,
+  annot = "SYMBOL",
+  svanal = TRUE,
+  prev_anal = NULL
+)
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{\link{load_seq}}.}

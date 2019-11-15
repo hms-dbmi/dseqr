@@ -4,9 +4,17 @@
 \alias{run_kallisto_bulk}
 \title{Runs kallisto quantification for bulk samples.}
 \usage{
-run_kallisto_bulk(indices_dir, data_dir, paired = NULL, pdata = NULL,
-  species = "homo_sapiens", release = "94", fl.mean = NULL,
-  fl.sd = NULL, updateProgress = NULL)
+run_kallisto_bulk(
+  indices_dir,
+  data_dir,
+  paired = NULL,
+  pdata = NULL,
+  species = "homo_sapiens",
+  release = "94",
+  fl.mean = NULL,
+  fl.sd = NULL,
+  updateProgress = NULL
+)
 }
 \arguments{
 \item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}

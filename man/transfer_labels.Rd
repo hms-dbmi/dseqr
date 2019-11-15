@@ -4,8 +4,7 @@
 \alias{transfer_labels}
 \title{Get predicted cells types for a query dataset based on a reference dataset}
 \usage{
-transfer_labels(reference, query, updateProgress = NULL, n = 3,
-  n_init = 2)
+transfer_labels(reference, query, updateProgress = NULL, n = 3, n_init = 2)
 }
 \arguments{
 \item{reference}{\code{Seurat} object to use as a reference}

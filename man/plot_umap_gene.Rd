@@ -4,8 +4,12 @@
 \alias{plot_umap_gene}
 \title{Plot UMAP coloured by HGNC symbol}
 \usage{
-plot_umap_gene(scseq, gene, selected_idents = levels(scseq$orig.ident),
-  pt.size = 3)
+plot_umap_gene(
+  scseq,
+  gene,
+  selected_idents = levels(scseq$orig.ident),
+  pt.size = 3
+)
 }
 \arguments{
 \item{scseq}{\code{Seurat}.}

@@ -4,9 +4,16 @@
 \alias{load_seq}
 \title{Load bulk RNA-Seq data into an ExpressionSet.}
 \usage{
-load_seq(data_dir, type = "kallisto", species = "Homo sapiens",
-  release = "94", load_saved = TRUE, save_eset = TRUE,
-  save_dgel = FALSE, filter = TRUE)
+load_seq(
+  data_dir,
+  type = "kallisto",
+  species = "Homo sapiens",
+  release = "94",
+  load_saved = TRUE,
+  save_eset = TRUE,
+  save_dgel = FALSE,
+  filter = TRUE
+)
 }
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
@@ -15,7 +22,7 @@ load_seq(data_dir, type = "kallisto", species = "Homo sapiens",
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
 
-\item{release}{EnsemblDB release. Should be same as used in \code{\link{build_ensdb_index}}.}
+\item{release}{EnsemblDB release. Should be same as used in \code{\link[drugseqr.data]{build_kallisto_index}}.}
 
 \item{load_saved}{If TRUE (default) and a saved \code{ExpressionSet} exists, will load from disk.}
 
@@ -45,7 +52,7 @@ Load bulk RNA-Seq data into an ExpressionSet.
 }
 \examples{
 
-data_dir <- 'data-raw/example-data'
-eset <- load_seq(data_dir, load_saved = FALSE, save_eset = FALSE)
+data_dir <- 'data-raw/patient_data/sjia/bulk/mono'
+eset <- load_seq(data_dir, load_saved = FALSE)
 
 }

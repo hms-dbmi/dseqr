@@ -4,8 +4,18 @@
 \alias{scMarkerPlot}
 \title{Logic for marker gene plots}
 \usage{
-scMarkerPlot(input, output, session, scseq, selected_gene, plot_styles,
-  selected_group, cached_plot)
+scMarkerPlot(
+  input,
+  output,
+  session,
+  scseq,
+  selected_gene,
+  plot_styles,
+  selected_group,
+  cached_plot,
+  fname_fun = function() { },
+  downloadable = TRUE
+)
 }
 \description{
 Logic for marker gene plots

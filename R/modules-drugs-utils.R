@@ -464,7 +464,6 @@ add_table_html <- function(query_res) {
 merge_linkouts <- function(query_res, cols) {
 
   # paste cols with non-NA values
-  browser()
   paste.na <- function(x) paste(x[!is.na(x)], collapse = '')
   new_vals <- apply(query_res[ ,cols, drop = FALSE] , 1, paste.na)
 

@@ -4,8 +4,15 @@
 \alias{diff_anal}
 \title{Run limma analysis.}
 \usage{
-diff_anal(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMBOL",
-  rna_seq = TRUE)
+diff_anal(
+  eset,
+  anal_name,
+  exprs_sva,
+  modsv,
+  data_dir,
+  annot = "SYMBOL",
+  rna_seq = TRUE
+)
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{load_raw}. Replicate features and

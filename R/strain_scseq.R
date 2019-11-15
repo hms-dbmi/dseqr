@@ -4,8 +4,8 @@
 #' Uses \code{SoupX} to estimate and adjust counts for ambient contamination.
 #' Currently only works with kallisto quantification results (and needs some work).
 #'
-#' @param counts sparse dgTMatrix returned by \code{\link{load_kallisto}}.
-#' @param empty Boolean indicating columns in \code{counts} that are empty droplets. Return by \code{\link{get_empty}}
+#' @param counts sparse dgTMatrix of counts.
+#' @param empty Boolean indicating columns in \code{counts} that are empty droplets.
 #'
 #' @return \code{counts} corrected for ambient contamination.
 #' @export

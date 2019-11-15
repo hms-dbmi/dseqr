@@ -29,7 +29,6 @@ plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clu
 #' @param gene Character vector specifying gene to colour cells by.
 #' @param selected_idents The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
 #' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
-#' @inheritParams explore_scseq_clusters
 #'
 #' @return \code{ggplot}
 #' @export

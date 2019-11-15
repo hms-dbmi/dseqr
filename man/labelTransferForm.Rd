@@ -4,8 +4,16 @@
 \alias{labelTransferForm}
 \title{Logic for label transfer between datasets}
 \usage{
-labelTransferForm(input, output, session, sc_dir, anal_options,
-  show_label_transfer, selected_anal, scseq)
+labelTransferForm(
+  input,
+  output,
+  session,
+  sc_dir,
+  anal_options,
+  show_label_transfer,
+  selected_anal,
+  scseq
+)
 }
 \description{
 Logic for label transfer between datasets

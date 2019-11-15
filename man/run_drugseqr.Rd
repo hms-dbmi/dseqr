@@ -4,11 +4,17 @@
 \alias{run_drugseqr}
 \title{Run drugseqr app}
 \usage{
-run_drugseqr(data_dir, app_dir = system.file("app", package = "drugseqr",
-  mustWork = TRUE), pert_query_dir = "/srv/drugseqr/pert_query_dir",
+run_drugseqr(
+  data_dir,
+  app_dir = system.file("app", package = "drugseqr", mustWork = TRUE),
+  pert_query_dir = "/srv/drugseqr/pert_query_dir",
   pert_signature_dir = "/srv/drugseqr/pert_signature_dir",
-  indices_dir = "/srv/drugseqr/indices", test = FALSE,
-  test_data = FALSE, host = "0.0.0.0", port = 3838)
+  indices_dir = "/srv/drugseqr/indices",
+  test = FALSE,
+  test_data = FALSE,
+  host = "0.0.0.0",
+  port = 3838
+)
 }
 \arguments{
 \item{data_dir}{Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
@@ -38,5 +44,6 @@ pert_signature_dir <- 'data-raw/drug_es/signatures'
 
 run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
 run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
+run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test = TRUE)
 
 }

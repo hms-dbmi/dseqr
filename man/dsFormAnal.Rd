@@ -4,8 +4,20 @@
 \alias{dsFormAnal}
 \title{Logic for differential expression analysis part of dsForm}
 \usage{
-dsFormAnal(input, output, session, data_dir, sc_dir, bulk_dir, error_msg,
-  dataset_name, dataset_dir, new_anal, new_dataset, explore_eset)
+dsFormAnal(
+  input,
+  output,
+  session,
+  data_dir,
+  sc_dir,
+  bulk_dir,
+  error_msg,
+  dataset_name,
+  dataset_dir,
+  new_anal,
+  new_dataset,
+  explore_eset
+)
 }
 \description{
 Logic for differential expression analysis part of dsForm

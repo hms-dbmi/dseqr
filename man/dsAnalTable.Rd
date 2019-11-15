@@ -4,8 +4,16 @@
 \alias{dsAnalTable}
 \title{Logic for differential expression analysis table}
 \usage{
-dsAnalTable(input, output, session, eset, labels, data_dir, dataset_dir,
-  anal_name)
+dsAnalTable(
+  input,
+  output,
+  session,
+  eset,
+  labels,
+  data_dir,
+  dataset_dir,
+  anal_name
+)
 }
 \description{
 Logic for differential expression analysis table

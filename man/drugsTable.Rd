@@ -4,8 +4,19 @@
 \alias{drugsTable}
 \title{Logic for drug table}
 \usage{
-drugsTable(input, output, session, query_res, drug_study, cells,
-  show_clinical, sort_by, min_signatures, is_pert, direction)
+drugsTable(
+  input,
+  output,
+  session,
+  query_res,
+  drug_study,
+  cells,
+  show_clinical,
+  sort_by,
+  min_signatures,
+  is_pert,
+  direction
+)
 }
 \description{
 Logic for drug table

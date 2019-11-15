@@ -4,8 +4,7 @@
 \alias{run_path_comparison}
 \title{Run single cell RNA-Seq test vs ctrl pathway comparison}
 \usage{
-run_path_comparison(scseq, selected_clusters, sc_dir, anal_name, res,
-  ambient)
+run_path_comparison(scseq, selected_clusters, sc_dir, anal_name, res, ambient)
 }
 \arguments{
 \item{scseq}{\code{Suerat} object}

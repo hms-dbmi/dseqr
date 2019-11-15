@@ -4,8 +4,19 @@
 \alias{dsForm}
 \title{Logic for Datasets form}
 \usage{
-dsForm(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset,
-  msg_quant, msg_anal, new_anal, explore_eset)
+dsForm(
+  input,
+  output,
+  session,
+  data_dir,
+  sc_dir,
+  bulk_dir,
+  new_dataset,
+  msg_quant,
+  msg_anal,
+  new_anal,
+  explore_eset
+)
 }
 \description{
 Logic for Datasets form
