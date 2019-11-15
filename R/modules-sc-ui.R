@@ -294,15 +294,33 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @keywords internal
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('cluster_plot'), height = '500px')
+  downloadablePlotUI(ns('cluster_plot'), height = '500px')
 }
+
+#' UI for plot with downloadable data
+#' @export
+#' @keywords internal
+downloadablePlotUI <- function(id, height) {
+  ns <- NS(id)
+  withTags({
+    div(class = 'downloadable-plot',
+        span(id = ns('download_container'), class = 'pull-right downloadable-plot-btn',
+             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download plot data')
+        ),
+        plotOutput(ns('dl_plot'), height = '500px')
+
+    )
+  })
+}
+
+
 
 #' Output plot of single cell markers
 #' @export
 #' @keywords internal
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('marker_plot'), height = '500px')
+  downloadablePlotUI(ns('marker_plot'), height = '500px')
 }
 
 #' Output plot of biogps data for a gene

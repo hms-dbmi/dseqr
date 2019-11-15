@@ -9,11 +9,36 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
                        sc_dir = sc_dir)
 
 
+  cluster_data_fname <- function() {
+    paste0(scForm$selected_anal(), '_cluster_plot_data_', Sys.Date(), '.csv')
+  }
+
   scCluster <- callModule(scClusterPlot, 'cluster_plot',
                           scseq = scForm$scseq,
                           plot_styles = scForm$plot_styles,
-                          selected_group = NULL,
+                          fname_fun = cluster_data_fname,
+                          downloadable = TRUE,
                           cached_plot = reactive(NULL))
+
+  # filename generator for marker plot data
+  marker_data_fname <- function(type, selected_group = NULL) {
+    return(function() {
+
+      if (type == 'cluster') {
+        fname <- paste0(scForm$selected_anal(),
+                        '_', scForm$selected_gene_cluster(),
+                        '_marker_plot_data_', Sys.Date(), '.csv')
+
+      } else if (type =='sample') {
+        fname <- paste0(scForm$selected_anal(),
+                        '_', selected_group,
+                        '_', scForm$selected_gene_sample(),
+                        '_marker_plot_data_', Sys.Date(), '.csv')
+      }
+
+      return(fname)
+    })
+  }
 
   # showing cluster comparison ----
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
@@ -21,6 +46,7 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
                                 selected_gene = scForm$selected_gene_cluster,
                                 plot_styles = scForm$plot_styles,
                                 selected_group = 'all',
+                                fname_fun = marker_data_fname('cluster'),
                                 cached_plot = reactive(NULL))
 
   callModule(scBioGpsPlot, 'biogps_plot',
@@ -32,6 +58,7 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
                                selected_gene = scForm$selected_gene_sample,
                                plot_styles = scForm$plot_styles,
                                selected_group = 'test',
+                               fname_fun = marker_data_fname('sample', 'test'),
                                cached_plot = reactive(NULL))
 
   callModule(scMarkerPlot, 'marker_plot_ctrl',
@@ -39,6 +66,7 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
              selected_gene = scForm$selected_gene_sample,
              plot_styles = scForm$plot_styles,
              selected_group = 'ctrl',
+             fname_fun = marker_data_fname('sample', 'ctrl'),
              cached_plot = scMarkerSample$plot)
 
   # showing labels comparison --------
@@ -204,7 +232,8 @@ scForm <- function(input, output, session, sc_dir, new_dataset) {
     selected_gene_cluster = scClusterGene$selected_gene,
     selected_gene_sample = scSampleGene$selected_gene,
     label_anals = integrationAnnotAnals,
-    comparison_type = comparisonType
+    comparison_type = comparisonType,
+    selected_anal = scAnal$selected_anal
 
   ))
 }
@@ -1029,29 +1058,60 @@ selectedGene <- function(input, output, session, selected_anal, scseq, selected_
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, plot_styles, selected_group, cached_plot) {
+scClusterPlot <- function(input, output, session, scseq, plot_styles, cached_plot, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
     cached_plot <- cached_plot()
     if (!is.null(cached_plot)) return(cached_plot)
-
     plot_umap_cluster(scseq(), pt.size = plot_styles$size())
 
   })
 
-  output$cluster_plot <- renderPlot({
-    plot()
-  })
+  data_fun <- function() {
+    plot <- plot()
+    plot$data
+  }
+
+  callModule(downloadablePlot,
+             "cluster_plot",
+             plot_fun = plot,
+             fname_fun = fname_fun,
+             data_fun = data_fun,
+             downloadable = downloadable)
+
 
   return(list(
     plot = plot
   ))
 }
 
+#' Logic for plot with downloadable data
+#' @export
+#' @keywords internal
+downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_fun, downloadable) {
+
+  # show download button only if plot visible and downloadable
+  observe({
+    toggleClass('download_container', class = 'visible-plot', condition = downloadable && isTruthy(plot_fun()))
+  })
+
+  # click download
+  output$download <- downloadHandler(
+    filename = fname_fun,
+    content = function(con) {
+      write.csv(data_fun(), con)
+    }
+  )
+
+  output$dl_plot <- renderPlot({
+    plot_fun()
+  })
+}
+
 #' Logic for marker gene plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles, selected_group, cached_plot) {
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles, selected_group, cached_plot, fname_fun = function(){}, downloadable = TRUE) {
 
 
   plot <- reactive({
@@ -1063,7 +1123,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
     plot_umap_gene(scseq(), selected_gene(), pt.size = plot_styles$size())
   })
 
-  output$marker_plot <- renderPlot({
+  ploted_plot <- reactive({
     pl <- plot()
     req(pl)
 
@@ -1074,11 +1134,25 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
   })
 
 
+  data_fun <- function() {
+    plot <- ploted_plot()
+    plot$data
+  }
+
+  callModule(downloadablePlot,
+             "marker_plot",
+             plot_fun = ploted_plot,
+             fname_fun = fname_fun,
+             data_fun = data_fun,
+             downloadable = downloadable)
+
+
+
+
   return(list(
     plot = plot
   ))
 }
-
 
 #' Logic for BioGPS plot
 #' @export
