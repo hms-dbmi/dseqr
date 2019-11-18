@@ -1,4 +1,3 @@
-
 #' UI for Single Cell Exploration page
 #' @export
 #' @keywords internal
@@ -94,7 +93,7 @@ sampleComparisonInput <- function(id) {
                          title = 'Compare test to control cells')
 
   selectizeInputWithButtons(ns('selected_clusters'),
-                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
+                            label = 'Compare samples for:',
                             button,
                             options = list(multiple = TRUE),
                             label_title = 'Cluster (n test :: n ctrl)')
@@ -230,7 +229,8 @@ clusterComparisonInput <- function(id) {
           div(id = ns('select_panel'),
 
               selectizeInputWithButtons(ns('selected_cluster'),
-                                        label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:', span(class = 'hover-info', icon('info', 'fa-fw')), title = 'Cluster (n cells :: % of total)'),
+                                        label = 'Show marker genes for:',
+                                        label_title = 'Cluster (n cells :: % of total)',
                                         actionButton(ns('show_contrasts'), '',
                                                      icon = icon('chevron-right', 'fa-fw'),
                                                      title = 'Toggle single group comparisons'),
@@ -265,7 +265,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),
-                            label = tags$span('Show expression for:', span(class='hover-info', icon('info', 'fa-fw'))),
+                            label = 'Show expression for:',
                             exclude_ambient_button,
                             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
                             actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
@@ -290,7 +290,14 @@ downloadablePlotUI <- function(id, height) {
   withTags({
     div(class = 'downloadable-plot',
         span(id = ns('download_container'), class = 'pull-right downloadable-plot-btn',
-             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download plot data')
+             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw')),
+             shinyBS::bsTooltip(ns('download'),
+                                'Download plot data',
+                                placement = 'left',
+                                options = list(
+                                  container = 'body',
+                                  template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                                ))
         ),
         plotOutput(ns('dl_plot'), height = '500px')
 

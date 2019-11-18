@@ -320,7 +320,8 @@ td.dt-nopad span {
 }
 
 .downloadable-plot-btn {
-  visibility: hidden;
+  animation: 0.2s fadeOut;
+  animation-fill-mode: forwards;
 }
 
 .downloadable-plot-btn i {
@@ -351,9 +352,20 @@ td.dt-nopad span {
   }
 }
 
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* custom tooltip styling */
 
-.tooltip.bottom .tooltip-inner{
+.tooltip .tooltip-inner {
+  font-family: "Open Sans", verdana, arial, sans-serif;
   max-width: 600px;
   padding:16px 12px;
   color:#fff;
@@ -362,3 +374,17 @@ td.dt-nopad span {
   background-color:rgba(0,0,0,0.90);
   border-radius:5px;
   }
+
+  /* for ggplot download data button: making it look like plotly */
+.tooltip.ggplot .tooltip-inner {
+  background: rgb(105, 115, 138);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 12px;
+  white-space: nowrap;
+  border-radius: 2px;
+}
+
+.tooltip.ggplot .tooltip-arrow {
+  border-left-color: rgb(105, 115, 138);
+}

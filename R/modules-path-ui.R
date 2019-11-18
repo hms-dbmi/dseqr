@@ -38,10 +38,10 @@ pathFormInput <- function(id) {
                     scSampleComparisonInput(ns)
            ),
            selectizeInputWithButtons(ns('pathway'),
-                                     label = tags$span('Select a pathway:', span(class='hover-info', icon('info', 'fa-fw'))),
+                                     label = 'Select a pathway:',
+                                     label_title = 'Pathway (FDR)',
                                      actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')),
-                                     label_title = 'Pathway (FDR)'),
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup'))),
            tags$div(id = ns('l1000_pert_container'), style = 'display: none;',
                     pathPertInput(ns('l1000'), type = 'L1000')
            ),
@@ -64,7 +64,7 @@ scSampleComparisonInput <- function(ns) {
                          title = 'Compare test to control cells')
 
   selectizeInputWithButtons(ns('selected_clusters'),
-                            label = tags$span('Compare samples for:', span(class='hover-info', icon('info', 'fa-fw'))),
+                            label = 'Compare samples for:',
                             button,
                             options = list(multiple = TRUE),
                             label_title = 'Cluster (n test :: n ctrl)')
@@ -78,12 +78,12 @@ pathPertInput <- function(id, type) {
 
   if (type == 'CMAP02') {
     res <- selectizeInputWithValidation(ns('pert'),
-                                        label = tags$span('Select perturbation signature:', span(class='hover-info', icon('info', 'fa-fw'))),
+                                        label = 'Select perturbation signature:',
                                         label_title = 'Signature (correlation)')
 
   } else if (type == 'L1000') {
     res <- selectizeInputWithButtons(ns('pert'),
-                                     label = tags$span('Select perturbation signature:', span(class='hover-info', icon('info', 'fa-fw'))),
+                                     label = 'Select perturbation signature:',
                                      actionButton(ns('l1000_type'), '', icon = icon('pills', 'fa-fw'), title = 'Toggle between drug and genetic perts'),
                                      label_title = 'Signature (correlation)'
     )

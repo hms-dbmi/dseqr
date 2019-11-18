@@ -146,15 +146,26 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
   button_tooltips <- NULL
   if (tooltip) {
     button_tooltips <- tags$div(
-      lapply(buttons, function(btn)
-        shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, options = list(container = 'body')))
+      lapply(buttons, function(btn) {
+        placement <- ifelse(any(grepl('dropdown', unlist(btn$attribs))), 'right', 'bottom')
+        shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, placement = placement, options = list(container = 'body'))
+      })
     )
+  }
+
+
+  # add info icon to label with tooltip
+  label_tooltip <- NULL
+  if (!is.null(label_title)) {
+    label_id <- paste0(id, '-label-info')
+    label_tooltip <- shinyBS::bsTooltip(label_id, title = label_title, placement = 'top', options = list(container = 'body'))
+    label <- tags$span(label, span(class='hover-info', span(id = label_id, icon('info', 'fa-fw'))))
   }
 
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   tags$div(class = 'form-group selectize-fh', id = container_id,
-           tags$label(class = 'control-label', `for` = id, label, title = label_title),
+           tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group full-height-btn',
                     tags$div(class = 'full-height-selectize',
                              select_tag,
@@ -172,7 +183,8 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
                     })
            ),
            tags$span(class = 'help-block', id = help_id),
-           button_tooltips
+           button_tooltips,
+           label_tooltip
   )
 }
 
@@ -236,6 +248,14 @@ dropdownMenuButton <- function(id, label) {
     tags$a(
       id = id, role = 'button', class = 'action-button shiny-bound-input', label
     )
+  )
+}
+
+inputLabelWithInfo <- function(id, label, tooltip = TRUE) {
+  tagList(
+    tags$span(id = id, label, span(class='hover-info', icon('info', 'fa-fw'))),
+    shinyBS::bsTooltip(id = id, )
+
   )
 }
 
