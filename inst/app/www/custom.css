@@ -350,3 +350,15 @@ td.dt-nopad span {
     opacity: 1;
   }
 }
+
+/* custom tooltip styling */
+
+.tooltip.bottom .tooltip-inner{
+  max-width: 600px;
+  padding:16px 12px;
+  color:#fff;
+  text-align:center;
+  font-size: 14px;
+  background-color:rgba(0,0,0,0.90);
+  border-radius:5px;
+  }

@@ -77,14 +77,32 @@ textInputWithValidation <- function(id, label, container_id = NULL, help_id = NU
 #' @param ... actionButtons
 #' @export
 #' @keywords internal
-textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL) {
+textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL, tooltip = TRUE) {
+
+  buttons <- list(...)
+  buttons <- buttons[!sapply(buttons, is.null)]
+
+  # generate tooltips
+  button_tooltips <- NULL
+  if (tooltip) {
+    button_tooltips <- tags$div(
+      lapply(buttons, function(btn)
+        shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, options = list(container = 'body')))
+    )
+  }
+
   tags$div(class = 'form-group selectize-fh', id = container_id, class = 'validate-wrapper',
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group',
                     tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
-                    tags$span(class = 'input-group-btn', ...)
+                    tags$span(class = 'input-group-btn',
+                              lapply(buttons, function(btn) {
+                                if (tooltip) btn$attribs$title <- NULL
+                                return(btn)
+                              }))
            ),
-           tags$span(class = 'help-block', id = help_id)
+           tags$span(class = 'help-block', id = help_id),
+           button_tooltips
   )
 }
 
@@ -112,7 +130,7 @@ selectizeInputWithValidation <- function(id, label, options = NULL, container_id
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL) {
+selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL, tooltip = TRUE) {
 
   mult <- isTRUE(options$multiple)
   if(mult) {
@@ -123,6 +141,15 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
 
   buttons <- list(...)
   buttons <- buttons[!sapply(buttons, is.null)]
+
+  # generate tooltips
+  button_tooltips <- NULL
+  if (tooltip) {
+    button_tooltips <- tags$div(
+      lapply(buttons, function(btn)
+        shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, options = list(container = 'body')))
+    )
+  }
 
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
@@ -138,13 +165,16 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
                       if (!any(grepl('dropdown', unlist(btn$attribs))))
                         btn <- tags$div(class = 'input-group-btn', id = paste0(btn$attribs$id, '-parent'), style = btn$attribs$`parent-style`, btn)
 
+                      # remove title since using tooltips
+                      if (tooltip) btn$attribs$title <- NULL
+
                       return(btn)
                     })
            ),
-           tags$span(class = 'help-block', id = help_id)
+           tags$span(class = 'help-block', id = help_id),
+           button_tooltips
   )
 }
-
 
 
 #' Full width button group with validation

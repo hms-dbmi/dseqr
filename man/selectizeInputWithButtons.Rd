@@ -11,7 +11,8 @@ selectizeInputWithButtons(
   options = NULL,
   container_id = NULL,
   help_id = NULL,
-  label_title = NULL
+  label_title = NULL,
+  tooltip = TRUE
 )
 }
 \arguments{

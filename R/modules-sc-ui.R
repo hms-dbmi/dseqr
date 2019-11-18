@@ -228,38 +228,23 @@ clusterComparisonInput <- function(id) {
     tagList(
       div(id = ns('selected_cluster_panel'),
           div(id = ns('select_panel'),
-              div(class = 'form-group selectize-fh',
-                  label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:', span(class = 'hover-info', icon('info', 'fa-fw')), title = 'Cluster (n cells :: % of total)'),
-                  div(class = 'input-group',
-                      div(
-                        select(id = ns('selected_cluster'), style = 'display: none'),
-                        script(type = 'application/json', `data-for` = ns('selected_cluster'), HTML('{}'))
-                      ),
-                      div(class = 'input-group-btn',
 
-                          actionButton(ns('show_contrasts'), '',
-                                       icon = icon('chevron-right', 'fa-fw'),
-                                       title = 'Toggle single group comparisons'),
-                          actionButton(ns('show_rename'), '',
-                                       icon = icon('tag', 'fa-fw'),
-                                       title = 'Toggle rename cluster')
-                      )
-                  )
-              )
-          ),
-          div(id = ns('rename_panel'), style = 'display: none',
-              div(class = 'form-group selectize-fh',
-                  label(class = 'control-label', `for` = ns('new_cluster_name'), 'New cluster name:'),
-                  div(class = 'input-group',
-                      input(id = ns('new_cluster_name'), type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
-                      span(class = 'input-group-btn',
-                           actionButton(ns('rename_cluster'), '',
-                                        icon = icon('plus', 'fa-fw'),
-                                        title = 'Rename cluster')
-                      )
-                  )
-              )
+              selectizeInputWithButtons(ns('selected_cluster'),
+                                        label(class = 'control-label', `for` = ns('selected_cluster'), 'Show marker genes for:', span(class = 'hover-info', icon('info', 'fa-fw')), title = 'Cluster (n cells :: % of total)'),
+                                        actionButton(ns('show_contrasts'), '',
+                                                     icon = icon('chevron-right', 'fa-fw'),
+                                                     title = 'Toggle single group comparisons'),
+                                        actionButton(ns('show_rename'), '',
+                                                     icon = icon('tag', 'fa-fw'),
+                                                     title = 'Toggle rename cluster'))
           )
+      ),
+      div(id = ns('rename_panel'), style = 'display: none',
+          textInputWithButtons(ns('new_cluster_name'),
+                               'New cluster name:',
+                               actionButton(ns('rename_cluster'), '',
+                                            icon = icon('plus', 'fa-fw'),
+                                            title = 'Rename cluster'))
       )
     )
   })
@@ -330,4 +315,3 @@ scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '500px')
 }
-

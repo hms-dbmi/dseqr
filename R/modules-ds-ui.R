@@ -69,17 +69,22 @@ dsDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:',
-                              options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
-                              button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
-                                     `data-title` = 'Folder with fastq.gz or cellranger files',
-                                     title = 'Select folder with fastq.gz or cellranger files',
-                                     i(class = 'far fa-folder fa-fw')
+    div(
+      selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:',
+                                options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
+                                button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
+                                       `data-title` = 'Folder with fastq.gz or cellranger files',
+                                       title = 'Select folder with fastq.gz or cellranger files',
+                                       i(class = 'far fa-folder fa-fw')
 
-                              )
+                                )
+
+      )
     )
   })
 }
+
+
 
 #' Dataset quantification inputs for dsFormInput
 #' @export
@@ -126,7 +131,7 @@ dsFormAnalInput <- function(id) {
         selectizeInputWithButtons(
           ns('anal_name'),
           'Analysis name:',
-          downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
+          downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results'),
           options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
           container_id = ns('anal_name_container'),
           help_id = ns('anal_name_help')
@@ -164,6 +169,7 @@ dsFormAnalInput <- function(id) {
     )
   )
 }
+
 
 #' Input form to control/test/all groups for integrated datasets
 #' @export
