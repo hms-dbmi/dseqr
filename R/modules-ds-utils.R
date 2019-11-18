@@ -23,13 +23,13 @@ validate_pdata <- function(pdata) {
 
 #' Generate boxplotly for vsd normalized gene and cell-type deconvolution plots.
 #'
-#' @param df \code{data.frame} with columns: \itemize {
+#' @param df \code{data.frame} with columns: \itemize{
 #'  \item x Factor for x-labels.
 #'  \item y Numeric column used for y-values.
 #'  \item text Character column used for hoverinfo.
 #'  \item name Character column used for legend names of \code{x} values.
 #'  \item color Factor column used to generate ordered colors for boxplots for each \code{'x'} value.
-#'  }
+#' }
 #' @param boxgap Used for plotly layout.
 #' @param boxgroupgap Used for plotly layout.
 #' @param plot_fname Name to save plot as.
