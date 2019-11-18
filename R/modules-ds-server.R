@@ -83,7 +83,8 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
   callModule(dsCellsPlotly, 'cells_plotly',
              dtangle_est = dsForm$dtangle_est,
-             pdata = dsExploreTable$pdata)
+             pdata = dsExploreTable$pdata,
+             dataset_name = dsForm$dataset_name)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
@@ -262,60 +263,112 @@ dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name
   })
 
   # MDS plot
-  output$plotly <- snapshotPreprocessOutput(
-    plotly::renderPlotly({
-      mds <- anal()$mds
-      plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
-    }),
-    function(value) { 'ds_mds_plotly' }
-  )
+  plotly_fun <- reactive({
+    mds <- anal()$mds
+    plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
+  })
 
 
+  # not currently downloadable so use default fname_fun and data_fun
+  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun)
 }
+
 
 #' Logic for Dataset Gene plotly
 #' @export
 #' @keywords internal
 dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
 
-  # Gene plotly
-  output$plotly <- snapshotPreprocessOutput(
-    plotly::renderPlotly({
+  boxplotly_args <- reactive({
+    # need eset and at least one gene
+    explore_genes <- explore_genes()
+    req(explore_genes)
+    eset <- eset()
 
-      # need eset and at least one gene
-      explore_genes <- explore_genes()
-      req(explore_genes)
-      eset <- eset()
+    get_boxplotly_gene_args(eset, explore_genes, dataset_name())
+  })
 
-      plotlyGene(eset, explore_genes, dataset_name())
-    }),
-    function(value) { 'ds_gene_plotly' }
-  )
+  plotly_fun <- reactive({
+
+    args <- boxplotly_args()
+
+    boxPlotly(df = args$df,
+              boxgap = args$boxgap,
+              boxgroupgap = args$boxgroupgap,
+              plot_fname = args$plot_fname,
+              ytitle = 'Normalized Expression',
+              xtitle = 'Gene')
+  })
+
+  fname_fun <- function() {
+    paste(dataset_name(), '_', paste(explore_genes(), collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
+  }
+
+
+  data_fun <- function(file) {
+    args <- boxplotly_args()
+    df <- args$df
+    df$color <- NULL
+    colnames(df) <- c('Sample', 'Gene', 'Normalized Expression', 'Group')
+    write.csv(df, file, row.names = FALSE)
+  }
+
+  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
+
 
 
 }
+
 
 #' Logic for Dataset Cell Type deconvolution plotly
 #' @export
 #' @keywords internal
-dsCellsPlotly <- function(input, output, session, dtangle_est, pdata) {
+dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
 
-  # MDS plot
-  output$plotly <- snapshotPreprocessOutput(
-    plotly::renderPlotly({
-      # need at least two groups
-      pdata <- pdata()
-      pdata <- pdata[!is.na(pdata$Group), ]
-      req(length(unique(pdata$Group)) > 1)
+  boxplotly_args <- reactive({
+    # need at least two groups
+    pdata <- pdata()
+    pdata <- pdata[!is.na(pdata$Group), ]
+    req(length(unique(pdata$Group)) > 1)
 
-      dtangle_est <- dtangle_est()
-      req(dtangle_est)
+    dtangle_est <- dtangle_est()
+    req(dtangle_est)
 
-      plotlyCells(pdata, dtangle_est)
-    }),
-    function(value) { 'dataset_cells_plotly' }
-  )
+    get_boxplotly_cell_args(pdata, dtangle_est, dataset_name())
+  })
+
+  plotly_fun <- reactive({
+
+    args <- boxplotly_args()
+
+    boxPlotly(df = args$df,
+              boxgap = args$boxgap,
+              boxgroupgap = args$boxgroupgap,
+              plot_fname = args$plot_fname,
+              ytitle = 'Estimated Proportion',
+              xtitle = 'Cluster')
+  })
+
+  fname_fun <- function() {
+    clusters <- colnames(dtangle_est())
+    clusters <- gsub(' ', '', clusters)
+    paste(dataset_name(), '_', paste(clusters, collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
+  }
+
+
+  data_fun <- function(file) {
+    args <- boxplotly_args()
+    df <- args$df
+    df$color <- NULL
+    colnames(df) <- c('Sample', 'Group', 'Proportion', 'Cluster')
+    write.csv(df, file, row.names = FALSE)
+  }
+
+  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
+
+
 }
+
 
 #' Logic for Datasets form
 #' @export

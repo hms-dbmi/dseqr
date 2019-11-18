@@ -33,14 +33,14 @@ dsPageUI <- function(id, tab, active) {
   })
 }
 
+
 #' Plotly MDS output
 #' @export
 #' @keywords internal
 dsPlotlyUI <- function(id) {
   ns <- NS(id)
-  plotly::plotlyOutput(ns('plotly'))
+  downloadablePlotlyUI(ns('plotly'))
 }
-
 
 #' Input form for datasets page
 #' @export

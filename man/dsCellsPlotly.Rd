@@ -4,7 +4,7 @@
 \alias{dsCellsPlotly}
 \title{Logic for Dataset Cell Type deconvolution plotly}
 \usage{
-dsCellsPlotly(input, output, session, dtangle_est, pdata)
+dsCellsPlotly(input, output, session, dtangle_est, pdata, dataset_name)
 }
 \description{
 Logic for Dataset Cell Type deconvolution plotly
