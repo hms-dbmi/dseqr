@@ -1718,6 +1718,13 @@
       "Repository": "CRAN",
       "Hash": "25dd339c951981444081a370b4afad40"
     },
+    "shinyBS": {
+      "Package": "shinyBS",
+      "Version": "0.61",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "09a0b3f7981711a00dc2477a7abc59ab"
+    },
     "shinyFiles": {
       "Package": "shinyFiles",
       "Version": "0.7.3",

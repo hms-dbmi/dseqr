@@ -340,6 +340,7 @@ td.dt-nopad span {
 
 .downloadable-plot-btn .btn {
   border: none;
+  padding: 0px;
 }
 
 @keyframes fadeIn {

@@ -1,7 +1,7 @@
 Package: drugseqr
 Type: Package
 Title: Finds CMAP02/L1000 Compounds That Oppose RNA-Seq Gene Expression Signatures.
-Version: 0.1.8
+Version: 0.1.9
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: More about what it does (maybe more than one line)
@@ -23,6 +23,7 @@ Imports:
     limma (>= 3.40.2),
     randomcoloR (>= 1.1.0),
     shiny (>= 1.2.0),
+    shinyBS (>= 0.61),
     shinyjs (>= 1.0),
     shinyWidgets (>= 0.4.8),
     shinyFiles (>= 0.7.3),
