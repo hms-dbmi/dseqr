@@ -7,12 +7,13 @@
 boxPlotly(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle)
 }
 \arguments{
-\item{df}{\code{data.frame} with columns:
-\item{x}{Factor for x-labels}.
-\item{y}{Numeric column used for y-values}.
-\item{text}{Character column used for hoverinfo}.
-\item{name}{Character column used for legend names of \code{x} values}.
-\item{color}{Factor column used to generate ordered colors for boxplots for each \code{'x'} value}.}
+\item{df}{\code{data.frame} with columns: \itemize {
+\item x Factor for x-labels.
+\item y Numeric column used for y-values.
+\item text Character column used for hoverinfo.
+\item name Character column used for legend names of \code{x} values.
+\item color Factor column used to generate ordered colors for boxplots for each \code{'x'} value.
+}}
 
 \item{boxgap}{Used for plotly layout.}
 
