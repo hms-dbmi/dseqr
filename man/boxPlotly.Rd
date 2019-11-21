@@ -31,3 +31,4 @@ plotly
 \description{
 Generate boxplotly for vsd normalized gene and cell-type deconvolution plots.
 }
+\keyword{internal}

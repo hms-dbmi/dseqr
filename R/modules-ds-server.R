@@ -15,6 +15,7 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
     pdata <- pdata[keep, ]
     req(length(unique(pdata$Group)) > 1)
 
+
     # add vst normalized data
     eset <- dsForm$eset()
     eset <- eset[, keep]
@@ -284,6 +285,9 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_na
     explore_genes <- explore_genes()
     req(explore_genes)
     eset <- eset()
+
+    # prevent warning when switching between dataset (eset updated before genes)
+    req(all(explore_genes %in% row.names(eset)))
 
     get_boxplotly_gene_args(eset, explore_genes, dataset_name())
   })
@@ -1356,22 +1360,33 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
     return(pdata)
   })
 
-  # reset when new eset or analysis name
-  observe({
+  eset_pdata <- reactive({
     eset <- eset()
-    pdata_path <- pdata_path()
-    req(eset, pdata_path)
+    req(eset)
 
     pdata <- Biobase::pData(eset) %>%
       dplyr::select(-lib.size, -norm.factors) %>%
       tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
 
-    group <- name <- rep(NA, nrow(pdata))
+    return(pdata)
+  })
+
+  # reset when new eset or analysis name
+  observe({
+    pdata_path <- pdata_path()
+    eset_pdata <- pdata <- eset_pdata()
+    req(eset_pdata, pdata_path)
+
+    group <- name <- rep(NA, nrow(eset_pdata))
     # load pdata from previous if available
     if (file.exists(pdata_path)) {
-      saved <- readRDS(pdata_path)
-      group <- saved$Group
-      name  <- saved$`Group name`
+      saved_pdata <- pdata <- readRDS(pdata_path)
+
+      # prevent overwriting saved pdata when switch between analyses
+      req(all(row.names(eset_pdata) == row.names(saved_pdata)))
+
+      group <- pdata$Group
+      name  <- pdata$`Group name`
     }
 
     table_rendered(FALSE)
@@ -1480,3 +1495,4 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   ))
 
 }
+

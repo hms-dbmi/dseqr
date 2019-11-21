@@ -37,6 +37,8 @@ validate_pdata <- function(pdata) {
 #' @param xtitle X axis title.
 #'
 #' @return plotly
+#' @export
+#' @keywords internal
 boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 
   # legend styling
