@@ -238,12 +238,26 @@
 
 
 /* NAVBAR */
+
+/* allows for right-aligned tabs inside same ul tabset */
+/* only way I could get it working with shiny */
+ul.nav.navbar-nav {
+  float: none;
+}
+
 .navbar-default {
   background-color: white;
 }
 
 .navbar {
   margin-bottom: 50px;
+}
+
+/* same box when active/active so that hover doesn't change height on mobile */
+.navbar-nav>li>a {
+  padding: 5px 12px;
+  margin: 9px 2px;
+  border: 1px solid transparent;
 }
 
 .navbar-default .navbar-nav>.active>a,

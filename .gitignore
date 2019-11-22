@@ -33,3 +33,6 @@ data-raw/single-cell/kallisto-args/*
 data-raw/single-cell/reference-data/*
 
 *.tar.gz
+
+# personal files
+sync-aws.sh
