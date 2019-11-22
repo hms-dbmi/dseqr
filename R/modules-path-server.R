@@ -24,33 +24,37 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
 
     pert_signature <- form$pert_signature()
     path_df <- get_path_df(anal, path_id, pert_signature)
+
+    # so that still shows hover if no sd
     path_df$sd[is.na(path_df$sd)] <- 'NA'
 
     # 30 pixels width per gene in pathway
     ngenes <- length(unique(path_df$Gene))
     plot_width <- max(400, ngenes*25 + 125)
 
-    plotly::plot_ly(data = path_df,
-                    y = ~Dprime,
-                    x = ~Gene,
-                    text = ~Gene,
-                    customdata = apply(path_df, 1, as.list),
-                    type = 'scatter',
-                    mode = 'markers',
-                    width = plot_width,
-                    height = 550,
-                    marker = list(size = 5, color = path_df$color),
-                    error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
-                    hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                    hovertemplate = paste0(
-                      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-                      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
-                      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
-                      '<extra></extra>')
+    pl <- plotly::plot_ly(data = path_df,
+                          y = ~Dprime,
+                          x = ~Gene,
+                          text = ~Gene,
+                          customdata = apply(path_df, 1, as.list),
+                          type = 'scatter',
+                          mode = 'markers',
+                          width = plot_width,
+                          height = 550,
+                          marker = list(size = 5, color = path_df$color),
+                          error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                          hovertemplate = paste0(
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
+                            '<extra></extra>')
     ) %>%
       plotly::config(displayModeBar = FALSE) %>%
-      plotly::layout(yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
+      plotly::layout(hoverdistance = -1,
+                     hovermode = 'x',
+                     yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
                      xaxis = list(fixedrange = TRUE,
                                   range = c(-2, ngenes + 1),
                                   tickmode = 'array',
@@ -58,6 +62,23 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
                                   ticktext = ~Link,
                                   tickangle = -45),
                      autosize = FALSE)
+
+
+    # add arrow to show drug effect
+    if ('dprime_sum' %in% colnames(path_df))
+      pl <- pl %>%
+      plotly::add_annotations(x = ~Gene,
+                              y = ~dprime_sum,
+                              xref = "x", yref = "y",
+                              axref = "x", ayref = "y",
+                              text = "",
+                              showarrow = TRUE,
+                              arrowcolor = ~arrow_color,
+                              arrowwidth = 1,
+                              ax = ~Gene,
+                              ay = ~Dprime)
+
+    return(pl)
 
   })
 
@@ -427,3 +448,4 @@ scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, in
 
 
 }
+

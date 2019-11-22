@@ -48,7 +48,7 @@ construct_path_df <- function(top_table) {
     Dprime = top_table$dprime,
     sd = sqrt(top_table$vardprime),
     description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
-    Link = paste0("<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
+    Link = paste0("<a class='xaxis-tooltip' href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
     stringsAsFactors = FALSE
   ) %>%
     mutate(Gene = factor(Gene, levels = Gene))
@@ -86,7 +86,7 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
   }
 
   path_df <- construct_path_df(top_table)
-  path_df$color = 'black'
+  path_df$point_color <- 'black'
 
   # for drug/genetic queries: keep up to nmax in cmap/l1000
   is.cmap2 <- path_id == 'Query genes - CMAP02'
@@ -102,17 +102,14 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
   # add pert signature data
   if (!is.null(pert_signature)) {
     pert_signature <- pert_signature[as.character(path_df$Gene)]
-    pert_df <- path_df
-    pert_df$Dprime <- pert_signature
 
-    # get colors based on signs
+    # show pert as arrow going to sum of disease + pert
+    path_df$dprime_sum <- path_df$Dprime + pert_signature
+
+    # get arrow colors based on if drug pushes gene in right direction
     path_signs <- sign(path_df$Dprime)
-    pert_signs  <- sign(pert_df$Dprime)
-    pert_df$color <- ifelse(pert_signs == path_signs, 'red', 'blue')
-
-    # TODO show pert variances
-    pert_df$sd <- NA
-    path_df <- rbind(path_df, pert_df)
+    pert_signs  <- sign(pert_signature)
+    path_df$arrow_color <- ifelse(pert_signs == path_signs, 'rgba(246,79,90,.8)', 'rgba(24,99,230,.59)')
 
   }
 
