@@ -1,6 +1,7 @@
 
  body {
     position: relative; /* For scrollspy */
+    font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
   }
   
 
@@ -41,17 +42,20 @@
   .bs-docs-sidebar .nav > li > a {
     display: block;
     padding: 4px 25px;
+    margin-bottom:5px;
     font-size: 14px;
     font-weight: 500;
-    color: #767676;
+    color: inherit;
+    color: #7e8082;
   }
   
   /* First level of nav */
   .bs-docs-sidebar > .nav > li > a {
     display: inline-block;
-    margin-bottom: 5px;
     font-weight: 700;
-    color: #333;
+    font-size: 16px;
+    color: inherit;
+    /* color: #54575a; */
   }
 
   .bs-docs-sidebar .nav > li > a:hover,
@@ -137,4 +141,77 @@
     padding-top: 20px;
     margin-top: 0;
   }
+
+  .bs-docs-section h1 {
+    font-size: 41px;
+    border-bottom: 1px solid #ddd;
+    font-weight: 600;
+    /* color: #54575a; */
+  }
+
+  .bs-docs-section h2 {
+    display: inline-block;
+    border-bottom: 1px solid #ddd;
+    padding: 20px 0px;
+    margin-bottom: 30px;
+  }
   
+
+  .bs-docs-img {
+    padding: 40px 0px;
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+
+/* Callouts
+Not quite alerts, but custom and helpful notes for folks reading the docs.
+Requires a base and modifier class. */
+
+.bs-callout {
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #eee;
+  border-left-width: 5px;
+  border-radius: 3px;
+}
+
+.bs-callout h4 {
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.bs-callout  p:last-child {
+  margin-bottom: 0;
+}
+
+.bs-callout code {
+  border-radius: 3px;
+}
+
+
+.bs-callout-danger {
+  border-left-color: #ce4844;
+}
+
+.bs-callout-danger h4 {
+  color: #ce4844;
+}
+
+.bs-callout-warning {
+  border-left-color: #aa6708;
+}
+
+.bs-callout-warning h4 {
+  color: #aa6708;
+}
+
+
+.bs-callout-info {
+  border-left-color: #1b809e;
+}
+
+.bs-callout-warning  h4 {
+  color: #1b809e;
+}
