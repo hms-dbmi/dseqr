@@ -59,11 +59,11 @@
 }
 
 .pert-label .input-swatch.same {
-  background-color: red;
+  background-color: #f64f5a;
 }
 
 .pert-label .input-swatch.opposite {
-  background-color: blue;
+  background-color: #1863e6;
 }
 
 .pert-label {

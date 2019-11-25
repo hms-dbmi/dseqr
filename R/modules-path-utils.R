@@ -109,7 +109,7 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
     # get arrow colors based on if drug pushes gene in right direction
     path_signs <- sign(path_df$Dprime)
     pert_signs  <- sign(pert_signature)
-    path_df$arrow_color <- ifelse(pert_signs == path_signs, 'rgba(246,79,90,.8)', 'rgba(24,99,230,.59)')
+    path_df$arrow_color <- ifelse(pert_signs == path_signs, '#f64f5a', '#1863e6')
 
   }
 
