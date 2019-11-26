@@ -139,6 +139,7 @@ datasetsSection <- docsSection(
 singleCellSection <- docsSection(
   id = 'sc-docs', name = 'Single Cell',
   content = list(
+    # Manual cluster labeling ----
     docsSubsection(id = 'sc-label-clusters',
                    name = 'Manual cluster labeling',
                    content = tagList(
@@ -174,6 +175,7 @@ singleCellSection <- docsSection(
                    )
 
     ),
+    # Automatic cluster labeling ----
     docsSubsection(
       id = 'sc-label-auto',
       name = 'Automatic cluster labeling',
@@ -197,6 +199,7 @@ singleCellSection <- docsSection(
         )
       )
     ),
+    # Integrate datasets ----
     docsSubsection(
       id = 'sc-integrate-samples',
       name = 'Integrate datasets',
@@ -222,6 +225,7 @@ singleCellSection <- docsSection(
         )
       )
     ),
+    # Differential expression analysis ----
     docsSubsection(
       id = 'sc-differential-expression',
       name = 'Differential expression analysis',
@@ -252,6 +256,64 @@ singleCellSection <- docsSection(
     )
   ))
 
+
+# Pathway section -----
+pathwaySection <- docsSection(
+  id = 'path-docs', name = 'Pathways',
+  content = list(
+    docsSubsection(
+      id = 'path-overview',
+      # Overview -----
+      name = 'Overview',
+      content = tagList(
+        HTML("<p>The Pathways tab allows you to inspect standardized unbiased effect sizes (<i>dprimes</i>) of genes in the most significant KEGG pathways.
+             In addition to KEGG pathways, you can also inspect genes used for CMAP02/L1000 perturbation queries and view the predicted effect of those perturbations.</p>"),
+        div(class = 'bs-callout bs-callout-info',
+            h4('Pathway analysis algorithm'),
+            HTML('<p>Pathway analyses are performed using <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-136" target="_blank">PADOG</a>, which downweights the importance of genes that are present in multiple pathways.
+              This approach was chosen as it has been shown to outperform other methods in ranking target pathways<sup><a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0079217#pone-0079217-g002" target="_blank">1</a>,<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4707541/#f5" target="_blank">2</a></sup>.</p>')
+        )
+      )
+
+    ),
+    # Perturbation query genes -----
+    docsSubsection(
+      id = 'path-query',
+      name = 'Perturbation query genes',
+      content = tagList(
+        HTML("<p>CMAP02/L1000 perturbation queries are run using the top 200 most significant genes. You can
+        view effect sizes for these genes by selecting either CMAP02 or L1000 query genes in the <b>Select a pathway</b> input.
+             This will bring up the option to <b>Select a perturbation signature</b> so that you can view
+             the predicted effect of the perturbation on the query genes.</p>"),
+        div(class = 'bs-callout bs-callout-info',
+            h4('Perturbation prediction on query genes'),
+            p('The predicted effect of the perturbation on the query genes is shown as an arrow starting from the query signature effect size
+              and finishing on the sum of the query and perturbation standardized effect sizes.')
+        )
+      )
+    )
+  )
+)
+
+# Drugs section ----
+drugsSection <- docsSection(
+  id = 'drugs-docs', name = 'Drugs',
+  content = list(
+    docsSubsection(id = 'drugs-overview',
+                   name = 'Overview',
+                   content = tagList(p('TODO'))
+
+    ),
+    docsSubsection(id = 'drugs-custom-queries',
+                   name = 'Custom queries',
+                   content = tagList(p('TODO'))
+    ),
+    docsSubsection(id = 'drugs-advanced',
+                   name = 'Advanced options',
+                   content = tagList(p('TODO'))
+    )
+  ))
+
 # functions ----
 
 #' UI for docs page (add new sections here)
@@ -270,36 +332,10 @@ docsPageUI <- function(id, tab, active) {
     singleCellSection,
 
     # Pathways documentation
-    docsSection(id = 'path-docs', name = 'Pathways',
-                content = list(
-                  docsSubsection(id = 'path-overview',
-                                 name = 'Overview',
-                                 content = tagList(p('TODO'))
-
-                  ),
-                  docsSubsection(id = 'path-query',
-                                 name = 'CMAP02/L1000 query genes',
-                                 content = tagList(p('TODO'))
-                  )
-                )),
+    pathwaySection,
 
     # Drugs documentation
-    docsSection(id = 'drugs-docs', name = 'Drugs',
-                content = list(
-                  docsSubsection(id = 'drugs-overview',
-                                 name = 'Overview',
-                                 content = tagList(p('TODO'))
-
-                  ),
-                  docsSubsection(id = 'drugs-custom-queries',
-                                 name = 'Custom queries',
-                                 content = tagList(p('TODO'))
-                  ),
-                  docsSubsection(id = 'drugs-advanced',
-                                 name = 'Advanced options',
-                                 content = tagList(p('TODO'))
-                  )
-                ))
+    drugsSection
   )
 
 
