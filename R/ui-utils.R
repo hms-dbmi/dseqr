@@ -119,15 +119,24 @@ textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = 
 selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL, label_title = NULL) {
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
+  label_tooltip <- NULL
+  if (!is.null(label_title)) {
+    label_id <- paste0(id, '-label-info')
+    label_tooltip <- shinyBS::bsTooltip(label_id, title = label_title, placement = 'top', options = list(container = 'body'))
+    label <- tags$span(label, span(class='hover-info', span(id = label_id, icon('info', 'fa-fw'))))
+  }
+
   tags$div(class = 'form-group selectize-fh', id = container_id,
            tags$label(class = 'control-label', `for` = id, label, title = label_title),
            tags$div(
              tags$select(id = id, style = 'display: none'),
              tags$script(type = 'application/json', `data-for` = id, HTML(options))
            ),
-           tags$span(class = 'help-block', id = help_id)
+           tags$span(class = 'help-block', id = help_id),
+           label_tooltip
   )
 }
+
 
 #' selectizeInput with buttons and validation
 #' @inheritParams shiny::textInput
