@@ -158,7 +158,7 @@
   
 
   .bs-docs-img {
-    padding: 40px 0px;
+    margin: 40px 0px;
     display: block;
     max-width: 100%;
     height: auto;
@@ -212,6 +212,25 @@ Requires a base and modifier class. */
   border-left-color: #1b809e;
 }
 
-.bs-callout-warning  h4 {
+.bs-callout-info h4 {
   color: #1b809e;
+}
+
+.bs-docs-btn {
+  margin: 0px;
+  border: 1px solid #ddd;
+  padding: 3px;
+  display: inline;
+  border-radius: 3px;
+}
+
+.bs-docs-primary {
+  background-color: #337ab7;
+  color: #fff;
+  padding: 3px 10px;
+  border-color: #337ab7;
+}
+
+.bs-docs-btn i {
+  vertical-align: middle;
 }

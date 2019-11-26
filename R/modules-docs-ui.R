@@ -13,9 +13,10 @@ datasetsSection <- docsSection(
         ),
         img(src = 'docs-ds-dataset_name.png', class = 'bs-docs-img'),
         div(class = 'bs-callout bs-callout-danger',
-            h4('Folder selection'),
+            h4('Subfolder selection on left only'),
             p('Subfolders can only be selected on the left side of the popup when selecting a folder with fastq.gz or cellranger files.')
         ),
+
         p("If a folder with bulk fastq.gz files is selected, you will be prompted to confirm the auto-detected end type.
               If the end type is pair-ended, you will also need to indicate pairs. To do this, click the table rows corresponding to the
               paired files and click Paired. If present, you should also indicate any files that are replicates of the same sample
@@ -25,10 +26,10 @@ datasetsSection <- docsSection(
           tags$a(href = 'https://pachterlab.github.io/kallisto/about', target = '_blank', 'kallisto'),
           "for both bulk and single-cell RNA-Seq data."),
         p("After quantification completes, bulk datasets can be selected in the Datasets tab for differential expression and
-              exploratory analyses whereas single-cell datasets will show up in the Single Cell tab for exploratory analyses and sample
+              exploratory analyses. Single-cell datasets will show up in the Single Cell tab for exploratory analyses and sample
               integration."),
         div(class = 'bs-callout bs-callout-info',
-            h4('Single cell processing'),
+            h4('Single cell processing algorithm'),
             p('For single cell datasets,',
               tags$a(href = 'https://satijalab.org/seurat/', target='_blank', 'Seurat'),
               'version 3.1 is used for normalization, dimensionality reduction, clustering, and to find marker genes for each cluster.',
@@ -47,15 +48,15 @@ datasetsSection <- docsSection(
                   input and type enter.</p>"),
         img(src = 'docs-ds-diff_expr.png', class = 'bs-docs-img'),
         HTML("This will bring up additional buttons that allow you to label samples in your dataset as either test or control. For example, to
-                  label a group of samples as the test group, select the rows that correspond to test samples and click the <b>test</b> button. After
-                  indicating control and test samples click <b>Run Analysis</b>."),
+                  label a group of samples as the test group, select the rows that correspond to test samples and click the <span class='bs-docs-btn'>test</span> button. After
+                  indicating control and test samples, click <span class='bs-docs-btn bs-docs-primary'>Run Analysis</span>."),
         img(src = 'docs-ds-label_rows.png', class = 'bs-docs-img'),
         div(class = 'bs-callout bs-callout-danger',
-            h4('Minimum number of samples'),
+            h4('Requires at least three samples'),
             p('Differential expression analysis requires at least three samples total between control and test groups.')
         ),
         div(class = 'bs-callout bs-callout-info',
-            h4('Differential expression analysis'),
+            h4('Differential expression analysis algorithm'),
             p('Differential expression analysis is performed with',
               tags$a(href = 'https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-2-r29', target='_blank', 'limma-voom.'),
               'Counts are first imported in accordance with the',
@@ -80,16 +81,16 @@ datasetsSection <- docsSection(
                         HTML("<p>To view sample level gene expression plots, select a dataset and make sure the <b>exploratory</b>
                                   analysis type toggle is selected. If you have not already done so, label samples (table rows) for
                                   groups of interest. To do this, select rows corresponding to a group of interest,
-                                  type a <b>Group name for selected rows</b> and click the plus button to label the
+                                  type a <b>Group name for selected rows</b> and click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> button to label the
                                   selected samples. Finally, select genes to <b>Show expression for</b>.</p>"),
                         img(src = 'docs-ds-explore_genes.png', class = 'bs-docs-img'),
                         div(class = 'bs-callout bs-callout-danger',
-                            h4('Minimum number of groups'),
+                            h4('Exploratory plots require two labeled groups'),
                             p("Sample level gene expression plots won't show up unless at least two groups of samples are labeled. Previously
                                   labeled groups will be saved between sessions.")
                         ),
                         div(class = 'bs-callout bs-callout-info',
-                            h4('Gene expression normalization'),
+                            h4('Expression normalization algorithm for visualizations'),
                             HTML("<p>Gene expression is normalized with the function <code>DESeq2::vst</code> with <code>blind = FALSE</code>.
                                      For further details see
                                      <a href='http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization' target='_blank'>Data transformations and visualization</a>
@@ -114,7 +115,7 @@ datasetsSection <- docsSection(
                         HTML("<p>To run cell-type deconvolution, select a dataset and make sure the <b>exploratory</b> analysis type is
                               selected. If you have not already done so, label samples (table rows) for
                                   groups of interest. To do this, select rows corresponding to a group of interest,
-                                  type a <b>Group name for selected rows</b> and click the plus button to label the
+                                  type a <b>Group name for selected rows</b> and click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> button to label the
                                   selected samples. Also make sure to <b>Toggle cell-type deconvolution</b></p>"),
                         img(src = 'docs-ds-cell_deconvolution_toggle.png', class = 'bs-docs-img'),
                         HTML("Next, select a reference single cell dataset that contains the cell types that you expect to observe in the bulk
@@ -122,7 +123,7 @@ datasetsSection <- docsSection(
                                  that you don't expect within your bulk dataset."),
                         img(src = 'docs-ds-cell_deconvolution_ref.png', class = 'bs-docs-img'),
                         div(class = 'bs-callout bs-callout-info',
-                            h4('Cell-type deconvolution'),
+                            h4('Cell-type deconvolution algorithm'),
                             HTML("<p>Cell-type deconvolution is performed using <code>dtangle</code> as described in the
                                      <a href='https://github.com/gjhunt/dtangle/blob/master/vign/sc_vignette.md' target='_blank'>single-cell vignette</a>
                                      except using <code>DESeq2::vst</code> to normalize RNA-Seq counts and the <code>sctransform</code> log normalized counts
@@ -134,7 +135,122 @@ datasetsSection <- docsSection(
       ))
   ))
 
+# Single Cell section ----
+singleCellSection <- docsSection(
+  id = 'sc-docs', name = 'Single Cell',
+  content = list(
+    docsSubsection(id = 'sc-label-clusters',
+                   name = 'Manual cluster labeling',
+                   content = tagList(
+                     HTML(
+                       "<p>Various tools are available to facilitate labeling cell clusters in single cell datasets. To identify a
+                       single-cell cluster, first <b>Select a dataset</b> in the Single Cell tab. All clusters with their current labels
+                       are plotted to the right of the input panel. Next, select a cluster to <b>Show marker genes for</b> and
+                       select a marker gene in this cluster to <b>Show expression for</b>.</p>"
+                     ),
+                     img(src = 'docs-sc-inputs.png', class = 'bs-docs-img'),
+                     div(class = 'bs-callout bs-callout-info',
+                         h4('Gene names on hover'),
+                         p('To see the full name for a gene, hover either the selected gene symbol or a gene symbol in the dropdown list.')
+                     ),
+                     HTML(
+                       "<p>A plot for the selected gene will show up below the cluster plot. If available, a plot of the BioGPS data on
+                       tissue-specific transcription for the chosen gene will also appear below the input panel. Continue to explore
+                       marker genes for the chosen cluster in order to identify the cell type. Click the
+                       <span class='bs-docs-btn'><i class='fa fa-external-link-alt fa-fw'></i></span>
+                       button to visit the GeneCards entry for a selected gene. In order to distinguish similar clusters,
+                       you can toggle single group comparisons. This will calculate marker genes by comparing the chosen cluster to another
+                       cluster instead of to all other clusters.</p>"
+                     ),
+                     img(src = 'docs-sc-single_group.png', class = 'bs-docs-img'),
+                     HTML("
+                          <p>Once you have an identity in mind for a cluster, click the rename cluster toggle, type a <b>New cluster name</b>,
+                          and click <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> to rename the cluster. To return to
+                          the cluster selection without renaming the cluster, leave the cluster name text input blank and click
+                          <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span>.</p>
+                          "),
+                     img(src = 'docs-sc-rename.png', class = 'bs-docs-img'),
+                     img(src = 'docs-sc-new_name.png', class = 'bs-docs-img')
+                   )
 
+    ),
+    docsSubsection(
+      id = 'sc-label-auto',
+      name = 'Automatic cluster labeling',
+      content = tagList(
+        HTML("
+        <p>To automate cell cluster labeling, labels are transfered from a previously labeled dataset to the current dataset. To transfer
+        labels, first <b>Select a dataset</b> to transfer labels to and click the label transfer toggle.</p>
+        "),
+        img(src = 'docs-sc-label_transfer.png', class = 'bs-docs-img'),
+        HTML("
+             <p>Next, select another single cell data to <b>Transfer labels from</b> and click run label transfer</p>
+             "),
+        img(src = 'docs-sc-run_transfer.png', class = 'bs-docs-img'),
+        HTML("
+             <p>Inspect the predicted labels in the various plots. If you are satisfied, go ahead and overwrite the previous labels.</p>
+             "),
+        img(src = 'docs-sc-overwrite_labels.png', class = 'bs-docs-img'),
+        div(class = 'bs-callout bs-callout-info',
+            h4('Mix automatic and manual labeling'),
+            p('Automatic cell-type labeling is often a good starting point for further refinements through manual labeling.')
+        )
+      )
+    ),
+    docsSubsection(
+      id = 'sc-integrate-samples',
+      name = 'Integrate datasets',
+      content = tagList(
+        HTML("
+             <p>Integrating single cell samples opens up cross-sample differential expression analyses, pathway analyses, and drug queries.
+             To integrate single cell samples, click the dataset integation toggle and fill in the inputs.</p>
+             "),
+        img(src = 'docs-sc-integration.png', class = 'bs-docs-img'),
+        div(class = 'bs-callout bs-callout-danger',
+            h4('Identify incorrectly integrated clusters'),
+            HTML('<p>After integrating datasets, you should check to see if any cell-clusters were incorrectly grouped (e.g. RBCs from one sample
+              cluster with B-cells from another sample). To do this, select the newly integrated dataset and inspect the original labels by choosing
+              to <b>Perform comparisons between</b> labels. This will <b>Show original labels for</b> samples in the integrated dataset but with the dimensionality
+                 reduction based on the integrated dataset.</p>'),
+            img(src = 'docs-sc-label_comparison.png', class = 'bs-docs-img')
+        ),
+        div(class = 'bs-callout bs-callout-danger',
+            h4('Exclude incorrectly integrated clusters'),
+            HTML('<p>If cell labels have changed with integration, you will have to decide if the new labels
+                 are correct by inspecting markers. In my experience, a cell type that exists in one sample but not another is a frequent source of
+                 incorrect integration. If you discover clusters that failed to integrate correctly, re-run integration and exclude any offending clusters.</p>')
+        )
+      )
+    ),
+    docsSubsection(
+      id = 'sc-differential-expression',
+      name = 'Differential expression analysis',
+      content = tagList(
+        HTML("
+             <p>Differential expression analysis allows you to compare one or more cell clusters across single cell samples. To run cross-sample
+             differential expression, select an integrated single cell dataset and choose to <b>Perform comparisons between</b> samples. Next,
+             choose clusters to <b>Compare samples for</b> and click <span class='bs-docs-btn'><i class='fa fa-chevron-right fa-fw'></i></span> to
+             run differential expression analysis.</p>
+             "),
+        img(src = 'docs-sc-diff_expr.png', class = 'bs-docs-img'),
+        div(class = 'bs-callout bs-callout-info',
+            h4('Integrated differential expression algorithm'),
+            HTML('<p>Differential expression analysis is currently run using <code>limma</code> on <code>Seurat::SCTransform</code> log normalized counts
+                 from the non-integrated data. In practice, we found that this ranks genes similarly as <code>Seurat::FindMarkers</code> but is much
+                 faster, allows pathway analysis and drug queries to use comparable algorithms as used for bulk datasets, and opens up the possibility of transitioning to pseudo-bulk
+                 analyses.</p>')
+        ),
+        div(class = 'bs-callout bs-callout-info',
+            h4('Excluding ambient genes'),
+            HTML("<p>Single cell samples are often plagued by contamination from ruptured cells (seen for example as high baseline expression of
+                 RBC specific genes in non RBCs). We originally used <code>soupx</code> to correct for this ambient expression but found that correction
+                 would often result in misleading differences between samples. Ambient genes are now identified as those that are outliers in
+                 empty droplets with less than ten counts and can be excluded by clicking <span class='bs-docs-btn'><i class='fa fa-ban fa-fw'></i></span>.
+                 This simple approach doesn't alter the expression profile and so avoids misleading corrections.</p>")
+        )
+      )
+    )
+  ))
 
 # functions ----
 
@@ -151,39 +267,19 @@ docsPageUI <- function(id, tab, active) {
     # Datasets documentation
     datasetsSection,
     # Single cell documentation
-    docsSection(id = 'sc-docs', name = 'Single Cell',
-                content = list(
-                  docsSubsection(id = 'sc-label-clusters',
-                                 name = 'Labeling cell clusters',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
-
-                  ),
-                  docsSubsection(id = 'sc-integrate-samples',
-                                 name = 'Integrate datasets',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
-                  ),
-                  docsSubsection(id = 'sc-differential-expression',
-                                 name = 'Differential expression analysis',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
-                  )
-                )),
+    singleCellSection,
 
     # Pathways documentation
     docsSection(id = 'path-docs', name = 'Pathways',
                 content = list(
                   docsSubsection(id = 'path-overview',
                                  name = 'Overview',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
+                                 content = tagList(p('TODO'))
 
                   ),
                   docsSubsection(id = 'path-query',
                                  name = 'CMAP02/L1000 query genes',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
+                                 content = tagList(p('TODO'))
                   )
                 )),
 
@@ -192,19 +288,16 @@ docsPageUI <- function(id, tab, active) {
                 content = list(
                   docsSubsection(id = 'drugs-overview',
                                  name = 'Overview',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
+                                 content = tagList(p('TODO'))
 
                   ),
                   docsSubsection(id = 'drugs-custom-queries',
                                  name = 'Custom queries',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
+                                 content = tagList(p('TODO'))
                   ),
                   docsSubsection(id = 'drugs-advanced',
                                  name = 'Advanced options',
-                                 content = tagList(p(shinipsum::random_text(nwords=100)),
-                                                   p(shinipsum::random_text(nwords=100)))
+                                 content = tagList(p('TODO'))
                   )
                 ))
   )
@@ -224,7 +317,6 @@ docsPageUI <- function(id, tab, active) {
     )
   })
 }
-
 
 
 #' A primary section in the Docs page
