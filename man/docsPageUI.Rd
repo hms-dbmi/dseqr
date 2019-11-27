@@ -9,4 +9,12 @@ docsPageUI(id, tab, active)
 \description{
 UI for docs page (add new sections here)
 }
+\keyword{(add}
+\keyword{UI}
+\keyword{docs}
+\keyword{for}
+\keyword{here)}
 \keyword{internal}
+\keyword{new}
+\keyword{page}
+\keyword{sections}
