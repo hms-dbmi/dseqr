@@ -12,6 +12,8 @@ diff_path(
   rna_seq = TRUE,
   browse = FALSE,
   NI = 1000,
+  gslist = NULL,
+  gs.names = NULL,
   type = c("KEGG", "GO")
 )
 }

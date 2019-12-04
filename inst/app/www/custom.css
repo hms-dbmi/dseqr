@@ -227,8 +227,8 @@
 .brand-icons {
   background-color: white;
   padding: 5px 12px;
-  border: 1px solid #ccc; 
   cursor: default;
+  color: cornflowerblue;
 }
 
 .brand-icons i {
@@ -269,6 +269,7 @@ ul.nav.navbar-nav {
   border: 1px solid #ccc;
   background-color: white;
   color: cornflowerblue;
+  border-radius: 4px;
 }
 
 
