@@ -17,14 +17,14 @@ docsPageUI <- function(id, tab, active) {
         id = 'ds-quantification',
         name = 'Quantifying RNA-seq datasets',
         content = tagList(
-          HTML("<p>To add a new dataset, first make sure the dataset name input is empty. Then type
-                 a name for your new bulk or single-cell dataset and hit enter. You will be prompted to select a subfolder of the <b>bulk</b>
-                 folder containing fastq.gz files or a subfolder of the <b>single-cell</b> folder containing either fastq.gz or Cell Ranger files.</p>"
+          HTML("<p>To add a new dataset, first make sure the <b>Dataset name</b> input is empty. Then type
+                 a name for your new bulk or single-cell dataset and press enter. You will be prompted to select a subfolder of either the <code>bulk</d>
+                 folder containing fastq.gz files or a subfolder of the </code>single-cell</code> folder containing either fastq.gz or Cell Ranger files.</p>"
           ),
           img(src = 'docs-ds-dataset_name.png', class = 'bs-docs-img'),
           div(class = 'bs-callout bs-callout-danger',
-              h4('Subfolder selection on left only'),
-              p('Subfolders can only be selected on the left side of the popup when selecting a folder with fastq.gz or cellranger files.')
+              h4('Expand subfolders on left only'),
+              p('Subfolders can only be expanded on the left side of the popup when selecting a folder with fastq.gz or cellranger files.')
           ),
 
           p("If a folder with bulk fastq.gz files is selected, you will be prompted to confirm the auto-detected end type.
