@@ -24,13 +24,14 @@
 #'
 #' path_anal <- diff_path(eset, prev_anal, data_dir, anal_name, NI = 24)
 #'
-diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, browse = FALSE, NI = 1000, type = c('KEGG', 'GO')){
+diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, browse = FALSE, NI = 1000, gslist = NULL, gs.names = NULL, type = c('KEGG', 'GO')){
 
   # subset eset to previously analysed samples
   prev_pdata <- prev_anal$pdata
   eset <- eset[, row.names(prev_pdata)]
   Biobase::pData(eset)$group <- prev_pdata$group
 
+  # vsd used by iqr_replicates
   if (rna_seq) eset <- add_vsd(eset)
 
   # remove replicates/duplicates and annotate with human ENTREZID
@@ -49,10 +50,11 @@ diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, brow
   # other padog inputs
   esetm  <- Biobase::exprs(eset[, incon])
 
-  if (type[1] == 'KEGG') {
+
+  if (is.null(gs.names) && type[1] == 'KEGG') {
     gs.names <- gs.names.kegg
     gslist <- gslist.kegg
-  } else if (type[1] == 'GO') {
+  } else if (is.null(gs.names) && type[1] == 'GO') {
     gs.names <- gs.names.go
     gslist <- gslist.go
   }
