@@ -26,6 +26,7 @@ drugsTableOutput <- function(id) {
 
   withTags({
     div(class = 'dt-container',
+        hiddenDownloadUI(ns('dl_drugs')),
         DT::dataTableOutput(ns("query_table"))
     )
   })

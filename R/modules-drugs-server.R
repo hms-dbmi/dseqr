@@ -545,6 +545,27 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
     data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)), check.names = FALSE)
   })
 
+  query_table_dl <- reactive({
+    query_res <- query_res()
+    if (sort_abs()) {
+      query_res <- query_res[order(abs(query_res), decreasing = TRUE)]
+    } else {
+      query_res <- sort(query_res)
+    }
+
+    data.frame(correlation = query_res, signature = names(query_res), row.names = NULL)
+
+  })
+
+  # hidden download link for table
+  data_fun <- function(con) {write.csv(query_table_dl(), con)}
+  fname_fun <- function() {return('mtcars.csv')}
+
+
+  callModule(hiddenDownload, 'dl_drugs', reactive(input$dl_data), fname_fun, data_fun)
+  # id of ns_val to increment on click
+  ns_id = session$ns('dl_data')
+
 
   # show query data
   output$query_table <- DT::renderDataTable({
@@ -580,10 +601,20 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
         drawCallback = DT::JS('function(setting, json) { setupContextMenu(); }'),
         ordering = FALSE,
         scrollX = TRUE,
-        pageLength = 20,
+        pageLength = 50,
         paging = TRUE,
         bInfo = 0,
-        buttons = list(list(extend = 'colvis', columns = hide_target)),
+        buttons = list(
+          list(
+            extend = "collection",
+            text = '<i class="fa fa-download fa-fw"></i>',
+            action = htmlwidgets::JS(
+              paste0("function(obj) {
+                         Shiny.setInputValue('", ns_id, "', ", "obj.timeStamp);
+                      }")
+            )
+          ),
+          list(extend = 'colvis', columns = hide_target)),
         dom = dom
       )
     )
