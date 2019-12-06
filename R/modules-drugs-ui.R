@@ -110,8 +110,7 @@ drugsPertInput <- function(id) {
   ns <- NS(id)
   selectizeInputWithValidation(ns('pert'),
                                label = 'Select perturbation for plot:',
-                               label_title = 'Perturbation signature (correlation)',
-                               placement = 'bottom')
+                               label_title = 'Perturbation signature (correlation)')
 }
 
 
