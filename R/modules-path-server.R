@@ -3,6 +3,7 @@
 #' @export
 #' @keywords internal
 pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_dir) {
+
   form <- callModule(pathForm, 'form',
                      new_anal = new_anal,
                      data_dir = data_dir,

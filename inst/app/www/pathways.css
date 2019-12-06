@@ -16,6 +16,21 @@
 .scroll-plot {
   overflow-x: visible;
   overflow-y: hidden;
+  scrollbar-color: #286090 #C2D2E4;
+}
+
+.scroll-plot::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.scroll-plot::-webkit-scrollbar-track-piece  {
+  background-color: #C2D2E4;
+}
+
+.scroll-plot::-webkit-scrollbar-thumb:horizontal {
+  height: 30px;
+  background-color: #286090;
 }
 
 .scroll-plot-modal {

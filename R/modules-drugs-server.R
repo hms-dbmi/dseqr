@@ -1,25 +1,52 @@
 #' Logic for Drugs page
 #' @export
 #' @keywords internal
-drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir) {
+drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir, pert_signature_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
                      new_anal = new_anal,
                      data_dir = data_dir,
-                     pert_query_dir = pert_query_dir)
+                     pert_query_dir = pert_query_dir,
+                     pert_signature_dir = pert_signature_dir)
+
+  callModule(drugsGenesPlotly, 'genes',
+             data_dir = data_dir,
+             is_sc = form$is_sc,
+             anal = form$anal,
+             pert_signature = form$pert_signature,
+             sc_inputs = form$sc_inputs,
+             show_genes = form$show_genes,
+             drug_study = form$drug_study)
+
 
   # the output table
-  callModule(drugsTable, 'table',
-             query_res = form$query_res,
-             drug_study = form$drug_study,
-             anal = form$anal,
-             cells = form$cells,
-             sort_by = form$sort_by,
-             show_clinical = form$show_clinical,
-             min_signatures = form$min_signatures,
-             is_pert = form$is_pert,
-             direction = form$direction)
+  drugs_table <- callModule(drugsTable, 'table',
+                            data_dir = data_dir,
+                            query_res = form$query_res,
+                            drug_study = form$drug_study,
+                            anal = form$anal,
+                            cells = form$cells,
+                            sort_by = form$sort_by,
+                            show_clinical = form$show_clinical,
+                            min_signatures = form$min_signatures,
+                            is_pert = form$is_pert,
+                            is_sc = form$is_sc,
+                            sc_inputs = form$sc_inputs,
+                            direction = form$direction)
+
+
+  # download link for table
+  output$dl_drugs <- downloadHandler(
+    filename = function() {
+      drug_study <- form$drug_study()
+      anal_name <- form$anal()$anal_name
+      drug_study <- tolower(drug_study)
+      drug_study <- gsub(' ', '_', drug_study)
+      paste0(anal_name, '_', drug_study, '.csv')
+    },
+    content = function(con) {write.csv(drugs_table$query_table_dl(), con, row.names = FALSE)}
+  )
 
 }
 
@@ -101,7 +128,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
-drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir) {
+drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir, pert_signature_dir) {
 
   cmap_res <- reactiveVal()
   l1000_drugs_res <- reactiveVal()
@@ -189,6 +216,16 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
                                 drug_study = drugStudy$drug_study,
                                 show_advanced = drugStudy$show_advanced)
 
+  pert_signature <- callModule(selectedPertSignature, 'genes',
+                               data_dir = data_dir,
+                               pert_signature_dir = pert_signature_dir,
+                               show_genes = drugStudy$show_genes,
+                               drug_study = drugStudy$drug_study,
+                               is_sc = is_sc,
+                               sc_inputs = sc_inputs,
+                               anal = querySignature$anal)
+
+
   query_res <- reactive({
     drug_study <- drugStudy$drug_study()
     cmap_res <- cmap_res()
@@ -212,9 +249,13 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
     cells = advancedOptions$cells,
     sort_by = advancedOptions$sort_by,
     show_clinical = drugStudy$show_clinical,
+    show_genes = drugStudy$show_genes,
     min_signatures = advancedOptions$min_signatures,
     is_pert = is_pert,
-    direction = drugStudy$direction
+    is_sc = is_sc,
+    sc_inputs = sc_inputs,
+    direction = drugStudy$direction,
+    pert_signature = pert_signature
   ))
 
 
@@ -251,10 +292,10 @@ querySignature <- function(input, output, session, new_anal, data_dir, pert_quer
   })
 
   # right click load signature logic
-  runjs(paste0('initContextMenu("', session$ns('pert_query_name'), '");'))
+  runjs(paste0('initContextMenu("', session$ns('pert_query_name_load'), '", "', session$ns('pert_query_name_show'), '");'))
 
   observe({
-    sel <- input$pert_query_name
+    sel <- input$pert_query_name_load
     req(sel)
 
     anals <- anals()
@@ -262,8 +303,6 @@ querySignature <- function(input, output, session, new_anal, data_dir, pert_quer
 
     updateSelectizeInput(session, 'query', choices = anals, selected = sel_idx, server = TRUE)
   })
-
-
 
 
   anal <- reactive({
@@ -326,6 +365,10 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
     input$advanced %% 2 != 0
   })
 
+  show_genes <- reactive({
+    input$show_genes %% 2 != 0
+  })
+
   observe({
     req(anal())
     choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
@@ -349,6 +392,7 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
   observe({
     toggleClass('advanced', 'btn-primary', condition = show_advanced())
     toggleClass('clinical', 'btn-primary', condition = show_clinical())
+    toggleClass('show_genes', 'btn-primary', condition = show_genes())
   })
 
 
@@ -381,6 +425,7 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
     drug_study = drug_study,
     show_clinical = show_clinical,
     show_advanced = show_advanced,
+    show_genes = show_genes,
     direction = direction
   ))
 
@@ -417,13 +462,112 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 
 }
 
+#' Logic for advanced options in drugsForm
+#' @export
+#' @keywords internal
+selectedPertSignature <- function(input, output, session, data_dir, pert_signature_dir, drug_study, show_genes, sc_inputs, is_sc, anal) {
+
+
+  # toggle showing genes plotly inputs
+  observe({
+    toggle('pert_container', condition = show_genes())
+  })
+
+  # file paths to pathway, analysis, and drug query results
+  fpaths <- reactive({
+    anal <- anal()
+    is_sc <- is_sc()
+
+    if (is_sc()) {
+      return(NULL)
+    }
+
+    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
+    anal_name <- anal$anal_name
+
+    # for compatability with previous versions
+    diff_path <- file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds'))
+    diff_path_old <- file.path(dataset_dir, paste0('diff_path_', anal_name, '.rds'))
+
+    if(file.exists(diff_path_old)) file.rename(diff_path_old, diff_path)
+
+    list(
+      anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
+      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds')),
+      cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
+      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
+      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
+    )
+  })
+
+  # load pathway and analysis results
+  diffs <- reactive({
+    fpaths <- fpaths()
+    if (is_sc()) return (sc_inputs$results())
+
+    list(
+      path = readRDS(fpaths$path),
+      anal = readRDS(fpaths$anal)
+    )
+  })
+
+  # load drug/genetic query results
+  queries <- reactive({
+    fpaths <- fpaths()
+
+    if (is_sc()) {
+      sc_res <- sc_inputs$res()
+      req(sc_res)
+
+      cmap <- sc_res$cmap
+      l1000_genes <- sc_res$l1000_genes
+      l1000_drugs <- sc_res$l1000_drugs
+
+    } else {
+      res <- run_drugs_comparison(fpaths, session)
+      cmap <- res$cmap
+      l1000_genes <- res$l1000_genes
+      l1000_drugs <- res$l1000_drugs
+    }
+
+    # order pert choices same as in drugs
+    list(
+      cmap = sort(cmap),
+      l1000_drugs = sort(l1000_drugs),
+      l1000_genes = l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
+    )
+
+  })
+
+  pert_type <- reactive({
+    drug_study <- drug_study()
+    req(drug_study)
+    if (drug_study == 'CMAP02') return('cmap')
+    ifelse(drug_study == 'L1000 Drugs', 'l1000_drugs', 'l1000_genes')
+  })
+
+  pert <- callModule(drugsPert,
+                     'pert',
+                     queries = queries,
+                     pert_type = pert_type,
+                     pert_signature_dir = pert_signature_dir)
+
+
+  return(pert$signature)
+
+
+}
+
+
 #' Logic for drug table
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, drug_study, anal, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
+drugsTable <- function(input, output, session, data_dir, query_res, drug_study, anal, cells, show_clinical, sort_by, min_signatures, is_pert, is_sc, sc_inputs, direction) {
   drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
   gene_cols <- c('Rank', 'Correlation', 'Compound', 'External Links', 'Description')
+  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
+
 
 
   dummy_rendered <- reactiveVal(FALSE)
@@ -547,34 +691,21 @@ drugsTable <- function(input, output, session, query_res, drug_study, anal, cell
     data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)), check.names = FALSE)
   })
 
-  query_table_dl <- reactive({
+  sorted_query <- reactive({
     query_res <- query_res()
     if (sort_abs()) {
       query_res <- query_res[order(abs(query_res), decreasing = TRUE)]
     } else {
       query_res <- sort(query_res)
     }
-
-    data.frame(correlation = query_res, signature = names(query_res), row.names = NULL)
-
+    return(query_res)
   })
 
-  anal_name <- reactive(anal()$anal_name)
-
-  # hidden download link for table
-  data_fun <- function(con) {write.csv(query_table_dl(), con, row.names = FALSE)}
-  fname_fun <- function() {
-    drug_study <- drug_study()
-    drug_study <- tolower(drug_study)
-    drug_study <- gsub(' ', '_', drug_study)
-    paste0(anal_name(), '_', drug_study, '.csv')
-  }
-
-
-  callModule(hiddenDownload, 'dl_drugs', reactive(input$dl_data), fname_fun, data_fun)
-  # id of ns_val to increment on click
-  ns_id = session$ns('dl_data')
-
+  # query table for downloading
+  query_table_dl <- reactive({
+    query_res <- sorted_query()
+    data.frame(correlation = query_res, signature = names(query_res), row.names = NULL)
+  })
 
   # show query data
   output$query_table <- DT::renderDataTable({
@@ -583,7 +714,7 @@ drugsTable <- function(input, output, session, query_res, drug_study, anal, cell
     wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
     # -1 needed with rownames = FALSE
     elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
-    hide_target <- which(colnames(dummy_table) %in% c('Rank', 'Vendor', 'Catalog #', 'Vendor Name')) - 1
+    hide_target <- which(colnames(dummy_table) %in% c('Vendor', 'Catalog #', 'Vendor Name')) - 1
 
     # don't show column visibility button for genetic
     dom <- ifelse(is_genetic(), 'ftp', 'Bfrtip')
@@ -596,7 +727,6 @@ drugsTable <- function(input, output, session, query_res, drug_study, anal, cell
       rownames = FALSE,
       selection = 'none',
       escape = FALSE, # to allow HTML in table
-      extensions = 'Buttons',
       options = list(
         columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 1),
                           list(className = 'dt-rank', targets = 0, width=50),
@@ -613,21 +743,11 @@ drugsTable <- function(input, output, session, query_res, drug_study, anal, cell
         pageLength = 50,
         paging = TRUE,
         bInfo = 0,
-        buttons = list(
-          list(
-            extend = "collection",
-            text = '<i class="fa fa-download fa-fw"></i>',
-            action = htmlwidgets::JS(
-              paste0("function(obj) {
-                         Shiny.setInputValue('", ns_id, "', ", "obj.timeStamp);
-                      }")
-            )
-          ),
-          list(extend = 'colvis', columns = hide_target)),
         dom = dom
       )
     )
-  }, server = TRUE)
+  },
+  server = TRUE)
 
   # proxy used to replace data
   # low priority to make sure data has been rendered
@@ -637,4 +757,168 @@ drugsTable <- function(input, output, session, query_res, drug_study, anal, cell
     query_table <- query_table_final()
     DT::replaceData(proxy, query_table, rownames = FALSE)
   })
+
+  return(list(
+    query_table_dl = query_table_dl
+  ))
 }
+
+#' Logic query/drug genes plotly
+#' @export
+#' @keywords internal
+#' @importFrom magrittr "%>%"
+drugsGenesPlotly <- function(input, output, session, data_dir, anal, is_sc, sc_inputs, drug_study, show_genes, pert_signature) {
+
+  #  toggle  showing genes plotly
+  shiny::observe({
+    toggle('container', condition = show_genes(), anim = TRUE)
+  })
+
+  # load pathway and analysis results
+  diffs <- reactive({
+    anal <- anal()
+    if (is_sc()) return (sc_inputs$results())
+
+    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
+    anal_name <- anal$anal_name
+
+    list(
+      anal = readRDS(file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')))
+    )
+  })
+
+  path_id <- reactive({
+    study <- drug_study()
+    if (study == 'CMAP02') return('Query genes - CMAP02')
+    if (grepl('^L1000', study)) return('Query genes - L1000')
+  })
+
+
+  # the gene plot
+  pl <- reactive({
+
+    diffs <- diffs()
+    path_id <- path_id()
+    anal <- diffs$anal
+
+    req(path_id, anal)
+
+    pert_signature <- pert_signature()
+    path_df <- get_path_df(anal, path_id, pert_signature)
+
+    # so that still shows hover if no sd
+    path_df$sd[is.na(path_df$sd)] <- 'NA'
+
+    # 30 pixels width per gene in pathway
+    ngenes <- length(unique(path_df$Gene))
+    plot_width <- max(400, ngenes*25 + 125)
+
+    pl <- plotly::plot_ly(data = path_df,
+                          y = ~Dprime,
+                          x = ~Gene,
+                          text = ~Gene,
+                          customdata = apply(path_df, 1, as.list),
+                          type = 'scatter',
+                          mode = 'markers',
+                          width = plot_width,
+                          height = 550,
+                          marker = list(size = 5, color = path_df$color),
+                          error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                          hovertemplate = paste0(
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
+                            '<extra></extra>')
+    ) %>%
+      plotly::config(displayModeBar = FALSE) %>%
+      plotly::layout(hoverdistance = -1,
+                     hovermode = 'x',
+                     yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
+                     xaxis = list(fixedrange = TRUE,
+                                  range = c(-2, ngenes + 1),
+                                  tickmode = 'array',
+                                  tickvals = 0:ngenes,
+                                  ticktext = ~Link,
+                                  tickangle = -45),
+                     autosize = FALSE)
+
+
+    # add arrow to show drug effect
+    if ('dprime_sum' %in% colnames(path_df))
+      pl <- pl %>%
+      plotly::add_annotations(x = ~Gene,
+                              y = ~dprime_sum,
+                              xref = "x", yref = "y",
+                              axref = "x", ayref = "y",
+                              text = "",
+                              showarrow = TRUE,
+                              arrowcolor = ~arrow_color,
+                              arrowwidth = 1,
+                              ax = ~Gene,
+                              ay = ~Dprime)
+
+    return(pl)
+
+  })
+
+  output$plotly <- snapshotPreprocessOutput(
+    plotly::renderPlotly({
+      pl()
+    }),
+    function(value) { 'genes_plotly' }
+  )
+}
+
+#' Logic for perturbation selection in Pathways tab
+#' @export
+#' @keywords internal
+drugsPert <- function(input, output, session, pert_type, queries, pert_signature_dir) {
+  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
+
+
+
+
+  sorted_query <- reactive({
+
+    queries <- queries()
+    pert_type <- pert_type()
+    req(pert_type)
+
+    query_res <- queries[[pert_type]]
+
+    query_res <- data.frame(
+      label = gsub('_-700-666.0_\\d+h$', '', names(query_res)),
+      value = names(query_res),
+      cor = format(round(query_res, digits = 3)), stringsAsFactors = FALSE
+    )
+    return(query_res)
+  })
+
+
+  # update pert signature choices
+  observe({
+    updateSelectizeInput(session,
+                         'pert',
+                         choices = rbind(rep(NA, 3), sorted_query()),
+                         options = pert_options,
+                         server = TRUE)
+  })
+
+  # load signature for pert
+  pert_signature <- reactive({
+    pert <- input$pert
+    pert_type <- pert_type()
+    if (pert == '' | is.null(pert)) return(NULL)
+    load_pert_signature(pert, pert_type, pert_signature_dir)
+  })
+
+
+  return(list(
+    name = reactive(input$pert),
+    signature = pert_signature
+  ))
+
+}
+

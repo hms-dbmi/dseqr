@@ -13,10 +13,45 @@ drugsPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            drugsTableOutput(ns('table'))
+            div(class = 'hide-btn-container',
+                drugsGenesPlotlyOutput(ns('genes')),
+                downloadButton(ns('dl_drugs'), class = 'hide-btn', label = NULL),
+                drugsTableOutput(ns('table')),
+                shinyBS::bsTooltip(ns('dl_drugs'),
+                                   'Download full query results',
+                                   options = list(
+                                     container = 'body',
+                                     template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                                   )
+                ),
+                shinyBS::bsTooltip(ns('show_genes'),
+                                   'Show genes plot',
+                                   options = list(
+                                     container = 'body',
+                                     template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                                   )
+                )
+            )
+
     )
   })
 }
+
+#' UI for query/drug genes plotly
+#' @export
+#' @keywords internal
+drugsGenesPlotlyOutput <- function(id) {
+  ns <- NS(id)
+  tagList(
+    tags$div(style='display: none;', id = ns('container'),
+             tags$div(class = 'scroll-plot',
+                      plotly::plotlyOutput(ns('plotly'), height = '550px')
+             ),
+             hr()
+    )
+  )
+}
+
 
 #' Output table for Drugs Page
 #' @export
@@ -26,7 +61,6 @@ drugsTableOutput <- function(id) {
 
   withTags({
     div(class = 'dt-container',
-        hiddenDownloadUI(ns('dl_drugs')),
         DT::dataTableOutput(ns("query_table"))
     )
   })
@@ -46,10 +80,38 @@ drugsFormInput <- function(id) {
         ),
         customQueryFormInput(ns('custom-query')),
         selectedDrugStudyInput(ns('drug_study')),
-        advancedOptionsInput(ns('advanced'))
+        div(class = 'hidden-forms',
+            advancedOptionsInput(ns('advanced')),
+            selectedPertSignatureInput(ns('genes'))
+        )
 
     )
   })
+}
+
+#' UI for seperate drugsPertInput for CMAP/L1000
+#' @export
+#' @keywords internal
+selectedPertSignatureInput <- function(id) {
+  ns <- NS(id)
+
+  withTags({
+    div(id = ns('pert_container'),  class = 'hidden-form bottom', style = 'display: none;',
+        drugsPertInput(ns('pert'))
+    )
+  })
+}
+
+#' UI to select perturbation for Drugs page
+#' @export
+#' @keywords internal
+drugsPertInput <- function(id) {
+
+  ns <- NS(id)
+  selectizeInputWithValidation(ns('pert'),
+                               label = 'Select perturbation for plot:',
+                               label_title = 'Perturbation signature (correlation)',
+                               placement = 'bottom')
 }
 
 
@@ -121,7 +183,7 @@ advancedOptionsInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(id = ns('advanced-panel'), class = 'hidden-form', style = 'display: none;',
+    div(id = ns('advanced-panel'), class = 'hidden-form bottom', style = 'display: none;',
         selectizeInput(ns('cells'),
                        'Select cell lines:',
                        choices = NULL,
@@ -151,7 +213,8 @@ selectedDrugStudyInput <- function(id) {
   selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
                             shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
                             shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
+                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
+                            shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
 
 }
 
@@ -163,7 +226,8 @@ rightClickMenu <- function() {
   withTags({
     ul(
       class = 'custom-menu', id = 'cor-menu',
-      li('data-action' = 'load', id = 'cor-signature', 'Load signature')
+      li(id='menu-title', 'Signature title'),
+      li('data-action' = 'load', id = 'cor-signature', 'Load as query')
     )
   })
 }

@@ -46,5 +46,6 @@ RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.14', dependencies = FAL
 
 
 # save image to a tar.gz file and upload to s3
+# sudo docker build -t drugseqr .
 # sudo docker save drugseqr:latest | gzip > drugseqr_latest.tar.gz
 # aws s3 cp drugseqr_latest.tar.gz s3://drugseqr/drugseqr_latest.tar.gz

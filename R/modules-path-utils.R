@@ -32,7 +32,9 @@ dl_pert_signature <- function(sig_path, pert_type) {
   # name of the file being requested
   dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_es_dir/', pert_type, '/', basename(sig_path))
   dl_url <- utils::URLencode(dl_url)
-  download.file(dl_url, sig_path, )
+
+  # don't error if pert_type updates but sig_path corresponds to previous pert_type
+  try(download.file(dl_url, sig_path))
 }
 
 #' Used by get_path_df to construct the return result
