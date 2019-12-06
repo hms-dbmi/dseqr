@@ -4,7 +4,7 @@
 \alias{pathForm}
 \title{Logic for form in Pathways tab}
 \usage{
-pathForm(input, output, session, new_anal, data_dir, pert_signature_dir)
+pathForm(input, output, session, new_anal, data_dir)
 }
 \description{
 Logic for form in Pathways tab

@@ -54,8 +54,7 @@ server <- function(input, output, session) {
 
   pathPage <- callModule(pathPage, 'pathways',
                          new_anal = dsPage$new_anal,
-                         data_dir = data_dir,
-                         pert_signature_dir = pert_signature_dir)
+                         data_dir = data_dir)
 
 
 

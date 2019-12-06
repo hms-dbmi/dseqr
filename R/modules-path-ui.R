@@ -11,11 +11,6 @@ pathPageUI <- function(id, tab, active) {
                 )
             ),
             hr(),
-            div(id = ns('pert-legend'), class = 'pert-label',
-                label(class='control-label', 'Perturbation direction:'),
-                div(span(class = 'input-swatch opposite'), 'opposite'),
-                div(span(class = 'input-swatch same'), 'same')
-            ),
             div(class = 'scroll-plot',
                 plotly::plotlyOutput(ns('path_plot'), height = '550px')
 
@@ -41,15 +36,7 @@ pathFormInput <- function(id) {
                                      label = 'Select a pathway:',
                                      label_title = 'Pathway (FDR)',
                                      actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup'))),
-           tags$div(id = ns('l1000_pert_container'), style = 'display: none;',
-                    pathPertInput(ns('l1000'), type = 'L1000')
-           ),
-           tags$div(id = ns('cmap2_pert_container'), style = 'display: none;',
-                    pathPertInput(ns('cmap2'), type = 'CMAP02')
-           )
-           # selectizeInput(ns('custom_path_genes'), 'Custom gene set:', choices = NULL, multiple = TRUE, options = list(render = I('{option: pathGene, item: pathGene}')), width = '100%')
-
+                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')))
   )
 }
 
@@ -68,25 +55,4 @@ scSampleComparisonInput <- function(ns) {
                             button,
                             options = list(multiple = TRUE),
                             label_title = 'Cluster (n test :: n ctrl)')
-}
-
-#' Input for perturbation selection for Pathways page
-#' @export
-#' @keywords internal
-pathPertInput <- function(id, type) {
-  ns <- NS(id)
-
-  if (type == 'CMAP02') {
-    res <- selectizeInputWithValidation(ns('pert'),
-                                        label = 'Select perturbation signature:',
-                                        label_title = 'Signature (correlation)')
-
-  } else if (type == 'L1000') {
-    res <- selectizeInputWithButtons(ns('pert'),
-                                     label = 'Select perturbation signature:',
-                                     actionButton(ns('l1000_type'), '', icon = icon('pills', 'fa-fw'), title = 'Toggle between drug and genetic perts'),
-                                     label_title = 'Signature (correlation)'
-    )
-  }
-  return(res)
 }

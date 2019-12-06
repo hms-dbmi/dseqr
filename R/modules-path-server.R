@@ -2,16 +2,12 @@
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
-pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_dir) {
+pathPage <- function(input, output, session, new_anal, data_dir) {
 
   form <- callModule(pathForm, 'form',
                      new_anal = new_anal,
-                     data_dir = data_dir,
-                     pert_signature_dir = pert_signature_dir)
+                     data_dir = data_dir)
 
-  observe({
-    toggle('pert-legend', condition = isTruthy(form$pert_signature()))
-  })
 
 
   # the gene plot
@@ -23,8 +19,7 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
 
     req(path_id, anal)
 
-    pert_signature <- form$pert_signature()
-    path_df <- get_path_df(anal, path_id, pert_signature)
+    path_df <- get_path_df(anal, path_id)
 
     # so that still shows hover if no sd
     path_df$sd[is.na(path_df$sd)] <- 'NA'
@@ -97,7 +92,7 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
 #' Logic for form in Pathways tab
 #' @export
 #' @keywords internal
-pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_dir) {
+pathForm <- function(input, output, session, new_anal, data_dir) {
 
 
   # reload analysis choices if new analysis
@@ -130,16 +125,6 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
     anals[row_num, ]
   })
 
-  # show/hide perturbation signature selection
-  is.cmap2 <- reactive(input$pathway == 'Query genes - CMAP02')
-  is.l1000 <- reactive(input$pathway == 'Query genes - L1000')
-
-  observe({
-    toggle('l1000_pert_container', condition = is.l1000())
-    toggle('cmap2_pert_container', condition = is.cmap2())
-  })
-
-
   # show/hide single cell stuff
   is_sc <- reactive({
     anal <- anal()
@@ -163,7 +148,7 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
                                   with_drugs = TRUE)
 
 
-  # file paths to pathway, analysis, and drug query results
+  # file paths to pathway and analysis results
   fpaths <- reactive({
     anal <- anal()
     is_sc <- is_sc()
@@ -183,10 +168,7 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
 
     list(
       anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds')),
-      cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
-      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
-      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
+      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds'))
     )
   })
 
@@ -201,56 +183,6 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
     )
   })
 
-  # load drug/genetic query results
-  queries <- reactive({
-    fpaths <- fpaths()
-
-    if (is_sc()) {
-      sc_res <- sc_inputs$res()
-      req(sc_res)
-
-      cmap <- sc_res$cmap
-      l1000_genes <- sc_res$l1000_genes
-      l1000_drugs <- sc_res$l1000_drugs
-
-    } else {
-      res <- run_drugs_comparison(fpaths, session)
-      cmap <- res$cmap
-      l1000_genes <- res$l1000_genes
-      l1000_drugs <- res$l1000_drugs
-    }
-
-    # order pert choices same as in drugs
-    list(
-      cmap = sort(cmap),
-      l1000_drugs = sort(l1000_drugs),
-      l1000_genes = l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
-    )
-
-  })
-
-  cmap2Pert <- callModule(pathPert,
-                          'cmap2',
-                          type = 'CMAP02',
-                          queries = queries,
-                          pert_signature_dir = pert_signature_dir)
-
-  l1000Pert <- callModule(pathPert,
-                          'l1000',
-                          type = 'L1000',
-                          queries = queries,
-                          pert_signature_dir = pert_signature_dir)
-
-
-  # get gex signature from drug/genetic query selection
-  pert_signature <- reactive({
-    if (!is.l1000() & !is.cmap2()) return(NULL)
-
-    if (is.cmap2()) res <- cmap2Pert
-    if (is.l1000()) res <- l1000Pert
-
-    return(res$signature())
-  })
 
   path_choices <- reactive({
     diffs <- diffs()
@@ -258,23 +190,12 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
 
     if (is.null(res)) return(NULL)
 
-    # for showing top up/down regulated
-    all_choices <-  data.frame(
-      name = c('used for CMAP02 drug queries', 'used for L1000 drug/genetic queries'),
-      value = c('Query genes - CMAP02', 'Query genes - L1000'),
-      label = c('Query genes - CMAP02', 'Query genes - L1000'),
-      fdr = c(NA, NA),
-      stringsAsFactors = FALSE
-    )
-
     path_choices <- data.frame(
       name = res$Name,
       value = res$ID,
       label = res$Name,
       fdr = format.pval(res$FDRpadog, eps = 0.001, digits = 2),
       stringsAsFactors = FALSE)
-
-    path_choices <- rbind(all_choices, path_choices)
 
     return(path_choices)
   })
@@ -302,74 +223,8 @@ pathForm <- function(input, output, session, new_anal, data_dir, pert_signature_
 
   return(list(
     diffs = diffs,
-    pathway = reactive(input$pathway),
-    pert_signature = pert_signature
+    pathway = reactive(input$pathway)
   ))
-}
-
-#' Logic for perturbation selection in Pathways tab
-#' @export
-#' @keywords internal
-pathPert <- function(input, output, session, type, queries, pert_signature_dir) {
-  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
-
-  # update toggle for l1000 drugs/genes
-  l1000_type <- reactive({
-    req(!is.null(input$l1000_type))
-    ifelse(input$l1000_type %% 2 == 0, 'drugs', 'genes')
-  })
-
-  observe({
-    icon_name <- ifelse(l1000_type() == 'drugs', 'pills', 'dna')
-    updateActionButton(session, 'l1000_type', icon = icon(icon_name, 'fa-fw'))
-  })
-
-  pert_type <- reactive({
-    if (type == 'CMAP02') return('cmap')
-
-    l1000_type <- l1000_type()
-    if (type == 'L1000') return(paste0('l1000_', l1000_type))
-  })
-
-
-  sorted_query <- reactive({
-
-    queries <- queries()
-    pert_type <- pert_type()
-    query_res <- queries[[pert_type]]
-
-    query_res <- data.frame(
-      label = gsub('_-700-666.0_\\d+h$', '', names(query_res)),
-      value = names(query_res),
-      cor = format(round(query_res, digits = 3)), stringsAsFactors = FALSE
-    )
-    return(query_res)
-  })
-
-
-  # update pert signature choices
-  observe({
-    updateSelectizeInput(session,
-                         'pert',
-                         choices = rbind(rep(NA, 3), sorted_query()),
-                         options = pert_options,
-                         server = TRUE)
-  })
-
-  # load signature for pert
-  pert_signature <- reactive({
-    pert <- input$pert
-    pert_type <- pert_type()
-    if (pert == '' | is.null(pert)) return(NULL)
-    load_pert_signature(pert, pert_type, pert_signature_dir)
-  })
-
-
-  return(list(
-    name = reactive(input$pert),
-    signature = pert_signature
-  ))
-
 }
 
 
