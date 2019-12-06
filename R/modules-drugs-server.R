@@ -13,6 +13,7 @@ drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir
   callModule(drugsTable, 'table',
              query_res = form$query_res,
              drug_study = form$drug_study,
+             anal = form$anal,
              cells = form$cells,
              sort_by = form$sort_by,
              show_clinical = form$show_clinical,
@@ -207,6 +208,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
   return(list(
     query_res = query_res,
     drug_study = drugStudy$drug_study,
+    anal = querySignature$anal,
     cells = advancedOptions$cells,
     sort_by = advancedOptions$sort_by,
     show_clinical = drugStudy$show_clinical,
@@ -419,7 +421,7 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
+drugsTable <- function(input, output, session, query_res, drug_study, anal, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
   drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
   gene_cols <- c('Rank', 'Correlation', 'Compound', 'External Links', 'Description')
 
@@ -557,9 +559,16 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 
   })
 
+  anal_name <- reactive(anal()$anal_name)
+
   # hidden download link for table
-  data_fun <- function(con) {write.csv(query_table_dl(), con)}
-  fname_fun <- function() {return('mtcars.csv')}
+  data_fun <- function(con) {write.csv(query_table_dl(), con, row.names = FALSE)}
+  fname_fun <- function() {
+    drug_study <- drug_study()
+    drug_study <- tolower(drug_study)
+    drug_study <- gsub(' ', '_', drug_study)
+    paste0(anal_name(), '_', drug_study, '.csv')
+  }
 
 
   callModule(hiddenDownload, 'dl_drugs', reactive(input$dl_data), fname_fun, data_fun)

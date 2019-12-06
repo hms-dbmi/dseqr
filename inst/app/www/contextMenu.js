@@ -9,16 +9,14 @@ function setupContextMenu() {
     // Avoid the real one
     event.preventDefault();
 
-    
+
     corpoint = $(event.target).closest('.cor-point');
     corpoint.addClass('clicked');
 
     title = corpoint.find("circle.cor").attr("title");
 
     // set title on contextmenu
-    $("#cor-signature").text('Load ' + title);
-    console.log(menuHeight);
-
+    $("#menu-title").text(title);
 
     // Show contextmenu
     $("#cor-menu")
@@ -41,15 +39,20 @@ function setupContextMenu() {
   });
 }
 
-function initContextMenu(nsId) {
+function initContextMenu(loadId, showId) {
    // If the menu element is clicked
+   var nclick = 0;
 
    $("#cor-menu li").click(function() {
     // This is the triggered action name
     switch ($(this).attr("data-action")) {
       // A case for each action. Your actions here
       case "load":
-        Shiny.onInputChange(nsId, title);
+        Shiny.onInputChange(loadId, title);
+        break;
+      case "show":
+        Shiny.onInputChange(showId, nclick);
+        nclick = nclick + 1;
         break;
       case "clear":
         alert("second");

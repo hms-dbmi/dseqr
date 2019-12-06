@@ -82,7 +82,6 @@ pathPage <- function(input, output, session, new_anal, data_dir, pert_signature_
 
   })
 
-  # inside observe to allow dynamic width
   output$path_plot <- snapshotPreprocessOutput(
     plotly::renderPlotly({
       pl()

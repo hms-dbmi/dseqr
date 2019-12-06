@@ -17,3 +17,8 @@
   overflow-x: visible;
   overflow-y: hidden;
 }
+
+.scroll-plot-modal {
+  overflow-x: scroll;
+  height:562px;
+}

@@ -327,36 +327,44 @@ td.dt-nopad span {
   border-left: 1px solid #ccc;
 }
 
-/* downloadable plots */
+/* downloadable plots and table */
 
-.downloadable-plot:hover .visible-plot.downloadable-plot-btn {
+.downloadable-plot:hover .visible-plot.downloadable-plot-btn,
+.hide-btn-container:hover button.dt-button.buttons-collection,
+.hide-btn-container .hide-btn  {
   animation: 0.2s fadeIn;
   animation-fill-mode: forwards;
 }
 
-.downloadable-plot-btn {
+.downloadable-plot-btn,
+button.dt-button.buttons-collection,
+.hide-btn {
   animation: 0.2s fadeOut;
   animation-fill-mode: forwards;
 }
 
-.downloadable-plot-btn i {
+.downloadable-plot-btn i,
+button.dt-button.buttons-collection i,
+.hide-btn i {
   color: rgba(68, 68, 68, 0.3);
 }
 
-.downloadable-plot-btn:hover i {
+.downloadable-plot-btn:hover i,
+button.dt-button.buttons-collection:hover i,
+.hide-btn:hover i {
   color: rgba(68, 68, 68, 0.7);
 }
 
-.downloadable-plot-btn .btn {
+.downloadable-plot-btn .btn,
+button.dt-button.buttons-collection,
+.hide-btn {
   background-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
+  border: none;
+  padding: 3px 4px;
 }
 
-.downloadable-plot-btn .btn {
-  border: none;
-  padding: 0px;
-}
 
 @keyframes fadeIn {
   0% {
@@ -401,6 +409,10 @@ td.dt-nopad span {
   border-radius: 2px;
 }
 
-.tooltip.ggplot .tooltip-arrow {
+.tooltip.ggplot.left .tooltip-arrow {
   border-left-color: rgb(105, 115, 138);
+}
+
+.tooltip.ggplot.bottom .tooltip-arrow {
+  border-bottom-color: rgb(105, 115, 138);
 }

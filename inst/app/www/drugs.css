@@ -140,11 +140,22 @@ button.dt-button:hover:not(.disabled) {
   background-image: none !important;
 }
 
+
 button.dt-button:focus:not(.disabled) {
   color: #333;
   background-color: #d4d4d4 !important;
   border-color: #8c8c8c !important;
   background-image: none !important;
+}
+
+/* styling for hover table buttons */
+button.dt-button.buttons-collection:active:not(.disabled),
+button.dt-button.buttons-collection:hover:not(.disabled),
+button.dt-button.buttons-collection:focus:not(.disabled),
+button.dt-button.buttons-collection {
+  color: #333 !important;
+  background-color: white !important;
+  border: none !important;
 }
 
 /* search box styling consistent with form-control */
@@ -165,4 +176,21 @@ button.dt-button:focus:not(.disabled) {
   -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
   transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
   box-shadow: inset 0px 0px 0px 0px red;
+}
+
+/* context menu */
+#menu-title {
+  border-bottom: 1px solid #ddd;
+  pointer-events: none;
+}
+
+/* gene plot modal */
+
+.modal-dialog.modal-lg {
+  width: 98%;
+}
+
+.modal-dialog.modal-lg .modal-body {
+  /* 550px plot plus extras */
+  height: 760px; 
 }

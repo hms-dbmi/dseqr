@@ -116,13 +116,13 @@ textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = 
 #' @param help_id id of help block. Used to show help message in change shinyjs::html
 #' @export
 #' @keywords internal
-selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL, label_title = NULL) {
+selectizeInputWithValidation <- function(id, label, options = NULL, container_id = NULL, help_id = NULL, label_title = NULL, placement = 'top') {
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   label_tooltip <- NULL
   if (!is.null(label_title)) {
     label_id <- paste0(id, '-label-info')
-    label_tooltip <- shinyBS::bsTooltip(label_id, title = label_title, placement = 'top', options = list(container = 'body'))
+    label_tooltip <- shinyBS::bsTooltip(label_id, title = label_title, placement = placement, options = list(container = 'body'))
     label <- tags$span(label, span(class='hover-info', span(id = label_id, icon('info', 'fa-fw'))))
   }
 
@@ -143,7 +143,7 @@ selectizeInputWithValidation <- function(id, label, options = NULL, container_id
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL, tooltip = TRUE) {
+selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL, tooltip = TRUE, placement = NULL) {
 
   mult <- isTRUE(options$multiple)
   if(mult) {
@@ -160,7 +160,9 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
   if (tooltip) {
     button_tooltips <- tags$div(
       lapply(buttons, function(btn) {
-        placement <- ifelse(any(grepl('dropdown', unlist(btn$attribs))), 'right', 'bottom')
+        placement <- ifelse(is.null(placement),
+                            ifelse(any(grepl('dropdown', unlist(btn$attribs))), 'right', 'bottom'),
+                            placement)
         shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, placement = placement, options = list(container = 'body'))
       })
     )

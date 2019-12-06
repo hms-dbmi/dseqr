@@ -10,6 +10,7 @@ drugsTable(
   session,
   query_res,
   drug_study,
+  anal,
   cells,
   show_clinical,
   sort_by,
