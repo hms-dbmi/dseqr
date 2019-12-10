@@ -16,6 +16,8 @@ remove_sva <- function(eset) {
   # make full and null model matrix
   group_levels = unique(Biobase::pData(eset)$group)
   group <- factor(Biobase::pData(eset)$group, levels = group_levels)
+  pair <- Biobase::pData(eset)$pair
+
 
   mod <- stats::model.matrix(~0 + group)
   mod0 <- stats::model.matrix(~1, data = group)
@@ -29,8 +31,8 @@ remove_sva <- function(eset) {
   expr <- as.matrix(expr)
 
   # sva or svaseq
-  sva_fun <-sva::svaseq
-  svobj <- sva::svaseq(expr, mod, mod0)
+  sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
+  svobj <- sva_fun(expr, mod, mod0)
 
   # get DESeq::vsd transformed counts for RNA-Seq
   el <- ifelse(rna_seq, 'vsd', 'exprs')

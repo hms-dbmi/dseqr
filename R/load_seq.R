@@ -227,18 +227,27 @@ add_vsd <- function(eset) {
   # for cases where manually added (e.g. nanostring dataset)
   if ('vsd' %in% Biobase::assayDataElementNames(eset)) return(eset)
 
-  pdata <- Biobase::pData(eset)
-  txi.deseq <- list(countsFromAbundance = 'no',
-                    abundance = Biobase::assayDataElement(eset, 'abundance'),
-                    counts = Biobase::assayDataElement(eset, 'counts'),
-                    length = Biobase::assayDataElement(eset, 'length')
-  )
+  # for microarray use SYMBOL annotated exprs
+  if (!'lib.size' %in% colnames(Biobase::pData(eset))) {
+    dups <- iqr_replicates(eset, rna_seq = FALSE)
+    eset <- dups$eset
+    Biobase::assayDataElement(eset, 'vsd') <- Biobase::assayDataElement(eset, 'exprs')
 
-  dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, pdata, design = ~group)
-  dds <- DESeq2::estimateSizeFactors(dds)
-  vsd <- DESeq2::vst(dds, blind = FALSE)
+  } else {
+    pdata <- Biobase::pData(eset)
+    txi.deseq <- list(countsFromAbundance = 'no',
+                      abundance = Biobase::assayDataElement(eset, 'abundance'),
+                      counts = Biobase::assayDataElement(eset, 'counts'),
+                      length = Biobase::assayDataElement(eset, 'length')
+    )
 
-  Biobase::assayDataElement(eset, 'vsd') <- SummarizedExperiment::assay(vsd)
+    dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, pdata, design = ~group)
+    dds <- DESeq2::estimateSizeFactors(dds)
+    vsd <- DESeq2::vst(dds, blind = FALSE)
+
+    Biobase::assayDataElement(eset, 'vsd') <- SummarizedExperiment::assay(vsd)
+  }
+
   return(eset)
 }
 

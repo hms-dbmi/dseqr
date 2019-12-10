@@ -35,7 +35,7 @@ diff_path <- function(eset, prev_anal, data_dir, anal_name, rna_seq = TRUE, brow
   if (rna_seq) eset <- add_vsd(eset)
 
   # remove replicates/duplicates and annotate with human ENTREZID
-  dups <- iqr_replicates(eset, annot = 'ENTREZID_HS', rm.dup = TRUE)
+  dups <- iqr_replicates(eset, annot = 'ENTREZID_HS', rm.dup = TRUE, rna_seq = rna_seq)
   eset <- dups$eset
 
   # contrast levels

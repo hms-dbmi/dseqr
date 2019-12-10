@@ -15,13 +15,14 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
     pdata <- pdata[keep, ]
     req(length(unique(pdata$Group)) > 1)
 
-
     # add vst normalized data
     eset <- dsForm$eset()
     eset <- eset[, keep]
     pdata$group <- pdata$`Group name`
     Biobase::pData(eset) <- pdata
     add_vsd(eset)
+
+
   })
 
 
@@ -217,7 +218,8 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
     # run pathway analysis
     progress$set(message = "Pathway analysis", value = 2)
-    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = TRUE, NI = 24)
+    rna_seq <- 'lib.size' %in% colnames(Biobase::pData(eset))
+    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = rna_seq, NI = 24)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,
@@ -1219,7 +1221,7 @@ dsAnalTable <- function(input, output, session, eset, labels, data_dir, dataset_
     req(eset)
 
     pdata <- Biobase::pData(eset) %>%
-      dplyr::select(-lib.size, -norm.factors) %>%
+      dplyr::select(-dplyr::one_of('lib.size', 'norm.factors')) %>%
       tibble::add_column(Group = NA, Title = colnames(eset), .before = 1)
 
 
@@ -1365,7 +1367,7 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
     req(eset)
 
     pdata <- Biobase::pData(eset) %>%
-      dplyr::select(-lib.size, -norm.factors) %>%
+      dplyr::select(-dplyr::one_of('lib.size', 'norm.factors')) %>%
       tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
 
     return(pdata)
@@ -1495,4 +1497,3 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   ))
 
 }
-
