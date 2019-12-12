@@ -270,3 +270,18 @@ save_bulk_dataset <- function(dataset_name, dataset_dir, data_dir) {
   saveRDS(datasets, datasets_path)
 }
 
+#' Delete stale dataset files after changing sample groups or running sva
+#'
+#' @param data_dir Path to folder with dataset files
+#' @param patterns patterns to remove. Default is all.
+#'
+#' @export
+#' @keywords internal
+remove_dataset_files <- function(data_dir, patterns = c('^vsd.rds$', '^adjusted_\\d+svs.rds$', '^svobj.rds$', '^adjusted.rds$', '^numsv.rds$')) {
+  for (pattern in patterns) {
+    fpaths <- list.files(data_dir, pattern, full.names = TRUE)
+    unlink(fpaths)
+  }
+}
+
+

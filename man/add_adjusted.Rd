@@ -4,7 +4,7 @@
 \alias{add_adjusted}
 \title{Add expression data adjusted for pairs/surrogate variables}
 \usage{
-add_adjusted(eset, mods, svobj = list(sv = NULL), num_svs = 0)
+add_adjusted(eset, svobj = list(sv = NULL), num_svs = 0, adj_path = NULL)
 }
 \arguments{
 \item{num_svs}{}

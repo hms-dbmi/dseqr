@@ -11,7 +11,6 @@ dsFormAnal(
   data_dir,
   sc_dir,
   bulk_dir,
-  error_msg,
   dataset_name,
   dataset_dir,
   new_anal,

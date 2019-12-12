@@ -224,7 +224,7 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 #'
 #' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 #' @export
-add_vsd <- function(eset, rna_seq = TRUE) {
+add_vsd <- function(eset, rna_seq = TRUE, vsd_path = NULL) {
 
   # for cases where manually added (e.g. nanostring dataset)
   els <- Biobase::assayDataElementNames(eset)
@@ -232,7 +232,10 @@ add_vsd <- function(eset, rna_seq = TRUE) {
 
   # for microarray use exprs
   if (!'counts' %in% els) {
-    Biobase::assayDataElement(eset, 'vsd') <- Biobase::assayDataElement(eset, 'exprs')
+    vsd <- Biobase::assayDataElement(eset, 'exprs')
+
+  } else if (file.exists(vsd_path)) {
+    vsd <- readRDS(vsd_path)
 
   } else {
     pdata <- Biobase::pData(eset)
@@ -244,11 +247,13 @@ add_vsd <- function(eset, rna_seq = TRUE) {
 
     dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, pdata, design = ~group)
     dds <- DESeq2::estimateSizeFactors(dds)
-    vsd <- DESeq2::vst(dds, blind = FALSE)
+    vsd <- DESeq2::rlog(dds, blind = FALSE)
 
-    Biobase::assayDataElement(eset, 'vsd') <- SummarizedExperiment::assay(vsd)
+    vsd <- SummarizedExperiment::assay(vsd)
+    if (!is.null(vsd_path)) saveRDS(vsd, vsd_path)
   }
 
+  Biobase::assayDataElement(eset, 'vsd') <- vsd
   return(eset)
 }
 

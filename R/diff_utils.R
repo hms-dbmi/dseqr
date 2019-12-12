@@ -93,9 +93,8 @@ diff_expr <- function (eset, data_dir, anal_name, contrast = 'test-ctrl', annot 
 #' @export
 add_adjusted <- function(eset, svobj = list(sv = NULL), num_svs = 0, adj_path = NULL) {
 
-  if ('adjusted' %in% Biobase::assayDataElementNames(eset)) return(eset)
 
-  if (file.exists(adj_path)) {
+  if (!is.null(adj_path) && file.exists(adj_path)) {
     Biobase::assayDataElement(eset, 'adjusted') <- readRDS(adj_path)
     return(eset)
   }
@@ -119,7 +118,7 @@ add_adjusted <- function(eset, svobj = list(sv = NULL), num_svs = 0, adj_path = 
 
   adj <- clean_y(y, mod, mod.clean)
   Biobase::assayDataElement(eset, 'adjusted') <- adj
-  saveRDS(adj, adj_path)
+  if (!is.null(adj_path)) saveRDS(adj, adj_path)
   return(eset)
 }
 
@@ -295,7 +294,10 @@ diff_anal <- function(eset, anal_name, contrast, data_dir, svobj = list(sv = NUL
   group <- Biobase::pData(eset)$group
   mod <- model.matrix(~0 + group)
   colnames(mod) <- gsub('^group', '', colnames(mod))
-  mod <- cbind(mod, svobj$sv[, seq_len(num_svs)])
+  svind <- seq_len(num_svs)
+  svmod <- svobj$sv[, svind, drop = FALSE]
+  colnames(svmod) <- paste0('SV', svind)
+  mod <- cbind(mod, svmod)
 
   # differential expression
   ebayes_sv <- fit_ebayes(eset, contrast, mod, rna_seq)
@@ -446,11 +448,11 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
   pdata <- Biobase::pData(eset)
   pair <- pdata$pair
   y <- Biobase::exprs(eset)
+  if (rna_seq) lib.size <- pdata$lib.size * pdata$norm.factors
 
   if (length(pair) & rna_seq) {
     # rna-seq paired
     # see https://support.bioconductor.org/p/110780/ for similar
-    lib.size <- pdata$lib.size * pdata$norm.factors
 
     # first round
     v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
@@ -466,7 +468,6 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
     # rna-seq not paired
     # get normalized lib size and voom
     v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
-    lib.size <- pdata$lib.size * pdata$norm.factors
     fit  <- limma::lmFit(v, design = mod)
 
   } else if (length(pair) & !rna_seq) {

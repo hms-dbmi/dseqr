@@ -9,13 +9,13 @@ dsPageUI <- function(id, tab, active) {
                 div(class = 'col-sm-5',
                     dsFormInput(ns('form'))
                 ),
-                div(id = ns('mds_plotly_container'), class = 'col-sm-7 mobile-margin',  style = 'display: none;',
+                div(id = ns('mds_plotly_container'), class = 'col-sm-7 mobile-margin', style = '',
                     dsPlotlyUI(ns('mds_plotly'))
                 ),
                 div(id = ns('gene_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
                     dsPlotlyUI(ns('gene_plotly'))
                 ),
-                div(id = ns('cells_plotly_container'), class = 'col-sm-7 mobile-margin', style = '',
+                div(id = ns('cells_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
                     dsPlotlyUI(ns('cells_plotly'))
                 )
             ),
@@ -24,9 +24,6 @@ dsPageUI <- function(id, tab, active) {
                 dsTable(ns('quant'))
             ),
             div(id = ns('anal_table_container'), style = 'display: none;',
-                dsTable(ns('anal'))
-            ),
-            div(id = ns('explore_table_container'), style = 'display: none;',
                 dsTable(ns('explore'))
             )
     )
@@ -129,44 +126,52 @@ dsFormAnalInput <- function(id) {
     analysisTypeToggle(ns),
     div(id = ns('diff_panel'),
         selectizeInputWithButtons(
-          ns('anal_name'),
-          'Analysis name:',
+          ns('contrast_groups'),
+          'Select test then control group:',
           downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results'),
-          options = list(create = TRUE, placeholder = 'Type name to create new analysis'),
-          container_id = ns('anal_name_container'),
-          help_id = ns('anal_name_help')
-        ),
-        div(id = ns('anal_buttons_panel'), style = 'display: none;',
-            justifiedButtonGroup(
-              container_id = ns('anal_labels'),
-              label = 'Label selected rows:',
-              help_id = ns('labels_help'),
-              actionButton(ns('test'), 'test'),
-              actionButton(ns('ctrl'), 'control'),
-              actionButton(ns('reset'), 'reset')
-            ),
-            actionButton(ns('run_anal'), 'Run Analysis', width = '100%', class = 'btn-primary')
+          actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = 'Run differential expression analysis'),
+          options = list(maxItems = 2, placeholder = 'Select test group'),
+          container_id = ns('run_anal_container'),
+          help_id = ns('run_anal_help')
         )
-
     ),
     div(id = ns('explore_panel'), style = 'display: none;',
 
         selectizeInputWithButtons(ns('explore_genes'),
-                                  'Show expression for:',
+                                  'Show expression for genes:',
                                   actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
+                                  svaButton(inputId = ns('show_nsv'), sliderId = ns('num_svs')),
                                   options = list(maxItems = 6, multiple = TRUE)),
         div(class = 'hidden-forms',
             dtangleFormInput(ns('dtangle'))
         ),
-        textInputWithButtons(ns('explore_group_name'),
-                             container_id = ns('validate'),
-                             'Group name for selected rows:',
-                             actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
-                             actionButton(ns('reset_explore'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Clear all groups'),
-                             help_id = ns('error_msg')
-        )
 
+    ),
+    textInputWithButtons(ns('explore_group_name'),
+                         container_id = ns('validate'),
+                         'Group name for selected rows:',
+                         actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
+                         actionButton(ns('reset_explore'), '', icon = tags$i(class='fa-trash-alt far fa-fw'), title = 'Clear all groups'),
+                         actionButton(ns('run_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate surrogate variables'),
+                         help_id = ns('error_msg')
     )
+  )
+}
+
+
+#' Button with sliders for adjusting number of surrogate variables
+#' @export
+#' @keywords internal
+svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
+
+  drugseqr::dropdownButton(
+    br(),
+    inputId = inputId,
+    sliderInput(sliderId, 'Surrogate variables:',
+                width = '100%', ticks = FALSE,
+                min = 0, max = max_svs, value = prev_svs, step = 1),
+    circle = FALSE, right = TRUE, label = tags$span('0', class='fa fa-fw'),
+    title = 'Number of surrogate variables adjusting for'
   )
 }
 
@@ -177,8 +182,8 @@ dsFormAnalInput <- function(id) {
 analysisTypeToggle <- function(ns) {
 
   shinyWidgets::radioGroupButtons(ns('anal_type'), "Select analysis type:",
-                                  choices = c('differential expression', 'exploratory'),
-                                  selected = 'differential expression', justified = TRUE)
+                                  choices = c('exploratory', 'differential expression'),
+                                  selected = 'exploratory', justified = TRUE)
 }
 
 #' Tables for datasets page
@@ -212,3 +217,4 @@ dtangleFormInput <- function(id) {
     )
   })
 }
+

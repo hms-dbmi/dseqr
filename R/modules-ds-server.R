@@ -6,9 +6,12 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   new_anal <- reactiveVal()
   new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
-  msg_anal <- reactiveVal()
 
-  explore_eset <- reactive({
+  # TODO: change references to vsd to rlog
+  vsd_path <- reactive(file.path(data_dir, dsForm$dataset_dir(), 'vsd.rds'))
+
+  norm_eset <- reactive({
+
     # need at least two groups
     pdata <- dsExploreTable$pdata()
     keep <- row.names(pdata)[!is.na(pdata$Group)]
@@ -20,9 +23,28 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
     eset <- eset[, keep]
     pdata$group <- pdata$`Group name`
     Biobase::pData(eset) <- pdata
-    add_vsd(eset)
+    add_vsd(eset, vsd_path = vsd_path())
+  })
 
+  adj_path <- reactive( {
+    num_svs <- dsForm$num_svs()
+    fname <- ifelse(num_svs, paste0('adjusted_', num_svs, 'svs.rds'), 'adjusted.rds')
+    file.path(data_dir, dsForm$dataset_dir(), fname)
+  })
 
+  explore_eset <- reactive({
+    eset <- norm_eset()
+
+    # adjust for pairs/surrogate variables
+    svobj <- dsForm$svobj()
+    num_svs <- dsForm$num_svs()
+
+    eset <- add_adjusted(eset, svobj, num_svs, adj_path = adj_path())
+
+    # use SYMBOL as annotation
+    eset <- iqr_replicates(eset)
+
+    return(eset)
   })
 
 
@@ -32,30 +54,24 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
                        bulk_dir = bulk_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
-                       msg_anal = msg_anal,
                        new_anal = new_anal,
                        explore_eset = explore_eset)
 
-
-
-  callModule(dsMDSplotly, 'mds_plotly',
-             data_dir = data_dir,
-             dataset_dir = dsForm$dataset_dir,
-             anal_name = dsForm$anal_name,
-             new_anal = new_anal)
+  callModule(dsExploreMDSplotly, 'mds_plotly', explore_eset = explore_eset)
 
 
   # toggle tables
   observe({
     toggle('quant_table_container', condition = dsForm$show_quant())
-    toggle('anal_table_container', condition = dsForm$show_anal() & !dsForm$is.explore())
-    toggle('explore_table_container', condition = dsForm$is.explore())
+    toggle('anal_table_container', condition = dsForm$show_anal())
   })
 
   # toggle plots
+  sel.genes <- reactive(length(dsForm$explore_genes() > 0))
+
   observe({
-    toggle('mds_plotly_container', condition = dsForm$show_anal() & !dsForm$is.explore())
-    toggle('gene_plotly_container', condition = dsForm$is.explore() & !dsForm$show_dtangle())
+    toggle('mds_plotly_container', condition = !dsForm$is.explore() | (!sel.genes() & !dsForm$show_dtangle()))
+    toggle('gene_plotly_container', condition = dsForm$is.explore() & !dsForm$show_dtangle() & sel.genes())
     toggle('cells_plotly_container', condition = dsForm$is.explore() & dsForm$show_dtangle())
   })
 
@@ -64,12 +80,6 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
                              labels = dsForm$quant_labels,
                              paired = dsForm$paired)
 
-  dsAnalTable <- callModule(dsAnalTable, 'anal',
-                            eset = dsForm$eset,
-                            labels = dsForm$anal_labels,
-                            data_dir = data_dir,
-                            dataset_dir = dsForm$dataset_dir,
-                            anal_name = dsForm$anal_name)
 
   dsExploreTable <- callModule(dsExploreTable, 'explore',
                                eset = dsForm$eset,
@@ -93,11 +103,6 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   })
 
 
-  observe({
-    pdata <- dsAnalTable$pdata()
-    valid_msg <- validate_pdata(pdata)
-    msg_anal(valid_msg)
-  })
 
   # run quantification for quant dataset
   observeEvent(dsForm$run_quant(), {
@@ -197,29 +202,34 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
     on.exit(progress$close())
 
     # get what need
-    eset <- dsAnalTable$eset()
-    pdata <- dsAnalTable$pdata()
+    eset <- explore_eset()
     fastq_dir <- dsForm$fastq_dir()
 
     dataset_name <- dsForm$dataset_name()
     dataset_dir <- dsForm$dataset_dir()
     anal_name <- dsForm$anal_name()
+    contrast <- gsub('_vs_', '-', anal_name)
 
-    req(eset, pdata, fastq_dir, anal_name, dataset_dir)
+    svobj <- dsForm$svobj()
+    num_svs <- dsForm$num_svs()
 
-    # setup for non-interactive differential expression
-    colnames(pdata) <- tolower(colnames(pdata))
-    pdata <- pdata[!is.na(pdata$group), ]
-    pdata <- data.frame(pdata, row.names = pdata$title)
+    req(eset, fastq_dir, anal_name, dataset_dir)
 
     # run differential expression
     progress$set(message = "Differential expression", value = 1)
-    anal <- diff_expr(eset, data_dir = fastq_dir, anal_name = anal_name, prev_anal = list(pdata = pdata))
+    browser()
+    anal <- diff_expr(eset,
+                      data_dir = fastq_dir,
+                      anal_name = anal_name,
+                      contrast = contrast,
+                      svobj = svobj,
+                      num_svs = num_svs,
+                      prev_anal = list(pdata = Biobase::pData(eset)))
 
     # run pathway analysis
-    progress$set(message = "Pathway analysis", value = 2)
-    rna_seq <- 'lib.size' %in% colnames(Biobase::pData(eset))
-    path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = rna_seq, NI = 24)
+    # progress$set(message = "Pathway analysis", value = 2)
+    # rna_seq <- 'lib.size' %in% colnames(Biobase::pData(eset))
+    # path_anal <- diff_path(eset, prev_anal = anal, data_dir = fastq_dir, anal_name = anal_name, rna_seq = rna_seq, NI = 24)
 
     # add to analysed bulk anals
     save_bulk_anals(dataset_name = dataset_name,
@@ -247,28 +257,24 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 #' Logic for Dataset MDS plotly
 #' @export
 #' @keywords internal
-dsMDSplotly <- function(input, output, session, data_dir, dataset_dir, anal_name, new_anal) {
-
-  # path to saved analysis
-  anal_path <- reactive({
-    anal_name <- anal_name()
-    req(anal_name)
-    dataset_dir <- dataset_dir()
-
-    group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    file.path(data_dir, dataset_dir, group_file)
-  })
-
-  anal <- reactive({
-    anal_path <- anal_path()
-    req(file.exists(anal_path))
-    readRDS(anal_path)
-  })
+dsExploreMDSplotly <- function(input, output, session, explore_eset) {
 
   # MDS plot
   plotly_fun <- reactive({
-    mds <- anal()$mds
-    plotlyMDS(scaling = mds$scaling, scaling_sva = mds$scaling_sva)
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
+
+    # setup group factor and colors
+    group <- pdata$`Group name`
+    group_order <- order(unique(pdata$Group))
+    group_levels <- unique(group)[group_order]
+    group <- factor(group, levels = group_levels)
+    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
+
+    vsd <- Biobase::assayDataElement(eset, 'vsd')
+    adj <- Biobase::assayDataElement(eset, 'adjusted')
+    mds <- get_mds(vsd, adj, group)
+    plotlyMDS(mds$scaling, mds$scaling_adj, group_colors = group_colors)
   })
 
 
@@ -379,7 +385,7 @@ dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_na
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, msg_anal, new_anal, explore_eset) {
+dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -420,7 +426,6 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
                      data_dir = data_dir,
                      sc_dir = sc_dir,
                      bulk_dir = bulk_dir,
-                     error_msg = msg_anal,
                      dataset_name = dataset$dataset_name,
                      dataset_dir = dataset$dataset_dir,
                      new_anal = new_anal,
@@ -448,7 +453,9 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     is.explore = anal$is.explore,
     eset = eset,
     dtangle_est = anal$dtangle_est,
-    show_dtangle = anal$show_dtangle
+    show_dtangle = anal$show_dtangle,
+    num_svs = anal$num_svs,
+    svobj = anal$svobj
   ))
 
 }
@@ -664,13 +671,17 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
   return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
+
 #' Logic for differential expression analysis part of dsForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error_msg, dataset_name, dataset_dir, new_anal, new_dataset, explore_eset) {
+dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, dataset_name, dataset_dir, new_anal, new_dataset, explore_eset) {
+  contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
 
-
+  svobj <- reactiveVal()
+  numsv <- reactiveVal()
   run_anal <- reactiveVal()
+
   labels <- list(
     test = reactive(input$test),
     ctrl = reactive(input$ctrl),
@@ -718,12 +729,80 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
     explore_group_name = explore_group_name
   )
 
-  anal_name <- reactive(input$anal_name)
-  has_anal_name <- reactive(anal_name() != '')
+
+  # remove dataset files that depend on groupings
+  observe({
+    input$grouped
+    input$reset_explore
+
+    data_dir <- file.path(data_dir, isolate(dataset_dir()))
+    remove_dataset_files(data_dir)
+    numsv(0)
+    svobj(NULL)
+  })
+
 
   # gene choices
   observe({
     updateSelectizeInput(session, 'explore_genes', choices = c(NA, row.names(explore_eset())), server = TRUE)
+  })
+
+  # path to saved svobj
+  svobj_path <- reactive(file.path(data_dir, dataset_dir(), 'svobj.rds'))
+  numsv_path <- reactive(file.path(data_dir, dataset_dir(), 'numsv.rds'))
+
+  # obdate svobj and numsv when paths update
+  observe({
+    svobj_path <- svobj_path()
+    req(file.exists(svobj_path))
+    svobj(readRDS(svobj_path))
+  })
+
+  observe({
+    numsv_path <- numsv_path()
+    if (file.exists(numsv_path)) {
+      numsv(readRDS(numsv_path))
+    } else {
+      numsv(0)
+    }
+  })
+
+  # run surrogate variable analysis on click
+  observeEvent(input$run_sva, {
+
+
+    # remove previously adjusted data
+    data_dir <- file.path(data_dir, dataset_dir())
+    remove_dataset_files(data_dir, c('^adjusted_\\d+svs.rds$', '^numsv.rds$'))
+    numsv(0)
+
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
+    group <- pdata$group
+    req(length(unique(group)) > 1)
+
+    mods <- get_mods(eset)
+    rna_seq <- 'lib.size' %in% colnames(pdata)
+    svobj_new <- run_sva(mods, eset, rna_seq = rna_seq)
+
+    saveRDS(svobj_new, svobj_path())
+    svobj(svobj_new)
+  })
+
+  # update number of surrogate variables slider
+  observe({
+    svobj <- svobj()
+    updateSliderInput(session, 'num_svs', value = numsv(), min = 0, max = svobj$n.sv)
+  })
+
+  observeEvent(input$num_svs, {
+    numsv(input$num_svs)
+    saveRDS(input$num_svs, numsv_path())
+  }, ignoreInit = TRUE)
+
+  # update button icon with selected number of surrogate variables
+  observe({
+    updateActionButton(session, 'show_nsv', label = htmltools::doRenderTags(tags$span(input$num_svs, class='fa fa-fw')))
   })
 
 
@@ -731,6 +810,15 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
   # Differential Expression Section
   # -------------------------------
   # TODO: refactor into seperate module
+
+  anal_name <- reactive({
+    contrast_groups <- input$contrast_groups
+    req(length(contrast_groups == 2))
+
+    return(paste0(contrast_groups[1], '_vs_', contrast_groups[2]))
+
+  })
+  has_anal_name <- reactive(isTruthy(anal_name()))
 
   # analysis info table (can be multiple) from dataset
   dataset_anals <- reactive({
@@ -743,56 +831,52 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
     c('', anals[anals$dataset_name == dataset_name, 'anal_name'])
   })
 
+
+  # group levels used for selecting test and control groups
+  group_levels <- reactive({
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
+    group <- pdata$`Group name`
+    group_order <- order(unique(pdata$Group))
+    group_levels <- unique(group)[group_order]
+
+    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
+
+    data.frame(
+      name = group_levels,
+      value = group_levels,
+      color = group_colors[seq_along(group_levels)], stringsAsFactors = FALSE
+    )
+  })
+
   observe({
-    updateSelectizeInput(session, 'anal_name', choices = dataset_anals())
+    updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
   })
 
   is_prev_anal <- reactive({
     anal_name() %in% setdiff(dataset_anals(), '')
   })
 
-  # show anal buttons if new analysis name
-  observe({
-    toggle('anal_buttons_panel', condition = !is_prev_anal() & isTruthy(anal_name()))
-  })
 
   # enable download results if previous analysis
   observe({
     toggleState('download', condition = is_prev_anal())
   })
 
-
-
-  # clear anal name error if type
+  # enable running analysis
+  full_contrast <- reactive(length(input$contrast_groups) == 2)
   observe({
-    if (has_anal_name()) {
-      removeClass('anal_name_container' ,'has-error')
-      html('anal_name_help', '')
-    }
+    toggleState('run_anal', condition = full_contrast())
   })
 
-  # clear labels error on click
-  observe({
-    input$test
-    input$ctrl
-    input$reset
-    removeClass('anal_labels', 'has-error')
-    html('labels_help', '')
-  })
+
+
 
   observeEvent(input$run_anal, {
     # check for analysis name
     if (!has_anal_name()) {
-      addClass('anal_name_container', 'has-error')
-      html('anal_name_help', 'Requires analysis name.')
-      return(NULL)
-    }
-
-    # check that pdata is correct
-    error_msg <- error_msg()
-    if (!is.null(error_msg)) {
-      addClass('anal_labels', 'has-error')
-      html('labels_help', error_msg)
+      addClass('run_anal_container', 'has-error')
+      html('run_anal_help', 'Select two groups.')
       return(NULL)
     }
 
@@ -833,7 +917,9 @@ dsFormAnal <- function(input, output, session, data_dir, sc_dir, bulk_dir, error
     anal_name = anal_name,
     is.explore = is.explore,
     dtangle_est = dtangleForm$dtangle_est,
-    show_dtangle = show_dtangle
+    show_dtangle = show_dtangle,
+    num_svs = reactive(input$num_svs),
+    svobj = svobj
   ))
 }
 
@@ -1180,154 +1266,6 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
   ))
 }
 
-#' Logic for differential expression analysis table
-#' @export
-#' @keywords internal
-dsAnalTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, anal_name) {
-
-  background <- '#337ab7 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
-
-  # things user will update and return
-  pdata_r <- reactiveVal()
-  group_r <- reactiveVal()
-
-
-  # pdata that gets returned with group column
-  returned_pdata <- reactive({
-    pdata <- pdata_r()
-    req(pdata)
-
-    pdata$Group <- group_r()
-    return(pdata)
-  })
-
-  # path to saved analysis
-  anal_path <- reactive({
-    anal_name <- anal_name()
-    dataset_dir <- dataset_dir()
-    if (anal_name == '') return(NULL)
-
-    group_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    file.path(data_dir, dataset_dir, group_file)
-  })
-
-
-  # reset when new eset or analysis name
-  observe({
-    anal_name()
-    eset <- eset()
-    anal_path <- anal_path()
-
-    req(eset)
-
-    pdata <- Biobase::pData(eset) %>%
-      dplyr::select(-dplyr::one_of('lib.size', 'norm.factors')) %>%
-      tibble::add_column(Group = NA, Title = colnames(eset), .before = 1)
-
-
-    group <- rep(NA, nrow(pdata))
-
-    # load annotations from previous analysis if available
-    if (!is.null(anal_path) && file.exists(anal_path)) {
-
-      anal <- readRDS(anal_path)
-      in.anal <- which(row.names(pdata) %in% row.names(anal$pdata))
-      group[in.anal] <- anal$pdata$group
-
-      is.test <- which(group == 'test')
-      is.ctrl <- which(group == 'ctrl')
-      pdata[is.test, 'Group'] <- '<div style="background-color: #e6194b;"><span>test</span></div>'
-      pdata[is.ctrl, 'Group'] <- paste0('<div style="background: ', background, ';"><span>control</span></div>')
-
-    }
-
-    pdata_r(pdata)
-    group_r(group)
-  })
-
-
-  # redraw table when new pdata (otherwise update data using proxy)
-  output$pdata <- DT::renderDataTable({
-
-    DT::datatable(
-      pdata_r(),
-      class = 'cell-border dt-fake-height',
-      rownames = FALSE,
-      escape = FALSE, # to allow HTML in table
-      options = list(
-        columnDefs = list(list(className = 'dt-nopad', targets = 0)),
-        scrollX = TRUE,
-        paging = FALSE,
-        bInfo = 0
-      )
-    )
-  })
-
-
-  html_pdata <- reactive({
-
-    # things that trigger update
-    pdata <- pdata_r()
-    group <- group_r()
-    req(pdata)
-
-    is.test <- which(group == 'test')
-    is.ctrl <- which(group == 'ctrl')
-    pdata[is.test, 'Group'] <- '<div style="background-color: #e6194b;"><span>test</span></div>'
-    pdata[is.ctrl, 'Group'] <- paste0('<div style="background: ', background, ';"><span>control</span></div>')
-
-
-    return(pdata)
-  })
-
-
-  # proxy used to replace data
-  proxy <- DT::dataTableProxy("pdata")
-  shiny::observe({
-    req(html_pdata())
-    DT::replaceData(proxy, html_pdata(), rownames = FALSE)
-  })
-
-
-
-  # click 'Test'
-  shiny::observeEvent(labels$test(), {
-    test <- labels$test()
-    group <- group_r()
-    req(test)
-
-    group[input$pdata_rows_selected] <- 'test'
-    group_r(group)
-  })
-
-  # click 'Control'
-  shiny::observeEvent(labels$ctrl(), {
-    ctrl <- labels$ctrl()
-    group <- group_r()
-    req(ctrl)
-
-    group[input$pdata_rows_selected] <- 'ctrl'
-    group_r(group)
-
-  })
-
-
-  # click 'Reset'
-  shiny::observeEvent(labels$reset(), {
-    req(labels$reset())
-    group <- group_r()
-    group_r(rep(NA, length(group)))
-
-  })
-
-
-  return(list(
-    pdata = returned_pdata,
-    eset = eset
-  ))
-
-}
-
 
 #' Logic for differential expression analysis table
 #' @export
@@ -1348,7 +1286,6 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   # path to saved pdata
   pdata_path <- reactive(file.path(data_dir, dataset_dir(), 'pdata_explore.rds'))
 
-
   # pdata that gets returned with group column
   returned_pdata <- reactive({
     pdata_path <- pdata_path()
@@ -1362,12 +1299,12 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
     return(pdata)
   })
 
+
   eset_pdata <- reactive({
     eset <- eset()
     req(eset)
 
     pdata <- Biobase::pData(eset) %>%
-      dplyr::select(-dplyr::one_of('lib.size', 'norm.factors')) %>%
       tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
 
     return(pdata)
@@ -1402,15 +1339,20 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   # redraw table when new pdata (otherwise update data using proxy)
   output$pdata <- DT::renderDataTable({
 
+    pdata <- pdata_r()
+    hide_target <- which(colnames(pdata) %in% c('lib.size', 'norm.factors', 'pair')) - 1
+
     table_rendered(TRUE)
 
     DT::datatable(
-      pdata_r(),
+      pdata,
       class = 'cell-border dt-fake-height',
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
       options = list(
-        columnDefs = list(list(className = 'dt-nopad', targets = 0)),
+        columnDefs = list(
+          list(className = 'dt-nopad', targets = 0),
+          list(targets = hide_target, visible=FALSE)),
         scrollX = TRUE,
         paging = FALSE,
         bInfo = 0
