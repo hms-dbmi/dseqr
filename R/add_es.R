@@ -21,16 +21,12 @@
 #' # add dprime and vardprime to top tables
 #' anal <- add_es(anal)
 
-add_es <- function(diff_exprs, cols = c("dprime", "vardprime")) {
+add_es <- function(diff_exprs, cols = c("dprime", "vardprime"), groups = c('test', 'ctrl')) {
 
 
   # get study degrees of freedom and group classes
-
   df <- diff_exprs$ebayes_sv$df.residual + diff_exprs$ebayes_sv$df.prior
   classes <- diff_exprs$pdata$group
-
-  # group names for contrast
-  groups <- c('test', 'ctrl')
 
   # get sample sizes for groups
   ni <- sum(classes == groups[2])

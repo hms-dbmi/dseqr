@@ -4,7 +4,7 @@
 \alias{get_dprimes}
 \title{Get dprime effect size values.}
 \usage{
-get_dprimes(diff_exprs)
+get_dprimes(diff_exprs, groups = c("test", "ctrl"))
 }
 \arguments{
 \item{diff_exprs}{List returned by \code{\link{dif_expr}}}

@@ -225,6 +225,7 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
   anals <- readRDS(anals_path)
 
   anals[nrow(anals)+1, ] <- c(dataset_name, dataset_dir, anal_name)
+  anals <- anals[!duplicated(anals), ]
   saveRDS(anals, anals_path)
 }
 

@@ -8,8 +8,10 @@ diff_expr(
   eset,
   data_dir,
   anal_name,
+  contrast = "test-ctrl",
   annot = "SYMBOL",
-  svanal = TRUE,
+  svobj = list(sv = NULL),
+  num_svs = 0,
   prev_anal = NULL
 )
 }

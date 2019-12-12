@@ -4,12 +4,12 @@
 \alias{get_mds}
 \title{Get scalings for MDS plots}
 \usage{
-get_mds(exprs, exprs_sva, group)
+get_mds(exprs, adj, group)
 }
 \arguments{
 \item{exprs}{\code{matrix} of expression values.}
 
-\item{exprs_sva}{\code{matrix} of expression values with surrogate variables regressed out.}
+\item{adj}{\code{matrix} of expression values with surrogate variables/pairs regressed out.}
 
 \item{group}{Character vector with values \code{'control'} and \code{'test'} indicating group membership.}
 }

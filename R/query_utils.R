@@ -15,8 +15,11 @@
 #'
 #' dprimes <- get_dprimes(anal)
 #'
-get_dprimes <- function(diff_exprs) {
-  diff_exprs <- add_es(diff_exprs)
+get_dprimes <- function(diff_exprs, groups = c('test', 'ctrl')) {
+  # for legacy before groups was saved
+  if (!is.null(diff_exprs$groups)) groups <- diff_exprs$groups
+
+  diff_exprs <- add_es(diff_exprs, groups = groups)
 
   dprimes <- diff_exprs$top_table$dprime
   names(dprimes) <- row.names(diff_exprs$top_table)

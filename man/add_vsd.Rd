@@ -4,7 +4,7 @@
 \alias{add_vsd}
 \title{Add VST normalized assay data element to expression set}
 \usage{
-add_vsd(eset)
+add_vsd(eset, rna_seq = TRUE)
 }
 \arguments{
 \item{eset}{ExpressionSet with group column in \code{pData(eset)}}
@@ -13,5 +13,5 @@ add_vsd(eset)
 \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 }
 \description{
-Add VST normalized assay data element to expression set
+For microarray datasets duplicates exprs slot into vsd slot.
 }

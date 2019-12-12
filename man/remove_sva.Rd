@@ -2,17 +2,19 @@
 % Please edit documentation in R/remove_sva.R
 \name{remove_sva}
 \alias{remove_sva}
-\title{Run surrogate variable analysis and factor out surrogate variables}
+\title{Run surrogate variable analysis and factor out surrogate variables and any pairs}
 \usage{
-remove_sva(eset)
+remove_sva(eset, run_sva = TRUE)
 }
 \arguments{
-\item{eset}{ExpressionSet with group column in \code{pData(eset)}}
+\item{eset}{ExpressionSet with group column in \code{pData(eset)} and optional pair column.}
+
+\item{run_sva}{If \code{FALSE} (default \code{TRUE}) then only regresses out pair column.}
 }
 \value{
 matrix of vsd (if RNA-seq) RMA (microarray) normalized expression with
- surrogate variables factored out
+ surrogate variables and optional pairs factored out
 }
 \description{
-Returned result usefull for heatmaps, MDS plots, machine learning, etc
+Returned result useful for heatmaps, MDS plots, machine learning, etc
 }

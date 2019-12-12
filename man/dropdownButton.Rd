@@ -14,6 +14,7 @@ dropdownButton(
   tooltip = FALSE,
   right = FALSE,
   up = FALSE,
+  circle_class = "",
   width = NULL,
   margin = "10px",
   inline = FALSE,

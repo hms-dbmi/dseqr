@@ -4,7 +4,7 @@
 \alias{clean_y}
 \title{Adjusts expression data for surrogate variables.}
 \usage{
-clean_y(y, mod, svs)
+clean_y(y, mod, mod.clean)
 }
 \arguments{
 \item{y}{Expression data of eset.}

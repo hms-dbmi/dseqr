@@ -263,3 +263,27 @@ function pertItem(item, escape) {
 
   return markup;
 }
+
+
+function bulkContrastOptions(item, escape) {
+
+
+  var clustEl = "<div>" +
+                  "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                  escape(item.name) +
+                "</div>";
+
+  return clustEl;
+}
+
+
+
+//styling for current item
+function bulkContrastItem(item, escape) {
+  var clustEl = "<div>" +
+                  "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                  escape(item.name) +
+                "</div>";
+
+  return clustEl;
+}

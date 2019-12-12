@@ -11,6 +11,7 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
                            size = "default", icon = NULL,
                            label = NULL, tooltip = FALSE,
                            right = FALSE, up = FALSE,
+                           circle_class = '',
                            width = NULL, margin = "10px", inline = FALSE, inputId = NULL, title = NULL) {
   size <- match.arg(arg = size, choices = c("default", "lg", "sm", "xs"))
   if (is.null(inputId)) {
@@ -34,7 +35,7 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
   if (circle) {
     html_button <- circleButton(
       inputId = inputId, icon = icon, status = status, size = size,
-      class = "dropdown-toggle",
+      class = paste("dropdown-toggle", circle_class),
       `data-toggle` = "dropdown"
     )
   } else {

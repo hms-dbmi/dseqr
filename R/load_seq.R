@@ -218,19 +218,20 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 
 #' Add VST normalized assay data element to expression set
 #'
+#' For microarray datasets duplicates exprs slot into vsd slot.
+#'
 #' @param eset ExpressionSet with group column in \code{pData(eset)}
 #'
 #' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 #' @export
-add_vsd <- function(eset) {
+add_vsd <- function(eset, rna_seq = TRUE) {
 
   # for cases where manually added (e.g. nanostring dataset)
-  if ('vsd' %in% Biobase::assayDataElementNames(eset)) return(eset)
+  els <- Biobase::assayDataElementNames(eset)
+  if ('vsd' %in% els) return(eset)
 
-  # for microarray use SYMBOL annotated exprs
-  if (!'lib.size' %in% colnames(Biobase::pData(eset))) {
-    dups <- iqr_replicates(eset, rna_seq = FALSE)
-    eset <- dups$eset
+  # for microarray use exprs
+  if (!'counts' %in% els) {
     Biobase::assayDataElement(eset, 'vsd') <- Biobase::assayDataElement(eset, 'exprs')
 
   } else {

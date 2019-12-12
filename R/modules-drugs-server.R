@@ -493,7 +493,6 @@ selectedPertSignature <- function(input, output, session, data_dir, pert_signatu
 
     list(
       anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds')),
       cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
       l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
       l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
@@ -505,10 +504,7 @@ selectedPertSignature <- function(input, output, session, data_dir, pert_signatu
     fpaths <- fpaths()
     if (is_sc()) return (sc_inputs$results())
 
-    list(
-      path = readRDS(fpaths$path),
-      anal = readRDS(fpaths$anal)
-    )
+    list(anal = readRDS(fpaths$anal))
   })
 
   # load drug/genetic query results

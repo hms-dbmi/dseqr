@@ -38,7 +38,7 @@
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
 #' anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
-diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRUE, prev_anal = NULL) {
+diff_expr <- function (eset, data_dir, anal_name, contrast = 'test-ctrl', annot = "SYMBOL", svobj = list('sv' = NULL), num_svs = 0, prev_anal = NULL) {
 
   # check for annot column
   if (!annot %in% colnames(Biobase::fData(eset)))
@@ -49,8 +49,11 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
 
   # are we re-using selections from previous analysis?
   if (!is.null(prev_anal)) {
-    # retain selected only and add group to pdata
-    eset <- eset[, row.names(prev_anal$pdata)]
+    # make sure same order and add group to pdata
+    prev_names <- row.names(prev_anal$pdata)
+    stopifnot(all(prev_names %in% colnames(eset)))
+
+    eset <- eset[, prev_names]
     Biobase::pData(eset)$group <- prev_anal$pdata$group
 
   } else {
@@ -58,34 +61,71 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
     eset <- select_contrast(eset)
   }
 
-  # add vsd element for plots
-  if (rna_seq) eset <- add_vsd(eset)
+  # add vsd element for cleaning
+  eset <- add_vsd(eset)
 
-  # setup for differential expression
-  setup <- diff_setup(eset, svanal, rna_seq)
+  # add surrogate variable/pair adjusted ("clean") expression matrix for iqr_replicates
+  eset <- add_adjusted(eset, svobj, num_svs = num_svs)
 
   # remove rows with duplicated/NA annot (SYMBOL or ENTREZID)
-  dups <- tryCatch ({
-    iqr_replicates(eset, setup$mod, setup$svobj, annot, rna_seq = rna_seq)
-
-  }, error = function(err) {err$message <- "Couldn't fit model."; stop(err)})
+  eset <- iqr_replicates(eset, annot)
 
   # differential expression
-
-  anal <- diff_anal(eset = dups$eset,
+  anal <- diff_anal(eset = eset,
                     anal_name = anal_name,
-                    exprs_sva = dups$exprs_sva,
-                    modsv = setup$modsv,
+                    contrast = contrast,
                     data_dir = data_dir,
+                    svobj = svobj,
+                    num_svs = num_svs,
                     annot = annot,
                     rna_seq = rna_seq)
   return (anal)
 }
 
+#' Add expression data adjusted for pairs/surrogate variables
+#'
+#' @param eset
+#' @param mods
+#' @param svobj
+#' @param num_svs
+#'
+#' @return eset with \code{adjusted} element added
+#' @export
+add_adjusted <- function(eset, svobj = list(sv = NULL), num_svs = 0, adj_path = NULL) {
+
+  if ('adjusted' %in% Biobase::assayDataElementNames(eset)) return(eset)
+
+  if (file.exists(adj_path)) {
+    Biobase::assayDataElement(eset, 'adjusted') <- readRDS(adj_path)
+    return(eset)
+  }
+
+  # get mods with group and pair effects
+  mods <- get_mods(eset)
+  mod <- mods$mod
+  mod0 <- mods$mod0
+
+  # remove pairs from alternative model so that get cleaned
+  pair_cols <- colnames(mods$mod0)[-1]
+
+  svs <- svobj$sv[, seq_len(num_svs), drop = FALSE]
+
+  mod <- mod[, !colnames(mod) %in% pair_cols]
+  mod.clean <- cbind(mod0[, pair_cols], svs)
+
+  # used DESeq::vsd transformed counts for RNA-Seq
+  # for microarray this will be exprs slot
+  y <- Biobase::assayDataElement(eset, 'vsd')
+
+  adj <- clean_y(y, mod, mod.clean)
+  Biobase::assayDataElement(eset, 'adjusted') <- adj
+  saveRDS(adj, adj_path)
+  return(eset)
+}
 
 
 
-#' Generate model matrix with surrogate variables.
+#' Get model matrices for surrogate variable analysis
 #'
 #' Used by \code{diff_expr} to create model matrix with surrogate variables
 #' in order to run \code{diff_anal}.
@@ -97,51 +137,61 @@ diff_expr <- function (eset, data_dir, anal_name, annot = "SYMBOL", svanal = TRU
 #' @seealso \code{\link{add_contrast}}, \code{\link{diff_expr}}.
 #' @return List with model matrix(mod), model matrix with surrogate
 #'         variables(modsv), and result of \code{sva} function.
-diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
-
-  # incase svanal FALSE
-  svobj <- list("sv" = NULL)
+#'
+#' @export
+get_mods <- function(eset) {
 
   # make full and null model matrix
-  group_levels = c('ctrl', 'test')
-  group <- factor(Biobase::pData(eset)$group, levels = group_levels)
+  pdata <- Biobase::pData(eset)
+  group_levels <- setdiff(unique(pdata$group), NA)
+  group <- factor(pdata$group, levels = group_levels)
+  pair <- factor(pdata$pair)
 
-  mod <- stats::model.matrix(~0 + group)
-  mod0 <- stats::model.matrix(~1, data = group)
+  # if pairs include in alternative and null model
+  if (length(pair)) {
+    mod <- stats::model.matrix(~0 + group + pair)
+    mod0 <- stats::model.matrix(~1 + pair, data = group)
 
+  } else {
+    mod <- stats::model.matrix(~0 + group)
+    mod0 <- stats::model.matrix(~1, data = group)
+  }
+
+  # rename group columns
   colnames(mod)[1:length(group_levels)] <- group_levels
 
+  if (length(pair)) {
+    # remove non matched pairs
+    pair_cols <- colnames(mod0)[-1]
+    has.pair <- colSums(mod0[, pair_cols]) >= 2
+    has.pair <- names(which(has.pair))
 
-  if (svanal) {
-    # remove duplicated rows (from 1:many PROBE:SYMBOL) as affect sva
-    if (rna_seq) {
-      PROBE <- Biobase::fData(eset)[,1]
-    } else {
-      PROBE <- Biobase::fData(eset)$PROBE
-    }
-    expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
-    expr <- as.matrix(expr)
-
-    # sva or svaseq
-    sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
-
-    svobj <- tryCatch (
-      {utils::capture.output(svobj <- sva_fun(expr, mod, mod0)); svobj},
-
-      error = function(cond) {
-        message("sva failed - continuing without.")
-        return(list("sv" = NULL))
-      })
+    mod <- mod[, c(group_levels, has.pair)]
+    mod0 <- mod0[, c("(Intercept)", has.pair)]
   }
 
-  if (is.null(svobj$sv) || svobj$n.sv ==  0) {
-    svobj$sv <- NULL
-    modsv <- mod
+  return(list("mod" = mod, "mod0" = mod0))
+}
+
+
+
+run_sva <- function(mods, eset, rna_seq = TRUE) {
+
+  # remove duplicated rows (from 1:many PROBE:SYMBOL) as affect sva
+  if (rna_seq) {
+    PROBE <- Biobase::fData(eset)[,1]
   } else {
-    modsv <- cbind(mod, svobj$sv)
-    colnames(modsv) <- c(colnames(mod), paste("SV", 1:svobj$n.sv, sep = ""))
+    PROBE <- Biobase::fData(eset)$PROBE
   }
-  return (list("mod" = mod, "modsv" = modsv, "svobj" = svobj))
+
+  expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
+  expr <- as.matrix(expr)
+
+  # sva or svaseq
+  sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
+
+  svobj <- sva_fun(expr, mods$mod, mods$mod0)
+  return(svobj)
 }
 
 
@@ -158,61 +208,63 @@ diff_setup <- function(eset, svanal = TRUE, rna_seq = TRUE){
 #' @param annot feature to use to remove replicates.
 #' @param rm.dup remove duplicates (same measure, multiple ids)?
 #'
-#' @return List with:
-#'    \item{eset}{Expression set with unique features at probe or gene level.}
-#'    \item{exprs_sva}{Expression data from eset with effect of surrogate
-#'       variable removed.}
-iqr_replicates <- function(eset, mod = NULL, svobj = NULL, annot = "SYMBOL", rm.dup = FALSE, rna_seq = TRUE) {
+#' @return Expression set with unique features at probe or gene level.
+#' @export
+iqr_replicates <- function(eset, annot = "SYMBOL", rm.dup = FALSE) {
 
   # for R CMD check
   iqrange = SYMBOL = NULL
 
-  # get DESeq::vsd transformed counts for RNA-Seq
-  el <- ifelse(rna_seq, 'vsd', 'exprs')
-  exprs_sva <- Biobase::assayDataElement(eset, el)
+  # do less work if possible as can take seconds
+  fdata <- Biobase::fData(eset)
+  annot.all <- fdata[, annot]
+  annot.na  <- is.na(annot.all)
+  annot.dup <- duplicated(annot.all[!annot.na])
 
-  if (length(svobj) > 0)
-    exprs_sva <- clean_y(exprs_sva, mod, svobj$sv)
+  if (!any(annot.dup)) {
+    eset <- eset[!annot.na, ]
+    Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
 
-  # add inter-quartile ranges, row, and feature data to exprs data
-  data <- as.data.frame(exprs_sva)
-  data$iqrange <- matrixStats::rowIQRs(exprs_sva)
-  data$row <- 1:nrow(data)
-  data[, colnames(Biobase::fData(eset))] <- Biobase::fData(eset)
+  } else {
+    adj <- Biobase::assayDataElement(eset, 'adjusted')
 
-  # remove rows with NA annot (occurs if annot is SYMBOL)
-  data <- data[!is.na(data[, annot]), ]
+    # add inter-quartile ranges, row, and feature data to exprs data
+    data <- as.data.frame(adj)
+    data$iqrange <- matrixStats::rowIQRs(adj)
+    data$row <- 1:nrow(data)
+    data[, colnames(fdata)] <- fdata
 
-  # for rows with same annot, keep highest IQR
-  data <- data.table::data.table(data)
-  data <- data[data[, .I[which.max(iqrange)], by = eval(annot)]$V1]
+    # remove rows with NA annot (occurs if annot is SYMBOL)
+    data <- data[!is.na(data[, annot]), ]
 
-  # use row number to keep selected features
-  eset <- eset[data$row, ]
-  exprs_sva <- exprs_sva[data$row, ]
+    # for rows with same annot, keep highest IQR
+    data <- data.table::data.table(data)
+    data <- data[data[, .I[which.max(iqrange)], by = eval(annot)]$V1]
 
-  # use annot for feature names
-  Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
-  row.names(exprs_sva)   <- Biobase::fData(eset)[, annot]
+    # use row number to keep selected features
+    eset <- eset[data$row, ]
 
-  if (rm.dup) {
-    not.dup <- !duplicated(exprs_sva)
-    eset <- eset[not.dup, ]
-    exprs_sva <- exprs_sva[not.dup, ]
+    # use annot for feature names
+    Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
   }
 
-  return (list(eset = eset, exprs_sva = exprs_sva))
+  if (rm.dup) {
+    not.dup <- !duplicated(Biobase::assayDataElement(eset, 'adjusted'))
+    eset <- eset[not.dup, ]
+  }
+
+  return(eset)
 }
 
 
-format_scaling <- function(scaling, with_sva, group, exprs) {
+format_scaling <- function(scaling, adj, group, exprs) {
 
   scaling %>%
     dplyr::rename('MDS1' = V1, 'MDS2' = V2) %>%
     dplyr::mutate(Sample = row.names(exprs)) %>%
-    dplyr::mutate(Group = factor(group)) %>%
+    dplyr::mutate(Group = group) %>%
     dplyr::mutate(Group =  dplyr::recode(Group, ctrl = 'Control', test = 'Test')) %>%
-    dplyr::mutate(Title = ifelse(with_sva, 'with sva', 'without sva'))
+    dplyr::mutate(Title = ifelse(adj, 'adjusted', 'not adjusted'))
 }
 
 
@@ -237,27 +289,26 @@ format_scaling <- function(scaling, with_sva, group, exprs) {
 #' @seealso \code{\link{diff_expr}}.
 #' @return List, final result of \code{diff_expr}. Used for subsequent
 #'   meta-analysis.
-diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMBOL", rna_seq = TRUE){
+diff_anal <- function(eset, anal_name, contrast, data_dir, svobj = list(sv = NULL), num_svs = 0, annot = "SYMBOL", rna_seq = TRUE){
 
-  group_levels <- c('ctrl', 'test')
-  contrasts <- 'test-ctrl'
+  # setup model matrix with surrogate variables
+  group <- Biobase::pData(eset)$group
+  mod <- model.matrix(~0 + group)
+  colnames(mod) <- gsub('^group', '', colnames(mod))
+  mod <- cbind(mod, svobj$sv[, seq_len(num_svs)])
 
-  # differential expression (surrogate variables modeled and not)
-  ebayes_sv <- fit_ebayes(eset, contrasts, modsv, rna_seq)
+  # differential expression
+  ebayes_sv <- fit_ebayes(eset, contrast, mod, rna_seq)
 
   # get results
-  top_table <- limma::topTable(ebayes_sv, coef = 1, n = Inf)
+  top_table <- limma::topTable(ebayes_sv, coef = contrast, n = Inf)
 
   # only store phenoData (exprs and fData large)
   pdata <- Biobase::pData(eset)
 
-  # for MDS plot use DEseq2::vsd normalized as baseline if RNA-Seq
-  el <- ifelse(rna_seq, 'vsd', 'exprs')
-  exprs_nosva <- Biobase::assayDataElement(eset, el)
-  mds <- get_mds(exprs_nosva, exprs_sva, pdata$group)
-
   # save to disk
-  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, mds = mds)
+  groups <- strsplit(contrast, '-')[[1]]
+  diff_expr <- list(pdata = pdata, top_table = top_table, ebayes_sv = ebayes_sv, annot = annot, num_svs = num_svs, groups = groups)
   save_name <- paste("diff_expr", tolower(annot), anal_name, sep = "_")
   save_name <- paste0(save_name, ".rds")
 
@@ -270,46 +321,46 @@ diff_anal <- function(eset, anal_name, exprs_sva, modsv, data_dir, annot = "SYMB
 #' For interactive MDS plot of expression values with and without surrogate variable analysis.
 #'
 #' @param exprs \code{matrix} of expression values.
-#' @param exprs_sva \code{matrix} of expression values with surrogate variables regressed out.
+#' @param adj \code{matrix} of expression values with surrogate variables/pairs regressed out.
 #' @param group Character vector with values \code{'control'} and \code{'test'} indicating group membership.
 #' @importFrom magrittr "%>%"
 #'
 #' @return List of tibbles with MDS scalings with and without SVA
 #' @export
-get_mds <- function(exprs, exprs_sva, group) {
+get_mds <- function(exprs, adj, group) {
 
   # get_dist acts on rows
   exprs <- t(exprs[complete.cases(exprs), ])
-  exprs_sva <- t(exprs_sva[complete.cases(exprs_sva), ])
+  adj <- t(adj[complete.cases(adj), ])
 
   dist <- factoextra::get_dist(exprs, method = 'spearman')
-  dist_sva <- factoextra::get_dist(exprs_sva, method = 'spearman')
+  dist_adj <- factoextra::get_dist(adj, method = 'spearman')
 
   # sammon scaling for dimensionality reduction
   capture.output({
     scaling <- tibble::as_tibble(MASS::sammon(dist, k = 2)$points) %>%
-      format_scaling(with_sva = FALSE, group = group, exprs = exprs)
+      format_scaling(adj = FALSE, group = group, exprs = exprs)
 
-    scaling_sva <- tibble::as_tibble(MASS::sammon(dist_sva, k = 2)$points) %>%
-      format_scaling(with_sva = TRUE, group = group, exprs = exprs)
+    scaling_adj <- tibble::as_tibble(MASS::sammon(dist_adj, k = 2)$points) %>%
+      format_scaling(adj = TRUE, group = group, exprs = exprs)
   })
 
-  return(list(scaling = scaling, scaling_sva = scaling_sva))
+  return(list(scaling = scaling, scaling_adj = scaling_adj))
 }
 
 #' Plot MDS plotlys
 #'
 #' @param scaling tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA
-#' @param scaling_sva tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA
+#' @param scaling_adj tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA/pairs
 #'
 #' @return plotly object
 #' @export
-plotlyMDS <- function(scaling, scaling_sva) {
+plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b')) {
 
   if(is.null(scaling)) return(NULL)
   # make x and y same range
-  xrange <- range(c(scaling$MDS1, scaling_sva$MDS1))
-  yrange <- range(c(scaling$MDS2, scaling_sva$MDS2))
+  xrange <- range(c(scaling$MDS1, scaling_adj$MDS1))
+  yrange <- range(c(scaling$MDS2, scaling_adj$MDS2))
 
   addx <- diff(xrange) * .10
   addy <- diff(yrange) * .10
@@ -317,8 +368,18 @@ plotlyMDS <- function(scaling, scaling_sva) {
   xrange <- xrange + c(-addx, addx)
   yrange <- yrange + c(-addy, addy)
 
+  # legend styling
+  l <- list(
+    font = list(
+      family = "sans-serif",
+      size = 12,
+      color = "#000"),
+    bgcolor = "#f8f8f8",
+    bordercolor = "#e7e7e7",
+    borderwidth = 1)
 
-  p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
+
+  p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = FALSE) %>%
     plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
@@ -328,15 +389,17 @@ plotlyMDS <- function(scaling, scaling_sva) {
                    linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
     )
 
-  p2 <- plotly::plot_ly(scaling_sva, x = ~MDS1, y = ~MDS2, color = ~Group, colors = c('#337ab7', '#e6194b'), showlegend = FALSE) %>%
+  p2 <- plotly::plot_ly(scaling_adj, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = TRUE) %>%
     plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
+      legend = l,
       xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
                    linecolor = '#cccccc', mirror = TRUE, linewidth = 1),
       yaxis = list(title = '', zeroline = FALSE, showticklabels = FALSE, range = yrange,
                    linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
     )
+
 
   pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
     plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
@@ -344,8 +407,8 @@ plotlyMDS <- function(scaling, scaling_sva) {
                    yaxis = list(fixedrange=TRUE),
                    margin = list(t = 60),
                    annotations = list(
-                     list(x = 0.2 , y = 1.065, text = "Without SVA", showarrow = F, xref='paper', yref='paper'),
-                     list(x = 0.8 , y = 1.065, text = "With SVA", showarrow = F, xref='paper', yref='paper')),
+                     list(x = 0.2 , y = 1.065, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'),
+                     list(x = 0.8 , y = 1.065, text = "Adjusted", showarrow = F, xref='paper', yref='paper')),
                    shapes = list(
                      type = "rect",
                      x0 = 0,
@@ -380,14 +443,40 @@ plotlyMDS <- function(scaling, scaling_sva) {
 
 fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 
-  if (rna_seq) {
+  pdata <- Biobase::pData(eset)
+  pair <- pdata$pair
+  y <- Biobase::exprs(eset)
+
+  if (length(pair) & rna_seq) {
+    # rna-seq paired
+    # see https://support.bioconductor.org/p/110780/ for similar
+    lib.size <- pdata$lib.size * pdata$norm.factors
+
+    # first round
+    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
+    corfit <- limma::duplicateCorrelation(v, mod, block = pair)
+
+    # second round
+    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, block = pair, correlation = corfit$consensus.correlation, plot = TRUE)
+    corfit <- limma::duplicateCorrelation(v, mod, block = pair)
+
+    fit <- limma::lmFit(v, mod, correlation = corfit$consensus.correlation, block = pair)
+
+  } else if (rna_seq) {
+    # rna-seq not paired
     # get normalized lib size and voom
-    lib.size <- Biobase::pData(eset)$lib.size * Biobase::pData(eset)$norm.factors
-    v <- limma::voomWithQualityWeights(Biobase::exprs(eset), design = mod, lib.size = lib.size, plot = TRUE)
+    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
+    lib.size <- pdata$lib.size * pdata$norm.factors
     fit  <- limma::lmFit(v, design = mod)
 
+  } else if (length(pair) & !rna_seq) {
+    # microarray paired
+    corfit <- limma::duplicateCorrelation(y, mod, block = pair)
+    fit <- limma::lmFit(y, mod, correlation = corfit$consensus.correlation, block = pair)
+
   } else {
-    fit <- limma::lmFit(Biobase::exprs(eset), mod)
+    # microarray not paired
+    fit <- limma::lmFit(y, mod)
   }
 
   contrast_matrix <- limma::makeContrasts(contrasts = contrasts, levels = mod)
@@ -407,9 +496,12 @@ fit_ebayes <- function(eset, contrasts, mod, rna_seq = TRUE) {
 #'
 #' @seealso \code{\link{get_contrast_esets}}.
 #' @return Expression data with effects of svs removed.
-clean_y <- function(y, mod, svs) {
+clean_y <- function(y, mod, mod.clean) {
 
-  X = cbind(mod, svs)
+  # if no factors to clean return original
+  if (!ncol(mod.clean)) return(y)
+
+  X = cbind(mod, mod.clean)
   Hat = solve(t(X) %*% X) %*% t(X)
   beta = (Hat %*% t(y))
   rm(Hat)
