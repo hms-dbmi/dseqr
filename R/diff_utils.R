@@ -165,8 +165,8 @@ get_mods <- function(eset) {
     has.pair <- colSums(mod0[, pair_cols]) >= 2
     has.pair <- names(which(has.pair))
 
-    mod <- mod[, c(group_levels, has.pair)]
-    mod0 <- mod0[, c("(Intercept)", has.pair)]
+    mod <- mod[, c(group_levels, has.pair), drop = FALSE]
+    mod0 <- mod0[, c("(Intercept)", has.pair), drop = FALSE]
   }
 
   return(list("mod" = mod, "mod0" = mod0))
