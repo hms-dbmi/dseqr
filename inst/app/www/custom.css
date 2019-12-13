@@ -202,12 +202,25 @@
   min-width: 42px;
 }
 
+.full-height-btn .input-group-btn a {
+  display: table;
+  height: 100%;
+}
+
+.full-height-btn .input-group-btn a > i {
+  display: table-cell;
+  vertical-align:  middle;
+}
+
+
+
 .full-height-btn .input-group-btn:not(:last-child) button,
 .full-height-btn .input-group-btn:not(:last-child) a {
   border-radius: 0;
 }
 
-.full-height-btn button {
+.full-height-btn button, 
+.full-height-btn a {
   position: absolute !important;
   top: 0;
   bottom: 0;
@@ -420,4 +433,24 @@ button.dt-button.buttons-collection,
 
 .tooltip.ggplot.bottom .tooltip-arrow {
   border-bottom-color: rgb(105, 115, 138);
+}
+
+/* for contrast in bulk data */
+.selectize-input > .bulk-item .contrast {
+  display: inline-block;
+  padding-left: 6px;
+  padding-right: 3px;
+  font-weight: 700;
+}
+
+.selectize-input >.bulk-item ~ .bulk-item .contrast {
+  display: none;
+}
+
+.bulk-item.active {
+  background-color: #428bca !important;
+}
+
+.bulk-item {
+  background-color: white !important;
 }

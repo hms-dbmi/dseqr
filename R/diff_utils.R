@@ -209,20 +209,25 @@ run_sva <- function(mods, eset, rna_seq = TRUE) {
 #'
 #' @return Expression set with unique features at probe or gene level.
 #' @export
-iqr_replicates <- function(eset, annot = "SYMBOL", rm.dup = FALSE) {
+iqr_replicates <- function(eset, annot = "SYMBOL", rm.dup = FALSE, keep_path = NULL) {
 
   # for R CMD check
   iqrange = SYMBOL = NULL
 
   # do less work if possible as can take seconds
   fdata <- Biobase::fData(eset)
-  annot.all <- fdata[, annot]
+  annot.all <- Biobase::fData(eset)[, annot]
   annot.na  <- is.na(annot.all)
   annot.dup <- duplicated(annot.all[!annot.na])
 
-  if (!any(annot.dup)) {
+  if (!is.null(keep_path) && file.exists(keep_path)) {
+    keep <- readRDS(keep_path)
+    eset <- eset[keep, ]
+    Biobase::featureNames(eset) <- fdata[keep, annot]
+
+  } else if (!any(annot.dup)) {
     eset <- eset[!annot.na, ]
-    Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
+    Biobase::featureNames(eset) <- fdata[!annot.na, annot]
 
   } else {
     adj <- Biobase::assayDataElement(eset, 'adjusted')
@@ -241,6 +246,7 @@ iqr_replicates <- function(eset, annot = "SYMBOL", rm.dup = FALSE) {
     data <- data[data[, .I[which.max(iqrange)], by = eval(annot)]$V1]
 
     # use row number to keep selected features
+    if (!is.null(keep_path)) saveRDS(data$row, keep_path)
     eset <- eset[data$row, ]
 
     # use annot for feature names
@@ -296,7 +302,7 @@ diff_anal <- function(eset, anal_name, contrast, data_dir, svobj = list(sv = NUL
   colnames(mod) <- gsub('^group', '', colnames(mod))
   svind <- seq_len(num_svs)
   svmod <- svobj$sv[, svind, drop = FALSE]
-  colnames(svmod) <- paste0('SV', svind)
+  if (length(svind)) colnames(svmod) <- paste0('SV', svind)
   mod <- cbind(mod, svmod)
 
   # differential expression
