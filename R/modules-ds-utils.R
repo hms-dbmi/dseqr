@@ -277,7 +277,17 @@ save_bulk_dataset <- function(dataset_name, dataset_dir, data_dir) {
 #'
 #' @export
 #' @keywords internal
-remove_dataset_files <- function(data_dir, patterns = c('^vsd.rds$', '^adjusted_\\d+svs.rds$', '^iqr_keep_\\d+svs.rds$', '^svobj.rds$', '^adjusted.rds$', '^numsv.rds$')) {
+remove_dataset_files <- function(data_dir, patterns = c('^vsd.rds$',
+                                                        '^adjusted_\\d+svs.rds$',
+                                                        '^iqr_keep_\\d+svs.rds$',
+                                                        '^svobj.rds$',
+                                                        '^adjusted.rds$',
+                                                        '^numsv.rds$',
+                                                        '^lm_fit_\\d+svs.rds$',
+                                                        'cmap_res_.+.rds$',
+                                                        'l1000_drugs_res_.+.rds$',
+                                                        'l1000_genes_res_.+.rds$',
+                                                        'diff_expr_symbol_.+.rds$')) {
   for (pattern in patterns) {
     fpaths <- list.files(data_dir, pattern, full.names = TRUE)
     unlink(fpaths)

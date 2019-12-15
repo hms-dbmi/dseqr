@@ -76,7 +76,8 @@ construct_path_df <- function(top_table) {
 get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200) {
 
   # add dprimes and vardprime values
-  anal <- add_es(anal)
+
+  anal <- add_es(anal, groups = anal$groups)
   top_table <- anal$top_table
   top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
 

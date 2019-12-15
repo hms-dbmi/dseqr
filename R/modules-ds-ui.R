@@ -65,17 +65,26 @@ dsFormInput <- function(id) {
 dsDatasetInput <- function(id) {
   ns <- NS(id)
 
+
+
   withTags({
     div(
-      selectizeInputWithButtons(ns('dataset_name'), 'Dataset name:',
+      selectizeInputWithButtons(ns('dataset_name'), 'Select a dataset:',
                                 options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
                                 button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
                                        `data-title` = 'Folder with fastq.gz or cellranger files',
                                        title = 'Select folder with fastq.gz or cellranger files',
+                                       `parent-style` = 'min-width: 0px;width: 0px;',
                                        i(class = 'far fa-folder fa-fw')
 
-                                )
+                                ),
+                                svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
+                                actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution')
 
+
+      ),
+      div(class = 'hidden-forms',
+          dtangleFormInput(ns('dtangle'))
       )
     )
   })
@@ -123,36 +132,26 @@ dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    analysisTypeToggle(ns),
-    div(id = ns('diff_panel'),
-        selectizeInputWithButtons(
-          ns('contrast_groups'),
-          'Select test then control group:',
-          downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results'),
-          actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = 'Run differential expression analysis'),
-          options = list(maxItems = 2, placeholder = 'Select test group'),
-          container_id = ns('run_anal_container'),
-          help_id = ns('run_anal_help')
-        )
+    selectizeInputWithButtons(
+      ns('contrast_groups'),
+      'Select groups to compare:',
+      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results'),
+      actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = 'Run differential expression analysis'),
+      options = list(maxItems = 2, placeholder = 'Select test then control group'),
+      container_id = ns('run_anal_container'),
+      help_id = ns('run_anal_help')
     ),
-    div(id = ns('explore_panel'), style = 'display: none;',
+    selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
+                   'Show expression for genes:',
+                   options = list(maxItems = 6, multiple = TRUE)),
 
-        selectizeInputWithButtons(ns('explore_genes'),
-                                  'Show expression for genes:',
-                                  actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
-                                  svaButton(inputId = ns('show_nsv'), sliderId = ns('num_svs')),
-                                  options = list(maxItems = 6, multiple = TRUE)),
-        div(class = 'hidden-forms',
-            dtangleFormInput(ns('dtangle'))
-        ),
 
-    ),
     textInputWithButtons(ns('explore_group_name'),
                          container_id = ns('validate'),
                          'Group name for selected rows:',
                          actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
                          actionButton(ns('reset_explore'), '', icon = tags$i(class='fa-trash-alt far fa-fw'), title = 'Clear all groups'),
-                         actionButton(ns('run_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate surrogate variables'),
+                         actionButton(ns('run_norm_and_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate normalization and surrogate variables'),
                          help_id = ns('error_msg')
     )
   )
@@ -171,20 +170,11 @@ svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
                 width = '100%', ticks = FALSE,
                 min = 0, max = max_svs, value = prev_svs, step = 1),
     circle = FALSE, right = TRUE, label = tags$span('0', class='fa fa-fw'),
-    title = 'Number of surrogate variables adjusting for'
+    title = 'Number of surrogate variables to model'
   )
 }
 
 
-#' Input form to control/test/all groups for integrated datasets
-#' @export
-#' @keywords internal
-analysisTypeToggle <- function(ns) {
-
-  shinyWidgets::radioGroupButtons(ns('anal_type'), "Select analysis type:",
-                                  choices = c('exploratory', 'differential expression'),
-                                  selected = 'exploratory', justified = TRUE)
-}
 
 #' Tables for datasets page
 #' @export

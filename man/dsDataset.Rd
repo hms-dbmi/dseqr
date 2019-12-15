@@ -4,7 +4,16 @@
 \alias{dsDataset}
 \title{Logic for selected dataset part of dsFrom}
 \usage{
-dsDataset(input, output, session, data_dir, new_dataset)
+dsDataset(
+  input,
+  output,
+  session,
+  sc_dir,
+  bulk_dir,
+  data_dir,
+  new_dataset,
+  explore_eset
+)
 }
 \description{
 Logic for selected dataset part of dsFrom

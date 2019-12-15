@@ -4,7 +4,15 @@
 \alias{dsExploreTable}
 \title{Logic for differential expression analysis table}
 \usage{
-dsExploreTable(input, output, session, eset, labels, data_dir, dataset_dir)
+dsExploreTable(
+  input,
+  output,
+  session,
+  eset_paths,
+  labels,
+  data_dir,
+  dataset_dir
+)
 }
 \description{
 Logic for differential expression analysis table

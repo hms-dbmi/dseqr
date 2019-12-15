@@ -9,13 +9,12 @@ dsFormAnal(
   output,
   session,
   data_dir,
-  sc_dir,
-  bulk_dir,
+  fastq_dir,
   dataset_name,
   dataset_dir,
   new_anal,
-  new_dataset,
-  explore_eset
+  explore_eset,
+  numsv
 )
 }
 \description{

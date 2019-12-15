@@ -11,7 +11,8 @@ diff_expr(
   contrast = "test-ctrl",
   annot = "SYMBOL",
   svobj = list(sv = NULL),
-  num_svs = 0,
+  numsv = 0,
+  prev_fit = NULL,
   prev_anal = NULL
 )
 }

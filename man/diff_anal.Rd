@@ -9,8 +9,9 @@ diff_anal(
   anal_name,
   contrast,
   data_dir,
+  lm_fit = NULL,
   svobj = list(sv = NULL),
-  num_svs = 0,
+  numsv = 0,
   annot = "SYMBOL",
   rna_seq = TRUE
 )
