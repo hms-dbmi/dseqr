@@ -187,7 +187,7 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 #' @return data.frame with columns "dataset_name" "dataset_dir" and "anal_name".
 #' @export
 #' @keywords internal
-load_bulk_anals <- function(data_dir, with_type = FALSE) {
+load_bulk_anals <- function(data_dir, for_dl = TRUE) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
 
   if (file.exists(anals_path)) {
@@ -200,13 +200,16 @@ load_bulk_anals <- function(data_dir, with_type = FALSE) {
   }
 
   anals$label <- anals$anal_name
-  anals$value <- seq_len(nrow(anals))
 
-  if (with_type) {
-    anals$type <- anals$dataset_name
-    if (nrow(anals)) anals$type <- paste0('Bulk - ', anals$type)
+  if (!for_dl & nrow(anals)) {
+    anals <- anals[!duplicated(anals$dataset_name), ]
+    anals$type <- 'Bulk Data'
+    anals$anal_name  <- anals$label <- anals$dataset_name
 
   }
+
+  anals$value <- seq_len(nrow(anals))
+
 
   return(anals)
 }
@@ -226,6 +229,23 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
 
   anals[nrow(anals)+1, ] <- c(dataset_name, dataset_dir, anal_name)
   anals <- anals[!duplicated(anals), ]
+  saveRDS(anals, anals_path)
+}
+
+#' Remove analysis info from anals dataframe
+#'
+#' Used to clear previous analysis when groupings change
+#'
+#' @inheritParams save_bulk_anals
+#'
+#' @return NULL
+#' @export
+#' @keywords internal
+remove_bulk_anals <- function(dataset_name, data_dir) {
+  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
+  anals <- readRDS(anals_path)
+  is.ds <- anals$dataset_name %in% dataset_name
+  anals <- anals[!is.ds, ]
   saveRDS(anals, anals_path)
 }
 
@@ -282,13 +302,17 @@ remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$'
                                                         '^svobj.rds$',
                                                         '^numsv.rds$',
                                                         '^lm_fit_\\d+svs.rds$',
-                                                        'cmap_res_.+.rds$',
-                                                        'l1000_drugs_res_.+.rds$',
-                                                        'l1000_genes_res_.+.rds$',
-                                                        'diff_expr_symbol_.+.rds$')) {
+                                                        'cmap_res_.+_\\d+svs.rds$',
+                                                        'l1000_drugs_res_.+_\\d+svs.rds$',
+                                                        'l1000_genes_res_.+_\\d+svs.rds$',
+                                                        'diff_expr_symbol_.+_\\d+svs.rds$'), exclude = NULL) {
   for (pattern in patterns) {
-    fpaths <- list.files(data_dir, pattern, full.names = TRUE)
-    unlink(fpaths)
+    fpaths <- list.files(data_dir, pattern)
+    if (!is.null(exclude)) {
+      keep <- grepl(exclude, fpaths)
+      fpaths <- fpaths[!keep]
+    }
+    unlink(file.path(data_dir, fpaths))
   }
 }
 

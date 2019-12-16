@@ -12,9 +12,10 @@ dsFormAnal(
   fastq_dir,
   dataset_name,
   dataset_dir,
-  new_anal,
   explore_eset,
-  numsv
+  numsv_r,
+  svobj_r,
+  enable_sva
 )
 }
 \description{

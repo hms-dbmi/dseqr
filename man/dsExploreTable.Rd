@@ -8,10 +8,13 @@ dsExploreTable(
   input,
   output,
   session,
-  eset_paths,
+  eset,
   labels,
   data_dir,
-  dataset_dir
+  dataset_dir,
+  dataset_name,
+  svobj_r,
+  numsv_r
 )
 }
 \description{

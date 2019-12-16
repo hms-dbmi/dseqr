@@ -132,15 +132,7 @@ dsFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    selectizeInputWithButtons(
-      ns('contrast_groups'),
-      'Select groups to compare:',
-      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results'),
-      actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = 'Run differential expression analysis'),
-      options = list(maxItems = 2, placeholder = 'Select test then control group'),
-      container_id = ns('run_anal_container'),
-      help_id = ns('run_anal_help')
-    ),
+    bulkAnalInput(ns('ds')),
     selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
                    'Show expression for genes:',
                    options = list(maxItems = 6, multiple = TRUE)),
@@ -151,9 +143,30 @@ dsFormAnalInput <- function(id) {
                          'Group name for selected rows:',
                          actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
                          actionButton(ns('reset_explore'), '', icon = tags$i(class='fa-trash-alt far fa-fw'), title = 'Clear all groups'),
-                         actionButton(ns('run_norm_and_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate normalization and surrogate variables'),
+                         actionButton(ns('run_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate surrogate variables'),
                          help_id = ns('error_msg')
     )
+  )
+}
+
+
+#' Bulk Differential expression analysis input
+#' @export
+#' @keywords internal
+bulkAnalInput <- function(id, with_dl = TRUE) {
+  ns <- NS(id)
+
+  dl_btn <- NULL
+  if (with_dl)
+    dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results')
+
+  selectizeInputWithButtons(
+    ns('contrast_groups'),
+    'Select groups to compare:',
+    dl_btn,
+    actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = 'Run differential expression analysis'),
+    options = list(maxItems = 2, placeholder = 'Select test then control group'),
+    container_id = ns('run_anal_container')
   )
 }
 
@@ -207,4 +220,3 @@ dtangleFormInput <- function(id) {
     )
   })
 }
-

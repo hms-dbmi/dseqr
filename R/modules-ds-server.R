@@ -3,83 +3,17 @@
 #' @keywords internal
 dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
-  new_anal <- reactiveVal()
   new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
 
-  # paths to objects used for normalization
-  eset_paths <- reactive({
-    fastq_dir <- dsForm$fastq_dir()
-    types <- c('eset', 'pdata_explore', 'vsd', 'svobj', 'numsv')
-    eset_paths <- file.path(fastq_dir, paste0(types, '.rds'))
-    names(eset_paths) <- types
-    return(eset_paths)
-  })
+  eset <- reactive(readRDS(file.path(dsForm$fastq_dir(), 'eset.rds')))
 
 
-
-  norm_eset <- reactive({
-    # update when change dataset or manually trigger
-    dirs <- eset_paths()
-    dsForm$run_norm_and_sva()
-
-    # minimum need saved eset and pdata_explore
-    need <- dirs[c('eset', 'pdata_explore')]
-    req(all(file.exists(need)))
-
-    # also need that pdata_explore has more than two groups
-    pdata <- readRDS(dirs['pdata_explore'])
-    keep <- row.names(pdata)[!is.na(pdata$Group)]
-    pdata <- pdata[keep, ]
-    req(length(unique(pdata$Group)) > 1)
-
-    # subset eset and add explore_pdata
-    eset <- readRDS(dirs['eset'])
-    eset <- eset[, keep]
-    pdata$group <- pdata$`Group name`
-    Biobase::pData(eset) <- pdata
-
-    # rlog normalize
-    eset <- add_vsd(eset, vsd_path = dirs['vsd'])
-    return(eset)
-  })
-
-
-  # explore_eset used for all plots
-  explore_eset <- reactive({
-    # update when new norm eset
-    dirs <- eset_paths()
-    eset <- norm_eset()
-
-    # prevents double loading
-    numsv_dir <- dirs['numsv']
-    if (!file.exists(numsv_dir)) saveRDS(0, numsv_dir)
-    numsv <- readRDS(numsv_dir)
-    selsv <- dsForm$selected_nsv()
-    req(numsv == selsv)
-
-
-    # adjust for pairs/surrogate variables
-    svobj_dir <- dirs['svobj']
-    svobj <- list(sv = NULL)
-    if (file.exists(svobj_dir)) svobj <- readRDS(svobj_dir)
-
-    # adjusted path is dynamic
-    adj_file <- ifelse(numsv > 0, paste0('adjusted_', numsv, 'svs.rds'), 'adjusted.rds')
-    keep_file <- gsub('adjusted', 'iqr_keep', adj_file)
-
-    adj_path <- gsub('svobj.rds', adj_file, svobj_dir)
-    keep_path <- gsub('svobj.rds', keep_file, svobj_dir)
-
-    eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path)
-
-    # use SYMBOL as annotation
-    # keep unique symbol based on row IQRs
-    eset <- iqr_replicates(eset, keep_path = keep_path)
-
-    return(eset)
-
-  })
+  explore_eset <- exploreEset(eset = eset,
+                              fastq_dir = dsForm$fastq_dir,
+                              explore_pdata = dsExploreTable$pdata,
+                              numsv = dsForm$numsv_r,
+                              svobj = dsForm$svobj_r)
 
 
   dsForm <- callModule(dsForm, 'form',
@@ -88,8 +22,9 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
                        bulk_dir = bulk_dir,
                        new_dataset = new_dataset,
                        msg_quant = msg_quant,
-                       new_anal = new_anal,
-                       explore_eset = explore_eset)
+                       new_anal = bulk_anal,
+                       explore_eset = explore_eset,
+                       enable_sva = dsExploreTable$enable_sva)
 
   callModule(dsMDSplotly, 'mds_plotly', explore_eset = explore_eset)
 
@@ -116,10 +51,13 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
 
   dsExploreTable <- callModule(dsExploreTable, 'explore',
-                               eset_paths = eset_paths,
+                               eset = eset,
                                labels = dsForm$explore_labels,
                                data_dir = data_dir,
-                               dataset_dir = dsForm$dataset_dir)
+                               dataset_dir = dsForm$dataset_dir,
+                               dataset_name = dsForm$dataset_name,
+                               svobj_r = dsForm$svobj_r,
+                               numsv_r = dsForm$numsv_r)
 
 
   callModule(dsGenePlotly, 'gene_plotly',
@@ -228,74 +166,67 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
   })
 
 
-  observeEvent(dsForm$run_anal(), {
-    # visual that running
-    disable(selector = 'input')
-
-    progress <- Progress$new(session, min=0, max = 3)
-    on.exit(progress$close())
-
-    # get what need
-    eset <- explore_eset()
-    fastq_dir <- dsForm$fastq_dir()
-
-    dataset_name <- dsForm$dataset_name()
-    dataset_dir <- dsForm$dataset_dir()
-    anal_name <- dsForm$anal_name()
-    contrast <- gsub('_vs_', '-', anal_name)
-
-    dirs <- eset_paths()
-    numsv_dir <- dirs['numsv']
-    req(file.exists(numsv_dir))
-    numsv <- readRDS(numsv_dir)
-
-    # adjust for pairs/surrogate variables
-    svobj_dir <- dirs['svobj']
-    svobj <- list(sv = NULL)
-    if (file.exists(svobj_dir)) svobj <- readRDS(svobj_dir)
-
-    req(eset, fastq_dir, anal_name, dataset_dir)
-
-    # check for previous lm_fit
-    prev_anal <- list(pdata = Biobase::pData(eset))
-    prev_fit  <- NULL
-
-    fit_path  <- file.path(fastq_dir, paste0('lm_fit_', numsv, 'svs.rds'))
-    if (file.exists(fit_path)) prev_fit <- readRDS(fit_path)
-
-    # run differential expression
-    progress$set(message = "Differential expression", value = 1)
-    anal <- diff_expr(eset,
-                      data_dir = fastq_dir,
-                      anal_name = anal_name,
-                      contrast = contrast,
-                      svobj = svobj,
-                      numsv = numsv,
-                      prev_fit = prev_fit,
-                      prev_anal = prev_anal)
-
-
-    # add to analysed bulk anals
-    save_bulk_anals(dataset_name = dataset_name,
-                    dataset_dir = dataset_dir,
-                    anal_name = anal_name,
-                    data_dir = data_dir)
-
-
-    # visual that done
-    progress$inc(1)
-    enable(selector = 'input')
-    new_anal(anal_name)
-  })
-
-
   return(list(
-    new_anal = new_anal,
+    new_anal = dsForm$bulk_anal,
     new_dataset = new_dataset,
     data_dir = dsForm$fastq_dir
   ))
+}
+
+#' Logic to setup explore_eset for Bulk Data plots
+#' @export
+#' @keywords internal
+exploreEset <- function(eset, fastq_dir, explore_pdata, numsv, svobj) {
+
+  vsd_path <- reactive(file.path(fastq_dir(), 'vsd.rds'))
+  adj_path <- reactive(file.path(fastq_dir(), paste0('adjusted_', numsv(), 'svs.rds')))
+  keep_path <- reactive(file.path(fastq_dir(), paste0('iqr_keep_', numsv(), 'svs.rds')))
 
 
+  norm_eset <- reactive({
+    # pdata and eset lose sync when switch datasets
+    eset <- eset()
+    pdata <- explore_pdata()
+
+    # need that pdata_explore has more than two groups
+    keep <- row.names(pdata)[!is.na(pdata$Group)]
+    pdata <- pdata[keep, ]
+    req(length(unique(pdata$Group)) > 1)
+
+    # subset eset and add explore_pdata
+    eset <- eset[, keep]
+    pdata$group <- pdata$`Group name`
+    Biobase::pData(eset) <- pdata
+
+    # rlog normalize
+    eset <- add_vsd(eset, vsd_path = vsd_path())
+    return(eset)
+  })
+
+
+  # explore_eset used for all plots
+  explore_eset <- reactive({
+    eset <- norm_eset()
+    numsv <- numsv()
+
+    # adjust for pairs/surrogate variables
+    svobj <- svobj()
+
+    # can lose sync when switching datasets
+    if (!is.null(svobj)) {
+      req(numsv <= svobj$n.sv)
+      req(row.names(svobj$sv) == colnames(eset))
+    }
+    eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path())
+
+    # use SYMBOL as annotation
+    # keep unique symbol based on row IQRs
+    eset <- iqr_replicates(eset, keep_path = keep_path())
+
+    return(eset)
+  })
+
+  return(explore_eset)
 }
 
 #' Logic for Dataset MDS plotly
@@ -429,7 +360,7 @@ dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_na
 #' Logic for Datasets form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset) {
+dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset, enable_sva) {
 
   dataset <- callModule(dsDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -466,9 +397,10 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
                      fastq_dir = dataset$fastq_dir,
                      dataset_name = dataset$dataset_name,
                      dataset_dir = dataset$dataset_dir,
-                     new_anal = new_anal,
                      explore_eset = explore_eset,
-                     numsv = dataset$numsv)
+                     numsv_r = dataset$numsv_r,
+                     svobj_r = dataset$svobj_r,
+                     enable_sva = enable_sva)
 
 
 
@@ -480,10 +412,9 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     explore_labels = anal$explore_labels,
     explore_genes = anal$explore_genes,
     run_quant = quant$run_quant,
-    run_anal = anal$run_anal,
+    bulk_anal = anal$bulk_anal,
     dataset_name = dataset$dataset_name,
     dataset_dir = dataset$dataset_dir,
-    anal_name = anal$anal_name,
     show_quant = show_quant,
     show_anal = show_anal,
     is.sc = dataset$is.sc,
@@ -491,8 +422,8 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     is.explore = anal$is.explore,
     dtangle_est = dataset$dtangle_est,
     show_dtangle = dataset$show_dtangle,
-    selected_nsv = dataset$selected_nsv,
-    run_norm_and_sva = anal$run_norm_and_sva
+    numsv_r = dataset$numsv_r,
+    svobj_r = dataset$svobj_r
   ))
 
 }
@@ -575,37 +506,51 @@ dsDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_da
 
   observe(if (is.cellranger()) standardize_cellranger(fastq_dir()))
 
-  # surrogate variable analysis stuff
-  numsv <- reactiveVal(list(sel = 0, max = 0))
+  numsv_path <- reactive(file.path(fastq_dir(), 'numsv.rds'))
+  svobj_path <- reactive(file.path(fastq_dir(), 'svobj.rds'))
+
+  # initialize svobj
+  svobj_r <- reactiveVal()
+
+  observe({
+    svobj <- NULL
+    svobj_path <- svobj_path()
+
+    if (file.exists(svobj_path)) {
+      svobj <- readRDS(svobj_path)
+    }
+
+    svobj_r(svobj)
+  })
+
+  # initialize numsv
+  numsv_r <- reactiveVal()
+  maxsv_r <- reactiveVal()
 
   # initialize selected and max number of svs
   observe({
+    numsv <- maxsv <- 0
+    svobj <- svobj_r()
+    if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
+
     numsv_path <- file.path(fastq_dir(), 'numsv.rds')
-    svobj_path <- file.path(fastq_dir(), 'svobj.rds')
-    max.sv <- sel.sv <- 0
+    if (file.exists(numsv_path)) numsv <- readRDS(numsv_path)
 
-    # initialize saved number of selected svs
-    if (!file.exists(numsv_path)) saveRDS(sel.sv, numsv_path)
-
-    sel.sv <- readRDS(numsv_path)
-    if (file.exists(svobj_path)) max.sv <- readRDS(svobj_path)$n.sv
-
-    numsv(list(sel = sel.sv, max = max.sv))
+    maxsv_r(maxsv)
+    numsv_r(numsv)
   })
 
   # update number of surrogate variables slider
   observe({
-    numsv <- numsv()
-    updateSliderInput(session, 'selected_nsv', value = numsv$sel, min = 0, max = numsv$max)
+    updateSliderInput(session, 'selected_nsv', value = numsv_r(), min = 0, max = maxsv_r())
   })
 
   observeEvent(input$selected_nsv, {
-    max.sv <- numsv()$max
-    numsv(list(sel = input$selected_nsv, max = max.sv))
-
+    numsv_r(input$selected_nsv)
     numsv_path <- file.path(fastq_dir(), 'numsv.rds')
     saveRDS(input$selected_nsv, numsv_path)
   }, ignoreInit = TRUE)
+
 
   # update button icon with selected number of surrogate variables
   observe({
@@ -638,7 +583,8 @@ dsDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_da
     dtangle_est = dtangleForm$dtangle_est,
     show_dtangle = show_dtangle,
     selected_nsv = reactive(input$selected_nsv),
-    numsv = numsv
+    numsv_r = numsv_r,
+    svobj_r = svobj_r
   ))
 
 }
@@ -769,113 +715,12 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
   return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
-
-#' Logic for differential expression analysis part of dsForm
+#' Logic for bulk data analyses
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, new_anal, explore_eset, numsv) {
+bulkAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-
   run_anal <- reactiveVal()
-
-  # for keeping track of if normalization and sva is updatable
-  enable_recalc <- reactiveVal(FALSE)
-
-  observe({
-    toggleState('run_norm_and_sva', condition = enable_recalc())
-  })
-
-  # Group labels section
-  # ---------------------
-
-  # logic for group name buttons
-  explore_group_name <- reactive(input$explore_group_name)
-
-  observeEvent(input$grouped, {
-    updateTextInput(session, 'explore_group_name', value = '')
-  })
-
-  explore_labels <- list(
-    grouped = reactive(input$grouped),
-    reset = reactive(input$reset_explore),
-    explore_group_name = explore_group_name
-  )
-
-
-  # remove dataset files that depend on groupings
-  # also enable run_norm_and_sva button as groupings have changed
-  observe({
-    input$grouped
-    input$reset_explore
-    fastq_dir <- isolate(fastq_dir())
-    remove_dataset_files(fastq_dir)
-
-    enable_recalc(TRUE)
-  })
-
-  # enable run_norm_and_sva if prev saved different from current saved
-  observe({
-    pdata_path <- file.path(fastq_dir(), 'pdata_explore.rds')
-    prev_path  <- file.path(fastq_dir(), 'pdata_explore_prev.rds')
-    req(all(file.exists(prev_path, pdata_path)))
-
-    pdata <- readRDS(pdata_path)
-    pdata_prev <- readRDS(prev_path)
-    enable_recalc(!all.equal(pdata, prev_pdata))
-  })
-
-  # run rlog normalization and surrogate variable analysis
-  observeEvent(input$run_norm_and_sva, {
-
-    browser()
-
-    # save current pdata_explore  so that can tell if changed
-    file.copy(file.path(fastq_dir(), 'pdata_explore.rds'),
-              file.path(fastq_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
-
-    # remove previously adjusted data
-    remove_dataset_files(fastq_dir())
-
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-    group <- pdata$group
-    req(length(unique(group)) > 1)
-
-    mods <- get_mods(eset)
-    rna_seq <- 'lib.size' %in% colnames(pdata)
-    svobj <- run_sva(mods, eset, rna_seq = rna_seq)
-
-
-    svobj_path <- file.path(fastq_dir(), 'svobj.rds')
-    numsv_path <- file.path(fastq_dir(), 'numsv.rds')
-
-
-    saveRDS(0, numsv_path)
-    saveRDS(svobj, svobj_path)
-    numsv(list(sel = 0, max = svobj$n.sv))
-  })
-
-
-
-
-  # Gene choices
-  # ------------
-
-  # gene choices
-  observe({
-    dataset_dir()
-    eset <- isolate(explore_eset())
-    choices <- c(NA, row.names(eset))
-    updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
-  })
-
-
-
-
-
-  # Differential Expression Section
-  # -------------------------------
-  # TODO: refactor into seperate module
 
   anal_name <- reactive({
     contrast_groups <- input$contrast_groups
@@ -886,10 +731,75 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
   })
   has_anal_name <- reactive(isTruthy(anal_name()))
 
+
+  bulk_anal <- reactiveVal()
+  fastq_dir <-reactive(file.path(data_dir, dataset_dir()))
+
+  disable_inputs <- ''
+  observeEvent(run_anal(), {
+    # visual that running
+    toggleAll(disable_inputs)
+
+    progress <- Progress$new(session, min=0, max = 3)
+    on.exit(progress$close())
+
+    # get what need
+    eset <- explore_eset()
+    fastq_dir <- fastq_dir()
+
+    dataset_name <- dataset_name()
+    dataset_dir <- dataset_dir()
+    anal_name <- anal_name()
+    contrast <- gsub('_vs_', '-', anal_name)
+
+    numsv_dir <- file.path(fastq_dir, 'numsv.rds')
+    req(file.exists(numsv_dir))
+    numsv <- readRDS(numsv_dir)
+
+    # adjust for pairs/surrogate variables
+    svobj_dir <- file.path(fastq_dir, 'svobj.rds')
+    svobj <- list(sv = NULL)
+    if (file.exists(svobj_dir)) svobj <- readRDS(svobj_dir)
+
+    req(eset, fastq_dir, anal_name, dataset_dir)
+
+    # check for previous lm_fit
+    prev_anal <- list(pdata = Biobase::pData(eset))
+    prev_fit  <- NULL
+
+    fit_path  <- file.path(fastq_dir, paste0('lm_fit_', numsv, 'svs.rds'))
+    if (file.exists(fit_path)) prev_fit <- readRDS(fit_path)
+
+    # run differential expression
+    progress$set(message = "Differential expression", value = 1)
+
+    anal <- diff_expr(eset,
+                      data_dir = fastq_dir,
+                      anal_name = anal_name,
+                      contrast = contrast,
+                      svobj = svobj,
+                      numsv = numsv,
+                      prev_fit = prev_fit,
+                      prev_anal = prev_anal)
+
+
+    # add to analysed bulk anals
+    save_bulk_anals(dataset_name = dataset_name,
+                    dataset_dir = dataset_dir,
+                    anal_name = anal_name,
+                    data_dir = data_dir)
+
+
+    # visual that done
+    progress$inc(1)
+    toggleAll(disable_inputs)
+    bulk_anal(anal)
+  })
+
   # analysis info table (can be multiple) from dataset
   dataset_anals <- reactive({
     # reload if new analysis
-    new_anal()
+    bulk_anal()
     dataset_name <- dataset_name()
     req(dataset_name)
 
@@ -919,12 +829,11 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
     updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
   })
 
+  # enable download results if previous analysis
   is_prev_anal <- reactive({
     anal_name() %in% setdiff(dataset_anals(), '')
   })
 
-
-  # enable download results if previous analysis
   observe({
     toggleState('download', condition = is_prev_anal())
   })
@@ -936,17 +845,14 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
   })
 
 
+
+
   observeEvent(input$run_anal, {
     # check for analysis name
-    if (!has_anal_name()) {
-      addClass('run_anal_container', 'has-error')
-      html('run_anal_help', 'Select two groups.')
-      return(NULL)
-    }
+    req(has_anal_name())
 
     run_anal(input$run_anal)
   })
-
 
   download_content <- reactive({
     anal_name <- anal_name()
@@ -972,14 +878,96 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
     }
   )
 
+  return(bulk_anal)
+}
+
+#' Logic for differential expression analysis part of dsForm
+#' @export
+#' @keywords internal
+dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
+
+  observe({
+    toggleState('run_sva', condition = enable_sva())
+  })
+
+  # Group labels section
+  # ---
+
+  # logic for group name buttons
+  explore_group_name <- reactive(input$explore_group_name)
+
+  observeEvent(input$grouped, {
+    updateTextInput(session, 'explore_group_name', value = '')
+  })
+
+  explore_labels <- list(
+    grouped = reactive(input$grouped),
+    reset = reactive(input$reset_explore),
+    explore_group_name = explore_group_name
+  )
+
+
+
+  # run surrogate variable analysis
+  observeEvent(input$run_sva, {
+
+
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
+    group <- pdata$group
+    req(length(unique(group)) > 1)
+
+    # remove previously adjusted data
+    remove_dataset_files(fastq_dir(), exclude = '_0svs.rds$')
+
+    mods <- get_mods(eset)
+    rna_seq <- 'lib.size' %in% colnames(pdata)
+    svobj <- run_sva(mods, eset, rna_seq = rna_seq)
+
+    # add row names so that can check sync during dataset switch
+    row.names(svobj$sv) <- colnames(eset)
+
+    # save current pdata_explore  so that can tell if changed
+    file.copy(file.path(fastq_dir(), 'pdata_explore.rds'),
+              file.path(fastq_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
+
+
+    # update saved svobj
+    saveRDS(svobj, file.path(fastq_dir(), 'svobj.rds'))
+
+    svobj_r(svobj)
+    numsv_r(0)
+
+  })
+
+
+
+
+  # Gene choices
+  # ---
+  observe({
+    dataset_dir()
+    eset <- isolate(explore_eset())
+    choices <- c(NA, row.names(eset))
+    updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
+  })
+
+  bulk_anal <- callModule(bulkAnal, 'ds',
+                          data_dir = data_dir,
+                          dataset_name = dataset_name,
+                          dataset_dir = dataset_dir,
+                          explore_eset = explore_eset)
+
+
+
+
 
   return(list(
     labels = labels,
     explore_labels = explore_labels,
     explore_genes = reactive(input$explore_genes),
-    run_anal = run_anal,
-    anal_name = anal_name,
-    run_norm_and_sva = reactive(input$run_norm_and_sva)
+    bulk_anal = bulk_anal,
+    run_sva = reactive(input$run_sva)
   ))
 }
 
@@ -1330,7 +1318,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' Logic for differential expression analysis table
 #' @export
 #' @keywords internal
-dsExploreTable <- function(input, output, session, eset_paths, labels, data_dir, dataset_dir) {
+dsExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
   # colors
   group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
@@ -1341,15 +1329,30 @@ dsExploreTable <- function(input, output, session, eset_paths, labels, data_dir,
   group_r <- reactiveVal()
   name_r <- reactiveVal()
   table_rendered <- reactiveVal()
+  enable_sva <- reactiveVal()
+
+  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
+  pdata_path <- reactive(file.path(fastq_dir(), 'pdata_explore.rds'))
+
+  # initial sva btn status
+  observe({
+    enable <- TRUE
+    prev_path <- file.path(fastq_dir(), 'pdata_explore_prev.rds')
+    if (file.exists(prev_path)) {
+      prev <- readRDS(prev_path)
+      pdata <- readRDS(pdata_path())
+      enable <- !identical(prev, pdata)
+    }
+
+    enable_sva(enable)
+  })
 
 
   # pdata that gets returned with group column
   returned_pdata <- reactive({
-
-    dirs <- eset_paths()
-    pdata_path <- dirs['pdata_explore']
+    pdata_path <- pdata_path()
     pdata <- pdata_r()
-    req(pdata)
+    req(pdata, pdata_path)
 
     pdata$Group <- group_r()
     pdata$`Group name` <- name_r()
@@ -1358,34 +1361,40 @@ dsExploreTable <- function(input, output, session, eset_paths, labels, data_dir,
     return(pdata)
   })
 
-  # initialize saved pdata_explore
-  observe({
-    dirs <- eset_paths()
-    pdata_path <- dirs['pdata_explore']
+  eset_pdata <- reactive({
+    eset <- eset()
+    req(eset)
 
-    if (!file.exists(pdata_path)) {
-      eset <- readRDS(dirs['eset'])
+    pdata <- Biobase::pData(eset) %>%
+      tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
 
-      pdata <- Biobase::pData(eset) %>%
-        tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
-
-      saveRDS(pdata, pdata_path)
-    }
+    return(pdata)
   })
 
 
-  # reset when new dataset selected
+  # reset when new eset or analysis name
   observe({
-    dirs <- eset_paths()
-    pdata_path <- dirs['pdata_explore']
-    req(file.exists(pdata_path))
+    pdata_path <- pdata_path()
+    eset_pdata <- pdata <- eset_pdata()
+    req(eset_pdata, pdata_path)
 
-    pdata <- readRDS(pdata_path)
+    group <- name <- rep(NA, nrow(eset_pdata))
+    # load pdata from previous if available
+    if (file.exists(pdata_path)) {
+      saved_pdata <- pdata <- readRDS(pdata_path)
+
+      # prevent overwriting saved pdata when switch between analyses
+      req(all(row.names(eset_pdata) == row.names(saved_pdata)))
+
+      group <- pdata$Group
+      name  <- pdata$`Group name`
+    }
+
     table_rendered(FALSE)
 
     pdata_r(pdata)
-    group_r(pdata$Group)
-    name_r(pdata$`Group name`)
+    group_r(group)
+    name_r(name)
   })
 
 
@@ -1460,18 +1469,26 @@ dsExploreTable <- function(input, output, session, eset_paths, labels, data_dir,
   # click 'grouped'
   shiny::observeEvent(labels$grouped(), {
     group_name <- labels$explore_group_name()
-    req(group_name)
+    rows  <- input$pdata_rows_selected
+    req(group_name, length(rows))
+
     group <- group_r()
     name <- name_r()
 
-    rows  <- input$pdata_rows_selected
     group_num <- length(unique(setdiff(group, NA))) + 1
-
 
     group[rows] <- group_num
     name[rows] <- group_name
     group_r(group)
     name_r(name)
+
+    # remove dataset files since groups changed
+    svobj_r(NULL)
+    numsv_r(0)
+    remove_dataset_files(fastq_dir())
+    remove_bulk_anals(dataset_name(), data_dir)
+
+    if (length(group_num) > 1) enable_sva(TRUE)
   })
 
 
@@ -1484,12 +1501,19 @@ dsExploreTable <- function(input, output, session, eset_paths, labels, data_dir,
     group_r(clear)
     name_r(clear)
 
+    # remove dataset files since groups changed
+    svobj_r(NULL)
+    numsv_r(0)
+    remove_dataset_files(fastq_dir())
+    remove_bulk_anals(dataset_name(), data_dir)
+    enable_sva(FALSE)
   })
 
 
+
   return(list(
-    pdata = returned_pdata
+    pdata = returned_pdata,
+    enable_sva = enable_sva
   ))
 
 }
-
