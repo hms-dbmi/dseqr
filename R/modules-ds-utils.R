@@ -183,11 +183,13 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 
 #' Load previous bulk anals dataframe
 #'
+#' used for determining available anals for download
+#'
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
 #' @return data.frame with columns "dataset_name" "dataset_dir" and "anal_name".
 #' @export
 #' @keywords internal
-load_bulk_anals <- function(data_dir, for_dl = TRUE) {
+load_bulk_anals <- function(data_dir) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
 
   if (file.exists(anals_path)) {
@@ -200,14 +202,6 @@ load_bulk_anals <- function(data_dir, for_dl = TRUE) {
   }
 
   anals$label <- anals$anal_name
-
-  if (!for_dl & nrow(anals)) {
-    anals <- anals[!duplicated(anals$dataset_name), ]
-    anals$type <- 'Bulk Data'
-    anals$anal_name  <- anals$label <- anals$dataset_name
-
-  }
-
   anals$value <- seq_len(nrow(anals))
 
 
@@ -268,7 +262,7 @@ load_bulk_datasets <-function(data_dir) {
   }
 
   datasets$value <-  datasets$label <- datasets$dataset_name
-  if (nrow(datasets)) datasets$type <- 'Bulk'
+  if (nrow(datasets)) datasets$type <- 'Bulk Data'
 
   return(datasets)
 }

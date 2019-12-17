@@ -8,10 +8,14 @@ bulkAnal(
   input,
   output,
   session,
-  data_dir,
-  dataset_name,
-  dataset_dir,
-  explore_eset
+  pdata,
+  eset,
+  numsv,
+  svobj,
+  fastq_dir,
+  dl_content,
+  dl_fname,
+  enable_dl
 )
 }
 \description{

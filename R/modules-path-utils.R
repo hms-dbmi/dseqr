@@ -119,9 +119,9 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
   return(path_df)
 }
 
-#' Generate data.frame of saved single cell RNA-Seq analyses
+#' Generate data.frame of integrated single cell RNA-Seq datasets
 #'
-#' Used together with \code{\link{load_bulk_anals}} to create data.frame
+#' Used together with \code{\link{load_bulk_datasets}} to create data.frame
 #' for selectizeInput choices.
 #'
 #' @param data_dir Directory to folder with single-cell analysis folders.
@@ -136,24 +136,18 @@ get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
 #' }
 #' @export
 #' @keywords internal
-load_scseq_anals <- function(data_dir, with_type = FALSE) {
+load_scseq_datasets <- function(data_dir) {
   int_path <- file.path(data_dir, 'single-cell', 'integrated.rds')
 
-  anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
-  colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
+  datasets <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)
+  colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type")
 
   if (file.exists(int_path)) {
     integrated <- readRDS(int_path)
-    for(anal in integrated) anals[nrow(anals) + 1, ] <- c(NA, anal, anal)
-
+    for(ds in integrated) datasets[nrow(datasets) + 1, ] <- c(ds, file.path('single-cell', ds), ds, NA, 'Single Cell')
   }
 
-  anals$label <- anals$anal_name
-  anals$value <- seq_len(nrow(anals))
-
-  if (with_type & nrow(anals)) anals$type <- 'Single Cell'
-
-  return(anals)
+  return(datasets)
 }
 
 #' Run PADOG pathway analysis on a single cell RNA-Seq dataset

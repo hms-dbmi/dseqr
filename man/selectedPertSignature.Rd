@@ -13,7 +13,9 @@ selectedPertSignature(
   drug_study,
   show_genes,
   sc_inputs,
+  bulk_inputs,
   is_sc,
+  is_bulk,
   anal
 )
 }

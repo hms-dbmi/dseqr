@@ -8,17 +8,13 @@ drugsTable(
   input,
   output,
   session,
-  data_dir,
   query_res,
   drug_study,
-  anal,
   cells,
   show_clinical,
   sort_by,
   min_signatures,
   is_pert,
-  is_sc,
-  sc_inputs,
   direction
 )
 }

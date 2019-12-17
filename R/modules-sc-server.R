@@ -1,11 +1,10 @@
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
-scPage <- function(input, output, session, sc_dir, new_dataset) {
+scPage <- function(input, output, session, sc_dir) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
-                       new_dataset = new_dataset,
                        sc_dir = sc_dir)
 
 
@@ -112,7 +111,10 @@ scPage <- function(input, output, session, sc_dir, new_dataset) {
 #' Logic for form on Single Cell Exploration page
 #' @export
 #' @keywords internal
-scForm <- function(input, output, session, sc_dir, new_dataset) {
+scForm <- function(input, output, session, sc_dir) {
+
+  # TODO: implement loading single cell dataset
+  new_dataset <- reactiveVal()
 
   # updates if new integrated dataset
   new_anal <- reactive({

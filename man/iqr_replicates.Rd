@@ -7,8 +7,6 @@
 iqr_replicates(eset, annot = "SYMBOL", rm.dup = FALSE, keep_path = NULL)
 }
 \arguments{
-\item{eset}{Annotated eset created by \code{\link{load_seq}}.}
-
 \item{annot}{feature to use to remove replicates.}
 
 \item{rm.dup}{remove duplicates (same measure, multiple ids)?}

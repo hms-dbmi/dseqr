@@ -167,7 +167,6 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
 
   return(list(
-    new_anal = dsForm$bulk_anal,
     new_dataset = new_dataset,
     data_dir = dsForm$fastq_dir
   ))
@@ -412,7 +411,6 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     explore_labels = anal$explore_labels,
     explore_genes = anal$explore_genes,
     run_quant = quant$run_quant,
-    bulk_anal = anal$bulk_anal,
     dataset_name = dataset$dataset_name,
     dataset_dir = dataset$dataset_dir,
     show_quant = show_quant,
@@ -718,100 +716,40 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for bulk data analyses
 #' @export
 #' @keywords internal
-bulkAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset) {
+#' @return list with name, lm_fit, and is_lmfit
+bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_dir, dl_content = NULL, dl_fname = NULL, enable_dl = function(){FALSE}, is_bulk = function(){TRUE}) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-  run_anal <- reactiveVal()
 
   anal_name <- reactive({
     contrast_groups <- input$contrast_groups
-    req(length(contrast_groups == 2))
+    req(length(contrast_groups) == 2)
 
     return(paste0(contrast_groups[1], '_vs_', contrast_groups[2]))
 
   })
-  has_anal_name <- reactive(isTruthy(anal_name()))
 
+  new_anal <- reactiveVal()
 
-  bulk_anal <- reactiveVal()
-  fastq_dir <-reactive(file.path(data_dir, dataset_dir()))
+  lmfit_path <- reactive({
+    new_anal()
 
-  disable_inputs <- ''
-  observeEvent(run_anal(), {
-    # visual that running
-    toggleAll(disable_inputs)
-
-    progress <- Progress$new(session, min=0, max = 3)
-    on.exit(progress$close())
-
-    # get what need
-    eset <- explore_eset()
-    fastq_dir <- fastq_dir()
-
-    dataset_name <- dataset_name()
-    dataset_dir <- dataset_dir()
-    anal_name <- anal_name()
-    contrast <- gsub('_vs_', '-', anal_name)
-
-    numsv_dir <- file.path(fastq_dir, 'numsv.rds')
-    req(file.exists(numsv_dir))
-    numsv <- readRDS(numsv_dir)
-
-    # adjust for pairs/surrogate variables
-    svobj_dir <- file.path(fastq_dir, 'svobj.rds')
-    svobj <- list(sv = NULL)
-    if (file.exists(svobj_dir)) svobj <- readRDS(svobj_dir)
-
-    req(eset, fastq_dir, anal_name, dataset_dir)
-
-    # check for previous lm_fit
-    prev_anal <- list(pdata = Biobase::pData(eset))
-    prev_fit  <- NULL
-
-    fit_path  <- file.path(fastq_dir, paste0('lm_fit_', numsv, 'svs.rds'))
-    if (file.exists(fit_path)) prev_fit <- readRDS(fit_path)
-
-    # run differential expression
-    progress$set(message = "Differential expression", value = 1)
-
-    anal <- diff_expr(eset,
-                      data_dir = fastq_dir,
-                      anal_name = anal_name,
-                      contrast = contrast,
-                      svobj = svobj,
-                      numsv = numsv,
-                      prev_fit = prev_fit,
-                      prev_anal = prev_anal)
-
-
-    # add to analysed bulk anals
-    save_bulk_anals(dataset_name = dataset_name,
-                    dataset_dir = dataset_dir,
-                    anal_name = anal_name,
-                    data_dir = data_dir)
-
-
-    # visual that done
-    progress$inc(1)
-    toggleAll(disable_inputs)
-    bulk_anal(anal)
+    # path to lmfit result
+    numsv_str <- paste0(numsv(), 'svs.rds')
+    lmfit_file <- paste('lm_fit', numsv_str, sep = '_')
+    file.path(fastq_dir(), lmfit_file)
   })
 
-  # analysis info table (can be multiple) from dataset
-  dataset_anals <- reactive({
-    # reload if new analysis
-    bulk_anal()
-    dataset_name <- dataset_name()
-    req(dataset_name)
+  # do we have lm_fit?
+  is_lmfit <- reactive(file.exists(lmfit_path()))
 
-    anals <- load_bulk_anals(data_dir)
-    c('', anals[anals$dataset_name == dataset_name, 'anal_name'])
-  })
+  # lm_fit itself
+  lm_fit <- reactive(readRDS(lmfit_path()))
 
 
   # group levels used for selecting test and control groups
   group_levels <- reactive({
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
+    req(is_bulk())
+    pdata <- pdata()
     group <- pdata$`Group name`
     group_order <- order(unique(pdata$Group))
     group_levels <- unique(group)[group_order]
@@ -829,56 +767,73 @@ bulkAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir
     updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
   })
 
-  # enable download results if previous analysis
-  is_prev_anal <- reactive({
-    anal_name() %in% setdiff(dataset_anals(), '')
-  })
 
-  observe({
-    toggleState('download', condition = is_prev_anal())
-  })
-
-  # enable running analysis
+  # enable download and running analysis
   full_contrast <- reactive(length(input$contrast_groups) == 2)
+
   observe({
-    toggleState('run_anal', condition = full_contrast())
+    toggleState('download', condition = enable_dl() & full_contrast())
   })
 
+  observe({
+    toggleState('run_anal', condition = !is_lmfit() & full_contrast())
+  })
 
-
-
+  disable_inputs <- ''
   observeEvent(input$run_anal, {
-    # check for analysis name
-    req(has_anal_name())
+    # visual that running
+    toggleAll(disable_inputs)
 
-    run_anal(input$run_anal)
+    progress <- Progress$new(session, min=0, max = 3)
+    on.exit(progress$close())
+
+    # check for previous lm_fit
+    fastq_dir <- fastq_dir()
+    numsv <- numsv()
+
+    if (is_lmfit()) {
+      lmfit <- lmfit()
+
+    } else {
+      # get what need
+      eset <- eset()
+      svobj <- svobj()
+      req(eset, fastq_dir)
+
+      prev_anal <- list(pdata = Biobase::pData(eset))
+
+      # run differential expression
+      progress$set(message = "Differential expression", value = 1)
+
+      lm_fit <- run_limma(eset,
+                          data_dir = fastq_dir,
+                          svobj = svobj,
+                          numsv = numsv,
+                          prev_anal = prev_anal)
+    }
+
+    # visual that done
+    progress$inc(1)
+    toggleAll(disable_inputs)
+    new_anal(lm_fit)
   })
 
-  download_content <- reactive({
-    anal_name <- anal_name()
-    dataset_dir <- dataset_dir()
 
-    req(anal_name, dataset_dir)
-
-    # path to analysis result
-    anal_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    anal_path <- file.path(data_dir, dataset_dir, anal_file)
-    tt <- readRDS(anal_path)$top_table
-
-    tt[order(tt$P.Value), ]
-  })
 
   output$download <- downloadHandler(
     filename = function() {
-      date <- paste0(Sys.Date(), '.csv')
-      paste('bulk', dataset_name(), anal_name(), date , sep='_')
+      dl_fname()
     },
     content = function(con) {
-      write.csv(download_content(), con)
+      write.csv(dl_content(), con)
     }
   )
 
-  return(bulk_anal)
+  return(list(
+    name = anal_name,
+    is_lmfit = is_lmfit,
+    lm_fit = lm_fit
+  ))
 }
 
 #' Logic for differential expression analysis part of dsForm
@@ -940,9 +895,6 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
 
   })
 
-
-
-
   # Gene choices
   # ---
   observe({
@@ -952,21 +904,40 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
     updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
   })
 
-  bulk_anal <- callModule(bulkAnal, 'ds',
-                          data_dir = data_dir,
-                          dataset_name = dataset_name,
-                          dataset_dir = dataset_dir,
-                          explore_eset = explore_eset)
+  # Bulk anal
+  # ---
+  pdata <- reactive(Biobase::pData(explore_eset()))
+  fastq_dir <-reactive(file.path(data_dir, dataset_dir()))
 
+  top_table <- reactive({
+    anal_name <- bulkAnal$name()
+    contrast <- gsub('_vs_', '-', anal_name)
+    tt <- get_top_table(bulkAnal$lm_fit(), contrast)
+    tt[order(tt$P.Value), ]
+  })
 
+  dl_fname <- reactive({
+    date <- paste0(Sys.Date(), '.csv')
 
+    numsv_str <- paste0(numsv_r(), 'SV')
+    paste('bulk', dataset_name(), bulkAnal$name(), numsv_str, date , sep='_')
+  })
+
+  bulkAnal <- callModule(bulkAnal, 'ds',
+                         pdata = pdata,
+                         eset = explore_eset,
+                         svobj = svobj_r,
+                         numsv = numsv_r,
+                         fastq_dir = fastq_dir,
+                         enable_dl = bulkAnal$is_lmfit,
+                         dl_content = top_table,
+                         dl_fname = dl_fname)
 
 
   return(list(
     labels = labels,
     explore_labels = explore_labels,
     explore_genes = reactive(input$explore_genes),
-    bulk_anal = bulk_anal,
     run_sva = reactive(input$run_sva)
   ))
 }

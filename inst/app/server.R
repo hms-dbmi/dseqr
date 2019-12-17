@@ -1,1485 +1,990 @@
-#' Logic Datasets page
+#' Logic for Drugs page
 #' @export
 #' @keywords internal
-dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
-
-  new_anal <- reactiveVal()
-  new_dataset <- reactiveVal()
-  msg_quant <- reactiveVal()
-
-  eset <- reactive(readRDS(file.path(dsForm$fastq_dir(), 'eset.rds')))
-  vsd_path <- reactive(file.path(dsForm$fastq_dir(), 'vsd.rds'))
-  adj_path <- reactive(file.path(dsForm$fastq_dir(), paste0('adjusted_', dsForm$numsv(), 'svs.rds')))
-  keep_path <- reactive(file.path(dsForm$fastq_dir(), paste0('iqr_keep_', dsForm$numsv(), 'svs.rds')))
-
-
-  norm_eset <- reactive({
-    # pdata and eset lose sync when switch datasets
-    eset <- eset()
-    pdata <- dsExploreTable$pdata()
-
-    # need that pdata_explore has more than two groups
-    keep <- row.names(pdata)[!is.na(pdata$Group)]
-    pdata <- pdata[keep, ]
-    req(length(unique(pdata$Group)) > 1)
-
-    # subset eset and add explore_pdata
-    eset <- eset[, keep]
-    pdata$group <- pdata$`Group name`
-    Biobase::pData(eset) <- pdata
-
-    # rlog normalize
-    eset <- add_vsd(eset, vsd_path = vsd_path())
-    return(eset)
-  })
-
-
-  # explore_eset used for all plots
-  explore_eset <- reactive({
-    eset <- norm_eset()
-    numsv <- dsForm$numsv_r()
-
-    # adjust for pairs/surrogate variables
-    svobj <- dsForm$svobj_r()
-
-    # can lose sync when switching datasets
-    if (!is.null(svobj)) {
-      req(numsv <= svobj$n.sv)
-      req(row.names(svobj$sv) == colnames(eset))
-    }
-    eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path())
-
-    # use SYMBOL as annotation
-    # keep unique symbol based on row IQRs
-    eset <- iqr_replicates(eset, keep_path = keep_path())
-
-    return(eset)
-  })
-
-
-  dsForm <- callModule(dsForm, 'form',
-                       data_dir = data_dir,
-                       sc_dir = sc_dir,
-                       bulk_dir = bulk_dir,
-                       new_dataset = new_dataset,
-                       msg_quant = msg_quant,
-                       new_anal = new_anal,
-                       explore_eset = explore_eset)
-
-  callModule(dsMDSplotly, 'mds_plotly', explore_eset = explore_eset)
-
-
-  # toggle tables
-  observe({
-    toggle('quant_table_container', condition = dsForm$show_quant())
-    toggle('anal_table_container', condition = dsForm$show_anal())
-  })
-
-  # toggle plots
-  sel_genes <- reactive(length(dsForm$explore_genes() > 0))
-
-  observe({
-    toggle('mds_plotly_container', condition = !sel_genes() & !dsForm$show_dtangle())
-    toggle('gene_plotly_container', condition = sel_genes() & !dsForm$show_dtangle())
-    toggle('cells_plotly_container', condition = dsForm$show_dtangle())
-  })
-
-  dsQuantTable <- callModule(dsQuantTable, 'quant',
-                             fastq_dir = dsForm$fastq_dir,
-                             labels = dsForm$quant_labels,
-                             paired = dsForm$paired)
-
-
-  dsExploreTable <- callModule(dsExploreTable, 'explore',
-                               eset = eset,
-                               labels = dsForm$explore_labels,
-                               data_dir = data_dir,
-                               dataset_dir = dsForm$dataset_dir,
-                               svobj_r = dsForm$svobj_r,
-                               numsv_r = dsForm$numsv_r)
-
-
-  callModule(dsGenePlotly, 'gene_plotly',
-             eset = explore_eset,
-             explore_genes = dsForm$explore_genes,
-             dataset_name = dsForm$dataset_name)
-
-  callModule(dsCellsPlotly, 'cells_plotly',
-             dtangle_est = dsForm$dtangle_est,
-             pdata = dsExploreTable$pdata,
-             dataset_name = dsForm$dataset_name)
-
-  observe({
-    msg_quant(dsQuantTable$valid_msg())
-  })
-
-
-
-  # run quantification for quant dataset
-  observeEvent(dsForm$run_quant(), {
-    # disable inputs
-    shinyjs::disable(selector = 'input')
-
-    # setup
-    is.sc <- dsForm$is.sc()
-    is.cellranger <- dsForm$is.cellranger()
-
-    pdata <- dsQuantTable$pdata()
-    dataset_dir <- dsForm$dataset_dir()
-    dataset_name <- dsForm$dataset_name()
-    fastq_dir <- file.path(data_dir, dataset_dir)
-
-
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = ifelse(is.sc, 8, nrow(pdata)+1))
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
-
-    if (is.sc) {
-      progress$set(message = "Quantifying files", value = 0)
-      progress$set(value = 1)
-      if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
-
-      progress$set(message = "Loading and QC", value = 2)
-      type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-      scseq <- load_scseq(fastq_dir, project = dataset_name, type = type)
-      scseq <- scseq[, scseq$whitelist]
-      gc()
-
-      progress$set(message = "Preprocessing", value = 3)
-      scseq <- preprocess_scseq(scseq)
-      gc()
-
-      progress$set(message = "Clustering", value = 4)
-      scseq <- add_scseq_clusters(scseq)
-      gc()
-
-      progress$set(message = "Reducing dimensions", value = 5)
-      scseq <- run_umap(scseq)
-      gc()
-
-      progress$set(message = "Getting markers", value = 6)
-      markers <- get_scseq_markers(scseq)
-      gc()
-
-      progress$set(message = "Saving", value = 7)
-      anal <- list(scseq = scseq, markers = markers, annot = names(markers))
-      save_scseq_data(anal, dataset_name, sc_dir)
-
-      # get and save cluster stats for selectizeInputs
-      get_cluster_stats(sc_dir, dataset_name, scseq)
-
-    } else {
-      # Create a callback function to update progress.
-      progress$set(message = "Quantifying files", value = 0)
-      updateProgress <- function(amount = NULL, detail = NULL) {
-        progress$inc(amount = amount, detail = detail)
-      }
-
-      # setup bulk
-      pdata <- dsQuantTable$pdata()
-      paired <- dsForm$paired()
-
-
-      # quantification
-      run_kallisto_bulk(indices_dir = indices_dir,
-                        data_dir = fastq_dir,
-                        pdata = pdata,
-                        paired = paired,
-                        updateProgress = updateProgress)
-
-      # generate eset and save
-      progress$set(message = 'Annotating dataset')
-      eset <- load_seq(fastq_dir)
-
-      # save to bulk datasets to indicate that has been quantified
-      save_bulk_dataset(dataset_name, dataset_dir, data_dir)
-
-    }
-    # trigger to update rest of app
-    new_dataset(dataset_name)
-
-    # re-enable inputs
-    shinyjs::enable(selector = 'input')
-    progress$inc(1)
-  })
-
-
-  observeEvent(dsForm$run_anal(), {
-    # visual that running
-    disable(selector = 'input')
-
-    progress <- Progress$new(session, min=0, max = 3)
-    on.exit(progress$close())
-
-    # get what need
-    eset <- explore_eset()
-    fastq_dir <- dsForm$fastq_dir()
-
-    dataset_name <- dsForm$dataset_name()
-    dataset_dir <- dsForm$dataset_dir()
-    anal_name <- dsForm$anal_name()
-    contrast <- gsub('_vs_', '-', anal_name)
-
-    dirs <- eset_paths()
-    numsv_dir <- dirs['numsv']
-    req(file.exists(numsv_dir))
-    numsv <- readRDS(numsv_dir)
-
-    # adjust for pairs/surrogate variables
-    svobj_dir <- dirs['svobj']
-    svobj <- list(sv = NULL)
-    if (file.exists(svobj_dir)) svobj <- readRDS(svobj_dir)
-
-    req(eset, fastq_dir, anal_name, dataset_dir)
-
-    # check for previous lm_fit
-    prev_anal <- list(pdata = Biobase::pData(eset))
-    prev_fit  <- NULL
-
-    fit_path  <- file.path(fastq_dir, paste0('lm_fit_', numsv, 'svs.rds'))
-    if (file.exists(fit_path)) prev_fit <- readRDS(fit_path)
-
-    # run differential expression
-    progress$set(message = "Differential expression", value = 1)
-    anal <- diff_expr(eset,
-                      data_dir = fastq_dir,
-                      anal_name = anal_name,
-                      contrast = contrast,
-                      svobj = svobj,
-                      numsv = numsv,
-                      prev_fit = prev_fit,
-                      prev_anal = prev_anal)
-
-
-    # add to analysed bulk anals
-    save_bulk_anals(dataset_name = dataset_name,
-                    dataset_dir = dataset_dir,
-                    anal_name = anal_name,
-                    data_dir = data_dir)
-
-
-    # visual that done
-    progress$inc(1)
-    enable(selector = 'input')
-    new_anal(anal_name)
-  })
-
-
-  return(list(
-    new_anal = new_anal,
-    new_dataset = new_dataset,
-    data_dir = dsForm$fastq_dir
-  ))
-
-
-}
-
-#' Logic for Dataset MDS plotly
-#' @export
-#' @keywords internal
-dsMDSplotly <- function(input, output, session, explore_eset) {
-
-  # MDS plot
-  plotly_fun <- reactive({
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-
-    # setup group factor and colors
-    group <- pdata$`Group name`
-    group_order <- order(unique(pdata$Group))
-    group_levels <- unique(group)[group_order]
-    group <- factor(group, levels = group_levels)
-    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
-
-    vsd <- Biobase::assayDataElement(eset, 'vsd')
-    adj <- Biobase::assayDataElement(eset, 'adjusted')
-    mds <- get_mds(vsd, adj, group)
-    plotlyMDS(mds$scaling, mds$scaling_adj, group_colors = group_colors)
-  })
-
-
-  # not currently downloadable so use default fname_fun and data_fun
-  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun)
-}
-
-
-#' Logic for Dataset Gene plotly
-#' @export
-#' @keywords internal
-dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
-
-  boxplotly_args <- reactive({
-    # need eset and at least one gene
-    explore_genes <- explore_genes()
-    req(explore_genes)
-    eset <- eset()
-
-    # prevent warning when switching between dataset (eset updated before genes)
-    req(all(explore_genes %in% row.names(eset)))
-
-    get_boxplotly_gene_args(eset, explore_genes, dataset_name())
-  })
-
-  plotly_fun <- reactive({
-
-    args <- boxplotly_args()
-
-    boxPlotly(df = args$df,
-              boxgap = args$boxgap,
-              boxgroupgap = args$boxgroupgap,
-              plot_fname = args$plot_fname,
-              ytitle = 'Normalized Expression',
-              xtitle = 'Gene')
-  })
-
-  fname_fun <- function() {
-    paste(dataset_name(), '_', paste(explore_genes(), collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
-  }
-
-
-  data_fun <- function(file) {
-    args <- boxplotly_args()
-    df <- args$df
-    df$color <- NULL
-    colnames(df) <- c('Sample', 'Gene', 'Normalized Expression', 'Group')
-    write.csv(df, file, row.names = FALSE)
-  }
-
-  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
-
-
-
-}
-
-
-#' Logic for Dataset Cell Type deconvolution plotly
-#' @export
-#' @keywords internal
-dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
-
-  boxplotly_args <- reactive({
-    # need at least two groups
-    pdata <- pdata()
-    pdata <- pdata[!is.na(pdata$Group), ]
-    req(length(unique(pdata$Group)) > 1)
-
-    dtangle_est <- dtangle_est()
-    req(dtangle_est)
-
-    get_boxplotly_cell_args(pdata, dtangle_est, dataset_name())
-  })
-
-  plotly_fun <- reactive({
-
-    args <- boxplotly_args()
-
-    boxPlotly(df = args$df,
-              boxgap = args$boxgap,
-              boxgroupgap = args$boxgroupgap,
-              plot_fname = args$plot_fname,
-              ytitle = 'Estimated Proportion',
-              xtitle = 'Cluster')
-  })
-
-  fname_fun <- function() {
-    clusters <- colnames(dtangle_est())
-    clusters <- gsub(' ', '', clusters)
-    paste(dataset_name(), '_', paste(clusters, collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
-  }
-
-
-  data_fun <- function(file) {
-    args <- boxplotly_args()
-    df <- args$df
-    df$color <- NULL
-    colnames(df) <- c('Sample', 'Group', 'Proportion', 'Cluster')
-    write.csv(df, file, row.names = FALSE)
-  }
-
-  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
-
-
-}
-
-
-#' Logic for Datasets form
-#' @export
-#' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset) {
-
-  dataset <- callModule(dsDataset, 'selected_dataset',
-                        data_dir = data_dir,
-                        sc_dir = sc_dir,
-                        bulk_dir = bulk_dir,
-                        new_dataset = new_dataset,
-                        explore_eset = explore_eset)
-
-
-
-  # show quant, anals or neither
-  show_quant <- reactive({
-    dataset$dataset_name() != '' && dataset$is.create()
-  })
-
-  show_anal <- reactive({
-    dataset$dataset_name() != '' && !dataset$is.create()
-  })
-
-
-
-  observe({
-    toggle('quant_dataset_panel', condition = show_quant())
-    toggle('anal_dataset_panel', condition = show_anal())
-  })
-
-  quant <- callModule(dsFormQuant, 'quant_form',
-                      fastq_dir = dataset$fastq_dir,
-                      error_msg = msg_quant,
-                      is.sc = dataset$is.sc)
-
-  anal <- callModule(dsFormAnal, 'anal_form',
+drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_dir, pert_query_dir, pert_signature_dir) {
+
+  # the form area inputs/results
+  form <- callModule(drugsForm, 'form',
+                     new_dataset = new_dataset,
+                     bulk_changed = bulk_changed,
                      data_dir = data_dir,
-                     fastq_dir = dataset$fastq_dir,
-                     dataset_name = dataset$dataset_name,
-                     dataset_dir = dataset$dataset_dir,
-                     new_anal = new_anal,
-                     explore_eset = explore_eset,
-                     numsv_r = dataset$numsv_r,
-                     svobj_r = dataset$svobj_r)
+                     pert_query_dir = pert_query_dir,
+                     pert_signature_dir = pert_signature_dir)
+
+  # callModule(drugsGenesPlotly, 'genes',
+  #            data_dir = data_dir,
+  #            is_sc = form$is_sc,
+  #            anal = form$anal,
+  #            pert_signature = form$pert_signature,
+  #            sc_inputs = form$sc_inputs,
+  #            show_genes = form$show_genes,
+  #            drug_study = form$drug_study)
 
 
-
-  return(list(
-    fastq_dir = dataset$fastq_dir,
-    paired = quant$paired,
-    quant_labels = quant$labels,
-    anal_labels = anal$labels,
-    explore_labels = anal$explore_labels,
-    explore_genes = anal$explore_genes,
-    run_quant = quant$run_quant,
-    run_anal = anal$run_anal,
-    dataset_name = dataset$dataset_name,
-    dataset_dir = dataset$dataset_dir,
-    anal_name = anal$anal_name,
-    show_quant = show_quant,
-    show_anal = show_anal,
-    is.sc = dataset$is.sc,
-    is.cellranger = dataset$is.cellranger,
-    is.explore = anal$is.explore,
-    dtangle_est = dataset$dtangle_est,
-    show_dtangle = dataset$show_dtangle,
-    numsv_r = dataset$numsv_r,
-    svobj_r = dataset$svobj_r
-  ))
+  # the output table
+  # drugs_table <- callModule(drugsTable, 'table',
+  #                           data_dir = data_dir,
+  #                           query_res = form$query_res,
+  #                           drug_study = form$drug_study,
+  #                           anal = form$anal,
+  #                           cells = form$cells,
+  #                           sort_by = form$sort_by,
+  #                           show_clinical = form$show_clinical,
+  #                           min_signatures = form$min_signatures,
+  #                           is_pert = form$is_pert,
+  #                           is_sc = form$is_sc,
+  #                           sc_inputs = form$sc_inputs,
+  #                           direction = form$direction)
+  #
+  #
+  # # download link for table
+  # output$dl_drugs <- downloadHandler(
+  #   filename = function() {
+  #     drug_study <- form$drug_study()
+  #     anal_name <- form$anal()$anal_name
+  #     drug_study <- tolower(drug_study)
+  #     drug_study <- gsub(' ', '_', drug_study)
+  #     paste0(anal_name, '_', drug_study, '.csv')
+  #   },
+  #   content = function(con) {write.csv(drugs_table$query_table_dl(), con, row.names = FALSE)}
+  # )
 
 }
 
-#' Logic for selected dataset part of dsFrom
+# Logic for form on drugs page
 #' @export
 #' @keywords internal
-dsDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
+drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_changed, pert_query_dir, pert_signature_dir) {
 
-  # get directory with fastqs
-  roots <- c('data_dir' = data_dir)
-  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
+  cmap_res <- reactiveVal()
+  l1000_drugs_res <- reactiveVal()
+  l1000_genes_res <- reactiveVal()
 
+  # TODO: trigger new_custom after running custom query
+  new_custom <- reactiveVal()
 
-  datasets <- reactive({
+  # dataset/analysis choices
+  choices <- reactive({
+    # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
     new_dataset()
-    load_bulk_datasets(data_dir)
+    new_custom()
+    bulk_changed()
+    scseq_datasets <- load_scseq_datasets(data_dir)
+    bulk_datasets <- load_bulk_datasets(data_dir)
+    custom_anals <- load_custom_anals(data_dir)
+    pert_anals <- load_pert_anals()
+
+    choices <- rbind(bulk_datasets, scseq_datasets, custom_anals, pert_anals)
+    choices$value <- seq_len(nrow(choices))
+
+    return(choices)
   })
 
-  dataset_name <- reactive(input$dataset_name)
-
-  # is the dataset a quantified one?
-  is.create <- reactive({
-    dataset_name <- dataset_name()
-    datasets <- datasets()
-    req(dataset_name)
-
-    !dataset_name %in% datasets$dataset_name
-  })
-
-  is.existing <- reactive({
-    dataset_name <- dataset_name()
-    datasets <- datasets()
-    dataset_name %in% datasets$dataset_name
-  })
-
-  observe({
-    req(datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 5), datasets()), server = TRUE)
-  })
-
-  # open selector if creating
-  observe({
-    req(is.create())
-    if (is.create()) {
-      shinyjs::click('dataset_dir')
-    }
-  })
-
-  # enable dataset button for existing datasets
-  observe({
-    toggleState('show_nsv', condition = is.existing())
-    toggleState('show_dtangle', condition = is.existing())
-  })
-
-  dataset_dir <- reactive({
-
-    dataset_name <- dataset_name()
-    req(dataset_name)
-
-    if (is.create()) {
-      req(!'integer' %in% class(input$dataset_dir))
-      type <- input$dataset_dir$path[[2]]
-      dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
-      dir <- as.character(dir)
-      dir <- gsub(paste0(data_dir, '/'), '', dir)
-    }
-    else {
-      datasets <- datasets()
-      req(datasets)
-      dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
-    }
-    return(dir)
-  })
-
-  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
-
-  is.sc <- reactive(grepl('^single-cell/', dataset_dir()))
-  is.cellranger <- reactive(check_is_cellranger(fastq_dir()))
-
-  observe(if (is.cellranger()) standardize_cellranger(fastq_dir()))
-
-  numsv_path <- reactive(file.path(fastq_dir(), 'numsv.rds'))
-  svobj_path <- reactive(file.path(fastq_dir(), 'svobj.rds'))
-
-  # initialize svobj
-  svobj_r <- reactiveVal()
-
-  observe({
-    svobj <- NULL
-    svobj_path <- svobj_path()
-
-    if (file.exists(svobj_path)) {
-      svobj <- readRDS(svobj_path)
-    }
-
-    svobj_r(svobj)
-  })
-
-  # initialize numsv
-  numsv_r <- reactiveVal()
-  maxsv_r <- reactiveVal()
-
-  # initialize selected and max number of svs
-  observe({
-    numsv <- maxsv <- 0
-    svobj <- svobj_r()
-    if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
-
-    numsv_path <- file.path(fastq_dir(), 'numsv.rds')
-    if (file.exists(numsv_path)) numsv <- readRDS(numsv_path)
-
-    maxsv_r(maxsv)
-    numsv_r(numsv)
-  })
-
-  # update number of surrogate variables slider
-  observe({
-    updateSliderInput(session, 'selected_nsv', value = numsv_r(), min = 0, max = maxsv_r())
-  })
-
-  observeEvent(input$selected_nsv, {
-    numsv_r(input$selected_nsv)
-    numsv_path <- file.path(fastq_dir(), 'numsv.rds')
-    saveRDS(input$selected_nsv, numsv_path)
-  }, ignoreInit = TRUE)
+  # the selected dataset/query signaure
+  selectedAnal <- callModule(selectedAnal, 'anal',
+                     choices = choices,
+                     data_dir = data_dir,
+                     pert_query_dir = pert_query_dir)
 
 
-  # update button icon with selected number of surrogate variables
-  observe({
-    updateActionButton(session, 'show_nsv', label = htmltools::doRenderTags(tags$span(input$selected_nsv, class='fa fa-fw')))
-  })
+  # end of filenames for drug queries
+  fname_end <- reactive({
+    sel <- selectedAnal$sel()
+    if (selectedAnal$is_bulk()) {
+      fname_end <- paste0(selectedAnal$bulk_name(), '_', selectedAnal$numsv(), 'svs')
 
-  # toggle cell-type deconvolution
-  show_dtangle <- reactive(input$show_dtangle %% 2 != 0)
-
-  observe({
-    toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
-  })
-
-  dtangleForm <- callModule(dtangleForm, 'dtangle',
-                            show_dtangle = show_dtangle,
-                            new_dataset = new_dataset,
-                            sc_dir = sc_dir,
-                            bulk_dir = bulk_dir,
-                            dataset_name = dataset_name,
-                            explore_eset = explore_eset,
-                            dataset_dir = dataset_dir)
-
-  return(list(
-    fastq_dir = fastq_dir,
-    dataset_name = dataset_name,
-    dataset_dir = dataset_dir,
-    is.sc = is.sc,
-    is.cellranger = is.cellranger,
-    is.create = is.create,
-    dtangle_est = dtangleForm$dtangle_est,
-    show_dtangle = show_dtangle,
-    selected_nsv = reactive(input$selected_nsv),
-    numsv_r = numsv_r,
-    svobj_r = svobj_r
-  ))
-
-}
-
-
-#' Logic for dataset quantification part of dsForm
-#' @export
-#' @keywords internal
-dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
-
-
-  paired <- callModule(dsEndType, 'end_type',
-                       fastq_dir = fastq_dir,
-                       is.sc = is.sc)
-
-  observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
-
-  observe({
-    toggle('bulk_controls', condition = !is.sc())
-  })
-
-
-  reset <- reactive(input$reset)
-  rep <- reactive(input$rep)
-  pair <- reactive(input$pair)
-
-
-  observe({
-    error_msg <- error_msg()
-    toggleClass('quant_labels', 'has-error', condition = !is.null(error_msg))
-    html('error_msg', html = error_msg)
-
-  })
-
-  quantModal <- function(is.sc, paired) {
-    end_type <- ifelse(paired, 'pair ended', 'single ended')
-
-    if (!is.sc) {
-      UI <- withTags({
-        dl(
-          dt('End type:'),
-          dd(paste('Experiment is selected as', end_type)),
-          hr(),
-          dt('Replicates:'),
-          dd('If any - e.g. same sample sequenced in replicate. These will be treated as a single library.')
-        )
-      })
+    } else if (selectedAnal$is_sc()) {
+      #TODO
+      fname_end <- selectedAnal$sc_name()
 
     } else {
-      UI <- withTags({
-        dl(
-          dt('Are you sure?'),
-          dd('This will take a while.')
-        )
-      })
+      fname_end <- fs::path_sanitize(sel$label)
+
     }
-
-    modalDialog(
-      UI,
-      title = 'Double check:',
-      size = 's',
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("confirm"), "Quantify", class = 'pull-left btn-warning')
-      )
-    )
-  }
-
-  # Show modal when button is clicked.
-  observeEvent(input$run_quant, {
-    showModal(quantModal(is.sc(), paired()))
+    fname_end <- paste0(fname_end, '.rds')
+    return(fname_end)
   })
 
-  run_quant <- reactive({
-    req(input$confirm)
-    removeModal()
-    input$confirm
+
+
+  # paths to drug query results once they exist
+  res_paths <- reactive({
+    dataset_dir <- selectedAnal$dataset_dir()
+    fname_end <- fname_end()
+
+      list(
+        cmap = file.path(dataset_dir, paste0('cmap_res_', fname_end)),
+        l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', fname_end)),
+        l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', fname_end))
+      )
+  })
+
+  observe({
+    print(res_paths())
+  })
+
+  #
+  # input_ids <- c('run_comparison', 'selected_clusters')
+  #
+  # sc_inputs <- scSampleComparison(input, output, session,
+  #                                 data_dir = data_dir,
+  #                                 anal = querySignature$anal,
+  #                                 is_sc = is_sc,
+  #                                 input_ids = input_ids,
+  #                                 with_drugs = TRUE)
+  #
+  #
+  #
+  # # if currently selected analysis is custom then show genes
+  #
+  # custom_query <- callModule(customQueryForm, 'custom-query',
+  #                            show_custom = querySignature$show_custom,
+  #                            is_custom = is_custom,
+  #                            anal = querySignature$anal,
+  #                            new_anal = new_anal,
+  #                            data_dir = data_dir)
+  #
+  #
+  # # get saved cmap/l1000 query results
+  # observe({
+  #   disable('signature')
+  #   is_sc <- querySignature$is_sc()
+  #   is_pert <- querySignature$is_pert()
+  #   is_custom <- querySignature$is_custom()
+  #
+  #   if (is_sc)  {
+  #     res <- sc_inputs$results()
+  #
+  #   } else if (is_custom || is_pert) {
+  #     res_paths <- querySignature$res_paths()
+  #     res <- load_custom_results(res_paths, is_pert = is_pert)
+  #
+  #   } else {
+  #     res <- bulk_inputs$results()
+  #   }
+  #
+  #   cmap_res(res$cmap)
+  #   l1000_drugs_res(res$l1000_drugs)
+  #   l1000_genes_res(res$l1000_genes)
+  #
+  #   enable('signature')
+  # })
+  #
+  #
+  # drugStudy <- callModule(selectedDrugStudy, 'drug_study',
+  #                         anal = querySignature$anal,
+  #                         is_pert = is_pert)
+  #
+  #
+  #
+  # advancedOptions <- callModule(advancedOptions, 'advanced',
+  #                               cmap_res = cmap_res,
+  #                               l1000_res = l1000_res,
+  #                               drug_study = drugStudy$drug_study,
+  #                               show_advanced = drugStudy$show_advanced)
+  #
+  # pert_signature <- callModule(selectedPertSignature, 'genes',
+  #                              data_dir = data_dir,
+  #                              pert_signature_dir = pert_signature_dir,
+  #                              show_genes = drugStudy$show_genes,
+  #                              drug_study = drugStudy$drug_study,
+  #                              is_sc = is_sc,
+  #                              is_bulk = is_bulk,
+  #                              sc_inputs = sc_inputs,
+  #                              bulk_inputs = bulk_inputs,
+  #                              anal = querySignature$anal)
+  #
+  #
+  # query_res <- reactive({
+  #   drug_study <- drugStudy$drug_study()
+  #   cmap_res <- cmap_res()
+  #   l1000_drugs_res <- l1000_drugs_res()
+  #   l1000_genes_res <- l1000_genes_res()
+  #
+  #   if (drug_study == 'CMAP02') return(cmap_res)
+  #   else if (drug_study == 'L1000 Drugs') return(l1000_drugs_res)
+  #   else if (drug_study == 'L1000 Genetic') return(l1000_genes_res)
+  #
+  #   return(NULL)
+  # })
+  #
+  #
+  #
+  #
+  # return(list(
+  #   query_res = reactiveVal(),
+  #   drug_study = drugStudy$drug_study,
+  #   anal = querySignature$anal,
+  #   cells = advancedOptions$cells,
+  #   sort_by = advancedOptions$sort_by,
+  #   show_clinical = drugStudy$show_clinical,
+  #   show_genes = drugStudy$show_genes,
+  #   min_signatures = advancedOptions$min_signatures,
+  #   is_pert = querySignature$is_pert,
+  #   is_sc = querySignature$is_sc,
+  #   sc_inputs = sc_inputs,
+  #   direction = drugStudy$direction,
+  #   pert_signature = pert_signature
+  # ))
+
+
+}
+
+#' Logic for selected dataset/analysis in Drugs and Pathways tabs
+#' @export
+#' @keywords internal
+selectedAnal <- function(input, output, session, data_dir, choices, pert_query_dir = NULL) {
+
+  # update dataset/analysis choice
+  observe({
+    choices <- choices()
+    req(choices)
+    updateSelectizeInput(session, 'query', choices = choices, server = TRUE, options = list(render = I('{item: querySignatureItem}')))
+  })
+
+  # right click load signature logic for Drugs tab
+  runjs(paste0('initContextMenu("', session$ns('pert_query_name_load'), '", "', session$ns('pert_query_name_show'), '");'))
+  observe({
+    sel <- input$pert_query_name_load
+    req(sel)
+
+    choices <- choices()
+    sel_idx <- which(choices$value == sel)
+
+    updateSelectizeInput(session, 'query', choices = choices, selected = sel_idx, server = TRUE)
+  })
+
+  # the selected dataset/analysis
+  sel <- reactive({
+    row_num <- input$query
+    choices <- choices()
+    req(row_num, choices)
+
+    choices[row_num, ]
+  })
+
+  # the type of dataset/analysis
+  is_bulk <- reactive(sel()$type == 'Bulk Data')
+  is_sc <- reactive(sel()$type == 'Single Cell')
+  is_custom <- reactive(sel()$type == 'Custom')
+  is_pert <- reactive(sel()$type == 'CMAP02/L1000 Perturbations')
+
+
+  observe({
+    shinyjs::toggle('sc_clusters_container', condition = is_sc())
+    shinyjs::toggle('bulk_groups_container', condition = is_bulk())
+  })
+
+
+  # show/hide custom signature inputs in Drugs tab
+  show_custom <- reactive(input$show_custom %% 2 != 0)
+
+  observe({
+    toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
+  })
+
+  # Bulk analysis
+  # ---
+  fastq_dir <- reactive({
+    req(is_bulk())
+    file.path(data_dir, sel()$dataset_dir)
+  })
+
+  eset  <- reactive(readRDS(file.path(fastq_dir(), 'eset.rds')))
+  pdata <- reactive(readRDS(file.path(fastq_dir(), 'pdata_explore.rds')))
+  numsv <- reactive(readRDS(file.path(fastq_dir(), 'numsv.rds')))
+  svobj <- reactive(readRDS(file.path(fastq_dir(), 'svobj.rds')))
+
+
+  explore_eset <- exploreEset(eset = eset,
+                              fastq_dir = fastq_dir,
+                              explore_pdata = pdata,
+                              numsv = numsv,
+                              svobj = svobj)
+
+  bulkAnal <- callModule(bulkAnal, 'drugs',
+                         pdata = pdata,
+                         eset = explore_eset,
+                         svobj = svobj,
+                         numsv = numsv,
+                         fastq_dir = fastq_dir,
+                         is_bulk = is_bulk)
+
+  # TODO: get scAnal
+
+  # folder for selected dataset
+  dataset_dir <- reactive({
+    sel <- sel()
+    if (is_pert()) {
+      dataset_dir <- pert_query_dir
+
+    } else {
+      dataset_dir <- file.path(data_dir, sel$dataset_dir)
+    }
+
+    return(dataset_dir)
   })
 
   return(list(
-    paired = paired,
-    labels = list(
-      reset = reset,
-      pair = pair,
-      rep = rep
-    ),
-    run_quant = run_quant
+    lm_fit = bulkAnal$lm_fit,
+    is_lmfit = bulkAnal$is_lmfit,
+    bulk_name = bulkAnal$name,
+    numsv = numsv,
+    dataset_dir = dataset_dir,
+    sel = sel,
+    is_bulk = is_bulk,
+    is_sc = is_sc,
+    is_custom = is_custom,
+    is_pert = is_pert
   ))
+
 }
 
-#' Logic for end type selection is dsFormQuant
+#' Logic for custom query form on Drugs page
 #' @export
 #' @keywords internal
-dsEndType <- function(input, output, session, fastq_dir, is.sc) {
+customQueryForm <- function(input, output, session, show_custom, is_custom, anal, new_anal, data_dir) {
+
+  # setup choices and options
+  choices <- data.frame(gene = c(genes$common, genes$cmap_only), stringsAsFactors = FALSE)
+  choices$value <- choices$label <- choices$gene
+  choices$cmap_only <- choices$gene %in% genes$cmap_only
+  options <- list(render = I('{option: queryGenesOption, item: queryGenesItem}'))
 
 
-  # get fastq files in directory
-  fastq_files <- reactive({
-    fastq_dir <- fastq_dir()
-    req(fastq_dir)
-
-    list.files(fastq_dir, '.fastq.gz$')
-  })
-
-  # auto detected if paired
-  detected_paired <- reactive({
-    if (is.sc()) return(TRUE)
-    fastqs <- fastq_files()
-    fastq_dir <- fastq_dir()
-    req(fastqs, fastq_dir)
-
-    # auto-detect if paired
-    fastq_id1s <- get_fastq_id1s(file.path(fastq_dir, fastqs))
-    detect_paired(fastq_id1s)
-  })
-
-
-
+  # show hide custom query signature stuff
   observe({
-    # label the end type choices with auto detected
-    end_types <- c('single-ended' = 'single-ended', 'pair-ended' = 'pair-ended')
-    if (detected_paired()) end_types <- end_types[c(2, 1)]
-    names(end_types)[1] <- paste(names(end_types)[1], '(detected)')
-
-    updateSelectizeInput(session, 'end_type', choices = end_types)
+    shinyjs::toggle('custom_query_container', anim = TRUE, condition = show_custom())
   })
 
-  return(paired = reactive(input$end_type == 'pair-ended'))
-}
 
-
-#' Logic for differential expression analysis part of dsForm
-#' @export
-#' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, new_anal, explore_eset, numsv_r, svobj_r) {
-  contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-
-  run_anal <- reactiveVal()
-
-
+  # update genes to downregulate
   observe({
-    # toggleState('run_norm_and_sva', condition = enable_recalc())
+
+    # if current signature is custom, then load and show previously selected genes
+    if (is_custom()) {
+      fname <- paste0('query_genes_', anal()$anal_name, '.rds')
+      query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
+      sel_up <- query_genes$up
+      sel_dn <- query_genes$dn
+
+    } else {
+      sel_up <- sel_dn <- NULL
+    }
+
+    updateSelectizeInput(session, 'dn_genes', choices = choices, selected = sel_dn, options = options, server = TRUE)
+    updateSelectizeInput(session, 'up_genes', choices = choices, selected = sel_up, options = options, server = TRUE)
   })
 
-  # Group labels section
-  # ---------------------
+  res_paths <- reactive({
+    custom_name <- input$custom_name
+    custom_dir <- file.path(data_dir, 'custom_queries')
+    if (!dir.exists(custom_dir)) dir.create(custom_dir)
 
-  # logic for group name buttons
-  explore_group_name <- reactive(input$explore_group_name)
-
-  observeEvent(input$grouped, {
-    updateTextInput(session, 'explore_group_name', value = '')
-  })
-
-  explore_labels <- list(
-    grouped = reactive(input$grouped),
-    reset = reactive(input$reset_explore),
-    explore_group_name = explore_group_name
-  )
-
-
-
-  # run rlog normalization and surrogate variable analysis
-  observeEvent(input$run_norm_and_sva, {
-
-    # remove previously adjusted data
-    remove_dataset_files(fastq_dir())
-
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-    group <- pdata$group
-    req(length(unique(group)) > 1)
-
-    mods <- get_mods(eset)
-    rna_seq <- 'lib.size' %in% colnames(pdata)
-    svobj <- run_sva(mods, eset, rna_seq = rna_seq)
-
-    # add row names so that can check sync during dataset switch
-    row.names(svobj$sv) <- colnames(eset)
-
-    # save current pdata_explore  so that can tell if changed
-    file.copy(file.path(fastq_dir(), 'pdata_explore.rds'),
-              file.path(fastq_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
-
-
-    # update saved svobj
-    saveRDS(svobj, file.path(fastq_dir(), 'svobj.rds'))
-
-    svobj_r(svobj)
-    numsv_r(0)
-
-  })
-
-
-
-
-  # Gene choices
-  # ------------
-
-  # gene choices
-  observe({
-    dataset_dir()
-    eset <- isolate(explore_eset())
-    choices <- c(NA, row.names(eset))
-    updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
-  })
-
-
-
-
-
-  # Differential Expression Section
-  # -------------------------------
-  # TODO: refactor into seperate module
-
-  anal_name <- reactive({
-    contrast_groups <- input$contrast_groups
-    req(length(contrast_groups == 2))
-
-    return(paste0(contrast_groups[1], '_vs_', contrast_groups[2]))
-
-  })
-  has_anal_name <- reactive(isTruthy(anal_name()))
-
-  # analysis info table (can be multiple) from dataset
-  dataset_anals <- reactive({
-    # reload if new analysis
-    new_anal()
-    dataset_name <- dataset_name()
-    req(dataset_name)
-
-    anals <- load_bulk_anals(data_dir)
-    c('', anals[anals$dataset_name == dataset_name, 'anal_name'])
-  })
-
-
-  # group levels used for selecting test and control groups
-  group_levels <- reactive({
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-    group <- pdata$`Group name`
-    group_order <- order(unique(pdata$Group))
-    group_levels <- unique(group)[group_order]
-
-    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
-
-    data.frame(
-      name = group_levels,
-      value = group_levels,
-      color = group_colors[seq_along(group_levels)], stringsAsFactors = FALSE
+    list(
+      cmap = file.path(custom_dir, paste0('cmap_res_', custom_name, '.rds')),
+      l1000_drugs = file.path(custom_dir, paste0('l1000_drugs_res_', custom_name, '.rds')),
+      l1000_genes = file.path(custom_dir, paste0('l1000_genes_res_', custom_name, '.rds')),
+      query_genes = file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
     )
   })
 
+
+  observeEvent(input$submit_custom, {
+
+    error_msg <- validate_custom_query(dn_genes = input$dn_genes,
+                                       up_genes = input$up_genes,
+                                       custom_name = input$custom_name)
+
+    if (is.null(error_msg)) {
+      shinyjs::removeClass('validate', class = 'has-error')
+
+      query_genes <- list(dn = input$dn_genes, up = input$up_genes)
+      res <- run_custom_query(query_genes = query_genes,
+                              res_paths = res_paths(),
+                              session = session)
+
+      new_anal(input$custom_name)
+
+
+    } else {
+      html('error_msg', html = error_msg)
+      addClass('validate', class = 'has-error')
+    }
+  })
+}
+
+
+
+
+#' Logic for selected drug study in drugsForm
+#' @export
+#' @keywords internal
+selectedDrugStudy <- function(input, output, session, anal, is_pert) {
+
+  drug_study <- reactive(input$study)
+
+  # boolean for advanced options
+  show_advanced <- reactive({
+    input$advanced %% 2 != 0
+  })
+
+  show_genes <- reactive({
+    input$show_genes %% 2 != 0
+  })
+
   observe({
-    updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
+    req(anal())
+    choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
+                          subset = c('drugs', 'drugs', 'genetic'),
+                          value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
+                          stringsAsFactors = FALSE)
+
+    prev_selected <- isolate(input$study)
+    if (prev_selected == '') prev_selected <- NULL
+
+    updateSelectizeInput(session, 'study', choices = choices, selected = prev_selected,
+                         options = list(render = I('{option: studyOption, item: studyItem}')), server = TRUE)
   })
 
-  is_prev_anal <- reactive({
-    anal_name() %in% setdiff(dataset_anals(), '')
+  # toggle for clinical status
+  show_clinical <- reactive({
+    input$clinical %% 2 != 0
   })
 
 
-  # enable download results if previous analysis
   observe({
-    toggleState('download', condition = is_prev_anal())
+    toggleClass('advanced', 'btn-primary', condition = show_advanced())
+    toggleClass('clinical', 'btn-primary', condition = show_clinical())
+    toggleClass('show_genes', 'btn-primary', condition = show_genes())
   })
 
-  # enable running analysis
-  full_contrast <- reactive(length(input$contrast_groups) == 2)
+
+  # toggle correlation direction filter and icon
+  direction <- reactive({
+    switch((input$direction %% 3) + 1,
+           'both',
+           'similar',
+           'opposing')
+  })
+
+  direction_icon <- reactive({
+    switch(direction(),
+           'both' = 'arrows-alt-v',
+           'similar' = 'chevron-up',
+           'opposing' = 'chevron-down')
+  })
+
+  observe(updateActionButton(session, 'direction', icon = icon(direction_icon(), 'fa-fw')))
+
+  # disable buttons based on genetic/pert
+  is_genetic <- reactive(drug_study() == 'L1000 Genetic')
+
+  # sort by absolute if either is genetic or is CMAP/L1000 pert
+  observe(toggle('direction-parent', condition = is_genetic() | is_pert()))
+  observe(toggle('clinical-parent', condition = !is_genetic()))
+
+
+  return(list(
+    drug_study = drug_study,
+    show_clinical = show_clinical,
+    show_advanced = show_advanced,
+    show_genes = show_genes,
+    direction = direction
+  ))
+
+}
+
+
+#' Logic for advanced options in drugsForm
+#' @export
+#' @keywords internal
+advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
+
+  # update choices for cell lines based on selected study
+  cell_choices <- shiny::reactive({
+    req(drug_study())
+    get_cell_choices(drug_study())
+  })
+
+  #  toggle  showing advanced options
+  shiny::observe({
+    toggle('advanced-panel', condition = show_advanced(), anim = TRUE)
+  })
+
+  # update choices for cell lines
+  shiny::observe({
+    shiny::updateSelectizeInput(session, 'cells', choices = cell_choices(), selected = NULL, server = TRUE)
+  })
+
+
+  return(list(
+    cells = reactive(input$cells),
+    sort_by = reactive(input$sort_by),
+    min_signatures = reactive(input$min_signatures)
+  ))
+
+}
+
+#' Logic for advanced options in drugsForm
+#' @export
+#' @keywords internal
+selectedPertSignature <- function(input, output, session, data_dir, pert_signature_dir, drug_study, show_genes, sc_inputs, bulk_inputs, is_sc, is_bulk, anal) {
+
+
+  # toggle showing genes plotly inputs
   observe({
-    toggleState('run_anal', condition = full_contrast())
+    toggle('pert_container', condition = show_genes())
   })
 
+  # file paths to pathway, analysis, and drug query results
+  custom_fpaths <- reactive({
+    anal <- anal()
+    is_sc <- is_sc()
+    is_bulk <- is_bulk()
 
-  observeEvent(input$run_anal, {
-    # check for analysis name
-    if (!has_anal_name()) {
-      addClass('run_anal_container', 'has-error')
-      html('run_anal_help', 'Select two groups.')
+    if (is_sc | is_bulk) {
       return(NULL)
     }
 
-    run_anal(input$run_anal)
-  })
+    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
+    anal_name <- anal$anal_name
 
-
-  download_content <- reactive({
-    anal_name <- anal_name()
-    dataset_dir <- dataset_dir()
-
-    req(anal_name, dataset_dir)
-
-    # path to analysis result
-    anal_file <- paste0('diff_expr_symbol_', anal_name, '.rds')
-    anal_path <- file.path(data_dir, dataset_dir, anal_file)
-    tt <- readRDS(anal_path)$top_table
-
-    tt[order(tt$P.Value), ]
-  })
-
-  output$download <- downloadHandler(
-    filename = function() {
-      date <- paste0(Sys.Date(), '.csv')
-      paste('bulk', dataset_name(), anal_name(), date , sep='_')
-    },
-    content = function(con) {
-      write.csv(download_content(), con)
-    }
-  )
-
-
-  return(list(
-    labels = labels,
-    explore_labels = explore_labels,
-    explore_genes = reactive(input$explore_genes),
-    run_anal = run_anal,
-    anal_name = anal_name,
-    run_norm_and_sva = reactive(input$run_norm_and_sva)
-  ))
-}
-
-#' Logic for deconvolution form
-#' @export
-#' @keywords internal
-dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
-  include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('include_clusters', 'dtangle_anal', 'submit_dtangle')
-
-  dtangle_est <- reactiveVal()
-
-  # show deconvolution form toggle
-  observe({
-    toggle(id = "dtangle_form", anim = TRUE, condition = show_dtangle())
-  })
-
-  # available single cell datasets for deconvolution
-  ref_anals <- reactive({
-
-    # reactive to new sc datasets
-    new_dataset()
-
-    # make sure integrated rds exists
-    int_path <- file.path(sc_dir, 'integrated.rds')
-    if (!file.exists(int_path)) saveRDS(NULL, int_path)
-
-    # use saved anals as options
-    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
-    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
-    return(individual)
-  })
-
-
-
-  # update reference dataset choices
-  observe({
-    ref_anals <- ref_anals()
-    req(ref_anals)
-    updateSelectizeInput(session, 'dtangle_anal', choices = c('', ref_anals))
-  })
-
-  annot <- reactive({
-    anal_name <- input$dtangle_anal
-    req(anal_name)
-    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
-    readRDS(annot_path)
-  })
-
-  # update exclude cluster choices
-  include_choices <- reactive({
-    clusters <- annot()
-    anal_name <- input$dtangle_anal
-    get_cluster_choices(clusters, anal_name, sc_dir)
-  })
-
-  observe({
-    choices <- include_choices()
-    updateSelectizeInput(session, 'include_clusters', choices = choices, options = include_options, server = TRUE)
-  })
-
-  # scseq for deconvolution
-  scseq <- reactive({
-    anal_name <- input$dtangle_anal
-    scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
-    readRDS(scseq_path)
-  })
-
-  observeEvent(input$submit_dtangle, {
-
-    # disable inputs
-    toggleAll(input_ids)
-
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = 4)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
-
-    progress$set(message = "Deconvoluting", value = 0)
-    progress$set(value = 1)
-
-    anal_name <- input$dtangle_anal
-    dataset_name <- dataset_name()
-
-    # get names of clusters
-    include_clusters <- input$include_clusters
-    include_choices <- include_choices()
-    row.names(include_choices) <- include_choices$value
-    include_names <- include_choices[include_clusters, ]$name
-
-    # require at least two labeled groups
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-
-    # if select none deconvolute using all clusters
-    if (!length(include_clusters))
-      include_clusters <- as.character(include_choices$value)
-
-    # subset to selected clusters
-    scseq <- scseq()
-    scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
-
-    # get DESeq2::vst normalized values from eset
-    vsd <- Biobase::assayDataElement(eset, 'vsd')
-
-    # common genes only
-    commongenes <- intersect (rownames(vsd), rownames(scseq))
-    vsd <- vsd[commongenes, ]
-    scseq <- scseq[commongenes, ]
-
-    # quantile normalize scseq and rnaseq dataset
-    progress$set(value = 2)
-    y <- cbind(as.matrix(scseq[['SCT']]@data), vsd)
-
-    y <- limma::normalizeBetweenArrays(y)
-    y <- t(y)
-
-
-    progress$set(value = 3)
-    # indicies for cells in each included cluster
-    pure_samples <- list()
-    for (i in seq_along(include_clusters))
-      pure_samples[[include_names[i]]] <-
-      which(scseq$seurat_clusters == include_clusters[i])
-
-    # markers for each included cluster
-    marker_list = dtangle::find_markers(y,
-                                        pure_samples = pure_samples,
-                                        data_type = "rna-seq",
-                                        marker_method='ratio')
-
-    # use markers in top 10th quantile with a minimum of 3
-    q = 0.1
-    quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
-    K = length(pure_samples)
-    n_markers = sapply(seq_len(K),function(i){
-      max(3, which(marker_list$V[[i]] > quantiles[[i]]))
-    })
-
-    # run deconvolution and get get proportion estimates
-    marks <- marker_list$L
-    dc <- dtangle::dtangle(y,
-                           pure_samples = pure_samples,
-                           n_markers = n_markers,
-                           data_type = 'rna-seq',
-                           markers = marks)
-
-    dc <- dc$estimates[colnames(eset), ]
-    dtangle_est(dc)
-    toggleAll(input_ids)
-    progress$set(value = 4)
-  })
-
-
-  return(list(
-    dtangle_est = dtangle_est
-  ))
-}
-
-
-#' Logic for dataset quantification table
-#' @export
-#' @keywords internal
-dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
-
-  # things user will update and return
-  pdata_r <- reactiveVal()
-  pairs_r <- reactiveVal()
-  reps_r <- reactiveVal()
-  valid_msg <- reactiveVal()
-  is_rendered <- reactiveVal(FALSE)
-
-
-  # colors
-  background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
-  group_colors <- c("#C7E9C0", "#C6DBEF", "#FCBBA1", "#FDD0A2", "#BCBDDC", "#D9D9D9", "#F6E8C3", "#DC143C",
-                    "#A1D99B", "#9ECAE1", "#FC9272", "#FDAE6B", "#9E9AC8", "#BDBDBD", "#DFC27D", "#FFFFFF",
-                    "#C3B091", "#007FFF", "#00FFFF", "#7FFFD4", "#228B22", "#808000", "#7FFF00", "#BFFF00",
-                    "#FFD700", "#DAA520", "#FF7F50", "#FA8072","#FC0FC0", "#CC8899", "#E0B0FF", "#B57EDC", "#843179")
-
-  ncolors <- length(group_colors)
-
-
-  # reset everything when quant fastq_dir
-  observeEvent(fastq_dir(), {
-    fastq_dir <- fastq_dir()
-    req(fastq_dir)
-
-    pdata_path <- file.path(fastq_dir, 'pdata.rds')
-
-    # initial creation of saved pdata
-    if (!file.exists(pdata_path)) {
-
-      fastqs <- list.files(fastq_dir, '.fastq.gz$')
-      if (!length(fastqs)) fastqs <- NA
-      pdata <- tibble::tibble('File Name' = fastqs)
-      pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
-      saveRDS(pdata, pdata_path)
-    }
-
-    pdata <- readRDS(pdata_path)
-    pairs_r(pdata$Pair)
-    reps_r(pdata$Replicate)
-
-    pdata$Pair <- pdata$Replicate <- NA
-    pdata_r(pdata)
-  })
-
-  # redraw table when quant pdata (otherwise update data using proxy)
-  output$pdata <- DT::renderDataTable({
-    dummy_pdata <- tibble::tibble(Pair = NA, Replicate = NA, 'File Name' = NA)
-    is_rendered(TRUE)
-
-    DT::datatable(
-      dummy_pdata,
-      class = 'cell-border dt-fake-height',
-      rownames = FALSE,
-      escape = FALSE, # to allow HTML in table
-      options = list(
-        columnDefs = list(list(className = 'dt-nopad', targets = c(0, 1))),
-        scrollY = FALSE,
-        paging = FALSE,
-        bInfo = 0
-      )
+    list(
+      anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
+      cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
+      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
+      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
     )
   })
 
+  # load analysis results
+  diffs <- reactive({
+    fpaths <- custom_fpaths()
+    if (is_sc()) return (sc_inputs$results())
+    if (is_bulk()) return (bulk_inputs$results())
 
-  # pdata that gets returned with reps and pairs
-  returned_pdata <- reactive({
-    pdata <- pdata_r()
-    pdata$Replicate <- reps_r()
-    pdata$Pair <- pairs_r()
-
-    return(pdata)
+    list(anal = readRDS(fpaths$anal))
   })
 
+  # load drug/genetic query results
+  queries <- reactive({
+    fpaths <- custom_fpaths()
 
-  # save returned pdata so that don't lose work
-  observe({
-    pdata <- returned_pdata()
-    req(pdata)
+    if (is_sc()) {
+      sc_res <- sc_inputs$res()
+      req(sc_res)
 
-    pdata_path <- file.path(isolate(fastq_dir()), 'pdata.rds')
-    saveRDS(pdata, pdata_path)
-  })
+      cmap <- sc_res$cmap
+      l1000_genes <- sc_res$l1000_genes
+      l1000_drugs <- sc_res$l1000_drugs
 
+    } else if (is_bulk()) {
+      bulk_res <- bulk_inputs$res()
+      req(bulk_res)
 
-  # pdata to update Pair/Replicate column in proxy (uses html)
-  html_pata <- reactive({
+      cmap <- bulk_res$cmap
+      l1000_genes <- bulk_res$l1000_genes
+      l1000_drugs <- bulk_res$l1000_drugs
 
-    # things that trigger update
-    pdata <- pdata_r()
-    req(pdata)
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # update pdata Replicate column
-    rep_nums <- sort(unique(setdiff(reps, NA)))
-    for (rep_num in rep_nums) {
-      color <- group_colors[ncolors - rep_num]
-      rows <- which(reps == rep_num)
-      pdata[rows, 'Replicate'] <- paste('<div style="background-color:', color, ';"></div>')
-    }
-
-    # update pdata Pair column
-    if (paired()) {
-      pair_nums <- sort(unique(setdiff(pairs, NA)))
-      for (pair_num in pair_nums) {
-        color <- group_colors[pair_num]
-        rows <- which(pairs == pair_num)
-        pdata[rows, 'Pair'] <- paste('<div style="background:', color, background, ';"></div>')
-      }
     } else {
-      pdata[1:nrow(pdata), 'Pair'] <- NA
+      res <- run_drugs_comparison(fpaths, session)
+      cmap <- res$cmap
+      l1000_genes <- res$l1000_genes
+      l1000_drugs <- res$l1000_drugs
     }
 
-    return(pdata)
+    # order pert choices same as in drugs
+    list(
+      cmap = sort(cmap),
+      l1000_drugs = sort(l1000_drugs),
+      l1000_genes = l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
+    )
+
   })
 
-  # proxy used to replace data
-  proxy <- DT::dataTableProxy("pdata")
-  shiny::observe({
-    req(is_rendered())
-    DT::replaceData(proxy, html_pata(), rownames = FALSE)
+  pert_type <- reactive({
+    drug_study <- drug_study()
+    req(drug_study)
+    if (drug_study == 'CMAP02') return('cmap')
+    ifelse(drug_study == 'L1000 Drugs', 'l1000_drugs', 'l1000_genes')
   })
 
-
-  # click 'Paired'
-  shiny::observeEvent(labels$pair(), {
-    req(labels$pair())
-
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # get rows
-    rows  <- input$pdata_rows_selected
-
-    # check for incomplete/wrong input
-    msg <- validate_pairs(pairs, rows, reps)
-    valid_msg(msg)
-
-    if (is.null(msg)) {
-
-      # add rows as a pair
-      pair_num <- length(unique(setdiff(pairs, NA))) + 1
-      pairs[rows] <- pair_num
-      pairs_r(pairs)
-    }
-  })
-
-  # click 'Replicate'
-  shiny::observeEvent(labels$rep(), {
-    req(labels$rep())
-
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # get rows
-    rows  <- input$pdata_rows_selected
-    msg <- validate_reps(pairs, rows, reps)
-    valid_msg(msg)
-
-    if (is.null(msg)) {
-      # add rows as replicates
-      rep_num <- length(unique(setdiff(reps, NA))) + 1
-      reps[rows] <- rep_num
-      reps_r(reps)
-    }
-  })
+  pert <- callModule(drugsPert,
+                     'pert',
+                     queries = queries,
+                     pert_type = pert_type,
+                     pert_signature_dir = pert_signature_dir)
 
 
-  # click 'Reset'
-  shiny::observeEvent(labels$reset(), {
-    pdata <- pdata_r()
-    clear <- rep(NA, nrow(pdata))
-    reps_r(clear)
-    pairs_r(clear)
-  })
+  return(pert$signature)
 
-  return(list(
-    pdata = returned_pdata,
-    valid_msg = valid_msg
-  ))
+
 }
 
 
-#' Logic for differential expression analysis table
+#' Logic for drug table
 #' @export
 #' @keywords internal
-dsExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, svobj_r, numsv_r) {
-
-  # colors
-  group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
-  ncolors <- length(group_colors)
-
-  # things user will update and return
-  pdata_r <- reactiveVal()
-  group_r <- reactiveVal()
-  name_r <- reactiveVal()
-  table_rendered <- reactiveVal()
-
-  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
-  pdata_path <- reactive(file.path(fastq_dir(), 'pdata_explore.rds'))
+#' @importFrom magrittr "%>%"
+drugsTable <- function(input, output, session, query_res, drug_study, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
+  drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
+  gene_cols <- c('Rank', 'Correlation', 'Compound', 'External Links', 'Description')
+  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
 
-  # pdata that gets returned with group column
-  returned_pdata <- reactive({
-    pdata_path <- pdata_path()
-    pdata <- pdata_r()
-    req(pdata, pdata_path)
 
-    pdata$Group <- group_r()
-    pdata$`Group name` <- name_r()
+  dummy_rendered <- reactiveVal(FALSE)
 
-    saveRDS(pdata, pdata_path)
-    return(pdata)
-  })
+  # get either cmap or l1000 annotations
+  drug_annot <- reactive({
+    drug_study <- drug_study()
+    req(drug_study)
 
-  eset_pdata <- reactive({
-    eset <- eset()
-    req(eset)
-
-    pdata <- Biobase::pData(eset) %>%
-      tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
-
-    return(pdata)
-  })
-
-
-  # reset when new eset or analysis name
-  observe({
-    pdata_path <- pdata_path()
-    eset_pdata <- pdata <- eset_pdata()
-    req(eset_pdata, pdata_path)
-
-    group <- name <- rep(NA, nrow(eset_pdata))
-    # load pdata from previous if available
-    if (file.exists(pdata_path)) {
-      saved_pdata <- pdata <- readRDS(pdata_path)
-
-      # prevent overwriting saved pdata when switch between analyses
-      req(all(row.names(eset_pdata) == row.names(saved_pdata)))
-
-      group <- pdata$Group
-      name  <- pdata$`Group name`
+    # update globals when first use
+    if (is.null(cmap_annot)) {
+      cmap_annot <<- get_drugs_table('CMAP02')
+      l1000_drugs_annot <<- get_drugs_table('L1000_drugs')
+      l1000_genes_annot <<- get_drugs_table('L1000_genes')
     }
 
-    table_rendered(FALSE)
-
-    pdata_r(pdata)
-    group_r(group)
-    name_r(name)
+    if (drug_study == 'CMAP02') return(cmap_annot)
+    else if (drug_study == 'L1000 Drugs') return(l1000_drugs_annot)
+    else if (drug_study == 'L1000 Genetic') return(l1000_genes_annot)
   })
 
+  # add annotations to query result
+  query_table_full <- reactive({
+    query_res <- query_res()
+    if (is.null(query_res)) return(NULL)
 
-  # redraw table when new pdata (otherwise update data using proxy)
-  output$pdata <- DT::renderDataTable({
+    drug_annot <- drug_annot()
+    req(query_res, drug_annot)
+    drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
+    stopifnot(all.equal(drug_annot$title, names(query_res)))
 
-    pdata <- pdata_r()
-    hide_target <- which(colnames(pdata) %in% c('lib.size', 'norm.factors', 'pair')) - 1
+    tibble::add_column(drug_annot,
+                       Rank = NA,
+                       Correlation = query_res,
+                       .before=0)
+  })
 
-    table_rendered(TRUE)
+  is_genetic <- reactive({
+    drug_study() == 'L1000 Genetic'
+  })
+
+  # sort by absolute if either is genetic or is CMAP/L1000 pert
+  sort_abs <- reactive({
+    is_genetic() | is_pert()
+  })
+
+  # subset to selected cells, summarize by compound, and add html
+  query_table_summarised <- reactive({
+    query_table_full <- query_table_full()
+    if (is.null(query_table_full)) return(NULL)
+
+    cols <- if(is_genetic()) gene_cols else drug_cols
+
+    query_table <- query_table_full %>%
+      limit_cells(cells()) %>%
+      summarize_compound(is_genetic = sort_abs()) %>%
+      add_table_html() %>%
+      select(cols, everything())
+  })
+
+  query_table_final <- reactive({
+    query_table <- query_table_summarised()
+    if (is.null(query_table)) return(NULL)
+    sort_by <- sort_by()
+    drug_study <- drug_study()
+
+    query_table <- dplyr::filter(query_table, n >= min_signatures())
+
+    # subset by clinical phase
+    if (show_clinical() && 'Clinical Phase' %in% colnames(query_table))
+      query_table <- dplyr::filter(query_table, !is.na(`Clinical Phase`))
+
+    if (sort_by == 'avg_cor') {
+      query_table$Correlation <- gsub('simplot', 'simplot show-meanline', query_table$Correlation)
+    }
+
+    # show largest absolute correlations first for genetic and pert queries
+    # as both directions are informative
+    if (sort_abs()) {
+
+      # filter none, opposing, or similar signatures based on direction toggle
+      if (sort_by == 'avg_cor') {
+        is.similar <- query_table$avg_cor > 0
+      } else {
+        mm <- query_table[, c('min_cor', 'max_cor')]
+        mcol <- max.col(abs(mm), ties.method = 'last')
+        is.similar <- mcol == 2 & mm[, 2] > 0
+      }
+
+      query_table <- switch(direction(),
+                            'both' = query_table,
+                            'similar' = query_table[is.similar, ],
+                            'opposing' = query_table[!is.similar, ])
+
+      query_table <- query_table %>%
+        dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
+        dplyr::mutate(avg_cor = -abs(avg_cor))
+    }
+
+    # indicate total number of unique perts in title for rank
+    rank_title <- switch(drug_study(),
+                         'CMAP02' = 'out of 1,309',
+                         'L1000 Genetic' = 'out of 6,943',
+                         'L1000 Drugs' = 'out of 19,360' )
+
+    # sort as desired then add rank
+    query_table <- query_table %>%
+      dplyr::arrange(!!sym(sort_by)) %>%
+      dplyr::select(-min_cor, -avg_cor, -max_cor, -n) %>%
+      dplyr::mutate(Rank = paste0('<span class="rank-label label label-default" title="', rank_title, '">', 1:nrow(query_table), '</span>'))
+
+    return(query_table)
+  })
+
+  # will update with proxy to prevent redraw
+  dummy_table <- reactive({
+    study <- drug_study()
+    dummy_rendered(FALSE)
+    cols <- if (study == 'L1000 Genetic') gene_cols else drug_cols
+
+    data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)), check.names = FALSE)
+  })
+
+  sorted_query <- reactive({
+    query_res <- query_res()
+    if (sort_abs()) {
+      query_res <- query_res[order(abs(query_res), decreasing = TRUE)]
+    } else {
+      query_res <- sort(query_res)
+    }
+    return(query_res)
+  })
+
+  # query table for downloading
+  query_table_dl <- reactive({
+    query_res <- sorted_query()
+    data.frame(correlation = query_res, signature = names(query_res), row.names = NULL)
+  })
+
+  # show query data
+  output$query_table <- DT::renderDataTable({
+    # ellipses for wide columns
+    dummy_table <- dummy_table()
+    wide_cols <- c('MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
+    # -1 needed with rownames = FALSE
+    elipsis_targets <- which(colnames(dummy_table) %in% wide_cols) - 1
+    hide_target <- which(colnames(dummy_table) %in% c('Vendor', 'Catalog #', 'Vendor Name')) - 1
+
+    # don't show column visibility button for genetic
+    dom <- ifelse(is_genetic(), 'ftp', 'Bfrtip')
+
+    dummy_rendered(TRUE)
 
     DT::datatable(
-      pdata,
-      class = 'cell-border dt-fake-height',
+      dummy_table,
+      class = 'cell-border',
       rownames = FALSE,
+      selection = 'none',
       escape = FALSE, # to allow HTML in table
       options = list(
-        columnDefs = list(
-          list(className = 'dt-nopad', targets = 0),
-          list(targets = hide_target, visible=FALSE)),
+        columnDefs = list(list(className = 'dt-nopad sim-cell', height=38, width=120, targets = 1),
+                          list(className = 'dt-rank', targets = 0, width=50),
+                          list(targets = hide_target, visible=FALSE),
+                          list(targets = elipsis_targets, render = DT::JS(
+                            "function(data, type, row, meta) {",
+                            "return type === 'display' && data !== null && data.length > 27 ?",
+                            "'<span title=\"' + data + '\">' + data.substr(0, 27) + '...</span>' : data;",
+                            "}"))
+        ),
+        drawCallback = DT::JS('function(setting, json) { setupContextMenu(); }'),
+        ordering = FALSE,
         scrollX = TRUE,
-        paging = FALSE,
-        bInfo = 0
+        pageLength = 50,
+        paging = TRUE,
+        bInfo = 0,
+        dom = dom
       )
+    )
+  },
+  server = TRUE)
+
+  # proxy used to replace data
+  # low priority to make sure data has been rendered
+  proxy <- DT::dataTableProxy("query_table")
+  observe({
+    req(dummy_rendered())
+    query_table <- query_table_final()
+    DT::replaceData(proxy, query_table, rownames = FALSE)
+  })
+
+  return(list(
+    query_table_dl = query_table_dl
+  ))
+}
+
+#' Logic query/drug genes plotly
+#' @export
+#' @keywords internal
+#' @importFrom magrittr "%>%"
+drugsGenesPlotly <- function(input, output, session, data_dir, anal, is_sc, sc_inputs, drug_study, show_genes, pert_signature) {
+
+  #  toggle  showing genes plotly
+  shiny::observe({
+    toggle('container', condition = show_genes(), anim = TRUE)
+  })
+
+  # load pathway and analysis results
+  diffs <- reactive({
+    anal <- anal()
+    if (is_sc()) return (sc_inputs$results())
+
+    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
+    anal_name <- anal$anal_name
+
+    list(
+      anal = readRDS(file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')))
     )
   })
 
-
-  html_pdata <- reactive({
-
-    # things that trigger update
-    pdata <- returned_pdata()
-    group <- pdata$Group
-    name  <- pdata$`Group name`
-    req(pdata)
-
-
-    # update pdata Group column
-    not.na <- !is.na(group)
-    group_nums  <- unique(group[not.na])
-    group_names <- unique(name[not.na])
-    ind <- order(group_nums)
-
-    group_nums  <- group_nums[ind]
-    group_names <- group_names[ind]
-
-    for (i in seq_along(group_nums)) {
-      group_num <- group_nums[i]
-      group_name <- group_names[i]
-
-      # plotly color bug when two groups
-      color <- group_colors[group_num]
-
-      rows <- which(group == group_num)
-      pdata[rows, 'Group'] <- paste('<div style="background-color:', color, ';"></div>')
-      pdata[rows, 'Group name'] <- group_name
-    }
-
-    return(pdata)
+  path_id <- reactive({
+    study <- drug_study()
+    if (study == 'CMAP02') return('Query genes - CMAP02')
+    if (grepl('^L1000', study)) return('Query genes - L1000')
   })
 
 
-  # proxy used to replace data
-  proxy <- DT::dataTableProxy("pdata")
-  shiny::observe({
-    req(html_pdata(), table_rendered())
-    DT::replaceData(proxy, html_pdata(), rownames = FALSE)
+  # the gene plot
+  pl <- reactive({
+
+    diffs <- diffs()
+    path_id <- path_id()
+    anal <- diffs$anal
+
+    req(path_id, anal)
+
+    pert_signature <- pert_signature()
+    path_df <- get_path_df(anal, path_id, pert_signature)
+
+    # so that still shows hover if no sd
+    path_df$sd[is.na(path_df$sd)] <- 'NA'
+
+    # 30 pixels width per gene in pathway
+    ngenes <- length(unique(path_df$Gene))
+    plot_width <- max(400, ngenes*25 + 125)
+
+    pl <- plotly::plot_ly(data = path_df,
+                          y = ~Dprime,
+                          x = ~Gene,
+                          text = ~Gene,
+                          customdata = apply(path_df, 1, as.list),
+                          type = 'scatter',
+                          mode = 'markers',
+                          width = plot_width,
+                          height = 550,
+                          marker = list(size = 5, color = path_df$color),
+                          error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                          hovertemplate = paste0(
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
+                            '<extra></extra>')
+    ) %>%
+      plotly::config(displayModeBar = FALSE) %>%
+      plotly::layout(hoverdistance = -1,
+                     hovermode = 'x',
+                     yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
+                     xaxis = list(fixedrange = TRUE,
+                                  range = c(-2, ngenes + 1),
+                                  tickmode = 'array',
+                                  tickvals = 0:ngenes,
+                                  ticktext = ~Link,
+                                  tickangle = -45),
+                     autosize = FALSE)
+
+
+    # add arrow to show drug effect
+    if ('dprime_sum' %in% colnames(path_df))
+      pl <- pl %>%
+      plotly::add_annotations(x = ~Gene,
+                              y = ~dprime_sum,
+                              xref = "x", yref = "y",
+                              axref = "x", ayref = "y",
+                              text = "",
+                              showarrow = TRUE,
+                              arrowcolor = ~arrow_color,
+                              arrowwidth = 1,
+                              ax = ~Gene,
+                              ay = ~Dprime)
+
+    return(pl)
+
+  })
+
+  output$plotly <- snapshotPreprocessOutput(
+    plotly::renderPlotly({
+      pl()
+    }),
+    function(value) { 'genes_plotly' }
+  )
+}
+
+#' Logic for perturbation selection in Pathways tab
+#' @export
+#' @keywords internal
+drugsPert <- function(input, output, session, pert_type, queries, pert_signature_dir) {
+  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
+
+
+
+
+  sorted_query <- reactive({
+
+    queries <- queries()
+    pert_type <- pert_type()
+    req(pert_type)
+
+    query_res <- queries[[pert_type]]
+
+    query_res <- data.frame(
+      label = gsub('_-700-666.0_\\d+h$', '', names(query_res)),
+      value = names(query_res),
+      cor = format(round(query_res, digits = 3)), stringsAsFactors = FALSE
+    )
+    return(query_res)
   })
 
 
-
-  # click 'grouped'
-  shiny::observeEvent(labels$grouped(), {
-    group_name <- labels$explore_group_name()
-    rows  <- input$pdata_rows_selected
-    req(group_name, length(rows))
-
-    group <- group_r()
-    name <- name_r()
-
-    group_num <- length(unique(setdiff(group, NA))) + 1
-
-    group[rows] <- group_num
-    name[rows] <- group_name
-    group_r(group)
-    name_r(name)
-
-    # remove dataset files since groups changed
-    svobj_r(NULL)
-    numsv_r(0)
-    remove_dataset_files(fastq_dir())
+  # update pert signature choices
+  observe({
+    updateSelectizeInput(session,
+                         'pert',
+                         choices = rbind(rep(NA, 3), sorted_query()),
+                         options = pert_options,
+                         server = TRUE)
   })
 
-
-
-  # click 'Reset'
-  shiny::observeEvent(labels$reset(), {
-    req(labels$reset())
-    group <- group_r()
-    clear <- rep(NA, length(group))
-    group_r(clear)
-    name_r(clear)
-
-    # remove dataset files since groups changed
-    svobj_r(NULL)
-    numsv_r(0)
-    remove_dataset_files(fastq_dir())
+  # load signature for pert
+  pert_signature <- reactive({
+    pert <- input$pert
+    pert_type <- pert_type()
+    if (pert == '' | is.null(pert)) return(NULL)
+    load_pert_signature(pert, pert_type, pert_signature_dir)
   })
-
 
 
   return(list(
-    pdata = returned_pdata
+    name = reactive(input$pert),
+    signature = pert_signature
   ))
 
 }
-
 
 
 server <- function(input, output, session) {
@@ -1527,18 +1032,22 @@ server <- function(input, output, session) {
                        indices_dir = indices_dir)
 
   scPage <- callModule(scPage, 'sc',
-                       sc_dir = sc_dir,
-                       new_dataset = dsPage$new_dataset)
+                       sc_dir = sc_dir)
 
-  # drugsPage <- callModule(drugsPage, 'drug',
-  #                         new_anal = dsPage$new_anal,
-  #                         data_dir = data_dir,
-  #                         pert_query_dir = pert_query_dir,
-  #                         pert_signature_dir = pert_signature_dir)
+  # TODO: get new_dataset from dsPage and scPage
+  new_dataset <- reactiveVal()
+  bulk_changed <- reactiveVal()
 
-  pathPage <- callModule(pathPage, 'pathways',
-                         new_anal = dsPage$new_anal,
-                         data_dir = data_dir)
+  drugsPage <- callModule(drugsPage, 'drug',
+                          data_dir = data_dir,
+                          new_dataset = new_dataset,
+                          bulk_changed = bulk_changed,
+                          pert_query_dir = pert_query_dir,
+                          pert_signature_dir = pert_signature_dir)
+
+  # pathPage <- callModule(pathPage, 'pathways',
+  #                        data_dir = data_dir,
+  #                        new_dataset = new_dataset)
 
 
 
