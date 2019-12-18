@@ -717,38 +717,13 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' @export
 #' @keywords internal
 #' @return list with name, lm_fit, and is_lmfit
-bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_dir, dl_content = NULL, dl_fname = NULL, enable_dl = function(){FALSE}, type = function(){list(is_bulk = TRUE)}) {
+bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, fastq_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-
-  anal_name <- reactive({
-    contrast_groups <- input$contrast_groups
-    req(length(contrast_groups) == 2)
-
-    return(paste0(contrast_groups[1], '_vs_', contrast_groups[2]))
-
-  })
-
-  new_anal <- reactiveVal()
-
-  lmfit_path <- reactive({
-    new_anal()
-
-    # path to lmfit result
-    numsv_str <- paste0(numsv(), 'svs.rds')
-    lmfit_file <- paste('lm_fit', numsv_str, sep = '_')
-    file.path(fastq_dir(), lmfit_file)
-  })
-
-  # do we have lm_fit?
-  is_lmfit <- reactive(file.exists(lmfit_path()))
-
-  # lm_fit itself
-  lm_fit <- reactive(readRDS(lmfit_path()))
 
 
   # group levels used for selecting test and control groups
   group_levels <- reactive({
-    req(type()$is_bulk)
+    req(is_bulk())
     pdata <- pdata()
     group <- pdata$`Group name`
     group_order <- order(unique(pdata$Group))
@@ -763,21 +738,93 @@ bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_di
     )
   })
 
+  # TODO: clear group selection if new analysis
+  new_anal <- reactiveVal()
+
   observe({
     updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
   })
 
-
-  # enable download and running analysis
   full_contrast <- reactive(length(input$contrast_groups) == 2)
 
-  observe({
-    toggleState('download', condition = enable_dl() & full_contrast())
+  anal_name <- reactive({
+    req(full_contrast())
+    groups <- input$contrast_groups
+    return(paste0(groups[1], '_vs_', groups[2]))
   })
 
-  observe({
-    toggleState('run_anal', condition = !is_lmfit() & full_contrast())
+  # path to lmfit and drug query results
+  numsv_str <- reactive(paste0(numsv(), 'svs.rds'))
+
+  lmfit_path <- reactive({
+    new_anal()
+    lmfit_file <- paste('lm_fit', numsv_str(), sep = '_')
+    file.path(fastq_dir(), lmfit_file)
   })
+
+  drug_paths <- reactive({
+    dir <- fastq_dir()
+    suf <- paste(anal_name(), numsv_str(), sep = '_')
+    list(
+      cmap = file.path(dir, paste0('cmap_res_', suf)),
+      l1000_drugs = file.path(dir, paste0('l1000_drugs_', suf)),
+      l1000_genes = file.path(dir, paste0('l1000_genes_', suf))
+    )
+  })
+
+  # do we have lm_fit and drug query results?
+  saved_lmfit <- reactive(file.exists(lmfit_path()))
+  saved_drugs <- reactive(file.exists(drug_paths()$cmap))
+
+  # lm_fit and drug results
+  lm_fit <- reactive({
+    req(saved_lmfit())
+    readRDS(lmfit_path())
+  })
+
+  drug_queries <- reactive({
+    if (saved_drugs()) {
+      paths <- drug_paths()
+      res <- lapply(paths, readRDS)
+
+    } else {
+      top_table <- top_table()
+      res <- run_drug_queries(top_table, drug_paths(), session)
+    }
+    return(res)
+  })
+
+  # differential expression top table
+  top_table <- reactive({
+    req(full_contrast())
+    groups <- input$contrast_groups
+    tt <- get_top_table(lm_fit(), groups)
+    tt[order(tt$P.Value), ]
+  })
+
+
+
+  # enable download and running analysis
+  observe({
+    toggleState('download', condition = saved_lmfit())
+    toggleState('run_anal', condition = !saved_lmfit() & full_contrast())
+  })
+
+  dl_fname <- reactive({
+    date <- paste0(Sys.Date(), '.csv')
+
+    numsv_str <- paste0(numsv(), 'SV')
+    paste('bulk', dataset_name(), anal_name(), numsv_str, date , sep='_')
+  })
+
+  output$download <- downloadHandler(
+    filename = function() {
+      dl_fname()
+    },
+    content = function(con) {
+      write.csv(top_table(), con)
+    }
+  )
 
   disable_inputs <- ''
   observeEvent(input$run_anal, {
@@ -819,20 +866,17 @@ bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_di
   })
 
 
+  # TODO: get pathway results
+  path_res <- reactive({
 
-  output$download <- downloadHandler(
-    filename = function() {
-      dl_fname()
-    },
-    content = function(con) {
-      write.csv(dl_content(), con)
-    }
-  )
+  })
 
   return(list(
     name = anal_name,
-    is_lmfit = is_lmfit,
-    lm_fit = lm_fit
+    lm_fit = lm_fit,
+    drug_queries = drug_queries,
+    top_table = top_table,
+    path_res = path_res
   ))
 }
 
@@ -909,29 +953,14 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
   pdata <- reactive(Biobase::pData(explore_eset()))
   fastq_dir <-reactive(file.path(data_dir, dataset_dir()))
 
-  top_table <- reactive({
-    anal_name <- bulkAnal$name()
-    contrast <- gsub('_vs_', '-', anal_name)
-    tt <- get_top_table(bulkAnal$lm_fit(), contrast)
-    tt[order(tt$P.Value), ]
-  })
-
-  dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.csv')
-
-    numsv_str <- paste0(numsv_r(), 'SV')
-    paste('bulk', dataset_name(), bulkAnal$name(), numsv_str, date , sep='_')
-  })
 
   bulkAnal <- callModule(bulkAnal, 'ds',
                          pdata = pdata,
+                         dataset_name = dataset_name,
                          eset = explore_eset,
                          svobj = svobj_r,
                          numsv = numsv_r,
-                         fastq_dir = fastq_dir,
-                         enable_dl = bulkAnal$is_lmfit,
-                         dl_content = top_table,
-                         dl_fname = dl_fname)
+                         fastq_dir = fastq_dir)
 
 
   return(list(

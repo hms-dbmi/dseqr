@@ -234,7 +234,7 @@ add_vsd <- function(eset, rna_seq = TRUE, vsd_path = NULL) {
   if (!'counts' %in% els) {
     vsd <- Biobase::assayDataElement(eset, 'exprs')
 
-  } else if (file.exists(vsd_path)) {
+  } else if (!is.null(vsd_path) && file.exists(vsd_path)) {
     vsd <- readRDS(vsd_path)
 
   } else {

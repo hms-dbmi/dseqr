@@ -68,7 +68,7 @@ selectedAnalInput <- function(id) {
                               shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
                               options = list(optgroupField = 'type')),
     tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-             scAnalInput(ns)
+             scAnalInput(ns('drugs'))
     ),
     tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
              bulkAnalInput(ns('drugs'), with_dl = FALSE)
@@ -170,7 +170,8 @@ customQueryFormInput <- function(id) {
 #'
 #' @export
 #' @keywords internal
-scAnalInput <- function(ns) {
+scAnalInput <- function(id) {
+  ns <- NS(id)
 
   button <- actionButton(ns('run_comparison'), '',
                          icon = icon('chevron-right', 'far fa-fw'),
@@ -217,11 +218,14 @@ advancedOptionsInput <- function(id) {
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
-                            shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-                            shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
-                            shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
+  tags$div(id = ns('study_container'), style = 'display: none;',
+           selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
+                                     shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
+                                     shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                                     shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
+                                     shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
+  )
+
 
 }
 

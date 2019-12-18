@@ -20,25 +20,19 @@
 #'
 #' # add dprime and vardprime to top tables
 #' anal <- add_es(anal)
-
-add_es <- function(diff_exprs, cols = c("dprime", "vardprime"), groups = c('test', 'ctrl')) {
+add_es <- function(tt, ebfit, cols = c("dprime", "vardprime"), groups = c('test', 'ctrl')) {
 
 
   # get study degrees of freedom and group classes
-  df <- diff_exprs$ebayes_sv$df.residual + diff_exprs$ebayes_sv$df.prior
-  classes <- diff_exprs$pdata$group
+  df <- ebfit$df.residual + ebfit$df.prior
 
   # get sample sizes for groups
-  ni <- sum(classes == groups[2])
-  nj <- sum(classes == groups[1])
+  ni <- sum(ebfit$design[, groups[2]])
+  nj <- sum(ebfit$design[, groups[1]])
 
   # bind effect size values with top table
-  tt <- diff_exprs$top_table
   es <- metaMA::effectsize(tt$t, ((ni * nj)/(ni + nj)), df)[, cols, drop = FALSE]
   tt <- cbind(tt, es)
 
-  # store results
-  diff_exprs$top_table <- tt
-
-  return(diff_exprs)
+  return(tt)
 }

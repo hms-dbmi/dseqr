@@ -1,14 +1,15 @@
 #' Logic for Drugs page
 #' @export
 #' @keywords internal
-drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir, pert_signature_dir) {
+drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_dir, pert_query_dir, pert_signature_dir) {
 
   # the form area inputs/results
-  form <- callModule(drugsForm, 'form',
-                     new_anal = new_anal,
-                     data_dir = data_dir,
-                     pert_query_dir = pert_query_dir,
-                     pert_signature_dir = pert_signature_dir)
+  # form <- callModule(drugsForm, 'form',
+  #                    new_dataset = new_dataset,
+  #                    bulk_changed = bulk_changed,
+  #                    data_dir = data_dir,
+  #                    pert_query_dir = pert_query_dir,
+  #                    pert_signature_dir = pert_signature_dir)
 
   # callModule(drugsGenesPlotly, 'genes',
   #            data_dir = data_dir,
@@ -53,16 +54,21 @@ drugsPage <- function(input, output, session, new_anal, data_dir, pert_query_dir
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
-drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir, pert_signature_dir) {
+drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_changed, pert_query_dir, pert_signature_dir) {
 
   cmap_res <- reactiveVal()
   l1000_drugs_res <- reactiveVal()
   l1000_genes_res <- reactiveVal()
 
+  # TODO: trigger new_custom after running custom query
+  new_custom <- reactiveVal()
 
   # dataset/analysis choices
   choices <- reactive({
-    new_anal()
+    # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
+    new_dataset()
+    new_custom()
+    bulk_changed()
     scseq_datasets <- load_scseq_datasets(data_dir)
     bulk_datasets <- load_bulk_datasets(data_dir)
     custom_anals <- load_custom_anals(data_dir)
@@ -74,44 +80,49 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
     return(choices)
   })
 
-  # the selected dataset/analysis
-  anal <- callModule(selectedAnal, 'anal',
-                     choices = choices,
-                     data_dir = data_dir)
+  # the selected dataset/query signaure
+  selectedAnal <- callModule(selectedAnal, 'anal',
+                             choices = choices,
+                             data_dir = data_dir,
+                             pert_query_dir = pert_query_dir)
 
-  # dataset_dir <- reactive({
-  #   anal <- anal()
-  #   if (is_custom()) {
-  #     return(file.path(data_dir, 'custom_queries'))
-  #
-  #   } else if (is_pert()) {
-  #     return(pert_query_dir)
-  #
-  #   } else {
-  #     return(file.path(data_dir, anal$dataset_dir))
-  #   }
-  # })
-  #
-  #
-  # # paths to custom and pert queries
-  # res_paths <- reactive({
-  #   anal <- anal()
-  #   dataset_dir <- dataset_dir()
-  #   anal_name <-  fs::path_sanitize(anal$label)
-  #
-  #   list(
-  #     cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
-  #     l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
-  #     l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
-  #   )
-  # })
-  #
-  #
-  #
-  #
-  #
-  # input_ids <- c('run_comparison', 'selected_clusters')
-  #
+
+  # end of filenames for drug queries
+  fname_end <- reactive({
+    type <- selectedAnal$type()
+    sel <- selectedAnal$sel()
+    if (type$is_bulk) {
+      fname_end <- paste0(selectedAnal$bulk_name(), '_', selectedAnal$numsv(), 'svs')
+
+    } else if (type$is_sc) {
+      #TODO
+      fname_end <- selectedAnal$sc_name()
+
+    } else {
+      fname_end <- fs::path_sanitize(sel$label)
+
+    }
+    fname_end <- paste0(fname_end, '.rds')
+    return(fname_end)
+  })
+
+
+  # path to query results
+  res_paths <- reactive({
+    dataset_dir <- selectedAnal$dataset_dir()
+    fname_end <- fname_end()
+
+    list(
+      cmap = file.path(dataset_dir, paste0('cmap_res_', fname_end)),
+      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', fname_end)),
+      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', fname_end))
+    )
+  })
+
+  observe({
+    print(res_paths())
+  })
+
   # sc_inputs <- scSampleComparison(input, output, session,
   #                                 data_dir = data_dir,
   #                                 anal = querySignature$anal,
@@ -119,11 +130,6 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
   #                                 input_ids = input_ids,
   #                                 with_drugs = TRUE)
   #
-  # bulk_inputs <- bulkGroupComparison(input, output, session,
-  #                                    data_dir = data_dir,
-  #                                    anal = querySignature$anal,
-  #                                    is_bulk = is_bulk,
-  #                                    with_drugs = TRUE)
   #
   #
   # # if currently selected analysis is custom then show genes
@@ -224,7 +230,7 @@ drugsForm <- function(input, output, session, new_anal, data_dir, pert_query_dir
 #' Logic for selected dataset/analysis in Drugs and Pathways tabs
 #' @export
 #' @keywords internal
-selectedAnal <- function(input, output, session, choices, data_dir) {
+selectedAnal <- function(input, output, session, data_dir, choices, pert_query_dir = NULL) {
 
   # update dataset/analysis choice
   observe({
@@ -246,7 +252,7 @@ selectedAnal <- function(input, output, session, choices, data_dir) {
   })
 
   # the selected dataset/analysis
-  selected <- reactive({
+  sel <- reactive({
     row_num <- input$query
     choices <- choices()
     req(row_num, choices)
@@ -255,16 +261,19 @@ selectedAnal <- function(input, output, session, choices, data_dir) {
   })
 
   # the type of dataset/analysis
-  type <- reactive(choices()$type)
-
-  is_bulk <- reactive(type() == 'Bulk Data')
-  is_sc <- reactive(type() == 'Single Cell')
-  is_custom <- reactive(type() == 'Custom')
-  is_pert <- reactive(type() == 'CMAP02/L1000 Perturbations')
+  type <- reactive({
+    type <- sel()$type
+    list(
+      is_bulk = type == 'Bulk Data',
+      is_sc = type == 'Single Cell',
+      is_custom = type == 'Custom',
+      is_pert = type == 'CMAP02/L1000 Perturbations'
+    )
+  })
 
   observe({
-    shinyjs::toggle('sc_clusters_container', condition = is_sc())
-    shinyjs::toggle('bulk_groups_container', condition = is_bulk())
+    shinyjs::toggle('sc_clusters_container', condition = type()$is_sc)
+    shinyjs::toggle('bulk_groups_container', condition = type()$is_bulk)
   })
 
 
@@ -275,26 +284,138 @@ selectedAnal <- function(input, output, session, choices, data_dir) {
     toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
   })
 
-  # bulk analysis
+  # Bulk analysis
+  # ---
+  fastq_dir <- reactive({
+    req(type()$is_bulk)
+    file.path(data_dir, sel()$dataset_dir)
+  })
+
+  eset  <- reactive(readRDS(file.path(fastq_dir(), 'eset.rds')))
+  pdata <- reactive(readRDS(file.path(fastq_dir(), 'pdata_explore.rds')))
+  numsv <- reactive(readRDS(file.path(fastq_dir(), 'numsv.rds')))
+  svobj <- reactive(readRDS(file.path(fastq_dir(), 'svobj.rds')))
+
 
   explore_eset <- exploreEset(eset = eset,
-                              fastq_dir = dsForm$fastq_dir,
-                              explore_pdata = dsExploreTable$pdata,
-                              numsv = dsForm$numsv_r,
-                              svobj = dsForm$svobj_r)
+                              fastq_dir = fastq_dir,
+                              explore_pdata = pdata,
+                              numsv = numsv,
+                              svobj = svobj)
 
   bulkAnal <- callModule(bulkAnal, 'drugs',
-                         data_dir = data_dir,
-                         dataset_name = dataset_name,
-                         dataset_dir = dataset_dir,
+                         pdata = pdata,
                          eset = explore_eset,
-                         pdata = pdata)
+                         svobj = svobj,
+                         numsv = numsv,
+                         fastq_dir = fastq_dir,
+                         type = type)
 
+  # Single cell analysis
+  # ---
+  sc_name <- reactive({
+    req(type()$is_sc)
+    sel()$value
+  })
+  scAnal <- callModule(scAnal, 'drugs',
+                       data_dir,
+                       anal_name = sc_name
+  )
 
+  # TODO: get scAnal
+
+  # folder for selected dataset
+  dataset_dir <- reactive({
+    sel <- sel()
+    type <- type()
+
+    if (type$is_pert) {
+      dataset_dir <- pert_query_dir
+
+    } else {
+      dataset_dir <- file.path(data_dir, sel$dataset_dir)
+    }
+
+    return(dataset_dir)
+  })
 
   return(list(
+    lm_fit = bulkAnal$lm_fit,
+    is_lmfit = bulkAnal$is_lmfit,
+    bulk_name = bulkAnal$name,
+    sc_name = scAnal$name,
+    numsv = numsv,
+    dataset_dir = dataset_dir,
+    sel = sel,
+    type = type
   ))
 
+}
+
+scAnal <- function(input, output, session, data_dir, anal_name, with_drugs = FALSE, with_path = FALSE) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  # differential expression, pathway analyses, and drug queries
+  results <- reactiveVal()
+
+  sc_dir <- reactive({
+    file.path(data_dir, 'single-cell')
+  })
+
+  scseq <- reactive({
+    scseq_path <- scseq_part_path(sc_dir(), anal_name(), 'scseq')
+    readRDS(scseq_path)
+  })
+
+  # TODO: update if annotation change from Single Cell tab
+  annot <- reactive({
+    annot_path <- scseq_part_path(sc_dir(), anal_name(), 'annot')
+    readRDS(annot_path)
+  })
+
+
+  cluster_choices <- reactive({
+    get_cluster_choices(clusters = annot(), anal_name(), sc_dir(), sample_comparison = TRUE)
+  })
+
+
+  # update UI for contrast/cluster choices
+  observeEvent(cluster_choices(), {
+    updateSelectizeInput(session, 'selected_clusters',
+                         choices = cluster_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+
+  # reset results if change selected clusters
+  observeEvent(input$selected_clusters, {
+    result(NULL)
+  })
+
+
+  observeEvent(input$run_comparison, {
+
+    selected_clusters <- input$selected_clusters
+    req(selected_clusters)
+
+    toggleAll(input_ids)
+
+    scseq <- scseq()
+    sc_dir <- sc_dir()
+    anal_name <- anal_name()
+
+
+    res <- run_comparison(scseq,
+                          selected_clusters = selected_clusters,
+                          sc_dir = sc_dir,
+                          anal_name = anal_name,
+                          session = session,
+                          with_path = with_path,
+                          with_drugs = with_drugs)
+
+
+    toggleAll(input_ids)
+    results(res)
+  })
 }
 
 #' Logic for custom query form on Drugs page
@@ -371,63 +492,6 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
   })
 }
 
-
-
-bulkGroupComparison <- function(input, output, session, data_dir, anal, is_bulk, with_drugs = FALSE, with_path = FALSE, input_ids = '') {
-
-  results <- reactiveVal()
-
-  fastq_dir <- reactive({
-    req(is_bulk())
-    browser()
-    file.path(data_dir, 'bulk', anal()$anal_name)
-  })
-
-  dataset_name <- reactive({
-    req(is_bulk())
-    anal()$dataset_name
-  })
-
-  dataset_dir <- reactive({
-    req(is_bulk())
-    anal()$dataset_dir
-  })
-
-  eset  <- reactive(readRDS(file.path(fastq_dir(), 'eset.rds')))
-  pdata <- reactive(readRDS(file.path(fastq_dir(), 'pdata_explore.rds')))
-  numsv <- reactive(readRDS(file.path(fastq_dir(), 'numsv.rds')))
-  svobj <- reactive(readRDS(file.path(fastq_dir(), 'svobj.rds')))
-
-
-  explore_eset <- exploreEset(eset = eset,
-                              fastq_dir = fastq_dir,
-                              explore_pdata = pdata,
-                              numsv = numsv,
-                              svobj = svobj)
-
-  bulk_anal <- callModule(bulkAnal, 'drugs',
-                          data_dir = data_dir,
-                          dataset_name = dataset_name,
-                          dataset_dir = dataset_dir,
-                          explore_eset = explore_eset)
-
-  observe({
-    bulk_anal <- bulk_anal()
-    req(bulk_anal())
-    toggleAll(input_ids)
-
-
-    anal_name <- anal()$anal_name
-
-    toggleAll(input_ids)
-    results(res)
-  })
-
-
-  return(list(results = results))
-
-
-}
 
 
 

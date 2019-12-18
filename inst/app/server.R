@@ -11,14 +11,12 @@ drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_di
                      pert_query_dir = pert_query_dir,
                      pert_signature_dir = pert_signature_dir)
 
-  # callModule(drugsGenesPlotly, 'genes',
-  #            data_dir = data_dir,
-  #            is_sc = form$is_sc,
-  #            anal = form$anal,
-  #            pert_signature = form$pert_signature,
-  #            sc_inputs = form$sc_inputs,
-  #            show_genes = form$show_genes,
-  #            drug_study = form$drug_study)
+  callModule(drugsGenesPlotly, 'genes',
+             data_dir = data_dir,
+             top_table = form$top_table,
+             pert_signature = form$pert_signature,
+             show_genes = form$show_genes,
+             drug_study = form$drug_study)
 
 
   # the output table
@@ -56,10 +54,6 @@ drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_di
 #' @keywords internal
 drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_changed, pert_query_dir, pert_signature_dir) {
 
-  cmap_res <- reactiveVal()
-  l1000_drugs_res <- reactiveVal()
-  l1000_genes_res <- reactiveVal()
-
   # TODO: trigger new_custom after running custom query
   new_custom <- reactiveVal()
 
@@ -80,134 +74,49 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
     return(choices)
   })
 
-  # the selected dataset/query signaure
+  # the selected dataset/analysis results
   selectedAnal <- callModule(selectedAnal, 'anal',
-                     choices = choices,
-                     data_dir = data_dir,
-                     pert_query_dir = pert_query_dir)
+                             choices = choices,
+                             data_dir = data_dir,
+                             pert_query_dir = pert_query_dir)
 
 
-  # end of filenames for drug queries
-  fname_end <- reactive({
-    type <- selectedAnal$type()
-    sel <- selectedAnal$sel()
-    if (type$is_bulk) {
-      fname_end <- paste0(selectedAnal$bulk_name(), '_', selectedAnal$numsv(), 'svs')
-
-    } else if (type$is_sc) {
-      #TODO
-      fname_end <- selectedAnal$sc_name()
-
-    } else {
-      fname_end <- fs::path_sanitize(sel$label)
-
-    }
-    fname_end <- paste0(fname_end, '.rds')
-    return(fname_end)
-  })
 
 
-  # path to query results
-  res_paths <- reactive({
-    dataset_dir <- selectedAnal$dataset_dir()
-    fname_end <- fname_end()
 
-      list(
-        cmap = file.path(dataset_dir, paste0('cmap_res_', fname_end)),
-        l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', fname_end)),
-        l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', fname_end))
-      )
-  })
+  # if currently selected analysis is custom then show genes for query
+  custom_query <- callModule(customQueryForm, 'custom-query',
+                             show_custom = selectedAnal$show_custom,
+                             is_custom = selectedAnal$is_custom,
+                             anal_name = selectedAnal$anal_name,
+                             new_anal = new_anal,
+                             data_dir = data_dir)
 
-  observe({
-    print(res_paths())
-  })
 
-  # sc_inputs <- scSampleComparison(input, output, session,
-  #                                 data_dir = data_dir,
-  #                                 anal = querySignature$anal,
-  #                                 is_sc = is_sc,
-  #                                 input_ids = input_ids,
-  #                                 with_drugs = TRUE)
-  #
-  #
-  #
-  # # if currently selected analysis is custom then show genes
-  #
-  # custom_query <- callModule(customQueryForm, 'custom-query',
-  #                            show_custom = querySignature$show_custom,
-  #                            is_custom = is_custom,
-  #                            anal = querySignature$anal,
-  #                            new_anal = new_anal,
-  #                            data_dir = data_dir)
-  #
-  #
-  # # get saved cmap/l1000 query results
-  # observe({
-  #   disable('signature')
-  #   is_sc <- querySignature$is_sc()
-  #   is_pert <- querySignature$is_pert()
-  #   is_custom <- querySignature$is_custom()
-  #
-  #   if (is_sc)  {
-  #     res <- sc_inputs$results()
-  #
-  #   } else if (is_custom || is_pert) {
-  #     res_paths <- querySignature$res_paths()
-  #     res <- load_custom_results(res_paths, is_pert = is_pert)
-  #
-  #   } else {
-  #     res <- bulk_inputs$results()
-  #   }
-  #
-  #   cmap_res(res$cmap)
-  #   l1000_drugs_res(res$l1000_drugs)
-  #   l1000_genes_res(res$l1000_genes)
-  #
-  #   enable('signature')
-  # })
-  #
-  #
-  # drugStudy <- callModule(selectedDrugStudy, 'drug_study',
-  #                         anal = querySignature$anal,
-  #                         is_pert = is_pert)
-  #
-  #
-  #
-  # advancedOptions <- callModule(advancedOptions, 'advanced',
-  #                               cmap_res = cmap_res,
-  #                               l1000_res = l1000_res,
-  #                               drug_study = drugStudy$drug_study,
-  #                               show_advanced = drugStudy$show_advanced)
-  #
-  # pert_signature <- callModule(selectedPertSignature, 'genes',
-  #                              data_dir = data_dir,
-  #                              pert_signature_dir = pert_signature_dir,
-  #                              show_genes = drugStudy$show_genes,
-  #                              drug_study = drugStudy$drug_study,
-  #                              is_sc = is_sc,
-  #                              is_bulk = is_bulk,
-  #                              sc_inputs = sc_inputs,
-  #                              bulk_inputs = bulk_inputs,
-  #                              anal = querySignature$anal)
-  #
-  #
-  # query_res <- reactive({
-  #   drug_study <- drugStudy$drug_study()
-  #   cmap_res <- cmap_res()
-  #   l1000_drugs_res <- l1000_drugs_res()
-  #   l1000_genes_res <- l1000_genes_res()
-  #
-  #   if (drug_study == 'CMAP02') return(cmap_res)
-  #   else if (drug_study == 'L1000 Drugs') return(l1000_drugs_res)
-  #   else if (drug_study == 'L1000 Genetic') return(l1000_genes_res)
-  #
-  #   return(NULL)
-  # })
-  #
-  #
-  #
-  #
+  drugStudy <- callModule(selectedDrugStudy, 'drug_study',
+                          drug_queries = selectedAnal$drug_queries,
+                          is_pert = selectedAnal$is_pert)
+
+
+  advancedOptions <- callModule(advancedOptions, 'advanced',
+                                drug_study = drugStudy$drug_study,
+                                show_advanced = drugStudy$show_advanced)
+
+  pert_signature <- callModule(selectedPertSignature, 'genes',
+                               data_dir = data_dir,
+                               drug_queries = selectedAnal$drug_queries,
+                               pert_signature_dir = pert_signature_dir,
+                               show_genes = drugStudy$show_genes,
+                               drug_study = drugStudy$drug_study)
+
+
+  return(list(
+    top_table = selectedAnal$top_table,
+    pert_signature = pert_signature,
+    show_genes = drugStudy$show_genes,
+    drug_study = drugStudy$drug_study
+  ))
+
   # return(list(
   #   query_res = reactiveVal(),
   #   drug_study = drugStudy$drug_study,
@@ -261,19 +170,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   })
 
   # the type of dataset/analysis
-  type <- reactive({
-    type <- sel()$type
-    list(
-      is_bulk = type == 'Bulk Data',
-      is_sc = type == 'Single Cell',
-      is_custom = type == 'Custom',
-      is_pert = type == 'CMAP02/L1000 Perturbations'
-    )
-  })
+  is_bulk <- reactive(sel()$type == 'Bulk Data')
+  is_sc <- reactive(sel()$type == 'Single Cell')
+  is_custom <- reactive(sel()$type == 'Custom')
+  is_pert <- reactive(sel()$type == 'CMAP02/L1000 Perturbations')
+
 
   observe({
-    shinyjs::toggle('sc_clusters_container', condition = type()$is_sc)
-    shinyjs::toggle('bulk_groups_container', condition = type()$is_bulk)
+    shinyjs::toggle('sc_clusters_container', condition = is_sc())
+    shinyjs::toggle('bulk_groups_container', condition = is_bulk())
   })
 
 
@@ -286,10 +191,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
   # Bulk analysis
   # ---
-  fastq_dir <- reactive({
-    req(type()$is_bulk)
-    file.path(data_dir, sel()$dataset_dir)
-  })
+  fastq_dir <- reactive({req(is_bulk()); file.path(data_dir, sel()$dataset_dir)})
 
   eset  <- reactive(readRDS(file.path(fastq_dir(), 'eset.rds')))
   pdata <- reactive(readRDS(file.path(fastq_dir(), 'pdata_explore.rds')))
@@ -309,59 +211,95 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
                          svobj = svobj,
                          numsv = numsv,
                          fastq_dir = fastq_dir,
-                         type = type)
+                         is_bulk = is_bulk)
+
 
   # Single cell analysis
   # ---
-  sc_name <- reactive({
-    req(type()$is_sc)
-    sel()$value
-  })
+  # TODO: inputs to disable while running
+  input_ids <- ''
+  sc_name <- reactive({req(is_sc()); sel()$label})
+
   scAnal <- callModule(scAnal, 'drugs',
-                       data_dir,
-                       anal_name = sc_name
-                       )
+                       data_dir = data_dir,
+                       input_ids = input_ids,
+                       is_sc = is_sc,
+                       anal_name = sc_name,
+                       with_drugs = TRUE)
 
-  # TODO: get scAnal
 
-  # folder for selected dataset
-  dataset_dir <- reactive({
+  # results for selected type (bulk, sc, custom, pert)
+  drug_queries <- reactive({
     sel <- sel()
-    type <- type()
+    if (is_sc()) {
+      drug_queries <- scAnal$drug_queries()
 
-    if (type$is_pert) {
-      dataset_dir <- pert_query_dir
+    } else if (is_bulk()) {
+      drug_queries <- bulkAnal$drug_queries()
 
-    } else {
-      dataset_dir <- file.path(data_dir, sel$dataset_dir)
+    } else if (is_custom()) {
+      drug_paths <- get_drug_paths(sel$dataset_dir, sel$label)
+      drug_queries <- lapply(drug_paths, readRDS)
+
+    } else if (is_pert()) {
+      drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel$label))
+      drug_queries <- lapply(drug_paths, readRDS)
     }
 
-    return(dataset_dir)
+    return(drug_queries)
   })
 
+  top_table <- reactive({
+    if (is_sc()) {
+      top_table <- scAnal$top_table()
+
+    } else if (is_bulk()) {
+      top_table <- bulkAnal$top_table()
+
+    } else {
+      top_table <- NULL
+    }
+    return(top_table)
+  })
+
+
   return(list(
+    top_table = top_table,
     lm_fit = bulkAnal$lm_fit,
-    is_lmfit = bulkAnal$is_lmfit,
-    bulk_name = bulkAnal$name,
-    sc_name = scAnal$name,
-    numsv = numsv,
-    dataset_dir = dataset_dir,
-    sel = sel,
-    type = type
+    show_custom = show_custom,
+    drug_queries = drug_queries,
+    is_bulk = is_bulk,
+    is_sc = is_sc,
+    is_custom = is_custom,
+    is_pert = is_pert
   ))
 
 }
 
-scAnal <- function(input, output, session, data_dir, anal_name, with_drugs = FALSE, with_path = FALSE) {
+get_drug_paths <- function(data_dir, suffix) {
+  suffix <- paste0(suffix, '.rds')
+  list(
+    cmap = file.path(data_dir, paste0('cmap_res_', suffix)),
+    l1000_drugs = file.path(data_dir, paste0('l1000_drugs_res_', suffix)),
+    l1000_genes = file.path(data_dir, paste0('l1000_genes_res_', suffix))
+  )
+}
+
+#' Logic for single cell clusters selector for pathForm
+#' @export
+#' @keywords internal
+scAnal <- function(input, output, session, data_dir, anal_name, input_ids, with_path = FALSE, with_drugs = FALSE, is_sc = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-  # differential expression, pathway analyses, and drug queries
+  # differentialexpression, pathway analyses, and drug queries
   results <- reactiveVal()
 
   sc_dir <- reactive({
+    req(is_sc)
     file.path(data_dir, 'single-cell')
   })
 
+  # single cell dataset
   scseq <- reactive({
     scseq_path <- scseq_part_path(sc_dir(), anal_name(), 'scseq')
     readRDS(scseq_path)
@@ -374,54 +312,117 @@ scAnal <- function(input, output, session, data_dir, anal_name, with_drugs = FAL
   })
 
 
+  # update cluster choices in UI
   cluster_choices <- reactive({
     get_cluster_choices(clusters = annot(), anal_name(), sc_dir(), sample_comparison = TRUE)
   })
 
-
-  # update UI for contrast/cluster choices
   observeEvent(cluster_choices(), {
     updateSelectizeInput(session, 'selected_clusters',
                          choices = cluster_choices(),
                          options = contrast_options, server = TRUE)
   })
 
-  # reset results if change selected clusters
-  observeEvent(input$selected_clusters, {
-    result(NULL)
+  # disable run if nothing selected
+  observe({
+    toggleState('run_comparison', condition = length(input$selected_clusters))
+  })
+
+  # path to results
+  res_paths <- reactive({
+    dir <- file.path(sc_dir(), anal_name())
+    name <- collapse_sorted(input$selected_clusters)
+    name <- paste0(name, '.rds')
+
+    list(
+      anal = file.path(dir, paste0('diff_expr_symbol_scseq_', name)),
+      markers = file.path(dir, paste0('markers_', name)),
+      path = file.path(dir, paste0('diff_path_kegg_', name)),
+      cmap = file.path(dir, paste0('cmap_res_', name)),
+      l1000_drugs = file.path(dir, paste0('l1000_drugs_res_', name)),
+      l1000_genes = file.path(dir, paste0('l1000_genes_res_', name))
+    )
   })
 
 
   observeEvent(input$run_comparison, {
 
-    selected_clusters <- input$selected_clusters
-    req(selected_clusters)
-
     toggleAll(input_ids)
 
+    # load results if they exist
+    # won't load scseq (can be big) if so
+    res <- list()
+    fs  <- res_paths()
+    need <- c(with_path, with_drugs)
+    names(need) <- c('path', 'drugs')
+
+    if (with_path && file.exists(fs$path)) {
+      res$path <- readRDS(fs$path)
+      need['path'] <- FALSE
+    }
+
+    if (with_drugs && file.exists(fs$cmap)) {
+      res$cmap <- readRDS(fs$cmap)
+      res$l1000_drugs <- readRDS(fs$l1000_drugs)
+      res$l1000_genes <- readRDS(fs$l1000_genes)
+      need['drugs'] <- FALSE
+    }
+
+    # return results if complete
+    if (!any(need)) {results(res); return(NULL)}
+
+    # load (or run) differential expression analysis
     scseq <- scseq()
-    sc_dir <- sc_dir()
-    anal_name <- anal_name()
+    anal <- markers <- NULL
+    if (file.exists(fs$anal)) {
+      res$anal <- readRDS(fs$anal)
+      res$cluster_markers <- readRDS(fs$markers)
+
+    } else {
+      sc_dir <- sc_dir()
+      anal_name <- anal_name()
+      selected_clusters <- input$selected_clusters
+      res <- run_cluster_comparison(scseq, selected_clusters, sc_dir, anal_name)
+    }
+
+    # get ambient genes (used for pathways and drug queries)
+    ambient <- get_ambient(scseq = scseq,
+                           markers = res$anal$top_table,
+                           cluster_markers = res$cluster_markers)
+
+    # run pathway analysis
+    if (with_path && need['path'])
+      res <- run_path_comparison(scseq,
+                                 selected_clusters = selected_clusters,
+                                 sc_dir = sc_dir,
+                                 anal_name = anal_name,
+                                 res = res,
+                                 ambient = ambient)
+
+    # run drug queries
+    if (with_drugs && need['drugs'])
+      res <- run_drugs_comparison(res_paths = fs,
+                                  anal= res$anal,
+                                  session = session,
+                                  res = res,
+                                  ambient = ambient)
 
 
-    res <- run_comparison(scseq,
-                          selected_clusters = selected_clusters,
-                          sc_dir = sc_dir,
-                          anal_name = anal_name,
-                          session = session,
-                          with_path = with_path,
-                          with_drugs = with_drugs)
-
-
-    toggleAll(input_ids)
     results(res)
   })
+
+
+  return(list(
+    drug_queries = results,
+    clusters = reactive(input$selected_clusters)
+  ))
 }
+
 
 #' Logic for custom query form on Drugs page
 #' @export
 #' @keywords internal
-customQueryForm <- function(input, output, session, show_custom, is_custom, anal, new_anal, data_dir) {
+customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_anal, data_dir) {
 
   # setup choices and options
   choices <- data.frame(gene = c(genes$common, genes$cmap_only), stringsAsFactors = FALSE)
@@ -441,7 +442,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 
     # if current signature is custom, then load and show previously selected genes
     if (is_custom()) {
-      fname <- paste0('query_genes_', anal()$anal_name, '.rds')
+      fname <- paste0('query_genes_', anal_name(), '.rds')
       query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
       sel_up <- query_genes$up
       sel_dn <- query_genes$dn
@@ -459,12 +460,8 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
     custom_dir <- file.path(data_dir, 'custom_queries')
     if (!dir.exists(custom_dir)) dir.create(custom_dir)
 
-    list(
-      cmap = file.path(custom_dir, paste0('cmap_res_', custom_name, '.rds')),
-      l1000_drugs = file.path(custom_dir, paste0('l1000_drugs_res_', custom_name, '.rds')),
-      l1000_genes = file.path(custom_dir, paste0('l1000_genes_res_', custom_name, '.rds')),
-      query_genes = file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
-    )
+    res_paths <- get_drug_paths(custom_dir, custom_name)
+    res_paths$query_genes <- file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
   })
 
 
@@ -498,43 +495,35 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 #' Logic for selected drug study in drugsForm
 #' @export
 #' @keywords internal
-selectedDrugStudy <- function(input, output, session, anal, is_pert) {
+selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 
-  drug_study <- reactive(input$study)
 
-  # boolean for advanced options
-  show_advanced <- reactive({
-    input$advanced %% 2 != 0
-  })
+  # toggle display of perturbation study inputs
+  have_queries <- reactive(isTruthy(drug_queries()))
+  observe(toggle('study_container', condition = have_queries()))
 
-  show_genes <- reactive({
-    input$show_genes %% 2 != 0
-  })
-
-  observe({
-    req(anal())
-    choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
-                          subset = c('drugs', 'drugs', 'genetic'),
-                          value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
-                          stringsAsFactors = FALSE)
-
-    prev_selected <- isolate(input$study)
-    if (prev_selected == '') prev_selected <- NULL
-
-    updateSelectizeInput(session, 'study', choices = choices, selected = prev_selected,
-                         options = list(render = I('{option: studyOption, item: studyItem}')), server = TRUE)
-  })
-
-  # toggle for clinical status
-  show_clinical <- reactive({
-    input$clinical %% 2 != 0
-  })
-
+  # show advanced options,  clinical only results, and gene plots
+  show_advanced <- reactive(input$advanced %% 2 != 0)
+  show_clinical <- reactive(input$clinical %% 2 != 0)
+  show_genes <- reactive(input$show_genes %% 2 != 0)
 
   observe({
     toggleClass('advanced', 'btn-primary', condition = show_advanced())
     toggleClass('clinical', 'btn-primary', condition = show_clinical())
     toggleClass('show_genes', 'btn-primary', condition = show_genes())
+  })
+
+  # show pert study choices
+  choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
+                        subset = c('drugs', 'drugs', 'genetic'),
+                        value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
+                        stringsAsFactors = FALSE)
+
+
+  observe({
+    req(have_queries())
+    updateSelectizeInput(session, 'study', choices = choices,
+                         options = list(render = I('{option: studyOption, item: studyItem}')), server = TRUE)
   })
 
 
@@ -556,15 +545,17 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
   observe(updateActionButton(session, 'direction', icon = icon(direction_icon(), 'fa-fw')))
 
   # disable buttons based on genetic/pert
-  is_genetic <- reactive(drug_study() == 'L1000 Genetic')
+  is_genetic <- reactive(input$study == 'L1000 Genetic')
 
   # sort by absolute if either is genetic or is CMAP/L1000 pert
-  observe(toggle('direction-parent', condition = is_genetic() | is_pert()))
-  observe(toggle('clinical-parent', condition = !is_genetic()))
+  observe({
+    toggle('direction-parent', condition = is_genetic() | is_pert())
+    toggle('clinical-parent', condition = !is_genetic())
+  })
 
 
   return(list(
-    drug_study = drug_study,
+    drug_study = reactive(input$study),
     show_clinical = show_clinical,
     show_advanced = show_advanced,
     show_genes = show_genes,
@@ -577,10 +568,10 @@ selectedDrugStudy <- function(input, output, session, anal, is_pert) {
 #' Logic for advanced options in drugsForm
 #' @export
 #' @keywords internal
-advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_study, show_advanced) {
+advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 
   # update choices for cell lines based on selected study
-  cell_choices <- shiny::reactive({
+  cell_choices <- reactive({
     req(drug_study())
     get_cell_choices(drug_study())
   })
@@ -604,10 +595,10 @@ advancedOptions <- function(input, output, session, cmap_res, l1000_res, drug_st
 
 }
 
-#' Logic for advanced options in drugsForm
+#' Logic for showing pert selection for gene plot
 #' @export
 #' @keywords internal
-selectedPertSignature <- function(input, output, session, data_dir, pert_signature_dir, drug_study, show_genes, sc_inputs, bulk_inputs, is_sc, is_bulk, anal) {
+selectedPertSignature <- function(input, output, session, data_dir, drug_queries, pert_signature_dir, drug_study, show_genes) {
 
 
   # toggle showing genes plotly inputs
@@ -615,83 +606,25 @@ selectedPertSignature <- function(input, output, session, data_dir, pert_signatu
     toggle('pert_container', condition = show_genes())
   })
 
-  # file paths to pathway, analysis, and drug query results
-  custom_fpaths <- reactive({
-    anal <- anal()
-    is_sc <- is_sc()
-    is_bulk <- is_bulk()
+  # order pert choices same as in drugs
+  type <- reactive(switch(drug_study(),
+                          'CMAP02' = 'cmap',
+                          'L1000 Drugs' = 'l1000_drugs',
+                          'L1000 Genetic' = 'l1000_genes'))
 
-    if (is_sc | is_bulk) {
-      return(NULL)
-    }
+  sorted_query <- reactive({
+    queries <- drug_queries()
+    type <- type()
+    req(type)
 
-    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
-    anal_name <- anal$anal_name
-
-    list(
-      anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      cmap = file.path(dataset_dir, paste0('cmap_res_', anal_name, '.rds')),
-      l1000_drugs = file.path(dataset_dir, paste0('l1000_drugs_res_', anal_name, '.rds')),
-      l1000_genes = file.path(dataset_dir, paste0('l1000_genes_res_', anal_name, '.rds'))
-    )
-  })
-
-  # load analysis results
-  diffs <- reactive({
-    fpaths <- custom_fpaths()
-    if (is_sc()) return (sc_inputs$results())
-    if (is_bulk()) return (bulk_inputs$results())
-
-    list(anal = readRDS(fpaths$anal))
-  })
-
-  # load drug/genetic query results
-  queries <- reactive({
-    fpaths <- custom_fpaths()
-
-    if (is_sc()) {
-      sc_res <- sc_inputs$res()
-      req(sc_res)
-
-      cmap <- sc_res$cmap
-      l1000_genes <- sc_res$l1000_genes
-      l1000_drugs <- sc_res$l1000_drugs
-
-    } else if (is_bulk()) {
-      bulk_res <- bulk_inputs$res()
-      req(bulk_res)
-
-      cmap <- bulk_res$cmap
-      l1000_genes <- bulk_res$l1000_genes
-      l1000_drugs <- bulk_res$l1000_drugs
-
-    } else {
-      res <- run_drugs_comparison(fpaths, session)
-      cmap <- res$cmap
-      l1000_genes <- res$l1000_genes
-      l1000_drugs <- res$l1000_drugs
-    }
-
-    # order pert choices same as in drugs
-    list(
-      cmap = sort(cmap),
-      l1000_drugs = sort(l1000_drugs),
-      l1000_genes = l1000_genes[order(abs(l1000_genes), decreasing = TRUE)]
-    )
-
-  })
-
-  pert_type <- reactive({
-    drug_study <- drug_study()
-    req(drug_study)
-    if (drug_study == 'CMAP02') return('cmap')
-    ifelse(drug_study == 'L1000 Drugs', 'l1000_drugs', 'l1000_genes')
+    q <- queries[[type]]
+    if(type == 'l1000_genes') q[order(abs(q), decreasing = TRUE)] else sort(q)
   })
 
   pert <- callModule(drugsPert,
                      'pert',
-                     queries = queries,
-                     pert_type = pert_type,
+                     query = sorted_query,
+                     pert_type = type,
                      pert_signature_dir = pert_signature_dir)
 
 
@@ -909,25 +842,13 @@ drugsTable <- function(input, output, session, query_res, drug_study, cells, sho
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsGenesPlotly <- function(input, output, session, data_dir, anal, is_sc, sc_inputs, drug_study, show_genes, pert_signature) {
+drugsGenesPlotly <- function(input, output, session, data_dir, top_table, drug_study, show_genes, pert_signature) {
 
   #  toggle  showing genes plotly
   shiny::observe({
     toggle('container', condition = show_genes(), anim = TRUE)
   })
 
-  # load pathway and analysis results
-  diffs <- reactive({
-    anal <- anal()
-    if (is_sc()) return (sc_inputs$results())
-
-    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
-    anal_name <- anal$anal_name
-
-    list(
-      anal = readRDS(file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')))
-    )
-  })
 
   path_id <- reactive({
     study <- drug_study()
@@ -939,14 +860,13 @@ drugsGenesPlotly <- function(input, output, session, data_dir, anal, is_sc, sc_i
   # the gene plot
   pl <- reactive({
 
-    diffs <- diffs()
+    top_table <- top_table()
     path_id <- path_id()
-    anal <- diffs$anal
 
-    req(path_id, anal)
+    req(path_id, top_table)
 
     pert_signature <- pert_signature()
-    path_df <- get_path_df(anal, path_id, pert_signature)
+    path_df <- get_path_df(top_table, path_id, pert_signature)
 
     # so that still shows hover if no sd
     path_df$sd[is.na(path_df$sd)] <- 'NA'
@@ -1016,44 +936,35 @@ drugsGenesPlotly <- function(input, output, session, data_dir, anal, is_sc, sc_i
 #' Logic for perturbation selection in Pathways tab
 #' @export
 #' @keywords internal
-drugsPert <- function(input, output, session, pert_type, queries, pert_signature_dir) {
+drugsPert <- function(input, output, session, pert_type, query, pert_signature_dir) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
+  pert_choices <- reactive({
+    query <- query()
 
-
-
-  sorted_query <- reactive({
-
-    queries <- queries()
-    pert_type <- pert_type()
-    req(pert_type)
-
-    query_res <- queries[[pert_type]]
-
-    query_res <- data.frame(
-      label = gsub('_-700-666.0_\\d+h$', '', names(query_res)),
-      value = names(query_res),
-      cor = format(round(query_res, digits = 3)), stringsAsFactors = FALSE
+    pert_choices <- data.frame(
+      label = gsub('_-700-666.0_\\d+h$', '', names(query)),
+      value = names(query),
+      cor = format(round(query, digits = 3)), stringsAsFactors = FALSE
     )
-    return(query_res)
+    return(pert_choices)
   })
-
 
   # update pert signature choices
   observe({
     updateSelectizeInput(session,
                          'pert',
-                         choices = rbind(rep(NA, 3), sorted_query()),
+                         choices = rbind(rep(NA, 3), pert_choices()),
                          options = pert_options,
                          server = TRUE)
   })
 
   # load signature for pert
+  # allow empty signature if just want to show query genes
   pert_signature <- reactive({
     pert <- input$pert
-    pert_type <- pert_type()
-    if (pert == '' | is.null(pert)) return(NULL)
-    load_pert_signature(pert, pert_type, pert_signature_dir)
+    if (is.null(pert) || pert == '') return(NULL)
+    load_pert_signature(pert, pert_type(), pert_signature_dir)
   })
 
 

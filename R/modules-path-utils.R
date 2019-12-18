@@ -73,13 +73,7 @@ construct_path_df <- function(top_table) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(anal, path_id = NULL, pert_signature = NULL, nmax = 200) {
-
-  # add dprimes and vardprime values
-
-  anal <- add_es(anal, groups = anal$groups)
-  top_table <- anal$top_table
-  top_table <- top_table[order(abs(top_table$dprime), decreasing = TRUE), ]
+get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200) {
 
   # only show pathway if in kegg
   if (path_id %in% names(gslist.kegg)) {

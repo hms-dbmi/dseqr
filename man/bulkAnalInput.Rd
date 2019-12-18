@@ -4,7 +4,11 @@
 \alias{bulkAnalInput}
 \title{Bulk Differential expression analysis input}
 \usage{
-bulkAnalInput(id, with_dl = TRUE)
+bulkAnalInput(
+  id,
+  with_dl = TRUE,
+  run_title = "Run differential expression analysis"
+)
 }
 \description{
 Bulk Differential expression analysis input

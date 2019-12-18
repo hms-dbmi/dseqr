@@ -37,6 +37,47 @@ drugsPageUI <- function(id, tab, active) {
   })
 }
 
+#' Input form for Drugs page
+#' @export
+#' @keywords internal
+drugsFormInput <- function(id) {
+  ns <- NS(id)
+
+  withTags({
+    div(class = "well-form well-bg",
+        selectedAnalInput(ns('anal')),
+        customQueryFormInput(ns('custom-query')),
+        selectedDrugStudyInput(ns('drug_study')),
+        div(class = 'hidden-forms',
+            advancedOptionsInput(ns('advanced')),
+            selectedPertSignatureInput(ns('genes'))
+        )
+
+    )
+  })
+}
+
+#' Analysis input for Drugs and Pathways page
+#' @export
+#' @keywords internal
+selectedAnalInput <- function(id) {
+  ns <- NS(id)
+
+  tagList(
+    selectizeInputWithButtons(id = ns('query'), label = 'Select dataset or query signature:',
+                              shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
+                              options = list(optgroupField = 'type')),
+    tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
+             scAnalInput(ns)
+    ),
+    tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
+             bulkAnalInput(ns('drugs'), with_dl = FALSE)
+    )
+  )
+
+}
+
+
 #' UI for query/drug genes plotly
 #' @export
 #' @keywords internal
@@ -66,28 +107,6 @@ drugsTableOutput <- function(id) {
   })
 }
 
-#' Input form for Drugs page
-#' @export
-#' @keywords internal
-drugsFormInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(class = "well-form well-bg",
-        querySignatureInput(ns('signature')),
-        tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-                 scSampleComparisonInput(ns)
-        ),
-        customQueryFormInput(ns('custom-query')),
-        selectedDrugStudyInput(ns('drug_study')),
-        div(class = 'hidden-forms',
-            advancedOptionsInput(ns('advanced')),
-            selectedPertSignatureInput(ns('genes'))
-        )
-
-    )
-  })
-}
 
 #' UI for seperate drugsPertInput for CMAP/L1000
 #' @export
@@ -145,13 +164,13 @@ customQueryFormInput <- function(id) {
 }
 
 
-#' Input for Single Cell sample comparison
+#' Input for Single Cell analysis
 #'
 #' Used in both Drugs and Pathways tab
 #'
 #' @export
 #' @keywords internal
-scSampleComparisonInput <- function(ns) {
+scAnalInput <- function(ns) {
 
   button <- actionButton(ns('run_comparison'), '',
                          icon = icon('chevron-right', 'far fa-fw'),
@@ -162,17 +181,6 @@ scSampleComparisonInput <- function(ns) {
                             button,
                             options = list(multiple = TRUE))
 
-}
-
-#' Query signature input for Drugs page
-#' @export
-#' @keywords internal
-querySignatureInput <- function(id) {
-  ns <- NS(id)
-
-  selectizeInputWithButtons(id = ns('query'), label = 'Select query signature:',
-                            shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
-                            options = list(optgroupField = 'type'))
 }
 
 #' advanced options input for drugs page

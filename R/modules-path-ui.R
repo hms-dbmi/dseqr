@@ -29,8 +29,8 @@ pathFormInput <- function(id) {
 
   tags$div(class = "well-form well-bg",
            selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField = 'type')),
-           tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-                    scSampleComparisonInput(ns)
+           tags$div(id = ns('sc_clusters_container'), style = 'display: none;'
+                    # scSampleComparisonInput(ns)
            ),
            selectizeInputWithButtons(ns('pathway'),
                                      label = 'Select a pathway:',
@@ -44,7 +44,7 @@ pathFormInput <- function(id) {
 #' Input for single cell clusters in pathFormInput
 #' @export
 #' @keywords internal
-scSampleComparisonInput <- function(ns) {
+scAnalInput <- function(ns) {
 
   button <- actionButton(ns('run_comparison'), '',
                          icon = icon('chevron-right', 'far fa-fw'),

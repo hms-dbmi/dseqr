@@ -4,13 +4,13 @@
 \alias{add_es}
 \title{Add metaMA effectsize values to top table.}
 \usage{
-add_es(diff_exprs, cols = c("dprime", "vardprime"), groups = c("test", "ctrl"))
+add_es(tt, ebfit, cols = c("dprime", "vardprime"), groups = c("test", "ctrl"))
 }
 \arguments{
-\item{diff_exprs}{Result from call to \code{\link{diff_expr}}.}
-
 \item{cols}{Columns from \code{\link[metaMA]{effectsize}} result to add to
 top table.}
+
+\item{diff_exprs}{Result from call to \code{\link{diff_expr}}.}
 }
 \value{
 diff_exprs with specified columns added to top_table.

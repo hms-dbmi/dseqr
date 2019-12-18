@@ -4,15 +4,15 @@
 \alias{get_path_df}
 \title{Get data.frame for plotting gene expression values of a pathway}
 \usage{
-get_path_df(anal, path_id = NULL, pert_signature = NULL, nmax = 200)
+get_path_df(top_table, path_id = NULL, pert_signature = NULL, nmax = 200)
 }
 \arguments{
-\item{anal}{Result of call to \code{\link{diff_expr_scseq}}.}
-
 \item{path_id}{String with KEGG pathway id.}
 
 \item{nmax}{Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200
 so that all drug and genetic query genes are shown.}
+
+\item{anal}{Result of call to \code{\link{diff_expr_scseq}}.}
 
 \item{path_genes}{Character vector of custom genes to construct pathway data.frame for.}
 }

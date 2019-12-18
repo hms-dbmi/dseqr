@@ -9,14 +9,16 @@ bulkAnal(
   output,
   session,
   pdata,
+  dataset_name,
   eset,
   numsv,
   svobj,
   fastq_dir,
-  dl_content,
-  dl_fname,
-  enable_dl
+  is_bulk = function() TRUE
 )
+}
+\value{
+list with name, lm_fit, and is_lmfit
 }
 \description{
 Logic for bulk data analyses

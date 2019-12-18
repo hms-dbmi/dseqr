@@ -767,70 +767,7 @@ get_scseq_assay <- function(scseq) {
 }
 
 
-#' Run genes and pathways test vs ctrl scseq comparisons
-#'
-#' Used in Single Cell tab (no pathway analysis) and Pathways tab (with pathway analysis).
-#'
-#' @param scseq \code{Suerat} object
-#' @param selected_clusters the selected clusters in \code{Seurat::Idents(scseq)}
-#' @param sc_dir Path to directory with single cell analysis folders.
-#' @param anal_name Name of analysis. A directory in \code{sc_dir}.
-#' @param session Shiny session object used for progress bar.
-#' @param with_path Boolean to include pathway analysis or not.
-#' @param with_drugs Boolean to include drug query results or not.
-#'
-#' @return Named list with names. \code{anal} \code{cluster_markers} and optionally \code{path}.
-#' @export
-#' @keywords internal
-run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, session, with_path = FALSE, with_drugs = FALSE) {
-
-
-  # paths to where results are/will be saved
-  clusters_name <- collapse_sorted(selected_clusters)
-
-  res_paths <- list(
-    anal = scseq_part_path(sc_dir, anal_name, paste0('diff_expr_symbol_scseq_', clusters_name)),
-    markers = scseq_part_path(sc_dir, anal_name, paste0('markers_', clusters_name)),
-    cmap = scseq_part_path(sc_dir, anal_name, paste0('cmap_res_', clusters_name)),
-    l1000_drugs = scseq_part_path(sc_dir, anal_name, paste0('l1000_drugs_res_', clusters_name)),
-    l1000_genes = scseq_part_path(sc_dir, anal_name, paste0('l1000_genes_res_', clusters_name))
-  )
-
-  # run differential expression analysis
-  # also get markers of cluster to exclude from ambient
-  res <- run_cluster_comparison(scseq,
-                                selected_clusters = selected_clusters,
-                                sc_dir = sc_dir,
-                                anal_name = anal_name,
-                                res_paths = res_paths)
-
-  # get ambient genes (used for pathways and drug queries)
-  ambient <- get_ambient(scseq,
-                         markers = res$anal$top_table,
-                         cluster_markers = res$cluster_markers)
-
-  # run pathway analysis
-  if (with_path)
-    res <- run_path_comparison(scseq,
-                               selected_clusters = selected_clusters,
-                               sc_dir = sc_dir,
-                               anal_name = anal_name,
-                               res = res,
-                               ambient = ambient)
-
-  # run drug queries
-  if (with_drugs)
-    res <- run_drugs_comparison(res_paths = res_paths,
-                                session = session,
-                                res = res,
-                                ambient = ambient)
-
-
-  return(res)
-}
-
-
-#' Run drugs comparison
+#' Run drug queries
 #'
 #' Used by run_comparison
 #'
@@ -843,48 +780,38 @@ run_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, session,
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #' @export
 #' @keywords internal
-run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NULL) {
+run_drug_queries <- function(top_table, res_paths, session, res = list(), ambient = NULL) {
 
-  # load if available
-  if (file.exists(res_paths$l1000_drugs)) {
-    res$cmap <- readRDS(res_paths$cmap)
-    res$l1000_drugs <- readRDS(res_paths$l1000_drugs)
-    res$l1000_genes <- readRDS(res_paths$l1000_genes)
+  progress <- Progress$new(session, min = 0, max = 4)
+  progress$set(message = "Querying drugs", value = 1)
+  on.exit(progress$close())
 
-  } else {
+  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+  l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+  l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 
-    progress <- Progress$new(session, min = 0, max = 4)
-    progress$set(message = "Querying drugs", value = 1)
-    on.exit(progress$close())
+  cmap_es  <- readRDS(cmap_path)
+  progress$inc(1)
+  l1000_drugs_es <- readRDS(l1000_drugs_path)
+  l1000_genes_es <- readRDS(l1000_genes_path)
+  progress$inc(1)
 
-    cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+  # get dprime effect size values for analysis
+  dprimes <- get_dprimes(top_table)
 
-    cmap_es  <- readRDS(cmap_path)
-    progress$inc(1)
-    l1000_drugs_es <- readRDS(l1000_drugs_path)
-    l1000_genes_es <- readRDS(l1000_genes_path)
-    progress$inc(1)
+  # exclude ambient (for single cell only)
+  dprimes <- dprimes[!names(dprimes) %in% ambient]
 
+  # get correlations between query and drug signatures
+  res$cmap <- query_drugs(dprimes, cmap_es)
+  res$l1000_drugs <- query_drugs(dprimes, l1000_drugs_es)
+  res$l1000_genes <- query_drugs(dprimes, l1000_genes_es)
+  progress$inc(1)
 
-    # get dprime effect size values for analysis
-    anal <- readRDS(res_paths$anal)
-    dprimes <- get_dprimes(anal)
+  saveRDS(res$cmap, res_paths$cmap)
+  saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
+  saveRDS(res$l1000_genes, res_paths$l1000_genes)
 
-    # exclude ambient (for single cell only)
-    dprimes <- dprimes[!names(dprimes) %in% ambient]
-
-    # get correlations between query and drug signatures
-    res$cmap <- query_drugs(dprimes, cmap_es)
-    res$l1000_drugs <- query_drugs(dprimes, l1000_drugs_es)
-    res$l1000_genes <- query_drugs(dprimes, l1000_genes_es)
-    progress$inc(1)
-
-    saveRDS(res$cmap, res_paths$cmap)
-    saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
-    saveRDS(res$l1000_genes, res_paths$l1000_genes)
-  }
   return(res)
 }
 
@@ -903,39 +830,28 @@ run_drugs_comparison <- function(res_paths, session, res = list(), ambient = NUL
 #' @return List with slots \code{'markers'} and \code{'anal'} containing results for markers of
 #'  cells in \code{selected_clusters} and differential expression analysis comparing test to control
 #'  cells in \code{selected_clusters}.
-run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res_paths) {
+run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name) {
 
   clusters_name <- collapse_sorted(selected_clusters)
   clusters <- as.character(Seurat::Idents(scseq))
   in.sel <- clusters %in% selected_clusters
 
+  new.idents <- clusters
+  new.idents[in.sel] <- 'ident.1'
+  Seurat::Idents(scseq) <- factor(new.idents)
 
-  if (file.exists(res_paths$markers)) {
-    cluster_markers <- readRDS(res_paths$markers)
+  cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
 
-  } else {
+  fname <- paste0("markers_", clusters_name, '.rds')
+  fpath <- file.path(sc_dir, anal_name, fname)
+  saveRDS(cluster_markers, fpath)
 
-    new.idents <- clusters
-    new.idents[in.sel] <- 'ident.1'
-    Seurat::Idents(scseq) <- factor(new.idents)
-
-    cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
-    saveRDS(cluster_markers, res_paths$markers)
-  }
-
-  # get markers for test group
-  if (file.exists(res_paths$anal)) {
-    anal <- readRDS(res_paths$anal)
-
-  } else {
-
-    Seurat::Idents(scseq) <- scseq$orig.ident
-    scseq <- scseq[, in.sel]
-    anal <- diff_expr_scseq(scseq = scseq,
-                            data_dir = sc_dir,
-                            anal_name = anal_name,
-                            clusters_name = clusters_name)
-  }
+  Seurat::Idents(scseq) <- scseq$orig.ident
+  scseq <- scseq[, in.sel]
+  anal <- diff_expr_scseq(scseq = scseq,
+                          data_dir = sc_dir,
+                          anal_name = anal_name,
+                          clusters_name = clusters_name)
 
   res <- list(
     cluster_markers = cluster_markers,

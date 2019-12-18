@@ -123,10 +123,12 @@ fit_lm <- function(eset, data_dir, svobj = list(sv = NULL), numsv = 0, rna_seq =
 #'
 #' @return result of \link[limma]{topTable}
 #' @export
-get_top_table <- function(lm_fit, contrast) {
+get_top_table <- function(lm_fit, groups) {
+  contrast <- paste(groups[1], groups[2], sep = '-')
   ebfit <- fit_ebayes(lm_fit, contrast)
-  top_table <- limma::topTable(ebfit, coef = contrast, n = Inf)
-  return(top_table)
+  tt <- limma::topTable(ebfit, coef = contrast, n = Inf)
+  tt <- add_es(tt, ebfit, groups = groups)
+  return(tt)
 }
 
 #' Add expression data adjusted for pairs/surrogate variables
