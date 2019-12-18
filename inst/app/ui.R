@@ -68,7 +68,7 @@ selectedAnalInput <- function(id) {
                               shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
                               options = list(optgroupField = 'type')),
     tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-             scSampleComparisonInput(ns)
+             scAnalInput(ns)
     ),
     tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
              bulkAnalInput(ns('drugs'), with_dl = FALSE)
@@ -164,13 +164,13 @@ customQueryFormInput <- function(id) {
 }
 
 
-#' Input for Single Cell sample comparison
+#' Input for Single Cell analysis
 #'
 #' Used in both Drugs and Pathways tab
 #'
 #' @export
 #' @keywords internal
-scSampleComparisonInput <- function(ns) {
+scAnalInput <- function(ns) {
 
   button <- actionButton(ns('run_comparison'), '',
                          icon = icon('chevron-right', 'far fa-fw'),

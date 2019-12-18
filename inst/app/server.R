@@ -89,11 +89,12 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
 
   # end of filenames for drug queries
   fname_end <- reactive({
+    type <- selectedAnal$type()
     sel <- selectedAnal$sel()
-    if (selectedAnal$is_bulk()) {
+    if (type$is_bulk) {
       fname_end <- paste0(selectedAnal$bulk_name(), '_', selectedAnal$numsv(), 'svs')
 
-    } else if (selectedAnal$is_sc()) {
+    } else if (type$is_sc) {
       #TODO
       fname_end <- selectedAnal$sc_name()
 
@@ -106,8 +107,7 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
   })
 
 
-
-  # paths to drug query results once they exist
+  # path to query results
   res_paths <- reactive({
     dataset_dir <- selectedAnal$dataset_dir()
     fname_end <- fname_end()
@@ -123,9 +123,6 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
     print(res_paths())
   })
 
-  #
-  # input_ids <- c('run_comparison', 'selected_clusters')
-  #
   # sc_inputs <- scSampleComparison(input, output, session,
   #                                 data_dir = data_dir,
   #                                 anal = querySignature$anal,
@@ -264,15 +261,19 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   })
 
   # the type of dataset/analysis
-  is_bulk <- reactive(sel()$type == 'Bulk Data')
-  is_sc <- reactive(sel()$type == 'Single Cell')
-  is_custom <- reactive(sel()$type == 'Custom')
-  is_pert <- reactive(sel()$type == 'CMAP02/L1000 Perturbations')
-
+  type <- reactive({
+    type <- sel()$type
+    list(
+      is_bulk = type == 'Bulk Data',
+      is_sc = type == 'Single Cell',
+      is_custom = type == 'Custom',
+      is_pert = type == 'CMAP02/L1000 Perturbations'
+    )
+  })
 
   observe({
-    shinyjs::toggle('sc_clusters_container', condition = is_sc())
-    shinyjs::toggle('bulk_groups_container', condition = is_bulk())
+    shinyjs::toggle('sc_clusters_container', condition = type()$is_sc)
+    shinyjs::toggle('bulk_groups_container', condition = type()$is_bulk)
   })
 
 
@@ -286,7 +287,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   # Bulk analysis
   # ---
   fastq_dir <- reactive({
-    req(is_bulk())
+    req(type()$is_bulk)
     file.path(data_dir, sel()$dataset_dir)
   })
 
@@ -308,14 +309,27 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
                          svobj = svobj,
                          numsv = numsv,
                          fastq_dir = fastq_dir,
-                         is_bulk = is_bulk)
+                         type = type)
+
+  # Single cell analysis
+  # ---
+  sc_name <- reactive({
+    req(type()$is_sc)
+    sel()$value
+  })
+  scAnal <- callModule(scAnal, 'drugs',
+                       data_dir,
+                       anal_name = sc_name
+                       )
 
   # TODO: get scAnal
 
   # folder for selected dataset
   dataset_dir <- reactive({
     sel <- sel()
-    if (is_pert()) {
+    type <- type()
+
+    if (type$is_pert) {
       dataset_dir <- pert_query_dir
 
     } else {
@@ -329,15 +343,79 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     lm_fit = bulkAnal$lm_fit,
     is_lmfit = bulkAnal$is_lmfit,
     bulk_name = bulkAnal$name,
+    sc_name = scAnal$name,
     numsv = numsv,
     dataset_dir = dataset_dir,
     sel = sel,
-    is_bulk = is_bulk,
-    is_sc = is_sc,
-    is_custom = is_custom,
-    is_pert = is_pert
+    type = type
   ))
 
+}
+
+scAnal <- function(input, output, session, data_dir, anal_name, with_drugs = FALSE, with_path = FALSE) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  # differential expression, pathway analyses, and drug queries
+  results <- reactiveVal()
+
+  sc_dir <- reactive({
+    file.path(data_dir, 'single-cell')
+  })
+
+  scseq <- reactive({
+    scseq_path <- scseq_part_path(sc_dir(), anal_name(), 'scseq')
+    readRDS(scseq_path)
+  })
+
+  # TODO: update if annotation change from Single Cell tab
+  annot <- reactive({
+    annot_path <- scseq_part_path(sc_dir(), anal_name(), 'annot')
+    readRDS(annot_path)
+  })
+
+
+  cluster_choices <- reactive({
+    get_cluster_choices(clusters = annot(), anal_name(), sc_dir(), sample_comparison = TRUE)
+  })
+
+
+  # update UI for contrast/cluster choices
+  observeEvent(cluster_choices(), {
+    updateSelectizeInput(session, 'selected_clusters',
+                         choices = cluster_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+
+  # reset results if change selected clusters
+  observeEvent(input$selected_clusters, {
+    result(NULL)
+  })
+
+
+  observeEvent(input$run_comparison, {
+
+    selected_clusters <- input$selected_clusters
+    req(selected_clusters)
+
+    toggleAll(input_ids)
+
+    scseq <- scseq()
+    sc_dir <- sc_dir()
+    anal_name <- anal_name()
+
+
+    res <- run_comparison(scseq,
+                          selected_clusters = selected_clusters,
+                          sc_dir = sc_dir,
+                          anal_name = anal_name,
+                          session = session,
+                          with_path = with_path,
+                          with_drugs = with_drugs)
+
+
+    toggleAll(input_ids)
+    results(res)
+  })
 }
 
 #' Logic for custom query form on Drugs page

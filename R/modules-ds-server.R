@@ -717,7 +717,7 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' @export
 #' @keywords internal
 #' @return list with name, lm_fit, and is_lmfit
-bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_dir, dl_content = NULL, dl_fname = NULL, enable_dl = function(){FALSE}, is_bulk = function(){TRUE}) {
+bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_dir, dl_content = NULL, dl_fname = NULL, enable_dl = function(){FALSE}, type = function(){list(is_bulk = TRUE)}) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
 
   anal_name <- reactive({
@@ -748,7 +748,7 @@ bulkAnal <- function(input, output, session, pdata, eset, numsv, svobj, fastq_di
 
   # group levels used for selecting test and control groups
   group_levels <- reactive({
-    req(is_bulk())
+    req(type()$is_bulk)
     pdata <- pdata()
     group <- pdata$`Group name`
     group_order <- order(unique(pdata$Group))
