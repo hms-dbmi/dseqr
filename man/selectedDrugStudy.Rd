@@ -4,7 +4,7 @@
 \alias{selectedDrugStudy}
 \title{Logic for selected drug study in drugsForm}
 \usage{
-selectedDrugStudy(input, output, session, anal, is_pert)
+selectedDrugStudy(input, output, session, drug_queries, is_pert)
 }
 \description{
 Logic for selected drug study in drugsForm

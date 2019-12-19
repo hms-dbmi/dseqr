@@ -91,7 +91,6 @@ dsDatasetInput <- function(id) {
 }
 
 
-
 #' Dataset quantification inputs for dsFormInput
 #' @export
 #' @keywords internal
@@ -150,27 +149,6 @@ dsFormAnalInput <- function(id) {
 }
 
 
-#' Bulk Differential expression analysis input
-#' @export
-#' @keywords internal
-bulkAnalInput <- function(id, with_dl = TRUE, run_title = 'Run differential expression analysis') {
-  ns <- NS(id)
-
-  dl_btn <- NULL
-  if (with_dl)
-    dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression results')
-
-  selectizeInputWithButtons(
-    ns('contrast_groups'),
-    'Select groups to compare:',
-    dl_btn,
-    actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = run_title),
-    options = list(maxItems = 2, placeholder = 'Select test then control group'),
-    container_id = ns('run_anal_container')
-  )
-}
-
-
 #' Button with sliders for adjusting number of surrogate variables
 #' @export
 #' @keywords internal
@@ -186,7 +164,6 @@ svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
     title = 'Number of surrogate variables to model'
   )
 }
-
 
 
 #' Tables for datasets page
@@ -220,3 +197,5 @@ dtangleFormInput <- function(id) {
     )
   })
 }
+
+

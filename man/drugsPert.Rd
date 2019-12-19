@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{drugsPert}
 \alias{drugsPert}
-\title{Logic for perturbation selection in Pathways tab}
+\title{Logic for perturbation selection}
 \usage{
-drugsPert(input, output, session, pert_type, queries, pert_signature_dir)
+drugsPert(input, output, session, query_type, query, pert_signature_dir)
 }
 \description{
-Logic for perturbation selection in Pathways tab
+Logic for perturbation selection
 }
 \keyword{internal}

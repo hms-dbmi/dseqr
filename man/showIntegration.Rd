@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{showIntegration}
 \alias{showIntegration}
-\title{Logic for show integration button in selectedAnal}
+\title{Logic for show integration button}
 \usage{
 showIntegration(input, output, session)
 }
 \description{
-Logic for show integration button in selectedAnal
+Logic for show integration button
 }
 \keyword{internal}

@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{showLabelTransfer}
 \alias{showLabelTransfer}
-\title{Logic for show label transfer button in selectedAnal}
+\title{Logic for show label transfer button}
 \usage{
 showLabelTransfer(input, output, session)
 }
 \description{
-Logic for show label transfer button in selectedAnal
+Logic for show label transfer button
 }
 \keyword{internal}

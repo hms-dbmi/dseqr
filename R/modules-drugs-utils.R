@@ -1,3 +1,21 @@
+#' Get file paths to drug query results
+#'
+#' @param data_dir Folder with drug query results
+#' @param suffix string that appears after e.g. \code{'cmap_res_'} in the drug query result filenames.
+#'
+#' @return List with file paths to drug query results
+#' @export
+#' @keywords internal
+get_drug_paths <- function(data_dir, suffix) {
+  suffix <- paste0(suffix, '.rds')
+  list(
+    cmap = file.path(data_dir, paste0('cmap_res_', suffix)),
+    l1000_drugs = file.path(data_dir, paste0('l1000_drugs_res_', suffix)),
+    l1000_genes = file.path(data_dir, paste0('l1000_genes_res_', suffix))
+  )
+}
+
+
 #' Run custom query
 #'
 #' @param query_genes Named list of character vectors with \code{'up'} indicating genes to upregulate and \code{'dn'}

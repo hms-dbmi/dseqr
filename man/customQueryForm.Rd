@@ -10,7 +10,7 @@ customQueryForm(
   session,
   show_custom,
   is_custom,
-  anal,
+  anal_name,
   new_anal,
   data_dir
 )

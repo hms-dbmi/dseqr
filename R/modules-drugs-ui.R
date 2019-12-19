@@ -15,15 +15,7 @@ drugsPageUI <- function(id, tab, active) {
             hr(),
             div(class = 'hide-btn-container',
                 drugsGenesPlotlyOutput(ns('genes')),
-                downloadButton(ns('dl_drugs'), class = 'hide-btn', label = NULL),
                 drugsTableOutput(ns('table')),
-                shinyBS::bsTooltip(ns('dl_drugs'),
-                                   'Download full query results',
-                                   options = list(
-                                     container = 'body',
-                                     template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
-                                   )
-                ),
                 shinyBS::bsTooltip(ns('show_genes'),
                                    'Show genes plot',
                                    options = list(
@@ -45,7 +37,7 @@ drugsFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        selectedAnalInput(ns('anal')),
+        selectedAnalInput(ns('drugs')),
         customQueryFormInput(ns('custom-query')),
         selectedDrugStudyInput(ns('drug_study')),
         div(class = 'hidden-forms',
@@ -55,26 +47,6 @@ drugsFormInput <- function(id) {
 
     )
   })
-}
-
-#' Analysis input for Drugs and Pathways page
-#' @export
-#' @keywords internal
-selectedAnalInput <- function(id) {
-  ns <- NS(id)
-
-  tagList(
-    selectizeInputWithButtons(id = ns('query'), label = 'Select dataset or query signature:',
-                              shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
-                              options = list(optgroupField = 'type')),
-    tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-             scAnalInput(ns)
-    ),
-    tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
-             bulkAnalInput(ns('drugs'), with_dl = FALSE)
-    )
-  )
-
 }
 
 
@@ -100,11 +72,19 @@ drugsGenesPlotlyOutput <- function(id) {
 drugsTableOutput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    div(class = 'dt-container',
-        DT::dataTableOutput(ns("query_table"))
+  tagList(
+    hidden(downloadButton(ns('dl_drugs'), class = 'hide-btn', label = NULL)),
+    tags$div(class = 'dt-container',
+             DT::dataTableOutput(ns("query_table"))
+    ),
+    shinyBS::bsTooltip(ns('dl_drugs'),
+                       'Download full query results',
+                       options = list(
+                         container = 'body',
+                         template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                       )
     )
-  })
+  )
 }
 
 
@@ -164,25 +144,6 @@ customQueryFormInput <- function(id) {
 }
 
 
-#' Input for Single Cell analysis
-#'
-#' Used in both Drugs and Pathways tab
-#'
-#' @export
-#' @keywords internal
-scAnalInput <- function(ns) {
-
-  button <- actionButton(ns('run_comparison'), '',
-                         icon = icon('chevron-right', 'far fa-fw'),
-                         title = 'Compare test to control cells')
-
-  selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
-                            button,
-                            options = list(multiple = TRUE))
-
-}
-
 #' advanced options input for drugs page
 #' @export
 #' @keywords internal
@@ -217,11 +178,14 @@ advancedOptionsInput <- function(id) {
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
-                            shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-                            shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
-                            shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
+  tags$div(id = ns('study_container'), style = 'display: none;',
+           selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
+                                     shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
+                                     shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                                     shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
+                                     shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
+  )
+
 
 }
 
@@ -238,3 +202,69 @@ rightClickMenu <- function() {
     )
   })
 }
+
+
+#' Analysis input for Drugs and Pathways page
+#' @export
+#' @keywords internal
+selectedAnalInput <- function(id) {
+  ns <- NS(id)
+
+  tagList(
+    selectizeInputWithButtons(id = ns('query'), label = 'Select dataset or query signature:',
+                              shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
+                              options = list(optgroupField = 'type')),
+    tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
+             scAnalInput(ns('sc'))
+    ),
+    tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
+             bulkAnalInput(ns('bulk'), with_dl = FALSE)
+    )
+  )
+
+}
+
+
+#' Input for Single Cell analysis
+#'
+#' Used in both Drugs and Pathways tab
+#'
+#' @export
+#' @keywords internal
+scAnalInput <- function(id) {
+  ns <- NS(id)
+
+  button <- actionButton(ns('run_comparison'), '',
+                         icon = icon('chevron-right', 'far fa-fw'),
+                         title = 'Compare test to control cells')
+
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = 'Compare samples for:',
+                            button,
+                            options = list(multiple = TRUE))
+
+}
+
+
+#' Bulk Differential expression analysis input
+#' @export
+#' @keywords internal
+bulkAnalInput <- function(id, with_dl = TRUE, run_title = 'Model all groups and selected surrogate variables') {
+  ns <- NS(id)
+
+  dl_btn <- NULL
+  if (with_dl)
+    dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis')
+
+  selectizeInputWithButtons(
+    ns('contrast_groups'),
+    'Select groups to compare:',
+    dl_btn,
+    actionButton(ns('run_anal'), label = NULL, icon = icon('chevron-right', 'fa-fw'), title = run_title),
+    options = list(maxItems = 2, placeholder = 'Select test then control group'),
+    container_id = ns('run_anal_container')
+  )
+}
+
+
+

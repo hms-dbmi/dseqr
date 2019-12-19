@@ -10,7 +10,8 @@ downloadablePlotly(
   session,
   plotly_fun,
   fname_fun = function() {     NULL },
-  data_fun = function() {     NULL }
+  data_fun = function() {     NULL },
+  title = "Download plot data"
 )
 }
 \arguments{

@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{plotStyles}
 \alias{plotStyles}
-\title{Logic for plot styles dropdown in selectedAnal}
+\title{Logic for plot styles dropdown}
 \usage{
 plotStyles(input, output, session)
 }
 \description{
-Logic for plot styles dropdown in selectedAnal
+Logic for plot styles dropdown
 }
 \keyword{internal}

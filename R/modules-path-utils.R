@@ -209,7 +209,7 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 #' }
 #' @export
 #' @keywords internal
-diff_expr_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
+fit_lm_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
 
   # pseudo bulk analysis
   has_replicates <- length(unique(scseq$project)) > 2
@@ -219,24 +219,15 @@ diff_expr_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
                              clusters_name = clusters_name)
   }
 
-  ebayes_sv <- fit_ebayes_scseq(scseq, ident.1 = 'test', ident.2 = 'ctrl')
-  tt <- limma::topTable(ebayes_sv, coef = 1, number = Inf)
+  lm_fit <- run_lmfit_scseq(scseq)
 
-  # need ebayes_sv and pdata for add_es to get dprimes and vardprimes
-  pdata <- scseq[['orig.ident']]
-  pdata$group <- as.character(pdata$orig.ident)
-  pdata$orig.ident <- NULL
+  # save lm_fit result (slow and can re-use for other contrasts)
+  # fit_ebayes is also input into goana/kegga
+  fit_name <- paste0('lm_fit_', clusters_name, '.rds')
+  fit_path <- file.path(data_dir, fit_name)
+  if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 
-  anal <- list(top_table = tt,
-               ebayes_sv = ebayes_sv,
-               pdata = pdata)
-
-  # save to disk
-  save_name <- paste("diff_expr_symbol_scseq", clusters_name, sep = "_")
-  save_name <- paste0(save_name, ".rds")
-
-  saveRDS(anal, file.path(data_dir, anal_name, save_name))
-  return(anal)
+  return(lm_fit)
 }
 
 
@@ -304,18 +295,16 @@ ambient.omit <- function(scseq, markers, cluster_markers) {
 #' @return result of call to \code{\link[limma]{eBayes}}
 #' @export
 #' @keywords internal
-fit_ebayes_scseq <- function(scseq, ident.1, ident.2) {
-  contrast = paste0(ident.1, '-', ident.2)
+run_lmfit_scseq <- function(scseq) {
 
   # use SCT corrected logcounts
   dat <- scseq[['SCT']]@data
   group <- Seurat::Idents(scseq)
-  design <- stats::model.matrix(~0 + group)
-  colnames(design) <- levels(group)
-  fit <- limma::lmFit(dat, design)
-  cont.matrix <- limma::makeContrasts(contrasts = contrast, levels = design)
-  fit <- limma::contrasts.fit(fit, cont.matrix)
-  return(limma::eBayes(fit))
+  mod <- stats::model.matrix(~0 + group)
+  colnames(mod) <- levels(group)
+  fit <- limma::lmFit(dat, mod)
+
+  return(list(fit = fit, mod = mod))
 }
 
 #' Get ambient genes to exclude for diff_expr_scseq

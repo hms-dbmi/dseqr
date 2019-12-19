@@ -55,7 +55,7 @@ scFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        selectedAnalInput(ns('anal')),
+        scSelectedAnalInput(ns('anal')),
         div(class = 'hidden-forms',
             labelTransferFormInput(ns('transfer')),
             integrationFormInput(ns('integration'))
@@ -122,7 +122,7 @@ selectedAnnotDatasetInput <- function(id) {
 #' Input form/associated buttons for selecting single cell analysis
 #' @export
 #' @keywords internal
-selectedAnalInput <- function(id) {
+scSelectedAnalInput <- function(id) {
   ns <- NS(id)
 
   selectizeInputWithButtons(ns('selected_anal'), 'Select a dataset:',

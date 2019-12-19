@@ -2,24 +2,20 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{selectedPertSignature}
 \alias{selectedPertSignature}
-\title{Logic for advanced options in drugsForm}
+\title{Logic for showing pert selection for gene plot}
 \usage{
 selectedPertSignature(
   input,
   output,
   session,
   data_dir,
+  query_res,
+  query_type,
   pert_signature_dir,
-  drug_study,
-  show_genes,
-  sc_inputs,
-  bulk_inputs,
-  is_sc,
-  is_bulk,
-  anal
+  show_genes
 )
 }
 \description{
-Logic for advanced options in drugsForm
+Logic for showing pert selection for gene plot
 }
 \keyword{internal}

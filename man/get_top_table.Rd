@@ -4,7 +4,7 @@
 \alias{get_top_table}
 \title{Get top table}
 \usage{
-get_top_table(lm_fit, groups)
+get_top_table(lm_fit, groups = c("test", "ctrl"))
 }
 \arguments{
 \item{lm_fit}{Result of \link{run_limma}}

@@ -9,9 +9,7 @@ drugsGenesPlotly(
   output,
   session,
   data_dir,
-  anal,
-  is_sc,
-  sc_inputs,
+  top_table,
   drug_study,
   show_genes,
   pert_signature

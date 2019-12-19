@@ -123,7 +123,7 @@ fit_lm <- function(eset, data_dir, svobj = list(sv = NULL), numsv = 0, rna_seq =
 #'
 #' @return result of \link[limma]{topTable}
 #' @export
-get_top_table <- function(lm_fit, groups) {
+get_top_table <- function(lm_fit, groups = c('test', 'ctrl')) {
   contrast <- paste(groups[1], groups[2], sep = '-')
   ebfit <- fit_ebayes(lm_fit, contrast)
   tt <- limma::topTable(ebfit, coef = contrast, n = Inf)
@@ -409,7 +409,6 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
 
 
   p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = FALSE) %>%
-    plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
       xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
@@ -419,7 +418,6 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
     )
 
   p2 <- plotly::plot_ly(scaling_adj, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = TRUE) %>%
-    plotly::config(displayModeBar = FALSE) %>%
     plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
     plotly::layout(
       legend = l,
@@ -451,7 +449,22 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
                      fillcolor = '#cccccc',
                      line = list(color = "#cccccc")))
 
-  return(pl)
+  pl %>%
+    plotly::config(displaylogo = FALSE,
+                   displayModeBar = 'hover',
+                   modeBarButtonsToRemove = c('toImage',
+                                              'zoom2d',
+                                              'pan2d',
+                                              'autoScale2d',
+                                              'resetScale2d',
+                                              'hoverClosestCartesian',
+                                              'hoverCompareCartesian',
+                                              'select2d',
+                                              'lasso2d',
+                                              'zoomIn2d',
+                                              'zoomOut2d',
+                                              'toggleSpikelines'))
+
 }
 
 

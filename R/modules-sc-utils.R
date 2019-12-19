@@ -848,14 +848,14 @@ run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name) 
 
   Seurat::Idents(scseq) <- scseq$orig.ident
   scseq <- scseq[, in.sel]
-  anal <- diff_expr_scseq(scseq = scseq,
+  fit <- fit_lm_scseq(scseq = scseq,
                           data_dir = sc_dir,
                           anal_name = anal_name,
                           clusters_name = clusters_name)
 
   res <- list(
     cluster_markers = cluster_markers,
-    anal = anal
+    fit = fit
   )
   return(res)
 }

@@ -4,7 +4,7 @@
 \alias{dsMDSplotly}
 \title{Logic for Dataset MDS plotly}
 \usage{
-dsMDSplotly(input, output, session, explore_eset)
+dsMDSplotly(input, output, session, dataset_name, explore_eset, numsv)
 }
 \description{
 Logic for Dataset MDS plotly

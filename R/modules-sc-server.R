@@ -123,7 +123,7 @@ scForm <- function(input, output, session, sc_dir) {
 
 
   # the analysis and options
-  scAnal <- callModule(selectedAnal, 'anal',
+  scAnal <- callModule(scSelectedAnal, 'anal',
                        sc_dir = sc_dir,
                        new_anal = new_anal,
                        new_dataset = new_dataset)
@@ -243,7 +243,7 @@ scForm <- function(input, output, session, sc_dir) {
 #' Logic for selected analysis part of scForm
 #' @export
 #' @keywords internal
-selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) {
+scSelectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) {
 
   selected_anal <- reactive({
     req(input$selected_anal)
@@ -349,7 +349,7 @@ selectedAnal <- function(input, output, session, sc_dir, new_anal, new_dataset) 
   ))
 }
 
-#' Logic for plot styles dropdown in selectedAnal
+#' Logic for plot styles dropdown
 #' @export
 #' @keywords internal
 plotStyles <- function(input, output, session) {
@@ -361,7 +361,7 @@ plotStyles <- function(input, output, session) {
   return(list(jitter = jitter, size = size))
 }
 
-#' Logic for show integration button in selectedAnal
+#' Logic for show integration button
 #' @export
 #' @keywords internal
 showIntegration <- function(input, output, session) {
@@ -378,7 +378,7 @@ showIntegration <- function(input, output, session) {
   return(show_integration)
 }
 
-#' Logic for show label transfer button in selectedAnal
+#' Logic for show label transfer button
 #' @export
 #' @keywords internal
 showLabelTransfer <- function(input, output, session) {
