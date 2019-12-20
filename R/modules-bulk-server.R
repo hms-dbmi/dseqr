@@ -1,77 +1,77 @@
-#' Logic Datasets page
+#' Logic Bulk Data page
 #' @export
 #' @keywords internal
-dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
+bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
   new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
 
-  eset <- reactive(readRDS(file.path(dsForm$fastq_dir(), 'eset.rds')))
+  eset <- reactive(readRDS(file.path(bulkForm$fastq_dir(), 'eset.rds')))
 
 
   explore_eset <- exploreEset(eset = eset,
-                              fastq_dir = dsForm$fastq_dir,
+                              fastq_dir = bulkForm$fastq_dir,
                               explore_pdata = dsExploreTable$pdata,
-                              numsv = dsForm$numsv_r,
-                              svobj = dsForm$svobj_r)
+                              numsv = bulkForm$numsv_r,
+                              svobj = bulkForm$svobj_r)
 
 
-  dsForm <- callModule(dsForm, 'form',
-                       data_dir = data_dir,
-                       sc_dir = sc_dir,
-                       bulk_dir = bulk_dir,
-                       new_dataset = new_dataset,
-                       msg_quant = msg_quant,
-                       new_anal = bulk_anal,
-                       explore_eset = explore_eset,
-                       enable_sva = dsExploreTable$enable_sva)
+  bulkForm <- callModule(bulkForm, 'form',
+                         data_dir = data_dir,
+                         sc_dir = sc_dir,
+                         bulk_dir = bulk_dir,
+                         new_dataset = new_dataset,
+                         msg_quant = msg_quant,
+                         new_anal = bulk_anal,
+                         explore_eset = explore_eset,
+                         enable_sva = dsExploreTable$enable_sva)
 
-  callModule(dsMDSplotly, 'mds_plotly',
+  callModule(bulkMDSplotly, 'mds_plotly',
              explore_eset = explore_eset,
-             dataset_name = dsForm$dataset_name,
-             numsv = dsForm$numsv_r)
+             dataset_name = bulkForm$dataset_name,
+             numsv = bulkForm$numsv_r)
 
 
   # toggle tables
   observe({
-    toggle('quant_table_container', condition = dsForm$show_quant())
-    toggle('anal_table_container', condition = dsForm$show_anal())
+    toggle('quant_table_container', condition = bulkForm$show_quant())
+    toggle('anal_table_container', condition = bulkForm$show_anal())
   })
 
   # toggle plots
-  sel_genes <- reactive(length(dsForm$explore_genes() > 0))
+  sel_genes <- reactive(length(bulkForm$explore_genes() > 0))
 
   observe({
-    toggle('mds_plotly_container', condition = !sel_genes() & !dsForm$show_dtangle())
-    toggle('gene_plotly_container', condition = sel_genes() & !dsForm$show_dtangle())
-    toggle('cells_plotly_container', condition = dsForm$show_dtangle())
+    toggle('mds_plotly_container', condition = !sel_genes() & !bulkForm$show_dtangle())
+    toggle('gene_plotly_container', condition = sel_genes() & !bulkForm$show_dtangle())
+    toggle('cells_plotly_container', condition = bulkForm$show_dtangle())
   })
 
-  dsQuantTable <- callModule(dsQuantTable, 'quant',
-                             fastq_dir = dsForm$fastq_dir,
-                             labels = dsForm$quant_labels,
-                             paired = dsForm$paired)
+  dsQuantTable <- callModule(bulkQuantTable, 'quant',
+                             fastq_dir = bulkForm$fastq_dir,
+                             labels = bulkForm$quant_labels,
+                             paired = bulkForm$paired)
 
 
-  dsExploreTable <- callModule(dsExploreTable, 'explore',
+  dsExploreTable <- callModule(bulkExploreTable, 'explore',
                                eset = eset,
-                               labels = dsForm$explore_labels,
+                               labels = bulkForm$explore_labels,
                                data_dir = data_dir,
-                               dataset_dir = dsForm$dataset_dir,
-                               dataset_name = dsForm$dataset_name,
-                               svobj_r = dsForm$svobj_r,
-                               numsv_r = dsForm$numsv_r)
+                               dataset_dir = bulkForm$dataset_dir,
+                               dataset_name = bulkForm$dataset_name,
+                               svobj_r = bulkForm$svobj_r,
+                               numsv_r = bulkForm$numsv_r)
 
 
-  callModule(dsGenePlotly, 'gene_plotly',
+  callModule(bulkGenePlotly, 'gene_plotly',
              eset = explore_eset,
-             explore_genes = dsForm$explore_genes,
-             dataset_name = dsForm$dataset_name)
+             explore_genes = bulkForm$explore_genes,
+             dataset_name = bulkForm$dataset_name)
 
-  callModule(dsCellsPlotly, 'cells_plotly',
-             dtangle_est = dsForm$dtangle_est,
+  callModule(bulkCellsPlotly, 'cells_plotly',
+             dtangle_est = bulkForm$dtangle_est,
              pdata = dsExploreTable$pdata,
-             dataset_name = dsForm$dataset_name)
+             dataset_name = bulkForm$dataset_name)
 
   observe({
     msg_quant(dsQuantTable$valid_msg())
@@ -80,17 +80,17 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
 
   # run quantification for quant dataset
-  observeEvent(dsForm$run_quant(), {
+  observeEvent(bulkForm$run_quant(), {
     # disable inputs
     shinyjs::disable(selector = 'input')
 
     # setup
-    is.sc <- dsForm$is.sc()
-    is.cellranger <- dsForm$is.cellranger()
+    is.sc <- bulkForm$is.sc()
+    is.cellranger <- bulkForm$is.cellranger()
 
     pdata <- dsQuantTable$pdata()
-    dataset_dir <- dsForm$dataset_dir()
-    dataset_name <- dsForm$dataset_name()
+    dataset_dir <- bulkForm$dataset_dir()
+    dataset_name <- bulkForm$dataset_name()
     fastq_dir <- file.path(data_dir, dataset_dir)
 
 
@@ -142,7 +142,7 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
       # setup bulk
       pdata <- dsQuantTable$pdata()
-      paired <- dsForm$paired()
+      paired <- bulkForm$paired()
 
 
       # quantification
@@ -171,15 +171,15 @@ dsPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_d
 
   return(list(
     new_dataset = new_dataset,
-    data_dir = dsForm$fastq_dir
+    data_dir = bulkForm$fastq_dir
   ))
 }
 
 
-#' Logic for Dataset MDS plotly
+#' Logic for Bulk Data MDS plotly
 #' @export
 #' @keywords internal
-dsMDSplotly <- function(input, output, session, dataset_name, explore_eset, numsv) {
+bulkMDSplotly <- function(input, output, session, dataset_name, explore_eset, numsv) {
 
   # MDS plot
   plotly_fun <- reactive({
@@ -232,10 +232,10 @@ dsMDSplotly <- function(input, output, session, dataset_name, explore_eset, nums
 }
 
 
-#' Logic for Dataset Gene plotly
+#' Logic for Bulk Data gene plotly
 #' @export
 #' @keywords internal
-dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
+bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
 
   boxplotly_args <- reactive({
     # need eset and at least one gene
@@ -281,10 +281,10 @@ dsGenePlotly <- function(input, output, session, eset, explore_genes, dataset_na
 }
 
 
-#' Logic for Dataset Cell Type deconvolution plotly
+#' Logic for Bulk Data cell type deconvolution plotly
 #' @export
 #' @keywords internal
-dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
+bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
 
   boxplotly_args <- reactive({
     # need at least two groups
@@ -331,12 +331,12 @@ dsCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_na
 }
 
 
-#' Logic for Datasets form
+#' Logic for Bulk Data form
 #' @export
 #' @keywords internal
-dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset, enable_sva) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset, enable_sva) {
 
-  dataset <- callModule(dsDataset, 'selected_dataset',
+  dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
@@ -361,12 +361,12 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
     toggle('anal_dataset_panel', condition = show_anal())
   })
 
-  quant <- callModule(dsFormQuant, 'quant_form',
+  quant <- callModule(bulkFormQuant, 'quant_form',
                       fastq_dir = dataset$fastq_dir,
                       error_msg = msg_quant,
                       is.sc = dataset$is.sc)
 
-  anal <- callModule(dsFormAnal, 'anal_form',
+  anal <- callModule(bulkFormAnal, 'anal_form',
                      data_dir = data_dir,
                      fastq_dir = dataset$fastq_dir,
                      dataset_name = dataset$dataset_name,
@@ -401,10 +401,10 @@ dsForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_datas
 
 }
 
-#' Logic for selected dataset part of dsFrom
+#' Logic for selected dataset part of bulkFrom
 #' @export
 #' @keywords internal
-dsDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
+bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
 
   # get directory with fastqs
   roots <- c('data_dir' = data_dir)
@@ -563,13 +563,13 @@ dsDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_da
 }
 
 
-#' Logic for dataset quantification part of dsForm
+#' Logic for dataset quantification part of bulkForm
 #' @export
 #' @keywords internal
-dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
+bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
 
-  paired <- callModule(dsEndType, 'end_type',
+  paired <- callModule(bulkEndType, 'end_type',
                        fastq_dir = fastq_dir,
                        is.sc = is.sc)
 
@@ -648,10 +648,10 @@ dsFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
   ))
 }
 
-#' Logic for end type selection is dsFormQuant
+#' Logic for end type selection is bulkFormQuant
 #' @export
 #' @keywords internal
-dsEndType <- function(input, output, session, fastq_dir, is.sc) {
+bulkEndType <- function(input, output, session, fastq_dir, is.sc) {
 
 
   # get fastq files in directory
@@ -688,10 +688,10 @@ dsEndType <- function(input, output, session, fastq_dir, is.sc) {
   return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
-#' Logic for differential expression analysis part of dsForm
+#' Logic for differential expression analysis part of bulkForm
 #' @export
 #' @keywords internal
-dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
+bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
 
   observe({
     toggleState('run_sva', condition = enable_sva())
@@ -750,8 +750,7 @@ dsFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name
   # Gene choices
   # ---
   observe({
-    dataset_dir()
-    eset <- isolate(explore_eset())
+    eset <- explore_eset()
     choices <- c(NA, row.names(eset))
     updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
   })
@@ -939,7 +938,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 #' Logic for dataset quantification table
 #' @export
 #' @keywords internal
-dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
+bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # things user will update and return
   pdata_r <- reactiveVal()
@@ -1126,7 +1125,7 @@ dsQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' Logic for differential expression analysis table
 #' @export
 #' @keywords internal
-dsExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
+bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
   # colors
   group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
@@ -1328,4 +1327,3 @@ dsExploreTable <- function(input, output, session, eset, labels, data_dir, datas
   ))
 
 }
-

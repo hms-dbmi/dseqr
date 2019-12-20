@@ -1,30 +1,30 @@
-#' UI for datasets page
+#' UI for Bulk Data page
 #' @export
 #' @keywords internal
-dsPageUI <- function(id, tab, active) {
+bulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
   withTags({
     tabPane(tab, active,
             div(class = 'row',
                 div(class = 'col-sm-5',
-                    dsFormInput(ns('form'))
+                    bulkFormInput(ns('form'))
                 ),
                 div(id = ns('mds_plotly_container'), class = 'col-sm-7 mobile-margin', style = '',
-                    dsPlotlyUI(ns('mds_plotly'))
+                    bulkPlotlyUI(ns('mds_plotly'))
                 ),
                 div(id = ns('gene_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
-                    dsPlotlyUI(ns('gene_plotly'))
+                    bulkPlotlyUI(ns('gene_plotly'))
                 ),
                 div(id = ns('cells_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
-                    dsPlotlyUI(ns('cells_plotly'))
+                    bulkPlotlyUI(ns('cells_plotly'))
                 )
             ),
             hr(),
             div(id = ns('quant_table_container'), style = 'display: none;',
-                dsTable(ns('quant'))
+                bulkTable(ns('quant'))
             ),
             div(id = ns('anal_table_container'), style = 'display: none;',
-                dsTable(ns('explore'))
+                bulkTable(ns('explore'))
             )
     )
   })
@@ -34,35 +34,35 @@ dsPageUI <- function(id, tab, active) {
 #' Plotly MDS output
 #' @export
 #' @keywords internal
-dsPlotlyUI <- function(id) {
+bulkPlotlyUI <- function(id) {
   ns <- NS(id)
   downloadablePlotlyUI(ns('plotly'))
 }
 
-#' Input form for datasets page
+#' Input form for Bulk Data page
 #' @export
 #' @keywords internal
-dsFormInput <- function(id) {
+bulkFormInput <- function(id) {
   ns <- NS(id)
 
   withTags({
     div(class = "well-form well-bg",
-        dsDatasetInput(ns('selected_dataset')),
+        bulkDatasetInput(ns('selected_dataset')),
         div(id = ns('quant_dataset_panel'), style = 'display: none;',
-            dsFormQuantInput(ns('quant_form'))
+            bulkFormQuantInput(ns('quant_form'))
         ),
         div(id = ns('anal_dataset_panel'), style = 'display: none;',
-            dsFormAnalInput(ns('anal_form'))
+            bulkFormAnalInput(ns('anal_form'))
         )
     )
   })
 }
 
 
-#' Dataset selection input for dsFormInput
+#' Dataset selection input for bulkFormInput
 #' @export
 #' @keywords internal
-dsDatasetInput <- function(id) {
+bulkDatasetInput <- function(id) {
   ns <- NS(id)
 
 
@@ -91,15 +91,15 @@ dsDatasetInput <- function(id) {
 }
 
 
-#' Dataset quantification inputs for dsFormInput
+#' Dataset quantification inputs for bulkFormInput
 #' @export
 #' @keywords internal
-dsFormQuantInput <- function(id) {
+bulkFormQuantInput <- function(id) {
   ns <- NS(id)
 
   tagList(
     tags$div(id = ns('bulk_controls'),
-             dsEndTypeInput(ns('end_type')),
+             bulkEndTypeInput(ns('end_type')),
              justifiedButtonGroup(
                container_id = ns('quant_labels'),
                label = 'Label selected rows:',
@@ -113,10 +113,10 @@ dsFormQuantInput <- function(id) {
   )
 }
 
-#' Dataset end-type input for dsQuantInput
+#' Dataset end-type input for bulkFormQuantInput
 #' @export
 #' @keywords internal
-dsEndTypeInput <- function(id) {
+bulkEndTypeInput <- function(id) {
   ns <- NS(id)
 
   selectizeInput(ns('end_type'),
@@ -124,10 +124,10 @@ dsEndTypeInput <- function(id) {
                  choices = NULL, width = '100%')
 }
 
-#' Differential expression analysis inputs for dsFormInput
+#' Differential expression analysis inputs for bulkFormInput
 #' @export
 #' @keywords internal
-dsFormAnalInput <- function(id) {
+bulkFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
@@ -169,7 +169,7 @@ svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 #' Tables for datasets page
 #' @export
 #' @keywords internal
-dsTable <- function(id) {
+bulkTable <- function(id) {
   ns <- NS(id)
   withTags({
     div(class = 'dt-container',
@@ -197,5 +197,4 @@ dtangleFormInput <- function(id) {
     )
   })
 }
-
 
