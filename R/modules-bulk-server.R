@@ -1410,7 +1410,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       progress$set(message = "Fitting limma model", value = 1)
 
       lm_fit <- run_limma(eset,
-                          data_dir = dataset_dir,
+                          dataset_dir = dataset_dir,
                           svobj = svobj,
                           numsv = numsv,
                           prev_anal = prev_anal)
@@ -1446,10 +1446,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
 
-  # enable download and running analysis
+  # enable download
   observe({
-    toggleState('download', condition = saved_lmfit() & full_contrast())
-    toggleState('run_anal', condition = !saved_lmfit())
+    toggleState('download', condition = full_contrast())
   })
 
   dl_fname <- reactive({
