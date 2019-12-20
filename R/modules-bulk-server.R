@@ -1327,3 +1327,221 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
   ))
 
 }
+
+#' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
+#' @export
+#' @keywords internal
+bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, fastq_dir, is_bulk = function()TRUE) {
+  contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
+
+
+  # group levels used for selecting test and control groups
+  group_levels <- reactive({
+    req(is_bulk())
+    pdata <- pdata()
+    group <- pdata$`Group name`
+    group_order <- order(unique(pdata$Group))
+    group_levels <- unique(group)[group_order]
+
+    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
+
+    data.frame(
+      name = group_levels,
+      value = group_levels,
+      color = group_colors[seq_along(group_levels)], stringsAsFactors = FALSE
+    )
+  })
+
+  observe({
+    updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
+  })
+
+  full_contrast <- reactive(length(input$contrast_groups) == 2)
+
+  anal_name <- reactive({
+    req(full_contrast())
+    groups <- input$contrast_groups
+    return(paste0(groups[1], '_vs_', groups[2]))
+  })
+
+  # path to lmfit and drug query results
+  numsv_str <- reactive(paste0(numsv(), 'svs.rds'))
+
+  lmfit_path <- reactive({
+    lmfit_file <- paste('lm_fit', numsv_str(), sep = '_')
+    file.path(fastq_dir(), lmfit_file)
+  })
+
+  drug_paths <- reactive({
+    dir <- fastq_dir()
+    suf <- paste(anal_name(), numsv_str(), sep = '_')
+    list(
+      cmap = file.path(dir, paste0('cmap_res_', suf)),
+      l1000_drugs = file.path(dir, paste0('l1000_drugs_', suf)),
+      l1000_genes = file.path(dir, paste0('l1000_genes_', suf))
+    )
+  })
+
+  # do we have lm_fit and drug query results?
+  saved_lmfit <- reactive(file.exists(lmfit_path()))
+  saved_drugs <- reactive(file.exists(drug_paths()$cmap))
+
+  # load lm_fit if saved or run limma
+  disable_inputs <- ''
+  lm_fit <- reactive({
+
+    if (saved_lmfit()) {
+      lm_fit <- readRDS(lmfit_path())
+
+    } else {
+
+      # visual that running
+      toggleAll(disable_inputs)
+
+      progress <- Progress$new(session, min=0, max = 3)
+      on.exit(progress$close())
+
+      # check for previous lm_fit
+      fastq_dir <- fastq_dir()
+      numsv <- numsv()
+
+      # get what need
+      eset <- eset()
+      svobj <- svobj()
+      req(eset, fastq_dir)
+
+      prev_anal <- list(pdata = Biobase::pData(eset))
+
+      # run differential expression
+      progress$set(message = "Fitting limma model", value = 1)
+
+      lm_fit <- run_limma(eset,
+                          data_dir = fastq_dir,
+                          svobj = svobj,
+                          numsv = numsv,
+                          prev_anal = prev_anal)
+
+      # visual that done
+      progress$inc(1)
+      toggleAll(disable_inputs)
+    }
+
+    return(lm_fit)
+  })
+
+  drug_queries <- reactive({
+    if (!full_contrast()) {
+      res <- NULL
+    } else if (saved_drugs()) {
+      paths <- drug_paths()
+      res <- lapply(paths, readRDS)
+
+    } else {
+      top_table <- top_table()
+      res <- run_drug_queries(top_table, drug_paths(), session)
+    }
+    return(res)
+  })
+
+  # differential expression top table
+  top_table <- reactive({
+    req(full_contrast())
+    groups <- input$contrast_groups
+    tt <- get_top_table(lm_fit(), groups)
+    tt[order(tt$P.Value), ]
+  })
+
+
+  # enable download and running analysis
+  observe({
+    toggleState('download', condition = saved_lmfit() & full_contrast())
+    toggleState('run_anal', condition = !saved_lmfit())
+  })
+
+  dl_fname <- reactive({
+    date <- paste0(Sys.Date(), '.csv')
+
+    numsv_str <- paste0(numsv(), 'SV')
+    paste('bulk', dataset_name(), anal_name(), numsv_str, date , sep='_')
+  })
+
+  output$download <- downloadHandler(
+    filename = function() {
+      dl_fname()
+    },
+    content = function(con) {
+      write.csv(top_table(), con)
+    }
+  )
+
+
+
+  # TODO: get pathway results
+  path_res <- reactive({
+
+  })
+
+  return(list(
+    name = anal_name,
+    lm_fit = lm_fit,
+    drug_queries = drug_queries,
+    top_table = top_table,
+    path_res = path_res
+  ))
+}
+
+#' Logic to setup explore_eset for Bulk Data plots
+#' @export
+#' @keywords internal
+exploreEset <- function(eset, fastq_dir, explore_pdata, numsv, svobj) {
+
+  vsd_path <- reactive(file.path(fastq_dir(), 'vsd.rds'))
+  adj_path <- reactive(file.path(fastq_dir(), paste0('adjusted_', numsv(), 'svs.rds')))
+  keep_path <- reactive(file.path(fastq_dir(), paste0('iqr_keep_', numsv(), 'svs.rds')))
+
+
+  norm_eset <- reactive({
+    # pdata and eset lose sync when switch datasets
+    eset <- eset()
+    pdata <- explore_pdata()
+
+    # need that pdata_explore has more than two groups
+    keep <- row.names(pdata)[!is.na(pdata$Group)]
+    pdata <- pdata[keep, ]
+    req(length(unique(pdata$Group)) > 1)
+
+    # subset eset and add explore_pdata
+    eset <- eset[, keep]
+    pdata$group <- pdata$`Group name`
+    Biobase::pData(eset) <- pdata
+
+    # rlog normalize
+    eset <- add_vsd(eset, vsd_path = vsd_path())
+    return(eset)
+  })
+
+
+  # explore_eset used for all plots
+  explore_eset <- reactive({
+    eset <- norm_eset()
+    numsv <- numsv()
+
+    # adjust for pairs/surrogate variables
+    svobj <- svobj()
+
+    # can lose sync when switching datasets
+    if (!is.null(svobj)) {
+      req(numsv <= svobj$n.sv)
+      req(row.names(svobj$sv) == colnames(eset))
+    }
+    eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path())
+
+    # use SYMBOL as annotation
+    # keep unique symbol based on row IQRs
+    eset <- iqr_replicates(eset, keep_path = keep_path())
+
+    return(eset)
+  })
+
+  return(explore_eset)
+}

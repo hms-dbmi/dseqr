@@ -339,11 +339,6 @@ td.dt-nopad span {
 }
 
 
-/* download button in input-group */
-.input-group-btn:last-child > .btn, 
-.input-group-btn:last-child > .btn-group {
-  border-left: 1px solid #ccc;
-}
 
 /* downloadable plots and table */
 

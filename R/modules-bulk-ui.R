@@ -131,7 +131,7 @@ bulkFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    bulkAnalInput(ns('ds')),
+    bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
     selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
                    'Show expression for genes:',
                    options = list(maxItems = 6, multiple = TRUE)),
@@ -198,3 +198,34 @@ dtangleFormInput <- function(id) {
   })
 }
 
+
+#' Bulk Differential expression analysis input
+#' @export
+#' @keywords internal
+bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:') {
+  ns <- NS(id)
+
+  options <- list(maxItems = 2, placeholder = 'Select test then control group')
+  if (with_dl) {
+    input <- selectizeInputWithButtons(
+      ns('contrast_groups'),
+      label,
+      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
+      options = options,
+      container_id = ns('run_anal_container')
+    )
+
+  } else {
+    input <- tags$div(
+      id = ns('run_anal_container'),
+      selectizeInputWithValidation(
+        ns('contrast_groups'),
+        label,
+        options = options
+      )
+
+    )
+  }
+
+  return(input)
+}
