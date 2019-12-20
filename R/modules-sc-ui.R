@@ -55,48 +55,31 @@ scFormInput <- function(id) {
 
   withTags({
     div(class = "well-form well-bg",
-        scSelectedAnalInput(ns('anal')),
-        div(class = 'hidden-forms',
-            labelTransferFormInput(ns('transfer')),
-            integrationFormInput(ns('integration'))
-        ),
-        div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
-            comparisonTypeToggle(ns('comparison'))
-        ),
-        # inputs for comparing clusters
-        div(id = ns('cluster_comparison_inputs'),
-            clusterComparisonInput(ns('cluster')),
-            selectedGeneInput(ns('gene_clusters'))
-        ),
-        # inputs for comparing samples
-        div(id = ns('sample_comparison_inputs'), style = 'display: none',
-            sampleComparisonInput(ns('sample')),
-            selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
-        ),
-        div(id = ns('label_comparison_inputs'), style = 'display: none;',
-            selectedAnnotDatasetInput(ns('annot'))
+        scSelectedDatasetInput(ns('dataset')),
+        div(id = ns('form_container'), style = 'display: none;',
+            div(class = 'hidden-forms',
+                labelTransferFormInput(ns('transfer')),
+                integrationFormInput(ns('integration'))
+            ),
+            div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
+                comparisonTypeToggle(ns('comparison'))
+            ),
+            # inputs for comparing clusters
+            div(id = ns('cluster_comparison_inputs'),
+                clusterComparisonInput(ns('cluster')),
+                selectedGeneInput(ns('gene_clusters'))
+            ),
+            # inputs for comparing samples
+            div(id = ns('sample_comparison_inputs'), style = 'display: none',
+                scAnalInput(ns('sample')),
+                selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
+            ),
+            div(id = ns('label_comparison_inputs'), style = 'display: none;',
+                selectedAnnotDatasetInput(ns('annot'))
+            )
         )
     )
   })
-}
-
-
-
-#' Selection form/button for sample comparisons (test vs control)
-#' @export
-#' @keywords internal
-sampleComparisonInput <- function(id) {
-  ns <- NS(id)
-
-  button <- actionButton(ns('run_comparison'), '',
-                         icon = icon('chevron-right', 'far fa-fw'),
-                         title = 'Compare test to control cells')
-
-  selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
-                            button,
-                            options = list(multiple = TRUE),
-                            label_title = 'Cluster (n test :: n ctrl)')
 }
 
 
@@ -119,13 +102,13 @@ selectedAnnotDatasetInput <- function(id) {
   selectizeInput(ns('integration_anals'), 'Show original labels for:', multiple = TRUE, choices = '', width = '100%', options = list(maxItems = 2))
 }
 
-#' Input form/associated buttons for selecting single cell analysis
+#' Input form/associated buttons for selecting single cell dataset
 #' @export
 #' @keywords internal
-scSelectedAnalInput <- function(id) {
+scSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(ns('selected_anal'), 'Select a dataset:',
+  selectizeInputWithButtons(ns('selected_dataset'), 'Select a dataset:',
                             showLabelTransferButton(ns('label-transfer')),
                             showIntegrationButton(ns('integration')),
                             plotStylesButton(ns('styles'))
@@ -322,4 +305,26 @@ scMarkerPlotOutput <- function(id) {
 scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '500px')
+}
+
+
+#' Input for Single Cell analysis
+#'
+#' Used in Single Cell, Drugs and Pathways tab
+#'
+#' @export
+#' @keywords internal
+scAnalInput <- function(id) {
+  ns <- NS(id)
+
+  button <- actionButton(ns('run_comparison'), '',
+                         icon = icon('chevron-right', 'far fa-fw'),
+                         title = 'Compare test to control cells')
+
+  selectizeInputWithButtons(ns('selected_clusters'),
+                            label = 'Compare samples for:',
+                            button,
+                            options = list(multiple = TRUE),
+                            label_title = 'Cluster (n test :: n ctrl)')
+
 }

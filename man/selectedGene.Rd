@@ -8,7 +8,7 @@ selectedGene(
   input,
   output,
   session,
-  selected_anal,
+  dataset_name,
   scseq,
   selected_markers,
   cluster_markers,

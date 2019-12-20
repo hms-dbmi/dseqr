@@ -11,7 +11,7 @@ labelTransferForm(
   sc_dir,
   anal_options,
   show_label_transfer,
-  selected_anal,
+  dataset_name,
   scseq
 )
 }

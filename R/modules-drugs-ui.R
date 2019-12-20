@@ -224,23 +224,3 @@ selectedAnalInput <- function(id) {
 
 }
 
-
-#' Input for Single Cell analysis
-#'
-#' Used in both Drugs and Pathways tab
-#'
-#' @export
-#' @keywords internal
-scAnalInput <- function(id) {
-  ns <- NS(id)
-
-  button <- actionButton(ns('run_comparison'), '',
-                         icon = icon('chevron-right', 'far fa-fw'),
-                         title = 'Compare test to control cells')
-
-  selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
-                            button,
-                            options = list(multiple = TRUE))
-
-}
