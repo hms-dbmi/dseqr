@@ -4,12 +4,10 @@
 \alias{get_cluster_stats}
 \title{Get/Save cluster stats for single-cell related selectizeInputs}
 \usage{
-get_cluster_stats(sc_dir, anal_name, scseq = NULL)
+get_cluster_stats(dataset_dir, scseq = NULL)
 }
 \arguments{
-\item{sc_dir}{Path to directory containing single-cell dataset folders}
-
-\item{anal_name}{Name of single cell analysis to get/save stats for}
+\item{dataset_dir}{Directory with single cell dataset.}
 
 \item{scseq}{\code{Seurat} object to get/save stats for. if \code{NULL} (Default), will be loaded.}
 }

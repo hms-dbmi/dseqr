@@ -38,7 +38,7 @@
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
 #' anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
-run_limma <- function (eset, data_dir, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL) {
+run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL, anal_suffix = '') {
 
   # check for annot column
   if (!annot %in% colnames(Biobase::fData(eset)))
@@ -71,10 +71,11 @@ run_limma <- function (eset, data_dir, annot = "SYMBOL", svobj = list('sv' = NUL
 
   # lmFit
   lm_fit <- fit_lm(eset = eset,
-                   data_dir = data_dir,
+                   dataset_dir = dataset_dir,
                    svobj = svobj,
                    numsv = numsv,
-                   rna_seq = rna_seq)
+                   rna_seq = rna_seq,
+                   anal_suffix = anal_suffix)
   return (lm_fit)
 }
 
@@ -87,14 +88,14 @@ run_limma <- function (eset, data_dir, annot = "SYMBOL", svobj = list('sv' = NUL
 #'
 #' @param eset Annotated eset created by \code{load_raw}. Replicate features and
 #'   non-selected samples removed by \code{iqr_replicates}.
-#' @param data_dir String, path to directory with raw data.
+#' @param dataset_dir Directory to save fit results in.
 #' @param rna_seq Is the analysis for RNA-seq? Auto inferred in \code{diff_expr}.
 #'
 #' @return list with slots \itemize{
 #'   \fit Result of \link[limma]{lmFit}.
 #'   \mod model matrix used for fit.
 #' }
-fit_lm <- function(eset, data_dir, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
+fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE, anal_suffix = ''){
 
   # setup model matrix with surrogate variables
   group <- Biobase::pData(eset)$group
@@ -109,8 +110,8 @@ fit_lm <- function(eset, data_dir, svobj = list(sv = NULL), numsv = 0, rna_seq =
 
   # save lm_fit result (slow and can re-use for other contrasts)
   # fit_ebayes is also input into goana/kegga
-  fit_name <- paste('lm_fit', paste0(numsv, 'svs.rds'), sep = '_')
-  fit_path <- file.path(data_dir, fit_name)
+  fit_name <- paste0('lm_fit_', anal_suffix, '_', paste0(numsv, 'svs.rds'))
+  fit_path <- file.path(dataset_dir, fit_name)
   if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 
   return(lm_fit)

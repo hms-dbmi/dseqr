@@ -8,11 +8,10 @@ clusterComparison(
   input,
   output,
   session,
-  selected_anal,
+  dataset_dir,
   scseq,
   markers,
   annot_path,
-  sc_dir,
   ref_preds
 )
 }

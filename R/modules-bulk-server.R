@@ -10,7 +10,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
 
   explore_eset <- exploreEset(eset = eset,
-                              fastq_dir = bulkForm$fastq_dir,
+                              dataset_dir = bulkForm$fastq_dir,
                               explore_pdata = dsExploreTable$pdata,
                               numsv = bulkForm$numsv_r,
                               svobj = bulkForm$svobj_r)
@@ -245,7 +245,6 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
 
     # prevent warning when switching between dataset (eset updated before genes)
     req(all(explore_genes %in% row.names(eset)))
-
     get_boxplotly_gene_args(eset, explore_genes, dataset_name())
   })
 
@@ -368,9 +367,8 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
 
   anal <- callModule(bulkFormAnal, 'anal_form',
                      data_dir = data_dir,
-                     fastq_dir = dataset$fastq_dir,
+                     dataset_dir = dataset$fastq_dir,
                      dataset_name = dataset$dataset_name,
-                     dataset_dir = dataset$dataset_dir,
                      explore_eset = explore_eset,
                      numsv_r = dataset$numsv_r,
                      svobj_r = dataset$svobj_r,
@@ -691,7 +689,7 @@ bulkEndType <- function(input, output, session, fastq_dir, is.sc) {
 #' Logic for differential expression analysis part of bulkForm
 #' @export
 #' @keywords internal
-bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
+bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
 
   observe({
     toggleState('run_sva', condition = enable_sva())
@@ -725,7 +723,7 @@ bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_na
     req(length(unique(group)) > 1)
 
     # remove previously adjusted data
-    remove_dataset_files(fastq_dir(), exclude = '_0svs.rds$')
+    remove_dataset_files(dataset_dir(), exclude = '_0svs.rds$')
 
     mods <- get_mods(eset)
     rna_seq <- 'lib.size' %in% colnames(pdata)
@@ -735,12 +733,12 @@ bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_na
     row.names(svobj$sv) <- colnames(eset)
 
     # save current pdata_explore  so that can tell if changed
-    file.copy(file.path(fastq_dir(), 'pdata_explore.rds'),
-              file.path(fastq_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
+    file.copy(file.path(dataset_dir(), 'pdata_explore.rds'),
+              file.path(dataset_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
 
 
     # update saved svobj
-    saveRDS(svobj, file.path(fastq_dir(), 'svobj.rds'))
+    saveRDS(svobj, file.path(dataset_dir(), 'svobj.rds'))
 
     svobj_r(svobj)
     numsv_r(0)
@@ -749,7 +747,7 @@ bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_na
 
   # Gene choices
   # ---
-  observe({
+  observeEvent(dataset_name(), {
     eset <- explore_eset()
     choices <- c(NA, row.names(eset))
     updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
@@ -758,7 +756,6 @@ bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_na
   # Bulk anal
   # ---
   pdata <- reactive(Biobase::pData(explore_eset()))
-  fastq_dir <-reactive(file.path(data_dir, dataset_dir()))
 
 
   bulkAnal <- callModule(bulkAnal, 'ds',
@@ -767,7 +764,7 @@ bulkFormAnal <- function(input, output, session, data_dir, fastq_dir, dataset_na
                          eset = explore_eset,
                          svobj = svobj_r,
                          numsv = numsv_r,
-                         fastq_dir = fastq_dir)
+                         dataset_dir = dataset_dir)
 
 
   return(list(
@@ -1331,7 +1328,7 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
-bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, fastq_dir, is_bulk = function()TRUE) {
+bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
 
 
@@ -1365,21 +1362,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   # path to lmfit and drug query results
-  numsv_str <- reactive(paste0(numsv(), 'svs.rds'))
+  numsv_str <- reactive(paste0(numsv(), 'svs'))
 
   lmfit_path <- reactive({
-    lmfit_file <- paste('lm_fit', numsv_str(), sep = '_')
-    file.path(fastq_dir(), lmfit_file)
+    req(is_bulk())
+    lmfit_file <- paste0('lm_fit_', numsv_str(), '.rds')
+    file.path(dataset_dir(), lmfit_file)
   })
 
   drug_paths <- reactive({
-    dir <- fastq_dir()
-    suf <- paste(anal_name(), numsv_str(), sep = '_')
-    list(
-      cmap = file.path(dir, paste0('cmap_res_', suf)),
-      l1000_drugs = file.path(dir, paste0('l1000_drugs_', suf)),
-      l1000_genes = file.path(dir, paste0('l1000_genes_', suf))
-    )
+    dir <- dataset_dir()
+    suffix <- paste(anal_name(), numsv_str())
+    get_drug_paths(dataset_dir(), suffix)
   })
 
   # do we have lm_fit and drug query results?
@@ -1402,13 +1396,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       on.exit(progress$close())
 
       # check for previous lm_fit
-      fastq_dir <- fastq_dir()
+      dataset_dir <- dataset_dir()
       numsv <- numsv()
 
       # get what need
       eset <- eset()
       svobj <- svobj()
-      req(eset, fastq_dir)
+      req(eset, dataset_dir)
 
       prev_anal <- list(pdata = Biobase::pData(eset))
 
@@ -1416,7 +1410,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       progress$set(message = "Fitting limma model", value = 1)
 
       lm_fit <- run_limma(eset,
-                          data_dir = fastq_dir,
+                          data_dir = dataset_dir,
                           svobj = svobj,
                           numsv = numsv,
                           prev_anal = prev_anal)
@@ -1484,8 +1478,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   return(list(
     name = anal_name,
     lm_fit = lm_fit,
-    drug_queries = drug_queries,
     top_table = top_table,
+    drug_queries = drug_queries,
     path_res = path_res
   ))
 }
@@ -1493,11 +1487,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' Logic to setup explore_eset for Bulk Data plots
 #' @export
 #' @keywords internal
-exploreEset <- function(eset, fastq_dir, explore_pdata, numsv, svobj) {
+exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
-  vsd_path <- reactive(file.path(fastq_dir(), 'vsd.rds'))
-  adj_path <- reactive(file.path(fastq_dir(), paste0('adjusted_', numsv(), 'svs.rds')))
-  keep_path <- reactive(file.path(fastq_dir(), paste0('iqr_keep_', numsv(), 'svs.rds')))
+  vsd_path <- reactive(file.path(dataset_dir(), 'vsd.rds'))
+  adj_path <- reactive(file.path(dataset_dir(), paste0('adjusted_', numsv(), 'svs.rds')))
+  keep_path <- reactive(file.path(dataset_dir(), paste0('iqr_keep_', numsv(), 'svs.rds')))
 
 
   norm_eset <- reactive({

@@ -85,14 +85,14 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 
 #' Get arguments for gene boxplotly
 #'
-#' @param eset ExpressionSet object with \code{'vsd'} assayDataElement
+#' @param eset ExpressionSet object with \code{'adjusted'} assayDataElement
 #' @param explore_genes Character vector of genes to plot
 #' @param dataset_name Name of bulk dataset.
 #'
 #' @return List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'plot_fname'}.
 #' @export
 get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
-  dat <- Biobase::assayDataElement(eset, 'vsd')
+  dat <- Biobase::assayDataElement(eset, 'adjusted')
   pdata <- Biobase::pData(eset)
 
   dfs <- list()
@@ -103,7 +103,6 @@ get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
                               name = as.character(pdata$`Group name`),
                               color = pdata$Group,
                               stringsAsFactors = FALSE)
-
   }
 
   df <- do.call(rbind, dfs)

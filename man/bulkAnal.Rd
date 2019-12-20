@@ -13,7 +13,7 @@ bulkAnal(
   eset,
   numsv,
   svobj,
-  fastq_dir,
+  dataset_dir,
   is_bulk = function() TRUE
 )
 }

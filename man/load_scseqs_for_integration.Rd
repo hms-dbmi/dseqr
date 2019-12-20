@@ -4,12 +4,12 @@
 \alias{load_scseqs_for_integration}
 \title{Load scRNA-Seq datasets for integration}
 \usage{
-load_scseqs_for_integration(anal_names, exclude_clusters, data_dir, ident)
+load_scseqs_for_integration(anal_names, exclude_clusters, sc_dir, ident)
 }
 \arguments{
 \item{anal_names}{Character vector of single cell analysis names to load.}
 
-\item{data_dir}{The directory with single cell RNA seq datasets}
+\item{sc_dir}{The directory with single-cell datasets}
 
 \item{ident}{Either \code{'test'} or \code{'ctrl'}}
 }

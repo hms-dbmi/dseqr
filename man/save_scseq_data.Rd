@@ -7,7 +7,7 @@
 save_scseq_data(
   scseq_data,
   anal_name,
-  data_dir,
+  sc_dir,
   integrated = FALSE,
   reduce_size = FALSE
 )
@@ -17,7 +17,7 @@ save_scseq_data(
 
 \item{anal_name}{The analysis name.}
 
-\item{data_dir}{Path to directory to save in}
+\item{sc_dir}{Path to directory with single-cell datasets.}
 
 \item{integrated}{is the analysis integration. Default is \code{FALSE}}
 }

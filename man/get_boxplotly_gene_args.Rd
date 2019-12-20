@@ -7,7 +7,7 @@
 get_boxplotly_gene_args(eset, explore_genes, dataset_name)
 }
 \arguments{
-\item{eset}{ExpressionSet object with \code{'vsd'} assayDataElement}
+\item{eset}{ExpressionSet object with \code{'adjusted'} assayDataElement}
 
 \item{explore_genes}{Character vector of genes to plot}
 

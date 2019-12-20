@@ -4,7 +4,7 @@
 \alias{fit_lm_scseq}
 \title{Run limma differential expression between test and control groups in single cell RNA-Seq dataset}
 \usage{
-fit_lm_scseq(scseq, data_dir, anal_name, clusters_name)
+fit_lm_scseq(scseq, dataset_dir, clusters_name)
 }
 \arguments{
 \item{scseq}{\code{Seurat} object}

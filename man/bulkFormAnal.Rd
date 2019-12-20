@@ -9,7 +9,6 @@ bulkFormAnal(
   output,
   session,
   data_dir,
-  fastq_dir,
   dataset_name,
   dataset_dir,
   explore_eset,

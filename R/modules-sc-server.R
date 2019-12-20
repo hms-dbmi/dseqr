@@ -157,12 +157,13 @@ scForm <- function(input, output, session, sc_dir) {
 
 
   # the selected cluster/gene for cluster comparison ----
+  dataset_dir <- reactive(file.path(sc_dir, scAnal$selected_anal()))
+
   scClusterComparison <- callModule(clusterComparison, 'cluster',
-                                    selected_anal = scAnal$selected_anal,
+                                    dataset_dir = dataset_dir,
                                     scseq = scAnal$scseq,
                                     markers = scAnal$markers,
                                     annot_path = scAnal$annot_path,
-                                    sc_dir = sc_dir,
                                     ref_preds = scLabelTransfer)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
@@ -720,7 +721,7 @@ comparisonType <- function(input, output, session, scseq, is.integrated) {
 #' Logic for cluster comparison input
 #' @export
 #' @keywords internal
-clusterComparison <- function(input, output, session, selected_anal, scseq, markers, annot_path, sc_dir, ref_preds) {
+clusterComparison <- function(input, output, session, dataset_dir, scseq, markers, annot_path, ref_preds) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -752,7 +753,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
       choices <- get_contrast_choices(clusters, test)
 
     } else {
-      choices <- get_cluster_choices(clusters, selected_anal(), sc_dir)
+      choices <- get_cluster_choices(clusters, dataset_dir())
     }
 
     return(choices)
@@ -786,7 +787,7 @@ clusterComparison <- function(input, output, session, selected_anal, scseq, mark
   })
 
   # reset if switch analysis
-  observeEvent(selected_anal(), {
+  observeEvent(dataset_dir(), {
     con_markers(list())
     selected_cluster(NULL)
     annot(NULL)
@@ -902,7 +903,7 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
 
   cluster_choices <- reactive({
     req(annot())
-    get_cluster_choices(annot(), selected_anal(), sc_dir, sample_comparison = TRUE)
+    get_cluster_choices(annot(), file.path(sc_dir, selected_anal()), sample_comparison = TRUE)
   })
 
   # reset if switch analysis or annotation updates
@@ -943,7 +944,6 @@ sampleComparison <- function(input, output, session, selected_anal, scseq, annot
     selected_cluster = reactive(input$selected_clusters)
   ))
 }
-
 
 
 #' Logic for selected gene to show plots for

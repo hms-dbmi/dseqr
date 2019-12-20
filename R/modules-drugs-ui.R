@@ -244,6 +244,3 @@ scAnalInput <- function(id) {
                             options = list(multiple = TRUE))
 
 }
-
-
-

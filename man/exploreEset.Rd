@@ -4,7 +4,7 @@
 \alias{exploreEset}
 \title{Logic to setup explore_eset for Bulk Data plots}
 \usage{
-exploreEset(eset, fastq_dir, explore_pdata, numsv, svobj)
+exploreEset(eset, dataset_dir, explore_pdata, numsv, svobj)
 }
 \description{
 Logic to setup explore_eset for Bulk Data plots

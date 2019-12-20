@@ -161,14 +161,13 @@ get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
 #' Get cluster choices data.frame for selectize dropdown
 #'
 #' @param clusters Character vector of cluster names
-#' @param scseq \code{Seurat} object
-#' @param value Character vector for value column which is returned from \code{selectizeInput}. Default is \code{clusters}.
+#' @param dataset_dir Directory with single cell dataset.
 #' @param sample_comparison is this for test vs control comparion? Default is \code{FALSE}.
 #'
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, anal_name, sc_dir, sample_comparison = FALSE) {
+get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE) {
 
   testColor <- get_palette(clusters)
 
@@ -181,7 +180,7 @@ get_cluster_choices <- function(clusters, anal_name, sc_dir, sample_comparison =
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
 
-  cluster_stats <- get_cluster_stats(sc_dir, anal_name)
+  cluster_stats <- get_cluster_stats(dataset_dir)
 
   if (sample_comparison) {
     choices$ntest <- cluster_stats$ntest
@@ -193,7 +192,6 @@ get_cluster_choices <- function(clusters, anal_name, sc_dir, sample_comparison =
     choices$ncells <- cluster_stats$ncells
     choices$pcells <- round(cluster_stats$pcells)
     choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
-
   }
 
   return(choices)
@@ -201,21 +199,20 @@ get_cluster_choices <- function(clusters, anal_name, sc_dir, sample_comparison =
 
 #' Get/Save cluster stats for single-cell related selectizeInputs
 #'
-#' @param sc_dir Path to directory containing single-cell dataset folders
-#' @param anal_name Name of single cell analysis to get/save stats for
+#' @param dataset_dir Directory with single cell dataset.
 #' @param scseq \code{Seurat} object to get/save stats for. if \code{NULL} (Default), will be loaded.
 #'
 #' @return List with cluster stats
 #' @export
-get_cluster_stats <- function(sc_dir, anal_name, scseq = NULL) {
+get_cluster_stats <- function(dataset_dir, scseq = NULL) {
 
   # return previously saved stats if exists
-  stats_path <- scseq_part_path(sc_dir, anal_name, 'cluster_stats')
+  stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
   if (file.exists(stats_path)) return(readRDS(stats_path))
 
   # otherwise generate and save
   if (is.null(scseq)) {
-    scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
+    scseq_path <- file.path(dataset_dir, 'scseq.rds')
     scseq <- readRDS(scseq_path)
   }
 
@@ -324,7 +321,7 @@ get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) 
 #' Performs integration and saves as a new analysis.
 #' Used by \code{explore_scseq_clusters} shiny app.
 #'
-#' @param data_dir Directory with saved analyses.
+#' @param sc_dir Directory with saved single-cell datasets.
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
 #' @param anal_name Name for new integrated analysis.
@@ -333,7 +330,7 @@ get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) 
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
 
   reduction <- ifelse(use_scalign, 'embed', 'pca')
   dims <- if (use_scalign) 1:32 else 1:30
@@ -341,7 +338,7 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
     scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
-    save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
+    save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
     return(NULL)
   }
 
@@ -350,8 +347,8 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
   n = 6
 
   updateProgress(1/n, 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, data_dir = data_dir, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, exclude_clusters = exclude_clusters, data_dir = data_dir, ident = 'ctrl')
+  test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -372,10 +369,10 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
 
   updateProgress(6/n, 'saving')
   scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
-  save_scseq_data(scseq_data, anal_name, data_dir, integrated = TRUE)
+  save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
   # get and save cluster stats
-  get_cluster_stats(data_dir, anal_name, combined)
+  get_cluster_stats(file.path(sc_dir, anal_name), combined)
 
   return(NULL)
 }
@@ -387,20 +384,20 @@ integrate_saved_scseqs <- function(data_dir, test, ctrl, exclude_clusters, anal_
 #' Also sets orig.ident to \code{ident}.
 #'
 #' @param anal_names Character vector of single cell analysis names to load.
-#' @param data_dir The directory with single cell RNA seq datasets
+#' @param sc_dir The directory with single-cell datasets
 #' @param ident Either \code{'test'} or \code{'ctrl'}
 #'
 #' @return List of \code{Seurat} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, ident) {
+load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, ident) {
 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
   scseqs <- list()
   for (anal in anal_names) {
-    scseqs[[anal]] <- load_saved_scseq(anal, data_dir)
+    scseqs[[anal]] <- load_saved_scseq(anal, sc_dir)
   }
 
   for (i in seq_along(scseqs)) {
@@ -418,8 +415,6 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, data_dir, 
     }
     scseqs[[anal]] <- scseq
   }
-
-
 
   return(scseqs)
 }
@@ -514,18 +509,18 @@ add_project_scseqs <- function(scseqs) {
 #'
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
 #' @param anal_name The analysis name.
-#' @param data_dir Path to directory to save in
+#' @param sc_dir Path to directory with single-cell datasets.
 #' @param integrated is the analysis integration. Default is \code{FALSE}
 #'
 #' @return NULL
 #' @export
-save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE, reduce_size = FALSE) {
+save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE, reduce_size = FALSE) {
+
   if (integrated) {
-    int_path <- file.path(data_dir, 'integrated.rds')
+    int_path <- file.path(sc_dir, 'integrated.rds')
     int_options <- readRDS(int_path)
     saveRDS(c(int_options, anal_name), int_path)
   }
-
 
   if (reduce_size) {
     # optionally seperate larger parts off
@@ -546,9 +541,9 @@ save_scseq_data <- function(scseq_data, anal_name, data_dir, integrated = FALSE,
   }
 
 
-  dir.create(file.path(data_dir, anal_name))
+  dir.create(file.path(sc_dir, anal_name))
   for (type in names(scseq_data)) {
-    saveRDS(scseq_data[[type]], scseq_part_path(data_dir, anal_name, type))
+    saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
   }
 
   return(NULL)
@@ -774,13 +769,12 @@ get_scseq_assay <- function(scseq) {
 #' @param res_paths List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to
 #' saved cmap, l1000, and differential expression analysis results.
 #' @param session Shiny session object used for progress bar.
-#' @param res List to store drug query results in.
 #' @param ambient Character vector of ambient genes to exclude from drug queries.
 #'
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #' @export
 #' @keywords internal
-run_drug_queries <- function(top_table, res_paths, session, res = list(), ambient = NULL) {
+run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 
   progress <- Progress$new(session, min = 0, max = 4)
   progress$set(message = "Querying drugs", value = 1)
@@ -803,14 +797,16 @@ run_drug_queries <- function(top_table, res_paths, session, res = list(), ambien
   dprimes <- dprimes[!names(dprimes) %in% ambient]
 
   # get correlations between query and drug signatures
-  res$cmap <- query_drugs(dprimes, cmap_es)
-  res$l1000_drugs <- query_drugs(dprimes, l1000_drugs_es)
-  res$l1000_genes <- query_drugs(dprimes, l1000_genes_es)
-  progress$inc(1)
+  res <- list(
+    cmap = query_drugs(dprimes, cmap_es),
+    l1000_drugs = query_drugs(dprimes, l1000_drugs_es),
+    l1000_genes = query_drugs(dprimes, l1000_genes_es)
+  )
 
-  saveRDS(res$cmap, res_paths$cmap)
-  saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
-  saveRDS(res$l1000_genes, res_paths$l1000_genes)
+  progress$inc(1)
+  saveRDS(res$cmap, drug_paths$cmap)
+  saveRDS(res$l1000_drugs, drug_paths$l1000_drugs)
+  saveRDS(res$l1000_genes, drug_paths$l1000_genes)
 
   return(res)
 }
@@ -830,7 +826,8 @@ run_drug_queries <- function(top_table, res_paths, session, res = list(), ambien
 #' @return List with slots \code{'markers'} and \code{'anal'} containing results for markers of
 #'  cells in \code{selected_clusters} and differential expression analysis comparing test to control
 #'  cells in \code{selected_clusters}.
-run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name) {
+#' @export
+run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
 
   clusters_name <- collapse_sorted(selected_clusters)
   clusters <- as.character(Seurat::Idents(scseq))
@@ -843,15 +840,14 @@ run_cluster_comparison <- function(scseq, selected_clusters, sc_dir, anal_name) 
   cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
 
   fname <- paste0("markers_", clusters_name, '.rds')
-  fpath <- file.path(sc_dir, anal_name, fname)
+  fpath <- file.path(dataset_dir, fname)
   saveRDS(cluster_markers, fpath)
 
   Seurat::Idents(scseq) <- scseq$orig.ident
   scseq <- scseq[, in.sel]
   fit <- fit_lm_scseq(scseq = scseq,
-                          data_dir = sc_dir,
-                          anal_name = anal_name,
-                          clusters_name = clusters_name)
+                      dataset_dir = dataset_dir,
+                      clusters_name = clusters_name)
 
   res <- list(
     cluster_markers = cluster_markers,

@@ -6,17 +6,16 @@
 \usage{
 run_limma(
   eset,
-  data_dir,
+  dataset_dir,
   annot = "SYMBOL",
   svobj = list(sv = NULL),
   numsv = 0,
-  prev_anal = NULL
+  prev_anal = NULL,
+  anal_suffix = ""
 )
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{\link{load_seq}}.}
-
-\item{data_dir}{String specifying directory of GSE folders.}
 
 \item{annot}{String, column name in fData. For duplicated
 values in this column, the row with the highest interquartile range
@@ -25,6 +24,8 @@ or \code{"ENTREZID_HS"} (for probe level analysis).}
 
 \item{prev_anal}{Previous result of \code{\link{diff_expr}}. If present, previous group
 selections will be reused.}
+
+\item{data_dir}{String specifying directory of GSE folders.}
 }
 \value{
 List of named lists, one for each GSE. Each named list contains:

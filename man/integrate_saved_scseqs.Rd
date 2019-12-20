@@ -5,7 +5,7 @@
 \title{Integrate previously saved scseqs}
 \usage{
 integrate_saved_scseqs(
-  data_dir,
+  sc_dir,
   test,
   ctrl,
   exclude_clusters,
@@ -15,7 +15,7 @@ integrate_saved_scseqs(
 )
 }
 \arguments{
-\item{data_dir}{Directory with saved analyses.}
+\item{sc_dir}{Directory with saved single-cell datasets.}
 
 \item{test}{Character vector of test analysis names.}
 

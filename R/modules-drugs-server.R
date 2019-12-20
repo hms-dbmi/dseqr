@@ -741,18 +741,19 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
   })
 
+  sel_name <- reactive(sel()$label)
+  dataset_dir <- reactive(file.path(data_dir, sel()$dataset_dir))
+
   # Bulk analysis
   # ---
-  fastq_dir <- reactive({req(is_bulk()); file.path(data_dir, sel()$dataset_dir)})
-
-  eset  <- reactive(readRDS(file.path(fastq_dir(), 'eset.rds')))
-  pdata <- reactive(readRDS(file.path(fastq_dir(), 'pdata_explore.rds')))
-  numsv <- reactive(readRDS(file.path(fastq_dir(), 'numsv.rds')))
-  svobj <- reactive(readRDS(file.path(fastq_dir(), 'svobj.rds')))
+  eset  <- reactive(readRDS(file.path(dataset_dir(), 'eset.rds')))
+  pdata <- reactive(readRDS(file.path(dataset_dir(), 'pdata_explore.rds')))
+  numsv <- reactive(readRDS(file.path(dataset_dir(), 'numsv.rds')))
+  svobj <- reactive(readRDS(file.path(dataset_dir(), 'svobj.rds')))
 
 
   explore_eset <- exploreEset(eset = eset,
-                              fastq_dir = fastq_dir,
+                              dataset_dir = dataset_dir,
                               explore_pdata = pdata,
                               numsv = numsv,
                               svobj = svobj)
@@ -762,23 +763,16 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
                          eset = explore_eset,
                          svobj = svobj,
                          numsv = numsv,
-                         fastq_dir = fastq_dir,
+                         dataset_dir = dataset_dir,
                          is_bulk = is_bulk)
+
 
 
   # Single cell analysis
   # ---
-  # TODO: inputs to disable while running
-  input_ids <- ''
-  sel_name <- reactive(sel()$label)
-
-
   scAnal <- callModule(scAnal, 'sc',
-                       data_dir = data_dir,
-                       input_ids = input_ids,
                        is_sc = is_sc,
-                       anal_name = sel_name,
-                       with_drugs = TRUE)
+                       dataset_dir = dataset_dir)
 
 
   # results for selected type (bulk, sc, custom, pert)
@@ -848,35 +842,18 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 #' Logic for single cell cluster analyses for Drugs and Pathways tabs
 #' @export
 #' @keywords internal
-scAnal <- function(input, output, session, data_dir, anal_name, input_ids, with_path = FALSE, with_drugs = FALSE, is_sc = function()TRUE) {
+scAnal <- function(input, output, session, dataset_dir, is_sc = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-
-  # differentialexpression, pathway analyses, and drug queries
-  results <- reactiveVal()
-
-  sc_dir <- reactive({
-    req(is_sc())
-    file.path(data_dir, 'single-cell')
-  })
-
+  input_ids <- c('run_comparison', 'selected_clusters')
 
   # single cell dataset
-  scseq <- reactive({
-    scseq_path <- scseq_part_path(sc_dir(), anal_name(), 'scseq')
-    readRDS(scseq_path)
-  })
+  scseq <- reactive(readRDS(file.path(dataset_dir(), 'scseq.rds')))
 
   # TODO: update if annotation change from Single Cell tab
-  annot <- reactive({
-    annot_path <- scseq_part_path(sc_dir(), anal_name(), 'annot')
-    readRDS(annot_path)
-  })
-
+  annot <- reactive(readRDS(file.path(dataset_dir(), 'annot.rds')))
 
   # update cluster choices in UI
-  cluster_choices <- reactive({
-    get_cluster_choices(clusters = annot(), anal_name(), sc_dir(), sample_comparison = TRUE)
-  })
+  cluster_choices <- reactive(get_cluster_choices(annot(), dataset_dir(), TRUE))
 
   observeEvent(cluster_choices(), {
     updateSelectizeInput(session, 'selected_clusters',
@@ -884,90 +861,87 @@ scAnal <- function(input, output, session, data_dir, anal_name, input_ids, with_
                          options = contrast_options, server = TRUE)
   })
 
-  # disable run if nothing selected
-  observe({
-    toggleState('run_comparison', condition = length(input$selected_clusters))
-  })
 
-  # path to results
-  res_paths <- reactive({
-    dir <- file.path(sc_dir(), anal_name())
-    name <- collapse_sorted(input$selected_clusters)
+  # path to lmfit, cluster markers, and drug query results
+  clusters_str <- reactive(collapse_sorted(input$selected_clusters))
 
-    paths <- get_drug_paths(dir, name)
-    paths$fit <- file.path(dir, paste0('lm_fit_', name, '.rds'))
-    paths$markers <- file.path(dir, paste0('markers_', name, '.rds'))
-    return(paths)
-  })
+  lmfit_path <- reactive(file.path(dataset_dir(), paste0('lm_fit_', clusters_str(), '.rds')))
+  markers_path <- reactive(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds')))
+  drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
 
+  # do we have lm_fit and drug query results?
+  saved_lmfit <- reactive(file.exists(lmfit_path()))
+  saved_drugs <- reactive(file.exists(drug_paths()$cmap))
+
+  # unlike bulk two-group comparisons
+  # need user to indicate when all clusters selected
+  # also require cluster markers and fit result
+  lm_fit <- reactiveVal()
+  cluster_markers <- reactiveVal()
 
   observeEvent(input$run_comparison, {
 
-    toggleAll(input_ids)
-
-    # load results if they exist
-    # won't load scseq (can be big) if so
-    res <- list()
-    paths <- res_paths()
-    need <- c(with_path, with_drugs)
-    names(need) <- c('path', 'drugs')
-
-    if (with_drugs && file.exists(paths$cmap)) {
-      res$cmap <- readRDS(paths$cmap)
-      res$l1000_drugs <- readRDS(paths$l1000_drugs)
-      res$l1000_genes <- readRDS(paths$l1000_genes)
-      need['drugs'] <- FALSE
-    }
-
-    # return results if complete
-    if (!any(need)) {results(res); return(NULL)}
-
-    # load (or run) differential expression analysis
-    scseq <- scseq()
-    if (file.exists(paths$fit)) {
-      res$fit <- readRDS(paths$fit)
-      res$cluster_markers <- readRDS(paths$markers)
+    if (saved_lmfit()) {
+      resl <- list(
+        fit = readRDS(lmfit_path()),
+        cluster_markers = readRDS(markers_path())
+      )
 
     } else {
-      sc_dir <- sc_dir()
-      anal_name <- anal_name()
-      selected_clusters <- input$selected_clusters
-      res <- run_cluster_comparison(scseq, selected_clusters, sc_dir, anal_name)
+      toggleAll(input_ids)
+      resl <- run_limma_scseq(
+        scseq(),
+        input$selected_clusters,
+        dataset_dir()
+      )
+      toggleAll(input_ids)
     }
 
-    # add top table with dprimes
-    res$top_table <- get_top_table(res$fit)
-
-    # get ambient genes (used for pathways and drug queries)
-    ambient <- get_ambient(scseq = scseq,
-                           markers = res$anal$top_table,
-                           cluster_markers = res$cluster_markers)
-
-    # run pathway analysis
-    if (with_path && need['path'])
-      res <- run_path_comparison(scseq,
-                                 selected_clusters = selected_clusters,
-                                 sc_dir = sc_dir,
-                                 anal_name = anal_name,
-                                 res = res,
-                                 ambient = ambient)
-
-    # run drug queries
-    if (with_drugs && need['drugs'])
-      res <- run_drug_queries(res_paths = paths,
-                              top_table = res$top_table,
-                              session = session,
-                              res = res,
-                              ambient = ambient)
-
-
-    results(res)
+    lm_fit(resl$fit)
+    cluster_markers(resl$cluster_markers)
   })
 
-  # reset query results if change selected clusters
+
+  # differential expression top table
+  top_table <- reactive({
+    req(lm_fit())
+    tt <- get_top_table(lm_fit())
+    tt[order(tt$P.Value), ]
+  })
+
+  # need ambient for pathway and drug queries
+  ambient <- reactive({
+    get_ambient(scseq(),
+                markers = top_table(),
+                cluster_markers = cluster_markers())
+  })
+
+  # drug query results
+  drug_queries <- reactive({
+    if (is.null(lm_fit())) {
+      res <- NULL
+
+    } else if (saved_drugs()) {
+      paths <- drug_paths()
+      res <- lapply(paths, readRDS)
+
+    } else {
+      toggleAll(input_ids)
+      top_table <- top_table()
+      res <- run_drug_queries(top_table, drug_paths(), session, ambient())
+      toggleAll(input_ids)
+    }
+    return(res)
+  })
+
+  path_res <- reactive({})
+
+  # reset lm_fit if selected clusters change
+  # also disable runing lm_fit if nothing selected
   observe({
-    input$selected_clusters
-    results(NULL)
+    lm_fit(NULL)
+    cluster_markers(NULL)
+    toggleState('run_comparison', condition = length(input$selected_clusters))
   })
 
   # name for  downloading
@@ -979,10 +953,13 @@ scAnal <- function(input, output, session, data_dir, anal_name, input_ids, with_
     paste0(annot[sort(inds)], collapse = '_')
   })
 
-
   return(list(
     name = dl_name,
-    drug_queries = results,
+    lm_fit = lm_fit,
+    ambient = ambient,
+    top_table = top_table,
+    drug_queries = drug_queries,
+    past_res = path_res,
     clusters = reactive(input$selected_clusters)
   ))
 }

@@ -4,13 +4,20 @@
 \alias{fit_lm}
 \title{Run limma analysis.}
 \usage{
-fit_lm(eset, data_dir, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE)
+fit_lm(
+  eset,
+  dataset_dir,
+  svobj = list(sv = NULL),
+  numsv = 0,
+  rna_seq = TRUE,
+  anal_suffix = ""
+)
 }
 \arguments{
 \item{eset}{Annotated eset created by \code{load_raw}. Replicate features and
 non-selected samples removed by \code{iqr_replicates}.}
 
-\item{data_dir}{String, path to directory with raw data.}
+\item{dataset_dir}{Directory to save fit results in.}
 
 \item{rna_seq}{Is the analysis for RNA-seq? Auto inferred in \code{diff_expr}.}
 }

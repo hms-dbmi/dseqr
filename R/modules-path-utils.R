@@ -209,13 +209,13 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 #' }
 #' @export
 #' @keywords internal
-fit_lm_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
+fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
 
   # pseudo bulk analysis
   has_replicates <- length(unique(scseq$project)) > 2
   if (has_replicates) {
     pbulk <- diff_expr_pbulk(scseq = scseq,
-                             data_dir = file.path(data_dir, anal_name),
+                             dataset_dir = dataset_dir,
                              clusters_name = clusters_name)
   }
 
@@ -224,7 +224,7 @@ fit_lm_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
   # save lm_fit result (slow and can re-use for other contrasts)
   # fit_ebayes is also input into goana/kegga
   fit_name <- paste0('lm_fit_', clusters_name, '.rds')
-  fit_path <- file.path(data_dir, fit_name)
+  fit_path <- file.path(dataset_dir, fit_name)
   if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 
   return(lm_fit)
@@ -232,12 +232,12 @@ fit_lm_scseq <- function(scseq, data_dir, anal_name, clusters_name) {
 
 
 
-#' Run pseudo bulk differential expression  analysis
+#' Run pseudo bulk limma fit
 #'
 #' @param scseq \code{Seurat} object
-#' @param data_dir Path to folder to save analysis in.
+#' @param dataset_dir Path to folder to save fit result in.
 #' @param clusters_name String with comma seperated selected clusters.
-diff_expr_pbulk <- function(scseq, data_dir, clusters_name) {
+run_limma_pbulk <- function(scseq, dataset_dir, clusters_name) {
 
   summed <- scater::sumCountsAcrossCells(scseq[['RNA']]@counts, scseq$project)
   summed <- summed[edgeR::filterByExpr(summed), ]
@@ -261,7 +261,10 @@ diff_expr_pbulk <- function(scseq, data_dir, clusters_name) {
                                  phenoData = Biobase::AnnotatedDataFrame(pdata),
                                  featureData = Biobase::AnnotatedDataFrame(fdata))
 
-  anal <- diff_expr(eset, data_dir = data_dir, anal_name = paste0('pbulk_', clusters_name), prev_anal = list(pdata = pdata))
+  anal <- run_limma(eset,
+                    dataset_dir = dataset_dir,
+                    anal_suffix = paste0('pbulk_', clusters_name),
+                    prev_anal = list(pdata = pdata))
   return(anal)
 }
 

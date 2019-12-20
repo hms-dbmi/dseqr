@@ -4,17 +4,7 @@
 \alias{scAnal}
 \title{Logic for single cell cluster analyses for Drugs and Pathways tabs}
 \usage{
-scAnal(
-  input,
-  output,
-  session,
-  data_dir,
-  anal_name,
-  input_ids,
-  with_path = FALSE,
-  with_drugs = FALSE,
-  is_sc = function() TRUE
-)
+scAnal(input, output, session, dataset_dir, is_sc = function() TRUE)
 }
 \description{
 Logic for single cell cluster analyses for Drugs and Pathways tabs
