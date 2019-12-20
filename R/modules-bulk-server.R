@@ -874,17 +874,17 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     scseq <- scseq()
     scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
 
-    # get DESeq2::vst normalized values from eset
-    vsd <- Biobase::assayDataElement(eset, 'vsd')
+    # get normalized/adjusted values
+    adj <- Biobase::assayDataElement(eset, 'adjusted')
 
     # common genes only
-    commongenes <- intersect (rownames(vsd), rownames(scseq))
-    vsd <- vsd[commongenes, ]
+    commongenes <- intersect (rownames(adj), rownames(scseq))
+    adj <- adj[commongenes, ]
     scseq <- scseq[commongenes, ]
 
     # quantile normalize scseq and rnaseq dataset
     progress$set(value = 2)
-    y <- cbind(as.matrix(scseq[['SCT']]@data), vsd)
+    y <- cbind(as.matrix(scseq[['SCT']]@data), adj)
 
     y <- limma::normalizeBetweenArrays(y)
     y <- t(y)
