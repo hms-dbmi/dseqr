@@ -207,13 +207,22 @@ rightClickMenu <- function() {
 #' Analysis input for Drugs and Pathways page
 #' @export
 #' @keywords internal
-selectedAnalInput <- function(id) {
+selectedAnalInput <- function(id, label = 'Select a dataset or query signature:', with_custom = TRUE) {
   ns <- NS(id)
 
+  if (with_custom) {
+    ds_btn <- selectizeInputWithButtons(
+      id = ns('query'), label = label,
+      shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
+      options = list(optgroupField = 'type'))
+  } else {
+    ds_btn <- selectizeInputWithValidation(
+      id = ns('query'), label = label,
+      options = list(optgroupField = 'type'))
+  }
+
   tagList(
-    selectizeInputWithButtons(id = ns('query'), label = 'Select dataset or query signature:',
-                              shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
-                              options = list(optgroupField = 'type')),
+    ds_btn,
     tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
              scAnalInput(ns('sc'))
     ),
@@ -223,4 +232,5 @@ selectedAnalInput <- function(id) {
   )
 
 }
+
 

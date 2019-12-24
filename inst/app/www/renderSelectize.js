@@ -131,16 +131,18 @@ function cellOptions(item, escape) {
 
 function pathOptions(item, escape) {
 
-  var fdr = item.fdr ? item.fdr : '';
+  var label = "<div class = 'path-fdr pull-left'>" + item.dirLabel + "</div>";
+  var circle = item.ignore ? "<div></div>" : "<div class ='circle-swatch pull-right'></div>";  
 
   var markup = 
   "<div>" +
     "<div class = 'pull-left path-name-option' title = '" + escape(item.name) + "'>" +
         escape(item.label) +
     "</div>" +
-    "<div class = 'pull-right path-fdr'>" +
-    fdr +
-    "</div>" +
+    "<div class = 'pull-right path-option-right'>" +
+      label +
+      circle +
+      "</div>" +
     "<div class = 'clearfix'></div>" +
   "</div>";
 
@@ -208,8 +210,6 @@ function queryGenesOption(item, escape) {
 
 function transferLabelOption(item, escape) {
   var predsMarkup = item.preds ? "<div class ='circle-swatch pull-right'></div>" : "<div></div>";
-
-  console.log(item.preds);
 
   var res = "<div style='columns: 2;'>" +
               "<div style='margin-right: -80px'>" +
@@ -281,7 +281,6 @@ function bulkContrastOptions(item, escape) {
 //styling for current item
 function bulkContrastItem(item, escape) {
 
-  console.log(item);
   var clustEl = "<div class='bulk-item'>" +
                   "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
                   escape(item.name) +

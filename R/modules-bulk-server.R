@@ -1325,6 +1325,7 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
 
 }
 
+
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
@@ -1371,9 +1372,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   drug_paths <- reactive({
-    dir <- dataset_dir()
-    suffix <- paste(anal_name(), numsv_str())
+    suffix <- paste(anal_name(), numsv_str(), sep = '_')
     get_drug_paths(dataset_dir(), suffix)
+  })
+
+  goana_path <- reactive({
+    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.rds')
+    file.path(dataset_dir(), fname)
   })
 
   # do we have lm_fit and drug query results?
@@ -1408,7 +1413,6 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       # run differential expression
       progress$set(message = "Fitting limma model", value = 1)
-
       lm_fit <- run_limma(eset,
                           dataset_dir = dataset_dir,
                           svobj = svobj,
@@ -1445,6 +1449,26 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     tt[order(tt$P.Value), ]
   })
 
+  # goana pathway result
+  path_res <- reactive({
+    req(full_contrast())
+    goana_path <- goana_path()
+
+    if (file.exists(goana_path)) {
+      goana_res <- readRDS(goana_path)
+
+    } else {
+      lm_fit <- lm_fit()
+      groups <- input$contrast_groups
+      contrast <- paste0(groups[1], '-', groups[2])
+      ebfit <- fit_ebayes(lm_fit, contrast)
+      goana_res <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
+      saveRDS(goana_res, goana_path)
+    }
+
+    return(goana_res)
+  })
+
 
   # enable download
   observe({
@@ -1469,11 +1493,6 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
 
 
-  # TODO: get pathway results
-  path_res <- reactive({
-
-  })
-
   return(list(
     name = anal_name,
     lm_fit = lm_fit,
@@ -1482,6 +1501,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     path_res = path_res
   ))
 }
+
+
 
 #' Logic to setup explore_eset for Bulk Data plots
 #' @export

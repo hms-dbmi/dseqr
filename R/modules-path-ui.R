@@ -28,14 +28,10 @@ pathFormInput <- function(id) {
   ns <- NS(id)
 
   tags$div(class = "well-form well-bg",
-           selectizeInputWithValidation(ns('anal'), 'Select an analysis:', options = list(optgroupField = 'type')),
-           tags$div(id = ns('sc_clusters_container'), style = 'display: none;'
-                    # scSampleComparisonInput(ns)
-           ),
+           selectedAnalInput(ns('path'), label = 'Select a dataset:', with_custom = FALSE),
            selectizeInputWithButtons(ns('pathway'),
-                                     label = 'Select a pathway:',
-                                     label_title = 'Pathway (FDR)',
-                                     actionButton(ns('kegg'), '', icon = icon('external-link-alt', 'fa-fw'), title = 'Go to KEGG'),
-                                     options = list(optgroupField = 'direction_label', searchField = c('text', 'optgroup')))
+                                     label = 'Select a GO term:',
+                                     label_title = 'GO term | Direction | p<10-5',
+                                     actionButton(ns('direction'), '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'Toggle sort direction'))
   )
 }

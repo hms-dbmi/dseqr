@@ -4,7 +4,11 @@
 \alias{selectedAnalInput}
 \title{Analysis input for Drugs and Pathways page}
 \usage{
-selectedAnalInput(id)
+selectedAnalInput(
+  id,
+  label = "Select a dataset or query signature:",
+  with_custom = TRUE
+)
 }
 \description{
 Analysis input for Drugs and Pathways page

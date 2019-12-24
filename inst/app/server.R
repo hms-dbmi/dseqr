@@ -56,9 +56,9 @@ server <- function(input, output, session) {
                           pert_query_dir = pert_query_dir,
                           pert_signature_dir = pert_signature_dir)
 
-  # pathPage <- callModule(pathPage, 'pathways',
-  #                        data_dir = data_dir,
-  #                        new_dataset = new_dataset)
+  pathPage <- callModule(pathPage, 'pathways',
+                         data_dir = data_dir,
+                         new_dataset = new_dataset)
 
 
 

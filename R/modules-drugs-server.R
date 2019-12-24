@@ -809,6 +809,19 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     return(top_table)
   })
 
+  path_res <- reactive({
+    if (is_sc()) {
+      path_res <- scAnal$path_res()
+
+    } else if (is_bulk()) {
+      path_res <- bulkAnal$path_res()
+
+    } else {
+      path_res <- NULL
+    }
+    return(path_res)
+  })
+
   anal_name <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
@@ -827,6 +840,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   return(list(
     name = anal_name,
     top_table = top_table,
+    path_res = path_res,
     lm_fit = bulkAnal$lm_fit,
     show_custom = show_custom,
     drug_queries = drug_queries,
@@ -837,4 +851,3 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   ))
 
 }
-

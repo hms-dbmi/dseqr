@@ -108,6 +108,9 @@ fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_se
 
   lm_fit <- run_lmfit(eset, mod, rna_seq)
 
+  # add enids for goana/kegga pathway analyses
+  lm_fit$fit$genes <- Biobase::fData(eset)[, 'ENTREZID', drop = FALSE]
+
   # save lm_fit result (slow and can re-use for other contrasts)
   # fit_ebayes is also input into goana/kegga
   fit_name <- paste0('lm_fit_', anal_suffix, '_', paste0(numsv, 'svs.rds'))

@@ -1,25 +1,24 @@
-
 #' Logic for Pathways tab
 #' @export
 #' @keywords internal
-pathPage <- function(input, output, session, new_anal, data_dir) {
+pathPage <- function(input, output, session, new_dataset, data_dir) {
 
   form <- callModule(pathForm, 'form',
-                     new_anal = new_anal,
+                     new_dataset = new_dataset,
                      data_dir = data_dir)
+
 
 
 
   # the gene plot
   pl <- reactive({
 
-    diffs <- form$diffs()
-    path_id <- form$pathway()
-    anal <- diffs$anal
+    top_table <- form$top_table()
+    path_res <- form$path_res()
+    path_id <- form$path_id()
 
-    req(path_id, anal)
-
-    path_df <- get_path_df(anal, path_id)
+    req(path_id, top_table, path_res)
+    path_df <- get_path_df(top_table, path_id)
 
     # so that still shows hover if no sd
     path_df$sd[is.na(path_df$sd)] <- 'NA'
@@ -92,109 +91,60 @@ pathPage <- function(input, output, session, new_anal, data_dir) {
 #' Logic for form in Pathways tab
 #' @export
 #' @keywords internal
-pathForm <- function(input, output, session, new_anal, data_dir) {
+pathForm <- function(input, output, session, new_dataset, data_dir) {
 
+  # dataset/analysis choices
+  choices <- reactive({
+    # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
+    new_dataset()
+    scseq_datasets <- load_scseq_datasets(data_dir)
+    bulk_datasets <- load_bulk_datasets(data_dir)
 
-  # reload analysis choices if new analysis
-  anals <- reactive({
-    new_anal()
-    scseq_anals <- load_scseq_anals(data_dir, with_type = TRUE)
-    bulk_anals <- load_bulk_anals(data_dir, with_type = TRUE)
-    bulk_anals <- bulk_anals[bulk_anals$dataset_name != 'raw', ]
+    choices <- rbind(bulk_datasets, scseq_datasets)
+    choices$value <- seq_len(nrow(choices))+1
+    choices <- rbind(rep(NA, 5), choices)
 
-    anals <- rbind(bulk_anals, scseq_anals)
-    anals$value <- seq_len(nrow(anals))
-
-    return(anals)
+    return(choices)
   })
 
+  # the selected dataset/analysis results
+  selectedAnal <- callModule(selectedAnal, 'path',
+                             choices = choices,
+                             data_dir = data_dir)
 
-  # update analysis choices
-  observe({
-    anals <- anals()
-    req(anals)
-    updateSelectizeInput(session, 'anal', choices = rbind(rep(NA, 5), anals), options = list(render = I('{item: querySignatureItem}')), server = TRUE)
+
+  # the pathway direction
+  path_sort <- reactive({
+    switch((input$direction %% 3) + 1,
+           NULL,
+           'up',
+           'down')
   })
 
-  # get directory/name info about analysis
-  anal <- reactive({
-    row_num <- input$anal
-    anals <- anals()
-    req(row_num, anals)
-
-    anals[row_num, ]
+  sort_icon <- reactive({
+    switch((input$direction %% 3) + 1,
+           'arrows-alt-v',
+           'chevron-up',
+           'chevron-down')
   })
 
-  # show/hide single cell stuff
-  is_sc <- reactive({
-    anal <- anal()
-    anal$type == 'Single Cell'
-  })
-
-  observe({
-    shinyjs::toggle('sc_clusters_container', condition = is_sc())
-  })
-
-  # get single-cell data
-
-  # inputs/buttons that can access/disable
-  input_ids <- c('anal', 'kegg', 'pathway', 'run_comparison', 'selected_clusters')
-  sc_inputs <- scSampleComparison(input, output, session,
-                                  data_dir = data_dir,
-                                  anal = anal,
-                                  is_sc = is_sc,
-                                  input_ids = input_ids,
-                                  with_path = TRUE,
-                                  with_drugs = TRUE)
+  observe(updateActionButton(session, 'direction', icon = icon(sort_icon(), 'fa-fw')))
 
 
-  # file paths to pathway and analysis results
-  fpaths <- reactive({
-    anal <- anal()
-    is_sc <- is_sc()
-
-    if (is_sc()) {
-      return(NULL)
-    }
-
-    dataset_dir <-  file.path(data_dir, anal$dataset_dir)
-    anal_name <- anal$anal_name
-
-    # for compatability with previous versions
-    diff_path <- file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds'))
-    diff_path_old <- file.path(dataset_dir, paste0('diff_path_', anal_name, '.rds'))
-
-    if(file.exists(diff_path_old)) file.rename(diff_path_old, diff_path)
-
-    list(
-      anal = file.path(dataset_dir, paste0('diff_expr_symbol_', anal_name, '.rds')),
-      path = file.path(dataset_dir, paste0('diff_path_kegg_', anal_name, '.rds'))
-    )
-  })
-
-  # load pathway and analysis results
-  diffs <- reactive({
-    fpaths <- fpaths()
-    if (is_sc()) return (sc_inputs$results())
-
-    list(
-      path = readRDS(fpaths$path),
-      anal = readRDS(fpaths$anal)
-    )
-  })
-
-
+  # the pathway choices
   path_choices <- reactive({
-    diffs <- diffs()
-    res <- diffs$path$res
+    res <- selectedAnal$path_res()
 
     if (is.null(res)) return(NULL)
+    res <- topGO(res, sort = path_sort(), ontology = 'BP', number = Inf)
 
+    # limma authors recommend ignoring unadjusted p-values > 10^-5
     path_choices <- data.frame(
-      name = res$Name,
-      value = res$ID,
-      label = res$Name,
-      fdr = format.pval(res$FDRpadog, eps = 0.001, digits = 2),
+      name = res$Term,
+      value = row.names(res),
+      label = res$Term,
+      dirLabel = ifelse(res$P.Up < res$P.Down, 'Up', 'Down'),
+      ignore = pmin(res$P.Up, res$P.Down) > 10^-5,
       stringsAsFactors = FALSE)
 
     return(path_choices)
@@ -208,98 +158,17 @@ pathForm <- function(input, output, session, new_anal, data_dir) {
                          server = TRUE)
   })
 
-
   # open KEGG when click button
-  observeEvent(input$kegg, {
-    path_id <- input$pathway
-    req(path_id)
-    kegg_link <- paste0('https://www.genome.jp/kegg-bin/show_pathway?map', path_id)
-    runjs(paste0("window.open('", kegg_link, "')"))
-  })
-
-  observe({
-    toggleState('kegg', condition = input$pathway != 'all')
-  })
+  # observeEvent(input$kegg, {
+  #   path_id <- input$pathway
+  #   req(path_id)
+  #   kegg_link <- paste0('https://www.genome.jp/kegg-bin/show_pathway?map', path_id)
+  #   runjs(paste0("window.open('", kegg_link, "')"))
+  # })
 
   return(list(
-    diffs = diffs,
-    pathway = reactive(input$pathway)
+    top_table = selectedAnal$top_table,
+    path_res = selectedAnal$path_res,
+    path_id = reactive(input$pathway)
   ))
-}
-
-
-#' Logic for single cell clusters selector for pathForm
-#' @export
-#' @keywords internal
-scSampleComparison <- function(input, output, session, data_dir, anal, is_sc, input_ids, with_path = FALSE, with_drugs = FALSE) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-
-  # differentialexpression, pathway analyses, and drug queries
-  results <- reactiveVal()
-
-  sc_dir <- reactive({
-    req(is_sc())
-    file.path(data_dir, 'single-cell')
-  })
-
-  scseq <- reactive({
-    scseq_path <- scseq_part_path(sc_dir(), anal()$anal_name, 'scseq')
-    readRDS(scseq_path)
-  })
-
-  # TODO: update if annotation change from Single Cell tab
-  annot <- reactive({
-    annot_path <- scseq_part_path(sc_dir(), anal()$anal_name, 'annot')
-    readRDS(annot_path)
-  })
-
-
-  cluster_choices <- reactive({
-    anal_name <- anal()$anal_name
-    get_cluster_choices(clusters = annot(), anal_name, sc_dir(), sample_comparison = TRUE)
-  })
-
-
-
-
-  # update UI for contrast/cluster choices
-  observeEvent(cluster_choices(), {
-    updateSelectizeInput(session, 'selected_clusters',
-                         choices = cluster_choices(),
-                         options = contrast_options, server = TRUE)
-  })
-
-
-  observeEvent(input$run_comparison, {
-
-    selected_clusters <- input$selected_clusters
-    req(selected_clusters)
-
-    toggleAll(input_ids)
-
-    scseq <- scseq()
-    sc_dir <- sc_dir()
-    anal_name <- anal()$anal_name
-
-
-    res <- run_comparison(scseq,
-                          selected_clusters = selected_clusters,
-                          sc_dir = sc_dir,
-                          anal_name = anal_name,
-                          session = session,
-                          with_path = with_path,
-                          with_drugs = with_drugs)
-
-
-    toggleAll(input_ids)
-    results(res)
-  })
-
-
-  return(list(
-    results = results,
-    clusters = reactive(input$selected_clusters)
-  ))
-
-
 }

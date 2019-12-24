@@ -75,11 +75,12 @@ construct_path_df <- function(top_table) {
 #' @keywords internal
 get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200) {
 
-  # only show pathway if in kegg
-  if (path_id %in% names(gslist.kegg)) {
-    path_enids <- gslist.kegg[[path_id]]
+  # only show pathway if in GO
+  if (path_id %in% names(gslist.go)) {
+    path_enids <- gslist.go[[path_id]]
     path_genes <- names(path_enids)
     top_table <- top_table[row.names(top_table) %in% path_genes, ]
+    top_table <- head(top_table, nmax)
   }
 
   path_df <- construct_path_df(top_table)

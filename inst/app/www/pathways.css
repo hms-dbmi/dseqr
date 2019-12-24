@@ -6,11 +6,15 @@
   padding-right: 10px;
 }
 
+.path-option-right {
+  width: 50px;
+  white-space: nowrap;
+}
+
 .path-fdr {
   color: #A0A0A0;
-   white-space: nowrap;
-   width: 50px;
    text-align: right;
+   display: inline-block;
 }
 
 .scroll-plot {
