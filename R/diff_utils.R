@@ -113,7 +113,8 @@ fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_se
 
   # save lm_fit result (slow and can re-use for other contrasts)
   # fit_ebayes is also input into goana/kegga
-  fit_name <- paste0('lm_fit_', anal_suffix, '_', paste0(numsv, 'svs.rds'))
+  if (nchar(anal_suffix)) anal_suffix <- paste0(anal_suffix, '_')
+  fit_name <- paste0('lm_fit_', anal_suffix, paste0(numsv, 'svs.rds'))
   fit_path <- file.path(dataset_dir, fit_name)
   if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 
