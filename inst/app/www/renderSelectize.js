@@ -88,8 +88,8 @@ function geneOption(item, escape) {
                   "<div style='margin-right: -80px'>" +
                      escape(item.label) +
                   "</div>" +
-                  "<div style='color: #A0A0A0;text-align:right;'>" +
-                   item["pct.1"] + " :: " + item.pspace + item["pct.2"] +
+                  "<div style='color: #A0A0A0;text-align:right;'>Top " +
+                   item.Top +
                   "</div>" +
                 "</div>";
 
@@ -102,7 +102,7 @@ function geneItem(item, escape) {
   var res = "<div title='" + item.description + "'>" +
                      escape(item.label) +
                   "<span style='color: #A0A0A0;'>" +
-                     " (" + item["pct.1"] + " :: " + item["pct.2"] + ")" +
+                     " (Top " + item.Top + ")" +
                   "</span>" +
                 "</div>";
 

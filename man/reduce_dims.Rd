@@ -7,11 +7,11 @@
 reduce_dims(sce)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{\code{SingleCellExperiment} object}
 }
 \value{
-
+\code{sce} with \code{'PCA'} and \code{'TSNE'} reducedDim slots.
 }
 \description{
-Perform PCA and TSNE dimensionality reduction
+Runs after \code{add_hvgs} so that runs faster and on interesting genes.
 }

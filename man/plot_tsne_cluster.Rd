@@ -13,10 +13,6 @@ plot_tsne_cluster(
 )
 }
 \arguments{
-\item{scseq}{\code{Seurat}.}
-
-\item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
-
 \item{...}{Additional arguments passed to \code{Seurat::DimPlot}.}
 }
 \value{

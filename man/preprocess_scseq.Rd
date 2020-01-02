@@ -2,17 +2,16 @@
 % Please edit documentation in R/load_scseq.R
 \name{preprocess_scseq}
 \alias{preprocess_scseq}
-\title{Utility wrapper to run normalization and variance stabilization}
+\title{Utility wrapper to run normalization and log transformation}
 \usage{
 preprocess_scseq(scseq)
 }
 \arguments{
-\item{scseq}{\code{Seurat} or \code{SingleCellExperiment} object}
+\item{scseq}{\code{SingleCellExperiment} object}
 }
 \value{
-Normalized and variance stabilized \code{scseq}.
+Normalized and log transformed \code{scseq}.
 }
 \description{
-If \code{scseq} is a \code{SingleCellExperiment} object then runs the simpleSingleCell workflow.
-If \code{scseq} is a \code{Seurat} object then uses \code{SCTransform}.
+Utility wrapper to run normalization and log transformation
 }

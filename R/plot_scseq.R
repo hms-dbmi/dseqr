@@ -7,7 +7,7 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
 
-  scseq <- Seurat::as.Seurat(sce)
+  scseq <- Seurat::as.Seurat(scseq)
   Idents(scseq) <- scseq$cluster
 
   if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
@@ -34,20 +34,19 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #'
 #' @return \code{ggplot}
 #' @export
-plot_umap_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 3) {
+plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 2) {
+
+  scseq <- Seurat::as.Seurat(scseq)
+  Idents(scseq) <- scseq$cluster
 
   # make selected groups stand out
   cells <- colnames(scseq)
   cells <- cells[scseq$orig.ident %in% selected_idents]
 
-  # make sure not plotting combined markers
-  assay <- get_scseq_assay(scseq)
-  if (Seurat::DefaultAssay(scseq) == 'integrated') Seurat::DefaultAssay(scseq) <- assay
-
-  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'umap', order = TRUE, pt.size = pt.size) +
+  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'TSNE', order = TRUE, pt.size = pt.size) +
     theme_no_axis_vals() +
-    ggplot2::xlab('UMAP1') +
-    ggplot2::ylab('UMAP2') +
+    ggplot2::xlab('TSNE1') +
+    ggplot2::ylab('TSNE2') +
     ggplot2::theme(plot.title = ggplot2::element_blank()) +
     theme_dimgray(with_nums = FALSE) +
     ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'))

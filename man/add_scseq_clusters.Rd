@@ -13,5 +13,5 @@ add_scseq_clusters(sce)
 column \code{cluster} in \code{colData(sce)} is added.
 }
 \description{
-Add clusters to single cell RNA-seq object
+Runs after \code{reduce_dims} so that \code{'PCA'} reducedDim is available.
 }

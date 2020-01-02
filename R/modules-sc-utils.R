@@ -41,35 +41,6 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir, min.score = 0
 }
 
 
-#' Get percentage of cells expressing each gene
-#'
-#' @param scseq \code{Seurat} object
-#' @param ident.1 Test group level in \code{Idents(scseq)}.
-#' @param ident.2 Control group level in \code{Idents(scseq)}.
-#'
-#' @return data.frame with columns pct.1 and pct.2 indicating fraction of cells that express each gene.
-#' @export
-#' @keywords internal
-get_cell_pcts <- function(scseq, ident.1, ident.2) {
-  assay <- get_scseq_assay(scseq)
-  data <- scseq[[assay]]@data
-
-  cells <- Seurat::Idents(scseq)
-  cells.1 <- cells %in% ident.1
-  cells.2 <- cells %in% ident.2
-
-  pct.1 <- round(
-    x = Matrix::rowSums(x = data[, cells.1, drop = FALSE] > 0) / sum(cells.1),
-    digits = 3
-  )
-
-  pct.2 <- round(
-    x = Matrix::rowSums(x = data[, cells.2, drop = FALSE] > 0) / sum(cells.2),
-    digits = 3
-  )
-
-  return(cbind(pct.1, pct.2))
-}
 
 #' Get label transfer choices data.frame
 #'
@@ -175,7 +146,7 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
   # value is original cluster number so that saved pathway analysis name
   # isn't affected by updates to cluster annotation
   choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                        value = seq(0, along.with = clusters),
+                        value = seq(1, along.with = clusters),
                         label = clusters,
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
@@ -216,12 +187,13 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
     scseq <- readRDS(scseq_path)
   }
 
-  ncells <- tabulate(scseq$seurat_clusters)
+  ncells <- tabulate(scseq$cluster)
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
   is.integrated <- 'integrated' %in% names(scseq@assays)
   if (is.integrated) {
+    browser()
     stats$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
     stats$nctrl <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl'])
   }
@@ -272,44 +244,17 @@ get_contrast_choices <- function(clusters, test) {
 #' @export
 #' @keywords internal
 get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) {
-  clusters <- Seurat::Idents(scseq)
 
-  # get cell.pcts for all genes (previously just had for markers)
-  # allows selecting non-marker genes (at bottom of list)
-  if (comparison_type == 'clusters') {
-
-    markers <- markers[, c('pct.1', 'pct.2')]
-    idents <- strsplit(selected_cluster, ' vs ')[[1]]
-
-    if (length(idents) == 2) {
-      cell_pcts <- get_cell_pcts(scseq, idents[1], idents[2])
-    } else {
-      cell_pcts <- get_cell_pcts(scseq, idents, setdiff(levels(clusters), idents))
-    }
-
-    cell_pcts <- cell_pcts[!row.names(cell_pcts) %in% row.names(markers), ]
-    markers <- rbind(markers, cell_pcts)
-
-  } else {
-    Seurat::Idents(scseq) <- scseq$orig.ident
-    scseq <- scseq[, clusters %in% selected_cluster]
-    cell_pcts <- get_cell_pcts(scseq, 'test', 'ctrl')
-    # most positive on top
-    markers <- markers[order(markers$t, decreasing = TRUE), ]
-    markers <- as.data.frame(cell_pcts)[row.names(markers), ]
-  }
-
-  markers$pct.1 <- round(markers$pct.1 * 100)
-  markers$pct.2 <- round(markers$pct.2 * 100)
-
-  pspace <- 2 - nchar(markers$pct.2)
-  pspace[pspace < 0] <- 0
-  markers$pspace <- strrep('&nbsp;&nbsp;', pspace)
+  # add non-HVG genes to allow plotting
+  genes <- row.names(SingleCellExperiment::altExp(scseq, 'original'))
+  rest <- setdiff(genes, row.names(markers))
+  markers[rest, ] <- NA
 
   markers$label <- markers$value <- row.names(markers)
 
   # add description for title
-  markers$description <- tx2gene$description[match(row.names(markers), tx2gene$gene_name)]
+  idx <- match(row.names(markers), tx2gene$gene_name)
+  markers$description <- tx2gene$description[idx]
   return(markers)
 }
 

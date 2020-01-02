@@ -281,14 +281,12 @@ add_qc_genes <- function(sce) {
 }
 
 
-#' Utility wrapper to run normalization and variance stabilization
+#' Utility wrapper to run normalization and log transformation
 #'
-#' If \code{scseq} is a \code{SingleCellExperiment} object then runs the simpleSingleCell workflow.
-#' If \code{scseq} is a \code{Seurat} object then uses \code{SCTransform}.
 #'
-#' @param scseq \code{Seurat} or \code{SingleCellExperiment} object
+#' @param scseq \code{SingleCellExperiment} object
 #'
-#' @return Normalized and variance stabilized \code{scseq}.
+#' @return Normalized and log transformed \code{scseq}.
 #' @export
 preprocess_scseq <- function(scseq) {
 
@@ -302,12 +300,12 @@ preprocess_scseq <- function(scseq) {
 
 #' Get top highly variable genes for subsequent dimensionality reduction
 #'
-#' @param sce
+#' Runs after \code{preprocess_scseq}
+#'
+#' @param sce \code{SingleCellExperiment} object
 #'
 #' @return
 #' @export
-#'
-#' @examples
 add_hvgs <- function(sce) {
 
   dec <- scran::modelGeneVar(sce)
@@ -320,12 +318,12 @@ add_hvgs <- function(sce) {
 
 #' Perform PCA and TSNE dimensionality reduction
 #'
-#' @param sce
+#' Runs after \code{add_hvgs} so that runs faster and on interesting genes.
 #'
-#' @return
+#' @param sce \code{SingleCellExperiment} object
+#'
+#' @return \code{sce} with \code{'PCA'} and \code{'TSNE'} reducedDim slots.
 #' @export
-#'
-#' @examples
 reduce_dims <- function(sce) {
 
   # run PCA
@@ -342,6 +340,23 @@ reduce_dims <- function(sce) {
   # UMAP on top PCs
   set.seed(1100101001)
   sce <- scater::runTSNE(sce, dimred='PCA')
+
+  return(sce)
+}
+
+
+#' Add clusters to single cell RNA-seq object
+#'
+#' Runs after \code{reduce_dims} so that \code{'PCA'} reducedDim is available.
+#'
+#' @param scseq \code{SingleCellExperiment}
+#' @return column \code{cluster} in \code{colData(sce)} is added.
+#' @export
+add_scseq_clusters <- function(sce) {
+
+  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
+  clust <- igraph::cluster_walktrap(g)$membership
+  sce$cluster <- factor(clust)
 
   return(sce)
 }
@@ -366,19 +381,6 @@ add_scseq_qc_metrics <- function(sce) {
 
 
 
-#' Add clusters to single cell RNA-seq object
-#'
-#' @param scseq \code{SingleCellExperiment}
-#' @return column \code{cluster} in \code{colData(sce)} is added.
-#' @export
-add_scseq_clusters <- function(sce) {
-
-  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
-  clust <- igraph::cluster_walktrap(g)$membership
-  sce$cluster <- factor(clust)
-
-  return(sce)
-}
 
 #' Get markers genes for single cell clusters
 #'
@@ -396,26 +398,14 @@ add_scseq_clusters <- function(sce) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, direction = 'up', ...) {
+get_scseq_markers <- function(scseq, direction = 'up') {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
-  if (!is.null(ident.1) | !is.null(ident.2)) {
-    markers <- scran::findMarkers(scseq, sce$cluster, direction = direction, test="wilcox")
-
-  } else {
-    #TODO
-    browser()
-    markers <- Seurat::FindAllMarkers(scseq,
-                                      assay = assay,
-                                      only.pos = only.pos,
-                                      min.diff.pct = min.diff.pct,
-                                      ...)
-    markers <- split(markers, markers$cluster)
-    markers <- lapply(markers, function(df) {row.names(df) <- df$gene; return(df)})
-  }
+  markers <- scran::findMarkers(scseq, sce$cluster, direction = direction, test="wilcox")
+  markers <- lapply(markers, as.data.frame)
 
   return(markers)
 }

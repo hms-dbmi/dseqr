@@ -7,11 +7,11 @@
 add_hvgs(sce)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{\code{SingleCellExperiment} object}
 }
 \value{
 
 }
 \description{
-Get top highly variable genes for subsequent dimensionality reduction
+Runs after \code{preprocess_scseq}
 }
