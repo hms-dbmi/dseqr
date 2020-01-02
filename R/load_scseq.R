@@ -49,14 +49,18 @@ load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto',
     kneelist <- kneelist[kneelist %in% colnames(counts)]
   }
 
-  # covert to Seurat object
-  srt <- Seurat::CreateSeuratObject(counts[, kneelist], meta.data = whitelist[kneelist,, drop=FALSE], project = project)
-
+  # covert to SingleCellExperiment object
   # add ambient metadata for genes
-  srt[['RNA']]@meta.features$pct_ambient <- pct_ambient
-  srt[['RNA']]@meta.features$out_ambient <- out_ambient
+  rowData <- DataFrame(pct_ambient, out_ambient)
+  colData <- DataFrame(project = rep(project, length(kneelist)))
 
-  return(srt)
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = counts[, kneelist]),
+    rowData = rowData,
+    colData = colData
+  )
+
+  return(sce)
 }
 
 #' Determine ambient percent for each gene
@@ -286,55 +290,54 @@ add_qc_genes <- function(sce) {
 #'
 #' @return Normalized and variance stabilized \code{scseq}.
 #' @export
-preprocess_scseq <- function(scseq, use_sctransform = TRUE) {
+preprocess_scseq <- function(scseq) {
 
-  if (use_sctransform) {
-    scseq <- Seurat::SCTransform(scseq, verbose = FALSE)
-  }
-
-  else {
-    scseq <- Seurat::NormalizeData(scseq)
-    scseq <- Seurat::FindVariableFeatures(scseq)
-    scseq <- Seurat::ScaleData(scseq)
-  }
+  set.seed(100)
+  preclusters <- scran::quickCluster(scseq)
+  scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
+  scseq <- scater::logNormCounts(scseq)
 
   return(scseq)
 }
 
+add_hvgs <- function(sce) {
 
-#' Normalize single-cell libraries for cell-specific biases
-#'
-#' @param sce \code{SingleCellExperiment} returned from \code{\link{load_scseq}}.
-#'
-#' @return Size-factor normalized \code{SingleCellExperiment}.
-#' @export
-norm_scseq <- function(sce) {
-  # paper: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0947-7
-  # example: https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/tenx.html#6_normalizing_for_cell-specific_biases
+  dec <- scran::modelGeneVar(sce)
+  chosen <- scran::getTopHVGs(dec, prop=0.1)
+  sce.hvg <- sce[chosen, ]
+  SingleCellExperiment::altExp(sce.hvg, 'original') <- sce
 
-  set.seed(1000)
-  clusters <- scran::quickCluster(sce, use.ranks=FALSE, BSPARAM=BiocSingular::IrlbaParam())
-  sce <- scran::computeSumFactors(sce, cluster=clusters, min.mean=0.1)
-  sce <- scater::normalize(sce)
+  return(sce.hvg)
+}
+
+reduce_dims <- function(sce) {
+
+  # run PCA
+  set.seed(100)
+  sce <- scater::runPCA(sce)
+
+  # pick number of PCs
+  pcs <- SingleCellExperiment::reducedDim(sce)
+  choices <- scran::getClusteredPCs(pcs)
+  npcs <- metadata(choices)$chosen
+
+  SingleCellExperiment::reducedDim(sce, 'PCA') <- pcs[,seq_len(npcs)]
+
+  # UMAP on top PCs
+  set.seed(1100101001)
+  sce <- scater::runTSNE(sce, dimred='PCA')
+
   return(sce)
 }
 
+cluster_scseq <- function(sce) {
+  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
+  clust <- igraph::cluster_walktrap(g)$membership
+  sce$cluster <- factor(clust)
 
-#' Model and account for mean-variance relationship
-#'
-#' @param sce \code{SingleCellExperiment}
-#'
-#' @return Variance stabilized \code{sce}
-#' @export
-stabilize_scseq <- function(sce) {
-  # model mean-variance relationship
-  sctech <- scran::makeTechTrend(x=sce)
-
-  # remove sctech portion (keeps only biological component)
-  set.seed(1000)
-  sce <- scran::denoisePCA(sce, technical=sctech, BSPARAM=BiocSingular::IrlbaParam())
   return(sce)
 }
+
 
 #' Calculate QC metrics for SingleCellExperiment
 #'

@@ -5,18 +5,20 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$seurat_clusters), pt.size = 3, legend_title = 'Cluster', cols = NULL) {
+plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
 
+  scseq <- Seurat::as.Seurat(sce)
+  Idents(scseq) <- scseq$cluster
 
-  if (is.null(cols)) cols <- get_palette(levels(scseq$seurat_clusters))
+  if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
 
   # make selected cluster and groups stand out
-  cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$seurat_clusters) %in% selected_clusters, 1, 0.1))
+  cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$cluster) %in% selected_clusters, 1, 0.1))
 
-  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'umap', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
+  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
     theme_no_axis_vals() +
-    ggplot2::xlab('UMAP1') +
-    ggplot2::ylab('UMAP2') +
+    ggplot2::xlab('TSNE1') +
+    ggplot2::ylab('TSNE2') +
     theme_dimgray(with_nums = FALSE) +
     ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
 
