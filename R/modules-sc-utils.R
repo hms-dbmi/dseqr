@@ -615,34 +615,6 @@ get_integrated_ambient <- function(scseqs) {
 }
 
 
-#' Integrate Seurat objects
-#'
-#' @param scseqs List of Seurat objects
-#' @param use_scalign whether or not to use scAlign. Default is \code{FALSE}
-#'
-#' @return Integrated Seurat object.
-#' @export
-#' @keywords internal
-integrate_scseqs <- function(scseqs, use_scalign = FALSE) {
-
-  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
-  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
-
-  ambient <- get_integrated_ambient(scseqs)
-
-  if (use_scalign) {
-    combined <- scalign_integrate(scseqs, genes)
-
-  } else {
-    combined <- cca_integrate(scseqs, genes)
-  }
-
-
-  # add ambient outlier info
-  combined <- add_integrated_ambient(combined, ambient)
-
-  return(combined)
-}
 
 #' Integrate with CCA from Seurat
 #'

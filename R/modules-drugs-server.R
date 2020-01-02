@@ -582,60 +582,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, drug_s
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature)
 
-    # so that still shows hover if no sd
-    path_df$sd[is.na(path_df$sd)] <- 'NA'
-
-    # 30 pixels width per gene in pathway
-    ngenes <- length(unique(path_df$Gene))
-    plot_width <- max(400, ngenes*25 + 125)
-
-    pl <- plotly::plot_ly(data = path_df,
-                          y = ~Dprime,
-                          x = ~Gene,
-                          text = ~Gene,
-                          customdata = apply(path_df, 1, as.list),
-                          type = 'scatter',
-                          mode = 'markers',
-                          width = plot_width,
-                          height = 550,
-                          marker = list(size = 5, color = path_df$color),
-                          error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
-                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                          hovertemplate = paste0(
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
-                            '<extra></extra>')
-    ) %>%
-      plotly::config(displayModeBar = FALSE) %>%
-      plotly::layout(hoverdistance = -1,
-                     hovermode = 'x',
-                     yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
-                     xaxis = list(fixedrange = TRUE,
-                                  range = c(-2, ngenes + 1),
-                                  tickmode = 'array',
-                                  tickvals = 0:ngenes,
-                                  ticktext = ~Link,
-                                  tickangle = -45),
-                     autosize = FALSE)
-
-
-    # add arrow to show drug effect
-    if ('dprime_sum' %in% colnames(path_df))
-      pl <- pl %>%
-      plotly::add_annotations(x = ~Gene,
-                              y = ~dprime_sum,
-                              xref = "x", yref = "y",
-                              axref = "x", ayref = "y",
-                              text = "",
-                              showarrow = TRUE,
-                              arrowcolor = ~arrow_color,
-                              arrowwidth = 1,
-                              ax = ~Gene,
-                              ay = ~Dprime)
-
-    return(pl)
+    dprimesPlotly(path_df)
 
   })
 
@@ -645,6 +592,72 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, drug_s
     }),
     function(value) { 'genes_plotly' }
   )
+}
+
+#' Generate plotly of dprimes values for Drugs and Pathways tab
+#'
+#' @param path_df result of \link{get_path_df}.
+#'
+#' @return
+#' @export
+#'
+#' @keywords internal
+dprimesPlotly <- function(path_df) {
+
+  # so that still shows hover if no sd
+  path_df$sd[is.na(path_df$sd)] <- 'NA'
+
+  # 30 pixels width per gene in pathway
+  ngenes <- length(unique(path_df$Gene))
+  plot_width <- max(400, ngenes*25 + 125)
+
+  pl <- plotly::plot_ly(data = path_df,
+                        y = ~Dprime,
+                        x = ~Gene,
+                        text = ~Gene,
+                        customdata = apply(path_df, 1, as.list),
+                        type = 'scatter',
+                        mode = 'markers',
+                        width = plot_width,
+                        height = 550,
+                        marker = list(size = 5, color = path_df$color),
+                        error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                        hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                        hovertemplate = paste0(
+                          '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                          '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                          '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                          '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
+                          '<extra></extra>')
+  ) %>%
+    plotly::config(displayModeBar = FALSE) %>%
+    plotly::layout(hoverdistance = -1,
+                   hovermode = 'x',
+                   yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
+                   xaxis = list(fixedrange = TRUE,
+                                range = c(-2, ngenes + 1),
+                                tickmode = 'array',
+                                tickvals = 0:ngenes,
+                                ticktext = ~Link,
+                                tickangle = -45),
+                   autosize = FALSE)
+
+
+  # add arrow to show drug effect
+  if ('dprime_sum' %in% colnames(path_df))
+    pl <- pl %>%
+    plotly::add_annotations(x = ~Gene,
+                            y = ~dprime_sum,
+                            xref = "x", yref = "y",
+                            axref = "x", ayref = "y",
+                            text = "",
+                            showarrow = TRUE,
+                            arrowcolor = ~arrow_color,
+                            arrowwidth = 1,
+                            ax = ~Gene,
+                            ay = ~Dprime)
+
+  return(pl)
 }
 
 #' Logic for perturbation selection
@@ -752,15 +765,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   svobj <- reactive(readRDS(file.path(dataset_dir(), 'svobj.rds')))
 
 
-  explore_eset <- exploreEset(eset = eset,
-                              dataset_dir = dataset_dir,
-                              explore_pdata = pdata,
-                              numsv = numsv,
-                              svobj = svobj)
+  bulk_eset <- exploreEset(eset = eset,
+                           dataset_dir = dataset_dir,
+                           explore_pdata = pdata,
+                           numsv = numsv,
+                           svobj = svobj)
 
   bulkAnal <- callModule(bulkAnal, 'bulk',
                          pdata = pdata,
-                         eset = explore_eset,
+                         eset = bulk_eset,
                          svobj = svobj,
                          numsv = numsv,
                          dataset_dir = dataset_dir,
@@ -839,9 +852,10 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
   return(list(
     name = anal_name,
+    bulk_eset = bulk_eset,
+    contrast_groups = bulkAnal$contrast_groups,
     top_table = top_table,
     path_res = path_res,
-    lm_fit = bulkAnal$lm_fit,
     show_custom = show_custom,
     drug_queries = drug_queries,
     is_bulk = is_bulk,

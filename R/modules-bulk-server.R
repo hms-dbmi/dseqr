@@ -1325,6 +1325,28 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
 
 }
 
+#' Get group levels for bulk data plots
+#'
+#' @param pdata Data.frame of phenotype data
+#' @export
+#'
+#' @keywords internal
+get_group_levels <- function(pdata) {
+  group <- pdata$`Group name`
+  group_order <- order(unique(pdata$Group))
+  unique(group)[group_order]
+}
+
+#' Get group colors for bulk data plots
+#'
+#' @param group_levels result of \link{get_group_levels}
+#' @export
+#'
+#' @keywords internal
+get_group_colors <- function(group_levels) {
+  RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
+}
+
 
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #' @export
@@ -1336,22 +1358,22 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   # group levels used for selecting test and control groups
   group_levels <- reactive({
     req(is_bulk())
-    pdata <- pdata()
-    group <- pdata$`Group name`
-    group_order <- order(unique(pdata$Group))
-    group_levels <- unique(group)[group_order]
+    get_group_levels(pdata())
+  })
 
-    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
+  group_colors <- reactive(get_group_colors(group_levels()))
+
+  group_choices <- reactive({
 
     data.frame(
-      name = group_levels,
-      value = group_levels,
-      color = group_colors[seq_along(group_levels)], stringsAsFactors = FALSE
+      name = group_levels(),
+      value = group_levels(),
+      color = group_colors(), stringsAsFactors = FALSE
     )
   })
 
   observe({
-    updateSelectizeInput(session, 'contrast_groups', choices = group_levels(), server = TRUE, options = contrast_options)
+    updateSelectizeInput(session, 'contrast_groups', choices = group_choices(), server = TRUE, options = contrast_options)
   })
 
   full_contrast <- reactive(length(input$contrast_groups) == 2)
@@ -1504,6 +1526,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   return(list(
     name = anal_name,
+    contrast_groups = reactive(input$contrast_groups),
     lm_fit = lm_fit,
     top_table = top_table,
     drug_queries = drug_queries,
