@@ -8,10 +8,8 @@ pathPage <- function(input, output, session, new_dataset, data_dir) {
                      data_dir = data_dir)
 
 
-
-
   # the gene plot
-  pl <- reactive({
+  gene_pl <- reactive({
 
     top_table <- form$top_table()
     path_res <- form$path_res()
@@ -20,69 +18,97 @@ pathPage <- function(input, output, session, new_dataset, data_dir) {
     req(path_id, top_table, path_res)
     path_df <- get_path_df(top_table, path_id)
 
-    # so that still shows hover if no sd
-    path_df$sd[is.na(path_df$sd)] <- 'NA'
-
-    # 30 pixels width per gene in pathway
-    ngenes <- length(unique(path_df$Gene))
-    plot_width <- max(400, ngenes*25 + 125)
-
-    pl <- plotly::plot_ly(data = path_df,
-                          y = ~Dprime,
-                          x = ~Gene,
-                          text = ~Gene,
-                          customdata = apply(path_df, 1, as.list),
-                          type = 'scatter',
-                          mode = 'markers',
-                          width = plot_width,
-                          height = 550,
-                          marker = list(size = 5, color = path_df$color),
-                          error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
-                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                          hovertemplate = paste0(
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
-                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
-                            '<extra></extra>')
-    ) %>%
-      plotly::config(displayModeBar = FALSE) %>%
-      plotly::layout(hoverdistance = -1,
-                     hovermode = 'x',
-                     yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
-                     xaxis = list(fixedrange = TRUE,
-                                  range = c(-2, ngenes + 1),
-                                  tickmode = 'array',
-                                  tickvals = 0:ngenes,
-                                  ticktext = ~Link,
-                                  tickangle = -45),
-                     autosize = FALSE)
-
-
-    # add arrow to show drug effect
-    if ('dprime_sum' %in% colnames(path_df))
-      pl <- pl %>%
-      plotly::add_annotations(x = ~Gene,
-                              y = ~dprime_sum,
-                              xref = "x", yref = "y",
-                              axref = "x", ayref = "y",
-                              text = "",
-                              showarrow = TRUE,
-                              arrowcolor = ~arrow_color,
-                              arrowwidth = 1,
-                              ax = ~Gene,
-                              ay = ~Dprime)
-
-    return(pl)
-
+    dprimesPlotly(path_df)
   })
 
   output$path_plot <- snapshotPreprocessOutput(
     plotly::renderPlotly({
-      pl()
+      gene_pl()
     }),
     function(value) { 'path_plotly' }
   )
+
+  # heatmap plot
+  heat_pl <- reactive({
+    path_id <- form$path_id()
+    req(path_id)
+
+    eset <- form$bulk_eset()
+    top_table <- form$top_table()
+    contrast_groups <- form$contrast_groups()
+    get_pathway_heatmap(eset, top_table, contrast_groups, path_id)
+  })
+
+  heat_width <- reactive({
+    eset <- form$bulk_eset()
+    pdata <- Biobase::pData(eset)
+    contrast_groups <- form$contrast_groups()
+
+    (sum(pdata$group %in% contrast_groups)*20) + 140
+  })
+
+  observe({
+
+    output$heatmap <- renderPlot({
+      req(form$is_bulk())
+      heat_pl()
+    }, width = heat_width())
+
+  })
+
+
+}
+
+
+
+#' Get heatmap of genes in a GO pathways
+#'
+#' @param eset ExpressionSet
+#' @param top_table limma topTable
+#' @param contrast_groups groups to include in heatmap
+#' @param path_id GO pathway id string
+#'
+#' @return \code{pheatmap} object.
+#' @export
+get_pathway_heatmap <- function(eset, top_table, contrast_groups, path_id) {
+
+  # subset to pathway genes
+  adj <- Biobase::assayDataElement(eset, 'adjusted')
+  path_genes <- names(gslist.go[[path_id]])
+
+  # subset to max 1000 top genes
+  sig.genes <- head(row.names(top_table[path_genes, ]), 1000)
+  adj <- adj[row.names(adj) %in% sig.genes, ]
+
+  # get group colors and levels
+  pdata <- Biobase::pData(eset)
+  group_levels <- get_group_levels(pdata)
+  group_colors <- get_group_colors(group_levels)
+
+  # subset eset to selected groups
+  in.sel <- pdata$group %in% contrast_groups
+  adj <- adj[, in.sel]
+  if ((nrow(adj) %% 2) == 1) adj <- rbind(adj, rnorm(ncol(adj)))
+
+  # cluster rows on correlation
+  dist.rows <- as.dist(1 - cor(t(adj)))
+  annot <- data.frame(Group = pdata$group[in.sel], row.names = colnames(adj))
+  annotation_colors <- list(Group = group_colors)
+  names(annotation_colors$Group) <- group_levels
+  annotation_colors$Group <- annotation_colors$Group[contrast_groups]
+
+  pheatmap::pheatmap(adj,
+                     color = gplots::greenred(10),
+                     clustering_distance_rows = dist.rows,
+                     show_colnames = TRUE,
+                     show_rownames = FALSE,
+                     border_color = NA,
+                     scale = 'row',
+                     treeheight_row = 0,
+                     annotation_colors = annotation_colors,
+                     annotation_names_col = FALSE,
+                     annotation_col = annot,na_col = 'black',
+                     cellwidth=18, fontsize = 12)
 
 
 }
@@ -136,7 +162,7 @@ pathForm <- function(input, output, session, new_dataset, data_dir) {
     res <- selectedAnal$path_res()
 
     if (is.null(res)) return(NULL)
-    res <- topGO(res, sort = path_sort(), ontology = 'BP', number = Inf)
+    res <- limma::topGO(res, sort = path_sort(), ontology = 'BP', number = Inf)
 
     # limma authors recommend ignoring unadjusted p-values > 10^-5
     path_choices <- data.frame(
@@ -167,8 +193,11 @@ pathForm <- function(input, output, session, new_dataset, data_dir) {
   # })
 
   return(list(
+    bulk_eset = selectedAnal$bulk_eset,
+    contrast_groups = selectedAnal$contrast_groups,
     top_table = selectedAnal$top_table,
     path_res = selectedAnal$path_res,
+    is_bulk = selectedAnal$is_bulk,
     path_id = reactive(input$pathway)
   ))
 }

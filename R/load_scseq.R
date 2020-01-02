@@ -300,6 +300,14 @@ preprocess_scseq <- function(scseq) {
   return(scseq)
 }
 
+#' Get top highly variable genes for subsequent dimensionality reduction
+#'
+#' @param sce
+#'
+#' @return
+#' @export
+#'
+#' @examples
 add_hvgs <- function(sce) {
 
   dec <- scran::modelGeneVar(sce)
@@ -310,6 +318,14 @@ add_hvgs <- function(sce) {
   return(sce.hvg)
 }
 
+#' Perform PCA and TSNE dimensionality reduction
+#'
+#' @param sce
+#'
+#' @return
+#' @export
+#'
+#' @examples
 reduce_dims <- function(sce) {
 
   # run PCA
@@ -321,19 +337,11 @@ reduce_dims <- function(sce) {
   choices <- scran::getClusteredPCs(pcs)
   npcs <- metadata(choices)$chosen
 
-  SingleCellExperiment::reducedDim(sce, 'PCA') <- pcs[,seq_len(npcs)]
+  SingleCellExperiment::reducedDim(sce, 'PCA') <- pcs[, seq_len(npcs)]
 
   # UMAP on top PCs
   set.seed(1100101001)
   sce <- scater::runTSNE(sce, dimred='PCA')
-
-  return(sce)
-}
-
-cluster_scseq <- function(sce) {
-  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
-  clust <- igraph::cluster_walktrap(g)$membership
-  sce$cluster <- factor(clust)
 
   return(sce)
 }
@@ -358,28 +366,18 @@ add_scseq_qc_metrics <- function(sce) {
 
 
 
-#' Add clusters single cell RNA-seq object
+#' Add clusters to single cell RNA-seq object
 #'
-#' Uses either \code{SingleCellExperiment} or \code{Seurat} workflows based on class of \code{scseq}.
-#'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat} returned by \code{\link{preprocess_scseq}}.
-#' @param use.dimred A string specifying reduced dimension to use e.g. \code{'PCA'} (default).
-#'  Only used if \code{scseq} has class \code{SingleCellExperiment}.
-#' @param resolution Use larger values to obtain more clusters (default is 0.8).
-#'  Only used if \code{scseq} has class \code{Seurat}.
-#'
-#' @return If \code{scseq} is a \code{SingleCellExperiemnt} object, column \code{cluster} in \code{colData(sce)} is added.
-#'  If \code{scseq} is a \code{Seurat} object, the result of \code{\link[Seurat]{FindClusters}} is returned.
+#' @param scseq \code{SingleCellExperiment}
+#' @return column \code{cluster} in \code{colData(sce)} is added.
 #' @export
-add_scseq_clusters <- function(scseq, reduction = 'pca', resolution = 0.8, dims = 1:30) {
+add_scseq_clusters <- function(sce) {
 
-  if (reduction == 'pca') suppressWarnings(scseq <- Seurat::RunPCA(scseq, verbose = FALSE))
+  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
+  clust <- igraph::cluster_walktrap(g)$membership
+  sce$cluster <- factor(clust)
 
-  scseq <- Seurat::FindNeighbors(scseq, reduction = reduction, dims=dims, verbose = FALSE)
-  scseq <- Seurat::FindClusters(scseq, verbose = FALSE, resolution = resolution)
-
-
-  return(scseq)
+  return(sce)
 }
 
 #' Get markers genes for single cell clusters
@@ -398,24 +396,18 @@ add_scseq_clusters <- function(scseq, reduction = 'pca', resolution = 0.8, dims 
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, min.diff.pct = 0.25, only.pos = TRUE, ...) {
-
-  assay <- ifelse('SCT' %in% names(scseq@assays), 'SCT', 'RNA')
+get_scseq_markers <- function(scseq, ident.1 = NULL, ident.2 = NULL, direction = 'up', ...) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
   if (!is.null(ident.1) | !is.null(ident.2)) {
-    markers <- Seurat::FindMarkers(scseq,
-                                   assay = assay,
-                                   ident.1 = ident.1,
-                                   ident.2 = ident.2,
-                                   only.pos = only.pos,
-                                   min.diff.pct = min.diff.pct,
-                                   ...)
+    markers <- scran::findMarkers(scseq, sce$cluster, direction = direction, test="wilcox")
 
   } else {
+    #TODO
+    browser()
     markers <- Seurat::FindAllMarkers(scseq,
                                       assay = assay,
                                       only.pos = only.pos,
@@ -570,7 +562,7 @@ transfer_labels <- function(reference, query, updateProgress = NULL, n = 3, n_in
 #' @export
 exist_clusters <- function(scseq) {
   if (class(scseq) == 'SingleCellExperiment') {
-    exist_clusters <- length(unique(scseq$clusters)) > 1
+    exist_clusters <- length(unique(scseq$cluster)) > 1
 
   } else if (class(scseq) == 'Seurat') {
     exist_clusters <- length(unique(Seurat::Idents(scseq))) > 1

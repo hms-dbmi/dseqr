@@ -5,7 +5,7 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_umap_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
+plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
 
   scseq <- Seurat::as.Seurat(sce)
   Idents(scseq) <- scseq$cluster

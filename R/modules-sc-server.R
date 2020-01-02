@@ -1012,7 +1012,7 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles, cached_plo
   plot <- reactive({
     cached_plot <- cached_plot()
     if (!is.null(cached_plot)) return(cached_plot)
-    plot_umap_cluster(scseq(), pt.size = plot_styles$size())
+    plot_tsne_cluster(scseq(), pt.size = plot_styles$size())
 
   })
 

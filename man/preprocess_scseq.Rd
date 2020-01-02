@@ -4,7 +4,7 @@
 \alias{preprocess_scseq}
 \title{Utility wrapper to run normalization and variance stabilization}
 \usage{
-preprocess_scseq(scseq, use_sctransform = TRUE)
+preprocess_scseq(scseq)
 }
 \arguments{
 \item{scseq}{\code{Seurat} or \code{SingleCellExperiment} object}

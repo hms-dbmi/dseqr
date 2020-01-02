@@ -963,7 +963,7 @@ get_label_plot <- function(anal, scseq, annot, plot) {
     anal_coords[is.dup, 'cols'] <- new_cols[seq_along(is.dup)]
   }
 
-  plot_umap_cluster(scseq, cols=anal_coords$cols)
+  plot_tsne_cluster(scseq, cols=anal_coords$cols)
 }
 
 #' Get median x-y coordinates for clusters in UMAP plot data
