@@ -237,18 +237,11 @@ get_contrast_choices <- function(clusters, test) {
 #'
 #' @param scseq Seurat object
 #' @param markers data.frame of marker genes.
-#' @param selected_cluster Character vector indicating selected cluster.
-#' @param comparison_type Either \code{'samples'} or \code{'clusters'}
 #'
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(scseq, markers, selected_cluster, comparison_type) {
-
-  # add non-HVG genes to allow plotting
-  genes <- row.names(SingleCellExperiment::altExp(scseq, 'original'))
-  rest <- setdiff(genes, row.names(markers))
-  markers[rest, ] <- NA
+get_gene_choices <- function(scseq, markers) {
 
   markers$label <- markers$value <- row.names(markers)
 

@@ -7,7 +7,7 @@
 reduce_dims(sce)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment} object}
+\item{sce}{\code{SingleCellExperiment} object with \code{'hvg'} in \code{rowData}}
 }
 \value{
 \code{sce} with \code{'PCA'} and \code{'TSNE'} reducedDim slots.

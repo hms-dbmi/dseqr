@@ -288,7 +288,7 @@ add_qc_genes <- function(sce) {
 #'
 #' @return Normalized and log transformed \code{scseq}.
 #' @export
-preprocess_scseq <- function(scseq) {
+normalize_scseq <- function(scseq) {
 
   set.seed(100)
   preclusters <- scran::quickCluster(scseq)
@@ -309,31 +309,34 @@ preprocess_scseq <- function(scseq) {
 add_hvgs <- function(sce) {
 
   dec <- scran::modelGeneVar(sce)
-  chosen <- scran::getTopHVGs(dec, prop=0.1)
-  sce.hvg <- sce[chosen, ]
-  SingleCellExperiment::altExp(sce.hvg, 'original') <- sce
+  hvg <- row.names(sce) %in% scran::getTopHVGs(dec, prop=0.1)
+  SummarizedExperiment::rowData(sce)$hvg <- hvg
 
-  return(sce.hvg)
+  return(sce)
 }
 
 #' Perform PCA and TSNE dimensionality reduction
 #'
 #' Runs after \code{add_hvgs} so that runs faster and on interesting genes.
 #'
-#' @param sce \code{SingleCellExperiment} object
+#' @param sce \code{SingleCellExperiment} object with \code{'hvg'} in \code{rowData}
 #'
 #' @return \code{sce} with \code{'PCA'} and \code{'TSNE'} reducedDim slots.
 #' @export
 reduce_dims <- function(sce) {
 
+  # run on HVGs
+  rdata <- SummarizedExperiment::rowData(sce)
+  subset_row <- row.names(rdata[rdata$hvg, ])
+
   # run PCA
   set.seed(100)
-  sce <- scater::runPCA(sce)
+  sce <- scater::runPCA(sce, subset_row = subset_row)
 
   # pick number of PCs
   pcs <- SingleCellExperiment::reducedDim(sce)
   choices <- scran::getClusteredPCs(pcs)
-  npcs <- metadata(choices)$chosen
+  npcs <- S4Vectors::metadata(choices)$chosen
 
   SingleCellExperiment::reducedDim(sce, 'PCA') <- pcs[, seq_len(npcs)]
 

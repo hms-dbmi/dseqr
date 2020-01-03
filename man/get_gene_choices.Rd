@@ -4,16 +4,12 @@
 \alias{get_gene_choices}
 \title{Add cell percents to gene choices for single cell}
 \usage{
-get_gene_choices(scseq, markers, selected_cluster, comparison_type)
+get_gene_choices(scseq, markers)
 }
 \arguments{
 \item{scseq}{Seurat object}
 
 \item{markers}{data.frame of marker genes.}
-
-\item{selected_cluster}{Character vector indicating selected cluster.}
-
-\item{comparison_type}{Either \code{'samples'} or \code{'clusters'}}
 }
 \value{
 data.frame of all genes, with markers on top and cell percent columns

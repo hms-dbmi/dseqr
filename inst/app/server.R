@@ -360,7 +360,7 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
   Seurat::DefaultAssay(srt) <- 'RNA'
   sce <- Seurat::as.SingleCellExperiment(srt)
 
-  sce <- preprocess_scseq(sce)
+  sce <- normalize_scseq(sce)
   sce <- add_hvgs(sce)
   sce <- reduce_dims(sce)
   sce <- add_scseq_clusters(sce)
@@ -972,7 +972,7 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     req(comparison_type %in% c('samples', 'clusters'))
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
 
-    get_gene_choices(scseq, markers, selected_cluster, comparison_type)
+    get_gene_choices(scseq, markers)
   })
 
   # click genecards
