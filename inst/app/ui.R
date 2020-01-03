@@ -23,8 +23,6 @@ pathPageUI <- function(id, tab, active) {
 }
 
 
-
-
 #' Input form for pathways page
 #' @export
 #' @keywords internal

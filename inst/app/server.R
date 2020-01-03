@@ -1022,7 +1022,6 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
   observe({
     updateSelectizeInput(session, 'selected_gene',
                          choices = gene_choices(), selected = NULL,
-                         options = list(render = I('{option: geneOption, item: geneItem}')),
                          server = TRUE)
   })
 

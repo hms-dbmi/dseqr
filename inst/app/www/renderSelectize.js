@@ -83,32 +83,6 @@ function integationOption(item, escape) {
   return res;
 }
 
-function geneOption(item, escape) {
-  var res = "<div style='columns: 2;' title='" + item.description + "'>" +
-                  "<div style='margin-right: -80px'>" +
-                     escape(item.label) +
-                  "</div>" +
-                  "<div style='color: #A0A0A0;text-align:right;'>Top " +
-                   item.Top +
-                  "</div>" +
-                "</div>";
-
-
-  return res;
-}
-
-
-function geneItem(item, escape) {
-  var res = "<div title='" + item.description + "'>" +
-                     escape(item.label) +
-                  "<span style='color: #A0A0A0;'>" +
-                     " (Top " + item.Top + ")" +
-                  "</span>" +
-                "</div>";
-
-  return res;
-
-}
 
 function pathGene(item, escape) {
   var res = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";

@@ -408,7 +408,7 @@ get_scseq_markers <- function(scseq, direction = 'up') {
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
-  markers <- scran::findMarkers(scseq, sce$cluster, direction = direction, test="wilcox")
+  markers <- scran::findMarkers(scseq, scseq$cluster, direction = direction, test = 'wilcox', pval.type = 'some')
   markers <- lapply(markers, as.data.frame)
 
   return(markers)
