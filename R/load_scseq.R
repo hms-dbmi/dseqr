@@ -343,6 +343,7 @@ reduce_dims <- function(sce) {
   # UMAP on top PCs
   set.seed(1100101001)
   sce <- scater::runTSNE(sce, dimred='PCA')
+  colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')
 
   return(sce)
 }
