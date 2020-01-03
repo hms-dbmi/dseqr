@@ -673,6 +673,8 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
   # run integration
   observeEvent(input$submit_integration, {
 
+    browser()
+
     test_anals <- test()
     ctrl_anals <- ctrl()
     exclude_clusters <- input$exclude_clusters

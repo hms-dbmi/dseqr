@@ -260,10 +260,7 @@ get_gene_choices <- function(scseq, markers) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL, use_scalign = FALSE) {
-
-  reduction <- ifelse(use_scalign, 'embed', 'pca')
-  dims <- if (use_scalign) 1:32 else 1:30
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL) {
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -285,7 +282,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   scseqs <- add_project_scseqs(scseqs)
 
   updateProgress(2/n, 'integrating')
-  combined <- integrate_scseqs(scseqs, use_scalign = use_scalign)
+  combined <- integrate_scseqs(scseqs)
   rm(scseqs); gc()
 
   updateProgress(3/n, 'clustering')
@@ -341,7 +338,7 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
     is.exclude <- exclude_anals == anal
     if (any(is.exclude)) {
       exclude <- exclude_clusters[is.exclude]
-      scseq <- scseq[, !scseq$seurat_clusters %in% exclude]
+      scseq <- scseq[, !scseq$cluster %in% exclude]
     }
     scseqs[[anal]] <- scseq
   }
@@ -366,23 +363,7 @@ load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
   scseq <- readRDS(scseq_path)
 
   # add original clusters
-  scseq$orig_clusters <- scseq$seurat_clusters
-
-  # restore SCT assay
-  sct_path <- scseq_part_path(data_dir, anal, 'sct')
-  if (file.exists(sct_path)) {
-    sct <- readRDS(sct_path)
-    scseq[['SCT']] <- sct
-  }
-
-  # restore counts slot
-  scseq[['RNA']]@counts <- scseq[['RNA']]@data
-
-  # downsample very large datasets
-  if (downsample) scseq <- downsample_scseq(scseq)
-
-  # bug in Seurat, need for integration
-  scseq[['SCT']]@misc$vst.out$cell_attr <- scseq[['SCT']]@misc$vst.out$cell_attr[colnames(scseq), ]
+  scseq$orig_cluster <- scseq$cluster
 
   return(scseq)
 }
@@ -424,11 +405,11 @@ downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
 add_project_scseqs <- function(scseqs) {
 
   # preserve identities of original samples
-  projects <- sapply(scseqs, function(x) x@project.name)
+  projects <- sapply(scseqs, function(x) unique(x$project.name))
   projects <- make.unique(projects)
 
   for (i in seq_along(projects))
-    scseqs[[i]]@meta.data$project <- projects[i]
+    scseqs[[i]]$project <- projects[i]
 
   return(scseqs)
 
@@ -493,7 +474,7 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
   if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
-  } else if (anal_name %in% unlist(anal_options)) {
+  } else if (anal_name %in% unlist(anal_options$Individual)) {
     msg <- 'Analysis name already exists'
 
   } else if (is.null(test) || is.null(ctrl)) {

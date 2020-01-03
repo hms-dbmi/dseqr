@@ -337,12 +337,11 @@ reduce_dims <- function(sce) {
   pcs <- SingleCellExperiment::reducedDim(sce)
   choices <- scran::getClusteredPCs(pcs)
   npcs <- S4Vectors::metadata(choices)$chosen
-
-  SingleCellExperiment::reducedDim(sce, 'PCA') <- pcs[, seq_len(npcs)]
+  sce@metadata$npcs <- npcs
 
   # UMAP on top PCs
   set.seed(1100101001)
-  sce <- scater::runTSNE(sce, dimred='PCA')
+  sce <- scater::runTSNE(sce, dimred='PCA', n_dimred = npcs)
   colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')
 
   return(sce)
@@ -419,25 +418,41 @@ get_scseq_markers <- function(scseq, direction = 'up') {
 
 #' Integrate multiple scRNA-seq samples
 #'
-#' @param scseqs List of \code{Seurat} objects
+#' @param scseqs List of \code{SingleCellExperiment} objects
 #'
-#' @return Integrated \code{Seurat} object with default assay of \code{"integrated"}
+#' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs, scalign = FALSE) {
+integrate_scseqs <- function(scseqs) {
 
-  genes  <- Seurat::SelectIntegrationFeatures(object.list = scseqs, nfeatures = 3000)
-  scseqs <- Seurat::PrepSCTIntegration(object.list = scseqs, anchor.features = genes)
+  # all common genes
+  universe <- Reduce(intersect, lapply(scseqs, row.names))
 
+  # variance modelling results
+  decs <- lapply(scseqs, scran::modelGeneVar)
+
+  # subset scseqs and decs
+  decs <- lapply(decs, function(x) x[universe, ])
+  scseqs <- lapply(scseqs, `[`, universe)
+
+  # rescale each batch for depths
+  scseqs <- do.call('multiBatchNorm', scseqs, envir = loadNamespace('batchelor'))
+
+  # feature selection
+  decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
+  hvgs <- decs$bio > 0
+
+  #
   ambient <- get_integrated_ambient(scseqs)
-  k.filter <- min(200, min(sapply(scseqs, ncol)))
 
-  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
-                                            anchor.features = anchor.features)
+  # mnn integration
+  combined <- do.call('noCorrect', scseqs, envir = loadNamespace('batchelor'))
 
-  rm(scseqs); gc()
+  set.seed(1000101001)
+  mnn.out <- batchelor::fastMNN(combined, batch = 'batch', subset.row = hvgs)
 
-  combined <- Seurat::IntegrateData(anchors, normalization.method = "SCT")
-  combined$orig.ident <- factor(combined$orig.ident)
+  set.seed(0010101010)
+  mnn.out <- scater::runTSNE(mnn.out, dimred = "corrected")
+
 
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
@@ -476,12 +491,12 @@ get_integrated_ambient <- function(scseqs) {
   is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
 
   # genes that are ambient in at least one test sample
-  ambient.test <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
+  ambient.test <- lapply(scseqs[is.test], function(x) SingleCellExperiment::rowData(x))
   ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
   ambient.test <- unique(unlist(ambient.test))
 
   # genes that are ambient in at least one ctrl sample
-  ambient.ctrl <- lapply(scseqs[!is.test], function(x) x[['RNA']]@meta.features)
+  ambient.ctrl <- lapply(scseqs[!is.test], function(x) SingleCellExperiment::rowData(x))
   ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
   ambient.ctrl <- unique(unlist(ambient.ctrl))
 
