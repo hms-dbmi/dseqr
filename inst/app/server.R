@@ -478,6 +478,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   # submit annotation transfer
   observeEvent(input$submit_transfer, {
 
+
     query_name <- dataset_name()
     ref_name <- input$ref_name
     preds <- preds()
@@ -503,23 +504,26 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
 
     # load anals
     query <- scseq()
-    ref <- load_saved_scseq(ref_name, sc_dir)
+    senv <- loadNamespace('SingleR')
+
+    if (ref_name %in% ls(senv)) {
+      ref <- get(ref_name, envir = senv)()
+    } else {
+      # TODO
+      browser()
+      ref <- load_saved_scseq(ref_name, sc_dir)
+    }
+
     updateProgress(1/n)
 
-    # transfer labels to query cells
-    predictions <- transfer_labels(ref, query, updateProgress = updateProgress, n = n, n_init = 2)
-    predictions$orig <- query$seurat_clusters
+    # take best label for each cluster
+    pred <- SingleR::SingleR(test = query, ref = ref, labels = ref$label.main)
+    tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
 
-    # score as sum of percent in cluster with label and mean score
-    pred_pcts <- predictions %>%
-      group_by(orig, predicted.id) %>%
-      summarise(mean.score = mean(prediction.score.max), n = n()) %>%
-      arrange(desc(n), desc(mean.score)) %>%
-      slice(1)
-
+    pred <- row.names(tab)[apply(tab, 2, which.max)]
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds[[ref_name]] <- pred_pcts
+    preds[[ref_name]] <- pred
     saveRDS(preds, preds_path)
 
     new_preds(ref_name)
