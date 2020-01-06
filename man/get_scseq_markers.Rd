@@ -10,7 +10,8 @@ get_scseq_markers(
   direction = "up",
   test = "wilcox",
   pval.type = "some",
-  block = NULL
+  block = NULL,
+  restrict = NULL
 )
 }
 \arguments{

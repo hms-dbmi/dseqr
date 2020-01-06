@@ -365,10 +365,15 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
   sce <- reduce_dims(sce)
   sce <- add_scseq_clusters(sce)
 
-  markers <- get_scseq_markers(sce)
+
+  wilcox_tests <- pairwise_wilcox(sce)
+  markers <- get_scseq_markers(wilcox_tests)
   markers_path <- scseq_part_path(sc_dir, dataset_name, 'markers')
   markers_copy <- gsub('markers.rds$', 'markers_copy.rds', markers_path)
   file.copy(markers_path, markers_copy)
+
+  # top markers are for SingleR
+  top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
 
   annot <- names(markers)
   annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
@@ -380,10 +385,8 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
   file.copy(stats_path, stats_copy)
   unlink(stats_path)
 
-  saveRDS(sce, scseq_path)
-  saveRDS(markers, markers_path)
-  saveRDS(annot, annot_path)
-
+  scseq_data <- list(scseq = sce, markers = markers, top_markers = top_markers, annot = annot)
+  save_scseq_data(scseq_data, dataset_name, sc_dir)
 
   # error so that things get reloaded
   stop('need to reset as converted from Seurat to SCE')
@@ -502,22 +505,32 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     }
     n = 3
 
-    # load anals
+    # get arguments for SingleR
     query <- scseq()
     senv <- loadNamespace('SingleR')
 
     if (ref_name %in% ls(senv)) {
       ref <- get(ref_name, envir = senv)()
+      labels <- ref$label.main
+      genes <- 'de'
+
     } else {
-      # TODO
-      browser()
+      markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
+      genes <- readRDS(markers_path)
       ref <- load_saved_scseq(ref_name, sc_dir)
+
+      # need until SingleR #77 fixed
+      common <- intersect(row.names(ref), row.names(query))
+      genes <- lapply(genes, function(x) {lapply(x, function(y) intersect(y, common))})
+
+      labels <- as.character(ref$cluster)
     }
 
     updateProgress(1/n)
+    browser()
 
     # take best label for each cluster
-    pred <- SingleR::SingleR(test = query, ref = ref, labels = ref$label.main)
+    pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)
     tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
 
     pred <- row.names(tab)[apply(tab, 2, which.max)]
@@ -672,8 +685,6 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
 
   # run integration
   observeEvent(input$submit_integration, {
-
-    browser()
 
     test_anals <- test()
     ctrl_anals <- ctrl()
@@ -911,7 +922,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
       con_markers <- con_markers()
 
       # returns both directions
-      markers <- get_scseq_markers(scseq(), restrict = con)
+      tests <- pairwise_wilcox(scseq(), restrict = con)
+      markers <- get_scseq_markers(tests)
       names(markers) <- paste(names(markers), 'vs', rev(names(markers)))
 
       con_markers <- c(con_markers, markers)
@@ -1045,7 +1057,7 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles, cached_plo
   plot <- reactive({
     cached_plot <- cached_plot()
     if (!is.null(cached_plot)) return(cached_plot)
-    plot_tsne_cluster(scseq(), pt.size = plot_styles$size())
+    plot_tsne_cluster(scseq())
 
   })
 
@@ -1102,7 +1114,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
     if (!is.null(cached)) return(cached)
 
     req(selected_gene())
-    plot_tsne_gene(scseq(), selected_gene(), pt.size = plot_styles$size())
+    plot_tsne_gene(scseq(), selected_gene())
   })
 
   ploted_plot <- reactive({

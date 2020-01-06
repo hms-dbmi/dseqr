@@ -12,7 +12,7 @@ plot_tsne_gene(
 )
 }
 \arguments{
-\item{scseq}{\code{Seurat}.}
+\item{scseq}{\code{SingleCellExperiment} object.}
 
 \item{gene}{Character vector specifying gene to colour cells by.}
 

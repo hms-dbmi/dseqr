@@ -17,11 +17,15 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
   query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
   query_annot <- readRDS(query_annot_path)
 
+  ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+  ref_annot <- readRDS(ref_annot_path)
+
   # for resetting annotation
   if (ref_name == '') {
     pred_annot <- as.character(seq_along(query_annot))
 
   } else {
+    ref_preds <- ref_annot[as.numeric(ref_preds)]
     pred_annot <- make.unique(ref_preds, '_')
   }
   return(pred_annot)
@@ -283,7 +287,6 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
-  rm(scseqs); gc()
 
   # choose number of dims of corrected for TSNE/clusters
   combined <- pick_npcs(combined, dimred = 'corrected')
@@ -293,16 +296,22 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   combined <- run_tsne(combined, dimred = 'corrected')
 
   # add ambient outlier info
+  ambient <- get_integrated_ambient(scseqs)
   combined <- add_integrated_ambient(combined, ambient)
+  rm(scseqs); gc()
 
   updateProgress(4/n, 'clustering')
   combined <- add_scseq_clusters(combined, dimred = 'corrected')
 
   updateProgress(5/n, 'getting markers')
-  markers <- get_scseq_markers(combined, block = combined$batch, groups = combined$cluster)
+  wilcox_tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
+  markers <- get_scseq_markers(wilcox_tests)
+
+  # top markers for SingleR
+  top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
 
   updateProgress(6/n, 'saving')
-  scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
+  scseq_data <- list(scseq = combined, markers = markers, top_markers = top_markers, annot = names(markers))
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
   # get and save cluster stats

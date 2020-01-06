@@ -12,9 +12,6 @@ plot_tsne_cluster(
   cols = NULL
 )
 }
-\arguments{
-\item{...}{Additional arguments passed to \code{Seurat::DimPlot}.}
-}
 \value{
 \code{ggplot}
 }

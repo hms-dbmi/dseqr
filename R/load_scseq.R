@@ -411,24 +411,38 @@ add_scseq_qc_metrics <- function(sce) {
 
 
 
-#' Get markers genes for single cell clusters
+#' Run pairwise wilcox tests between single cell clusters
 #'
 #' @param scseq \code{SingleCellExperiment} object.
-#' @param ... arguments to \code{findMarkers}
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, groups = scseq$cluster, direction = 'up', test = 'wilcox', pval.type = 'some', block = NULL, restrict = NULL) {
+pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', block = NULL, restrict = NULL) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
+  groups <- as.character(groups)
 
   # only upregulated as more useful for positive id of cell type
-  markers <- scran::findMarkers(scseq, groups, direction = direction, test = test, pval.type = pval.type, block = block, restrict = restrict)
-  markers <- lapply(markers, as.data.frame)
-
-  return(markers)
+  wilcox_tests <- scran::pairwiseWilcox(SingleCellExperiment::logcounts(scseq), groups = groups, direction = direction, block = block, restrict = restrict)
+  return(wilcox_tests)
 }
+
+#' Combine pairwise wilcox tests between single-cell clusters
+#'
+#' @param tests Result of \code{pairwise_wilcox}
+#' @param pval.type
+#'
+#' @return List of data.frames
+#' @export
+get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC') {
+  markers <- scran::combineMarkers(tests$statistics, tests$pairs, pval.type = pval.type, effect.field = effect.field)
+  lapply(markers, as.data.frame)
+}
+
+
+
+
 
 
 
@@ -436,10 +450,11 @@ get_scseq_markers <- function(scseq, groups = scseq$cluster, direction = 'up', t
 #' Integrate multiple scRNA-seq samples
 #'
 #' @param scseqs List of \code{SingleCellExperiment} objects
+#' @param type One of \code{'clusterMNN'} (default) or \code{'fastMNN'} specifying cluster function to use.
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs) {
+integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -458,28 +473,43 @@ integrate_scseqs <- function(scseqs) {
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
   hvgs <- decs$bio > 0
 
-  #
-  ambient <- get_integrated_ambient(scseqs)
-
   # mnn integration
   # TODO use fastMNN restriction to exclude batch specific cells
   combined <- do.call('noCorrect', scseqs, envir = loadNamespace('batchelor'))
 
-  combined$orig.ident <- factor(combined$batch)
-  combined$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'))
 
   set.seed(1000101001)
-  mnn.out <- batchelor::fastMNN(combined,
-                                batch = combined$batch,
-                                subset.row = hvgs,
-                                assay.type = 'merged',
-                                auto.merge = TRUE,
-                                correct.all = TRUE,
-                                cos.norm = FALSE,
-                                prop.k = 0.05)
+  if (type[1] == 'clusterMNN') {
+    mnn.fun <- function(...) batchelor::clusterMNN(
+      ...,
+      batch = combined$batch,
+      clusters = lapply(scseqs, `[[`, 'cluster'),
+      subset.row = hvgs,
+      auto.merge = TRUE,
+      correct.all = TRUE,
+      cos.norm = FALSE)
+
+  } else if (type[1] == 'fastMNN') {
+    mnn.fun <- function(...) batchelor::fastMNN(
+      ...,
+      batch = combined$batch,
+      subset.row = hvgs,
+      auto.merge = TRUE,
+      correct.all = TRUE,
+      cos.norm = FALSE,
+      prop.k = 0.05)
+  }
+
+  mnn.out <- do.call(mnn.fun, scseqs)
+  mnn.out$orig.ident <- factor(combined$batch)
+  mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'))
 
   # store merged (batch normalized) for DE
   SummarizedExperiment::assay(mnn.out, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+
+  # need corrected as.matrix for as.Seurat before plots
+  SingleCellExperiment::reducedDim(mnn.out, 'corrected') <- as.matrix(SingleCellExperiment::reducedDim(mnn.out, 'corrected'))
+
   return(mnn.out)
 }
 

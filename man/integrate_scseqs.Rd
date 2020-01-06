@@ -4,10 +4,12 @@
 \alias{integrate_scseqs}
 \title{Integrate multiple scRNA-seq samples}
 \usage{
-integrate_scseqs(scseqs)
+integrate_scseqs(scseqs, type = c("clusterMNN", "fastMNN"))
 }
 \arguments{
 \item{scseqs}{List of \code{SingleCellExperiment} objects}
+
+\item{type}{One of \code{'clusterMNN'} (default) or \code{'fastMNN'} specifying cluster function to use.}
 }
 \value{
 Integrated \code{SingleCellExperiment} object.
