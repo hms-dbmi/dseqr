@@ -277,10 +277,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
   })
 
   is.integrated <- reactive({
-    scseq <- scseq()
-    req(scseq)
-
-    return('integrated' %in% names(scseq@assays))
+    dataset_name <- dataset_name()
+    req(dataset_name)
+    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    return(dataset_name %in% integrated)
   })
 
 
@@ -740,7 +740,7 @@ selectedAnnot <- function(input, output, session, scseq, is.integrated, sc_dir) 
   orig_anals <- reactive({
     req(is.integrated())
     scseq <- scseq()
-    return(unique(scseq$project))
+    return(levels(scseq$orig.ident))
   })
 
   observe({

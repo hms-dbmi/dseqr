@@ -285,14 +285,21 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   combined <- integrate_scseqs(scseqs)
   rm(scseqs); gc()
 
-  updateProgress(3/n, 'clustering')
-  combined <- add_scseq_clusters(combined, reduction = reduction, dims = dims)
+  # choose number of dims of corrected for TSNE/clusters
+  combined <- pick_npcs(combined, dimred = 'corrected')
 
-  updateProgress(4/n, 'reducing')
-  combined <- run_umap(combined)
+  # TSNE on corrected reducedDim
+  updateProgress(3/n, 'reducing')
+  combined <- run_tsne(combined, dimred = 'corrected')
+
+  # add ambient outlier info
+  combined <- add_integrated_ambient(combined, ambient)
+
+  updateProgress(4/n, 'clustering')
+  combined <- add_scseq_clusters(combined, dimred = 'corrected')
 
   updateProgress(5/n, 'getting markers')
-  markers <- get_scseq_markers(combined)
+  markers <- get_scseq_markers(combined, block = combined$batch, groups = combined$cluster)
 
   updateProgress(6/n, 'saving')
   scseq_data <- list(scseq = combined, markers = markers, annot = names(markers))
@@ -425,34 +432,18 @@ add_project_scseqs <- function(scseqs) {
 #'
 #' @return NULL
 #' @export
-save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE, reduce_size = FALSE) {
+save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 
   if (integrated) {
     int_path <- file.path(sc_dir, 'integrated.rds')
-    int_options <- readRDS(int_path)
-    saveRDS(c(int_options, anal_name), int_path)
+    int_options <- c(readRDS(int_path), anal_name)
+
+    saveRDS(unique(int_options), int_path)
   }
 
-  if (reduce_size) {
-    # optionally seperate larger parts off
-    scseq <- scseq_data$scseq
-    sct <- scseq[['SCT']]
-
-    # keep @data which has corrected log counts for visualization
-    scseq[['SCT']]@scale.data <- matrix(nrow = 0, ncol = 0)
-    scseq[['SCT']]@counts <- matrix(nrow = 0, ncol = 0)
-    scseq[['SCT']]@misc <- NULL
-
-    # redundant
-    stopifnot(all.equal(scseq[['RNA']]@counts, scseq[['RNA']]@data))
-    scseq[['RNA']]@counts <- matrix(nrow = 0, ncol = 0)
-
-    scseq_data$scseq <- scseq
-    scseq_data$sct <- sct
-  }
-
-
-  dir.create(file.path(sc_dir, anal_name))
+  anal_dir <- file.path(sc_dir, anal_name)
+  unlink(anal_dir, recursive = TRUE)
+  dir.create(anal_dir)
   for (type in names(scseq_data)) {
     saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
   }
@@ -497,32 +488,6 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
 scseq_part_path <- function(data_dir, anal_name, part) {
   fname <- paste0(part, '.rds')
   file.path(data_dir, anal_name, fname)
-}
-
-
-#' Get genes that are ambient in at least one test and control sample
-#'
-#' @param scseqs List of Seurat objects.
-#'
-#' @return List with test and control ambient genes
-#' @export
-#' @keywords interal
-get_integrated_ambient <- function(scseqs) {
-
-  # datasets that are test samples
-  is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
-
-  # genes that are ambient in at least one test sample
-  ambient.test <- lapply(scseqs[is.test], function(x) x[['RNA']]@meta.features)
-  ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
-  ambient.test <- unique(unlist(ambient.test))
-
-  # genes that are ambient in at least one ctrl sample
-  ambient.ctrl <- lapply(scseqs[!is.test], function(x) x[['RNA']]@meta.features)
-  ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
-  ambient.ctrl <- unique(unlist(ambient.ctrl))
-
-  return(list(test = ambient.test, ctrl = ambient.ctrl))
 }
 
 
@@ -835,19 +800,19 @@ get_nearest_row <- function(truth, test) {
 get_label_plot <- function(anal, scseq, annot, plot) {
 
   # current colors used in plot with associated cluster
-  cols <- get_palette(levels(scseq$seurat_clusters))
-  names(cols) <- levels(scseq$seurat_clusters)
+  cols <- get_palette(levels(scseq$cluster))
+  names(cols) <- levels(scseq$cluster)
 
   # median coordinates for clusters for integrated dataset
   plot_data <- plot$data
-  int_coords <- get_umap_coords(plot_data)
+  int_coords <- get_tsne_coords(plot_data)
 
   # median coordinates for clusters for individual dataset
-  in_anal <- scseq$project %in% anal
+  in_anal <- scseq$orig.ident %in% anal
   scseq <- scseq[, in_anal]
   plot_data <- plot_data[colnames(scseq), ]
-  plot_data$ident <- scseq$orig_clusters
-  anal_coords <- get_umap_coords(plot_data)
+  plot_data$ident <- scseq$orig.cluster
+  anal_coords <- get_tsne_coords(plot_data)
 
   # closest match for each anal cluster
   match <- get_nearest_row(int_coords[ ,-1], anal_coords[, -1])
@@ -856,13 +821,12 @@ get_label_plot <- function(anal, scseq, annot, plot) {
     arrange(as.numeric(ident))
 
   # change identity to previous labels
-  cl <- scseq$orig_clusters
+  cl <- scseq$orig.cluster
   lv <- as.character(sort(unique(as.numeric(cl))))
-  names(annot) <- 0:(length(annot)-1)
+  names(annot) <- seq_along(annot)
 
-  scseq$seurat_clusters <- factor(cl, levels = lv)
-  levels(scseq$seurat_clusters) <- annot[lv]
-  Seurat::Idents(scseq) <- scseq$seurat_clusters
+  scseq$cluster <- factor(cl, levels = lv)
+  levels(scseq$cluster) <- annot[lv]
 
   # expand to best match
   anal_coords$cols <- cols[anal_coords$match]
@@ -877,13 +841,13 @@ get_label_plot <- function(anal, scseq, annot, plot) {
   plot_tsne_cluster(scseq, cols=anal_coords$cols)
 }
 
-#' Get median x-y coordinates for clusters in UMAP plot data
+#' Get median x-y coordinates for clusters in TSNE plot data
 #'
-#' @param plot_data data.frame with columns \code{'ident'}, \code{'UMAP_1'}, and \code{'UMAP_2'}.
-get_umap_coords <- function(plot_data) {
+#' @param plot_data data.frame with columns \code{'ident'}, \code{'TSNE_1'}, and \code{'TSNE_2'}.
+get_tsne_coords <- function(plot_data) {
   plot_data %>%
     group_by(ident) %>%
-    summarise(UMAP_1 = median(UMAP_1),
-              UMAP_2 = median(UMAP_2))
+    summarise(TSNE_1 = median(TSNE_1),
+              TSNE_2 = median(TSNE_2))
 }
 

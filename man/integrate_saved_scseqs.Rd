@@ -10,8 +10,7 @@ integrate_saved_scseqs(
   ctrl,
   exclude_clusters,
   anal_name,
-  updateProgress = NULL,
-  use_scalign = FALSE
+  updateProgress = NULL
 )
 }
 \arguments{

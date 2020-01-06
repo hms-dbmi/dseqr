@@ -4,7 +4,7 @@
 \alias{get_pred_annot}
 \title{Get predicted annotation for label transfer}
 \usage{
-get_pred_annot(ref_preds, ref_name, anal_name, sc_dir, min.score = 0)
+get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
 }
 \arguments{
 \item{ref_preds}{data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}}
@@ -14,8 +14,6 @@ get_pred_annot(ref_preds, ref_name, anal_name, sc_dir, min.score = 0)
 \item{anal_name}{Name of analysis that labels are transfered to.}
 
 \item{sc_dir}{Directory containing folders with analyses for \code{ref_name} and \code{anal_name}.}
-
-\item{min.score}{Minimum average prediction score used for label transfer.}
 }
 \value{
 Character vector of predicted labels from \code{ref_name}.

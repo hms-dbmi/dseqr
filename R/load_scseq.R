@@ -329,23 +329,47 @@ reduce_dims <- function(sce) {
   rdata <- SummarizedExperiment::rowData(sce)
   subset_row <- row.names(rdata[rdata$hvg, ])
 
-  # run PCA
+  # run PCA and pick number of PCs
   set.seed(100)
   sce <- scater::runPCA(sce, subset_row = subset_row)
+  sce <- pick_npcs(sce)
 
-  # pick number of PCs
-  pcs <- SingleCellExperiment::reducedDim(sce)
-  choices <- scran::getClusteredPCs(pcs)
-  npcs <- S4Vectors::metadata(choices)$chosen
-  sce@metadata$npcs <- npcs
-
-  # UMAP on top PCs
-  set.seed(1100101001)
-  sce <- scater::runTSNE(sce, dimred='PCA', n_dimred = npcs)
-  colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')
+  # TSNE on top PCs
+  sce <- run_tsne(sce)
 
   return(sce)
 }
+
+run_tsne <- function(sce, dimred = 'PCA') {
+  set.seed(1100101001)
+  sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
+  colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')
+  return(sce)
+}
+
+pick_npcs <- function(sce, dimred = 'PCA') {
+  # pick number of PCs
+  pcs <- SingleCellExperiment::reducedDim(sce, type = dimred)
+  choices <- scran::getClusteredPCs(pcs)
+  npcs <- S4Vectors::metadata(choices)$chosen
+  sce@metadata$npcs <- npcs
+  return(sce)
+}
+
+#' Add reducedDim with selected number of PCs
+#'
+#' @param sce \code{SingleCellExperiment} with \code{reducedDim} and npcs metadata.
+#'
+#' @return \code{sce} with REDN reducedDim
+#' @export
+add_redn <- function(sce, dimred = 'PCA') {
+  # add npcs reducedDim
+  npcs <- sce@metadata$npcs
+  pcs  <- SingleCellExperiment::reducedDim(sce, dimred)
+  SingleCellExperiment::reducedDim(sce, 'REDN') <- pcs[, seq_len(npcs)]
+  return(sce)
+}
+
 
 
 #' Add clusters to single cell RNA-seq object
@@ -355,12 +379,14 @@ reduce_dims <- function(sce) {
 #' @param scseq \code{SingleCellExperiment}
 #' @return column \code{cluster} in \code{colData(sce)} is added.
 #' @export
-add_scseq_clusters <- function(sce) {
+add_scseq_clusters <- function(sce, dimred = 'PCA') {
 
-  g <- scran::buildSNNGraph(sce, use.dimred = 'PCA')
+  sce <- add_redn(sce, dimred)
+  g <- scran::buildSNNGraph(sce, use.dimred = 'REDN')
   clust <- igraph::cluster_walktrap(g)$membership
   sce$cluster <- factor(clust)
 
+  SingleCellExperiment::reducedDim(sce, 'REDN') <- NULL
   return(sce)
 }
 
@@ -387,27 +413,18 @@ add_scseq_qc_metrics <- function(sce) {
 
 #' Get markers genes for single cell clusters
 #'
-#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{\link[scran]{findMarkers}}.
-#' If \code{scseq} is a \code{Seurat} object then uses either \code{\link[Seurat]{FindAllMarkers}} or
-#' \code{Seurat::FindMarkers} if both \code{ident.1} and \code{ident.2} are not NULL.
-#'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
-#' @param assay.type Only used if \code{scseq} has class \code{SingleCellExperiment}.
-#' A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"} (default).
-#' @param ident.1 Identity class to define markers for.
-#'  Only used if \code{scseq} has class \code{Seurat} and \code{ident.2} is not \code{NULL}.
-#' @param ident.2 A second identity class for comparison.
-#'  Only used if \code{scseq} has class \code{Seurat} and \code{ident.1} is not \code{NULL}.
+#' @param scseq \code{SingleCellExperiment} object.
+#' @param ... arguments to \code{findMarkers}
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, direction = 'up') {
+get_scseq_markers <- function(scseq, groups = scseq$cluster, direction = 'up', test = 'wilcox', pval.type = 'some', block = NULL) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
-  markers <- scran::findMarkers(scseq, scseq$cluster, direction = direction, test = 'wilcox', pval.type = 'some')
+  markers <- scran::findMarkers(scseq, groups, direction = direction, test = test, pval.type = pval.type, block = block)
   markers <- lapply(markers, as.data.frame)
 
   return(markers)
@@ -445,19 +462,25 @@ integrate_scseqs <- function(scseqs) {
   ambient <- get_integrated_ambient(scseqs)
 
   # mnn integration
+  # TODO use fastMNN restriction to exclude batch specific cells
   combined <- do.call('noCorrect', scseqs, envir = loadNamespace('batchelor'))
 
+  combined$orig.ident <- factor(combined$batch)
+  combined$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'))
+
   set.seed(1000101001)
-  mnn.out <- batchelor::fastMNN(combined, batch = 'batch', subset.row = hvgs)
+  mnn.out <- batchelor::fastMNN(combined,
+                                batch = combined$batch,
+                                subset.row = hvgs,
+                                assay.type = 'merged',
+                                auto.merge = TRUE,
+                                correct.all = TRUE,
+                                cos.norm = FALSE,
+                                prop.k = 0.05)
 
-  set.seed(0010101010)
-  mnn.out <- scater::runTSNE(mnn.out, dimred = "corrected")
-
-
-  # add ambient outlier info
-  combined <- add_integrated_ambient(combined, ambient)
-
-  return(combined)
+  # store merged (batch normalized) for DE
+  SummarizedExperiment::assay(mnn.out, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+  return(mnn.out)
 }
 
 scalign_scseqs <- function(scseqs, genes) {
@@ -484,7 +507,13 @@ scalign_scseqs <- function(scseqs, genes) {
 }
 
 
-
+#' Get genes that are ambient in at least one test and control sample
+#'
+#' @param scseqs List of \code{SingleCellExperiment} objects.
+#'
+#' @return List with test and control ambient genes
+#' @export
+#' @keywords internal
 get_integrated_ambient <- function(scseqs) {
 
   # datasets that are test samples
@@ -515,14 +544,9 @@ get_integrated_ambient <- function(scseqs) {
 #' @keywords internal
 add_integrated_ambient <- function(combined, ambient) {
 
-  # genes to keep in order that appear
-  keep <- row.names(combined[['SCT']])
-
-  # set in combined
-  combined[['SCT']]@meta.features$test_ambient <- FALSE
-  combined[['SCT']]@meta.features$ctrl_ambient <- FALSE
-  combined[['SCT']]@meta.features$test_ambient[keep %in% ambient$test] <- TRUE
-  combined[['SCT']]@meta.features$ctrl_ambient[keep %in% ambient$ctrl] <- TRUE
+  genes <- row.names(combined)
+  SummarizedExperiment::rowData(combined)$test_ambient <- genes %in% ambient$test
+  SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
 
   return(combined)
 }

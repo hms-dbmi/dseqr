@@ -4,13 +4,13 @@
 \alias{integrate_scseqs}
 \title{Integrate multiple scRNA-seq samples}
 \usage{
-integrate_scseqs(scseqs, scalign = FALSE)
+integrate_scseqs(scseqs)
 }
 \arguments{
-\item{scseqs}{List of \code{Seurat} objects}
+\item{scseqs}{List of \code{SingleCellExperiment} objects}
 }
 \value{
-Integrated \code{Seurat} object with default assay of \code{"integrated"}
+Integrated \code{SingleCellExperiment} object.
 }
 \description{
 Integrate multiple scRNA-seq samples

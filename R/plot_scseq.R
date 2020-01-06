@@ -7,7 +7,7 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
 
-  scseq <- Seurat::as.Seurat(scseq)
+  scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
   if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
@@ -36,7 +36,7 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #' @export
 plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 2) {
 
-  scseq <- Seurat::as.Seurat(scseq)
+  scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
   # make selected groups stand out
