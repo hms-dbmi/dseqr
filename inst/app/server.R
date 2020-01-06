@@ -909,7 +909,12 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
     if (!sel %in% names(all_markers())) {
       con <- strsplit(sel, ' vs ')[[1]]
       con_markers <- con_markers()
-      con_markers[[sel]] <- get_scseq_markers(scseq(), ident.1 = con[1], ident.2 = con[2])
+
+      # returns both directions
+      markers <- get_scseq_markers(scseq(), restrict = con)
+      names(markers) <- paste(names(markers), 'vs', rev(names(markers)))
+
+      con_markers <- c(con_markers, markers)
       con_markers(con_markers)
     }
   })
@@ -937,6 +942,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
 selectedGene <- function(input, output, session, dataset_name, scseq, selected_markers, cluster_markers, selected_cluster, annot_path, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
+  gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   exclude_ambient <- reactive({
     if (is.null(input$exclude_ambient)) return(FALSE)
@@ -962,10 +968,6 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 
     return(markers)
   })
-
-
-
-
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
@@ -1024,7 +1026,8 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
   observe({
     updateSelectizeInput(session, 'selected_gene',
                          choices = gene_choices(), selected = NULL,
-                         server = TRUE)
+                         server = TRUE,
+                         options = gene_options)
   })
 
   return(list(

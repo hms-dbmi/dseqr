@@ -84,7 +84,7 @@ function integationOption(item, escape) {
 }
 
 
-function pathGene(item, escape) {
+function geneChoice(item, escape) {
   var res = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";
   return res;
 }

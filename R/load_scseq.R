@@ -418,13 +418,13 @@ add_scseq_qc_metrics <- function(sce) {
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
 #' @export
-get_scseq_markers <- function(scseq, groups = scseq$cluster, direction = 'up', test = 'wilcox', pval.type = 'some', block = NULL) {
+get_scseq_markers <- function(scseq, groups = scseq$cluster, direction = 'up', test = 'wilcox', pval.type = 'some', block = NULL, restrict = NULL) {
 
   # dont get markers if no clusters
   if (!exist_clusters(scseq)) return(NULL)
 
   # only upregulated as more useful for positive id of cell type
-  markers <- scran::findMarkers(scseq, groups, direction = direction, test = test, pval.type = pval.type, block = block)
+  markers <- scran::findMarkers(scseq, groups, direction = direction, test = test, pval.type = pval.type, block = block, restrict = restrict)
   markers <- lapply(markers, as.data.frame)
 
   return(markers)

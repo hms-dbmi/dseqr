@@ -4,25 +4,23 @@
 \alias{get_scseq_markers}
 \title{Get markers genes for single cell clusters}
 \usage{
-get_scseq_markers(scseq, direction = "up")
+get_scseq_markers(
+  scseq,
+  groups = scseq$cluster,
+  direction = "up",
+  test = "wilcox",
+  pval.type = "some",
+  block = NULL
+)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} or \code{Seurat} object.}
+\item{scseq}{\code{SingleCellExperiment} object.}
 
-\item{assay.type}{Only used if \code{scseq} has class \code{SingleCellExperiment}.
-A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"} (default).}
-
-\item{ident.1}{Identity class to define markers for.
-Only used if \code{scseq} has class \code{Seurat} and \code{ident.2} is not \code{NULL}.}
-
-\item{ident.2}{A second identity class for comparison.
-Only used if \code{scseq} has class \code{Seurat} and \code{ident.1} is not \code{NULL}.}
+\item{...}{arguments to \code{findMarkers}}
 }
 \value{
 List of \code{data.frame}s, one for each cluster.
 }
 \description{
-If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{\link[scran]{findMarkers}}.
-If \code{scseq} is a \code{Seurat} object then uses either \code{\link[Seurat]{FindAllMarkers}} or
-\code{Seurat::FindMarkers} if both \code{ident.1} and \code{ident.2} are not NULL.
+Get markers genes for single cell clusters
 }

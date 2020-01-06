@@ -4,7 +4,7 @@
 \alias{add_scseq_clusters}
 \title{Add clusters to single cell RNA-seq object}
 \usage{
-add_scseq_clusters(sce)
+add_scseq_clusters(sce, dimred = "PCA")
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment}}

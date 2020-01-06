@@ -207,9 +207,9 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
 get_contrast_choices <- function(clusters, test) {
 
   # group choices are as compared to other clusters
-  test_name <- clusters[as.numeric(test)+1]
+  test_name <- clusters[as.numeric(test)]
   ctrl_names <- clusters[clusters != test_name]
-  ctrls <- setdiff(seq(0, along.with = clusters), test)
+  ctrls <- setdiff(seq_along(clusters), test)
 
   colours <- get_palette(clusters)
   names(colours) <- clusters
