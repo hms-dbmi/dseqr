@@ -397,6 +397,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   observe({
     preds <- preds()
 
+
     anal_options <- anal_options()
     dataset_name <- dataset_name()
     req(preds, anal_options)
@@ -406,13 +407,14 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   })
 
   # submit annotation transfer
-  observeEvent(input$submit_transfer, {
+  observe({
 
 
     query_name <- dataset_name()
     ref_name <- input$ref_name
     preds <- preds()
     req(query_name, ref_name, preds)
+    req(!ref_name %in% names(preds))
 
     toggleAll(label_transfer_inputs)
 
@@ -454,7 +456,6 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     }
 
     updateProgress(1/n)
-    browser()
 
     # take best label for each cluster
     pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)

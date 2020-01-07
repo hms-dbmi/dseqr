@@ -147,8 +147,7 @@ labelTransferFormInput <- function(id) {
   withTags({
     div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
         selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
-                                  actionButton(ns('submit_transfer'), '', icon('chevron-right', 'fa-fw'), title = 'Run label transfer'),
-                                  actionButton(ns('overwrite_annot'), '', icon = icon('tag', 'fa-fw'), title = 'Overwrite previous labels'),
+                                  actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
                                   options = list(optgroupField = 'type', placeholder = 'Select none to reset labels',
                                                  render = I('{option: transferLabelOption}'))
         )
@@ -306,3 +305,4 @@ scAnalInput <- function(id) {
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }
+
