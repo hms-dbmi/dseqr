@@ -4,7 +4,7 @@
 \alias{get_scseq_markers}
 \title{Combine pairwise wilcox tests between single-cell clusters}
 \usage{
-get_scseq_markers(tests, pval.type = "some", effect.field = "AUC")
+get_scseq_markers(tests, pval.type = "some", effect.field = "AUC", keep = NULL)
 }
 \arguments{
 \item{tests}{Result of \code{pairwise_wilcox}}

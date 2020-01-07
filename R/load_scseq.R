@@ -424,7 +424,11 @@ pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', blo
   groups <- as.character(groups)
 
   # only upregulated as more useful for positive id of cell type
-  wilcox_tests <- scran::pairwiseWilcox(SingleCellExperiment::logcounts(scseq), groups = groups, direction = direction, block = block, restrict = restrict)
+  wilcox_tests <- scran::pairwiseWilcox(SingleCellExperiment::logcounts(scseq),
+                                        groups = groups,
+                                        direction = direction,
+                                        block = block,
+                                        restrict = restrict)
   return(wilcox_tests)
 }
 
@@ -435,8 +439,13 @@ pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', blo
 #'
 #' @return List of data.frames
 #' @export
-get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC') {
-  markers <- scran::combineMarkers(tests$statistics, tests$pairs, pval.type = pval.type, effect.field = effect.field)
+get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', keep = NULL) {
+  if (is.null(keep)) keep <- rep(TRUE, nrow(tests$pairs))
+
+  markers <- scran::combineMarkers(tests$statistics[keep],
+                                   tests$pairs[keep, ],
+                                   pval.type = pval.type,
+                                   effect.field = effect.field)
   lapply(markers, as.data.frame)
 }
 
@@ -501,7 +510,7 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   }
 
   mnn.out <- do.call(mnn.fun, scseqs)
-  mnn.out$orig.ident <- factor(combined$batch)
+  mnn.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'))
   mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'))
 
   # store merged (batch normalized) for DE

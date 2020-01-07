@@ -187,11 +187,10 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
-  is.integrated <- 'integrated' %in% names(scseq@assays)
+  is.integrated <- 'merge.info' %in% names(scseq@metadata)
   if (is.integrated) {
-    browser()
-    stats$ntest <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'test'])
-    stats$nctrl <- tabulate(scseq$seurat_clusters[scseq$orig.ident == 'ctrl'])
+    stats$ntest <- tabulate(scseq$cluster[scseq$orig.ident == 'test'])
+    stats$nctrl <- tabulate(scseq$cluster[scseq$orig.ident == 'ctrl'])
   }
 
   saveRDS(stats, stats_path)
@@ -283,7 +282,6 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
-  scseqs <- add_project_scseqs(scseqs)
 
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
@@ -407,31 +405,6 @@ downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
 }
 
 
-
-#' Adds project name to meta.data of scseq
-#'
-#' Used to keep track of which sample is which for integrated datasets. This is used for generating pseudo-bulk
-#' counts for each sample.
-#'
-#' @param scseqs List of \code{Seurat} objects.
-#'
-#' @return \code{scseqs} with \code{meta.data$project} column equal to \code{project.name} slot.
-#' @export
-#' @keywords internal
-add_project_scseqs <- function(scseqs) {
-
-  # preserve identities of original samples
-  projects <- sapply(scseqs, function(x) unique(x$project.name))
-  projects <- make.unique(projects)
-
-  for (i in seq_along(projects))
-    scseqs[[i]]$project <- projects[i]
-
-  return(scseqs)
-
-}
-
-
 #' Save Single Cell RNA-seq data for app
 #'
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
@@ -501,122 +474,8 @@ scseq_part_path <- function(data_dir, anal_name, part) {
 
 
 
-#' Integrate with CCA from Seurat
-#'
-#' Uses SCT method
-#'
-#' @param scseqs Seurat objects
-#' @param genes Character vector of genes to integrate on
-#'
-#' @return Seurat object
-#' @export
-#' @keywords internal
-cca_integrate <- function(scseqs, genes) {
-
-  k.filter <- min(200, min(sapply(scseqs, ncol)))
-  k.score <- min(c(sapply(scseqs, ncol)-1, 30))
-  anchors <- Seurat::FindIntegrationAnchors(scseqs, k.filter = k.filter, normalization.method = "SCT",
-                                            anchor.features = genes, dims = 1:k.score, k.score = k.score)
-
-  combined <- Seurat::IntegrateData(anchors, normalization.method = "SCT")
-  combined$orig.ident <- factor(combined$orig.ident)
-
-  return(combined)
-
-}
-
-#' Integrate Single Cell datasets using scAlign
-#'
-#' @param scseqs List of \code{Seurat} objects
-#' @param genes Highly variable genes to integrate with
-#' @importFrom SingleCellExperiment colData
-#'
-#' @export
-#' @keywords internal
-#'
-scalign_integrate <- function(scseqs, genes) {
-
-  common_meta <- lapply(scseqs, function(x) colnames(x@meta.data))
-  common_meta <- Reduce(intersect, common_meta)
-
-  scalign.list <- lapply(scseqs, function(x) {
-    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
-                                                             scale.data = x[['SCT']]@scale.data[genes, ]),
-                                               colData = x@meta.data[, common_meta])
-  })
-
-  scalign <- scAlign::scAlignCreateObject(sce.objects = scalign.list, project.name = "sjia")
-
-  scalign <- scAlign::scAlignMulti(scalign,
-                                   encoder.data="scale.data",
-                                   decoder.data="logcounts",
-                                   supervised='none',
-                                   run.encoder=TRUE,
-                                   run.decoder=TRUE,
-                                   log.results=TRUE,
-                                   log.dir=file.path('./tmp'),
-                                   device="GPU")
-
-  scseq <- scalign_to_scseq(scalign)
-
-  return(scseq)
 
 
-}
-
-
-
-#' Convert scAlign integrated dataset into Seurat object
-#'
-#' @param scalign SingleCellExperiment returned from \code{scalign_integrate}
-#'
-#' @return Seurat object
-#' @export
-#' @keywords internal
-scalign_to_scseq <- function(scalign) {
-
-  # empty RNA assay
-  empty_counts <- matrix(nrow = 0, ncol = ncol(scalign),dimnames = list(NULL, colnames(scalign)))
-
-  scseq <- Seurat::CreateSeuratObject(
-    empty_counts,
-    meta.data = as.data.frame(scalign@colData)
-  )
-
-  # add SCT assay
-  scseq[['SCT']] <- Seurat::CreateAssayObject(data = assay(scalign, 'logcounts'))
-  scseq[['SCT']]@scale.data <- assay(scalign, 'scale.data')
-
-  # embedding as reduced dim
-  embed <- SingleCellExperiment::reducedDim(scalign, 'ALIGNED-GENE')
-  row.names(embed) <- colnames(scalign)
-  colnames(embed) <- paste0('EMBED_', seq_len(ncol(embed)))
-  scseq@reductions$embed <- Seurat::CreateDimReducObject(embed, assay = 'SCT', key = 'EMBED_')
-
-  # each decoder output logcount matrix as seperate assay
-  decodes <- setdiff(SingleCellExperiment::reducedDimNames(scalign), 'ALIGNED-GENE')
-  for (decode in decodes) {
-    logcounts <- t(SingleCellExperiment::reducedDim(scalign, decode))
-    dimnames(logcounts) <- dimnames(scalign)
-    scseq[[decode]] <- Seurat::CreateAssayObject(data = logcounts)
-  }
-
-  return(scseq)
-}
-
-
-#' Get assay to use from Seurat object.
-#'
-#' Default is 'SCT' but if not present then 'RNA'
-#'
-#' @param scseq Seurat object
-#'
-#' @return either \code{'SCT'} or \code{'RNA'}
-#' @export
-#' @keywords internal
-get_scseq_assay <- function(scseq) {
-  ifelse('SCT' %in% names(scseq@assays), 'SCT', 'RNA')
-}
 
 
 #' Run drug queries
@@ -687,20 +546,29 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
 
   clusters_name <- collapse_sorted(selected_clusters)
-  clusters <- as.character(Seurat::Idents(scseq))
+  clusters <- as.character(scseq$cluster)
   in.sel <- clusters %in% selected_clusters
 
   new.idents <- clusters
   new.idents[in.sel] <- 'ident.1'
-  Seurat::Idents(scseq) <- factor(new.idents)
-
-  cluster_markers <- get_scseq_markers(scseq, ident.1 = 'ident.1')
+  scseq$cluster <- factor(new.idents)
 
   fname <- paste0("markers_", clusters_name, '.rds')
   fpath <- file.path(dataset_dir, fname)
-  saveRDS(cluster_markers, fpath)
 
-  Seurat::Idents(scseq) <- scseq$orig.ident
+  if (file.exists(fpath)) {
+    cluster_markers <- readRDS(fpath)
+
+  } else {
+    tests <- pairwise_wilcox(scseq, block = scseq$batch)
+    keep <- grepl('ident.1', tests$pairs$first)
+    cluster_markers <- get_scseq_markers(tests, keep = keep)$ident.1
+
+    saveRDS(cluster_markers, fpath)
+
+  }
+
+
   scseq <- scseq[, in.sel]
   fit <- fit_lm_scseq(scseq = scseq,
                       dataset_dir = dataset_dir,

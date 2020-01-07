@@ -213,14 +213,14 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
 
   # pseudo bulk analysis
-  has_replicates <- length(unique(scseq$project)) > 2
+  has_replicates <- length(unique(scseq$batch)) > 2
   if (has_replicates) {
-    pbulk <- diff_expr_pbulk(scseq = scseq,
-                             dataset_dir = dataset_dir,
-                             clusters_name = clusters_name)
+    #TODO
+    browser()
   }
 
   lm_fit <- run_lmfit_scseq(scseq)
+  lm_fit$has_replicates <- has_replicates
 
   # save lm_fit result (slow and can re-use for other contrasts)
   # fit_ebayes is also input into goana/kegga
@@ -269,24 +269,19 @@ run_limma_pbulk <- function(scseq, dataset_dir, clusters_name) {
   return(anal)
 }
 
-#' Omit ambient genes from analysis or top table
+#' Move genes to bottom of markers data.frame
 #'
-#' Must provide one of anal or top_table
+#' Used to supress ambient outliers and positive genes for single-cell sample comparisons
 #'
-#' @param scseq \code{Seurat} object
-#' @param anal Result of \code{diff_expr_scseq}
-#' @param top_table Usually from \code{anal$top_table}
+#' @param markers data.frame with genes as row names.
+#' @param supress Genes to move to bottom of \code{markers}.
 #'
-#' @return One of \code{anal} or \code{top_table} with entries corresponding to ambient genes omited.
+#' @return \code{markers} with genes in \code{supress} at bottom.
 #' @export
 #' @keywords internal
-ambient.omit <- function(scseq, markers, cluster_markers) {
-  ambient.genes <- get_ambient(scseq, markers = markers, cluster_markers = cluster_markers)
-
-  is.ambient <- row.names(markers) %in% ambient.genes
-  markers <- markers[!is.ambient, ]
-
-  return(markers)
+supress.genes <- function(markers, supress) {
+  other <- setdiff(row.names(markers), supress)
+  markers[c(other, supress), ]
 }
 
 
@@ -301,9 +296,9 @@ ambient.omit <- function(scseq, markers, cluster_markers) {
 #' @keywords internal
 run_lmfit_scseq <- function(scseq) {
 
-  # use SCT corrected logcounts
-  dat <- scseq[['SCT']]@data
-  group <- Seurat::Idents(scseq)
+  # use multiBatchNorm
+  dat <- SingleCellExperiment::logcounts(scseq)
+  group <- scseq$orig.ident
   mod <- stats::model.matrix(~0 + group)
   colnames(mod) <- levels(group)
   fit <- limma::lmFit(dat, mod)
@@ -324,7 +319,7 @@ run_lmfit_scseq <- function(scseq) {
 #' @keywords internal
 get_ambient <- function(scseq, markers, cluster_markers) {
 
-  fts <- scseq[['SCT']]@meta.features
+  fts <- SingleCellExperiment::rowData(scseq)
   rns <- row.names(markers)
   fts <- fts[rns, ]
   test.ambient <- rns[fts$test_ambient]
@@ -332,16 +327,17 @@ get_ambient <- function(scseq, markers, cluster_markers) {
 
   # exclude test/ctrl ambient if positive/negative effect size
   # opposite would decrease extent of gene expression difference but not direction
-  pos.test <- markers[test.ambient, 't'] > 0
-  neg.ctrl <- markers[ctrl.ambient, 't'] < 0
+  pos.test <- markers[test.ambient, 'logFC'] > 0
+  neg.ctrl <- markers[ctrl.ambient, 'logFC'] < 0
 
   test.exclude <- test.ambient[pos.test]
   ctrl.exclude <- ctrl.ambient[neg.ctrl]
 
   ambient <- c(test.exclude, ctrl.exclude)
 
-  # dont include cluster markers in ambient
-  ambient <- setdiff(ambient, row.names(cluster_markers))
+  # exclude top cluster markers from ambient
+  keep <- cluster_markers$FDR < 0.05
+  ambient <- setdiff(ambient, row.names(cluster_markers)[keep])
 
   return(ambient)
 }

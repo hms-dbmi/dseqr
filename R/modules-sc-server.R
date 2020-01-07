@@ -176,7 +176,6 @@ scForm <- function(input, output, session, sc_dir) {
 
   scSampleComparison <- callModule(scSampleComparison, 'sample', dataset_dir = dataset_dir)
 
-
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
                              scseq = scDataset$scseq,
@@ -252,13 +251,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
 
   # load scseq
   scseq <- reactive({
-
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
-
     scseq <- srt_to_sce_shim(scseq, sc_dir, dataset_name())
-
-
     return(scseq)
   })
 
@@ -896,16 +891,19 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 
 
   filtered_markers <- reactive({
+
+    ambient <- negative <- NULL
     markers <- selected_markers()
     if (is.null(markers)) return(NULL)
 
-    if (exclude_ambient()) {
-      cluster_markers <- cluster_markers()
-      scseq <- scseq()
-      markers <- ambient.omit(scseq,  markers = markers, cluster_markers = cluster_markers)
-    }
+    if (exclude_ambient())
+      ambient <- get_ambient(scseq(), markers = markers, cluster_markers = cluster_markers())
 
+    if (comparison_type() == 'samples')
+      negative <- row.names(markers)[markers$logFC < 0]
 
+    supress <- unique(c(ambient, negative))
+    markers <- supress.genes(markers, supress)
     return(markers)
   })
 
