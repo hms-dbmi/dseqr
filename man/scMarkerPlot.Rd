@@ -10,7 +10,6 @@ scMarkerPlot(
   session,
   scseq,
   selected_gene,
-  plot_styles,
   selected_group,
   cached_plot,
   fname_fun = function() { },

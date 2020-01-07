@@ -9,7 +9,6 @@ scClusterPlot(
   output,
   session,
   scseq,
-  plot_styles,
   cached_plot,
   fname_fun = function() { },
   downloadable = FALSE
