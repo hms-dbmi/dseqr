@@ -4,7 +4,7 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), pt.size = 2, legend_title = 'Cluster', cols = NULL) {
+plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
 
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
@@ -13,6 +13,7 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 
   # make selected cluster and groups stand out
   cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$cluster) %in% selected_clusters, 1, 0.1))
+  pt.size <- min(6000/ncol(scseq), 2)
 
   cluster_plot <- Seurat::DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
     theme_no_axis_vals() +
@@ -33,7 +34,7 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident), pt.size = 2) {
+plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident)) {
 
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
@@ -42,7 +43,9 @@ plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.iden
   cells <- colnames(scseq)
   cells <- cells[scseq$orig.ident %in% selected_idents]
 
-  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'TSNE', order = TRUE, pt.size = pt.size) +
+  pt.size <- min(6000/ncol(scseq), 2)
+
+  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'TSNE', pt.size = pt.size, order = TRUE) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +

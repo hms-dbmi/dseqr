@@ -885,6 +885,9 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
   scseq_copy <- gsub('scseq.rds$', 'scseq_copy.rds', scseq_path)
   file.copy(scseq_path, scseq_copy)
 
+  # restore counts slot
+  srt[['RNA']]@counts <- srt[['RNA']]@data
+
   Seurat::DefaultAssay(srt) <- 'RNA'
   sce <- Seurat::as.SingleCellExperiment(srt)
 
