@@ -2,26 +2,18 @@
 % Please edit documentation in R/load_scseq.R
 \name{get_scseq_markers}
 \alias{get_scseq_markers}
-\title{Get markers genes for single cell clusters}
+\title{Combine pairwise wilcox tests between single-cell clusters}
 \usage{
-get_scseq_markers(
-  scseq,
-  groups = scseq$cluster,
-  direction = "up",
-  test = "wilcox",
-  pval.type = "some",
-  block = NULL,
-  restrict = NULL
-)
+get_scseq_markers(tests, pval.type = "some", effect.field = "AUC")
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} object.}
+\item{tests}{Result of \code{pairwise_wilcox}}
 
-\item{...}{arguments to \code{findMarkers}}
+\item{pval.type}{}
 }
 \value{
-List of \code{data.frame}s, one for each cluster.
+List of data.frames
 }
 \description{
-Get markers genes for single cell clusters
+Combine pairwise wilcox tests between single-cell clusters
 }

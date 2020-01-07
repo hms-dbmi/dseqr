@@ -812,9 +812,14 @@ get_label_plot <- function(anal, scseq, annot, plot) {
   cols <- get_palette(levels(scseq$cluster))
   names(cols) <- levels(scseq$cluster)
 
+
   # median coordinates for clusters for integrated dataset
   plot_data <- plot$data
   int_coords <- get_tsne_coords(plot_data)
+
+  # use same limits as integrated
+  xlims <- range(plot_data$TSNE_1)
+  ylims <- range(plot_data$TSNE_2)
 
   # median coordinates for clusters for individual dataset
   in_anal <- scseq$orig.ident %in% anal
@@ -847,7 +852,9 @@ get_label_plot <- function(anal, scseq, annot, plot) {
     anal_coords[is.dup, 'cols'] <- new_cols[seq_along(is.dup)]
   }
 
-  plot_tsne_cluster(scseq, cols=anal_coords$cols)
+  plot_tsne_cluster(scseq, cols=anal_coords$cols) +
+    ggplot2::xlim(xlims) +
+    ggplot2::ylim(ylims)
 }
 
 #' Get median x-y coordinates for clusters in TSNE plot data
@@ -859,4 +866,60 @@ get_tsne_coords <- function(plot_data) {
     summarise(TSNE_1 = median(TSNE_1),
               TSNE_2 = median(TSNE_2))
 }
+
+#' Process Legacy Seurat Datasets with SCE
+#'
+#' Remove this once all legacy datasets updated.
+#'
+#' @param srt \code{Seurat} object
+#' @param sc_dir Path to folder with single-cell datasets
+#' @param dataset_name Name of dataset
+#'
+#' @return Throws error and asks to reset app
+#' @export
+srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
+  if (class(srt) == 'SingleCellExperiment') return(srt)
+
+  # make copy of saved scseq in case mess up
+  scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
+  scseq_copy <- gsub('scseq.rds$', 'scseq_copy.rds', scseq_path)
+  file.copy(scseq_path, scseq_copy)
+
+  Seurat::DefaultAssay(srt) <- 'RNA'
+  sce <- Seurat::as.SingleCellExperiment(srt)
+
+  sce <- normalize_scseq(sce)
+  sce <- add_hvgs(sce)
+  sce <- reduce_dims(sce)
+  sce <- add_scseq_clusters(sce)
+
+
+  wilcox_tests <- pairwise_wilcox(sce)
+  markers <- get_scseq_markers(wilcox_tests)
+  markers_path <- scseq_part_path(sc_dir, dataset_name, 'markers')
+  markers_copy <- gsub('markers.rds$', 'markers_copy.rds', markers_path)
+  file.copy(markers_path, markers_copy)
+
+  # top markers are for SingleR
+  top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
+
+  annot <- names(markers)
+  annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
+  annot_copy <- gsub('annot.rds$', 'annot_copy.rds', annot_path)
+  file.copy(annot_path, annot_copy)
+
+  stats_path <- scseq_part_path(sc_dir, dataset_name, 'cluster_stats')
+  stats_copy <- scseq_part_path(sc_dir, dataset_name, 'cluster_stats_copy')
+  file.copy(stats_path, stats_copy)
+  unlink(stats_path)
+
+  scseq_data <- list(scseq = sce, markers = markers, top_markers = top_markers, annot = annot)
+  save_scseq_data(scseq_data, dataset_name, sc_dir)
+
+  # error so that things get reloaded
+  stop('need to reset as converted from Seurat to SCE')
+
+  return(sce)
+}
+
 

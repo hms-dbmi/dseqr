@@ -84,6 +84,7 @@ scPage <- function(input, output, session, sc_dir) {
   label_plot2 <- reactive({
     anal <- scForm$label_anals()[2]
     req(anal)
+
     plot <- scCluster$plot()
     scseq <- scForm$scseq()
     annot <- readRDS(scseq_part_path(sc_dir, anal, 'annot'))
@@ -207,8 +208,7 @@ scForm <- function(input, output, session, sc_dir) {
     jitter <- scDataset$plot_styles$jitter()
     shiny::req(scseq, annot, jitter)
 
-    levels(scseq$seurat_clusters) <- annot
-    Seurat::Idents(scseq) <- scseq$seurat_clusters
+    levels(scseq$cluster) <- annot
 
     if (jitter > 0)
       scseq <- jitter_umap(scseq, amount = jitter)
@@ -271,21 +271,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
 
-    assay <- get_scseq_assay(scseq)
+    scseq <- srt_to_sce_shim(scseq, sc_dir, dataset_name())
 
-    if (Seurat::DefaultAssay(scseq) == 'integrated')
-      Seurat::DefaultAssay(scseq) <- assay
-
-    Seurat::Idents(scseq) <- scseq$seurat_clusters
 
     return(scseq)
   })
 
   is.integrated <- reactive({
-    scseq <- scseq()
-    req(scseq)
-
-    return('integrated' %in% names(scseq@assays))
+    dataset_name <- dataset_name()
+    req(dataset_name)
+    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    return(dataset_name %in% integrated)
   })
 
 
@@ -353,6 +349,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     is_dataset = is_dataset
   ))
 }
+
 
 #' Logic for plot styles dropdown
 #' @export
@@ -441,6 +438,7 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   # submit annotation transfer
   observeEvent(input$submit_transfer, {
 
+
     query_name <- dataset_name()
     ref_name <- input$ref_name
     preds <- preds()
@@ -464,25 +462,38 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     }
     n = 3
 
-    # load anals
+    # get arguments for SingleR
     query <- scseq()
-    ref <- load_saved_scseq(ref_name, sc_dir)
+    senv <- loadNamespace('SingleR')
+
+    if (ref_name %in% ls(senv)) {
+      ref <- get(ref_name, envir = senv)()
+      labels <- ref$label.main
+      genes <- 'de'
+
+    } else {
+      markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
+      genes <- readRDS(markers_path)
+      ref <- load_saved_scseq(ref_name, sc_dir)
+
+      # need until SingleR #77 fixed
+      common <- intersect(row.names(ref), row.names(query))
+      genes <- lapply(genes, function(x) {lapply(x, function(y) intersect(y, common))})
+
+      labels <- as.character(ref$cluster)
+    }
+
     updateProgress(1/n)
+    browser()
 
-    # transfer labels to query cells
-    predictions <- transfer_labels(ref, query, updateProgress = updateProgress, n = n, n_init = 2)
-    predictions$orig <- query$seurat_clusters
+    # take best label for each cluster
+    pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)
+    tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
 
-    # score as sum of percent in cluster with label and mean score
-    pred_pcts <- predictions %>%
-      group_by(orig, predicted.id) %>%
-      summarise(mean.score = mean(prediction.score.max), n = n()) %>%
-      arrange(desc(n), desc(mean.score)) %>%
-      slice(1)
-
+    pred <- row.names(tab)[apply(tab, 2, which.max)]
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds[[ref_name]] <- pred_pcts
+    preds[[ref_name]] <- pred
     saveRDS(preds, preds_path)
 
     new_preds(ref_name)
@@ -697,7 +708,7 @@ selectedAnnot <- function(input, output, session, scseq, is.integrated, sc_dir) 
   orig_anals <- reactive({
     req(is.integrated())
     scseq <- scseq()
-    return(unique(scseq$project))
+    return(levels(scseq$orig.ident))
   })
 
   observe({
@@ -767,7 +778,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
   all_markers <- reactive({
     con_markers <- con_markers()
     markers <- markers()
-    names(markers) <- seq(0, along.with = markers)
+    names(markers) <- seq(1, along.with = markers)
     return(c(markers, con_markers))
   })
 
@@ -866,7 +877,13 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
     if (!sel %in% names(all_markers())) {
       con <- strsplit(sel, ' vs ')[[1]]
       con_markers <- con_markers()
-      con_markers[[sel]] <- get_scseq_markers(scseq(), ident.1 = con[1], ident.2 = con[2])
+
+      # returns both directions
+      tests <- pairwise_wilcox(scseq(), restrict = con)
+      markers <- get_scseq_markers(tests)
+      names(markers) <- paste(names(markers), 'vs', rev(names(markers)))
+
+      con_markers <- c(con_markers, markers)
       con_markers(con_markers)
     }
   })
@@ -876,11 +893,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
     sel <- selected_cluster()
     req(sel)
     selected_markers <- all_markers()[[sel]]
-
-    # remove redundant columns for saving csv
-    selected_markers$gene <- NULL
-    selected_markers$cluster <- NULL
-
     selected_markers(selected_markers)
   })
 
@@ -899,6 +911,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
 selectedGene <- function(input, output, session, dataset_name, scseq, selected_markers, cluster_markers, selected_cluster, annot_path, comparison_type) {
 
   selected_gene <- reactiveVal(NULL)
+  gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   exclude_ambient <- reactive({
     if (is.null(input$exclude_ambient)) return(FALSE)
@@ -925,10 +938,6 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     return(markers)
   })
 
-
-
-
-
   # update marker genes based on cluster selection
   gene_choices <- reactive({
     scseq <- scseq()
@@ -938,16 +947,9 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 
     # will error if labels
     req(comparison_type %in% c('samples', 'clusters'))
-
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
-    if (comparison_type == 'samples' & !'t' %in% colnames(markers)) return(NULL)
-    if (comparison_type == 'clusters' & !'pct.1' %in% colnames(markers)) return(NULL)
 
-    get_gene_choices(scseq,
-                     markers = markers,
-                     selected_cluster = selected_cluster,
-                     comparison_type = comparison_type)
-
+    get_gene_choices(scseq, markers)
   })
 
   # click genecards
@@ -993,8 +995,8 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
   observe({
     updateSelectizeInput(session, 'selected_gene',
                          choices = gene_choices(), selected = NULL,
-                         options = list(render = I('{option: geneOption, item: geneItem}')),
-                         server = TRUE)
+                         server = TRUE,
+                         options = gene_options)
   })
 
   return(list(
@@ -1012,7 +1014,7 @@ scClusterPlot <- function(input, output, session, scseq, plot_styles, cached_plo
   plot <- reactive({
     cached_plot <- cached_plot()
     if (!is.null(cached_plot)) return(cached_plot)
-    plot_tsne_cluster(scseq(), pt.size = plot_styles$size())
+    plot_tsne_cluster(scseq())
 
   })
 
@@ -1069,7 +1071,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styl
     if (!is.null(cached)) return(cached)
 
     req(selected_gene())
-    plot_umap_gene(scseq(), selected_gene(), pt.size = plot_styles$size())
+    plot_tsne_gene(scseq(), selected_gene())
   })
 
   ploted_plot <- reactive({
@@ -1242,4 +1244,3 @@ scAnal <- function(input, output, session, dataset_dir, is_sc = function()TRUE) 
     clusters = reactive(input$selected_clusters)
   ))
 }
-

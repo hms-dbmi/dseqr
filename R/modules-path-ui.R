@@ -8,6 +8,9 @@ pathPageUI <- function(id, tab, active) {
             div(class = 'row',
                 div(class = 'col-sm-6',
                     pathFormInput(ns('form'))
+                ),
+                div(class = 'col-sm-6 mobile-margin',
+                    shiny::plotOutput(ns('heatmap'), height = '601px')
                 )
             ),
             hr(),
