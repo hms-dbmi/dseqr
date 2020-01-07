@@ -14,6 +14,7 @@ drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_di
   callModule(drugsGenesPlotly, 'genes',
              data_dir = data_dir,
              top_table = form$top_table,
+             ambient = form$ambient,
              pert_signature = form$pert_signature,
              show_genes = form$show_genes,
              drug_study = form$drug_study)
@@ -99,6 +100,7 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
 
   return(list(
     top_table = selectedAnal$top_table,
+    ambient = selectedAnal$ambient,
     is_pert = selectedAnal$is_pert,
     anal_name = selectedAnal$name,
     query_res = drugStudy$query_res,
@@ -556,7 +558,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsGenesPlotly <- function(input, output, session, data_dir, top_table, drug_study, show_genes, pert_signature) {
+drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, show_genes, pert_signature) {
 
   #  toggle  showing genes plotly
   shiny::observe({
@@ -575,12 +577,12 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, drug_s
   pl <- reactive({
 
     top_table <- top_table()
+    ambient <- ambient()
     path_id <- path_id()
 
     req(path_id, top_table)
-
     pert_signature <- pert_signature()
-    path_df <- get_path_df(top_table, path_id, pert_signature)
+    path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
 
     dprimesPlotly(path_df)
 
@@ -784,8 +786,8 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   # Single cell analysis
   # ---
   scSampleComparison <- callModule(scSampleComparison, 'sc',
-                       is_sc = is_sc,
-                       dataset_dir = dataset_dir)
+                                   is_sc = is_sc,
+                                   dataset_dir = dataset_dir)
 
 
   # results for selected type (bulk, sc, custom, pert)
@@ -822,6 +824,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     return(top_table)
   })
 
+  ambient <- reactive({
+    if (is_sc()) {
+      ambient <- scSampleComparison$ambient()
+
+    } else if (is_bulk()) {
+      ambient <- NULL
+    }
+  })
+
   path_res <- reactive({
     if (is_sc()) {
       path_res <- scSampleComparison$path_res()
@@ -855,6 +866,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     bulk_eset = bulk_eset,
     contrast_groups = bulkAnal$contrast_groups,
     top_table = top_table,
+    ambient = ambient,
     path_res = path_res,
     show_custom = show_custom,
     drug_queries = drug_queries,

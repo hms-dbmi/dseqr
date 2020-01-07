@@ -73,7 +73,11 @@ construct_path_df <- function(top_table) {
 #' }
 #' @export
 #' @keywords internal
-get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200) {
+get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200, ambient = NULL) {
+
+  # single cell ambient genes excluded from query
+  is.ambient <- row.names(top_table) %in% ambient
+  top_table <- top_table[!is.ambient, ]
 
   # only show pathway if in GO
   if (path_id %in% names(gslist.go)) {

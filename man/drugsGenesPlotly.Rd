@@ -10,6 +10,7 @@ drugsGenesPlotly(
   session,
   data_dir,
   top_table,
+  ambient,
   drug_study,
   show_genes,
   pert_signature
