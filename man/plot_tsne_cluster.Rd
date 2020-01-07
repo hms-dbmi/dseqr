@@ -7,7 +7,6 @@
 plot_tsne_cluster(
   scseq,
   selected_clusters = levels(scseq$cluster),
-  pt.size = 2,
   legend_title = "Cluster",
   cols = NULL
 )

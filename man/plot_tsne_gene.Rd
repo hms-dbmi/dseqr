@@ -4,12 +4,7 @@
 \alias{plot_tsne_gene}
 \title{Plot UMAP coloured by HGNC symbol}
 \usage{
-plot_tsne_gene(
-  scseq,
-  gene,
-  selected_idents = levels(scseq$orig.ident),
-  pt.size = 2
-)
+plot_tsne_gene(scseq, gene, selected_idents = levels(scseq$orig.ident))
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} object.}

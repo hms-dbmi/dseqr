@@ -783,7 +783,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
   # Single cell analysis
   # ---
-  scAnal <- callModule(scAnal, 'sc',
+  scSampleComparison <- callModule(scSampleComparison, 'sc',
                        is_sc = is_sc,
                        dataset_dir = dataset_dir)
 
@@ -792,7 +792,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   drug_queries <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
-      drug_queries <- scAnal$drug_queries()
+      drug_queries <- scSampleComparison$drug_queries()
 
     } else if (is_bulk()) {
       drug_queries <- bulkAnal$drug_queries()
@@ -811,7 +811,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
   top_table <- reactive({
     if (is_sc()) {
-      top_table <- scAnal$top_table()
+      top_table <- scSampleComparison$top_table()
 
     } else if (is_bulk()) {
       top_table <- bulkAnal$top_table()
@@ -824,7 +824,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
   path_res <- reactive({
     if (is_sc()) {
-      path_res <- scAnal$path_res()
+      path_res <- scSampleComparison$path_res()
 
     } else if (is_bulk()) {
       path_res <- bulkAnal$path_res()
@@ -838,7 +838,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   anal_name <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
-      anal_name <- paste(sel_name, scAnal$name(), sep = '_')
+      anal_name <- paste(sel_name, scSampleComparison$name(), sep = '_')
 
     } else if (is_bulk()) {
       anal_name <- paste(sel_name, bulkAnal$name(), sep = '_')

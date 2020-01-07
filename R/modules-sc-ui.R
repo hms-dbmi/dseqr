@@ -71,7 +71,7 @@ scFormInput <- function(id) {
             ),
             # inputs for comparing samples
             div(id = ns('sample_comparison_inputs'), style = 'display: none',
-                scAnalInput(ns('sample')),
+                scSampleComparisonInput(ns('sample')),
                 selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
             ),
             div(id = ns('label_comparison_inputs'), style = 'display: none;',
@@ -291,7 +291,7 @@ scBioGpsPlotOutput <- function(id) {
 #'
 #' @export
 #' @keywords internal
-scAnalInput <- function(id) {
+scSampleComparisonInput <- function(id) {
   ns <- NS(id)
 
   button <- actionButton(ns('run_comparison'), '',

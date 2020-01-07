@@ -174,15 +174,15 @@ scForm <- function(input, output, session, sc_dir) {
   # the selected clusters/gene for sample comparison
   dataset_dir <- reactive(file.path(sc_dir, scDataset$dataset_name()))
 
-  scAnal <- callModule(scAnal, 'sample', dataset_dir = dataset_dir)
+  scSampleComparison <- callModule(scSampleComparison, 'sample', dataset_dir = dataset_dir)
 
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
                              scseq = scDataset$scseq,
-                             selected_markers = scAnal$top_table,
-                             cluster_markers = scAnal$cluster_markers,
-                             selected_cluster = scAnal$clusters,
+                             selected_markers = scSampleComparison$top_table,
+                             cluster_markers = scSampleComparison$cluster_markers,
+                             selected_cluster = scSampleComparison$clusters,
                              annot_path = scDataset$annot_path,
                              comparison_type = comparisonType)
 
@@ -1090,7 +1090,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
-scAnal <- function(input, output, session, dataset_dir, is_sc = function()TRUE) {
+scSampleComparison <- function(input, output, session, dataset_dir, is_sc = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('run_comparison', 'selected_clusters')
 

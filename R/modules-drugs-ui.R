@@ -224,7 +224,7 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
   tagList(
     ds_btn,
     tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-             scAnalInput(ns('sc'))
+             scSampleComparisonInput(ns('sc'))
     ),
     tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
              bulkAnalInput(ns('bulk'), with_dl = FALSE)
