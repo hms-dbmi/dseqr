@@ -14,7 +14,6 @@ scPage <- function(input, output, session, sc_dir) {
 
   scCluster <- callModule(scClusterPlot, 'cluster_plot',
                           scseq = scForm$scseq,
-                          plot_styles = scForm$plot_styles,
                           fname_fun = cluster_data_fname,
                           downloadable = TRUE,
                           cached_plot = reactive(NULL))
@@ -43,7 +42,6 @@ scPage <- function(input, output, session, sc_dir) {
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
                                 scseq = scForm$scseq,
                                 selected_gene = scForm$selected_gene_cluster,
-                                plot_styles = scForm$plot_styles,
                                 selected_group = 'all',
                                 fname_fun = marker_data_fname('cluster'),
                                 cached_plot = reactive(NULL))
@@ -55,7 +53,6 @@ scPage <- function(input, output, session, sc_dir) {
   scMarkerSample <- callModule(scMarkerPlot, 'marker_plot_test',
                                scseq = scForm$scseq,
                                selected_gene = scForm$selected_gene_sample,
-                               plot_styles = scForm$plot_styles,
                                selected_group = 'test',
                                fname_fun = marker_data_fname('sample', 'test'),
                                cached_plot = reactive(NULL))
@@ -63,7 +60,6 @@ scPage <- function(input, output, session, sc_dir) {
   callModule(scMarkerPlot, 'marker_plot_ctrl',
              scseq = scForm$scseq,
              selected_gene = scForm$selected_gene_sample,
-             plot_styles = scForm$plot_styles,
              selected_group = 'ctrl',
              fname_fun = marker_data_fname('sample', 'ctrl'),
              cached_plot = scMarkerSample$plot)
@@ -93,12 +89,10 @@ scPage <- function(input, output, session, sc_dir) {
   })
 
   callModule(scClusterPlot, 'label_plot1',
-             cached_plot = label_plot1,
-             plot_styles = scForm$plot_styles)
+             cached_plot = label_plot1)
 
   callModule(scClusterPlot, 'label_plot2',
-             cached_plot = label_plot2,
-             plot_styles = scForm$plot_styles)
+             cached_plot = label_plot2)
 
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
@@ -201,19 +195,11 @@ scForm <- function(input, output, session, sc_dir) {
 
 
 
-  # update scseq with annotation changes and jitter
+  # update scseq with annotation changes
   scseq <- reactive({
     scseq <- scDataset$scseq()
     annot <- scClusterComparison$annot()
-    jitter <- scDataset$plot_styles$jitter()
-    shiny::req(scseq, annot, jitter)
-
     levels(scseq$cluster) <- annot
-
-    if (jitter > 0)
-      scseq <- jitter_umap(scseq, amount = jitter)
-
-
     return(scseq)
   })
 
@@ -233,7 +219,6 @@ scForm <- function(input, output, session, sc_dir) {
 
   return(list(
     scseq = scseq,
-    plot_styles = scDataset$plot_styles,
     selected_gene_cluster = scClusterGene$selected_gene,
     selected_gene_sample = scSampleGene$selected_gene,
     label_anals = integrationAnnotAnals,
@@ -328,8 +313,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     updateSelectizeInput(session, 'selected_dataset', choices = anal_options())
   })
 
-  # get styles and integration info
-  plot_styles <- callModule(plotStyles, 'styles')
+  # get integration info
   show_integration <- callModule(showIntegration, 'integration')
   show_label_transfer <- callModule(showLabelTransfer, 'label-transfer')
 
@@ -342,25 +326,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     annot = annot,
     annot_path = annot_path,
     anal_options = anal_options,
-    plot_styles = plot_styles,
     show_integration = show_integration,
     show_label_transfer = show_label_transfer,
     is.integrated = is.integrated,
     is_dataset = is_dataset
   ))
-}
-
-
-#' Logic for plot styles dropdown
-#' @export
-#' @keywords internal
-plotStyles <- function(input, output, session) {
-
-
-  jitter <- reactive(input$point_jitter)
-  size <- reactive(input$point_size)
-
-  return(list(jitter = jitter, size = size))
 }
 
 #' Logic for show integration button
@@ -1009,7 +979,7 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, plot_styles, cached_plot, fname_fun = function(){}, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, cached_plot, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
     cached_plot <- cached_plot()
@@ -1062,7 +1032,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker gene plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, plot_styles, selected_group, cached_plot, fname_fun = function(){}, downloadable = TRUE) {
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_group, cached_plot, fname_fun = function(){}, downloadable = TRUE) {
 
 
   plot <- reactive({

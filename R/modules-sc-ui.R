@@ -110,9 +110,8 @@ scSelectedDatasetInput <- function(id) {
 
   selectizeInputWithButtons(ns('selected_dataset'), 'Select a dataset:',
                             showLabelTransferButton(ns('label-transfer')),
-                            showIntegrationButton(ns('integration')),
-                            plotStylesButton(ns('styles'))
-  )
+                            showIntegrationButton(ns('integration')))
+
 }
 
 
@@ -128,27 +127,6 @@ showLabelTransferButton <- function(id) {
 }
 
 
-
-#' Button with sliders for adjusting plot jitter and point size
-#' @export
-#' @keywords internal
-plotStylesButton <- function(id) {
-  ns <- NS(id)
-  drugseqr::dropdownButton(
-    br(),
-    sliderInput(ns('point_size'), 'Point size:',
-                width = '100%', ticks = FALSE,
-                min = 0.5, max = 4, value = 2.5, step = 0.5),
-    sliderInput(ns('point_jitter'), 'Point jitter:',
-                width = '100%', ticks = FALSE,
-                min = 0, max = 3, value = 0, step = 0.5),
-    circle = FALSE, right = TRUE, icon = icon('cog', 'fa-fw'),
-    title = 'Show plot style controls'
-  )
-}
-
-
-
 #' Button with to toggle display of integrationFormInput
 #' @export
 #' @keywords internal
@@ -157,7 +135,7 @@ showIntegrationButton <- function(id) {
 
   actionButton(ns('show_integration'), '',
                icon = icon('object-group', 'far fa-fw'),
-               title = 'Toggle dataset integration', class = 'squashed-btn')
+               title = 'Toggle dataset integration')
 }
 
 
