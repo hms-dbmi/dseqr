@@ -198,6 +198,7 @@ scForm <- function(input, output, session, sc_dir) {
   scseq <- reactive({
     scseq <- scDataset$scseq()
     annot <- scClusterComparison$annot()
+    req(annot, scseq)
     levels(scseq$cluster) <- annot
     return(scseq)
   })

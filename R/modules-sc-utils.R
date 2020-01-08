@@ -13,18 +13,23 @@
 get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
 
 
-  # load reference and query annotation
+  # load query annotation
   query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
   query_annot <- readRDS(query_annot_path)
 
-  ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
-  ref_annot <- readRDS(ref_annot_path)
+  senv <- loadNamespace('SingleR')
 
-  # for resetting annotation
-  if (ref_name == '') {
+  if (ref_name %in% ls(senv)) {
+    pred_annot <- make.unique(ref_preds, '_')
+
+  } else if (ref_name == '') {
+    # reset annotation
     pred_annot <- as.character(seq_along(query_annot))
 
   } else {
+    ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
+    ref_annot <- readRDS(ref_annot_path)
+
     ref_preds <- ref_annot[as.numeric(ref_preds)]
     pred_annot <- make.unique(ref_preds, '_')
   }
