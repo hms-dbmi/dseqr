@@ -6,7 +6,7 @@
 \usage{
 load_scseq(
   data_dir,
-  project = "SeuratProject",
+  project,
   type = c("kallisto", "cellranger"),
   soupx = FALSE
 )

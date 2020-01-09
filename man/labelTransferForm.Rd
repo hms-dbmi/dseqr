@@ -9,7 +9,7 @@ labelTransferForm(
   output,
   session,
   sc_dir,
-  anal_options,
+  datasets,
   show_label_transfer,
   dataset_name,
   scseq

@@ -108,9 +108,15 @@ selectedAnnotDatasetInput <- function(id) {
 scSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(ns('selected_dataset'), 'Select a dataset:',
-                            showLabelTransferButton(ns('label-transfer')),
-                            showIntegrationButton(ns('integration')))
+  tagList(
+    selectizeInputWithButtons(ns('selected_dataset'), 'Select a dataset:',
+                              showLabelTransferButton(ns('label-transfer')),
+                              showIntegrationButton(ns('integration')),
+                              options = list(placeholder = 'Type name to add new dataset', create = TRUE)),
+    shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files', class = NULL, icon = NULL,
+                             style = NULL)
+
+  )
 
 }
 
@@ -305,4 +311,5 @@ scSampleComparisonInput <- function(id) {
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }
+
 

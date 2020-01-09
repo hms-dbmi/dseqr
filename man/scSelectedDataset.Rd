@@ -4,7 +4,7 @@
 \alias{scSelectedDataset}
 \title{Logic for selected dataset part of scForm}
 \usage{
-scSelectedDataset(input, output, session, sc_dir, new_dataset)
+scSelectedDataset(input, output, session, sc_dir, new_dataset, indices_dir)
 }
 \description{
 Logic for selected dataset part of scForm

@@ -1,11 +1,12 @@
 #' Logic for Single Cell Exploration page
 #' @export
 #' @keywords internal
-scPage <- function(input, output, session, sc_dir) {
+scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
-                       sc_dir = sc_dir)
+                       sc_dir = sc_dir,
+                       indices_dir = indices_dir)
 
 
   cluster_data_fname <- function() {
@@ -106,7 +107,7 @@ scPage <- function(input, output, session, sc_dir) {
 #' Logic for form on Single Cell Exploration page
 #' @export
 #' @keywords internal
-scForm <- function(input, output, session, sc_dir) {
+scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # TODO: implement loading single cell dataset
 
@@ -117,21 +118,19 @@ scForm <- function(input, output, session, sc_dir) {
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
                           sc_dir = sc_dir,
-                          new_dataset = new_dataset)
+                          new_dataset = new_dataset,
+                          indices_dir = indices_dir)
 
   observe({
-    toggle('form_container', condition = scDataset$is_dataset())
+    toggle('form_container', condition = scDataset$dataset_exists())
   })
-
-
-
 
   #TODO move label transfer and integration into dataset
 
   # label transfer between datasets
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
-                                anal_options = scDataset$anal_options,
+                                datasets = scDataset$datasets,
                                 show_label_transfer = scDataset$show_label_transfer,
                                 dataset_name = scDataset$dataset_name,
                                 scseq = scDataset$scseq)
@@ -139,7 +138,7 @@ scForm <- function(input, output, session, sc_dir) {
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
-                              anal_options = scDataset$anal_options,
+                              datasets = scDataset$datasets,
                               show_integration = scDataset$show_integration)
 
 
@@ -172,9 +171,9 @@ scForm <- function(input, output, session, sc_dir) {
                               comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison
-  dataset_dir <- reactive(file.path(sc_dir, scDataset$dataset_name()))
 
-  scSampleComparison <- callModule(scSampleComparison, 'sample', dataset_dir = dataset_dir)
+  scSampleComparison <- callModule(scSampleComparison, 'sample',
+                                   dataset_dir = dataset_dir)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
@@ -231,14 +230,19 @@ scForm <- function(input, output, session, sc_dir) {
 #' Logic for selected dataset part of scForm
 #' @export
 #' @keywords internal
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+
+  # get directory with fastqs
+  roots <- c('single-cell' = sc_dir)
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, )
 
   dataset_name <- reactive({
     req(input$selected_dataset)
+    req(!is.create())
     input$selected_dataset
   })
 
-  is_dataset <- reactive(isTruthy(input$selected_dataset))
+  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
 
   # get's used for saving annotation to disc
   annot_path <- reactive({
@@ -246,9 +250,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
   })
 
   # load annotation for clusters
-  annot <- reactive({
-    readRDS(annot_path())
-  })
+  annot <- reactive(readRDS(annot_path()))
 
   # load scseq
   scseq <- reactive({
@@ -264,6 +266,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     return(dataset_name %in% integrated)
   })
 
+
+
   # load markers and name using annot
   markers <- reactive({
     annot <- annot()
@@ -275,34 +279,115 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     return(markers)
   })
 
-  # available analyses
-  anal_options <- reactive({
+  # available single-cell datasets
+  datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
-
-    # make sure integrated rds exists
-    int_path <- file.path(sc_dir, 'integrated.rds')
-    if (!file.exists(int_path)) saveRDS(NULL, int_path)
-
-    # use saved anals as options
-    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
-    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
-
-    # exclude individual without scseq (e.g. folder with fastq.gz files only)
-    # unlist for case when no individual scseqs
-    has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
-    individual <- individual[unlist(has.scseq)]
-
-    # must be a list if length one for option groups to work
-    if (length(integrated) == 1) integrated <- list(integrated)
-    if (length(individual) == 1) individual <- list(individual)
-
-    list(Individual = c('', individual), Integrated = integrated)
+    get_sc_dataset_choices(sc_dir)
   })
+
+
+  # are we creating a new dataset?
+  is.create <- reactive({
+    dataset_name <- input$selected_dataset
+    datasets <- datasets()
+    req(dataset_name)
+
+    !dataset_name %in% unlist(datasets)
+  })
+
+  # open shinyFiles selector if creating
+  observe({
+    req(is.create())
+    shinyjs::click('new_dataset_dir')
+  })
+
+  # get path to dir with new dataset files
+  new_dataset_dir <- reactive({
+    new_dataset_dir <- input$new_dataset_dir
+
+    # need selected subfolder
+    # will be integer on create
+    req(!'integer' %in% class(new_dataset_dir))
+
+    dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
+    as.character(dir)
+  })
+
+  # ask for confirmation after folder selection
+  observeEvent(new_dataset_dir(), showModal(quantModal()))
+
+  # run single-cell quantification
+  observeEvent(input$confirm_quant, {
+    removeModal()
+
+    # standardize cellranger files
+    fastq_dir <- new_dataset_dir()
+    dataset_name <- input$selected_dataset
+    is.cellranger <- check_is_cellranger(fastq_dir)
+    if (is.cellranger) standardize_cellranger(fastq_dir)
+
+    # Create a Progress object
+    progress <- Progress$new(session, min=0, max = 8)
+    on.exit(progress$close())
+
+    progress$set(message = "Quantifying files", value = 1)
+    if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
+
+    # TODO: figure out whitelist vs kneelist
+    # previously subseted to kneelist in load_scseq then to whitelist just after
+
+    progress$set(message = "Loading and QC", value = 2)
+    type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
+    scseq <- load_scseq(fastq_dir, project = dataset_name, type = type)
+    gc()
+
+    progress$set(message = "Normalizing", value = 3)
+    scseq <- normalize_scseq(scseq)
+    gc()
+
+    progress$set(message = "Clustering", value = 4)
+    scseq <- add_scseq_clusters(scseq)
+    gc()
+
+    progress$set(message = "Reducing dimensions", value = 5)
+    scseq <- run_tsne(scseq)
+    gc()
+
+    progress$set(message = "Getting markers", value = 6)
+    wilcox_tests <- pairwise_wilcox(scseq)
+    markers <- get_scseq_markers(wilcox_tests)
+
+    # top markers for SingleR
+    top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
+
+    progress$set(message = "Saving", value = 7)
+    anal <- list(scseq = scseq, markers = markers, annot = names(markers), top_markers = top_markers)
+    save_scseq_data(anal, dataset_name, sc_dir)
+
+    progress$set(value = 9)
+  })
+
+  # modal to confirm adding single-cell dataset
+  quantModal <- function() {
+
+    UI <- withTags(dl(dd('This will take a while.')))
+
+    modalDialog(
+      UI,
+      title = 'Create new single-cell dataset?',
+      size = 's',
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton(session$ns("confirm_quant"), "Quantify", class = 'pull-left btn-warning')
+      )
+    )
+  }
+
 
   # update if options change
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = anal_options())
+    updateSelectizeInput(session, 'selected_dataset', choices = datasets())
   })
 
   # get integration info
@@ -317,12 +402,34 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     markers = markers,
     annot = annot,
     annot_path = annot_path,
-    anal_options = anal_options,
+    datasets = datasets,
     show_integration = show_integration,
     show_label_transfer = show_label_transfer,
     is.integrated = is.integrated,
-    is_dataset = is_dataset
+    dataset_exists = dataset_exists
   ))
+}
+
+get_sc_dataset_choices <- function(sc_dir) {
+
+  # make sure integrated rds exists
+  int_path <- file.path(sc_dir, 'integrated.rds')
+  if (!file.exists(int_path)) saveRDS(NULL, int_path)
+
+  # use saved datasets as options
+  integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+
+  # exclude individual without scseq (e.g. folder with fastq.gz files only)
+  # unlist for case when no individual scseqs
+  has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+  individual <- individual[unlist(has.scseq)]
+
+  # must be a list if length one for option groups to work
+  if (length(integrated) == 1) integrated <- list(integrated)
+  if (length(individual) == 1) individual <- list(individual)
+
+  list(Individual = c('', individual), Integrated = integrated)
 }
 
 #' Logic for show integration button
@@ -363,7 +470,7 @@ showLabelTransfer <- function(input, output, session) {
 #' Logic for label transfer between datasets
 #' @export
 #' @keywords internal
-labelTransferForm <- function(input, output, session, sc_dir, anal_options, show_label_transfer, dataset_name, scseq) {
+labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
 
   ref_preds <- reactiveVal()
@@ -390,11 +497,11 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
     preds <- preds()
 
 
-    anal_options <- anal_options()
+    datasets <- datasets()
     dataset_name <- dataset_name()
-    req(preds, anal_options)
+    req(preds, datasets)
 
-    choices <- get_label_transfer_choices(anal_options, dataset_name, preds)
+    choices <- get_label_transfer_choices(datasets, dataset_name, preds)
     updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption}')))
   })
 
@@ -557,13 +664,13 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, anal_options, show_integration) {
+integrationForm <- function(input, output, session, sc_dir, datasets, show_integration) {
 
   integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters')
 
 
   integration_name <- reactive(input$integration_name)
-  integration_options <- reactive(anal_options()$Individual)
+  integration_options <- reactive(datasets()$Individual)
 
   ctrl <- reactiveVal()
   test <- reactiveVal()
@@ -611,9 +718,9 @@ integrationForm <- function(input, output, session, sc_dir, anal_options, show_i
     ctrl_anals <- ctrl()
     exclude_clusters <- input$exclude_clusters
     anal_name <- input$integration_name
-    anal_options <- anal_options()
+    datasets <- datasets()
 
-    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, anal_options)
+    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets)
 
     if (is.null(error_msg)) {
       # clear error and disable button
@@ -1094,9 +1201,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, is_sc = func
   scseq <- reactive(readRDS(file.path(dataset_dir(), 'scseq.rds')))
 
   # TODO: update if annotation change from Single Cell tab
-  annot <- reactive({
-    readRDS(file.path(dataset_dir(), 'annot.rds'))
-  })
+  annot <- reactive(readRDS(file.path(dataset_dir(), 'annot.rds')))
 
   # update cluster choices in UI
   cluster_choices <- reactive(get_cluster_choices(annot(), dataset_dir(), TRUE))

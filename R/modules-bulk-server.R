@@ -85,9 +85,6 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
     shinyjs::disable(selector = 'input')
 
     # setup
-    is.sc <- bulkForm$is.sc()
-    is.cellranger <- bulkForm$is.cellranger()
-
     pdata <- dsQuantTable$pdata()
     dataset_dir <- bulkForm$dataset_dir()
     dataset_name <- bulkForm$dataset_name()
@@ -95,71 +92,36 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
 
     # Create a Progress object
-    progress <- Progress$new(session, min=0, max = ifelse(is.sc, 8, nrow(pdata)+1))
+    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
     # Close the progress when this reactive exits (even if there's an error)
     on.exit(progress$close())
 
-    if (is.sc) {
-      progress$set(message = "Quantifying files", value = 0)
-      progress$set(value = 1)
-      if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
-
-      progress$set(message = "Loading and QC", value = 2)
-      type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-      scseq <- load_scseq(fastq_dir, project = dataset_name, type = type)
-      scseq <- scseq[, scseq$whitelist]
-      gc()
-
-      progress$set(message = "Preprocessing", value = 3)
-      scseq <- preprocess_scseq(scseq)
-      gc()
-
-      progress$set(message = "Clustering", value = 4)
-      scseq <- add_scseq_clusters(scseq)
-      gc()
-
-      progress$set(message = "Reducing dimensions", value = 5)
-      scseq <- run_umap(scseq)
-      gc()
-
-      progress$set(message = "Getting markers", value = 6)
-      markers <- get_scseq_markers(scseq)
-      gc()
-
-      progress$set(message = "Saving", value = 7)
-      anal <- list(scseq = scseq, markers = markers, annot = names(markers))
-      save_scseq_data(anal, dataset_name, sc_dir)
-
-      # get and save cluster stats for selectizeInputs
-      get_cluster_stats(sc_dir, dataset_name, scseq)
-
-    } else {
-      # Create a callback function to update progress.
-      progress$set(message = "Quantifying files", value = 0)
-      updateProgress <- function(amount = NULL, detail = NULL) {
-        progress$inc(amount = amount, detail = detail)
-      }
-
-      # setup bulk
-      pdata <- dsQuantTable$pdata()
-      paired <- bulkForm$paired()
-
-
-      # quantification
-      run_kallisto_bulk(indices_dir = indices_dir,
-                        data_dir = fastq_dir,
-                        pdata = pdata,
-                        paired = paired,
-                        updateProgress = updateProgress)
-
-      # generate eset and save
-      progress$set(message = 'Annotating dataset')
-      eset <- load_seq(fastq_dir)
-
-      # save to bulk datasets to indicate that has been quantified
-      save_bulk_dataset(dataset_name, dataset_dir, data_dir)
-
+    # Create a callback function to update progress.
+    progress$set(message = "Quantifying files", value = 0)
+    updateProgress <- function(amount = NULL, detail = NULL) {
+      progress$inc(amount = amount, detail = detail)
     }
+
+    # setup bulk
+    pdata <- dsQuantTable$pdata()
+    paired <- bulkForm$paired()
+
+
+    # quantification
+    run_kallisto_bulk(indices_dir = indices_dir,
+                      data_dir = fastq_dir,
+                      pdata = pdata,
+                      paired = paired,
+                      updateProgress = updateProgress)
+
+    # generate eset and save
+    progress$set(message = 'Annotating dataset')
+    eset <- load_seq(fastq_dir)
+
+    # save to bulk datasets to indicate that has been quantified
+    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
+
+
     # trigger to update rest of app
     new_dataset(dataset_name)
 
@@ -472,11 +434,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
 
-  is.sc <- reactive(grepl('^single-cell/', dataset_dir()))
-  is.cellranger <- reactive(check_is_cellranger(fastq_dir()))
-
-  observe(if (is.cellranger()) standardize_cellranger(fastq_dir()))
-
   numsv_path <- reactive(file.path(fastq_dir(), 'numsv.rds'))
   svobj_path <- reactive(file.path(fastq_dir(), 'svobj.rds'))
 
@@ -548,8 +505,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     fastq_dir = fastq_dir,
     dataset_name = dataset_name,
     dataset_dir = dataset_dir,
-    is.sc = is.sc,
-    is.cellranger = is.cellranger,
     is.create = is.create,
     dtangle_est = dtangleForm$dtangle_est,
     show_dtangle = show_dtangle,

@@ -43,7 +43,8 @@ server <- function(input, output, session) {
                          indices_dir = indices_dir)
 
   scPage <- callModule(scPage, 'sc',
-                       sc_dir = sc_dir)
+                       sc_dir = sc_dir,
+                       indices_dir = indices_dir)
 
   # TODO: get new_dataset from dsPage and scPage
   new_dataset <- reactiveVal()

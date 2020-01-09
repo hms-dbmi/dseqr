@@ -15,7 +15,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project = 'SeuratProject', type = c('kallisto', 'cellranger'), soupx = FALSE) {
+load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), soupx = FALSE) {
 
   # load counts
   if (type[1] == 'kallisto') {
@@ -203,58 +203,8 @@ standardize_cellranger <- function(data_dir) {
 
 
 
-#' Convert Seurat object to SingleCellExperiment
-#'
-#' Also adds mrna and rrna
-#'
-#' @param srt \code{Seurat} object
-#'
-#' @return \code{SingleCellExperiment} object
-#' @export
-srt_to_sce <- function(srt, assay = NULL) {
-  if (class(srt) == 'SingleCellExperiment') return(srt)
-
-  sce <- as.SingleCellExperiment(srt, assay)
-
-  # for compatibility in explore_scseq_clusters
-  sce$cluster <- sce$seurat_clusters
-
-  return(sce)
-}
 
 
-#' Coerce Seurat to SingleCellExperiment
-#'
-#' This exists because of bug satijalab/seurat#1626. Remove once release accounts for it.
-#'
-#' @param x \code{Seurat} object
-#' @param assay The assay to use. Default (NULL) uses the default assay from \code{x}.
-#'
-#' @return \code{SingleCellExperiment}
-#'
-as.SingleCellExperiment <- function(x, assay = NULL) {
-  if (!Seurat:::PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
-  }
-  assay <- ifelse(is.null(assay), Seurat::DefaultAssay(object = x), assay)
-
-  assays = list(
-    counts = Seurat::GetAssayData(object = x, assay = assay, slot = "counts"),
-    logcounts = Seurat::GetAssayData(object = x, assay = assay, slot = "data")
-  )
-
-  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
-  sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
-
-  metadata <- x[[]]
-  metadata$ident <- Seurat::Idents(object = x)
-  SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
-  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay]][[]])
-  for (dr in Seurat:::FilterObjects(object = x, classes.keep = "DimReduc")) {
-    SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Seurat::Embeddings(object = x[[dr]])
-  }
-  return(sce)
-}
 
 #' Load mitochondrial and ribsomal gene names
 #'
