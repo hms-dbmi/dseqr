@@ -291,20 +291,21 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
 
-  # choose number of dims of corrected for TSNE/clusters
-  combined <- pick_npcs(combined, dimred = 'corrected')
+  # choose number of dims of corrected for TSNE and add clusters
+  updateProgress(3/n, 'clustering')
+  choices <- get_npc_choices(combined, type = 'corrected')
+  npcs <- S4Vectors::metadata(choices)$chosen
+  combined@metadata$npcs <- npcs
+  combined$cluster <- factor(choices$clusters[[npcs]])
 
   # TSNE on corrected reducedDim
-  updateProgress(3/n, 'reducing')
+  updateProgress(4/n, 'reducing')
   combined <- run_tsne(combined, dimred = 'corrected')
 
   # add ambient outlier info
   ambient <- get_integrated_ambient(scseqs)
   combined <- add_integrated_ambient(combined, ambient)
   rm(scseqs); gc()
-
-  updateProgress(4/n, 'clustering')
-  combined <- add_scseq_clusters(combined, dimred = 'corrected')
 
   updateProgress(5/n, 'getting markers')
   wilcox_tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
@@ -422,15 +423,17 @@ downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
 save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 
   if (integrated) {
+    # add to integrated if new
     int_path <- file.path(sc_dir, 'integrated.rds')
     int_options <- c(readRDS(int_path), anal_name)
-
     saveRDS(unique(int_options), int_path)
+
+    # remove all previous data in case overwriting
+    anal_dir <- file.path(sc_dir, anal_name)
+    unlink(anal_dir, recursive = TRUE)
+    dir.create(anal_dir)
   }
 
-  anal_dir <- file.path(sc_dir, anal_name)
-  unlink(anal_dir, recursive = TRUE)
-  dir.create(anal_dir)
   for (type in names(scseq_data)) {
     saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
   }
@@ -767,6 +770,7 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
   sce <- normalize_scseq(sce)
   sce <- add_hvgs(sce)
   sce <- add_scseq_clusters(sce)
+  sce <- run_tsne(sce)
 
 
   wilcox_tests <- pairwise_wilcox(sce)

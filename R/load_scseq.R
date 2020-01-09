@@ -294,7 +294,7 @@ normalize_scseq <- function(scseq) {
   doParallel::registerDoParallel(ncores)
 
   set.seed(100)
-  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam())
+  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam(), min.size = 5)
   scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
   scseq <- scater::logNormCounts(scseq)
 
@@ -318,31 +318,14 @@ add_hvgs <- function(sce) {
   return(sce)
 }
 
-#' Perform PCA and TSNE dimensionality reduction
+
+#' Run TSNE
 #'
-#' Runs after \code{add_hvgs} so that runs faster and on interesting genes.
+#' @param sce \code{SingleCellExperiment}
+#' @param dimred reducedDim to run TSNE on
 #'
-#' @param sce \code{SingleCellExperiment} object with \code{'hvg'} in \code{rowData}
-#'
-#' @return \code{sce} with \code{'PCA'} and \code{'TSNE'} reducedDim slots.
+#' @return \code{sce} with \code{'TSNE'} \code{reducedDim}
 #' @export
-reduce_dims <- function(sce) {
-
-  # run on HVGs
-  rdata <- SummarizedExperiment::rowData(sce)
-  subset_row <- row.names(rdata[rdata$hvg, ])
-
-  # run PCA and pick number of PCs
-  set.seed(100)
-  sce <- scater::runPCA(sce, subset_row = subset_row)
-  sce <- pick_npcs(sce)
-
-  # TSNE on top PCs
-  sce <- run_tsne(sce)
-
-  return(sce)
-}
-
 run_tsne <- function(sce, dimred = 'PCA') {
   set.seed(1100101001)
   sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
@@ -351,19 +334,51 @@ run_tsne <- function(sce, dimred = 'PCA') {
 }
 
 
-add_scseq_clusters <- function(sce, dimred = 'PCA') {
+#' Get number of clusters different number of PCs
+#'
+#' Used to pick number of PCs to retain
+#'
+#' @param sce \code{SingleCellExperiement}
+#'
+#' @return
+#' @export
+#'
+#' @examples
+get_npc_choices <- function(sce, type = 'PCA') {
+
+  # walktrap very slow if too many cells
+  cluster_fun <- ifelse(ncol(sce) > 10000,
+                        igraph::cluster_louvain,
+                        igraph::cluster_walktrap)
 
   FUN <- function(x, ...) {
     g <- scran::buildSNNGraph(x, ..., transposed = TRUE)
-    igraph::cluster_louvain(g)$membership
+    cluster_fun(g)$membership
   }
 
+  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
+  scran::getClusteredPCs(pcs, FUN = FUN)
+}
+
+#' Cluster SingleCellExperiment
+#'
+#' @param sce \code{SingleCellExperiment}
+#'
+#' @return \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
+#' @export
+add_scseq_clusters <- function(sce) {
+
+  # run PCA on HVGs
+  rdata <- SummarizedExperiment::rowData(sce)
+  subset_row <- row.names(rdata[rdata$hvg, ])
+
+  set.seed(100)
+  sce <- scater::runPCA(sce, subset_row = subset_row)
+
   # pick number of PCs
-  pcs <- SingleCellExperiment::reducedDim(sce, type = dimred)
-  choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+  choices <- get_npc_choices(sce)
   npcs <- S4Vectors::metadata(choices)$chosen
   sce@metadata$npcs <- npcs
-
 
   # add clusters
   sce$cluster <- factor(choices$clusters[[npcs]])
@@ -427,7 +442,10 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
                                    tests$pairs[keep, ],
                                    pval.type = pval.type,
                                    effect.field = effect.field)
-  lapply(markers, as.data.frame)
+
+  markers <- lapply(markers, as.data.frame)
+  ord <- order(as.numeric(names(markers)))
+  markers[ord]
 }
 
 
@@ -444,7 +462,7 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
+integrate_scseqs <- function(scseqs, type = c('fastMNN', 'clusterMNN')) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -503,29 +521,6 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   return(mnn.out)
 }
 
-scalign_scseqs <- function(scseqs, genes) {
-
-  sce.list <- lapply(scseqs, function(x) {
-    SingleCellExperiment::SingleCellExperiment(assays = list(logcounts = x[['SCT']]@data[genes, ],
-                                                             scale.data = x[['SCT']]@scale.data[genes, ]))
-  })
-
-  sce.object = scAlign::scAlignCreateObject(sce.objects = sce.list, project.name = "sjia")
-
-  sce.object = scAlign::scAlignMulti(sce.object,
-                                     options=scAlign::scAlignOptions(steps=5000, log.every=5000, norm=TRUE, early.stop=FALSE, architecture="small"),
-                                     encoder.data="scale.data",
-                                     decoder.data="logcounts",
-                                     supervised='none',
-                                     run.encoder=TRUE,
-                                     run.decoder=TRUE,
-                                     log.results=TRUE,
-                                     log.dir=file.path('./tmp'),
-                                     device="CPU")
-
-  return(sce.object)
-}
-
 
 #' Get genes that are ambient in at least one test and control sample
 #'
@@ -581,51 +576,6 @@ add_integrated_ambient <- function(combined, ambient) {
 #' @return TRUE if more than one cluster exists
 #' @export
 exist_clusters <- function(scseq) {
-  if (class(scseq) == 'SingleCellExperiment') {
-    exist_clusters <- length(unique(scseq$cluster)) > 1
-
-  } else if (class(scseq) == 'Seurat') {
-    exist_clusters <- length(unique(Seurat::Idents(scseq))) > 1
-  }
-  return(exist_clusters)
-}
-
-#' Run UMAP for visualizing single cell data.
-#'
-#' If \code{scseq} is a \code{SingleCellExperiment} object then uses \code{scater::runUMAP}.
-#' If \code{scseq} is a \code{Seurat} object then uses \code{Seurat::RunUMAP}.
-#'
-#' @param scseq \code{SingleCellExperiment} or \code{Seurat} object.
-#'
-#' @return \code{scseq} with TSNE results.
-#' @export
-run_umap <- function(scseq, dims = 1:30, reduction = 'pca') {
-
-  set.seed(1000)
-  if (class(scseq) == 'SingleCellExperiment') {
-    scseq <- scater::runUMAP(scseq, use_dimred="PCA")
-
-  } else if (class(scseq) == 'Seurat') {
-    scseq <- Seurat::RunUMAP(scseq, dims = dims, reduction = reduction, verbose = FALSE)
-
-  } else {
-    stop('scseq must be either class SingleCellExperiment or Seurat')
-  }
-
-  return(scseq)
-}
-
-#' Add jitter to UMAP embeddings
-#'
-#' @param scseq \code{Seurat} object with umap reduction
-#' @inheritParams base::jitter
-#'
-#' @return \code{scseq} with jitter added to umap embedding
-#' @export
-jitter_umap <- function(scseq, factor = 1, amount = 0) {
-  scseq[['umap']]@cell.embeddings <-
-    apply(scseq[['umap']]@cell.embeddings, 2, jitter, factor, amount)
-
-  return(scseq)
+  length(unique(scseq$cluster)) > 1
 }
 

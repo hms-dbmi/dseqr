@@ -254,8 +254,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
   scseq <- reactive({
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
-    browser()
-    scseq <- srt_to_sce_shim(scseq, sc_dir, dataset_name())
     return(scseq)
   })
 
@@ -266,19 +264,16 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
     return(dataset_name %in% integrated)
   })
 
-
-
   # load markers and name using annot
   markers <- reactive({
-    req(annot())
+    annot <- annot()
+    req(annot)
 
     markers_path <- scseq_part_path(sc_dir, dataset_name(), 'markers')
     markers <- readRDS(markers_path)
-    names(markers) <- annot()
+    names(markers) <- annot
     return(markers)
   })
-
-
 
   # available analyses
   anal_options <- reactive({
@@ -406,12 +401,13 @@ labelTransferForm <- function(input, output, session, sc_dir, anal_options, show
   # submit annotation transfer
   observe({
 
-
     query_name <- dataset_name()
     ref_name <- input$ref_name
     preds <- preds()
+
     req(query_name, ref_name, preds)
     req(!ref_name %in% names(preds))
+    req(show_label_transfer())
 
     toggleAll(label_transfer_inputs)
 
