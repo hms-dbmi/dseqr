@@ -528,10 +528,6 @@ bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
 
-  observe({
-    toggle('bulk_controls', condition = !is.sc())
-  })
-
 
   reset <- reactive(input$reset)
   rep <- reactive(input$rep)
@@ -617,7 +613,6 @@ bulkEndType <- function(input, output, session, fastq_dir, is.sc) {
 
   # auto detected if paired
   detected_paired <- reactive({
-    if (is.sc()) return(TRUE)
     fastqs <- fastq_files()
     fastq_dir <- fastq_dir()
     req(fastqs, fastq_dir)
