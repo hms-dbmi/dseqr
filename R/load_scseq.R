@@ -290,8 +290,11 @@ add_qc_genes <- function(sce) {
 #' @export
 normalize_scseq <- function(scseq) {
 
+  ncores <- min(parallel::detectCores(), 7)
+  doParallel::registerDoParallel(ncores)
+
   set.seed(100)
-  preclusters <- scran::quickCluster(scseq)
+  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam())
   scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
   scseq <- scater::logNormCounts(scseq)
 
@@ -347,48 +350,26 @@ run_tsne <- function(sce, dimred = 'PCA') {
   return(sce)
 }
 
-pick_npcs <- function(sce, dimred = 'PCA') {
-  # pick number of PCs
-  pcs <- SingleCellExperiment::reducedDim(sce, type = dimred)
-  choices <- scran::getClusteredPCs(pcs)
-  npcs <- S4Vectors::metadata(choices)$chosen
-  sce@metadata$npcs <- npcs
-  return(sce)
-}
 
-#' Add reducedDim with selected number of PCs
-#'
-#' @param sce \code{SingleCellExperiment} with \code{reducedDim} and npcs metadata.
-#'
-#' @return \code{sce} with REDN reducedDim
-#' @export
-add_redn <- function(sce, dimred = 'PCA') {
-  # add npcs reducedDim
-  npcs <- sce@metadata$npcs
-  pcs  <- SingleCellExperiment::reducedDim(sce, dimred)
-  SingleCellExperiment::reducedDim(sce, 'REDN') <- pcs[, seq_len(npcs)]
-  return(sce)
-}
-
-
-
-#' Add clusters to single cell RNA-seq object
-#'
-#' Runs after \code{reduce_dims} so that \code{'PCA'} reducedDim is available.
-#'
-#' @param scseq \code{SingleCellExperiment}
-#' @return column \code{cluster} in \code{colData(sce)} is added.
-#' @export
 add_scseq_clusters <- function(sce, dimred = 'PCA') {
 
-  sce <- add_redn(sce, dimred)
-  g <- scran::buildSNNGraph(sce, use.dimred = 'REDN')
-  clust <- igraph::cluster_walktrap(g)$membership
-  sce$cluster <- factor(clust)
+  FUN <- function(x, ...) {
+    g <- scran::buildSNNGraph(x, ..., transposed = TRUE)
+    igraph::cluster_louvain(g)$membership
+  }
 
-  SingleCellExperiment::reducedDim(sce, 'REDN') <- NULL
+  # pick number of PCs
+  pcs <- SingleCellExperiment::reducedDim(sce, type = dimred)
+  choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+  npcs <- S4Vectors::metadata(choices)$chosen
+  sce@metadata$npcs <- npcs
+
+
+  # add clusters
+  sce$cluster <- factor(choices$clusters[[npcs]])
   return(sce)
 }
+
 
 
 #' Calculate QC metrics for SingleCellExperiment

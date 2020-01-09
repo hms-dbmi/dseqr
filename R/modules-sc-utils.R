@@ -766,7 +766,6 @@ srt_to_sce_shim <- function(srt, sc_dir, dataset_name) {
 
   sce <- normalize_scseq(sce)
   sce <- add_hvgs(sce)
-  sce <- reduce_dims(sce)
   sce <- add_scseq_clusters(sce)
 
 

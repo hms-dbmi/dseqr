@@ -254,6 +254,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset) {
   scseq <- reactive({
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
+    browser()
     scseq <- srt_to_sce_shim(scseq, sc_dir, dataset_name())
     return(scseq)
   })
