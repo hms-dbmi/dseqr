@@ -6,6 +6,7 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
 
+  SingleCellExperiment::logcounts(scseq) <- as(SingleCellExperiment::logcounts(scseq), 'dgCMatrix')
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
@@ -34,14 +35,15 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_gene <- function(scseq, gene, selected_idents = levels(scseq$orig.ident)) {
+plot_tsne_gene <- function(scseq, gene, selected_idents = unique(scseq$project)) {
 
+  SingleCellExperiment::logcounts(scseq) <- as(SingleCellExperiment::logcounts(scseq), 'dgCMatrix')
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
   # make selected groups stand out
   cells <- colnames(scseq)
-  cells <- cells[scseq$orig.ident %in% selected_idents]
+  cells <- cells[scseq$project %in% selected_idents]
 
   pt.size <- min(6000/ncol(scseq), 2)
 

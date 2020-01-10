@@ -36,31 +36,32 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
   }
 
   # add qc metrics
-  scseq <- Seurat::CreateSeuratObject(counts[, keep])
-  sce <- srt_to_sce(scseq)
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = counts[, keep]))
   sce <- add_scseq_qc_metrics(sce)
 
   # detect outliers based on PCA and mitochondrial content above knee
-  sce_above <- scater::runPCA(sce[, 1:nabove], use_coldata = TRUE, detect_outliers = TRUE)
-  mito.drop <- scater::isOutlier(sce_above$pct_counts_mito, nmads=3, type="higher")
-  outl.drop <- sce_above$outlier
+  df <- as.data.frame(sce@colData)
+  stats <- df[1:nabove, c('sum', 'detected', 'subsets_mito_percent', 'subsets_ribo_percent')]
+  stats$sum <- log10(stats$sum)
+  stats$detected <- log10(stats$detected)
+
+  outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
+  outl.drop <- scater::isOutlier(outlying, type = "higher")
+  mito.drop <- scater::isOutlier(stats$subsets_mito_percent, type="higher")
 
   # below knee is low quality
-  df <- as.data.frame(sce@colData)
-
-
   # if filtered cellranger then just drop outliers, no modeling
   if (min(ncount) > 10) {
     df$quality <- 'high'
-    df$quality[sce$total_counts <= knee] <- 'low'
+    df$quality[sce$total <= knee] <- 'low'
 
     # set outliers above the knee as low quality
-    df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
-    df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
+    df[row.names(stats)[mito.drop], 'quality'] <- 'low'
+    df[row.names(stats)[outl.drop], 'quality'] <- 'low'
 
   } else {
     df$quality <- NA
-    df$quality[sce$total_counts <= knee] <- 'low'
+    df$quality[sce$total <= knee] <- 'low'
 
     # devide above evenly into high and ambiguous
     midpnt <- round(nabove/2)
@@ -68,8 +69,8 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
     df$quality[(midpnt+1):nabove] <- 'ambig'
 
     # set outliers above the knee as low quality
-    df[colnames(sce_above)[mito.drop], 'quality'] <- 'low'
-    df[colnames(sce_above)[outl.drop], 'quality'] <- 'low'
+    df[row.names(stats)[mito.drop], 'quality'] <- 'low'
+    df[row.names(stats)[outl.drop], 'quality'] <- 'low'
 
     # clean df
     nunique <- function(x) { length(unique(na.omit(x))) != 1 }
@@ -87,11 +88,10 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
     # determine what to keep and save for future
     test$quality <- svm_preds
     df <- rbind(train, test)
-
   }
 
   whitelist <- row.names(df)[df$quality == 'high']
-  kneelist  <- colnames(sce_above)
+  kneelist  <- row.names(stats)
 
   writeLines(whitelist, whitelist_path)
   writeLines(kneelist, file.path(data_dir, 'kneelist.txt'))

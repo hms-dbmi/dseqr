@@ -421,6 +421,7 @@ downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
 #' @return NULL
 #' @export
 save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
+  anal_dir <- file.path(sc_dir, anal_name)
 
   if (integrated) {
     # add to integrated if new
@@ -429,11 +430,10 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
     saveRDS(unique(int_options), int_path)
 
     # remove all previous data in case overwriting
-    anal_dir <- file.path(sc_dir, anal_name)
     unlink(anal_dir, recursive = TRUE)
-    dir.create(anal_dir)
   }
 
+  dir.create(anal_dir)
   for (type in names(scseq_data)) {
     saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
   }

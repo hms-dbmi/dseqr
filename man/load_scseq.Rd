@@ -4,12 +4,7 @@
 \alias{load_scseq}
 \title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(
-  data_dir,
-  project,
-  type = c("kallisto", "cellranger"),
-  soupx = FALSE
-)
+load_scseq(data_dir, project, type = c("kallisto", "cellranger"))
 }
 \arguments{
 \item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
@@ -17,9 +12,6 @@ load_scseq(
 \item{project}{String identifying sample.}
 
 \item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.}
-
-\item{soupx}{Boolean indicating if \code{SoupX} should be used to remove backgroud counts (defaul is \code{FALSE}).
-Experimental and not currently recommended.}
 
 \item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.}
 }

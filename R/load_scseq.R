@@ -4,9 +4,7 @@
 #' @param project String identifying sample.
 #' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.
 #' @param h5 Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.
-#' @param soupx Boolean indicating if \code{SoupX} should be used to remove backgroud counts (defaul is \code{FALSE}).
-#'    Experimental and not currently recommended.
-#'
+
 #' @return \code{Seurat} object with whitelist meta data.
 #' @export
 #'
@@ -15,7 +13,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), soupx = FALSE) {
+load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
 
   # load counts
   if (type[1] == 'kallisto') {
@@ -28,7 +26,6 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), so
 
   # generate/load whitelist
   whitelist <- get_scseq_whitelist(counts, data_dir)
-  whitelist <- data.frame(whitelist = colnames(counts) %in% whitelist, row.names = colnames(counts))
   kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
@@ -43,16 +40,11 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), so
     out_ambient <- get_outliers(pct_ambient)
   }
 
-  if (soupx) {
-    empty <- !whitelist[[1]]
-    counts <- strain_scseq(counts, empty)
-    kneelist <- kneelist[kneelist %in% colnames(counts)]
-  }
-
   # covert to SingleCellExperiment object
   # add ambient metadata for genes
   rowData <- DataFrame(pct_ambient, out_ambient)
-  colData <- DataFrame(project = rep(project, length(kneelist)))
+  colData <- DataFrame(project = rep(project, length(kneelist)),
+                       whitelist = kneelist %in% whitelist)
 
   sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = counts[, kneelist]),
@@ -348,9 +340,9 @@ add_scseq_qc_metrics <- function(sce) {
   if (!is.null(sce$total_counts)) return(sce)
 
   sce <- add_qc_genes(sce)
-  sce <- scater::calculateQCMetrics(sce,
-                                    feature_controls=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
-                                                          ribo = which(row.names(sce) %in% sce@metadata$rrna)))
+  sce <- scater::addPerCellQC(sce,
+                              subsets=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
+                                           ribo = which(row.names(sce) %in% sce@metadata$rrna)))
   return(sce)
 }
 
