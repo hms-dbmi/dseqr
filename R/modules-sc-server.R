@@ -389,9 +389,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     updateSelectizeInput(session, 'selected_dataset', choices = datasets())
   })
 
-  # get integration info
-  show_integration <- callModule(showIntegration, 'integration', dataset_exists)
-  show_label_transfer <- callModule(showLabelTransfer, 'label-transfer', dataset_exists)
+  # show/hide integration/label-transfer forms
+  show_integration <- reactive(input$show_integration %% 2 != 0)
+  show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
+
+  observe(toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer()))
+  observe(toggleClass(id = "show_integration", 'btn-primary', condition = show_integration()))
+
+  # hide integration/label-transfer buttons no dataset
+  observe({
+    toggleSelectizeButtons('selected_dataset', c('show_integration', 'show_label_transfer'), dataset_exists())
+  })
 
 
   # return anal and options to app
@@ -431,47 +439,7 @@ get_sc_dataset_choices <- function(sc_dir) {
   list(Individual = c('', individual), Integrated = integrated)
 }
 
-#' Logic for show integration button
-#' @export
-#' @keywords internal
-showIntegration <- function(input, output, session, dataset_exists) {
 
-  show_integration <- reactive(input$show_integration %% 2 != 0)
-
-
-  # show/hide integration form
-  observe({
-    toggleClass(id = "show_integration", 'btn-primary', condition = show_integration())
-  })
-
-  observe({
-    toggleState('show_integration', condition = dataset_exists())
-  })
-
-
-  return(show_integration)
-}
-
-#' Logic for show label transfer button
-#' @export
-#' @keywords internal
-showLabelTransfer <- function(input, output, session, dataset_exists) {
-
-  show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
-
-
-  # show/hide label transfer form
-  observe({
-    toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer())
-  })
-
-  observe({
-    toggleState('show_label_transfer', condition = dataset_exists())
-  })
-
-
-  return(show_label_transfer)
-}
 
 
 #' Logic for label transfer between datasets

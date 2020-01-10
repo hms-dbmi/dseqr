@@ -13,7 +13,8 @@ selectizeInputWithButtons(
   help_id = NULL,
   label_title = NULL,
   tooltip = TRUE,
-  placement = NULL
+  placement = NULL,
+  hide_btns = FALSE
 )
 }
 \arguments{

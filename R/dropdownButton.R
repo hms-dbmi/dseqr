@@ -12,11 +12,13 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
                            label = NULL, tooltip = FALSE,
                            right = FALSE, up = FALSE,
                            circle_class = '',
-                           width = NULL, margin = "10px", inline = FALSE, inputId = NULL, title = NULL) {
+                           width = NULL, margin = "10px", inline = FALSE, inputId = NULL, title = NULL, style = '') {
   size <- match.arg(arg = size, choices = c("default", "lg", "sm", "xs"))
   if (is.null(inputId)) {
     inputId <- paste0("drop", sample.int(1e9, 1))
   }
+
+
 
   # dropdown content
   html_ul <- list(
@@ -42,6 +44,7 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
     html_button <- list(
       class = paste0("btn btn-", status," action-button dropdown-toggle "),
       class = if (size != "default") paste0("btn-", size),
+      style = style,
       type = "button",
       id = inputId,
       `data-toggle` = "dropdown",

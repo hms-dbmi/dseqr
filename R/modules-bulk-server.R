@@ -361,14 +361,22 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
 
 }
 
+
 #' Logic for selected dataset part of bulkFrom
 #' @export
 #' @keywords internal
 bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
 
   # get directory with fastqs
-  roots <- c('data_dir' = data_dir)
+  roots <- c('bulk' = bulk_dir)
   shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
+
+  # only show nsv/dtangle toggle if existing dataset
+  observe({
+    toggleSelectizeButtons('dataset_name',
+                           button_ids = c('show_nsv', 'show_dtangle'),
+                           condition = is.existing())
+  })
 
 
   datasets <- reactive({
@@ -404,12 +412,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     if (is.create()) {
       shinyjs::click('dataset_dir')
     }
-  })
-
-  # enable dataset button for existing datasets
-  observe({
-    toggleState('show_nsv', condition = is.existing())
-    toggleState('show_dtangle', condition = is.existing())
   })
 
   dataset_dir <- reactive({
@@ -1541,3 +1543,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
   return(explore_eset)
 }
+

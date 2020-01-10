@@ -110,38 +110,14 @@ scSelectedDatasetInput <- function(id) {
 
   tagList(
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a dataset:',
-                              showLabelTransferButton(ns('label-transfer')),
-                              showIntegrationButton(ns('integration')),
-                              options = list(placeholder = 'Type name to add new dataset', create = TRUE)),
-    shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files', class = NULL, icon = NULL,
-                             style = NULL)
+                              actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn'),
+                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle dataset integration'),
+                              options = list(placeholder = 'Type name to add new single-cell dataset', create = TRUE),
+                              hide_btns = TRUE),
+    shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
   )
 
-}
-
-
-#' Button with to toggle display of label transfer inputs
-#' @export
-#' @keywords internal
-showLabelTransferButton <- function(id) {
-  ns <- NS(id)
-
-  actionButton(ns('show_label_transfer'), '',
-               icon = icon('tag', 'fa-fw'),
-               title = 'Toggle label transfer', class = 'squashed-btn')
-}
-
-
-#' Button with to toggle display of integrationFormInput
-#' @export
-#' @keywords internal
-showIntegrationButton <- function(id) {
-  ns <- NS(id)
-
-  actionButton(ns('show_integration'), '',
-               icon = icon('object-group', 'far fa-fw'),
-               title = 'Toggle dataset integration')
 }
 
 

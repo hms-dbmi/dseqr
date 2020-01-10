@@ -19,7 +19,8 @@ dropdownButton(
   margin = "10px",
   inline = FALSE,
   inputId = NULL,
-  title = NULL
+  title = NULL,
+  style = ""
 )
 }
 \arguments{

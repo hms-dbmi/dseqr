@@ -65,24 +65,17 @@ bulkFormInput <- function(id) {
 bulkDatasetInput <- function(id) {
   ns <- NS(id)
 
-
-
   withTags({
     div(
-      selectizeInputWithButtons(ns('dataset_name'), 'Select a dataset:',
-                                options = list(create = TRUE, placeholder = 'Type name to add new dataset', optgroupField = 'type'),
-                                button(id = ns('dataset_dir'), type = 'button', class="shinyDirectories btn btn-default action-button shiny-bound-input disabled",
-                                       `data-title` = 'Folder with fastq.gz or cellranger files',
-                                       title = 'Select folder with fastq.gz or cellranger files',
-                                       `parent-style` = 'min-width: 0px;width: 0px;',
-                                       i(class = 'far fa-folder fa-fw')
-
-                                ),
-                                svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
-                                actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution')
-
-
+      selectizeInputWithButtons(
+        ns('dataset_name'), 'Select a dataset:',
+        container_id = 'dataset_name_container',
+        options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
+        svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
+        actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
+        hide_btns = TRUE
       ),
+      shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder fastq.gz files'),
       div(class = 'hidden-forms',
           dtangleFormInput(ns('dtangle'))
       )
@@ -154,7 +147,7 @@ bulkFormAnalInput <- function(id) {
 #' @keywords internal
 svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
-  drugseqr::dropdownButton(
+  dropdownButton(
     br(),
     inputId = inputId,
     sliderInput(sliderId, 'Surrogate variables:',
@@ -229,3 +222,5 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   return(input)
 }
+
+

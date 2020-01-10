@@ -143,7 +143,16 @@ selectizeInputWithValidation <- function(id, label, options = NULL, container_id
 #' @param ... selectizeInput
 #' @export
 #' @keywords internal
-selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_id = NULL, help_id = NULL, label_title = NULL, tooltip = TRUE, placement = NULL) {
+selectizeInputWithButtons <- function(id,
+                                      label,
+                                      ...,
+                                      options = NULL,
+                                      container_id = NULL,
+                                      help_id = NULL,
+                                      label_title = NULL,
+                                      tooltip = TRUE,
+                                      placement = NULL,
+                                      hide_btns = FALSE) {
 
   mult <- isTRUE(options$multiple)
   if(mult) {
@@ -177,18 +186,30 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
     label <- tags$span(label, span(class='hover-info', span(id = label_id, icon('info', 'fa-fw'))))
   }
 
+  # if hide_btns allows full-width selectize
+  ig_class  <- ifelse(hide_btns, '', 'input-group full-height-btn')
+  fhs_class <- ifelse(hide_btns, '', 'full-height-selectize')
+
   options <- ifelse(is.null(options), '{}', jsonlite::toJSON(options, auto_unbox = TRUE))
 
   tags$div(class = 'form-group selectize-fh', id = container_id,
            tags$label(class = 'control-label', `for` = id, label),
-           tags$div(class = 'input-group full-height-btn',
-                    tags$div(class = 'full-height-selectize',
+           tags$div(class = ig_class, id = paste0(id, '-input-group'),
+                    tags$div(class = fhs_class, id = paste0(id, '-full-height-selectize'),
                              select_tag,
                              tags$script(type = 'application/json', `data-for` = id, HTML(options))
                     ),
                     lapply(buttons, function(btn) {
+                      is_dropdown <- any(grepl('dropdown', unlist(btn$attribs)))
 
-                      if (!any(grepl('dropdown', unlist(btn$attribs))))
+
+                      if (hide_btns & is_dropdown)
+                        btn$children[[1]]$attribs$style <- paste0('display: none;', btn$children[[1]]$attribs$style)
+
+                      if (hide_btns & !is_dropdown)
+                        btn$attribs$style <- paste0('display: none;', btn$attribs$style)
+
+                      if (!is_dropdown)
                         btn <- tags$div(class = 'input-group-btn', id = paste0(btn$attribs$id, '-parent'), style = btn$attribs$`parent-style`, btn)
 
                       # remove title since using tooltips
@@ -202,6 +223,29 @@ selectizeInputWithButtons <- function(id, label, ..., options = NULL, container_
            label_tooltip
   )
 }
+
+
+#' Show/hide buttons in selectizeInputWithButtons
+#'
+#' @param selectize_id id of selectizeInputWithButtons element
+#' @param button_ids character vector of ids for buttons in selectizeInputWithButtons
+#' @param condition will show if TRUE and hide if FALSE
+#' @export
+toggleSelectizeButtons <- function(selectize_id, button_ids, condition) {
+  # allows to take full-width/rounded corners
+  toggleClass(paste0(selectize_id, '-input-group'),
+              class = 'input-group full-height-btn',
+              condition = condition)
+
+  toggleClass(paste0(selectize_id, '-full-height-selectize'),
+              class = 'full-height-selectize',
+              condition = condition)
+
+  #hide buttons
+  for (button_id in button_ids)
+    toggle(button_id, condition = condition)
+}
+
 
 
 #' Full width button group with validation
