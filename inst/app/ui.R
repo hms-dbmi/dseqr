@@ -1,4 +1,4 @@
-tabs <- c('Bulk Data', 'Single Cell', 'Pathways', 'Drugs')
+tabs <- c('Bulk Data', 'Single Cell', 'Drugs')
 active <- 'Bulk Data'
 
 bootstrapPage(
@@ -22,7 +22,6 @@ bootstrapPage(
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
              bulkPageUI('bulk', tab = 'Bulk Data', active),
              scPageUI("sc", tab = 'Single Cell', active),
-             pathPageUI('pathways', tab = 'Pathways', active),
              drugsPageUI("drug", tab = 'Drugs', active),
              docsPageUI('docs', tab = 'docs', active)
 

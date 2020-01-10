@@ -46,7 +46,7 @@ server <- function(input, output, session) {
                        sc_dir = sc_dir,
                        indices_dir = indices_dir)
 
-  # TODO: get new_dataset from dsPage and scPage
+  # TODO: get new_dataset from bulkPage and scPage
   new_dataset <- reactiveVal()
   bulk_changed <- reactiveVal()
 
@@ -56,11 +56,6 @@ server <- function(input, output, session) {
                           bulk_changed = bulk_changed,
                           pert_query_dir = pert_query_dir,
                           pert_signature_dir = pert_signature_dir)
-
-  pathPage <- callModule(pathPage, 'pathways',
-                         data_dir = data_dir,
-                         new_dataset = new_dataset)
-
 
 
 }

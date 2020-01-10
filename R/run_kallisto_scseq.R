@@ -14,11 +14,10 @@
 #'
 #' run_kallisto_scseq(indices_dir, data_dir)
 #'
-run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '-t 4'), species = 'homo_sapiens', release = '94') {
+run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94') {
 
   # make sure that have whitelist and get path
   dl_10x_whitelists(indices_dir)
-  whitepath <- get_10x_whitepath(indices_dir, bus_args)
 
   # get index_path
   kal_version <- get_pkg_version('kallisto')
@@ -32,20 +31,38 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
     stop("Different number of cell-barcode and read fastqs.")
 
   # alternate CB and read fastqs
-  fastqs <- c(rbind(cb_fastqs, read_fastqs))
+  fqs <- c(rbind(cb_fastqs, read_fastqs))
 
-  # run quantification
+  # detect v1/v2/v3 chemistry
+  chemistry <- detect_10x_chemistry(indices_dir, index_path, data_dir, bus_args, fqs)
+  whitepath <- file.path(indices_dir, paste0(chemistry, '_whitelist.txt'))
   out_dir <- file.path(data_dir, 'bus_output')
 
-  system2('kallisto',
-          args = c('bus',
-                   '-i', index_path,
-                   '-o', out_dir,
-                   bus_args,
-                   fastqs))
+  # run quantification/bustools
+  bus_args <- c('bus',
+                '-i', index_path,
+                '-o', out_dir,
+                '-x', chemistry,
+                bus_args,
+                file.path(data_dir, fqs))
 
-  # location of map from transcript names to gene names
-  tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr', mustWork = TRUE)
+  run_kallisto_scseq_commands(bus_args, whitepath, out_dir)
+  return(NULL)
+}
+
+#' Runs kallisto scseq commands
+#'
+#' @param bus_args arguments to \code{system2} for kallisto bus
+#' @param whitepath Path to whitelist
+#' @param out_dir Directory to write to
+#' @param inspection Boolean indicating if kallisto inspect should be run. Used for \code{detect_10x_chemistry}.
+#'
+#' @return stdout from kallisto inspect if \code{inspection = TRUE}, otherwise \code{NULL}.
+#' @export
+run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection = FALSE) {
+
+
+  system2('kallisto', args = bus_args)
 
   # run bustools
   tmp_dir <- file.path(out_dir, 'tmp')
@@ -53,18 +70,84 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = c('-x 10xv2', '
   dir.create(tmp_dir)
   dir.create(gct_dir, recursive = TRUE)
 
-  system2('bustools',
-          args = c('correct',
-                   '-w', whitepath,
-                   '-p', file.path(out_dir, 'output.bus'),
-                   '| bustools sort -T', tmp_dir,
-                   '-t 4 -p - | bustools count -o', gct_dir,
-                   '-g', tgmap_path,
-                   '-e', file.path(out_dir, 'matrix.ec'),
-                   '-t', file.path(out_dir, 'transcripts.txt'),
-                   '--genecounts -'))
+  # inspection used to auto-detect chemistry
+  if (inspection) {
+    out <- system2(
+      'bustools',
+      args = c('correct',
+               '-w', whitepath,
+               '-p', file.path(out_dir, 'output.bus'),
+               '| bustools sort -T', tmp_dir,
+               '-t 4 -p - | bustools inspect -w', whitepath,
+               '-p -'),
+      stdout = TRUE)
+    return(out)
 
-  return(NULL)
+  } else {
+
+    # location of map from transcript names to gene names
+    tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr', mustWork = TRUE)
+
+    system2('bustools',
+            args = c('correct',
+                     '-w', whitepath,
+                     '-p', file.path(out_dir, 'output.bus'),
+                     '| bustools sort -T', tmp_dir,
+                     '-t 4 -p - | bustools count -o', gct_dir,
+                     '-g', tgmap_path,
+                     '-e', file.path(out_dir, 'matrix.ec'),
+                     '-t', file.path(out_dir, 'transcripts.txt'),
+                     '--genecounts -'))
+  }
+
+}
+
+#' Auto Detect 10x Chemistry
+#'
+#' Creates samples of 10,000 reads per lane and then determins the number of reads
+#' with barcodes in agreement with the chemistry whitelist.
+#'
+#' @param indices_dir Folder that containes whitelist for each \code{tech}.
+#' @param index_path Path to kallisto index.
+#' @param data_dir Path to folder with 10x fastq.gz files.
+#' @param bus_args Additional arguments to kallisto bus.
+#' @param fqs Vector of fastq file names.
+#' @param techs 10x chemistries to check. Passed to kallisto -x argument.
+#'
+#' @return one of \code{techs} corresponding to chemistry with most reads that agree with whitelist.
+#' @export
+detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fqs, techs = c('10xv2', '10xv3')) {
+
+  # run quanitification on first 10000 reads
+  out_dir <- file.path(data_dir, 'tmp_output')
+  fqn <- file.path(data_dir, paste0('N=10000_', fqs))
+  fqs <- file.path(data_dir, fqs)
+
+  # generate sample fastqs for detection
+  for (i in seq_along(fqs))
+    system(paste('zcat', fqs[i], '| head -n 40000 | gzip >', fqn[i]))
+
+  # run kallisto on samples and get number of reads with barcode in agreement with whitelist
+  nreads <- c()
+  for (tech in techs) {
+    whitepath <- file.path(indices_dir, paste0(tech, '_whitelist.txt'))
+
+    bus_argsi <- c('bus',
+                   '-i', index_path,
+                   '-o', out_dir,
+                   '-x', tech,
+                   bus_args,
+                   fqn)
+
+    out <- run_kallisto_scseq_commands(bus_argsi, whitepath, out_dir, inspection = TRUE)
+    nread <- gsub('^.+? whitelist: (\\d+) .+?$', '\\1', out[16])
+    nreads <- c(nreads, as.numeric(nread))
+    unlink(out_dir, recursive = TRUE)
+  }
+
+  # return tech with largest percent
+  unlink(fqn)
+  techs[which.max(nreads)]
 }
 
 #' Get path to 10x whitelist
@@ -143,5 +226,5 @@ identify_sc_files <- function(data_dir, read_type = 'R1') {
     stop('10X fastq.gz file name formats not recognized. Should be output by mkfastq or possibly demux (deprecated).')
 
   sc_files <- sc_files[order(as.integer(lanes))]
-  return(file.path(data_dir, sc_files))
+  return(sc_files)
 }
