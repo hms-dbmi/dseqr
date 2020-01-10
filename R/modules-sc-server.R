@@ -234,7 +234,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # get directory with fastqs
   roots <- c('single-cell' = sc_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, )
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
 
   dataset_name <- reactive({
     req(input$selected_dataset)
@@ -291,7 +291,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   is.create <- reactive({
     dataset_name <- input$selected_dataset
     datasets <- datasets()
-    req(dataset_name)
 
     !dataset_name %in% unlist(datasets)
   })
@@ -391,8 +390,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # get integration info
-  show_integration <- callModule(showIntegration, 'integration')
-  show_label_transfer <- callModule(showLabelTransfer, 'label-transfer')
+  show_integration <- callModule(showIntegration, 'integration', dataset_exists)
+  show_label_transfer <- callModule(showLabelTransfer, 'label-transfer', dataset_exists)
 
 
   # return anal and options to app
@@ -435,7 +434,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 #' Logic for show integration button
 #' @export
 #' @keywords internal
-showIntegration <- function(input, output, session) {
+showIntegration <- function(input, output, session, dataset_exists) {
 
   show_integration <- reactive(input$show_integration %% 2 != 0)
 
@@ -445,6 +444,10 @@ showIntegration <- function(input, output, session) {
     toggleClass(id = "show_integration", 'btn-primary', condition = show_integration())
   })
 
+  observe({
+    toggleState('show_integration', condition = dataset_exists())
+  })
+
 
   return(show_integration)
 }
@@ -452,7 +455,7 @@ showIntegration <- function(input, output, session) {
 #' Logic for show label transfer button
 #' @export
 #' @keywords internal
-showLabelTransfer <- function(input, output, session) {
+showLabelTransfer <- function(input, output, session, dataset_exists) {
 
   show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
 
@@ -460,6 +463,10 @@ showLabelTransfer <- function(input, output, session) {
   # show/hide label transfer form
   observe({
     toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer())
+  })
+
+  observe({
+    toggleState('show_label_transfer', condition = dataset_exists())
   })
 
 
