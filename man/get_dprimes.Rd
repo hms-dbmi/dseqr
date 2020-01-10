@@ -6,9 +6,6 @@
 \usage{
 get_dprimes(top_table)
 }
-\arguments{
-\item{diff_exprs}{List returned by \code{\link{dif_expr}}}
-}
 \value{
 Named numeric vector. Names are gene names, values are effect size values.
 }

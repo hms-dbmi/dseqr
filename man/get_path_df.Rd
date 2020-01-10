@@ -18,8 +18,6 @@ get_path_df(
 \item{nmax}{Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200
 so that all drug and genetic query genes are shown.}
 
-\item{anal}{Result of call to \code{\link{diff_expr_scseq}}.}
-
 \item{path_genes}{Character vector of custom genes to construct pathway data.frame for.}
 }
 \value{

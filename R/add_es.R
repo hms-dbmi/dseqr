@@ -3,7 +3,7 @@
 #' Adds moderated unbiased standardised effect sizes (dprimes) to top table
 #' from differential expression analysis.
 #'
-#' @param diff_exprs Result from call to \code{\link{diff_expr}}.
+#' @param diff_exprs Result from call.
 #' @param cols Columns from \code{\link[metaMA]{effectsize}} result to add to
 #'    top table.
 #'

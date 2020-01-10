@@ -10,7 +10,7 @@ get_npc_choices(sce, type = "PCA")
 \item{sce}{\code{SingleCellExperiement}}
 }
 \value{
-
+result of \code{scran::getClusteredPCs}
 }
 \description{
 Used to pick number of PCs to retain

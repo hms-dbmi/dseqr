@@ -7,7 +7,13 @@
 add_adjusted(eset, svobj = list(sv = NULL), numsv = 0, adj_path = NULL)
 }
 \arguments{
-\item{numsv}{}
+\item{eset}{ExpressionSet}
+
+\item{svobj}{surrogate variable object}
+
+\item{numsv}{Number of surrogate variables to adjust for}
+
+\item{adj_path}{Path to file to restore/save adjuted data from/to for future speed}
 }
 \value{
 eset with \code{adjusted} element added

@@ -59,7 +59,6 @@ construct_path_df <- function(top_table) {
 
 #' Get data.frame for plotting gene expression values of a pathway
 #'
-#' @param anal Result of call to \code{\link{diff_expr_scseq}}.
 #' @param path_id String with KEGG pathway id.
 #' @param path_genes Character vector of custom genes to construct pathway data.frame for.
 #' @param nmax Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200

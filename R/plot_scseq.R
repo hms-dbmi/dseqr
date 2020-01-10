@@ -1,6 +1,5 @@
-#' Plot UMAP coloured by cluster
+#' Plot TSNE coloured by cluster
 #'
-#' @inheritParams plot_umap_gene
 #'
 #' @return \code{ggplot}
 #' @export
@@ -64,7 +63,7 @@ plot_tsne_gene <- function(scseq, gene, selected_idents = unique(scseq$project))
 
 #' Format gene plots for sample comparison for drugseqr app
 #'
-#' @param plot Returned by \code{\link{plot_umap_gene}}
+#' @param plot Returned by
 #' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
 #' @param scseq \code{Seurat} object.
 #'

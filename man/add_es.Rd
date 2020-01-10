@@ -10,7 +10,7 @@ add_es(tt, ebfit, cols = c("dprime", "vardprime"), groups = c("test", "ctrl"))
 \item{cols}{Columns from \code{\link[metaMA]{effectsize}} result to add to
 top table.}
 
-\item{diff_exprs}{Result from call to \code{\link{diff_expr}}.}
+\item{diff_exprs}{Result from call.}
 }
 \value{
 diff_exprs with specified columns added to top_table.

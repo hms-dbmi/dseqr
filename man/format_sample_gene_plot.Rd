@@ -7,7 +7,7 @@
 format_sample_gene_plot(plot, group, selected_gene, scseq)
 }
 \arguments{
-\item{plot}{Returned by \code{\link{plot_umap_gene}}}
+\item{plot}{Returned by}
 
 \item{group}{Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}}
 

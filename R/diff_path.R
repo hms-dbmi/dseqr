@@ -4,7 +4,7 @@
 #' PADOG outperforms other pathway analysis algorithms at prioritizing expected pathways (see references).
 #'
 #' @param eset Expression set.
-#' @param prev_anal Previous result of \code{\link{diff_expr}}.
+#' @param prev_anal Previous result.
 #'
 #' @references Tarca AL, Bhatti G, Romero R. A Comparison of Gene Set Analysis Methods
 #'    in Terms of Sensitivity, Prioritization and Specificity. Chen L, ed. PLoS ONE.

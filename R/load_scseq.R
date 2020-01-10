@@ -42,8 +42,8 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
 
   # covert to SingleCellExperiment object
   # add ambient metadata for genes
-  rowData <- DataFrame(pct_ambient, out_ambient)
-  colData <- DataFrame(project = rep(project, length(kneelist)),
+  rowData <- S4Vectors::DataFrame(pct_ambient, out_ambient)
+  colData <- S4Vectors::DataFrame(project = rep(project, length(kneelist)),
                        whitelist = kneelist %in% whitelist)
 
   sce <- SingleCellExperiment::SingleCellExperiment(
@@ -282,10 +282,9 @@ run_tsne <- function(sce, dimred = 'PCA') {
 #'
 #' @param sce \code{SingleCellExperiement}
 #'
-#' @return
+#' @return result of \code{scran::getClusteredPCs}
 #' @export
 #'
-#' @examples
 get_npc_choices <- function(sce, type = 'PCA') {
 
   # walktrap very slow if too many cells

@@ -20,7 +20,7 @@ diff_path(
 \arguments{
 \item{eset}{Expression set.}
 
-\item{prev_anal}{Previous result of \code{\link{diff_expr}}.}
+\item{prev_anal}{Previous result.}
 }
 \description{
 Performs PADOG pathway analysis using KEGG database.

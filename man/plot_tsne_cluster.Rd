@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_scseq.R
 \name{plot_tsne_cluster}
 \alias{plot_tsne_cluster}
-\title{Plot UMAP coloured by cluster}
+\title{Plot TSNE coloured by cluster}
 \usage{
 plot_tsne_cluster(
   scseq,
@@ -15,5 +15,5 @@ plot_tsne_cluster(
 \code{ggplot}
 }
 \description{
-Plot UMAP coloured by cluster
+Plot TSNE coloured by cluster
 }
