@@ -379,3 +379,56 @@ get_path_directions <- function(top_table) {
 toggleAll <- function(ids){
   for(id in ids) shinyjs::toggleState(id)
 }
+
+
+#' Get heatmap of genes in a GO pathways
+#'
+#' @param eset ExpressionSet
+#' @param top_table limma topTable
+#' @param contrast_groups groups to include in heatmap
+#' @param path_id GO pathway id string
+#'
+#' @return \code{pheatmap} object.
+#' @export
+get_pathway_heatmap <- function(eset, top_table, contrast_groups, path_id) {
+
+  # subset to pathway genes
+  adj <- Biobase::assayDataElement(eset, 'adjusted')
+  path_genes <- names(gslist.go[[path_id]])
+
+  # subset to max 1000 top genes
+  sig.genes <- head(row.names(top_table[path_genes, ]), 1000)
+  adj <- adj[row.names(adj) %in% sig.genes, ]
+
+  # get group colors and levels
+  pdata <- Biobase::pData(eset)
+  group_levels <- get_group_levels(pdata)
+  group_colors <- get_group_colors(group_levels)
+
+  # subset eset to selected groups
+  in.sel <- pdata$group %in% contrast_groups
+  adj <- adj[, in.sel]
+  if ((nrow(adj) %% 2) == 1) adj <- rbind(adj, rnorm(ncol(adj)))
+
+  # cluster rows on correlation
+  dist.rows <- as.dist(1 - cor(t(adj)))
+  annot <- data.frame(Group = pdata$group[in.sel], row.names = colnames(adj))
+  annotation_colors <- list(Group = group_colors)
+  names(annotation_colors$Group) <- group_levels
+  annotation_colors$Group <- annotation_colors$Group[contrast_groups]
+
+  pheatmap::pheatmap(adj,
+                     color = gplots::greenred(10),
+                     clustering_distance_rows = dist.rows,
+                     show_colnames = TRUE,
+                     show_rownames = FALSE,
+                     border_color = NA,
+                     scale = 'row',
+                     treeheight_row = 0,
+                     annotation_colors = annotation_colors,
+                     annotation_names_col = FALSE,
+                     annotation_col = annot,na_col = 'black',
+                     cellwidth=18, fontsize = 12)
+
+
+}

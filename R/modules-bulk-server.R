@@ -1459,22 +1459,33 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.csv')
+    date <- paste0(Sys.Date(), '.zip')
 
     numsv_str <- paste0(numsv(), 'SV')
     paste('bulk', dataset_name(), anal_name(), numsv_str, date , sep='_')
   })
 
+  data_fun <- function(file) {
+    #go to a temp dir to avoid permission issues
+    owd <- setwd(tempdir())
+    on.exit(setwd(owd))
+
+    tt_fname <- 'top_table.csv'
+    go_fname <- 'goana.csv'
+
+    write.csv(top_table(), tt_fname)
+    write.csv(path_res(), go_fname)
+
+    #create the zip file
+    zip(file, c(tt_fname, go_fname))
+  }
+
   output$download <- downloadHandler(
     filename = function() {
       dl_fname()
     },
-    content = function(con) {
-      write.csv(top_table(), con)
-    }
+    content = data_fun
   )
-
-
 
   return(list(
     name = anal_name,
@@ -1540,7 +1551,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
     return(eset)
   })
-
+  #
   return(explore_eset)
 }
 
