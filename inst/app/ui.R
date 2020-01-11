@@ -15,10 +15,6 @@ bootstrapPage(
   includeCSS(path = 'www/pathways.css'),
   navbarUI(tabs, active),
   fluidPage(
-    # make sure css/js loaded from packages where not using functions (not using default)
-    tags$div(style = 'display: none;', selectizeInput('blah1', label = NULL, choices = '')),
-    tags$div(style = 'display: none;', shinyFiles::shinyDirButton("blah2", title='', label='', icon=icon('plus'))),
-
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
              bulkPageUI('bulk', tab = 'Bulk Data', active),
              scPageUI("sc", tab = 'Single Cell', active),

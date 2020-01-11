@@ -147,7 +147,7 @@ bulkFormAnalInput <- function(id) {
 #' @keywords internal
 svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
-  dropdownButton(
+  drugseqr::dropdownButton(
     br(),
     inputId = inputId,
     sliderInput(sliderId, 'Surrogate variables:',
@@ -222,5 +222,3 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   return(input)
 }
-
-

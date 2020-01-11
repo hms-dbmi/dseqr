@@ -6,11 +6,11 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
   new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
 
-  eset <- reactive(readRDS(file.path(bulkForm$fastq_dir(), 'eset.rds')))
+  eset <- reactive(readRDS(file.path(bulkForm$dataset_dir(), 'eset.rds')))
 
 
   explore_eset <- exploreEset(eset = eset,
-                              dataset_dir = bulkForm$fastq_dir,
+                              dataset_dir = bulkForm$dataset_dir,
                               explore_pdata = dsExploreTable$pdata,
                               numsv = bulkForm$numsv_r,
                               svobj = bulkForm$svobj_r)
@@ -86,10 +86,8 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
     # setup
     pdata <- dsQuantTable$pdata()
-    dataset_dir <- bulkForm$dataset_dir()
     dataset_name <- bulkForm$dataset_name()
-    fastq_dir <- file.path(data_dir, dataset_dir)
-
+    fastq_dir <- bulkForm$fastq_dir()
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
@@ -121,7 +119,6 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
     # save to bulk datasets to indicate that has been quantified
     save_bulk_dataset(dataset_name, dataset_dir, data_dir)
 
-
     # trigger to update rest of app
     new_dataset(dataset_name)
 
@@ -132,8 +129,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
 
   return(list(
-    new_dataset = new_dataset,
-    data_dir = bulkForm$fastq_dir
+    new_dataset = new_dataset
   ))
 }
 
@@ -305,17 +301,14 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
                         explore_eset = explore_eset)
 
 
-
   # show quant, anals or neither
   show_quant <- reactive({
-    dataset$dataset_name() != '' && dataset$is.create()
+    dataset$dataset_name() != '' && dataset$is.create() && isTruthy(dataset$fastq_dir())
   })
 
   show_anal <- reactive({
     dataset$dataset_name() != '' && !dataset$is.create()
   })
-
-
 
   observe({
     toggle('quant_dataset_panel', condition = show_quant())
@@ -324,12 +317,11 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
 
   quant <- callModule(bulkFormQuant, 'quant_form',
                       fastq_dir = dataset$fastq_dir,
-                      error_msg = msg_quant,
-                      is.sc = dataset$is.sc)
+                      error_msg = msg_quant)
 
   anal <- callModule(bulkFormAnal, 'anal_form',
                      data_dir = data_dir,
-                     dataset_dir = dataset$fastq_dir,
+                     dataset_dir = dataset$dataset_dir,
                      dataset_name = dataset$dataset_name,
                      explore_eset = explore_eset,
                      numsv_r = dataset$numsv_r,
@@ -350,7 +342,6 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
     dataset_dir = dataset$dataset_dir,
     show_quant = show_quant,
     show_anal = show_anal,
-    is.sc = dataset$is.sc,
     is.cellranger = dataset$is.cellranger,
     is.explore = anal$is.explore,
     dtangle_est = dataset$dtangle_est,
@@ -369,13 +360,13 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   # get directory with fastqs
   roots <- c('bulk' = bulk_dir)
-  shinyFiles::shinyDirChoose(input, "dataset_dir", roots = roots)
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
 
   # only show nsv/dtangle toggle if existing dataset
   observe({
     toggleSelectizeButtons('dataset_name',
                            button_ids = c('show_nsv', 'show_dtangle'),
-                           condition = is.existing())
+                           condition = dataset_exists())
   })
 
 
@@ -384,22 +375,16 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     load_bulk_datasets(data_dir)
   })
 
-  dataset_name <- reactive(input$dataset_name)
-
   # is the dataset a quantified one?
   is.create <- reactive({
-    dataset_name <- dataset_name()
+    dataset_name <- input$dataset_name
     datasets <- datasets()
     req(dataset_name)
 
     !dataset_name %in% datasets$dataset_name
   })
 
-  is.existing <- reactive({
-    dataset_name <- dataset_name()
-    datasets <- datasets()
-    dataset_name %in% datasets$dataset_name
-  })
+  dataset_exists <- reactive(isTruthy(input$dataset_name) & !is.create())
 
   observe({
     req(datasets())
@@ -409,32 +394,25 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
   # open selector if creating
   observe({
     req(is.create())
-    if (is.create()) {
-      shinyjs::click('dataset_dir')
-    }
+    shinyjs::click('new_dataset_dir')
   })
 
+  # directory with fastq files for quantificant
+  fastq_dir <- reactive({
+    req(!'integer' %in% class(input$new_dataset_dir))
+    dir <- shinyFiles::parseDirPath(roots, input$new_dataset_dir)
+    as.character(dir)
+  })
+
+  # directory to existing dataset for exploration
   dataset_dir <- reactive({
-
-    dataset_name <- dataset_name()
-    req(dataset_name)
-
-    if (is.create()) {
-      req(!'integer' %in% class(input$dataset_dir))
-      type <- input$dataset_dir$path[[2]]
-      dir <- shinyFiles::parseDirPath(roots, input$dataset_dir)
-      dir <- as.character(dir)
-      dir <- gsub(paste0(data_dir, '/'), '', dir)
-    }
-    else {
-      datasets <- datasets()
-      req(datasets)
-      dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
-    }
-    return(dir)
+    req(dataset_exists())
+    dataset_name <- input$dataset_name
+    datasets <- datasets()
+    req(dataset_name, datasets)
+    dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
+    file.path(data_dir, dir)
   })
-
-  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
 
   numsv_path <- reactive(file.path(fastq_dir(), 'numsv.rds'))
   svobj_path <- reactive(file.path(fastq_dir(), 'svobj.rds'))
@@ -463,7 +441,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     svobj <- svobj_r()
     if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
 
-    numsv_path <- file.path(fastq_dir(), 'numsv.rds')
+    numsv_path <- file.path(dataset_dir(), 'numsv.rds')
     if (file.exists(numsv_path)) numsv <- readRDS(numsv_path)
 
     maxsv_r(maxsv)
@@ -505,7 +483,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   return(list(
     fastq_dir = fastq_dir,
-    dataset_name = dataset_name,
+    dataset_name = reactive(input$dataset_name),
     dataset_dir = dataset_dir,
     is.create = is.create,
     dtangle_est = dtangleForm$dtangle_est,
@@ -521,12 +499,11 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 #' Logic for dataset quantification part of bulkForm
 #' @export
 #' @keywords internal
-bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
+bulkFormQuant <- function(input, output, session, fastq_dir, error_msg) {
 
 
   paired <- callModule(bulkEndType, 'end_type',
-                       fastq_dir = fastq_dir,
-                       is.sc = is.sc)
+                       fastq_dir = fastq_dir)
 
   observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
 
@@ -543,28 +520,15 @@ bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   })
 
-  quantModal <- function(is.sc, paired) {
+  quantModal <- function(paired) {
     end_type <- ifelse(paired, 'pair ended', 'single ended')
 
-    if (!is.sc) {
-      UI <- withTags({
-        dl(
-          dt('End type:'),
-          dd(paste('Experiment is selected as', end_type)),
-          hr(),
-          dt('Replicates:'),
-          dd('If any - e.g. same sample sequenced in replicate. These will be treated as a single library.')
-        )
-      })
-
-    } else {
-      UI <- withTags({
-        dl(
-          dt('Are you sure?'),
-          dd('This will take a while.')
-        )
-      })
-    }
+    UI <- withTags({
+      dl(
+        dt('Are you sure?'),
+        dd('This will take a while.')
+      )
+    })
 
     modalDialog(
       UI,
@@ -579,7 +543,7 @@ bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 
   # Show modal when button is clicked.
   observeEvent(input$run_quant, {
-    showModal(quantModal(is.sc(), paired()))
+    showModal(quantModal(paired()))
   })
 
   run_quant <- reactive({
@@ -602,7 +566,7 @@ bulkFormQuant <- function(input, output, session, fastq_dir, error_msg, is.sc) {
 #' Logic for end type selection is bulkFormQuant
 #' @export
 #' @keywords internal
-bulkEndType <- function(input, output, session, fastq_dir, is.sc) {
+bulkEndType <- function(input, output, session, fastq_dir) {
 
 
   # get fastq files in directory
@@ -1087,13 +1051,12 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
   table_rendered <- reactiveVal()
   enable_sva <- reactiveVal()
 
-  fastq_dir <- reactive(file.path(data_dir, dataset_dir()))
-  pdata_path <- reactive(file.path(fastq_dir(), 'pdata_explore.rds'))
+  pdata_path <- reactive(file.path(dataset_dir(), 'pdata_explore.rds'))
 
   # initial sva btn status
   observe({
     enable <- TRUE
-    prev_path <- file.path(fastq_dir(), 'pdata_explore_prev.rds')
+    prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.rds')
     if (file.exists(prev_path)) {
       prev <- readRDS(prev_path)
       pdata <- readRDS(pdata_path())
@@ -1244,7 +1207,7 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
     # remove dataset files since groups changed
     svobj_r(NULL)
     numsv_r(0)
-    remove_dataset_files(fastq_dir())
+    remove_dataset_files(dataset_dir())
     remove_bulk_anals(dataset_name(), data_dir)
 
     if (length(group_num) > 1) enable_sva(TRUE)
@@ -1263,7 +1226,7 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
     # remove dataset files since groups changed
     svobj_r(NULL)
     numsv_r(0)
-    remove_dataset_files(fastq_dir())
+    remove_dataset_files(dataset_dir())
     remove_bulk_anals(dataset_name(), data_dir)
     enable_sva(FALSE)
   })
@@ -1554,4 +1517,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   #
   return(explore_eset)
 }
-
