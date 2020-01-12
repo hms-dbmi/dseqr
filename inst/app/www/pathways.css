@@ -18,9 +18,19 @@
 }
 
 .scroll-plot {
-  overflow-x: visible;
-  overflow-y: hidden;
-  scrollbar-color: #286090 #C2D2E4;
+  overflow-x: hidden;
+  overflow-y: visible;
+  border: 1px solid #e7e7e7;
+  height: 710px;
+  padding: 10px;
+}
+
+.scroll-plot .js-plotly-plot .plotly svg a {
+  fill: darkslategray;
+}
+
+.scroll-plot .js-plotly-plot .plotly svg a:hover {
+  fill: cornflowerblue;
 }
 
 .scroll-plot::-webkit-scrollbar {
@@ -35,9 +45,4 @@
 .scroll-plot::-webkit-scrollbar-thumb:horizontal {
   height: 30px;
   background-color: #286090;
-}
-
-.scroll-plot-modal {
-  overflow-x: scroll;
-  height:562px;
 }

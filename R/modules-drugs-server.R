@@ -16,7 +16,7 @@ drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_di
              top_table = form$top_table,
              ambient = form$ambient,
              pert_signature = form$pert_signature,
-             show_genes = form$show_genes,
+             have_queries = form$have_queries,
              drug_study = form$drug_study)
 
 
@@ -94,8 +94,11 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
                               data_dir = data_dir,
                               query_res = drugStudy$query_res,
                               query_type = drugStudy$query_type,
-                              pert_signature_dir = pert_signature_dir,
-                              show_genes = drugStudy$show_genes)
+                              pert_signature_dir = pert_signature_dir)
+
+  # show
+  have_queries <- reactive(isTruthy(drugStudy$query_res()))
+  observe(toggle('container', condition = have_queries()))
 
 
   return(list(
@@ -104,7 +107,7 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
     is_pert = selectedAnal$is_pert,
     anal_name = selectedAnal$name,
     query_res = drugStudy$query_res,
-    show_genes = drugStudy$show_genes,
+    have_queries = have_queries,
     drug_study = drugStudy$drug_study,
     show_clinical = drugStudy$show_clinical,
     direction = drugStudy$direction,
@@ -194,7 +197,6 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 
   # toggle display of perturbation study inputs
   have_queries <- reactive(isTruthy(drug_queries()))
-  observe(toggle('study_container', condition = have_queries()))
 
   # show advanced options,  clinical only results, and gene plots
   show_advanced <- reactive(input$advanced %% 2 != 0)
@@ -308,14 +310,8 @@ advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 #' Logic for showing pert selection for gene plot
 #' @export
 #' @keywords internal
-selectedPertSignature <- function(input, output, session, data_dir, query_res, query_type, pert_signature_dir, show_genes) {
-
-
-  # toggle showing genes plotly inputs
-  observe({
-    toggle('pert_container', condition = show_genes())
-  })
-
+selectedPertSignature <- function(input, output, session, data_dir, query_res, query_type, pert_signature_dir) {
+  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
   sorted_query <- reactive({
     q <- query_res()
@@ -324,15 +320,39 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
     if(type == 'l1000_genes') q[order(abs(q), decreasing = TRUE)] else sort(q)
   })
 
-  pert <- callModule(drugsPert,
-                     'pert',
-                     query = sorted_query,
-                     query_type = query_type,
-                     pert_signature_dir = pert_signature_dir)
+  pert_choices <- reactive({
+    query <- sorted_query()
+    req(query)
+
+    pert_choices <- data.frame(
+      label = gsub('_-700-666.0_\\d+h$', '', names(query)),
+      value = names(query),
+      cor = format(round(query, digits = 3)), stringsAsFactors = FALSE
+    )
+    return(pert_choices)
+  })
+
+  # update pert signature choices
+  observe({
+    updateSelectizeInput(session,
+                         'pert',
+                         choices = rbind(rep(NA, 3), pert_choices()),
+                         options = pert_options,
+                         server = TRUE)
+  })
+
+  # load signature for pert
+  # allow empty signature if just want to show query genes
+  pert_signature <- reactive({
+    pert <- input$pert
+    if (is.null(pert) || pert == '') return(NULL)
+    load_pert_signature(pert, query_type(), pert_signature_dir)
+  })
+
 
 
   return(list(
-    pert_signature = pert,
+    pert_signature = pert_signature,
     sorted_query = sorted_query
   ))
 
@@ -558,12 +578,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, show_genes, pert_signature) {
-
-  #  toggle  showing genes plotly
-  shiny::observe({
-    toggle('container', condition = show_genes(), anim = TRUE)
-  })
+drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, have_queries, pert_signature) {
 
 
   path_id <- reactive({
@@ -571,6 +586,8 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     if (study == 'CMAP02') return('Query genes - CMAP02')
     if (grepl('^L1000', study)) return('Query genes - L1000')
   })
+
+  observe(toggle('container', condition = have_queries()))
 
 
   # the gene plot
@@ -611,96 +628,62 @@ dprimesPlotly <- function(path_df) {
 
   # 30 pixels width per gene in pathway
   ngenes <- length(unique(path_df$Gene))
-  plot_width <- max(400, ngenes*25 + 125)
+  plot_height <- max(400, ngenes*25 + 125)
+
 
   pl <- plotly::plot_ly(data = path_df,
-                        y = ~Dprime,
-                        x = ~Gene,
+                        y = ~Gene,
+                        x = ~Dprime,
                         text = ~Gene,
                         customdata = apply(path_df, 1, as.list),
                         type = 'scatter',
                         mode = 'markers',
-                        width = plot_width,
-                        height = 550,
+                        height = plot_height,
                         marker = list(size = 5, color = path_df$color),
-                        error_y = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                        error_x = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
                         hovertemplate = paste0(
                           '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
                           '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                          '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{y:.2f}<br>',
+                          '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
                           '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
                           '<extra></extra>')
   ) %>%
     plotly::config(displayModeBar = FALSE) %>%
     plotly::layout(hoverdistance = -1,
-                   hovermode = 'x',
-                   yaxis = list(fixedrange = TRUE, rangemode = "tozero"),
-                   xaxis = list(fixedrange = TRUE,
-                                range = c(-2, ngenes + 1),
+                   hovermode = 'y',
+                   margin = list(t = 65),
+                   title = list(text = 'Standardized Effect Size for Query Genes', y = 1, x = 0),
+                   xaxis = list(fixedrange = TRUE, rangemode = "tozero", side = 'top', title = '', tickfont = list(size = 12)),
+                   yaxis = list(fixedrange = TRUE,
+                                title = '',
+                                range = c(ngenes, -1),
                                 tickmode = 'array',
+                                ticklen = 10,
+                                tickcolor = 'white',
                                 tickvals = 0:ngenes,
                                 ticktext = ~Link,
-                                tickangle = -45),
+                                tickfont = list(size = 12)),
                    autosize = FALSE)
 
 
   # add arrow to show drug effect
   if ('dprime_sum' %in% colnames(path_df))
     pl <- pl %>%
-    plotly::add_annotations(x = ~Gene,
-                            y = ~dprime_sum,
+    plotly::add_annotations(x = ~dprime_sum,
+                            y = ~Gene,
                             xref = "x", yref = "y",
                             axref = "x", ayref = "y",
                             text = "",
                             showarrow = TRUE,
                             arrowcolor = ~arrow_color,
                             arrowwidth = 1,
-                            ax = ~Gene,
-                            ay = ~Dprime)
+                            ay = ~Gene,
+                            ax = ~Dprime)
 
   return(pl)
 }
 
-#' Logic for perturbation selection
-#' @export
-#' @keywords internal
-drugsPert <- function(input, output, session, query_type, query, pert_signature_dir) {
-  pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
-
-  pert_choices <- reactive({
-    query <- query()
-    req(query)
-
-    pert_choices <- data.frame(
-      label = gsub('_-700-666.0_\\d+h$', '', names(query)),
-      value = names(query),
-      cor = format(round(query, digits = 3)), stringsAsFactors = FALSE
-    )
-    return(pert_choices)
-  })
-
-  # update pert signature choices
-  observe({
-    updateSelectizeInput(session,
-                         'pert',
-                         choices = rbind(rep(NA, 3), pert_choices()),
-                         options = pert_options,
-                         server = TRUE)
-  })
-
-  # load signature for pert
-  # allow empty signature if just want to show query genes
-  pert_signature <- reactive({
-    pert <- input$pert
-    if (is.null(pert) || pert == '') return(NULL)
-    load_pert_signature(pert, query_type(), pert_signature_dir)
-  })
-
-
-  return(pert_signature)
-
-}
 
 
 #' Logic for selected dataset/analysis in Drugs and Pathways tabs

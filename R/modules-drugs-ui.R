@@ -10,11 +10,13 @@ drugsPageUI <- function(id, tab, active) {
             div(class = 'row',
                 div(class = 'col-sm-6',
                     drugsFormInput(ns('form'))
+                ),
+                div(class = 'col-sm-5',
+                    drugsGenesPlotlyOutput(ns('genes'))
                 )
             ),
             hr(),
             div(class = 'hide-btn-container',
-                drugsGenesPlotlyOutput(ns('genes')),
                 drugsTableOutput(ns('table')),
                 shinyBS::bsTooltip(ns('show_genes'),
                                    'Show genes plot',
@@ -24,8 +26,8 @@ drugsPageUI <- function(id, tab, active) {
                                    )
                 )
             )
-
     )
+
   })
 }
 
@@ -39,9 +41,11 @@ drugsFormInput <- function(id) {
     div(class = "well-form well-bg",
         selectedAnalInput(ns('drugs')),
         customQueryFormInput(ns('custom-query')),
-        selectedDrugStudyInput(ns('drug_study')),
-        div(class = 'hidden-forms',
-            advancedOptionsInput(ns('advanced')),
+        div(id = ns('container'), style = 'display: none',
+            selectedDrugStudyInput(ns('drug_study')),
+            div(class = 'hidden-forms',
+                advancedOptionsInput(ns('advanced'))
+            ),
             selectedPertSignatureInput(ns('genes'))
         )
 
@@ -56,11 +60,8 @@ drugsFormInput <- function(id) {
 drugsGenesPlotlyOutput <- function(id) {
   ns <- NS(id)
   tagList(
-    tags$div(style='display: none;', id = ns('container'),
-             tags$div(class = 'scroll-plot',
-                      plotly::plotlyOutput(ns('plotly'), height = '550px')
-             ),
-             hr()
+    tags$div(class = 'scroll-plot', id = ns('container'), style = 'display: none',
+             plotly::plotlyOutput(ns('plotly'), width = 'auto')
     )
   )
 }
@@ -95,22 +96,13 @@ selectedPertSignatureInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(id = ns('pert_container'),  class = 'hidden-form bottom', style = 'display: none;',
-        drugsPertInput(ns('pert'))
-    )
+    selectizeInputWithValidation(ns('pert'),
+                                 label = 'Select perturbation for plot:',
+                                 label_title = 'Perturbation signature (correlation)')
+
   })
 }
 
-#' UI to select perturbation for Drugs page
-#' @export
-#' @keywords internal
-drugsPertInput <- function(id) {
-
-  ns <- NS(id)
-  selectizeInputWithValidation(ns('pert'),
-                               label = 'Select perturbation for plot:',
-                               label_title = 'Perturbation signature (correlation)')
-}
 
 
 #' Input form for custom query on Drugs page
@@ -178,13 +170,10 @@ advancedOptionsInput <- function(id) {
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  tags$div(id = ns('study_container'), style = 'display: none;',
-           selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
-                                     shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-                                     shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                                     shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'),
-                                     shiny::actionButton(ns('show_genes'), label = '', icon = icon('chart-line', 'fa-fw'), title = 'show plot of query genes'))
-  )
+  selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
+                            shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
+                            shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
 
 
 }
@@ -232,5 +221,3 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
   )
 
 }
-
-

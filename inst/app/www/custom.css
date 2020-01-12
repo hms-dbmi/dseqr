@@ -290,6 +290,12 @@ ul.nav.navbar-nav {
   border-radius: 4px;
 }
 
+.navbar-default .navbar-nav>a:hover,
+.navbar-default .navbar-nav>a:focus,
+.navbar-default .navbar-nav>li>a:hover {
+  border: 1px solid white;
+}
+
 
 
 
