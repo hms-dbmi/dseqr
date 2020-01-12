@@ -194,8 +194,9 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
 
   is.integrated <- 'merge.info' %in% names(scseq@metadata)
   if (is.integrated) {
-    stats$ntest <- tabulate(scseq$cluster[scseq$orig.ident == 'test'])
-    stats$nctrl <- tabulate(scseq$cluster[scseq$orig.ident == 'ctrl'])
+    nbins <- length(levels(scseq$cluster))
+    stats$ntest <- tabulate(scseq$cluster[scseq$orig.ident == 'test'], nbins = nbins)
+    stats$nctrl <- tabulate(scseq$cluster[scseq$orig.ident == 'ctrl'], nbins = nbins)
   }
 
   saveRDS(stats, stats_path)
@@ -698,7 +699,7 @@ get_label_plot <- function(anal, scseq, annot, plot) {
   ylims <- range(plot_data$TSNE_2)
 
   # median coordinates for clusters for individual dataset
-  in_anal <- scseq$orig.ident %in% anal
+  in_anal <- scseq$batch %in% anal
   scseq <- scseq[, in_anal]
   plot_data <- plot_data[colnames(scseq), ]
   plot_data$ident <- scseq$orig.cluster

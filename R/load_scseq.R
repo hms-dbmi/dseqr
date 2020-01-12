@@ -433,8 +433,6 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   if (type[1] == 'clusterMNN') {
     mnn.fun <- function(...) batchelor::clusterMNN(
       ...,
-      batch = combined$batch,
-      d = 50,
       clusters = lapply(scseqs, `[[`, 'cluster'),
       subset.row = hvgs,
       auto.merge = TRUE,
@@ -444,7 +442,6 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   } else if (type[1] == 'fastMNN') {
     mnn.fun <- function(...) batchelor::fastMNN(
       ...,
-      batch = combined$batch,
       subset.row = hvgs,
       auto.merge = TRUE,
       correct.all = TRUE,

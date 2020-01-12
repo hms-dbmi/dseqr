@@ -23,9 +23,9 @@ for (dataset_name in dirs) {
   }
 
   cat('normalizing...\n')
-  sce <- normalize_scseq(sce)
+  # sce <- normalize_scseq(sce)
   cat('clustering...\n')
-  sce <- add_hvgs(sce)
+  # sce <- add_hvgs(sce)
   sce <- add_scseq_clusters(sce)
   cat('reducing...\n')
   sce <- run_tsne(sce)

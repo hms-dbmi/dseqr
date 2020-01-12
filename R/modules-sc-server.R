@@ -757,7 +757,7 @@ selectedAnnot <- function(input, output, session, scseq, is.integrated, sc_dir) 
   orig_anals <- reactive({
     req(is.integrated())
     scseq <- scseq()
-    return(levels(scseq$orig.ident))
+    return(unique(scseq$batch))
   })
 
   observe({
