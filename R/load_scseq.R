@@ -298,7 +298,9 @@ get_npc_choices <- function(sce, type = 'PCA') {
   }
 
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
-  scran::getClusteredPCs(pcs, FUN = FUN)
+  choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+  names(choices$clusters) <- choices$n.pcs
+  return(choices)
 }
 
 #' Cluster SingleCellExperiment
@@ -322,7 +324,7 @@ add_scseq_clusters <- function(sce) {
   sce@metadata$npcs <- npcs
 
   # add clusters
-  sce$cluster <- factor(choices$clusters[[npcs]])
+  sce$cluster <- factor(choices$clusters[[as.character(npcs)]])
   return(sce)
 }
 
@@ -403,7 +405,7 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs, type = c('fastMNN', 'clusterMNN')) {
+integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -432,6 +434,7 @@ integrate_scseqs <- function(scseqs, type = c('fastMNN', 'clusterMNN')) {
     mnn.fun <- function(...) batchelor::clusterMNN(
       ...,
       batch = combined$batch,
+      d = 50,
       clusters = lapply(scseqs, `[[`, 'cluster'),
       subset.row = hvgs,
       auto.merge = TRUE,
@@ -450,8 +453,8 @@ integrate_scseqs <- function(scseqs, type = c('fastMNN', 'clusterMNN')) {
   }
 
   mnn.out <- do.call(mnn.fun, scseqs)
-  mnn.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'))
-  mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'))
+  mnn.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
+  mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
 
   # store merged (batch normalized) for DE
   SummarizedExperiment::assay(mnn.out, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')

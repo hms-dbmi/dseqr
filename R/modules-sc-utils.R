@@ -296,7 +296,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   choices <- get_npc_choices(combined, type = 'corrected')
   npcs <- S4Vectors::metadata(choices)$chosen
   combined@metadata$npcs <- npcs
-  combined$cluster <- factor(choices$clusters[[npcs]])
+  combined$cluster <- factor(choices$clusters[[as.character(npcs)]])
 
   # TSNE on corrected reducedDim
   updateProgress(4/n, 'reducing')

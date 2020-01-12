@@ -1,10 +1,10 @@
 # conversion of legacy Seurat to new SingleCellExperiment stuff
-
-setwd("~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/single-cell")
+library(drugseqr)
+setwd("~/Documents/Batcave/zaklab/patient_data/sjia/single-cell")
 dirs <- setdiff(list.files(), 'integrated.rds')
 sc_dir <- '.'
 
-for (dataset_name in dirs[-1]) {
+for (dataset_name in dirs) {
   cat('working on', dataset_name, '...\n')
   scseq_path <- file.path(dataset_name, 'scseq.rds')
   sce <- readRDS(scseq_path)
@@ -22,11 +22,15 @@ for (dataset_name in dirs[-1]) {
     sce <- Seurat::as.SingleCellExperiment(sce)
   }
 
+  cat('normalizing...\n')
   sce <- normalize_scseq(sce)
+  cat('clustering...\n')
   sce <- add_hvgs(sce)
   sce <- add_scseq_clusters(sce)
+  cat('reducing...\n')
   sce <- run_tsne(sce)
 
+  cat('getting markers...\n')
   wilcox_tests <- pairwise_wilcox(sce)
   markers <- get_scseq_markers(wilcox_tests)
 
@@ -34,6 +38,7 @@ for (dataset_name in dirs[-1]) {
   top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
   annot <- names(markers)
 
+  cat('saving...\n')
   scseq_data <- list(scseq = sce, markers = markers, top_markers = top_markers, annot = annot)
 
   data_dir <- file.path(sc_dir, dataset_name)

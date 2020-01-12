@@ -68,7 +68,7 @@ bulkDatasetInput <- function(id) {
   withTags({
     div(
       selectizeInputWithButtons(
-        ns('dataset_name'), 'Select a dataset:',
+        ns('dataset_name'), 'Select a bulk dataset:',
         container_id = 'dataset_name_container',
         options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
         svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
