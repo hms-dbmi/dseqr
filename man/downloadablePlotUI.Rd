@@ -5,8 +5,12 @@
 \title{UI for plot with downloadable data}
 \usage{
 downloadablePlotUI(id, height)
+
+downloadablePlotUI(id, height)
 }
 \description{
+UI for plot with downloadable data
+
 UI for plot with downloadable data
 }
 \keyword{internal}

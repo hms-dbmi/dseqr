@@ -5,8 +5,12 @@
 \title{Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput}
 \usage{
 selectedGeneInput(id, sample_comparison = FALSE)
+
+selectedGeneInput(id, sample_comparison = FALSE)
 }
 \description{
+Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
+
 Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
 }
 \keyword{internal}

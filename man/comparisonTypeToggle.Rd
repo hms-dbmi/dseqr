@@ -5,8 +5,12 @@
 \title{Input form to control/test/all groups for integrated datasets}
 \usage{
 comparisonTypeToggle(id)
+
+comparisonTypeToggle(id)
 }
 \description{
+Input form to control/test/all groups for integrated datasets
+
 Input form to control/test/all groups for integrated datasets
 }
 \keyword{internal}

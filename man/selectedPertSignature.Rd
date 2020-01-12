@@ -11,8 +11,7 @@ selectedPertSignature(
   data_dir,
   query_res,
   query_type,
-  pert_signature_dir,
-  show_genes
+  pert_signature_dir
 )
 }
 \description{

@@ -5,8 +5,12 @@
 \title{UI for Single Cell Exploration page}
 \usage{
 scPageUI(id, tab, active)
+
+scPageUI(id, tab, active)
 }
 \description{
+UI for Single Cell Exploration page
+
 UI for Single Cell Exploration page
 }
 \keyword{internal}

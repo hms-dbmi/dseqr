@@ -5,8 +5,12 @@
 \title{Output plot of single cell markers}
 \usage{
 scMarkerPlotOutput(id)
+
+scMarkerPlotOutput(id)
 }
 \description{
+Output plot of single cell markers
+
 Output plot of single cell markers
 }
 \keyword{internal}

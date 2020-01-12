@@ -4,7 +4,7 @@
 \alias{bulkEndType}
 \title{Logic for end type selection is bulkFormQuant}
 \usage{
-bulkEndType(input, output, session, fastq_dir, is.sc)
+bulkEndType(input, output, session, fastq_dir)
 }
 \description{
 Logic for end type selection is bulkFormQuant

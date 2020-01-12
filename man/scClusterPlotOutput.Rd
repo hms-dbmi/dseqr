@@ -5,8 +5,12 @@
 \title{Output plot of single cell clusters}
 \usage{
 scClusterPlotOutput(id)
+
+scClusterPlotOutput(id)
 }
 \description{
+Output plot of single cell clusters
+
 Output plot of single cell clusters
 }
 \keyword{internal}
