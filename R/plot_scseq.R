@@ -29,20 +29,15 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #'
 #' @param scseq \code{SingleCellExperiment} object.
 #' @param gene Character vector specifying gene to colour cells by.
-#' @param selected_idents The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.
 #' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_gene <- function(scseq, gene, selected_idents = unique(scseq$orig.ident)) {
+plot_tsne_gene <- function(scseq, gene) {
 
   SingleCellExperiment::logcounts(scseq) <- as(SingleCellExperiment::logcounts(scseq), 'dgCMatrix')
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
-
-  # make selected groups stand out
-  cells <- colnames(scseq)
-  cells <- cells[scseq$orig.ident %in% selected_idents]
 
   pt.size <- min(6000/ncol(scseq), 2)
 
@@ -53,10 +48,6 @@ plot_tsne_gene <- function(scseq, gene, selected_idents = unique(scseq$orig.iden
     ggplot2::theme(plot.title = ggplot2::element_blank()) +
     theme_dimgray(with_nums = FALSE) +
     ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'))
-
-  # need until bug fixed in Seurat, then use cells argument in FeaturePlot
-  gene_plot$data <- gene_plot$data[row.names(gene_plot$data) %in% cells, ]
-  gene_plot$labels$colour <- gene
 
   return(gene_plot)
 }
@@ -120,19 +111,20 @@ plot_biogps <- function(gene) {
                              source = factor(names(gene_dat), levels = rev(names(gene_dat))))
 
   ggplot2::ggplot(gene_dat, ggplot2::aes(x = source, y = mean, fill = mean)) +
-    ggplot2::theme_minimal() +
-    ggplot2::geom_bar(stat = "identity", color = 'black', size = 0.1, width = 0.7) +
+    ggplot2::geom_point(stat = "identity", size = 4, colour="#333333", pch=21) +
     ggplot2::scale_fill_distiller(palette = 'Reds', name = '', direction = 1) +
     ggplot2::xlab('') +
     ggplot2::ylab('') +
     ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
-    ggplot2::scale_y_continuous(expand = c(0, 0)) + # Set the axes to cross at 0
     ggplot2::coord_flip() +
-    ggplot2::theme(panel.grid = ggplot2::element_blank(),
-                   panel.border = ggplot2::element_blank(),
-                   plot.title = ggplot2::element_text(size = 16),
+    ggpubr::theme_pubr()  +
+    theme_dimgray() +
+    ggplot2::theme(plot.title = ggplot2::element_text(size = 16, color = '#333333'),
+                   axis.text.y = ggplot2::element_text(color = '#333333'),
                    axis.text = ggplot2::element_text(size = 14),
                    axis.text.x = ggplot2::element_blank(),
+                   axis.ticks.x = ggplot2::element_line(size = 0),
+                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.1),
                    legend.position = "none")
 }
 
