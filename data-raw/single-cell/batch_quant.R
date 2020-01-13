@@ -1,5 +1,5 @@
 # example script showing how to process multiple single-cell datasets without interaction
-
+library(drugseqr)
 sc_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/single-cell'
 
 new_dir <- file.path(sc_dir, '10X-data')
@@ -24,18 +24,25 @@ for (i in seq_along(status_dirs)) {
     fastq_dir <- file.path(status_dir, sample_dirs[j], 'fastqs')
     dataset_name <- paste0('sjia_pbmcs_', status, j)
 
-    if (dir.exists(file.path(sc_dir, dataset_name))) next()
+    if (i == 1 & j == 1) next()
 
-    run_kallisto_scseq(indices_dir, fastq_dir)
+    if (i > 2 | (i == 2 & j > 2)) {
+      run_kallisto_scseq(indices_dir, fastq_dir)
 
-    cat('loading...\n')
-    scseq <- load_scseq(fastq_dir, project = dataset_name, type = 'kallisto')
-    scseq <- scseq[, scseq$whitelist]
-    gc()
+      cat('loading...\n')
+      scseq <- load_scseq(fastq_dir, project = dataset_name, type = 'kallisto')
+      scseq <- scseq[, scseq$whitelist]
+      gc()
 
-    cat('normalizing...\n')
-    scseq <- normalize_scseq(scseq)
-    gc()
+      cat('normalizing...\n')
+      scseq <- normalize_scseq(scseq)
+      gc()
+
+    } else {
+      scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
+      scseq <- readRDS(scseq_path)
+    }
+
 
     cat('clustering...\n')
     scseq <- add_hvgs(scseq)

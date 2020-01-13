@@ -8,10 +8,10 @@ drugsPageUI <- function(id, tab, active) {
     tabPane(tab, active,
             rightClickMenu(),
             div(class = 'row',
-                div(class = 'col-sm-6',
+                div(class = 'col-sm-5',
                     drugsFormInput(ns('form'))
                 ),
-                div(class = 'col-sm-5',
+                div(class = 'col-sm-7 mobile-margin',
                     drugsGenesPlotlyOutput(ns('genes'))
                 )
             ),
@@ -43,10 +43,10 @@ drugsFormInput <- function(id) {
         customQueryFormInput(ns('custom-query')),
         div(id = ns('container'), style = 'display: none',
             selectedDrugStudyInput(ns('drug_study')),
+            selectedPertSignatureInput(ns('genes')),
             div(class = 'hidden-forms',
                 advancedOptionsInput(ns('advanced'))
-            ),
-            selectedPertSignatureInput(ns('genes'))
+            )
         )
 
     )

@@ -414,8 +414,8 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     file.path(data_dir, dir)
   })
 
-  numsv_path <- reactive(file.path(fastq_dir(), 'numsv.rds'))
-  svobj_path <- reactive(file.path(fastq_dir(), 'svobj.rds'))
+  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.rds'))
+  svobj_path <- reactive(file.path(dataset_dir(), 'svobj.rds'))
 
   # initialize svobj
   svobj_r <- reactiveVal()
@@ -441,8 +441,9 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     svobj <- svobj_r()
     if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
 
-    numsv_path <- file.path(dataset_dir(), 'numsv.rds')
+    numsv_path <- numsv_path()
     if (file.exists(numsv_path)) numsv <- readRDS(numsv_path)
+    else saveRDS(0, numsv_path)
 
     maxsv_r(maxsv)
     numsv_r(numsv)
@@ -455,8 +456,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   observeEvent(input$selected_nsv, {
     numsv_r(input$selected_nsv)
-    numsv_path <- file.path(fastq_dir(), 'numsv.rds')
-    saveRDS(input$selected_nsv, numsv_path)
+    saveRDS(input$selected_nsv, numsv_path())
   }, ignoreInit = TRUE)
 
 

@@ -601,6 +601,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
 
+    # browser()
     dprimesPlotly(path_df)
 
   })
@@ -631,40 +632,38 @@ dprimesPlotly <- function(path_df) {
   plot_height <- max(400, ngenes*25 + 125)
 
 
-  pl <- plotly::plot_ly(data = path_df,
-                        y = ~Gene,
-                        x = ~Dprime,
-                        text = ~Gene,
-                        customdata = apply(path_df, 1, as.list),
-                        type = 'scatter',
-                        mode = 'markers',
-                        height = plot_height,
-                        marker = list(size = 5, color = path_df$color),
-                        error_x = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
-                        hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                        hovertemplate = paste0(
-                          '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-                          '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                          '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
-                          '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
-                          '<extra></extra>')
+  (pl <- plotly::plot_ly(data = path_df,
+                         y = ~Gene,
+                         x = ~Dprime,
+                         text = ~Gene,
+                         customdata = apply(path_df, 1, as.list),
+                         type = 'scatter',
+                         mode = 'markers',
+                         height = plot_height,
+                         marker = list(size = 5, color = path_df$color),
+                         error_x = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                         hovertemplate = paste0(
+                           '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+                           '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+                           '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
+                           '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
+                           '<extra></extra>')
   ) %>%
-    plotly::config(displayModeBar = FALSE) %>%
-    plotly::layout(hoverdistance = -1,
-                   hovermode = 'y',
-                   margin = list(t = 65),
-                   title = list(text = 'Standardized Effect Size for Query Genes', y = 1, x = 0),
-                   xaxis = list(fixedrange = TRUE, rangemode = "tozero", side = 'top', title = '', tickfont = list(size = 12)),
-                   yaxis = list(fixedrange = TRUE,
-                                title = '',
-                                range = c(ngenes, -1),
-                                tickmode = 'array',
-                                ticklen = 10,
-                                tickcolor = 'white',
-                                tickvals = 0:ngenes,
-                                ticktext = ~Link,
-                                tickfont = list(size = 12)),
-                   autosize = FALSE)
+      plotly::config(displayModeBar = FALSE) %>%
+      plotly::layout(hoverdistance = -1,
+                     hovermode = 'y',
+                     margin = list(t = 65, r = 20, l = 0, pad = 10),
+                     title = list(text = 'Standardized Effect Size for Query Genes', y = 1, x = 0),
+                     xaxis = list(fixedrange = TRUE, rangemode = "tozero", side = 'top', title = '', tickfont = list(size = 12)),
+                     yaxis = list(fixedrange = TRUE,
+                                  title = '',
+                                  range = c(ngenes, -1),
+                                  tickmode = 'array',
+                                  tickvals = 0:ngenes,
+                                  ticktext = ~Link,
+                                  tickfont = list(size = 12)),
+                     autosize = TRUE))
 
 
   # add arrow to show drug effect
@@ -860,3 +859,4 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   ))
 
 }
+
