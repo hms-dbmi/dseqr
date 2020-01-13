@@ -5,12 +5,8 @@
 \title{Input form and buttons to select a cluster or contrast and rename a cluster}
 \usage{
 clusterComparisonInput(id)
-
-clusterComparisonInput(id)
 }
 \description{
-Input form and buttons to select a cluster or contrast and rename a cluster
-
 Input form and buttons to select a cluster or contrast and rename a cluster
 }
 \keyword{internal}

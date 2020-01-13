@@ -5,12 +5,8 @@
 \title{Input for selecting datasets to show original labels for}
 \usage{
 selectedAnnotDatasetInput(id)
-
-selectedAnnotDatasetInput(id)
 }
 \description{
-Input for selecting datasets to show original labels for
-
 Input for selecting datasets to show original labels for
 }
 \keyword{internal}

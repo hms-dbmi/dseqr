@@ -5,12 +5,8 @@
 \title{Input form for transfering labels between single cell datasets}
 \usage{
 labelTransferFormInput(id)
-
-labelTransferFormInput(id)
 }
 \description{
-Input form for transfering labels between single cell datasets
-
 Input form for transfering labels between single cell datasets
 }
 \keyword{internal}

@@ -5,12 +5,8 @@
 \title{Input form for integrating single cell datasets}
 \usage{
 integrationFormInput(id)
-
-integrationFormInput(id)
 }
 \description{
-Input form for integrating single cell datasets
-
 Input form for integrating single cell datasets
 }
 \keyword{internal}

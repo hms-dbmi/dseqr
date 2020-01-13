@@ -5,12 +5,8 @@
 \title{Input for Single Cell analysis}
 \usage{
 scSampleComparisonInput(id)
-
-scSampleComparisonInput(id)
 }
 \description{
-Used in Single Cell, Drugs and Pathways tab
-
 Used in Single Cell, Drugs and Pathways tab
 }
 \keyword{internal}

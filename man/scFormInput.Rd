@@ -5,12 +5,8 @@
 \title{Input form for Single Cell Exploration page}
 \usage{
 scFormInput(id)
-
-scFormInput(id)
 }
 \description{
-Input form for Single Cell Exploration page
-
 Input form for Single Cell Exploration page
 }
 \keyword{internal}

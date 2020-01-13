@@ -5,12 +5,8 @@
 \title{Input form/associated buttons for selecting single cell dataset}
 \usage{
 scSelectedDatasetInput(id)
-
-scSelectedDatasetInput(id)
 }
 \description{
-Input form/associated buttons for selecting single cell dataset
-
 Input form/associated buttons for selecting single cell dataset
 }
 \keyword{internal}

@@ -5,12 +5,8 @@
 \title{Output plot of biogps data for a gene}
 \usage{
 scBioGpsPlotOutput(id)
-
-scBioGpsPlotOutput(id)
 }
 \description{
-Output plot of biogps data for a gene
-
 Output plot of biogps data for a gene
 }
 \keyword{internal}

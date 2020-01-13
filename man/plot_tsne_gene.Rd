@@ -4,14 +4,12 @@
 \alias{plot_tsne_gene}
 \title{Plot UMAP coloured by HGNC symbol}
 \usage{
-plot_tsne_gene(scseq, gene, selected_idents = unique(scseq$orig.ident))
+plot_tsne_gene(scseq, gene)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} object.}
 
 \item{gene}{Character vector specifying gene to colour cells by.}
-
-\item{selected_idents}{The groups in \code{scseq$orig.ident} to show cell for. The default \code{NULL} shows all cells.}
 
 \item{pt.size}{Numeric scalar, specifying the size of the points. Defaults to 3.}
 }
