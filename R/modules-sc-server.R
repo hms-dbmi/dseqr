@@ -50,6 +50,12 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   callModule(scBioGpsPlot, 'biogps_plot',
              selected_gene = scForm$selected_gene_cluster)
 
+
+  callModule(scRidgePlot, 'ridge_plot',
+             selected_gene = scForm$selected_gene_cluster,
+             selected_cluster = scForm$selected_cluster,
+             scseq = scForm$scseq)
+
   # showing sample comparison
   scMarkerSample <- callModule(scMarkerPlot, 'marker_plot_test',
                                scseq = scForm$scseq,
@@ -99,6 +105,11 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
     toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
     toggle(id = "label_comparison_row", condition = scForm$comparison_type() == 'labels')
+  })
+
+  observe({
+    toggle(id = 'biogps_container', condition = !scForm$show_ridge())
+    toggle(id = 'ridge_container', condition = scForm$show_ridge())
   })
 
   return(NULL)
@@ -218,11 +229,13 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   return(list(
     scseq = scseq,
+    selected_cluster = scClusterComparison$selected_cluster,
     selected_gene_cluster = scClusterGene$selected_gene,
     selected_gene_sample = scSampleGene$selected_gene,
     label_anals = integrationAnnotAnals,
     comparison_type = comparisonType,
-    dataset_name = scDataset$dataset_name
+    dataset_name = scDataset$dataset_name,
+    show_ridge = scClusterGene$show_ridge
 
   ))
 }
@@ -972,6 +985,9 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
+  # toggle for ridgeline
+  show_ridge <- reactive(input$show_ridge %% 2 != 0)
+  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = show_ridge()))
 
   filtered_markers <- reactive({
 
@@ -1052,7 +1068,8 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
   })
 
   return(list(
-    selected_gene = selected_gene
+    selected_gene = selected_gene,
+    show_ridge = show_ridge
   ))
 
 }
@@ -1165,6 +1182,50 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
   output$biogps_plot <- renderPlot({
     plot_biogps(selected_gene())
   })
+}
+
+scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
+  # plot BioGPS data
+
+
+  output$ridge_plot <- renderPlot({
+    req(selected_gene())
+    plot_ridge(selected_gene(), selected_cluster(), scseq())
+  })
+}
+
+plot_ridge <- function(gene, selected_cluster, scseq) {
+
+  cluster <- scseq$cluster
+  logcounts <- SingleCellExperiment::logcounts(scseq)[gene, ]
+  cols <- get_palette(levels(cluster))
+  clus <- levels(cluster)[as.numeric(selected_cluster)]
+  color <- cols[as.numeric(selected_cluster)]
+
+
+  mean <- tapply(logcounts, cluster, mean)
+  levs <- levels(cluster)[order(mean)]
+  df <- data.frame(logcounts, cluster = factor(cluster, levels = levs))
+
+  df$group <- 'out'
+  df$group[cluster == clus] <- 'in'
+
+  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = group, alpha = group)) +
+    ggplot2::scale_fill_manual(values = c(color, 'grey')) +
+    ggplot2::scale_alpha_manual(values = c(0.95, 0.6)) +
+    ggridges::geom_density_ridges(scale = 2, rel_min_height = 0.001, colour = 'black') +
+    ggridges::theme_ridges(center_axis_labels = TRUE) +
+    ggplot2::scale_x_continuous(expand = c(0, 0)) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::coord_cartesian(clip = "off") +
+    theme_dimgray() +
+    ggplot2::xlab('Expression') +
+    ggplot2::theme(legend.position = 'none',
+                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.title.x = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.title.y = ggplot2::element_blank()
+    )
+
 }
 
 
