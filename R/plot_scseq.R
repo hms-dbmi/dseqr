@@ -5,6 +5,7 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
 
+  colnames(scseq) <- make.unique(colnames(scseq))
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
@@ -34,6 +35,7 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #' @export
 plot_tsne_gene <- function(scseq, gene) {
 
+  colnames(scseq) <- make.unique(colnames(scseq))
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
