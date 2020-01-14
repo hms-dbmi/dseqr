@@ -12,6 +12,7 @@ srp_meta <- srp_meta[grepl('^WT', srp_meta$title), ]
 GEOfastq::get_fastqs(gse_name, srp_meta, data_dir)
 
 # ran quantification and differential expression through app
+# dataset name: GSE128113_WT
 library(drugseqr)
 app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data/example'
