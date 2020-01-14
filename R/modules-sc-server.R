@@ -1210,10 +1210,11 @@ plot_ridge <- function(gene, selected_cluster, scseq) {
   df$group <- 'out'
   df$group[cluster == clus] <- 'in'
 
-  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = group, alpha = group)) +
+  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = group, alpha = group, color = group)) +
     ggplot2::scale_fill_manual(values = c(color, 'grey')) +
-    ggplot2::scale_alpha_manual(values = c(0.95, 0.6)) +
-    ggridges::geom_density_ridges(scale = 2, rel_min_height = 0.001, colour = 'black') +
+    ggplot2::scale_color_manual(values = c('black', 'gray')) +
+    ggplot2::scale_alpha_manual(values = c(0.95, 0.25)) +
+    ggridges::geom_density_ridges(scale = 2.5, rel_min_height = 0.001) +
     ggridges::theme_ridges(center_axis_labels = TRUE) +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::scale_y_discrete(expand = c(0, 0)) +
