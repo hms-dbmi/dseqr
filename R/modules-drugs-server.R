@@ -1,12 +1,11 @@
 #' Logic for Drugs page
 #' @export
 #' @keywords internal
-drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_dir, pert_query_dir, pert_signature_dir) {
+drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir, pert_signature_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
-                     new_dataset = new_dataset,
-                     bulk_changed = bulk_changed,
+                     new_bulk = new_bulk,
                      data_dir = data_dir,
                      pert_query_dir = pert_query_dir,
                      pert_signature_dir = pert_signature_dir)
@@ -39,7 +38,7 @@ drugsPage <- function(input, output, session, new_dataset, bulk_changed, data_di
 # Logic for form on drugs page
 #' @export
 #' @keywords internal
-drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_changed, pert_query_dir, pert_signature_dir) {
+drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
   # TODO: trigger new_custom after running custom query
   new_custom <- reactiveVal()
@@ -47,9 +46,8 @@ drugsForm <- function(input, output, session, data_dir, new_dataset, bulk_change
   # dataset/analysis choices
   choices <- reactive({
     # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
-    new_dataset()
+    new_bulk()
     new_custom()
-    bulk_changed()
     scseq_datasets <- load_scseq_datasets(data_dir)
     bulk_datasets <- load_bulk_datasets(data_dir)
     custom_anals <- load_custom_anals(data_dir)
@@ -745,9 +743,14 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   # ---
   eset  <- reactive(readRDS(file.path(dataset_dir(), 'eset.rds')))
   pdata <- reactive(readRDS(file.path(dataset_dir(), 'pdata_explore.rds')))
-  numsv <- reactive(readRDS(file.path(dataset_dir(), 'numsv.rds')))
   svobj <- reactive(readRDS(file.path(dataset_dir(), 'svobj.rds')))
 
+  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.rds'))
+  numsv <- reactive({
+    numsv_path <- numsv_path()
+    if (!file.exists(numsv_path)) saveRDS(0, numsv_path)
+    readRDS(numsv_path)
+  })
 
   bulk_eset <- exploreEset(eset = eset,
                            dataset_dir = dataset_dir,

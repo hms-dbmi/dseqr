@@ -3,7 +3,6 @@
 #' @keywords internal
 bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
-  new_dataset <- reactiveVal()
   msg_quant <- reactiveVal()
 
   eset <- reactive(readRDS(file.path(bulkForm$dataset_dir(), 'eset.rds')))
@@ -20,11 +19,11 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          data_dir = data_dir,
                          sc_dir = sc_dir,
                          bulk_dir = bulk_dir,
-                         new_dataset = new_dataset,
                          msg_quant = msg_quant,
                          new_anal = bulk_anal,
                          explore_eset = explore_eset,
-                         enable_sva = dsExploreTable$enable_sva)
+                         enable_sva = dsExploreTable$enable_sva,
+                         pdata = dsQuantTable$pdata)
 
   callModule(bulkMDSplotly, 'mds_plotly',
              explore_eset = explore_eset,
@@ -79,57 +78,8 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
 
 
-  # run quantification for quant dataset
-  observeEvent(bulkForm$run_quant(), {
-    # disable inputs
-    shinyjs::disable(selector = 'input')
-
-    # setup
-    pdata <- dsQuantTable$pdata()
-    dataset_name <- bulkForm$dataset_name()
-    fastq_dir <- bulkForm$fastq_dir()
-
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
-
-    # Create a callback function to update progress.
-    progress$set(message = "Quantifying files", value = 0)
-    updateProgress <- function(amount = NULL, detail = NULL) {
-      progress$inc(amount = amount, detail = detail)
-    }
-
-    # setup bulk
-    pdata <- dsQuantTable$pdata()
-    paired <- bulkForm$paired()
-
-
-    # quantification
-    run_kallisto_bulk(indices_dir = indices_dir,
-                      data_dir = fastq_dir,
-                      pdata = pdata,
-                      paired = paired,
-                      updateProgress = updateProgress)
-
-    # generate eset and save
-    progress$set(message = 'Annotating dataset')
-    eset <- load_seq(fastq_dir)
-
-    # save to bulk datasets to indicate that has been quantified
-    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
-
-    # trigger to update rest of app
-    new_dataset(dataset_name)
-
-    # re-enable inputs
-    shinyjs::enable(selector = 'input')
-    progress$inc(1)
-  })
-
-
   return(list(
-    new_dataset = new_dataset
+    new_dataset = bulkForm$new_dataset
   ))
 }
 
@@ -291,13 +241,13 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #' Logic for Bulk Data form
 #' @export
 #' @keywords internal
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dataset, msg_quant, new_anal, explore_eset, enable_sva) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, new_anal, explore_eset, enable_sva, pdata) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
-                        new_dataset = new_dataset,
+                        new_dataset = quant$new_dataset,
                         explore_eset = explore_eset)
 
 
@@ -316,8 +266,12 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
   })
 
   quant <- callModule(bulkFormQuant, 'quant_form',
-                      fastq_dir = dataset$fastq_dir,
-                      error_msg = msg_quant)
+                      data_dir = data_dir,
+                      error_msg = msg_quant,
+                      dataset_name = dataset$dataset_name,
+                      pdata = pdata,
+                      fastq_dir = dataset$fastq_dir)
+
 
   anal <- callModule(bulkFormAnal, 'anal_form',
                      data_dir = data_dir,
@@ -334,15 +288,14 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, new_dat
     fastq_dir = dataset$fastq_dir,
     paired = quant$paired,
     quant_labels = quant$labels,
+    new_dataset = quant$new_dataset,
     anal_labels = anal$labels,
     explore_labels = anal$explore_labels,
     explore_genes = anal$explore_genes,
-    run_quant = quant$run_quant,
     dataset_name = dataset$dataset_name,
     dataset_dir = dataset$dataset_dir,
     show_quant = show_quant,
     show_anal = show_anal,
-    is.cellranger = dataset$is.cellranger,
     is.explore = anal$is.explore,
     dtangle_est = dataset$dtangle_est,
     show_dtangle = dataset$show_dtangle,
@@ -437,6 +390,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   # initialize selected and max number of svs
   observe({
+    new_dataset()
     numsv <- maxsv <- 0
     svobj <- svobj_r()
     if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
@@ -499,11 +453,10 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 #' Logic for dataset quantification part of bulkForm
 #' @export
 #' @keywords internal
-bulkFormQuant <- function(input, output, session, fastq_dir, error_msg) {
+bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir) {
+  quant_inputs <- c('end_type', 'pair', 'rep', 'reset', 'run_quant')
 
-
-  paired <- callModule(bulkEndType, 'end_type',
-                       fastq_dir = fastq_dir)
+  paired <- bulkEndType(input, output, session, fastq_dir)
 
   observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
 
@@ -541,25 +494,68 @@ bulkFormQuant <- function(input, output, session, fastq_dir, error_msg) {
     )
   }
 
-  # Show modal when button is clicked.
+  # Show confirm modal when click Run Qunatification
   observeEvent(input$run_quant, {
     showModal(quantModal(paired()))
   })
 
-  run_quant <- reactive({
-    req(input$confirm)
+  new_dataset <- reactiveVal()
+
+  # run quantification upon confirmation
+  observeEvent(input$confirm, {
     removeModal()
-    input$confirm
+
+    # disable inputs
+    toggleAll(quant_inputs)
+
+    # setup
+    pdata <- pdata()
+    paired <- paired()
+    dataset_name <- dataset_name()
+    fastq_dir <- fastq_dir()
+
+    # Create a Progress object
+    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
+    # Close the progress when this reactive exits (even if there's an error)
+    on.exit(progress$close())
+
+    # Create a callback function to update progress.
+    progress$set(message = "Quantifying files", value = 0)
+    updateProgress <- function(amount = NULL, detail = NULL) {
+      progress$inc(amount = amount, detail = detail)
+    }
+
+    # quantification
+    run_kallisto_bulk(indices_dir = indices_dir,
+                      data_dir = fastq_dir,
+                      pdata = pdata,
+                      paired = paired,
+                      updateProgress = updateProgress)
+
+    # generate eset and save
+    progress$set(message = 'Annotating dataset')
+    eset <- load_seq(fastq_dir)
+
+    # save to bulk datasets to indicate that has been quantified
+    dataset_dir <- gsub(paste0(data_dir, '/'), '', fastq_dir)
+    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
+
+    # trigger to update rest of app
+    new_dataset(dataset_name)
+
+    # re-enable inputs
+    toggleAll(quant_inputs)
+    progress$inc(1)
   })
 
   return(list(
+    new_dataset = new_dataset,
     paired = paired,
     labels = list(
       reset = reset,
       pair = pair,
       rep = rep
-    ),
-    run_quant = run_quant
+    )
   ))
 }
 
@@ -657,7 +653,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     saveRDS(svobj, file.path(dataset_dir(), 'svobj.rds'))
 
     svobj_r(svobj)
-    numsv_r(0)
+    numsv_r(NULL)
 
   })
 
@@ -1481,6 +1477,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     keep <- row.names(pdata)[!is.na(pdata$Group)]
     pdata <- pdata[keep, ]
     req(length(unique(pdata$Group)) > 1)
+    req(length(keep) > 2)
 
     # subset eset and add explore_pdata
     eset <- eset[, keep]
@@ -1517,3 +1514,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   #
   return(explore_eset)
 }
+

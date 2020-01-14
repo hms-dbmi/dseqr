@@ -47,13 +47,10 @@ server <- function(input, output, session) {
                        indices_dir = indices_dir)
 
   # TODO: get new_dataset from bulkPage and scPage
-  new_dataset <- reactiveVal()
-  bulk_changed <- reactiveVal()
 
   drugsPage <- callModule(drugsPage, 'drug',
                           data_dir = data_dir,
-                          new_dataset = new_dataset,
-                          bulk_changed = bulk_changed,
+                          new_bulk = bulkPage$new_dataset,
                           pert_query_dir = pert_query_dir,
                           pert_signature_dir = pert_signature_dir)
 

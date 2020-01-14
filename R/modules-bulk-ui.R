@@ -92,7 +92,9 @@ bulkFormQuantInput <- function(id) {
 
   tagList(
     tags$div(id = ns('bulk_controls'),
-             bulkEndTypeInput(ns('end_type')),
+             selectizeInput(ns('end_type'),
+                            'Confirm end-type:',
+                            choices = NULL, width = '100%'),
              justifiedButtonGroup(
                container_id = ns('quant_labels'),
                label = 'Label selected rows:',
@@ -106,16 +108,6 @@ bulkFormQuantInput <- function(id) {
   )
 }
 
-#' Dataset end-type input for bulkFormQuantInput
-#' @export
-#' @keywords internal
-bulkEndTypeInput <- function(id) {
-  ns <- NS(id)
-
-  selectizeInput(ns('end_type'),
-                 'Confirm end-type:',
-                 choices = NULL, width = '100%')
-}
 
 #' Differential expression analysis inputs for bulkFormInput
 #' @export

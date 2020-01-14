@@ -8,8 +8,7 @@ drugsPage(
   input,
   output,
   session,
-  new_dataset,
-  bulk_changed,
+  new_bulk,
   data_dir,
   pert_query_dir,
   pert_signature_dir

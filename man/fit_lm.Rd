@@ -22,10 +22,9 @@ non-selected samples removed by \code{iqr_replicates}.}
 \item{rna_seq}{Is the analysis for RNA-seq? Auto inferred in \code{diff_expr}.}
 }
 \value{
-list with slots \itemize{
-  \fit Result of \link[limma]{lmFit}.
-  \mod model matrix used for fit.
-}
+list with slots:
+  * \code{fit} Result of \link[limma]{lmFit}.
+  * \code{mod} model matrix used for fit.
 }
 \description{
 Runs limma differential expression analysis on all contrasts selected by

@@ -91,10 +91,10 @@ run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = 
 #' @param dataset_dir Directory to save fit results in.
 #' @param rna_seq Is the analysis for RNA-seq? Auto inferred in \code{diff_expr}.
 #'
-#' @return list with slots \itemize{
-#'   \fit Result of \link[limma]{lmFit}.
-#'   \mod model matrix used for fit.
-#' }
+#' @return list with slots:
+#'   * \code{fit} Result of \link[limma]{lmFit}.
+#'   * \code{mod} model matrix used for fit.
+#'
 fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE, anal_suffix = ''){
 
   # setup model matrix with surrogate variables

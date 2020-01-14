@@ -11,11 +11,11 @@ bulkForm(
   data_dir,
   sc_dir,
   bulk_dir,
-  new_dataset,
   msg_quant,
   new_anal,
   explore_eset,
-  enable_sva
+  enable_sva,
+  pdata
 )
 }
 \description{

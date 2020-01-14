@@ -4,7 +4,16 @@
 \alias{bulkFormQuant}
 \title{Logic for dataset quantification part of bulkForm}
 \usage{
-bulkFormQuant(input, output, session, fastq_dir, error_msg)
+bulkFormQuant(
+  input,
+  output,
+  session,
+  error_msg,
+  dataset_name,
+  pdata,
+  fastq_dir,
+  data_dir
+)
 }
 \description{
 Logic for dataset quantification part of bulkForm
