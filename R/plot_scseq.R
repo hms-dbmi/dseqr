@@ -5,7 +5,6 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
 
-  SingleCellExperiment::logcounts(scseq) <- as(SingleCellExperiment::logcounts(scseq), 'dgCMatrix')
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 
@@ -35,7 +34,6 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #' @export
 plot_tsne_gene <- function(scseq, gene) {
 
-  SingleCellExperiment::logcounts(scseq) <- as(SingleCellExperiment::logcounts(scseq), 'dgCMatrix')
   scseq <- Seurat::as.Seurat(scseq, counts = NULL)
   Idents(scseq) <- scseq$cluster
 

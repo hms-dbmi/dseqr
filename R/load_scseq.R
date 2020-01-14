@@ -2,8 +2,12 @@
 #'
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
 #' @param project String identifying sample.
-#' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.
-#' @param h5 Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.
+#' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.
+#' @param knee_type Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.
+#'
+#' @seealso \link{pick_roryk_cutoff} for details of \code{'roryk'} \code{knee_type}.
+#' \link[DropletUtils]{barcodeRanks} for \code{'inflection'} and \code{'knee'} \code{knee_type}.
+#'
 
 #' @return \code{Seurat} object with whitelist meta data.
 #' @export
@@ -13,7 +17,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
+load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), knee_type = c('inflection', 'roryk', 'knee')) {
 
   # load counts
   if (type[1] == 'kallisto') {
@@ -25,7 +29,7 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
   }
 
   # generate/load whitelist
-  whitelist <- get_scseq_whitelist(counts, data_dir)
+  whitelist <- get_scseq_whitelist(counts, data_dir, knee_type = knee_type)
   kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
@@ -103,6 +107,7 @@ load_kallisto_counts <- function(data_dir) {
   # read sparse matrix
   counts <- Matrix::readMM(file.path(data_dir, 'genecount', 'genes.mtx'))
   counts <- Matrix::t(counts)
+  counts <- as(counts, 'dgCMatrix')
 
   # read annotations
   row.names(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.genes.txt'))

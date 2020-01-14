@@ -1,13 +1,12 @@
 #' Get whitelist for high quality cells
 #'
 #' @param counts dgTMatrix of counts for all barcodes.
-#' @param data_dir Directory that contains kallisto \code{'bus_output'} folder that counts were loaded from.
-#'   whitelist is loaded from here if previously saved.
+#' @inheritParams load_scseq
 #'
 #' @return Character vector of barcodes called as high quality cells.
 #' @export
 #' @keywords internal
-get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
+get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type = c('inflection', 'roryk', 'knee')) {
 
   # check for previous whitelist
   whitelist_path <- file.path(data_dir, 'whitelist.txt')
@@ -18,7 +17,7 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 
   # based on salmon alevin paper
   # get knee and keep at least 1000 below it
-  knee <- get_knee(counts)
+  knee <- get_knee(counts, knee_type = knee_type)
   ncount <- Matrix::colSums(counts)
   ncount.ord <- order(ncount, decreasing = TRUE)
 
@@ -99,14 +98,14 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE) {
 }
 
 
-#' Get Roryk knee point and plot on barcode rank plot
+#' Get knee point and plot on barcode rank plot
 #'
-#' @param counts dgTMatrix of counts for all barcodes.
+#' @inheritParams get_scseq_whitelist
 #'
-#' @return count value corresponding to Roryk knee point
+#' @return count value corresponding to knee point
 #' @export
 #' @keywords internal
-get_knee <- function(counts) {
+get_knee <- function(counts, knee_type = c('inflection', 'roryk', 'knee')) {
   bcrank <- DropletUtils::barcodeRanks(counts)
 
   # Only showing unique points for plotting speed.
@@ -124,7 +123,10 @@ get_knee <- function(counts) {
   legend("bottomleft", legend=c("Inflection", "Knee", "Roryk Knee"),
          col=c("darkgreen", "dodgerblue", "red"), lty=2, cex=1.2)
 
-  return(bcrank@metadata$inflection)
+  switch(knee_type[1],
+         'inflection' = bcrank@metadata$inflection,
+         'roryk' = roryk_knee,
+         'knee' = bcrank@metadata$knee)
 }
 
 #' Pick Roryk knee point
