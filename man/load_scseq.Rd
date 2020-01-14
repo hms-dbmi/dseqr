@@ -4,16 +4,21 @@
 \alias{load_scseq}
 \title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
 \usage{
-load_scseq(data_dir, project, type = c("kallisto", "cellranger"))
+load_scseq(
+  data_dir,
+  project,
+  type = c("kallisto", "cellranger"),
+  knee_type = c("inflection", "roryk", "knee")
+)
 }
 \arguments{
 \item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
 
 \item{project}{String identifying sample.}
 
-\item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cell_ranger'}.}
+\item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.}
 
-\item{h5}{Boolean indicating, for \code{type = 'cell_ranger'}, if \code{data_dir} container a hdf5 file.}
+\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
 \code{Seurat} object with whitelist meta data.
@@ -26,4 +31,8 @@ Load kallisto/bustools quantification into a Seurat or SingleCellExperiment obje
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 load_scseq(data_dir)
 
+}
+\seealso{
+\link{pick_roryk_cutoff} for details of \code{'roryk'} \code{knee_type}.
+\link[DropletUtils]{barcodeRanks} for \code{'inflection'} and \code{'knee'} \code{knee_type}.
 }

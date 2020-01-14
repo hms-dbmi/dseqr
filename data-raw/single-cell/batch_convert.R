@@ -1,13 +1,19 @@
 # conversion of legacy Seurat to new SingleCellExperiment stuff
 library(drugseqr)
-setwd("~/Documents/Batcave/zaklab/patient_data/sjia/single-cell")
-dirs <- setdiff(list.files(), 'integrated.rds')
+setwd("~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/single-cell")
+dirs <- setdiff(list.files(), c('integrated.rds', '10X-data'))
 sc_dir <- '.'
 
 for (dataset_name in dirs) {
   cat('working on', dataset_name, '...\n')
   scseq_path <- file.path(dataset_name, 'scseq.rds')
   sce <- readRDS(scseq_path)
+
+  tests <- pairwise_wilcox(sce)
+  markers <- get_scseq_markers(tests)
+  markers_path <- file.path(dataset_name, 'markers.rds')
+  saveRDS(markers, markers_path)
+  next()
 
   if (class(sce) == 'Seurat') {
     # make copy of saved scseq in case mess up

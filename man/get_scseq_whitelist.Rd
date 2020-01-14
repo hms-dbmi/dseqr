@@ -4,13 +4,19 @@
 \alias{get_scseq_whitelist}
 \title{Get whitelist for high quality cells}
 \usage{
-get_scseq_whitelist(counts, data_dir, overwrite = FALSE)
+get_scseq_whitelist(
+  counts,
+  data_dir,
+  overwrite = FALSE,
+  knee_type = c("inflection", "roryk", "knee")
+)
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}
 
-\item{data_dir}{Directory that contains kallisto \code{'bus_output'} folder that counts were loaded from.
-whitelist is loaded from here if previously saved.}
+\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
+
+\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
 Character vector of barcodes called as high quality cells.

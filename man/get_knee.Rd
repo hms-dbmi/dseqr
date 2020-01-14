@@ -2,17 +2,19 @@
 % Please edit documentation in R/get_scseq_whitelist.R
 \name{get_knee}
 \alias{get_knee}
-\title{Get Roryk knee point and plot on barcode rank plot}
+\title{Get knee point and plot on barcode rank plot}
 \usage{
-get_knee(counts)
+get_knee(counts, knee_type = c("inflection", "roryk", "knee"))
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}
+
+\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
-count value corresponding to Roryk knee point
+count value corresponding to knee point
 }
 \description{
-Get Roryk knee point and plot on barcode rank plot
+Get knee point and plot on barcode rank plot
 }
 \keyword{internal}
