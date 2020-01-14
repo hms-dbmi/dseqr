@@ -270,18 +270,6 @@
       "Repository": "CRAN",
       "Hash": "d57ac35220b39c591388ab3a080f9cbe"
     },
-    "PADOG": {
-      "Package": "PADOG",
-      "Version": "2.1.0",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "PADOG",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRef": "master",
-      "RemoteSha": "2d9e435424c1ef36069edc07ba991dadc7057a91",
-      "Hash": "8eca0ca5620377b16f16c0a196edc1d0"
-    },
     "R.methodsS3": {
       "Package": "R.methodsS3",
       "Version": "1.7.1",

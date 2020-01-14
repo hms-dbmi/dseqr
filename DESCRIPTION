@@ -1,7 +1,7 @@
 Package: drugseqr
 Type: Package
 Title: Finds CMAP02/L1000 Compounds That Oppose Gene Expression Signatures.
-Version: 0.1.17
+Version: 0.1.18
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: Explore single-cell and bulk RNA-seq datasets and run queries against L1000 and CMAP02 signatures.
@@ -27,7 +27,7 @@ Imports:
     ggplot2 (>= 3.1.0),
     ggridges (>= 0.5.1),
     GO.db (>= 3.10.0),
-    igraph (> = 1.2.4.2),
+    igraph (>= 1.2.4.2),
     limma (>= 3.40.2),
     org.Hs.eg.db (>= 3.10.0),
     magrittr (>= 1.5),
