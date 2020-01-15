@@ -12,7 +12,7 @@ drugsGenesPlotly(
   top_table,
   ambient,
   drug_study,
-  have_queries,
+  have_top_table,
   pert_signature
 )
 }

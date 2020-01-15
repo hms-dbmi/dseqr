@@ -15,7 +15,7 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
              top_table = form$top_table,
              ambient = form$ambient,
              pert_signature = form$pert_signature,
-             have_queries = form$have_queries,
+             have_top_table = form$have_top_table,
              drug_study = form$drug_study)
 
 
@@ -96,8 +96,10 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
   # show
   have_queries <- reactive(isTruthy(drugStudy$query_res()))
-  observe(toggle('container', condition = have_queries()))
+  have_top_table <- reactive(isTruthy(selectedAnal$top_table()))
 
+  observe(toggle('drug_study_container', condition = have_queries()))
+  observe(toggle('pert_signature_container', condition = have_top_table()))
 
   return(list(
     top_table = selectedAnal$top_table,
@@ -105,7 +107,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
     is_pert = selectedAnal$is_pert,
     anal_name = selectedAnal$name,
     query_res = drugStudy$query_res,
-    have_queries = have_queries,
+    have_top_table = have_top_table,
     drug_study = drugStudy$drug_study,
     show_clinical = drugStudy$show_clinical,
     direction = drugStudy$direction,
@@ -576,7 +578,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, have_queries, pert_signature) {
+drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, have_top_table, pert_signature) {
 
 
   path_id <- reactive({
@@ -585,7 +587,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     if (grepl('^L1000', study)) return('Query genes - L1000')
   })
 
-  observe(toggle('container', condition = have_queries()))
+  observe(toggle('container', condition = have_top_table()))
 
 
   # the gene plot
@@ -702,7 +704,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     req(sel)
 
     choices <- choices()
-    sel_idx <- which(choices$value == sel)
+    sel_idx <- which(choices$label == sel)
 
     updateSelectizeInput(session, 'query', choices = choices, selected = sel_idx, server = TRUE)
   })
@@ -790,6 +792,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
     } else if (is_pert()) {
       drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name))
+      sapply(drug_paths, dl_pert_result)
       drug_queries <- lapply(drug_paths, readRDS)
     }
 

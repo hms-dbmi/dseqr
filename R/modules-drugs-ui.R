@@ -41,15 +41,17 @@ drugsFormInput <- function(id) {
     div(class = "well-form well-bg",
         selectedAnalInput(ns('drugs')),
         customQueryFormInput(ns('custom-query')),
-        div(id = ns('container'), style = 'display: none',
-            selectedDrugStudyInput(ns('drug_study')),
-            selectedPertSignatureInput(ns('genes')),
-            div(class = 'hidden-forms',
-                advancedOptionsInput(ns('advanced'))
-            )
+        div(id = ns('drug_study_container'), style = 'display: none',
+            selectedDrugStudyInput(ns('drug_study'))
+        ),
+        div(id = ns('pert_signature_container'), style = 'display: none',
+            selectedPertSignatureInput(ns('genes'))
+        ),
+        div(class = 'hidden-forms',
+            advancedOptionsInput(ns('advanced'))
         )
-
     )
+
   })
 }
 
@@ -221,3 +223,4 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
   )
 
 }
+

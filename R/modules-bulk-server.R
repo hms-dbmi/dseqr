@@ -1376,12 +1376,12 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   # differential expression top table
   top_table <- reactive({
-    req(full_contrast())
+    if (!full_contrast()) return(NULL)
     lm_fit <- lm_fit()
     groups <- input$contrast_groups
 
     # loses sync when groups selected and change dataset
-    req(all(groups %in% colnames(lm_fit$mod)))
+    if (!all(groups %in% colnames(lm_fit$mod))) return(NULL)
 
     tt <- get_top_table(lm_fit, groups)
     tt[order(tt$P.Value), ]
