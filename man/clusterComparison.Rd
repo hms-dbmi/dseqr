@@ -10,7 +10,6 @@ clusterComparison(
   session,
   dataset_dir,
   scseq,
-  markers,
   annot_path,
   ref_preds
 )

@@ -168,7 +168,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scClusterComparison <- callModule(clusterComparison, 'cluster',
                                     dataset_dir = dataset_dir,
                                     scseq = scDataset$scseq,
-                                    markers = scDataset$markers,
                                     annot_path = scDataset$annot_path,
                                     ref_preds = scLabelTransfer)
 
@@ -280,18 +279,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
-
-  # load markers and name using annot
-  markers <- reactive({
-    annot <- annot()
-    req(annot)
-
-    markers_path <- scseq_part_path(sc_dir, dataset_name(), 'markers')
-    markers <- readRDS(markers_path)
-    names(markers) <- annot
-    return(markers)
-  })
-
   # available single-cell datasets
   datasets <- reactive({
     # reactive to new single cell datasets
@@ -370,14 +357,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     gc()
 
     progress$set(message = "Getting markers", value = 6)
-    wilcox_tests <- pairwise_wilcox(scseq)
-    markers <- get_scseq_markers(wilcox_tests)
+    tests <- pairwise_wilcox(scseq)
+    markers <- get_scseq_markers(tests)
 
     # top markers for SingleR
-    top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
+    top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
     progress$set(message = "Saving", value = 7)
-    anal <- list(scseq = scseq, markers = markers, annot = names(markers), top_markers = top_markers)
+    anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
     save_scseq_data(anal, dataset_name, sc_dir)
 
     progress$set(value = 9)
@@ -422,7 +409,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   return(list(
     dataset_name = dataset_name,
     scseq = scseq,
-    markers = markers,
     annot = annot,
     annot_path = annot_path,
     datasets = datasets,
@@ -798,26 +784,24 @@ comparisonType <- function(input, output, session, scseq, is.integrated) {
 #' Logic for cluster comparison input
 #' @export
 #' @keywords internal
-clusterComparison <- function(input, output, session, dataset_dir, scseq, markers, annot_path, ref_preds) {
+clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_path, ref_preds) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   selected_cluster <- reactiveVal()
-  show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
-  con_markers <- reactiveVal(list())
+  markers <- reactiveVal(list())
 
   # things that return for plotting
   annot <- reactiveVal(NULL)
   selected_markers <- reactiveVal(NULL)
 
-  show_rename <- reactive({
-    (input$rename_cluster + input$show_rename) %% 2 != 0
-  })
+  show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
+  show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
 
   test_cluster <- reactive({
     test_cluster <- input$selected_cluster
     req(test_cluster)
-    gsub(' vs .+?$', '', test_cluster)
+    gsub('-vs-.+?$', '', test_cluster)
   })
 
   # update data.frame for cluster/contrast choices
@@ -836,13 +820,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
     return(choices)
   })
 
-
-  all_markers <- reactive({
-    con_markers <- con_markers()
-    markers <- markers()
-    names(markers) <- seq(1, along.with = markers)
-    return(c(markers, con_markers))
-  })
 
   observe({
     ref_preds <- ref_preds()
@@ -865,7 +842,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
 
   # reset if switch analysis
   observeEvent(dataset_dir(), {
-    con_markers(list())
+    markers(list())
     selected_cluster(NULL)
     annot(NULL)
     selected_markers(NULL)
@@ -931,31 +908,32 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
   })
 
 
-  # get cluster if don't have (for comparing specific cluster)
+  # get/load markers if don't have
   observeEvent(input$selected_cluster, {
     sel <- input$selected_cluster
     req(sel)
+    if (sel %in% names(markers())) return(NULL)
 
-    if (!sel %in% names(all_markers())) {
-      con <- strsplit(sel, ' vs ')[[1]]
-      con_markers <- con_markers()
+    markers <- markers()
+    dataset_dir <- dataset_dir()
 
-      # returns both directions
-      tests <- pairwise_wilcox(scseq(), restrict = con)
-      markers <- get_scseq_markers(tests)
-      names(markers) <- paste(names(markers), 'vs', rev(names(markers)))
+    if (show_contrasts()) {
+      con_markers <- get_contrast_markers(sel, dataset_dir)
+      markers <- c(markers, con_markers)
 
-      con_markers <- c(con_markers, markers)
-      con_markers(con_markers)
+    } else {
+      markers_path <- file.path(dataset_dir, paste0('markers_', sel, '.rds'))
+      markers[[sel]] <- readRDS(markers_path)
     }
+
+    markers(markers)
   })
 
 
   observe({
     sel <- selected_cluster()
     req(sel)
-    selected_markers <- all_markers()[[sel]]
-    selected_markers(selected_markers)
+    selected_markers(markers()[[sel]])
   })
 
 
@@ -964,6 +942,35 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, marker
     selected_markers = selected_markers,
     selected_cluster = selected_cluster
   ))
+}
+
+#' Get markers for one cluster against one other cluster
+#'
+#' @param con String identifying clusters to compare e.g. \code{'1vs2'}
+#' @param dataset_dir Path to folder for dataset
+#'
+#' @return Named list with data.frames for each comparison direction
+#' @export
+#' @keywords internal
+#'
+get_contrast_markers <- function(con, dataset_dir) {
+  con <- strsplit(con, '-vs-')[[1]]
+  tests_dir <- file.path(dataset_dir, 'tests')
+  pairs_path <- file.path(tests_dir, 'pairs.rds')
+  pairs <- readRDS(pairs_path)
+
+  keep <- apply(pairs, 1, function(row) all(con %in% row))
+  keep <- which(keep)
+
+  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.rds'))
+  tests <- list(pairs = pairs[keep, ],
+                statistics = lapply(stat_paths, readRDS))
+
+  # returns both directions
+  con_markers <- get_scseq_markers(tests)
+  names(con_markers) <- paste0(names(con_markers), '-vs-', rev(names(con_markers)))
+
+  return(con_markers)
 }
 
 
@@ -1214,7 +1221,7 @@ plot_ridge <- function(gene, selected_cluster, scseq) {
     ggplot2::scale_fill_manual(values = c(color, 'grey')) +
     ggplot2::scale_color_manual(values = c('black', 'gray')) +
     ggplot2::scale_alpha_manual(values = c(0.95, 0.25)) +
-    ggridges::geom_density_ridges(scale = 2.5, rel_min_height = 0.001) +
+    ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
     ggridges::theme_ridges(center_axis_labels = TRUE) +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::scale_y_discrete(expand = c(0, 0)) +

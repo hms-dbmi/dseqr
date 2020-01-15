@@ -225,7 +225,7 @@ get_contrast_choices <- function(clusters, test) {
 
   contrast_choices <- data.frame(test = stringr::str_trunc(test_name, 11, ellipsis = '..'),
                                  ctrl = stringr::str_trunc(c('all', ctrl_names), 11, ellipsis = '..'),
-                                 value = c(test, paste0(test, ' vs ', ctrls)),
+                                 value = c(test, paste0(test, '-vs-', ctrls)),
                                  testColor = colours[test_name],
                                  ctrlColor = c('white', colours[ctrl_names]), row.names = NULL, stringsAsFactors = FALSE)
 
@@ -436,7 +436,30 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 
   dir.create(anal_dir)
   for (type in names(scseq_data)) {
-    saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
+
+    if (type == 'markers') {
+      # save marker data.frames individually for fast loading
+
+      markers <- scseq_data[[type]]
+      for (i in names(markers))
+        saveRDS(markers[[i]], scseq_part_path(sc_dir, anal_name, paste0('markers_', i)))
+
+    } else if (type == 'tests') {
+      # save pairwise test statistics for fast single group comparisons
+
+      tests <- scseq_data[[type]]
+      tests_dir <- file.path(anal_name, 'tests')
+      dir.create(file.path(sc_dir, tests_dir))
+
+      saveRDS(tests$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
+
+      for (i in seq_along(tests$statistics))
+        saveRDS(tests$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
+
+    } else {
+      saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
+    }
+
   }
 
   return(NULL)
