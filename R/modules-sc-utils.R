@@ -158,6 +158,8 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
     choices$ntest <- cluster_stats$ntest
     choices$nctrl <- format(cluster_stats$nctrl)
     choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
+    choices$ntest_each <- cluster_stats$ntest_each
+    choices$nctrl_each <- cluster_stats$nctrl_each
 
   } else {
     # show the cell numbers/percentages
@@ -194,9 +196,22 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
 
   is.integrated <- 'merge.info' %in% names(scseq@metadata)
   if (is.integrated) {
+
+    # number of total test and ctrl cells (shown)
     nbins <- length(levels(scseq$cluster))
-    stats$ntest <- tabulate(scseq$cluster[scseq$orig.ident == 'test'], nbins = nbins)
-    stats$nctrl <- tabulate(scseq$cluster[scseq$orig.ident == 'ctrl'], nbins = nbins)
+    is.test <- scseq$orig.ident == 'test'
+    stats$ntest <- tabulate(scseq$cluster[is.test], nbins = nbins)
+    stats$nctrl <- tabulate(scseq$cluster[!is.test], nbins = nbins)
+
+    # number of test and ctrl cells in each sample (title)
+    test <- unique(scseq$batch[is.test])
+    ctrl <- unique(scseq$batch[!is.test])
+
+    neach <- tapply(scseq$cluster, list(scseq$batch, scseq$cluster), length)
+    neach[is.na(neach)] <- 0
+
+    stats$ntest_each <- apply(neach[test,, drop = FALSE], 2, paste, collapse = '-')
+    stats$nctrl_each <- apply(neach[ctrl,, drop = FALSE], 2, paste, collapse = '-')
   }
 
   saveRDS(stats, stats_path)

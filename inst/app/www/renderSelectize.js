@@ -11,9 +11,14 @@ function contrastOptions(item, escape) {
   var infoSamples =  "<div style='color: #A0A0A0;text-align:right;'>" +
                        item.ntest + " :: " + item.nctrl + 
                       "</div>";
+
+  // for integrated dataset show number of cells in each test/ctrl sample
+  var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
+  var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
+
   var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
 
-  var clustEl = "<div style='columns: 2;'>" +
+  var clustEl = "<div style='columns: 2;' title='" + title + "'>" +
                             "<div style='margin-right: -80px'>" +
                               "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
                               escape(item.name) +
@@ -44,8 +49,13 @@ function contrastItem(item, escape) {
   var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
 
 
+  // for integrated dataset show number of cells in each test/ctrl sample
+  var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
+  var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
+
+
   // styling if looking at cluster
-  var clustEl = "<div>" +
+  var clustEl = "<div title='" + title + "'>" +
                     "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
                      escape(item.name) +
                      info +
