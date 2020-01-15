@@ -10,8 +10,6 @@ scMarkerPlot(
   session,
   scseq,
   selected_gene,
-  selected_group,
-  cached_plot,
   fname_fun = function() { },
   downloadable = TRUE
 )

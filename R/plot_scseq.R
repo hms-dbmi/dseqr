@@ -52,40 +52,6 @@ plot_tsne_gene <- function(scseq, gene) {
   return(gene_plot)
 }
 
-#' Format gene plots for sample comparison for drugseqr app
-#'
-#' @param plot Returned by
-#' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
-#' @param scseq \code{Seurat} object.
-#'
-#' @return \code{plot} formatted for drugseqr app
-#' @export
-#' @keywords internal
-format_sample_gene_plot <- function(plot, group, selected_gene, scseq) {
-
-  selected_gene <- make.names(selected_gene)
-
-  # the min and max gene expression value
-  lims <- range(plot$data[[selected_gene]])
-
-  # show selected group only
-  sel.cells <- colnames(scseq)[scseq$orig.ident == group]
-  plot$data <- plot$data[row.names(plot$data) %in% sel.cells, ]
-
-  # add selected group as title
-  plot <- plot + ggplot2::ggtitle(toupper(group)) +
-    ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
-
-  # use the same scale for each sample so that comparable
-  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low ="lightgray", high = "blue", limits = lims))
-
-  # remove control plot labels and legend
-  if (group == 'ctrl')
-    plot <- plot + ggplot2::xlab('') + ggplot2::ylab('') +
-    ggplot2::theme(legend.position = 'none')
-
-  return(plot)
-}
 
 theme_no_axis_vals <- function() {
   ggplot2::theme(axis.text = ggplot2::element_blank(),

@@ -29,29 +29,11 @@ scPageUI <- function(id, tab, active) {
                 )
             )
         ),
-        # row for violin plots
-        # div(class = 'row', id = ns('ridge_plot_row'),
-        #     div(class = "col-sm-6 col-lg-6",
-        #     )
-        # ),
-        # row for sample (test vs ctrl) comparison
-        div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-6 col-lg-6 col-lg-push-6",
-                scMarkerPlotOutput(ns('marker_plot_ctrl'))
-            ),
-            div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
-                scMarkerPlotOutput(ns('marker_plot_test'))
-            )
-        ),
-        # row for labels comparison
-        div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-6 col-lg-6 col-lg-push-6",
-                scClusterPlotOutput(ns('label_plot2'))
-            ),
-            div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
-                scClusterPlotOutput(ns('label_plot1'))
-            )
-        )
+        # row for samples comparison (integrated test vs ctrl)
+        div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;'),
+
+        # row for labels comparison (integration before and after)
+        div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;')
     )
   })
 }
@@ -305,3 +287,4 @@ scSampleComparisonInput <- function(id) {
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }
+

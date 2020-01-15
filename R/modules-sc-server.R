@@ -16,36 +16,21 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   scCluster <- callModule(scClusterPlot, 'cluster_plot',
                           scseq = scForm$scseq,
                           fname_fun = cluster_data_fname,
-                          downloadable = TRUE,
-                          cached_plot = reactive(NULL))
+                          downloadable = TRUE)
 
   # filename generator for marker plot data
-  marker_data_fname <- function(type, selected_group = NULL) {
-    return(function() {
-
-      if (type == 'cluster') {
-        fname <- paste0(scForm$dataset_name(),
-                        '_', scForm$selected_gene_cluster(),
-                        '_marker_plot_data_', Sys.Date(), '.csv')
-
-      } else if (type =='sample') {
-        fname <- paste0(scForm$dataset_name(),
-                        '_', selected_group,
-                        '_', scForm$selected_gene_sample(),
-                        '_marker_plot_data_', Sys.Date(), '.csv')
-      }
-
-      return(fname)
-    })
+  cluster_fname <- function() {
+    fname <- paste0(scForm$dataset_name(),
+                    '_', scForm$selected_gene_cluster(),
+                    '_marker_plot_data_', Sys.Date(), '.csv')
+    return(fname)
   }
 
   # showing cluster comparison
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
                                 scseq = scForm$scseq,
                                 selected_gene = scForm$selected_gene_cluster,
-                                selected_group = 'all',
-                                fname_fun = marker_data_fname('cluster'),
-                                cached_plot = reactive(NULL))
+                                fname_fun = cluster_fname)
 
   callModule(scBioGpsPlot, 'biogps_plot',
              selected_gene = scForm$selected_gene_cluster)
@@ -56,50 +41,6 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_cluster = scForm$selected_cluster,
              scseq = scForm$scseq)
 
-  # showing sample comparison
-  scMarkerSample <- callModule(scMarkerPlot, 'marker_plot_test',
-                               scseq = scForm$scseq,
-                               selected_gene = scForm$selected_gene_sample,
-                               selected_group = 'test',
-                               fname_fun = marker_data_fname('sample', 'test'),
-                               cached_plot = reactive(NULL))
-
-  callModule(scMarkerPlot, 'marker_plot_ctrl',
-             scseq = scForm$scseq,
-             selected_gene = scForm$selected_gene_sample,
-             selected_group = 'ctrl',
-             fname_fun = marker_data_fname('sample', 'ctrl'),
-             cached_plot = scMarkerSample$plot)
-
-  # showing labels comparison
-
-  label_plot1 <- reactive({
-    anal <- scForm$label_anals()[1]
-    req(anal)
-
-    plot <- scCluster$plot()
-    scseq <- scForm$scseq()
-    annot <- readRDS(scseq_part_path(sc_dir, anal, 'annot'))
-
-    get_label_plot(anal, scseq, annot, plot)
-  })
-
-  label_plot2 <- reactive({
-    anal <- scForm$label_anals()[2]
-    req(anal)
-
-    plot <- scCluster$plot()
-    scseq <- scForm$scseq()
-    annot <- readRDS(scseq_part_path(sc_dir, anal, 'annot'))
-
-    get_label_plot(anal, scseq, annot, plot)
-  })
-
-  callModule(scClusterPlot, 'label_plot1',
-             cached_plot = label_plot1)
-
-  callModule(scClusterPlot, 'label_plot2',
-             cached_plot = label_plot2)
 
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
@@ -120,11 +61,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 #' @keywords internal
 scForm <- function(input, output, session, sc_dir, indices_dir) {
 
-  # TODO: implement loading single cell dataset
-
   # updates if new integrated dataset
   new_dataset <- reactive(scIntegration())
-
 
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
@@ -132,9 +70,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                           new_dataset = new_dataset,
                           indices_dir = indices_dir)
 
-  observe({
-    toggle('form_container', condition = scDataset$dataset_exists())
-  })
+  observe(toggle('form_container', condition = scDataset$dataset_exists()))
 
   #TODO move label transfer and integration into dataset
 
@@ -1005,7 +941,8 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     if (exclude_ambient())
       ambient <- get_ambient(scseq(), markers = markers, cluster_markers = cluster_markers())
 
-    if (comparison_type() == 'samples')
+    type <- isolate(comparison_type())
+    if (type == 'samples')
       negative <- row.names(markers)[markers$logFC < 0]
 
     supress <- unique(c(ambient, negative))
@@ -1018,10 +955,10 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     scseq <- scseq()
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
-    comparison_type <- isolate(comparison_type())
+    type <- isolate(comparison_type())
 
     # will error if labels
-    req(comparison_type %in% c('samples', 'clusters'))
+    req(type %in% c('samples', 'clusters'))
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
 
     get_gene_choices(scseq, markers)
@@ -1085,11 +1022,9 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, cached_plot, fname_fun = function(){}, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
-    cached_plot <- cached_plot()
-    if (!is.null(cached_plot)) return(cached_plot)
     plot_tsne_cluster(scseq())
 
   })
@@ -1138,14 +1073,10 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker gene plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_group, cached_plot, fname_fun = function(){}, downloadable = TRUE) {
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun = function(){}, downloadable = TRUE) {
 
 
   plot <- reactive({
-    # cached plot if showing test samples
-    cached <- cached_plot()
-    if (!is.null(cached)) return(cached)
-
     req(selected_gene())
     plot_tsne_gene(scseq(), selected_gene())
   })
@@ -1153,10 +1084,6 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, selected_
   ploted_plot <- reactive({
     pl <- plot()
     req(pl)
-
-    if (selected_group != 'all')
-      pl <- format_sample_gene_plot(pl, selected_group, selected_gene(), scseq())
-
     return(pl)
   })
 
@@ -1205,6 +1132,7 @@ plot_ridge <- function(gene, selected_cluster, scseq) {
 
   cluster <- scseq$cluster
   logcounts <- SingleCellExperiment::logcounts(scseq)[gene, ]
+
   cols <- get_palette(levels(cluster))
   clus <- levels(cluster)[as.numeric(selected_cluster)]
   color <- cols[as.numeric(selected_cluster)]
@@ -1214,13 +1142,13 @@ plot_ridge <- function(gene, selected_cluster, scseq) {
   levs <- levels(cluster)[order(mean)]
   df <- data.frame(logcounts, cluster = factor(cluster, levels = levs))
 
-  df$group <- 'out'
-  df$group[cluster == clus] <- 'in'
+  df$hl.clus <- FALSE
+  df$hl.clus[cluster == clus] <- TRUE
 
-  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = group, alpha = group, color = group)) +
-    ggplot2::scale_fill_manual(values = c(color, 'grey')) +
-    ggplot2::scale_color_manual(values = c('black', 'gray')) +
-    ggplot2::scale_alpha_manual(values = c(0.95, 0.25)) +
+  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = hl.clus, alpha = hl.clus, color = hl.clus)) +
+    ggplot2::scale_fill_manual(values = c('grey', color)) +
+    ggplot2::scale_color_manual(values = c('gray', 'black')) +
+    ggplot2::scale_alpha_manual(values = c(0.25, 0.95)) +
     ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
     ggridges::theme_ridges(center_axis_labels = TRUE) +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
@@ -1233,6 +1161,64 @@ plot_ridge <- function(gene, selected_cluster, scseq) {
                    axis.title.x = ggplot2::element_text(color = '#333333', size = 14),
                    axis.title.y = ggplot2::element_blank()
     )
+
+}
+
+
+plot_sample_meds <- function(gene, selected_cluster, scseq) {
+
+  group <- scseq$orig.ident
+  batch <- scseq$batch
+  cluster <- scseq$cluster
+  logcounts <- SingleCellExperiment::logcounts(scseq)[gene, ]
+
+  tb <- tibble::tibble(logcounts, cluster, group, batch)
+
+  sel <- as.numeric(selected_cluster)
+  cols <- get_palette(levels(cluster))
+  clus <- levels(cluster)[sel]
+  color <- cols[sel]
+
+
+  res <- tb %>%
+    group_by(batch, cluster) %>%
+    add_tally() %>%
+    summarise(meds = median(logcounts),
+              n = unique(n),
+              mads = stats::mad(logcounts),
+              group = unique(group))
+
+  res$color <- 'white'
+  res$color[res$group == 'test'] <- 'gray'
+  res$color[res$group == 'test' & res$cluster == sel] <- 'red'
+
+  clus_levels <- res %>% ungroup() %>%
+    group_by(cluster, group) %>%
+    summarize(mean.meds = mean(meds)) %>%
+    arrange(cluster, group) %>%
+    summarize(diffs = mean.meds[1] - mean.meds[2]) %>%
+    arrange(diffs) %>%
+    pull(cluster)
+
+
+
+  res$cluster <- factor(res$cluster, levels = clus_levels)
+  res$color <- factor(res$color, levels = c('red', 'gray', 'white'))
+
+
+  ggplot2::ggplot(res, ggplot2::aes(x = meds, y = cluster, fill = color)) +
+    ggplot2::scale_fill_identity('', guide = 'legend', labels = c('Test Selected', 'Test', 'Control')) +
+    ggplot2::geom_jitter(height = 0.25, shape = 21, color = '#333333', size = 3) +
+    ggplot2::xlab('Median Logcounts For Samples') +
+    ggplot2::ylab('') +
+    ggplot2::ggtitle('') +
+    ggpubr::theme_pubr(legend = 'top')  +
+    theme_dimgray() +
+    ggplot2::theme(axis.text = ggplot2::element_text(size = 14, color = '#333333'),
+                   axis.title.x = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(t = 15)),
+                   axis.ticks.x = ggplot2::element_line(size = 0),
+                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.1))
+
 
 }
 
@@ -1363,4 +1349,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, is_sc = func
     clusters = reactive(input$selected_clusters)
   ))
 }
-
