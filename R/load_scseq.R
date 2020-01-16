@@ -431,7 +431,9 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
 
   # mnn integration
   # TODO use fastMNN restriction to exclude batch specific cells
-  combined <- do.call('noCorrect', scseqs, envir = loadNamespace('batchelor'))
+  no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
+  combined <- do.call(no_correct('logcounts'), scseqs)
+  counts <- do.call(no_correct('counts'), scseqs)
 
 
   set.seed(1000101001)
@@ -460,6 +462,7 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
 
   # store merged (batch normalized) for DE
   SummarizedExperiment::assay(mnn.out, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+  SummarizedExperiment::assay(mnn.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
 
   # need corrected as.matrix for as.Seurat before plots
   SingleCellExperiment::reducedDim(mnn.out, 'corrected') <- as.matrix(SingleCellExperiment::reducedDim(mnn.out, 'corrected'))

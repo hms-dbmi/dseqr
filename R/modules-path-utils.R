@@ -218,11 +218,13 @@ fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
   # pseudo bulk analysis
   has_replicates <- length(unique(scseq$batch)) > 2
   if (has_replicates) {
-    #TODO
     browser()
+    lm_fit <- run_limma_pbulk()
+
+  } else {
+    lm_fit <- run_lmfit_scseq(scseq)
   }
 
-  lm_fit <- run_lmfit_scseq(scseq)
   lm_fit$has_replicates <- has_replicates
 
   # save lm_fit result (slow and can re-use for other contrasts)
@@ -238,38 +240,42 @@ fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
 
 #' Run pseudo bulk limma fit
 #'
-#' @param scseq \code{Seurat} object
-#' @param dataset_dir Path to folder to save fit result in.
-#' @param clusters_name String with comma seperated selected clusters.
-run_limma_pbulk <- function(scseq, dataset_dir, clusters_name) {
+#' @param scseq \code{SingleCellExperiment} object
+run_limma_pbulk <- function(dataset_dir, species = 'Homo sapiens', release = '94') {
+  summed_path <- file.path(dataset_dir, 'summed.rds')
+  summed <- readRDS(summed_path)
 
-  summed <- scater::sumCountsAcrossCells(scseq[['RNA']]@counts, scseq$project)
-  summed <- summed[edgeR::filterByExpr(summed), ]
-  summed <- as.matrix(summed)
+  # discard outlier samples
+  y <- edgeR::DGEList(counts(summed), samples = summed@colData)
+  outl <- scater::isOutlier(y$samples$lib.size, log=TRUE, type="lower")
+  y <- y[, !outl]
 
-  # get pdata
-  pdata <- scseq@meta.data %>%
-    dplyr::select(project, orig.ident) %>%
-    dplyr::distinct() %>%
-    dplyr::rename(group = orig.ident)
+  # filter genes
+  keep <- edgeR::filterByExpr(y, group = summed$cluster[!outl])
+  y <- y[keep, ]
 
-  # get normalization factors
-  row.names(pdata) <- pdata$project
-  pdata <- pdata[colnames(summed), ]
-  pdata$lib.size <- colSums(summed)
-  pdata$norm.factors <- edgeR::calcNormFactors(summed)
+  # normalize for composition
+  y <- edgeR::calcNormFactors(y)
 
   # construct eset
-  fdata <- data.frame(SYMBOL = row.names(summed), row.names = row.names(summed))
-  eset <- Biobase::ExpressionSet(summed,
-                                 phenoData = Biobase::AnnotatedDataFrame(pdata),
-                                 featureData = Biobase::AnnotatedDataFrame(fdata))
+  # todo fix missing fdata despite having row names
+  annot <- get_ensdb_package(species, release)
+  fdata <- setup_fdata(species, release)
+  eset <- construct_eset(y, fdata, annot)
 
-  anal <- run_limma(eset,
-                    dataset_dir = dataset_dir,
-                    anal_suffix = paste0('pbulk_', clusters_name),
-                    prev_anal = list(pdata = pdata))
-  return(anal)
+  # use e.g. test_1 as sample label (test sample cluster 1)
+  pdata <- Biobase::pData(eset)
+  pdata$group <- paste(pdata$orig.ident, pdata$cluster, sep = '_')
+
+  # add vst transformed values
+  dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
+  dds <- DESeq2::estimateSizeFactors(dds)
+  vsd <- DESeq2::vst(dds, blind = FALSE)
+  vsd <- SummarizedExperiment::assay(vsd)
+  Biobase::assayDataElement(eset, 'vsd') <- vsd
+
+  lm_fit <- run_limma(eset, dataset_dir, prev_anal = list(pdata = pdata))
+
 }
 
 #' Move genes to bottom of markers data.frame

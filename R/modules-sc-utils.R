@@ -324,14 +324,28 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   combined <- add_integrated_ambient(combined, ambient)
 
   updateProgress(5/n, 'getting markers')
-  wilcox_tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
-  markers <- get_scseq_markers(wilcox_tests)
+  tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
+  markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
-  top_markers <- scran::getTopMarkers(wilcox_tests$statistics, wilcox_tests$pairs)
+  top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
+
+  # generate pseudo-bulk so that can exclude counts (large)
+  summed <- scater::aggregateAcrossCells(combined,
+                                         id = S4Vectors::DataFrame(
+                                           cluster = combined$cluster,
+                                           batch = combined$batch))
+
+  SummarizedExperiment::assay(combined, 'counts') <- NULL
 
   updateProgress(6/n, 'saving')
-  scseq_data <- list(scseq = combined, markers = markers, top_markers = top_markers, annot = names(markers))
+  scseq_data <- list(scseq = combined,
+                     summed = summed,
+                     markers = markers,
+                     tests = tests,
+                     top_markers = top_markers,
+                     annot = names(markers))
+
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
   # get and save cluster stats

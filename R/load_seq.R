@@ -43,7 +43,7 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
   # construct eset
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(species, release)
-  eset <- construct_eset(q$quants, q$txi.deseq, fdata, annot)
+  eset <- construct_eset(q$quants, fdata, annot, q$txi.deseq)
 
   if (save_dgel) {
     # used for testing purposes
@@ -66,7 +66,7 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
 #' @keywords internal
 #' @export
 #'
-construct_eset <- function(quants, txi.deseq, fdata, annot) {
+construct_eset <- function(quants, fdata, annot, txi.deseq = NULL) {
   # remove duplicate rows of counts
   rn <- row.names(quants$counts)
 
@@ -93,13 +93,16 @@ construct_eset <- function(quants, txi.deseq, fdata, annot) {
   # create environment with counts for limma and txi.deseq values for plots
   e <- new.env()
   e$exprs <- as.matrix(dt[, row.names(pdata), drop=FALSE])
-  e$abundance <- as.matrix(dt[, paste0(row.names(pdata), '_abundance'), drop=FALSE])
-  e$counts <- as.matrix(dt[, paste0(row.names(pdata), '_counts'), drop=FALSE])
-  e$length <- as.matrix(dt[, paste0(row.names(pdata), '_length'), drop=FALSE])
 
-  colnames(e$abundance) <- gsub('_abundance$', '', colnames(e$abundance))
-  colnames(e$counts) <- gsub('_counts$', '', colnames(e$counts))
-  colnames(e$length) <- gsub('_length$', '', colnames(e$length))
+  if (!is.null(txi.deseq)) {
+    e$abundance <- as.matrix(dt[, paste0(row.names(pdata), '_abundance'), drop=FALSE])
+    e$counts <- as.matrix(dt[, paste0(row.names(pdata), '_counts'), drop=FALSE])
+    e$length <- as.matrix(dt[, paste0(row.names(pdata), '_length'), drop=FALSE])
+
+    colnames(e$abundance) <- gsub('_abundance$', '', colnames(e$abundance))
+    colnames(e$counts) <- gsub('_counts$', '', colnames(e$counts))
+    colnames(e$length) <- gsub('_length$', '', colnames(e$length))
+  }
 
   # seperate fdata and exprs and transfer to eset
   eset <- Biobase::ExpressionSet(e,
