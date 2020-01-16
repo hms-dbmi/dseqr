@@ -164,7 +164,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
               boxgap = args$boxgap,
               boxgroupgap = args$boxgroupgap,
               plot_fname = args$plot_fname,
-              ytitle = 'Normalized Expression',
+              ytitle = 'Adjusted Normalized Expression',
               xtitle = 'Gene')
   })
 

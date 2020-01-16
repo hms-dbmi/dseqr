@@ -4,14 +4,10 @@
 \alias{run_limma_pbulk}
 \title{Run pseudo bulk limma fit}
 \usage{
-run_limma_pbulk(scseq, dataset_dir, clusters_name)
+run_limma_pbulk(dataset_dir, species = "Homo sapiens", release = "94")
 }
 \arguments{
-\item{scseq}{\code{Seurat} object}
-
-\item{dataset_dir}{Path to folder to save fit result in.}
-
-\item{clusters_name}{String with comma seperated selected clusters.}
+\item{scseq}{\code{SingleCellExperiment} object}
 }
 \description{
 Run pseudo bulk limma fit
