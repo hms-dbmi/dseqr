@@ -31,9 +31,9 @@ scPageUI <- function(id, tab, active) {
         ),
         # row for samples comparison (integrated test vs ctrl)
         div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-12 col-lg-12",
+            div(class = "col-sm-6 col-lg-6",
                 scGeneMediansPlotOutput(ns('gmeds_plot'))
-            ),
+            )
         ),
 
         # row for labels comparison (integration before and after)

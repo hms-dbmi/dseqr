@@ -607,13 +607,6 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
 
   clusters_name <- collapse_sorted(selected_clusters)
-  clusters <- as.character(scseq$cluster)
-  in.sel <- clusters %in% selected_clusters
-
-  new.idents <- clusters
-  new.idents[in.sel] <- 'ident.1'
-  scseq$cluster <- factor(new.idents)
-
   fname <- paste0("markers_", clusters_name, '.rds')
   fpath <- file.path(dataset_dir, fname)
 
@@ -621,19 +614,12 @@ run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
     cluster_markers <- readRDS(fpath)
 
   } else {
-    tests <- pairwise_wilcox(scseq, block = scseq$batch)
-    keep <- grepl('ident.1', tests$pairs$first)
-    cluster_markers <- get_scseq_markers(tests, keep = keep)$ident.1
-
-    saveRDS(cluster_markers, fpath)
+    # get markers for multi-cluster selections
+    browser()
 
   }
 
-
-  scseq <- scseq[, in.sel]
-  fit <- fit_lm_scseq(scseq = scseq,
-                      dataset_dir = dataset_dir,
-                      clusters_name = clusters_name)
+  fit <- fit_lm_scseq(scseq, dataset_dir)
 
   res <- list(
     cluster_markers = cluster_markers,

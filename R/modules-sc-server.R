@@ -47,8 +47,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   callModule(scGeneMediansPlot, 'gmeds_plot',
              selected_gene = scForm$sample_gene,
-             selected_clusters = scForm$sample_clusters,
-             gmeds_plot_fun = scForm$gmeds_plot_fun)
+             gmeds_plot_fun = scForm$gmeds_plot_fun,
+             nclus = scForm$sample_nclus)
 
 
   observe({
@@ -167,6 +167,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     cluster_gene = scClusterGene$selected_gene,
     show_ridge = scClusterGene$show_ridge,
     sample_gene = scSampleGene$selected_gene,
+    sample_nclus = reactive(length(scClusterComparison$annot())),
     gmeds_plot_fun = scSampleComparison$gmeds_plot_fun,
     sample_clusters = scSampleComparison$selected_clusters,
     comparison_type = comparisonType,
@@ -377,15 +378,15 @@ get_sc_dataset_choices <- function(sc_dir) {
 }
 
 
-scGeneMediansPlot <- function(input, output, session, selected_gene, selected_clusters, gmeds_plot_fun) {
+scGeneMediansPlot <- function(input, output, session, selected_gene, gmeds_plot_fun, nclus) {
 
+  height <- reactive(nclus() * 50)
   output$gmeds_plot <- renderPlot({
     gene <- selected_gene()
-    cluster <- selected_clusters()
-    req(gene, cluster)
+    req(gene)
 
-    gmeds_plot_fun()(gene, cluster)
-  }, height = 500)
+    gmeds_plot_fun()(gene)
+  }, height = 1000)
 }
 
 #' Logic for label transfer between datasets
@@ -1165,8 +1166,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   # single cell dataset
   # can supply so that don't double load
   scseq <- reactive({
-    scseq <- input_scseq()
-    if (!is.null(input_scseq)) return(scseq)
+    input_scseq <- input_scseq()
+    if (!is.null(input_scseq)) return(input_scseq)
     readRDS(file.path(dataset_dir(), 'scseq.rds'))
   })
 
@@ -1194,16 +1195,13 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   # path to lmfit, cluster markers, and drug query results
   clusters_str <- reactive(collapse_sorted(input$selected_clusters))
 
-  lmfit_paths <- reactive(
-    c(pbulk = file.path(dataset_dir(), 'lm_fit_0svs.rds'),
-      clust = file.path(dataset_dir(), paste0('lm_fit_', clusters_str(), '.rds')))
-  )
+  lmfit_path <- reactive(file.path(dataset_dir(), 'lm_fit_0svs.rds'))
 
   markers_path <- reactive(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds')))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
 
   # do we have lm_fit and drug query results?
-  saved_lmfit <- reactive(lmfit_paths()[file.exists(lmfit_paths())])
+  saved_lmfit <- reactive(file.exists(lmfit_path()))
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
 
   # unlike bulk two-group comparisons
@@ -1213,11 +1211,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   cluster_markers <- reactiveVal()
 
   observeEvent(input$run_comparison, {
-    saved_lmfit <- saved_lmfit()
 
-    if (length(saved_lmfit)) {
+    if (saved_lmfit()) {
       resl <- list(
-        fit = readRDS(saved_lmfit),
+        fit = readRDS(lmfit_path()),
         cluster_markers = readRDS(markers_path())
       )
 
@@ -1259,8 +1256,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
       title <- 'Median Logcounts'
     }
 
-    sel <- input$selected_clusters
-    function(gene, sel) plot_scseq_gene_medians(obj, tts, logcounts, gene, sel, title)
+    levels(obj$cluster) <- annot()
+
+    function(gene) plot_scseq_gene_medians(obj, tts, logcounts, gene, title)
   })
 
 
@@ -1269,20 +1267,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   top_tables <- reactive({
     req(lm_fit())
 
-    if (has_replicates()) {
-      fit <- lm_fit()
-      groups <-  c('test', 'ctrl')
-      clusts <- cluster_choices()$value
+    fit <- lm_fit()
+    groups <-  c('test', 'ctrl')
+    clusts <- cluster_choices()$value
 
-      tests <- paste0('test_', clusts)
-      ctrls <- paste0('ctrl_', clusts)
-      contrasts <- paste(tests, ctrls, sep = '-')
-      tts <- get_top_tables(fit, contrasts = contrasts)
+    tests <- paste0('test_', clusts)
+    ctrls <- paste0('ctrl_', clusts)
+    have.groups <- tests %in% colnames(fit$mod) & ctrls %in% colnames(fit$mod)
 
-    } else {
-      #TODO: get for when only two samples
-      browser()
-    }
+    contrasts <- paste(tests, ctrls, sep = '-')[have.groups]
+    tts <- get_top_tables(fit, contrasts = contrasts)
+
     return(tts)
 
   })
@@ -1290,9 +1285,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   # top table for selected cluster only
   top_table <- reactive({
     sel <- input$selected_clusters
-    tts <- top_tables()
-    req(sel, tts)
     contrast <- paste0('test_', sel, '-ctrl_', sel)
+    tts <- top_tables()
+    req(contrast %in% names(tts))
     tts[[contrast]]
   })
 
@@ -1354,7 +1349,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
 }
 
 
-plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, selected_cluster, title) {
+plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, title) {
 
   group <- obj$orig.ident
   clust <- obj$cluster
@@ -1362,7 +1357,12 @@ plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, selected_cluster,
 
   # highlight clusters where this gene is significant
   pvals <- sapply(tts, function(tt) tt[gene, 'adj.P.Val'])
-  names(pvals) <- levels(clust)
+  have.clus <- gsub('^.+?_([0-9]+)$', '\\1', names(pvals))
+  have.clus <- levels(clust)[as.numeric(have.clus)]
+  miss.clus <- setdiff(levels(clust), have.clus)
+  names(pvals) <- have.clus
+  pvals[miss.clus] <- 1
+  pvals <- pvals[levels(clust)]
 
   reds <- RColorBrewer::brewer.pal(3, 'YlOrRd')
 
@@ -1392,25 +1392,25 @@ plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, selected_cluster,
               pt.color = unique(pt.color))
 
   # order by significance
-  tb$clust <- factor(tb$clust, levels(clust)[order(pvals)])
+  tb$clust <- factor(tb$clust, levels(clust)[order(-pvals)])
 
   labels <- c('p<0.05', 'p<0.1', 'p<0.15', 'Test', 'Control')
   labels <- labels[table(tb$pt.color) > 0]
 
 
-  ggplot2::ggplot(tb, ggplot2::aes(y = meds, x = clust, fill = pt.color)) +
+  ggplot2::ggplot(tb, ggplot2::aes(x = meds, y = clust, fill = pt.color)) +
     ggplot2::scale_fill_identity('', guide = 'legend', labels = labels) +
     ggplot2::geom_jitter(width = 0.25, shape = 21, color = '#333333', size = 4, alpha = 0.9) +
-    ggplot2::ylab(title) +
-    ggplot2::xlab('') +
+    ggplot2::xlab(title) +
+    ggplot2::ylab('') +
     ggplot2::ggtitle('') +
     ggpubr::theme_pubr(legend = 'top')  +
     theme_dimgray() +
     ggplot2::theme(axis.text = ggplot2::element_text(size = 14, color = '#333333'),
-                   axis.title.y = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(r = 15)),
-                   axis.ticks.y = ggplot2::element_line(size = 0),
-                   legend.text = element_text(size = 16, color = '#333333'),
-                   panel.grid.major.x = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'black'))
+                   axis.title.x = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(t = 15)),
+                   axis.ticks.x = ggplot2::element_line(size = 0),
+                   legend.text = ggplot2::element_text(size = 16, color = '#333333'),
+                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'black'))
 
 
 

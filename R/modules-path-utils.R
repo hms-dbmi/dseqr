@@ -162,7 +162,7 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #' @export
 #' @keywords internal
-fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
+fit_lm_scseq <- function(scseq, dataset_dir) {
 
   has_replicates <- length(unique(scseq$batch)) > 2
   if (has_replicates) {
@@ -176,15 +176,12 @@ fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
     lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
     lm_fit$has_replicates <- TRUE
 
-    save_lmfit(lm_fit, dataset_dir)
-
   } else {
     lm_fit <- run_limma_scseq(scseq)
     lm_fit$has_replicates <- FALSE
-
-    save_lmfit_scseq(lm_fit, clusters_name, dataset_dir)
   }
 
+  save_lmfit(lm_fit, dataset_dir)
   return(lm_fit)
 }
 
@@ -251,20 +248,12 @@ run_limma_scseq <- function(scseq) {
 
   # use multiBatchNorm logcounts
   dat <- SingleCellExperiment::logcounts(scseq)
-  group <- scseq$orig.ident
+  group <- paste(scseq$orig.ident, scseq$cluster, sep = '_')
   mod <- stats::model.matrix(~0 + group)
-  colnames(mod) <- levels(group)
+  colnames(mod) <- gsub('^group', '', colnames(mod))
   fit <- limma::lmFit(dat, mod)
 
   return(list(fit = fit, mod = mod))
-}
-
-save_lmfit_scseq  <- function(lm_fit, clusters_name, dataset_dir) {
-
-  # save lm_fit result
-  fit_name <- paste0('lm_fit_', clusters_name, '.rds')
-  fit_path <- file.path(dataset_dir, fit_name)
-  if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 }
 
 #' Get ambient genes to exclude for diff_expr_scseq
