@@ -130,7 +130,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
                                    dataset_dir = dataset_dir,
-                                   input_scseq = scDataset$scseq)
+                                   input_scseq = scseq)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
@@ -1114,9 +1114,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 
   output$ridge_plot <- renderPlot({
     req(selected_gene())
-    scseq <- scseq()
-    scseq$orig.ident <- NULL
-    plot_ridge(scseq, selected_gene(), selected_cluster())
+    plot_ridge(selected_gene(), scseq(), selected_cluster())
   })
 }
 
@@ -1196,8 +1194,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
       toggleAll(input_ids)
     }
 
-    pbulk_path <- pbulk_path()
-    if (has_replicates()) pbulk(readRDS(pbulk_path))
+    if (has_replicates()) {
+      pbulk <- readRDS(pbulk_path())
+      levels(pbulk$cluster) <- annot()
+      pbulk(pbulk)
+    }
 
     lm_fit(resl$fit)
     cluster_markers(resl$cluster_markers)
@@ -1210,21 +1211,13 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
   # TODO: plot function for right
-  pfun_right_reps <- reactive(function(gene) plot_vln_gene_sample(gene, scseq(), input$selected_clusters))
+  pfun_right_reps <- reactive(function(gene) plot_ridge(gene, scseq(), input$selected_clusters, by.sample = TRUE))
   pfun_right_noreps  <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'ctrl'))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
 
   height_left  <- reactive(if(has_replicates()) length(annot())*50 else 453)
   height_right <- reactive(if(has_replicates()) length(unique(scseq()$batch))*76 else 453)
-
-
-  plot_vln_gene_sample <- function(gene, scseq, selected_clusters) {
-
-    plot_ridge(scseq, gene, selected_clusters, by.sample = TRUE)
-
-  }
-
 
 
   # differential expression top tables for all clusters
@@ -1353,23 +1346,27 @@ plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
 }
 
 
-plot_ridge <- function(scseq, gene, selected_cluster, by.sample = FALSE) {
+plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
+
 
   # get color for selected cluster
   clus_levs <- levels(scseq$cluster)
   seli <- as.numeric(selected_cluster)
+  sel <- clus_levs[seli]
   colors <- get_palette(clus_levs)
   color  <- colors[seli]
 
   # either highlight test group or selected cluster
   if (by.sample) {
-    scseq <- scseq[, scseq$cluster %in% selected_cluster]
+    scseq <- scseq[, scseq$cluster %in% sel]
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident == 'test'
+    title <- paste('Expression by Sample for', sel)
 
   } else {
     y <- scseq$cluster
-    hl <- y == selected_cluster
+    hl <- y == sel
+    title <- 'Expression for Clusters'
   }
 
   # order y-axis by mean logcounts
@@ -1387,10 +1384,13 @@ plot_ridge <- function(scseq, gene, selected_cluster, by.sample = FALSE) {
       ggplot2::scale_y_discrete(expand = c(0, 0)) +
       ggplot2::coord_cartesian(clip = "off") +
       theme_dimgray() +
-      ggplot2::xlab('Expression (logcounts)') +
+      ggplot2::xlab('') +
+      ggplot2::ggtitle(title) +
       ggplot2::theme(legend.position = 'none',
+                     plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
                      axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                     axis.title.x = ggplot2::element_text(color = '#333333', size = 14),
+                     axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
+                     axis.title.x = ggplot2::element_blank(),
                      axis.title.y = ggplot2::element_blank()
       ))
 
@@ -1400,7 +1400,7 @@ plot_ridge <- function(scseq, gene, selected_cluster, by.sample = FALSE) {
     for (i in seq_along(ncells)) {
       (pl <- pl + ggplot2::annotation_custom(
         grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
-                              gp = grid::gpar(fontsize = 12, col = 'darkslategray')),
+                              gp = grid::gpar(fontsize = 14, col = 'darkslategray')),
         ymax = i,
         ymin = i,
         xmax = round(max(df$x)),
@@ -1468,13 +1468,14 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
   ggplot2::ggplot(tb, ggplot2::aes(x = meds, y = clust, fill = pt.color)) +
     ggplot2::scale_fill_identity('', guide = 'legend', labels = labels) +
     ggplot2::geom_point(shape = 21, color = '#333333', size = 4, alpha = 0.8) +
-    ggplot2::xlab('Expression (pseudobulk logcounts)') +
+    ggplot2::xlab('') +
     ggplot2::ylab('') +
-    ggplot2::ggtitle('') +
+    ggplot2::ggtitle('Pseudobulk Expression by Cluster') +
     ggpubr::theme_pubr(legend = 'top')  +
     theme_dimgray() +
     ggplot2::theme(axis.text = ggplot2::element_text(size = 14, color = '#333333'),
-                   axis.title.x = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(t = 15)),
+                   plot.title = ggplot2::element_text(size = 16, color = '#333333', face = 'plain', margin = ggplot2::margin(b = 25)),
+                   axis.title.x = ggplot2::element_blank(),
                    axis.ticks.x = ggplot2::element_line(size = 0),
                    legend.text = ggplot2::element_text(size = 16, color = '#333333'),
                    panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'black'))
