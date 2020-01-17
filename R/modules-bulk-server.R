@@ -1347,10 +1347,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       # run differential expression
       progress$set(message = "Fitting limma model", value = 1)
       lm_fit <- run_limma(eset,
-                          dataset_dir = dataset_dir,
                           svobj = svobj,
                           numsv = numsv,
                           prev_anal = prev_anal)
+
+      save_lmfit(lm_fit, dataset_dir, numsv = 0, anal_suffix = '')
 
       # visual that done
       progress$inc(1)
@@ -1383,8 +1384,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     # loses sync when groups selected and change dataset
     if (!all(groups %in% colnames(lm_fit$mod))) return(NULL)
 
-    tt <- get_top_table(lm_fit, groups)
-    tt[order(tt$P.Value), ]
+    get_top_tables(lm_fit, groups)[[1]]
   })
 
   # goana pathway result
@@ -1479,13 +1479,17 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     req(length(unique(pdata$Group)) > 1)
     req(length(keep) > 2)
 
+    # determine if this is rna seq data
+    rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
+
     # subset eset and add explore_pdata
     eset <- eset[, keep]
     pdata$group <- pdata$`Group name`
     Biobase::pData(eset) <- pdata
 
+
     # rlog normalize
-    eset <- add_vsd(eset, vsd_path = vsd_path())
+    eset <- add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
     return(eset)
   })
 

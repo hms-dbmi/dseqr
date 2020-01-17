@@ -121,6 +121,7 @@ construct_eset <- function(quants, fdata, annot, txi.deseq = NULL) {
 #' @export
 #'
 setup_fdata <- function(species = 'Homo sapiens', release = '94') {
+  is.hs <- grepl('sapiens', species)
 
   if (!grepl('sapiens', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
@@ -142,18 +143,30 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 
   } else {
     # where no homology, use original entrez id (useful if human platform):
-    if (grepl('sapiens', species)) {
+    if (is.hs) {
       filt <- is.na(fdata$ENTREZID_HS)
       fdata[filt, "ENTREZID_HS"] <- fdata$ENTREZID[filt]
     }
 
-    # map human entrez id to human symbol
+    # map human entrez id to human symbol used by hs (for cmap/l1000 stuff)
     fdata$SYMBOL <- toupper(hs[fdata$ENTREZID_HS, SYMBOL_9606])
     fdata[, tx_id := NULL]
+
+    if (is.hs) {
+      # if gene_name (AnnotationHub) and SYMBOL (NCBI) differ use NCBI
+      diff <- which(fdata$SYMBOL != fdata$gene_name)
+      fdata$gene_name[diff] <- fdata$SYMBOL[diff]
+
+      # if have gene_name but no SYMBOL use gene_name
+      filt <- is.na(fdata$SYMBOL)
+      fdata$SYMBOL[filt] <- fdata$gene_name[filt]
+    }
+
     fdata <- unique(fdata)
 
-    # keep duplicate gene_name -> SYMBOL only if non NA
-    fdata <- fdata[-fdata[, .I[any(!is.na(SYMBOL)) & is.na(SYMBOL)], by=gene_name]$V1]
+    # keep duplicate gene_name -> SYMBOL and gene only if non NA
+    discard <- fdata[, .I[any(!is.na(SYMBOL)) & is.na(SYMBOL)], by=gene_name]$V1
+    if (length(discard)) fdata <- fdata[-discard]
   }
 
   setkeyv(fdata, 'gene_name')
@@ -227,20 +240,31 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
 #'
 #' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 #' @export
-add_vsd <- function(eset, rna_seq = TRUE, vsd_path = NULL) {
+add_vsd <- function(eset, rna_seq = TRUE, pbulk = FALSE, vsd_path = NULL) {
 
   # for cases where manually added (e.g. nanostring dataset)
   els <- Biobase::assayDataElementNames(eset)
   if ('vsd' %in% els) return(eset)
 
-  # for microarray use exprs
-  if (!'counts' %in% els) {
+  if (!rna_seq) {
+    # for microarray use exprs
     vsd <- Biobase::assayDataElement(eset, 'exprs')
 
   } else if (!is.null(vsd_path) && file.exists(vsd_path)) {
     vsd <- readRDS(vsd_path)
 
+  } else if (pbulk) {
+    # vst faster when lots of samples (clusters * datasets)
+    pdata <- Biobase::pData(eset)
+    dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
+    dds <- DESeq2::estimateSizeFactors(dds)
+    vsd <- DESeq2::vst(dds, blind = FALSE)
+
+    vsd <- SummarizedExperiment::assay(vsd)
+    if (!is.null(vsd_path)) saveRDS(vsd, vsd_path)
+
   } else {
+    # rlog fast enough for most rna-seq
     pdata <- Biobase::pData(eset)
     txi.deseq <- list(countsFromAbundance = 'no',
                       abundance = Biobase::assayDataElement(eset, 'abundance'),

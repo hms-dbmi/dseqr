@@ -148,57 +148,6 @@ load_scseq_datasets <- function(data_dir) {
   return(datasets)
 }
 
-#' Run PADOG pathway analysis on a single cell RNA-Seq dataset
-#'
-#' Analysis is performed comparing test to control cells for all selected clusters.
-#'
-#' @param scseq \code{Seurat} object subsetted to selected clusters
-#' @param prev_anal Result of call to \code{diff_expr_scseq}
-#' @param data_dir Directory to folders with single cell analyses
-#' @param anal_name Name of folder in \code{data_dir} to save results to
-#' @param clusters_name String with sorted comma seperated integers of selected clusters returned from \code{collapse_sorted}.
-#'
-#' @return result of \code{\link[PADOG]{padog}}
-#' @export
-#' @keywords internal
-diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clusters_name, NI = 1000) {
-  assay <- get_scseq_assay(scseq)
-  Seurat::DefaultAssay(scseq) <- assay
-
-  # load previous if exists
-  fname <- paste0('diff_path_kegg_', clusters_name, '.rds')
-  fpath <- file.path(data_dir, anal_name, fname)
-
-  # for compatibility with previous versions
-  fname_old <- paste0('diff_path_', clusters_name, '.rds')
-  fpath_old <- file.path(data_dir, anal_name, fname_old)
-
-  if(file.exists(fpath_old)) file.rename(fpath_old, fpath)
-  if(file.exists(fpath)) return(readRDS(fpath))
-
-  # subset to non-ambient geness
-  scseq <-  scseq[!row.names(scseq) %in% ambient, ]
-
-  # get groups
-  group <- as.character(scseq$orig.ident)
-  group <- ifelse(group == 'ctrl', 'c', 'd')
-
-  # expression matrix
-  # SCT corrected log counts
-  esetm  <- scseq[[assay]]@data
-
-  # already annotated with hgnc symbols
-  gslist.kegg <- lapply(gslist.kegg, function(gs) {ret <- names(gs); names(ret) <- ret; return(ret)})
-
-  # run padog
-  padog_table <- PADOG::padog(esetm = esetm, group = group, parallel = TRUE, ncr = 4, gs.names = gs.names.kegg, gslist = gslist.kegg,
-                              verbose = FALSE, rna_seq = FALSE, NI = NI)
-
-  # save results
-  saveRDS(padog_table, fpath)
-
-  return(padog_table)
-}
 
 #' Run limma differential expression between test and control groups in single cell RNA-Seq dataset
 #'
@@ -215,23 +164,26 @@ diff_path_scseq <- function(scseq, prev_anal, ambient, data_dir, anal_name, clus
 #' @keywords internal
 fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
 
-  # pseudo bulk analysis
   has_replicates <- length(unique(scseq$batch)) > 2
   if (has_replicates) {
-    browser()
-    lm_fit <- run_limma_pbulk()
+
+    # get pbulk eset and save
+    summed <- readRDS(file.path(dataset_dir, 'summed.rds'))
+    eset <- construct_pbulk_eset(summed)
+    saveRDS(eset, file.path(dataset_dir, 'pbulk_eset.rds'))
+
+    # get lmfit and save
+    lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
+    lm_fit$has_replicates <- TRUE
+
+    save_lmfit(lm_fit, dataset_dir)
 
   } else {
-    lm_fit <- run_lmfit_scseq(scseq)
+    lm_fit <- run_limma_scseq(scseq)
+    lm_fit$has_replicates <- FALSE
+
+    save_lmfit_scseq(lm_fit, clusters_name, dataset_dir)
   }
-
-  lm_fit$has_replicates <- has_replicates
-
-  # save lm_fit result (slow and can re-use for other contrasts)
-  # fit_ebayes is also input into goana/kegga
-  fit_name <- paste0('lm_fit_', clusters_name, '.rds')
-  fit_path <- file.path(dataset_dir, fit_name)
-  if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 
   return(lm_fit)
 }
@@ -241,9 +193,7 @@ fit_lm_scseq <- function(scseq, dataset_dir, clusters_name) {
 #' Run pseudo bulk limma fit
 #'
 #' @param scseq \code{SingleCellExperiment} object
-run_limma_pbulk <- function(dataset_dir, species = 'Homo sapiens', release = '94') {
-  summed_path <- file.path(dataset_dir, 'summed.rds')
-  summed <- readRDS(summed_path)
+construct_pbulk_eset <- function(summed, species = 'Homo sapiens', release = '94') {
 
   # discard outlier samples
   y <- edgeR::DGEList(counts(summed), samples = summed@colData)
@@ -258,7 +208,6 @@ run_limma_pbulk <- function(dataset_dir, species = 'Homo sapiens', release = '94
   y <- edgeR::calcNormFactors(y)
 
   # construct eset
-  # todo fix missing fdata despite having row names
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(species, release)
   eset <- construct_eset(y, fdata, annot)
@@ -266,16 +215,11 @@ run_limma_pbulk <- function(dataset_dir, species = 'Homo sapiens', release = '94
   # use e.g. test_1 as sample label (test sample cluster 1)
   pdata <- Biobase::pData(eset)
   pdata$group <- paste(pdata$orig.ident, pdata$cluster, sep = '_')
+  Biobase::pData(eset) <- pdata
 
   # add vst transformed values
-  dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
-  dds <- DESeq2::estimateSizeFactors(dds)
-  vsd <- DESeq2::vst(dds, blind = FALSE)
-  vsd <- SummarizedExperiment::assay(vsd)
-  Biobase::assayDataElement(eset, 'vsd') <- vsd
-
-  lm_fit <- run_limma(eset, dataset_dir, prev_anal = list(pdata = pdata))
-
+  eset <- add_vsd(eset, pbulk = TRUE)
+  return(eset)
 }
 
 #' Move genes to bottom of markers data.frame
@@ -303,9 +247,9 @@ supress.genes <- function(markers, supress) {
 #' @return result of call to \code{\link[limma]{eBayes}}
 #' @export
 #' @keywords internal
-run_lmfit_scseq <- function(scseq) {
+run_limma_scseq <- function(scseq) {
 
-  # use multiBatchNorm
+  # use multiBatchNorm logcounts
   dat <- SingleCellExperiment::logcounts(scseq)
   group <- scseq$orig.ident
   mod <- stats::model.matrix(~0 + group)
@@ -313,6 +257,14 @@ run_lmfit_scseq <- function(scseq) {
   fit <- limma::lmFit(dat, mod)
 
   return(list(fit = fit, mod = mod))
+}
+
+save_lmfit_scseq  <- function(lm_fit, clusters_name, dataset_dir) {
+
+  # save lm_fit result
+  fit_name <- paste0('lm_fit_', clusters_name, '.rds')
+  fit_path <- file.path(dataset_dir, fit_name)
+  if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
 }
 
 #' Get ambient genes to exclude for diff_expr_scseq

@@ -30,7 +30,11 @@ scPageUI <- function(id, tab, active) {
             )
         ),
         # row for samples comparison (integrated test vs ctrl)
-        div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;'),
+        div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
+            div(class = "col-sm-12 col-lg-12",
+                scGeneMediansPlotOutput(ns('gmeds_plot'))
+            ),
+        ),
 
         # row for labels comparison (integration before and after)
         div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;')
@@ -262,6 +266,11 @@ scBioGpsPlotOutput <- function(id) {
   plotOutput(ns('biogps_plot'), height = '423px')
 }
 
+scGeneMediansPlotOutput <- function(id) {
+  ns <- NS(id)
+  plotOutput(ns('gmeds_plot'))
+}
+
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('ridge_plot'), height = '453px')
@@ -283,7 +292,8 @@ scSampleComparisonInput <- function(id) {
   selectizeInputWithButtons(ns('selected_clusters'),
                             label = 'Compare samples for:',
                             button,
-                            options = list(multiple = TRUE),
+                            #TODO: implement logic for multi-cluster differential expression
+                            options = list(multiple = FALSE),
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }

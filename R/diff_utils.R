@@ -38,7 +38,7 @@
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
 #' anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
-run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL, anal_suffix = '') {
+run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL) {
 
   # check for annot column
   if (!annot %in% colnames(Biobase::fData(eset)))
@@ -61,7 +61,7 @@ run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = 
   }
 
   # add vsd element for cleaning
-  eset <- add_vsd(eset)
+  eset <- add_vsd(eset, rna_seq = rna_seq)
 
   # add surrogate variable/pair adjusted ("clean") expression matrix for iqr_replicates
   eset <- add_adjusted(eset, svobj, numsv = numsv)
@@ -71,12 +71,18 @@ run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = 
 
   # lmFit
   lm_fit <- fit_lm(eset = eset,
-                   dataset_dir = dataset_dir,
                    svobj = svobj,
                    numsv = numsv,
-                   rna_seq = rna_seq,
-                   anal_suffix = anal_suffix)
+                   rna_seq = rna_seq)
   return (lm_fit)
+}
+
+save_lmfit <- function(lm_fit, dataset_dir, numsv = 0, anal_suffix = '') {
+
+  if (nchar(anal_suffix)) anal_suffix <- paste0(anal_suffix, '_')
+  fit_name <- paste0('lm_fit_', anal_suffix, paste0(numsv, 'svs.rds'))
+  fit_path <- file.path(dataset_dir, fit_name)
+  saveRDS(lm_fit, fit_path)
 }
 
 #' Run limma analysis.
@@ -88,14 +94,12 @@ run_limma <- function (eset, dataset_dir, annot = "SYMBOL", svobj = list('sv' = 
 #'
 #' @param eset Annotated eset created by \code{load_raw}. Replicate features and
 #'   non-selected samples removed by \code{iqr_replicates}.
-#' @param dataset_dir Directory to save fit results in.
-#' @param rna_seq Is the analysis for RNA-seq? Auto inferred in \code{diff_expr}.
 #'
 #' @return list with slots:
 #'   * \code{fit} Result of \link[limma]{lmFit}.
 #'   * \code{mod} model matrix used for fit.
 #'
-fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE, anal_suffix = ''){
+fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 
   # setup model matrix with surrogate variables
   group <- Biobase::pData(eset)$group
@@ -111,13 +115,6 @@ fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_se
   # add enids for goana/kegga pathway analyses
   lm_fit$fit$genes <- Biobase::fData(eset)[, 'ENTREZID', drop = FALSE]
 
-  # save lm_fit result (slow and can re-use for other contrasts)
-  # fit_ebayes is also input into goana/kegga
-  if (nchar(anal_suffix)) anal_suffix <- paste0(anal_suffix, '_')
-  fit_name <- paste0('lm_fit_', anal_suffix, paste0(numsv, 'svs.rds'))
-  fit_path <- file.path(dataset_dir, fit_name)
-  if (!file.exists(fit_path)) saveRDS(lm_fit, fit_path)
-
   return(lm_fit)
 }
 
@@ -128,12 +125,20 @@ fit_lm <- function(eset, dataset_dir, svobj = list(sv = NULL), numsv = 0, rna_se
 #'
 #' @return result of \link[limma]{topTable}
 #' @export
-get_top_table <- function(lm_fit, groups = c('test', 'ctrl')) {
-  contrast <- paste(groups[1], groups[2], sep = '-')
-  ebfit <- fit_ebayes(lm_fit, contrast)
-  tt <- limma::topTable(ebfit, coef = contrast, n = Inf)
-  tt <- add_es(tt, ebfit, groups = groups)
-  return(tt)
+get_top_tables <- function(lm_fit, groups = c('test', 'ctrl'), contrasts = NULL) {
+  if (is.null(contrasts))
+    contrasts <- paste(groups[1], groups[2], sep = '-')
+
+  ebfit <- fit_ebayes(lm_fit, contrasts)
+  tts <- list()
+
+  for (con in contrasts) {
+    tt <- limma::topTable(ebfit, coef = con, n = Inf, sort.by = 'p')
+    groups <- strsplit(con, '-')[[1]]
+    tts[[con]] <- add_es(tt, ebfit, groups = groups)
+  }
+
+  return(tts)
 }
 
 #' Add expression data adjusted for pairs/surrogate variables

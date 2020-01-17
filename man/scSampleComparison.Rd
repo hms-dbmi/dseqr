@@ -9,6 +9,7 @@ scSampleComparison(
   output,
   session,
   dataset_dir,
+  input_scseq = function() NULL,
   is_sc = function() TRUE
 )
 }

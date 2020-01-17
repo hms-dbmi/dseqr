@@ -4,7 +4,7 @@
 \alias{add_vsd}
 \title{Add VST normalized assay data element to expression set}
 \usage{
-add_vsd(eset, rna_seq = TRUE, vsd_path = NULL)
+add_vsd(eset, rna_seq = TRUE, pbulk = FALSE, vsd_path = NULL)
 }
 \arguments{
 \item{eset}{ExpressionSet with group column in \code{pData(eset)}}

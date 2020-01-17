@@ -6,12 +6,10 @@
 \usage{
 run_limma(
   eset,
-  dataset_dir,
   annot = "SYMBOL",
   svobj = list(sv = NULL),
   numsv = 0,
-  prev_anal = NULL,
-  anal_suffix = ""
+  prev_anal = NULL
 )
 }
 \arguments{
