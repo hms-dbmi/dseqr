@@ -32,7 +32,10 @@ scPageUI <- function(id, tab, active) {
         # row for samples comparison (integrated test vs ctrl)
         div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
             div(class = "col-sm-6 col-lg-6",
-                scGeneMediansPlotOutput(ns('gmeds_plot'))
+                scSampleMarkerPlotOutput(ns('left'))
+            ),
+            div(class = "col-sm-6 col-lg-6",
+                scSampleMarkerPlotOutput(ns('right'))
             )
         ),
 
@@ -196,18 +199,21 @@ clusterComparisonInput <- function(id) {
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
 
-  exclude_ambient_button <- NULL
+  exclude_ambient_button <- ridge_plot_button <- NULL
   if (sample_comparison)
     exclude_ambient_button <- actionButton(ns('exclude_ambient'), '',
                                            icon = icon('ban', 'fa-fw'),
                                            title = 'Toggle excluding ambient genes', class = 'squashed-btn')
+
+  if (!sample_comparison)
+    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle ridgeline plot')
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),
                             label = 'Show expression for:',
                             exclude_ambient_button,
                             downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
-                            actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle ridgeline plot'),
+                            ridge_plot_button,
                             actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
                             label_title = 'Gene (% exp test :: % exp ctrl)'
   )
@@ -266,9 +272,9 @@ scBioGpsPlotOutput <- function(id) {
   plotOutput(ns('biogps_plot'), height = '423px')
 }
 
-scGeneMediansPlotOutput <- function(id) {
+scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('gmeds_plot'))
+  plotOutput(ns('plot'))
 }
 
 scRidgePlotOutput <- function(id) {
@@ -297,4 +303,3 @@ scSampleComparisonInput <- function(id) {
                             label_title = 'Cluster (n test :: n ctrl)')
 
 }
-

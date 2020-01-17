@@ -45,10 +45,15 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   # sample comparison plots ---
 
-  callModule(scGeneMediansPlot, 'gmeds_plot',
+  callModule(scSampleMarkerPlot, 'left',
              selected_gene = scForm$sample_gene,
-             gmeds_plot_fun = scForm$gmeds_plot_fun,
-             nclus = scForm$sample_nclus)
+             plot_fun = scForm$samples_pfun_left,
+             height = scForm$samples_plot_height)
+
+  callModule(scSampleMarkerPlot, 'right',
+             selected_gene = scForm$sample_gene,
+             plot_fun = scForm$samples_pfun_right,
+             height = scForm$samples_plot_height)
 
 
   observe({
@@ -167,8 +172,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     cluster_gene = scClusterGene$selected_gene,
     show_ridge = scClusterGene$show_ridge,
     sample_gene = scSampleGene$selected_gene,
-    sample_nclus = reactive(length(scClusterComparison$annot())),
-    gmeds_plot_fun = scSampleComparison$gmeds_plot_fun,
+    samples_pfun_left = scSampleComparison$pfun_left,
+    samples_pfun_right = scSampleComparison$pfun_right,
+    samples_plot_height = scSampleComparison$plot_height,
     sample_clusters = scSampleComparison$selected_clusters,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name
@@ -378,15 +384,14 @@ get_sc_dataset_choices <- function(sc_dir) {
 }
 
 
-scGeneMediansPlot <- function(input, output, session, selected_gene, gmeds_plot_fun, nclus) {
+scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, height) {
 
-  height <- reactive(nclus() * 50)
-  output$gmeds_plot <- renderPlot({
+  output$plot <- renderPlot({
     gene <- selected_gene()
     req(gene)
 
-    gmeds_plot_fun()(gene)
-  }, height = 1000)
+    plot_fun()(gene)
+  }, height = height)
 }
 
 #' Logic for label transfer between datasets
@@ -1113,44 +1118,10 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 
   output$ridge_plot <- renderPlot({
     req(selected_gene())
-    plot_ridge(selected_gene(), selected_cluster(), scseq())
+    scseq <- scseq()
+    scseq$orig.ident <- NULL
+    plot_ridge(selected_gene(), selected_cluster(), scseq)
   })
-}
-
-plot_ridge <- function(gene, selected_cluster, scseq) {
-
-  cluster <- scseq$cluster
-  logcounts <- SingleCellExperiment::logcounts(scseq)[gene, ]
-
-  cols <- get_palette(levels(cluster))
-  clus <- levels(cluster)[as.numeric(selected_cluster)]
-  color <- cols[as.numeric(selected_cluster)]
-
-
-  mean <- tapply(logcounts, cluster, mean)
-  levs <- levels(cluster)[order(mean)]
-  df <- data.frame(logcounts, cluster = factor(cluster, levels = levs))
-
-  df$hl.clus <- FALSE
-  df$hl.clus[cluster == clus] <- TRUE
-
-  ggplot2::ggplot(df, ggplot2::aes(x = logcounts, y = cluster, fill = hl.clus, alpha = hl.clus, color = hl.clus)) +
-    ggplot2::scale_fill_manual(values = c('grey', color)) +
-    ggplot2::scale_color_manual(values = c('gray', 'black')) +
-    ggplot2::scale_alpha_manual(values = c(0.25, 0.95)) +
-    ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
-    ggridges::theme_ridges(center_axis_labels = TRUE) +
-    ggplot2::scale_x_continuous(expand = c(0, 0)) +
-    ggplot2::scale_y_discrete(expand = c(0, 0)) +
-    ggplot2::coord_cartesian(clip = "off") +
-    theme_dimgray() +
-    ggplot2::xlab('Expression') +
-    ggplot2::theme(legend.position = 'none',
-                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.title.x = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.title.y = ggplot2::element_blank()
-    )
-
 }
 
 
@@ -1237,29 +1208,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   })
 
 
-  # function to plot gene medians for each cluster and sample
-  gmeds_plot_fun <- reactive({
+  # function to plot gene plots to left/right
+  pfun_left_reps    <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), top_tables()))
+  pfun_left_noreps  <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'test'))
+  pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
-    if (has_replicates()) {
-      # name as test_cluster
-      obj <- pbulk()
-      req(obj)
-      tts <- top_tables()
-      logcounts <- Biobase::assayDataElement(obj, 'vsd')
-      title <- 'Pseudobulk Logcounts'
 
-    } else {
-      obj <- scseq()
-      req(obj)
-      tts <- top_tables()
-      logcounts <- SingleCellExperiment::logcounts(obj)
-      title <- 'Median Logcounts'
-    }
+  pfun_right_noreps  <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'ctrl'))
+  pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
-    levels(obj$cluster) <- annot()
 
-    function(gene) plot_scseq_gene_medians(obj, tts, logcounts, gene, title)
-  })
+  plot_height <- reactive(if(has_replicates()) length(annot())*50 else 453)
 
 
 
@@ -1344,12 +1303,108 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
     drug_queries = drug_queries,
     path_res = path_res,
     selected_clusters = reactive(input$selected_clusters),
-    gmeds_plot_fun = gmeds_plot_fun
+    pfun_left = pfun_left,
+    pfun_right = pfun_right,
+    plot_height = plot_height
   ))
 }
 
 
-plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, title) {
+#' Format gene plots for sample comparison for drugseqr app
+#'
+#' @param plot Returned by \code{\link{plot_umap_gene}}
+#' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
+#' @param scseq \code{Seurat} object.
+#'
+#' @return \code{plot} formatted for drugseqr app
+#' @export
+#' @keywords internal
+plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
+
+  plot <- plot_tsne_gene(scseq, gene)
+  gene <- make.names(gene)
+
+  # the min and max gene expression value
+  lims <- range(plot$data[[gene]])
+
+  # show selected group only
+  sel.cells <- colnames(scseq)[scseq$orig.ident == group]
+  plot$data <- plot$data[row.names(plot$data) %in% sel.cells, ]
+
+  # add selected group as title
+  plot <- plot + ggplot2::ggtitle(toupper(group)) +
+    ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
+
+  # use the same scale for each sample so that comparable
+  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low ="lightgray", high = "blue", limits = lims))
+
+  # remove control plot labels and legend
+  if (group == 'ctrl')
+    plot <- plot + ggplot2::xlab('') + ggplot2::ylab('') +
+    ggplot2::theme(legend.position = 'none')
+
+  return(plot)
+}
+
+
+plot_ridge <- function(gene, selected_cluster, scseq) {
+
+  group <- scseq$orig.ident
+  cluster <- scseq$cluster
+  x <- SingleCellExperiment::logcounts(scseq)[gene, ]
+
+  seli <- as.numeric(selected_cluster)
+  cols <- get_palette(levels(cluster))
+  clus <- levels(cluster)[seli]
+  color <- cols[seli]
+
+  mean <- tapply(x, cluster, mean)
+  levs <- levels(cluster)[order(mean)]
+  df <- data.frame(x, cluster = factor(cluster, levels = levs))
+
+  df$hl.clus <- FALSE
+  df$hl.clus[cluster == clus] <- TRUE
+
+  if (!is.null(group)) {
+    levels(group) <- c('test', 'ctrl', 'test.hl')
+    group[cluster == clus & group == 'test'] <- 'test.hl'
+    df$hl.group <- group
+    fill_values <- c('red', 'gray', 'red')
+    alpha_values <- c(0.3, 0.8, 0.95)
+    color_values <- c('white', 'gray', 'white')
+    color_values <- rep('white', 3)
+
+  } else {
+    df$hl.group <- df$hl.clus
+    fill_values <- c('grey', color)
+    alpha_values <- c(0.25, 0.95)
+    color_values <- c('gray', 'black')
+  }
+
+
+  ggplot2::ggplot(df, ggplot2::aes(x = x, y = cluster, fill = hl.group, alpha = hl.group, color = hl.group)) +
+    ggplot2::scale_fill_manual(values = fill_values) +
+    ggplot2::scale_alpha_manual(values = alpha_values) +
+    ggplot2::scale_color_manual(values = color_values) +
+    ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
+    ggridges::theme_ridges(center_axis_labels = TRUE) +
+    ggplot2::scale_x_continuous(expand = c(0, 0)) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::coord_cartesian(clip = "off") +
+    theme_dimgray() +
+    ggplot2::xlab('Expression') +
+    ggplot2::theme(legend.position = 'none',
+                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.title.x = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.title.y = ggplot2::element_blank()
+    )
+
+}
+
+
+plot_scseq_gene_medians <- function(gene, pbulk, tts) {
+
+  logcounts <- Biobase::assayDataElement('vsd', pbulk)
 
   group <- obj$orig.ident
   clust <- obj$cluster
@@ -1400,8 +1455,8 @@ plot_scseq_gene_medians <- function(obj, tts, logcounts, gene, title) {
 
   ggplot2::ggplot(tb, ggplot2::aes(x = meds, y = clust, fill = pt.color)) +
     ggplot2::scale_fill_identity('', guide = 'legend', labels = labels) +
-    ggplot2::geom_jitter(width = 0.25, shape = 21, color = '#333333', size = 4, alpha = 0.9) +
-    ggplot2::xlab(title) +
+    ggplot2::geom_point(shape = 21, color = '#333333', size = 4, alpha = 0.8) +
+    ggplot2::xlab('Pseuobulk Logcounts') +
     ggplot2::ylab('') +
     ggplot2::ggtitle('') +
     ggpubr::theme_pubr(legend = 'top')  +
