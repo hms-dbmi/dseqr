@@ -1158,10 +1158,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
     } else {
       toggleAll(input_ids)
-      if (has_replicates()) obj <- summed()
-      else obj <- scseq()
-
-      resl <- run_limma_scseq(obj, input$selected_clusters, dataset_dir())
+      reps <- has_replicates()
+      obj <- if (reps) summed() else scseq()
+      resl <- list(
+        fit = run_limma_scseq(obj, dataset_dir(), is_summed = reps),
+        cluster_markers = get_cluster_markers(input$selected_clusters, dataset_dir())
+      )
       toggleAll(input_ids)
     }
 
@@ -1521,6 +1523,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+
 
 
 

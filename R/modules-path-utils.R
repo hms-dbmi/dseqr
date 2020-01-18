@@ -162,11 +162,9 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #' @export
 #' @keywords internal
-fit_lm_scseq <- function(obj, dataset_dir) {
+run_limma_scseq <- function(obj, dataset_dir, is_summed) {
 
-  is_summed <- class(obj) == 'ExpressionSet'
   if (is_summed) {
-
     # get pbulk eset and save
     eset <- construct_pbulk_eset(obj)
     saveRDS(eset, file.path(dataset_dir, 'pbulk_eset.rds'))
@@ -176,7 +174,7 @@ fit_lm_scseq <- function(obj, dataset_dir) {
     lm_fit$has_replicates <- TRUE
 
   } else {
-    lm_fit <- run_limma_scseq(obj)
+    lm_fit <- fit_lm_scseq(obj)
     lm_fit$has_replicates <- FALSE
   }
 
@@ -184,11 +182,42 @@ fit_lm_scseq <- function(obj, dataset_dir) {
   return(lm_fit)
 }
 
+#' Loads markers for single cell cluster
+#'
+#' @param selected_clusters Character vector of integers
+#' @param dataset_dir Directory to folder with single-cell dataset
+
+#' @return data.frame with markers
+#' @export
+#' @keywords internal
+get_cluster_markers <- function(selected_clusters, dataset_dir) {
+
+  # get cluster markers
+  clusters_name <- collapse_sorted(selected_clusters)
+  fname <- paste0("markers_", clusters_name, '.rds')
+  fpath <- file.path(dataset_dir, fname)
+
+  if (file.exists(fpath)) {
+    cluster_markers <- readRDS(fpath)
+
+  } else {
+    # get markers for multi-cluster selections
+    browser()
+
+  }
+
+  return(cluster_markers)
+}
+
 
 
 #' Run pseudo bulk limma fit
 #'
-#' @param scseq \code{SingleCellExperiment} object
+#' @param summed Pseudobulk \code{SingleCellExperiment}
+#' @return Normalized \code{ExpressionSet}
+#'
+#'@export
+#'@keywords internal
 construct_pbulk_eset <- function(summed, species = 'Homo sapiens', release = '94') {
 
   # discard outlier samples
@@ -243,7 +272,7 @@ supress.genes <- function(markers, supress) {
 #' @return result of call to \code{\link[limma]{eBayes}}
 #' @export
 #' @keywords internal
-run_limma_scseq <- function(scseq) {
+fit_lm_scseq <- function(scseq) {
 
   # use multiBatchNorm logcounts
   dat <- SingleCellExperiment::logcounts(scseq)

@@ -302,7 +302,10 @@ get_npc_choices <- function(sce, type = 'PCA') {
     cluster_fun(g)$membership
   }
 
+  # at most 50 pcs
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
+  pcs <- pcs[,seq_len(min(50, ncol(pcs)))]
+
   choices <- scran::getClusteredPCs(pcs, FUN = FUN)
   names(choices$clusters) <- choices$n.pcs
   return(choices)
@@ -433,7 +436,6 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   # TODO use fastMNN restriction to exclude batch specific cells
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
-  counts <- do.call(no_correct('counts'), scseqs)
 
 
   set.seed(1000101001)
@@ -456,13 +458,18 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
       prop.k = 0.05)
   }
 
-  mnn.out <- do.call(mnn.fun, scseqs)
+  mnn.out <- do.call(mnn.fun, scseqs) ; gc()
   mnn.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
   mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
 
   # store merged (batch normalized) for DE
   SummarizedExperiment::assay(mnn.out, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+  rm(combined); gc()
+
+  # get counts for pseudobulk
+  counts <- do.call(no_correct('counts'), scseqs)
   SummarizedExperiment::assay(mnn.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
+  rm(counts, scseqs); gc()
 
   # need corrected as.matrix for as.Seurat before plots
   SingleCellExperiment::reducedDim(mnn.out, 'corrected') <- as.matrix(SingleCellExperiment::reducedDim(mnn.out, 'corrected'))

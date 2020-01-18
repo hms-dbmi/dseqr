@@ -7,8 +7,12 @@
 construct_pbulk_eset(summed, species = "Homo sapiens", release = "94")
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} object}
+\item{summed}{Pseudobulk \code{SingleCellExperiment}}
+}
+\value{
+Normalized \code{ExpressionSet}
 }
 \description{
 Run pseudo bulk limma fit
 }
+\keyword{internal}

@@ -307,7 +307,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
-  rm(scseqs); gc()
+  rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
   # choose number of dims of corrected for TSNE and add clusters
   updateProgress(3/n, 'clustering')
@@ -336,7 +336,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                                            cluster = combined$cluster,
                                            batch = combined$batch))
 
-  SummarizedExperiment::assay(combined, 'counts') <- NULL
+  SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
   has_replicates <- length(unique(combined$batch)) > 2
 
@@ -591,45 +591,6 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
   return(res)
 }
 
-#' Run single cell RNA-Seq test vs ctrl cluster comparison
-#'
-#' Used by \code{run_comparison} for differential expression analysis.
-#'
-#' @param obj \code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk.
-#' @param selected_clusters Character vector of selected clusters to run comparison for.
-#' @param sc_dir Path to folder with single cell analyses.
-#' @param anal_name Folder name in \code{sc_dir} that contains single cell analysis.
-#' @param res_paths List of paths to saved results for markers of cells in \code{selected_clusters} and
-#'  differential expression analysis comparing test to control cells in \code{selected_clusters}.
-#'  Paths are stored in \code{'markers'} and \code{'anal'} slots.
-#'
-#' @return List with slots \code{'markers'} and \code{'anal'} containing results for markers of
-#'  cells in \code{selected_clusters} and differential expression analysis comparing test to control
-#'  cells in \code{selected_clusters}.
-#' @export
-run_limma_scseq <- function(obj, selected_clusters, dataset_dir) {
-
-  clusters_name <- collapse_sorted(selected_clusters)
-  fname <- paste0("markers_", clusters_name, '.rds')
-  fpath <- file.path(dataset_dir, fname)
-
-  if (file.exists(fpath)) {
-    cluster_markers <- readRDS(fpath)
-
-  } else {
-    # get markers for multi-cluster selections
-    browser()
-
-  }
-
-  fit <- fit_lm_scseq(obj, dataset_dir)
-
-  res <- list(
-    cluster_markers = cluster_markers,
-    fit = fit
-  )
-  return(res)
-}
 
 #' Run single cell RNA-Seq test vs ctrl pathway comparison
 #'
