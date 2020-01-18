@@ -257,7 +257,7 @@ get_contrast_choices <- function(clusters, test) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(scseq, markers) {
+get_gene_choices <- function(markers) {
 
   markers$label <- markers$value <- row.names(markers)
 
@@ -338,12 +338,15 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   SummarizedExperiment::assay(combined, 'counts') <- NULL
 
+  has_replicates <- length(unique(combined$batch)) > 2
+
   updateProgress(6/n, 'saving')
   scseq_data <- list(scseq = combined,
                      summed = summed,
                      markers = markers,
                      tests = tests,
                      top_markers = top_markers,
+                     has_replicates = has_replicates,
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
@@ -592,7 +595,7 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 #'
 #' Used by \code{run_comparison} for differential expression analysis.
 #'
-#' @param scseq \code{Suerat} object
+#' @param obj \code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk.
 #' @param selected_clusters Character vector of selected clusters to run comparison for.
 #' @param sc_dir Path to folder with single cell analyses.
 #' @param anal_name Folder name in \code{sc_dir} that contains single cell analysis.
@@ -604,7 +607,7 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 #'  cells in \code{selected_clusters} and differential expression analysis comparing test to control
 #'  cells in \code{selected_clusters}.
 #' @export
-run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
+run_limma_scseq <- function(obj, selected_clusters, dataset_dir) {
 
   clusters_name <- collapse_sorted(selected_clusters)
   fname <- paste0("markers_", clusters_name, '.rds')
@@ -619,7 +622,7 @@ run_limma_scseq <- function(scseq, selected_clusters, dataset_dir) {
 
   }
 
-  fit <- fit_lm_scseq(scseq, dataset_dir)
+  fit <- fit_lm_scseq(obj, dataset_dir)
 
   res <- list(
     cluster_markers = cluster_markers,

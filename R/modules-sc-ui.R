@@ -70,7 +70,7 @@ scFormInput <- function(id) {
             ),
             # inputs for comparing samples
             div(id = ns('sample_comparison_inputs'), style = 'display: none',
-                scSampleComparisonInput(ns('sample')),
+                scSampleComparisonInput(ns('sample'), with_dl = TRUE),
                 selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
             ),
             div(id = ns('label_comparison_inputs'), style = 'display: none;',
@@ -212,7 +212,6 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   selectizeInputWithButtons(id = ns('selected_gene'),
                             label = 'Show expression for:',
                             exclude_ambient_button,
-                            downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
                             ridge_plot_button,
                             actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
                             label_title = 'Gene (% exp test :: % exp ctrl)'
@@ -288,18 +287,22 @@ scRidgePlotOutput <- function(id) {
 #'
 #' @export
 #' @keywords internal
-scSampleComparisonInput <- function(id) {
+scSampleComparisonInput <- function(id, with_dl = FALSE) {
   ns <- NS(id)
 
-  button <- actionButton(ns('run_comparison'), '',
-                         icon = icon('chevron-right', 'far fa-fw'),
-                         title = 'Compare test to control cells')
+  dl_btn <- NULL
+  if (with_dl)
+    dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
-  selectizeInputWithButtons(ns('selected_clusters'),
-                            label = 'Compare samples for:',
-                            button,
-                            #TODO: implement logic for multi-cluster differential expression
-                            options = list(multiple = FALSE),
-                            label_title = 'Cluster (n test :: n ctrl)')
+  selectizeInputWithButtons(
+    ns('selected_clusters'),
+    label = 'Compare samples for:',
+    actionButton(ns('run_comparison'), '', icon = icon('chevron-right', 'far fa-fw'), title = 'Compare test to control cells'),
+    dl_btn,
+    #TODO: implement logic for multi-cluster differential expression
+    options = list(multiple = FALSE),
+    label_title = 'Cluster (n test :: n ctrl)')
 
 }
+
+

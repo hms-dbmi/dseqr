@@ -120,26 +120,22 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               dataset_name = scDataset$dataset_name,
-                              scseq = scDataset$scseq,
                               selected_markers = scClusterComparison$selected_markers,
-                              cluster_markers = NULL,
                               selected_cluster = scClusterComparison$selected_cluster,
-                              annot_path = scDataset$annot_path,
                               comparison_type = comparisonType)
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
                                    dataset_dir = dataset_dir,
+                                   dataset_name = scDataset$dataset_name,
                                    input_scseq = scseq)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
-                             scseq = scDataset$scseq,
                              selected_markers = scSampleComparison$top_table,
-                             cluster_markers = scSampleComparison$cluster_markers,
                              selected_cluster = scSampleComparison$selected_clusters,
-                             annot_path = scDataset$annot_path,
-                             comparison_type = comparisonType)
+                             comparison_type = comparisonType,
+                             ambient = scSampleComparison$ambient)
 
 
 
@@ -672,6 +668,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
       # run integration
+      browser()
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
@@ -908,7 +905,7 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, scseq, selected_markers, cluster_markers, selected_cluster, annot_path, comparison_type) {
+selectedGene <- function(input, output, session, dataset_name, selected_markers, selected_cluster, comparison_type, ambient = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
@@ -929,12 +926,11 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 
   filtered_markers <- reactive({
 
-    ambient <- negative <- NULL
     markers <- selected_markers()
     if (is.null(markers)) return(NULL)
 
-    if (exclude_ambient())
-      ambient <- get_ambient(scseq(), markers = markers, cluster_markers = cluster_markers())
+    ambient <- NULL
+    if (exclude_ambient()) ambient <- ambient()
 
     markers <- supress.genes(markers, ambient)
     return(markers)
@@ -942,7 +938,6 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
-    scseq <- scseq()
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
     type <- isolate(comparison_type())
@@ -951,7 +946,7 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     req(type %in% c('samples', 'clusters'))
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
 
-    get_gene_choices(scseq, markers)
+    get_gene_choices(markers)
   })
 
   # click genecards
@@ -959,27 +954,6 @@ selectedGene <- function(input, output, session, dataset_name, scseq, selected_m
     gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
     runjs(paste0("window.open('", gene_link, "')"))
   })
-
-
-  # click download
-  output$download <- downloadHandler(
-    filename = function() {
-
-      annot <- readRDS(annot_path())
-      selected_idx <- as.numeric(selected_cluster()) + 1
-
-      sc_dl_filename(cluster = annot[selected_idx],
-                     anal = dataset_name(),
-                     comparison_type = comparison_type())
-
-    },
-    content = function(con) {
-      write.csv(filtered_markers(), con)
-    }
-  )
-
-
-
 
 
   # reset selected gene if analysis changes
@@ -1109,42 +1083,42 @@ scBioGpsPlot <- function(input, output, session, selected_gene) {
 }
 
 scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
-  # plot BioGPS data
 
+  height <- reactive(length(levels(scseq()$cluster))*50)
 
   output$ridge_plot <- renderPlot({
     req(selected_gene())
     plot_ridge(selected_gene(), scseq(), selected_cluster())
-  })
+  }, height = height)
 }
-
-
 
 
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
-scSampleComparison <- function(input, output, session, dataset_dir, input_scseq = function()NULL, is_sc = function()TRUE) {
+scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, input_scseq = function()NULL, is_sc = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('run_comparison', 'selected_clusters')
 
-  # single cell dataset
-  # can supply so that don't double load
+  # use input scseq/annot if available
   scseq <- reactive({
-    input_scseq <- input_scseq()
-    if (!is.null(input_scseq)) return(input_scseq)
-    readRDS(file.path(dataset_dir(), 'scseq.rds'))
+    scseq <- input_scseq()
+    if (is.null(scseq)) scseq <- readRDS(file.path(dataset_dir(), 'scseq.rds'))
+    return(scseq)
   })
+
+  annot <- reactive({
+    annot <- levels(input_scseq()$cluster)
+    if (is.null(annot)) annot <- readRDS(file.path(dataset_dir(), 'annot.rds'))
+    return(annot)
+  })
+
+  has_replicates <- reactive(readRDS(file.path(dataset_dir(), 'has_replicates.rds')))
+  summed <- reactive(readRDS(file.path(dataset_dir(), 'summed.rds')))
 
   # pseudo bulk eset
   pbulk <- reactiveVal()
   pbulk_path <- reactive(file.path(dataset_dir(), 'pbulk_eset.rds'))
-
-  has_replicates <- reactive(length(unique(scseq()$batch)) > 2)
-
-
-  # TODO: update if annotation change from Single Cell tab
-  annot <- reactive(readRDS(file.path(dataset_dir(), 'annot.rds')))
 
   # update cluster choices in UI
   cluster_choices <- reactive(get_cluster_choices(annot(), dataset_dir(), TRUE))
@@ -1157,13 +1131,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   })
 
 
-  # path to lmfit, cluster markers, and drug query results
+  # path to lmfit, cluster markers, drug query results, and goanna pathway results
   clusters_str <- reactive(collapse_sorted(input$selected_clusters))
-
   lmfit_path <- reactive(file.path(dataset_dir(), 'lm_fit_0svs.rds'))
-
   markers_path <- reactive(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds')))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
+  goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
 
   # do we have lm_fit and drug query results?
   saved_lmfit <- reactive(file.exists(lmfit_path()))
@@ -1184,13 +1157,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
       )
 
     } else {
-      # TODO: make it so that scseq doesn't have to be loaded if has replicates
       toggleAll(input_ids)
-      resl <- run_limma_scseq(
-        scseq(),
-        input$selected_clusters,
-        dataset_dir()
-      )
+      if (has_replicates()) obj <- summed()
+      else obj <- scseq()
+
+      resl <- run_limma_scseq(obj, input$selected_clusters, dataset_dir())
       toggleAll(input_ids)
     }
 
@@ -1205,18 +1176,18 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
   })
 
 
-  # function to plot gene plots to left/right
-  pfun_left_reps    <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), top_tables()))
-  pfun_left_noreps  <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'test'))
+  # plot functions for left
+  pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), top_tables()))
+  pfun_left_noreps <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'test'))
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
-  # TODO: plot function for right
+  # plot function for right
   pfun_right_reps <- reactive(function(gene) plot_ridge(gene, scseq(), input$selected_clusters, by.sample = TRUE))
   pfun_right_noreps  <- reactive(function(gene) plot_tsne_gene_sample(gene, scseq(), 'ctrl'))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
-
-  height_left  <- reactive(if(has_replicates()) length(annot())*50 else 453)
+  # plot heights
+  height_left <- reactive(if(has_replicates()) length(annot())*50 else 453)
   height_right <- reactive(if(has_replicates()) length(unique(scseq()$batch))*76 else 453)
 
 
@@ -1273,7 +1244,37 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
     return(res)
   })
 
-  path_res <- reactive({})
+
+  # goana pathway result
+  path_res <- reactive({
+    goana_path <- goana_path()
+
+    if (file.exists(goana_path)) {
+      goana_res <- readRDS(goana_path)
+
+    } else {
+      lm_fit <- lm_fit()
+
+      selected_clusters <- input$selected_clusters
+      groups <- paste(c('test', 'ctrl'), selected_clusters, sep = '_')
+
+      # loses sync when groups selected and change dataset
+      req(all(groups %in% colnames(lm_fit$mod)))
+
+      # exclude ambient
+      ambient <- ambient()
+      lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
+
+      contrast <- paste0(groups[1], '-', groups[2])
+      ebfit <- fit_ebayes(lm_fit, contrast)
+      goana_res <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
+
+      saveRDS(goana_res, goana_path)
+    }
+
+    return(goana_res)
+  })
+
 
   # reset lm_fit if selected clusters change
   # also disable runing lm_fit if nothing selected
@@ -1283,17 +1284,52 @@ scSampleComparison <- function(input, output, session, dataset_dir, input_scseq 
     toggleState('run_comparison', condition = length(input$selected_clusters))
   })
 
-  # name for  downloading
-  dl_name <- reactive({
-    sel <- input$selected_clusters
-    req(sel)
-    annot <- gsub(' ', '-', annot())
-    inds <- as.numeric(sel) + 1
-    paste0(annot[sort(inds)], collapse = '_')
+
+  # enable download
+  observe({
+    toggleState('download', condition = isTruthy(lm_fit()))
   })
 
+  # name for  downloading
+  dl_fname <- reactive({
+    date <- paste0(Sys.Date(), '.zip')
+
+    # annotated clusters
+    clusts <- input$selected_clusters
+    req(clusts)
+    annot <- gsub(' ', '-', annot())
+    clusts <- as.numeric(clusts)
+    clusts <- paste0(annot[sort(clusts)], collapse = '_')
+
+    paste('single-cell', dataset_name(), clusts, date , sep='_')
+  })
+
+  data_fun <- function(file) {
+    browser()
+    #go to a temp dir to avoid permission issues
+    owd <- setwd(tempdir())
+    on.exit(setwd(owd))
+
+    tt_fname <- 'top_table.csv'
+    go_fname <- 'goana.csv'
+
+    tt <- top_table()
+    tt$ambient <- row.names(tt) %in% ambient()
+    write.csv(tt, tt_fname)
+    write.csv(path_res(), go_fname)
+
+    #create the zip file
+    zip(file, c(tt_fname, go_fname))
+  }
+
+  output$download <- downloadHandler(
+    filename = function() {
+      dl_fname()
+    },
+    content = data_fun
+  )
+
   return(list(
-    name = dl_name,
     lm_fit = lm_fit,
     ambient = ambient,
     top_table = top_table,
@@ -1366,13 +1402,14 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
   } else {
     y <- scseq$cluster
     hl <- y == sel
-    title <- 'Expression for Clusters'
+    title <- 'Expression by Cluster'
   }
 
   # order y-axis by mean logcounts
   x <- SingleCellExperiment::logcounts(scseq)[gene, ]
   m <- tapply(x, y, mean)
-  df <- data.frame(x, hl, y = factor(y, levels = levels(y)[order(m)]))
+  y <- factor(y, levels = levels(y)[order(m)])
+  df <- data.frame(x, hl, y)
 
   (pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
       ggplot2::scale_fill_manual(values = c('grey', color)) +
@@ -1395,18 +1432,18 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
       ))
 
   ncells <- tapply(x, y, length)
+  xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 
-  if (by.sample)
-    for (i in seq_along(ncells)) {
-      (pl <- pl + ggplot2::annotation_custom(
-        grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
-                              gp = grid::gpar(fontsize = 14, col = 'darkslategray')),
-        ymax = i,
-        ymin = i,
-        xmax = round(max(df$x)),
-        xmin = round(max(df$x))
-      ))
-    }
+  for (i in seq_along(ncells)) {
+    (pl <- pl + ggplot2::annotation_custom(
+      grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
+                            gp = grid::gpar(fontsize = 14, col = '#333333')),
+      ymax = i,
+      ymin = i,
+      xmax = xlim,
+      xmin = xlim
+    ))
+  }
 
 
 
@@ -1431,7 +1468,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
   pvals[miss.clus] <- 1
   pvals <- pvals[levels(clust)]
 
-  reds <- RColorBrewer::brewer.pal(3, 'YlOrRd')
+  reds <- RColorBrewer::brewer.pal(9, 'YlOrRd')[c(3, 6, 9)]
 
   setup_color <- function(clust, group, sel, pvals) {
 
@@ -1461,7 +1498,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
   # order by significance
   tb$clust <- factor(tb$clust, levels(clust)[order(-pvals)])
 
-  labels <- c('p<0.05', 'p<0.1', 'p<0.15', 'Test', 'Control')
+  labels <- c('p<0.05', 'p<0.1', 'p<0.15', 'p>0.15', 'Control')
   labels <- labels[table(tb$pt.color) > 0]
 
 
@@ -1484,5 +1521,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+
+
 
 

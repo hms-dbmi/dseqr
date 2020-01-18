@@ -151,7 +151,7 @@ load_scseq_datasets <- function(data_dir) {
 
 #' Run limma differential expression between test and control groups in single cell RNA-Seq dataset
 #'
-#' @param scseq \code{Seurat} object
+#' @param obj \code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk
 #' @param clusters Character vector of clusters to include in analysis
 #' @seealso \code{\link{get_ambient}}
 #'
@@ -162,14 +162,13 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #' @export
 #' @keywords internal
-fit_lm_scseq <- function(scseq, dataset_dir) {
+fit_lm_scseq <- function(obj, dataset_dir) {
 
-  has_replicates <- length(unique(scseq$batch)) > 2
-  if (has_replicates) {
+  is_summed <- class(obj) == 'ExpressionSet'
+  if (is_summed) {
 
     # get pbulk eset and save
-    summed <- readRDS(file.path(dataset_dir, 'summed.rds'))
-    eset <- construct_pbulk_eset(summed)
+    eset <- construct_pbulk_eset(obj)
     saveRDS(eset, file.path(dataset_dir, 'pbulk_eset.rds'))
 
     # get lmfit and save
@@ -177,7 +176,7 @@ fit_lm_scseq <- function(scseq, dataset_dir) {
     lm_fit$has_replicates <- TRUE
 
   } else {
-    lm_fit <- run_limma_scseq(scseq)
+    lm_fit <- run_limma_scseq(obj)
     lm_fit$has_replicates <- FALSE
   }
 
@@ -275,7 +274,8 @@ get_ambient <- function(scseq, markers, cluster_markers) {
   test.ambient <- rns[fts$test_ambient]
   ctrl.ambient <- rns[fts$ctrl_ambient]
 
-  # exclude test/ctrl ambient if positive/negative effect size
+  # exclude test ambient if up
+  # exclude ctrl ambient if down
   # opposite would decrease extent of gene expression difference but not direction
   pos.test <- markers[test.ambient, 'logFC'] > 0
   neg.ctrl <- markers[ctrl.ambient, 'logFC'] < 0
@@ -286,6 +286,7 @@ get_ambient <- function(scseq, markers, cluster_markers) {
   ambient <- c(test.exclude, ctrl.exclude)
 
   # exclude top cluster markers from ambient
+  # asumes in-cell >> ambient for markers
   keep <- cluster_markers$FDR < 0.05
   ambient <- setdiff(ambient, row.names(cluster_markers)[keep])
 
