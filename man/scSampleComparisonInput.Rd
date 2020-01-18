@@ -4,7 +4,7 @@
 \alias{scSampleComparisonInput}
 \title{Input for Single Cell analysis}
 \usage{
-scSampleComparisonInput(id)
+scSampleComparisonInput(id, with_dl = FALSE)
 }
 \description{
 Used in Single Cell, Drugs and Pathways tab

@@ -4,14 +4,16 @@
 \alias{run_limma_scseq}
 \title{Fit limma eBayes on single cell RNA-seq dataset}
 \usage{
-run_limma_scseq(scseq, selected_clusters, dataset_dir)
+run_limma_scseq(obj, selected_clusters, dataset_dir)
 
-run_limma_scseq(scseq, selected_clusters, dataset_dir)
+run_limma_scseq(obj, selected_clusters, dataset_dir)
 }
 \arguments{
-\item{scseq}{\code{Suerat} object}
+\item{obj}{\code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk.}
 
 \item{selected_clusters}{Character vector of selected clusters to run comparison for.}
+
+\item{scseq}{\code{Seurat} object.}
 
 \item{ident.1}{String with control group name in \code{Idents(scseq)}.}
 

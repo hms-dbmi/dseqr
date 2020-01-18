@@ -9,12 +9,10 @@ selectedGene(
   output,
   session,
   dataset_name,
-  scseq,
   selected_markers,
-  cluster_markers,
   selected_cluster,
-  annot_path,
-  comparison_type
+  comparison_type,
+  ambient = function() NULL
 )
 }
 \description{
