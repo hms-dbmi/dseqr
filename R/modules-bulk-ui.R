@@ -172,7 +172,7 @@ dtangleFormInput <- function(id) {
 
   withTags({
     div(id = ns('dtangle_form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('dtangle_anal'), 'Reference single-cell dataset:', choices = '', width = '100%'),
+        selectizeInput(ns('dtangle_dataset'), 'Reference single-cell dataset:', choices = '', width = '100%'),
         selectizeInputWithButtons(ns('include_clusters'),
                                   label = 'Clusters to include:',
                                   label_title = 'Select cell types that are expected in the bulk dataset',
@@ -214,3 +214,5 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   return(input)
 }
+
+

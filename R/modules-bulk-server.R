@@ -692,7 +692,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 #' @keywords internal
 dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('include_clusters', 'dtangle_anal', 'submit_dtangle')
+  input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
 
   dtangle_est <- reactiveVal()
 
@@ -723,11 +723,11 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   observe({
     ref_anals <- ref_anals()
     req(ref_anals)
-    updateSelectizeInput(session, 'dtangle_anal', choices = c('', ref_anals))
+    updateSelectizeInput(session, 'dtangle_dataset', choices = c('', ref_anals))
   })
 
   annot <- reactive({
-    anal_name <- input$dtangle_anal
+    anal_name <- input$dtangle_dataset
     req(anal_name)
     annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
     readRDS(annot_path)
@@ -736,8 +736,8 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   # update exclude cluster choices
   include_choices <- reactive({
     clusters <- annot()
-    anal_name <- input$dtangle_anal
-    get_cluster_choices(clusters, anal_name, sc_dir)
+    dataset_dir <- file.path(sc_dir, input$dtangle_dataset)
+    get_cluster_choices(clusters, dataset_dir)
   })
 
   observe({
@@ -747,8 +747,8 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
   # scseq for deconvolution
   scseq <- reactive({
-    anal_name <- input$dtangle_anal
-    scseq_path <- scseq_part_path(sc_dir, anal_name, 'scseq')
+    dataset_name <- input$dtangle_dataset
+    scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
     readRDS(scseq_path)
   })
 
@@ -765,14 +765,12 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     progress$set(message = "Deconvoluting", value = 0)
     progress$set(value = 1)
 
-    anal_name <- input$dtangle_anal
-    dataset_name <- dataset_name()
+    dtangle_dataset <- input$dtangle_dataset
 
     # get names of clusters
     include_clusters <- input$include_clusters
     include_choices <- include_choices()
-    row.names(include_choices) <- include_choices$value
-    include_names <- include_choices[include_clusters, ]$name
+    include_names <- include_choices$name[as.numeric(include_clusters)]
 
     # require at least two labeled groups
     eset <- explore_eset()
@@ -784,19 +782,19 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     # subset to selected clusters
     scseq <- scseq()
-    scseq <- scseq[, scseq$seurat_clusters %in% include_clusters]
+    scseq <- scseq[, scseq$cluster %in% include_clusters]
 
     # get normalized/adjusted values
     adj <- Biobase::assayDataElement(eset, 'adjusted')
 
     # common genes only
-    commongenes <- intersect (rownames(adj), rownames(scseq))
+    commongenes <- intersect(rownames(adj), rownames(scseq))
     adj <- adj[commongenes, ]
     scseq <- scseq[commongenes, ]
 
     # quantile normalize scseq and rnaseq dataset
     progress$set(value = 2)
-    y <- cbind(as.matrix(scseq[['SCT']]@data), adj)
+    y <- cbind(as.matrix(SingleCellExperiment::logcounts(scseq)), adj)
 
     y <- limma::normalizeBetweenArrays(y)
     y <- t(y)
@@ -806,8 +804,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     # indicies for cells in each included cluster
     pure_samples <- list()
     for (i in seq_along(include_clusters))
-      pure_samples[[include_names[i]]] <-
-      which(scseq$seurat_clusters == include_clusters[i])
+      pure_samples[[include_names[i]]] <- which(scseq$cluster == include_clusters[i])
 
     # markers for each included cluster
     marker_list = dtangle::find_markers(y,
@@ -1518,4 +1515,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   #
   return(explore_eset)
 }
-
