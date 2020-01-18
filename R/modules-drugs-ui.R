@@ -8,10 +8,10 @@ drugsPageUI <- function(id, tab, active) {
     tabPane(tab, active,
             rightClickMenu(),
             div(class = 'row',
-                div(class = 'col-sm-5',
+                div(class = 'col-lg-5',
                     drugsFormInput(ns('form'))
                 ),
-                div(class = 'col-sm-7 mobile-margin',
+                div(class = 'col-lg-7 mobile-margin',
                     drugsGenesPlotlyOutput(ns('genes'))
                 )
             ),

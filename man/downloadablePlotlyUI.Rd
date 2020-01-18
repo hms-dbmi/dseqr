@@ -4,7 +4,7 @@
 \alias{downloadablePlotlyUI}
 \title{Plotly with hidden download link}
 \usage{
-downloadablePlotlyUI(id)
+downloadablePlotlyUI(id, height = "auto")
 }
 \description{
 Plotly with hidden download link

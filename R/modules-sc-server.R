@@ -668,7 +668,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
       # run integration
-      browser()
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
@@ -1307,7 +1306,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   data_fun <- function(file) {
-    browser()
     #go to a temp dir to avoid permission issues
     owd <- setwd(tempdir())
     on.exit(setwd(owd))

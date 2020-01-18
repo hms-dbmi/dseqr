@@ -601,7 +601,6 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
 
-    # browser()
     dprimesPlotly(path_df)
 
   })

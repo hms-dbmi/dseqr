@@ -6,16 +6,16 @@ bulkPageUI <- function(id, tab, active) {
   withTags({
     tabPane(tab, active,
             div(class = 'row',
-                div(class = 'col-sm-5',
+                div(class = 'col-lg-5',
                     bulkFormInput(ns('form'))
                 ),
-                div(id = ns('mds_plotly_container'), class = 'col-sm-7 mobile-margin', style = '',
+                div(id = ns('mds_plotly_container'), class = 'col-lg-7 mobile-margin', style = '',
                     bulkPlotlyUI(ns('mds_plotly'))
                 ),
-                div(id = ns('gene_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
+                div(id = ns('gene_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
                     bulkPlotlyUI(ns('gene_plotly'))
                 ),
-                div(id = ns('cells_plotly_container'), class = 'col-sm-7 mobile-margin', style = 'display: none;',
+                div(id = ns('cells_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
                     bulkPlotlyUI(ns('cells_plotly'))
                 )
             ),

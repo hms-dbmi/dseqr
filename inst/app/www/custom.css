@@ -18,10 +18,9 @@
   margin-top: 50px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1200px) {
   .mobile-margin {
     margin-top: 0px;
-  
   }
 }
 

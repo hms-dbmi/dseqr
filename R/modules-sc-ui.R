@@ -7,20 +7,20 @@ scPageUI <- function(id, tab, active) {
   withTags({
     div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
         div(class = 'row',
-            div(class = 'col-sm-6',
+            div(class = 'col-sm-12 col-lg-6',
                 scFormInput(ns('form'))
             ),
-            div(class = 'col-sm-6',
+            div(class = 'col-sm-12 col-lg-6 mobile-margin',
                 scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
         hr(),
         # row for cluster comparison
-        div(class = 'row', id = ns('cluster_comparison_row'),
-            div(class = "col-sm-6 col-lg-6 col-lg-push-6",
+        div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
+            div(class = "col-sm-12 col-lg-6 col-lg-push-6",
                 scMarkerPlotOutput(ns('marker_plot_cluster'))
             ),
-            div(class = "col-sm-6 col-lg-6 col-lg-pull-6",
+            div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
                 div(id = ns('biogps_container'),
                     scBioGpsPlotOutput(ns('biogps_plot'))
                 ),
@@ -31,10 +31,10 @@ scPageUI <- function(id, tab, active) {
         ),
         # row for samples comparison (integrated test vs ctrl)
         div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-6 col-lg-6",
+            div(class = "col-sm-12 col-lg-6 mobile-margin",
                 scSampleMarkerPlotOutput(ns('left'))
             ),
-            div(class = "col-sm-6 col-lg-6",
+            div(class = "col-sm-12 col-lg-6 mobile-margin",
                 scSampleMarkerPlotOutput(ns('right'))
             )
         ),
@@ -44,6 +44,7 @@ scPageUI <- function(id, tab, active) {
     )
   })
 }
+
 
 
 #' Input form for Single Cell Exploration page
@@ -273,12 +274,12 @@ scBioGpsPlotOutput <- function(id) {
 
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('plot'))
+  plotOutput(ns('plot'), height = 'auto')
 }
 
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('ridge_plot'), height = '453px')
+  plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
 #' Input for Single Cell analysis

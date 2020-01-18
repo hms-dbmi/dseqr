@@ -1,11 +1,11 @@
 #' Plotly with hidden download link
 #' @export
 #' @keywords internal
-downloadablePlotlyUI <- function(id) {
+downloadablePlotlyUI <- function(id, height = 'auto') {
   ns <- NS(id)
   tagList(
     hiddenDownloadUI(ns('dl_plotly')),
-    plotly::plotlyOutput(ns('plotly'))
+    plotly::plotlyOutput(ns('plotly'), height = height)
   )
 }
 
