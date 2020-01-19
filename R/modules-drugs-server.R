@@ -712,7 +712,10 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   # the selected dataset/analysis
   sel <- reactive({
     row_num <- input$query
+    print(row_num)
     choices <- choices()
+    req(choices)
+    if (!isTruthy(row_num)) return(list(type = ''))
     req(row_num, choices)
 
     choices[row_num, ]
@@ -743,7 +746,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   dataset_dir <- reactive({
     if (!isTruthy(input$query)) return(NULL)
     file.path(data_dir, sel()$dataset_dir)
-    })
+  })
 
 
   # Bulk analysis
@@ -799,6 +802,9 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
       drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name))
       sapply(drug_paths, dl_pert_result)
       drug_queries <- lapply(drug_paths, readRDS)
+
+    } else {
+      drug_queries <- NULL
     }
 
     return(drug_queries)

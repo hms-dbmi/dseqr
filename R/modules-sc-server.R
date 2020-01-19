@@ -426,7 +426,6 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   observe({
     preds <- preds()
 
-
     datasets <- datasets()
     dataset_name <- dataset_name()
     req(preds, datasets)
@@ -742,6 +741,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   choices <- reactive({
     clusters <- annot()
     req(clusters)
+    req(dataset_dir())
 
     if (show_contrasts()) {
       test <- isolate(test_cluster())
@@ -866,8 +866,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
   observe({
     sel <- selected_cluster()
-    req(sel)
-    selected_markers(markers()[[sel]])
+    if (!isTruthy(sel)) selected_markers(NULL)
+    else selected_markers(markers()[[sel]])
   })
 
 
@@ -963,13 +963,11 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 
 
   # reset selected gene if analysis changes
-  observeEvent(dataset_name(), {
-    selected_gene(NULL)
-  })
-
-  # set return value based on input
-  observeEvent(input$selected_gene, {
-    selected_gene(input$selected_gene)
+  observe({
+    print(dataset_name())
+    sel <- input$selected_gene
+    if (!isTruthy(sel)| !isTruthy(dataset_name())) selected_gene(NULL)
+    else selected_gene(sel)
   })
 
 
@@ -1114,6 +1112,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   annot <- reactive({
+    req(is_sc())
     annot <- levels(input_scseq()$cluster)
     dir <- dataset_dir()
     if (is.null(dir)) return(NULL)
@@ -1313,7 +1312,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   observe({
     lm_fit(NULL)
     cluster_markers(NULL)
-    browser()
     toggleState('run_comparison', condition = isTruthy(input$selected_clusters))
   })
 
