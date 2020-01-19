@@ -110,7 +110,11 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
 
   # the selected cluster/gene for cluster comparison
-  dataset_dir <- reactive(file.path(sc_dir, scDataset$dataset_name()))
+  dataset_dir <- reactive({
+    dataset <- scDataset$dataset_name()
+    if (is.null(dataset)) return(NULL)
+    file.path(sc_dir, dataset)
+  })
 
   scClusterComparison <- callModule(clusterComparison, 'cluster',
                                     dataset_dir = dataset_dir,
@@ -187,12 +191,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   roots <- c('single-cell' = sc_dir)
   shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
 
+  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
+
   dataset_name <- reactive({
-    if (!isTruthy(input$selected_dataset) | is.create()) return(NULL)
+    if (!dataset_exists()) return(NULL)
     input$selected_dataset
   })
 
-  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
 
   # get's used for saving annotation to disc
   annot_path <- reactive({
@@ -1110,7 +1115,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   annot <- reactive({
     annot <- levels(input_scseq()$cluster)
-    if (is.null(annot)) annot <- readRDS(file.path(dataset_dir(), 'annot.rds'))
+    dir <- dataset_dir()
+    if (is.null(dir)) return(NULL)
+    if (is.null(annot)) annot <- readRDS(file.path(dir, 'annot.rds'))
     return(annot)
   })
 
@@ -1122,10 +1129,13 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   pbulk_path <- reactive(file.path(dataset_dir(), 'pbulk_eset.rds'))
 
   # update cluster choices in UI
-  cluster_choices <- reactive(get_cluster_choices(annot(), dataset_dir(), TRUE))
+  cluster_choices <- reactive({
+    dir <- dataset_dir()
+    if (is.null(dir)) return(NULL)
+    get_cluster_choices(annot(), dir, TRUE)
+  })
 
   observe({
-    req(is_sc())
     updateSelectizeInput(session, 'selected_clusters',
                          choices = cluster_choices(),
                          options = contrast_options, server = TRUE)
@@ -1196,9 +1206,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
-    req(lm_fit())
 
     fit <- lm_fit()
+    if (is.null(fit)) return(NULL)
     groups <-  c('test', 'ctrl')
     clusts <- cluster_choices()$value
 
@@ -1213,38 +1223,57 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   })
 
-  # top table for selected cluster only
-  top_table <- reactive({
+  contrast <- reactive({
     sel <- input$selected_clusters
-    contrast <- paste0('test_', sel, '-ctrl_', sel)
-    tts <- top_tables()
-    req(contrast %in% names(tts))
-    tts[[contrast]]
+    paste0('test_', sel, '-ctrl_', sel)
   })
 
-  # need ambient for pathway and drug queries
-  ambient <- reactive({
-    get_ambient(scseq(),
-                markers = top_table(),
-                cluster_markers = cluster_markers())
+  # top table for selected cluster only
+  top_table <- reactive({
+    fit <- lm_fit()
+    if (is.null(fit)) return(NULL)
+    get_top_tables(fit, contrasts = contrast())[[1]]
   })
+
+  dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
+
+  # need ambient for pathway and drug queries
+  ambient <- reactive(decide_ambient(dataset_ambient(), top_table(), cluster_markers()))
 
   # drug query results
   drug_queries <- reactive({
+
     if (is.null(lm_fit())) {
       res <- NULL
 
     } else if (saved_drugs()) {
-      paths <- drug_paths()
-      res <- lapply(paths, readRDS)
+      res <- lapply(drug_paths(), readRDS)
 
     } else {
+      # run for all single-cluster comparisons (slowest part is loading es)
       toggleAll(input_ids)
-      top_table <- top_table()
-      res <- run_drug_queries(top_table, drug_paths(), session, ambient())
+
+      progress <- Progress$new(session, min = 0, max = 3)
+      progress$set(message = "Querying drugs", value = 1)
+      on.exit(progress$close())
+
+      es <- load_drug_es()
+      progress$inc(1)
+      tts <- top_tables()
+
+      for (i in seq_along(tts)) {
+        tt <- tts[[i]]
+        markers <- get_cluster_markers(i, dataset_dir())
+        ambient <- decide_ambient(dataset_ambient(), tt, markers)
+        paths <- get_drug_paths(dataset_dir(), i)
+        run_drug_queries(tt, paths, es, ambient)
+      }
+      res <- lapply(drug_paths(), readRDS)
+      progress$inc(1)
       toggleAll(input_ids)
     }
     return(res)
+
   })
 
 
@@ -1284,7 +1313,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   observe({
     lm_fit(NULL)
     cluster_markers(NULL)
-    toggleState('run_comparison', condition = length(input$selected_clusters))
+    browser()
+    toggleState('run_comparison', condition = isTruthy(input$selected_clusters))
   })
 
 

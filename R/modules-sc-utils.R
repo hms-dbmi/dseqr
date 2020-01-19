@@ -323,6 +323,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
 
+
   updateProgress(5/n, 'getting markers')
   tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
   markers <- get_scseq_markers(tests)
@@ -344,6 +345,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   scseq_data <- list(scseq = combined,
                      summed = summed,
                      markers = markers,
+                     ambient,
                      tests = tests,
                      top_markers = top_markers,
                      has_replicates = has_replicates,
@@ -554,21 +556,7 @@ scseq_part_path <- function(data_dir, anal_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #' @export
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
-
-  progress <- Progress$new(session, min = 0, max = 4)
-  progress$set(message = "Querying drugs", value = 1)
-  on.exit(progress$close())
-
-  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-  l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-  l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-
-  cmap_es  <- readRDS(cmap_path)
-  progress$inc(1)
-  l1000_drugs_es <- readRDS(l1000_drugs_path)
-  l1000_genes_es <- readRDS(l1000_genes_path)
-  progress$inc(1)
+run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
@@ -578,17 +566,38 @@ run_drug_queries <- function(top_table, drug_paths, session, ambient = NULL) {
 
   # get correlations between query and drug signatures
   res <- list(
-    cmap = query_drugs(dprimes, cmap_es),
-    l1000_drugs = query_drugs(dprimes, l1000_drugs_es),
-    l1000_genes = query_drugs(dprimes, l1000_genes_es)
+    cmap = query_drugs(dprimes, es$cmap),
+    l1000_drugs = query_drugs(dprimes, es$l1000_drugs),
+    l1000_genes = query_drugs(dprimes, es$l1000_genes)
   )
 
-  progress$inc(1)
   saveRDS(res$cmap, drug_paths$cmap)
   saveRDS(res$l1000_drugs, drug_paths$l1000_drugs)
   saveRDS(res$l1000_genes, drug_paths$l1000_genes)
 
   return(res)
+}
+
+#' Load drug effect size matrices for drug queries
+#'
+#' @return list of matrices
+#' @export
+#' @keywords internal
+load_drug_es <- function() {
+
+  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+  l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+  l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+
+  cmap  <- readRDS(cmap_path)
+  l1000_drugs <- readRDS(l1000_drugs_path)
+  l1000_genes <- readRDS(l1000_genes_path)
+
+  return(list(
+    cmap = cmap,
+    l1000_drugs = l1000_drugs,
+    l1000_genes = l1000_genes
+  ))
 }
 
 

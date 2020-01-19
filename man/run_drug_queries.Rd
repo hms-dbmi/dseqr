@@ -4,15 +4,15 @@
 \alias{run_drug_queries}
 \title{Run drug queries}
 \usage{
-run_drug_queries(top_table, drug_paths, session, ambient = NULL)
+run_drug_queries(top_table, drug_paths, es, ambient = NULL)
 }
 \arguments{
-\item{session}{Shiny session object used for progress bar.}
-
 \item{ambient}{Character vector of ambient genes to exclude from drug queries.}
 
 \item{res_paths}{List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to
 saved cmap, l1000, and differential expression analysis results.}
+
+\item{session}{Shiny session object used for progress bar.}
 }
 \value{
 \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.

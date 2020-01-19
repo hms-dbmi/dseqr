@@ -1261,6 +1261,7 @@ get_group_colors <- function(group_levels) {
 #' @keywords internal
 bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
+  input_ids <- c('download', 'contrast_groups')
 
 
   # group levels used for selecting test and control groups
@@ -1316,7 +1317,6 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
 
   # load lm_fit if saved or run limma
-  disable_inputs <- ''
   lm_fit <- reactive({
 
     if (saved_lmfit()) {
@@ -1325,7 +1325,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     } else {
 
       # visual that running
-      toggleAll(disable_inputs)
+      toggleAll(input_ids)
 
       progress <- Progress$new(session, min=0, max = 3)
       on.exit(progress$close())
@@ -1352,7 +1352,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       # visual that done
       progress$inc(1)
-      toggleAll(disable_inputs)
+      toggleAll(input_ids)
     }
 
     return(lm_fit)
@@ -1366,8 +1366,16 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       res <- lapply(paths, readRDS)
 
     } else {
-      top_table <- top_table()
-      res <- run_drug_queries(top_table, drug_paths(), session)
+      toggleAll(input_ids)
+      progress <- Progress$new(session, min = 0, max = 3)
+      progress$set(message = "Querying drugs", value = 1)
+      on.exit(progress$close())
+
+      es <- load_drug_es()
+      progress$inc(1)
+      res <- run_drug_queries(top_table(), drug_paths(), es)
+      progress$inc(1)
+      toggleAll(input_ids)
     }
     return(res)
   })

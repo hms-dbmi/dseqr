@@ -284,33 +284,26 @@ fit_lm_scseq <- function(scseq) {
   return(list(fit = fit, mod = mod))
 }
 
-#' Get ambient genes to exclude for diff_expr_scseq
+#' Get ambient genes to exclude
 #'
 #' Excludes upregulated genes if they are ambient in the test group.
 #' Excludes downregulated genes if they are ambient in the control group.
 #'
-#' @param scseq \code{Suerat} object.
-#' @param top_table \code{data.frame} with results from \code{\link[limma]{topTable}}.
+#' @param scseq \code{SingleCellExperiment} object.
 #'
 #' @return Character vector of HGNC symbols representing ambient genes to exclude
 #' @export
 #' @keywords internal
-get_ambient <- function(scseq, markers, cluster_markers) {
-
-  fts <- SingleCellExperiment::rowData(scseq)
-  rns <- row.names(markers)
-  fts <- fts[rns, ]
-  test.ambient <- rns[fts$test_ambient]
-  ctrl.ambient <- rns[fts$ctrl_ambient]
+decide_ambient <- function(ambient, top_table, cluster_markers) {
 
   # exclude test ambient if up
   # exclude ctrl ambient if down
   # opposite would decrease extent of gene expression difference but not direction
-  pos.test <- markers[test.ambient, 'logFC'] > 0
-  neg.ctrl <- markers[ctrl.ambient, 'logFC'] < 0
+  pos.test <- top_table[ambient$test, 'logFC'] > 0
+  neg.ctrl <- top_table[ambient$ctrl, 'logFC'] < 0
 
-  test.exclude <- test.ambient[pos.test]
-  ctrl.exclude <- ctrl.ambient[neg.ctrl]
+  test.exclude <- ambient$test[pos.test]
+  ctrl.exclude <- ambient$ctrl[neg.ctrl]
 
   ambient <- c(test.exclude, ctrl.exclude)
 

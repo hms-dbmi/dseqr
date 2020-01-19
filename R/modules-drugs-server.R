@@ -597,7 +597,6 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 
     if (is.null(path_id) | is.null(top_table)) return(NULL)
 
-    req(path_id, top_table)
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
 
@@ -740,7 +739,12 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   })
 
   sel_name <- reactive(sel()$label)
-  dataset_dir <- reactive(file.path(data_dir, sel()$dataset_dir))
+
+  dataset_dir <- reactive({
+    if (!isTruthy(input$query)) return(NULL)
+    file.path(data_dir, sel()$dataset_dir)
+    })
+
 
   # Bulk analysis
   # ---
