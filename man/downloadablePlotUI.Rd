@@ -4,7 +4,7 @@
 \alias{downloadablePlotUI}
 \title{UI for plot with downloadable data}
 \usage{
-downloadablePlotUI(id, height)
+downloadablePlotUI(id)
 }
 \description{
 UI for plot with downloadable data

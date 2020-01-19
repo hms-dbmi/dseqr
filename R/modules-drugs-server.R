@@ -15,7 +15,6 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
              top_table = form$top_table,
              ambient = form$ambient,
              pert_signature = form$pert_signature,
-             have_top_table = form$have_top_table,
              drug_study = form$drug_study)
 
 
@@ -95,11 +94,11 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
                               pert_signature_dir = pert_signature_dir)
 
   # show
-  have_queries <- reactive(isTruthy(drugStudy$query_res()))
-  have_top_table <- reactive(isTruthy(selectedAnal$top_table()))
+  have_queries <- reactive(isTruthy(selectedAnal$drug_queries()))
+  have_query <- reactive(isTruthy(drugStudy$query_res()))
 
   observe(toggle('drug_study_container', condition = have_queries()))
-  observe(toggle('pert_signature_container', condition = have_top_table()))
+  observe(toggle('pert_signature_container', condition = have_query()))
 
   return(list(
     top_table = selectedAnal$top_table,
@@ -107,7 +106,6 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
     is_pert = selectedAnal$is_pert,
     anal_name = selectedAnal$name,
     query_res = drugStudy$query_res,
-    have_top_table = have_top_table,
     drug_study = drugStudy$drug_study,
     show_clinical = drugStudy$show_clinical,
     direction = drugStudy$direction,
@@ -578,7 +576,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, have_top_table, pert_signature) {
+drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, pert_signature) {
 
 
   path_id <- reactive({
@@ -587,7 +585,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     if (grepl('^L1000', study)) return('Query genes - L1000')
   })
 
-  observe(toggle('container', condition = have_top_table()))
+
 
 
   # the gene plot
@@ -597,6 +595,8 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     ambient <- ambient()
     path_id <- path_id()
 
+    if (is.null(path_id) | is.null(top_table)) return(NULL)
+
     req(path_id, top_table)
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
@@ -604,6 +604,8 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     dprimesPlotly(path_df)
 
   })
+
+  observe(toggle('container', condition = isTruthy(pl())))
 
   output$plotly <- snapshotPreprocessOutput(
     plotly::renderPlotly({

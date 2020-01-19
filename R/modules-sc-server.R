@@ -188,8 +188,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
 
   dataset_name <- reactive({
-    req(input$selected_dataset)
-    req(!is.create())
+    if (!isTruthy(input$selected_dataset) | is.create()) return(NULL)
     input$selected_dataset
   })
 
@@ -205,6 +204,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # load scseq
   scseq <- reactive({
+    req(dataset_name())
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
     return(scseq)
@@ -410,6 +410,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   preds <- reactive({
     new_preds()
     query_name <- dataset_name()
+    req(query_name)
 
     # load previously saved reference preds
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
@@ -525,15 +526,16 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     new_annot()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    anal_name <- dataset_name()
+    dataset_name <- dataset_name()
+    req(dataset_name)
 
     # show saved annot if nothing selected or label transfer not open
     if (is.null(ref_preds) | !show_label_transfer()) {
-      annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+      annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
       annot <- readRDS(annot_path)
 
     } else {
-      annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
+      annot <- get_pred_annot(ref_preds, ref_name, dataset_name, sc_dir)
     }
 
     return(annot)
@@ -1030,7 +1032,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 
   output$dl_plot <- renderPlot({
     plot_fun()
-  })
+  }, height = 'auto')
 }
 
 #' Logic for marker gene plots
@@ -1521,8 +1523,3 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
-
-
-
-
-

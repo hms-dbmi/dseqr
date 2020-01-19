@@ -231,7 +231,7 @@ scClusterPlotOutput <- function(id) {
 #' UI for plot with downloadable data
 #' @export
 #' @keywords internal
-downloadablePlotUI <- function(id, height) {
+downloadablePlotUI <- function(id) {
   ns <- NS(id)
   withTags({
     div(class = 'downloadable-plot',
@@ -305,5 +305,3 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = 'Cluster (n test :: n ctrl)')
 
 }
-
-
