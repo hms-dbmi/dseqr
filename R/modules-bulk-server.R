@@ -1312,6 +1312,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     file.path(dataset_dir(), fname)
   })
 
+  kegga_path <- reactive({
+    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.rds')
+    file.path(dataset_dir(), fname)
+  })
+
   # do we have lm_fit and drug query results?
   saved_lmfit <- reactive(file.exists(lmfit_path()))
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
@@ -1396,9 +1401,12 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   path_res <- reactive({
     req(full_contrast())
     goana_path <- goana_path()
+    kegga_path <- kegga_path()
 
-    if (file.exists(goana_path)) {
-      goana_res <- readRDS(goana_path)
+    if (file.exists(kegga_path)) {
+      res <- list(
+        go = readRDS(goana_path),
+        kg = readRDS(kegga_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1409,12 +1417,12 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
-      goana_res <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
-      saveRDS(goana_res, goana_path)
+      res <- get_path_res(ebfit, goana_path, kegga_path)
     }
 
-    return(goana_res)
+    return(res)
   })
+
 
 
   # enable download
@@ -1436,12 +1444,15 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
     tt_fname <- 'top_table.csv'
     go_fname <- 'goana.csv'
+    kg_fname <- 'kegga.csv'
 
+    path_res <- path_res()
     write.csv(top_table(), tt_fname)
-    write.csv(path_res(), go_fname)
+    write.csv(path_res$go, go_fname)
+    write.csv(path_res$kg, kg_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname))
+    zip(file, c(tt_fname, go_fname, kg_fname))
   }
 
   output$download <- downloadHandler(
@@ -1459,6 +1470,33 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     drug_queries = drug_queries,
     path_res = path_res
   ))
+}
+
+
+#' Get and save pathway results for ebfit object
+#'
+#' Used to avoid code reuse for single-cell and bulk
+#'
+#' @param ebfit
+#' @param goana_path
+#' @param kegga_path
+#'
+#' @return
+#' @export
+#' @keywords internal
+get_path_res <- function(ebfit, goana_path, kegga_path) {
+
+
+  go <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
+  go <- limma::topGO(go, number = Inf)
+
+  kg <- limma::kegga(ebfit, species = 'Hs', geneid = 'ENTREZID')
+  kg <- limma::topKEGG(kg, number = Inf)
+
+  saveRDS(go, goana_path)
+  saveRDS(kg, kegga_path)
+
+  return(list(go = go, kg = kg))
 }
 
 

@@ -964,7 +964,6 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 
   # reset selected gene if analysis changes
   observe({
-    print(dataset_name())
     sel <- input$selected_gene
     if (!isTruthy(sel)| !isTruthy(dataset_name())) selected_gene(NULL)
     else selected_gene(sel)
@@ -1147,6 +1146,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   markers_path <- reactive(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds')))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
+  kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
 
   # do we have lm_fit and drug query results?
   saved_lmfit <- reactive(file.exists(lmfit_path()))
@@ -1279,9 +1279,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # goana pathway result
   path_res <- reactive({
     goana_path <- goana_path()
+    kegga_path <- kegga_path()
 
-    if (file.exists(goana_path)) {
-      goana_res <- readRDS(goana_path)
+    if (file.exists(kegga_path)) {
+      res <- list(go = readRDS(goana_path),
+                  kg = readRDS(kegga_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1298,12 +1300,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
-      goana_res <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
-
-      saveRDS(goana_res, goana_path)
+      res <- get_path_res(ebfit, goana_path, kegga_path)
     }
 
-    return(goana_res)
+    return(res)
   })
 
 
@@ -1342,14 +1342,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
     tt_fname <- 'top_table.csv'
     go_fname <- 'goana.csv'
+    kg_fname <- 'kegga.csv'
 
     tt <- top_table()
+    path_res <- path_res()
     tt$ambient <- row.names(tt) %in% ambient()
     write.csv(tt, tt_fname)
-    write.csv(path_res(), go_fname)
+    write.csv(path_res$go, go_fname)
+    write.csv(path_res$kg, kg_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname))
+    zip(file, c(tt_fname, go_fname, kg_fname))
   }
 
   output$download <- downloadHandler(

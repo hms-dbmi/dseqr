@@ -90,7 +90,7 @@ comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
   shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
-                                  choices = c('clusters', 'samples', 'labels'),
+                                  choices = c('clusters', 'samples'),
                                   selected = 'clusters', justified = TRUE)
 }
 

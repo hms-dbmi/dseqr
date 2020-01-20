@@ -18,8 +18,8 @@ bootstrapPage(
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
              bulkPageUI('bulk', tab = 'Bulk Data', active),
              scPageUI("sc", tab = 'Single Cell', active),
-             drugsPageUI("drug", tab = 'Drugs', active),
-             docsPageUI('docs', tab = 'docs', active)
+             drugsPageUI("drug", tab = 'Drugs', active)
+             # docsPageUI('docs', tab = 'docs', active)
 
     )
   )

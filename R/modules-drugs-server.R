@@ -712,7 +712,6 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   # the selected dataset/analysis
   sel <- reactive({
     row_num <- input$query
-    print(row_num)
     choices <- choices()
     req(choices)
     if (!isTruthy(row_num)) return(list(type = ''))

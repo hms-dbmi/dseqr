@@ -22,11 +22,11 @@ navbarUI <- function(tabs, active) {
                  li(class = ifelse(is.active, 'active', ''),
                     a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
                  )
-               }),
+               })
                # docs section
-               li(class = 'navbar-right',
-                  a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
-               )
+               # li(class = 'navbar-right',
+                  # a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+               # )
             )
         )
     )
