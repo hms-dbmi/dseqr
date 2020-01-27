@@ -1344,17 +1344,20 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     toggleState('download', condition = isTruthy(lm_fit()))
   })
 
+  annot_clusters <- reactive({
+    clusts <- input$selected_clusters
+    clusts <- as.numeric(clusts)
+    req(clusts)
+
+    annot <- gsub(' ', '-', annot())
+    clusts <- paste0(annot[sort(clusts)], collapse = '_')
+    return(clusts)
+  })
+
   # name for  downloading
   dl_fname <- reactive({
     date <- paste0(Sys.Date(), '.zip')
-
-    # annotated clusters
-    clusts <- input$selected_clusters
-    req(clusts)
-    annot <- gsub(' ', '-', annot())
-    clusts <- as.numeric(clusts)
-    clusts <- paste0(annot[sort(clusts)], collapse = '_')
-
+    clusts <- annot_clusters()
     paste('single-cell', dataset_name(), clusts, date , sep='_')
   })
 
@@ -1393,6 +1396,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     drug_queries = drug_queries,
     path_res = path_res,
     selected_clusters = reactive(input$selected_clusters),
+    annot_clusters = annot_clusters,
     pfun_left = pfun_left,
     pfun_right = pfun_right,
     height_left = height_left,

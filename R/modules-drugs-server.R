@@ -848,7 +848,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   anal_name <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
-      anal_name <- paste(sel_name, scSampleComparison$name(), sep = '_')
+      anal_name <- paste(sel_name, scSampleComparison$annot_clusters(), sep = '_')
 
     } else if (is_bulk()) {
       anal_name <- paste(sel_name, bulkAnal$name(), sep = '_')
@@ -876,4 +876,5 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
   ))
 
 }
+
 

@@ -5,6 +5,7 @@
 #' @export
 #' @keywords internal
 load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
+  sig <- NULL
   type_dir <- file.path(pert_signature_dir, pert_type)
   if (!file.exists(type_dir)) dir.create(type_dir)
 
@@ -12,8 +13,7 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
   fname <- paste0(pert, '.rds')
   sig_path <- file.path(type_dir, fs::path_sanitize(fname))
   if (!file.exists(sig_path)) dl_pert_signature(sig_path, pert_type)
-
-  sig <- readRDS(sig_path)
+  if (file.exists(sig_path)) sig <- readRDS(sig_path)
   return(sig)
 }
 
@@ -352,11 +352,6 @@ get_path_directions <- function(top_table) {
 toggleAll <- function(ids){
   for(id in ids) shinyjs::toggleState(id)
 }
-
-disableAll <- function(ids){
-  for(id in ids) shinyjs::disable(id)
-}
-
 
 #' Get heatmap of genes in a GO pathways
 #'
