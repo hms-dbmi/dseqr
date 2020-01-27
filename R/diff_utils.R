@@ -446,14 +446,14 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
     )
 
 
-  pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
+  (pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
     plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
                    xaxis = list(fixedrange=TRUE),
                    yaxis = list(fixedrange=TRUE),
                    margin = list(t = 60),
                    annotations = list(
-                     list(x = 0.2 , y = 1.065, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'),
-                     list(x = 0.8 , y = 1.065, text = "Adjusted", showarrow = F, xref='paper', yref='paper')),
+                     list(x = 0.2 , y = 1.055, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'),
+                     list(x = 0.8 , y = 1.055, text = "Adjusted", showarrow = F, xref='paper', yref='paper')),
                    shapes = list(
                      type = "rect",
                      x0 = 0,
@@ -465,9 +465,9 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
                      yref = "paper",
                      ysizemode = "pixel",
                      fillcolor = '#cccccc',
-                     line = list(color = "#cccccc")))
+                     line = list(color = "#cccccc"))))
 
-  pl %>%
+  (pl %>%
     plotly::config(displaylogo = FALSE,
                    displayModeBar = 'hover',
                    modeBarButtonsToRemove = c('toImage',
@@ -481,7 +481,7 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
                                               'lasso2d',
                                               'zoomIn2d',
                                               'zoomOut2d',
-                                              'toggleSpikelines'))
+                                              'toggleSpikelines')))
 
 }
 

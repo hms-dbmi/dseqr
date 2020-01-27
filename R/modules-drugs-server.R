@@ -39,8 +39,6 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
 #' @keywords internal
 drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
-  # TODO: trigger new_custom after running custom query
-  new_custom <- reactiveVal()
 
   # dataset/analysis choices
   choices <- reactive({
@@ -70,11 +68,12 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
 
   # if currently selected analysis is custom then show genes for query
+  new_custom <- reactiveVal()
   custom_query <- callModule(customQueryForm, 'custom-query',
                              show_custom = selectedAnal$show_custom,
                              is_custom = selectedAnal$is_custom,
-                             anal_name = selectedAnal$anal_name,
-                             new_anal = new_anal,
+                             anal_name = selectedAnal$name,
+                             new_custom = new_custom,
                              data_dir = data_dir)
 
 
@@ -98,7 +97,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
   have_query <- reactive(isTruthy(drugStudy$query_res()))
 
   observe(toggle('drug_study_container', condition = have_queries()))
-  observe(toggle('pert_signature_container', condition = have_query()))
+  observe(toggle('pert_signature_container', condition = have_query() & !selectedAnal$is_custom()))
 
   return(list(
     top_table = selectedAnal$top_table,
@@ -120,7 +119,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 #' Logic for custom query form on Drugs page
 #' @export
 #' @keywords internal
-customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_anal, data_dir) {
+customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, data_dir) {
 
   # setup choices and options
   choices <- data.frame(gene = c(genes$common, genes$cmap_only), stringsAsFactors = FALSE)
@@ -160,6 +159,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 
     res_paths <- get_drug_paths(custom_dir, custom_name)
     res_paths$query_genes <- file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
+    return(res_paths)
   })
 
 
@@ -177,7 +177,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
                               res_paths = res_paths(),
                               session = session)
 
-      new_anal(input$custom_name)
+      new_custom(input$custom_name)
 
 
     } else {
@@ -794,8 +794,9 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
       drug_queries <- bulkAnal$drug_queries()
 
     } else if (is_custom()) {
-      drug_paths <- get_drug_paths(sel$dataset_dir, sel_name)
-      drug_queries <- lapply(drug_paths, readRDS)
+      custom_dir <- file.path(data_dir, 'custom_queries')
+      drug_paths <- get_drug_paths(custom_dir, sel_name)
+      drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) readRDS(x))
 
     } else if (is_pert()) {
       drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name))
