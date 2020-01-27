@@ -103,21 +103,17 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                               show_integration = scDataset$show_integration)
 
 
+
   # comparison type
   comparisonType <- callModule(comparisonType, 'comparison',
+                               dataset_dir = scDataset$dataset_dir,
                                scseq = scDataset$scseq,
                                is.integrated = scDataset$is.integrated)
 
 
   # the selected cluster/gene for cluster comparison
-  dataset_dir <- reactive({
-    dataset <- scDataset$dataset_name()
-    if (is.null(dataset)) return(NULL)
-    file.path(sc_dir, dataset)
-  })
-
   scClusterComparison <- callModule(clusterComparison, 'cluster',
-                                    dataset_dir = dataset_dir,
+                                    dataset_dir = scDataset$dataset_dir,
                                     scseq = scDataset$scseq,
                                     annot_path = scDataset$annot_path,
                                     ref_preds = scLabelTransfer)
@@ -130,7 +126,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
-                                   dataset_dir = dataset_dir,
+                                   dataset_dir = scDataset$dataset_dir,
                                    dataset_name = scDataset$dataset_name,
                                    input_scseq = scseq)
 
@@ -196,6 +192,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_name <- reactive({
     if (!dataset_exists()) return(NULL)
     input$selected_dataset
+  })
+
+  dataset_dir <- reactive({
+    dataset <- dataset_name()
+    if (is.null(dataset)) return(NULL)
+    file.path(sc_dir, dataset)
   })
 
 
@@ -352,6 +354,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # return anal and options to app
   return(list(
     dataset_name = dataset_name,
+    dataset_dir = dataset_dir,
     scseq = scseq,
     annot = annot,
     annot_path = annot_path,
@@ -703,11 +706,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 #' Logic for comparison type toggle for integrated analyses
 #' @export
 #' @keywords internal
-comparisonType <- function(input, output, session, scseq, is.integrated) {
+comparisonType <- function(input, output, session, scseq, is.integrated, dataset_dir) {
 
   # always show clusters if not integrated
   observe({
-    if(!is.integrated())
+    if(is.null(dataset_dir()) || !is.integrated())
       updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
   })
 
@@ -1325,6 +1328,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # reset lm_fit if selected clusters change
   # also disable runing lm_fit if nothing selected or don't have ctrl and test cells
   comparison_valid <- reactive({
+    req(is_sc())
     sel <- as.numeric(input$selected_clusters)
     if (!isTruthy(sel) | !isTruthy(dataset_dir())) return(FALSE)
 
@@ -1587,6 +1591,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+
 
 
 
