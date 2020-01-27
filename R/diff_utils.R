@@ -77,6 +77,16 @@ run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv 
   return (lm_fit)
 }
 
+#' Save lmfit result to disk
+#'
+#' @param lm_fit Result of run_limma or run_limma_scseq
+#' @param dataset_dir directory to save results in
+#' @param numsv Number of surrogate variables modeled. Default is 0.
+#' @param anal_suffix suffix to append to saved name.
+#'
+#' @return NULL
+#' @export
+#' @keywords internal
 save_lmfit <- function(lm_fit, dataset_dir, numsv = 0, anal_suffix = '') {
 
   if (nchar(anal_suffix)) anal_suffix <- paste0(anal_suffix, '_')

@@ -345,7 +345,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # hide integration/label-transfer buttons no dataset
   observe({
-    toggleSelectizeButtons('selected_dataset', c('show_integration', 'show_label_transfer'), dataset_exists())
+    toggle('show_label_transfer-parent', condition = dataset_exists())
   })
 
 
@@ -845,11 +845,12 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   # get/load markers if don't have
   observeEvent(input$selected_cluster, {
     sel <- input$selected_cluster
-    req(sel)
-    if (sel %in% names(markers())) return(NULL)
-
-    markers <- markers()
     dataset_dir <- dataset_dir()
+    markers <- markers()
+    req(sel, dataset_dir)
+
+    if (sel %in% names(markers)) return(NULL)
+
 
     if (show_contrasts()) {
       con_markers <- get_contrast_markers(sel, dataset_dir)
@@ -1148,8 +1149,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
 
-  # do we have lm_fit and drug query results?
-  saved_lmfit <- reactive(file.exists(lmfit_path()))
+  # do we have drug query results?
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
 
   # unlike bulk two-group comparisons
@@ -1160,7 +1160,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   observeEvent(input$run_comparison, {
 
-    if (saved_lmfit()) {
+    if (file.exists(lmfit_path())) {
       resl <- list(
         fit = readRDS(lmfit_path()),
         cluster_markers = readRDS(markers_path())
@@ -1226,6 +1226,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     sel <- input$selected_clusters
     paste0('test_', sel, '-ctrl_', sel)
   })
+
 
   # top table for selected cluster only
   top_table <- reactive({
@@ -1308,11 +1309,19 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
 
   # reset lm_fit if selected clusters change
-  # also disable runing lm_fit if nothing selected
+  # also disable runing lm_fit if nothing selected or don't have ctrl and test cells
+  comparison_valid <- reactive({
+    sel <- as.numeric(input$selected_clusters)
+    if (!isTruthy(sel) | !isTruthy(dataset_dir())) return(FALSE)
+
+    stats <- get_cluster_stats(dataset_dir())
+    stats$ntest[sel] > 0 & stats$nctrl[sel] > 0
+  })
+
   observe({
     lm_fit(NULL)
     cluster_markers(NULL)
-    toggleState('run_comparison', condition = isTruthy(input$selected_clusters))
+    toggleState('run_comparison', condition = comparison_valid())
   })
 
 
@@ -1417,11 +1426,14 @@ plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
 
 plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
+  # for one vs one comparisons
+  selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
 
   # get color for selected cluster
   clus_levs <- levels(scseq$cluster)
   seli <- as.numeric(selected_cluster)
   sel <- clus_levs[seli]
+  nsel <- length(sel)
   colors <- get_palette(clus_levs)
   color  <- colors[seli]
 
@@ -1434,7 +1446,9 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
   } else {
     y <- scseq$cluster
-    hl <- y == sel
+    hl <- as.character(y)
+    hl[!hl %in% sel] <- 'out'
+    hl <- factor(hl, levels = c(sel, 'out'))
     title <- 'Expression by Cluster'
   }
 
@@ -1445,9 +1459,9 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
   df <- data.frame(x, hl, y)
 
   (pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
-      ggplot2::scale_fill_manual(values = c('grey', color)) +
-      ggplot2::scale_alpha_manual(values = c(0.25, 0.95)) +
-      ggplot2::scale_color_manual(values = c('gray', 'black')) +
+      ggplot2::scale_fill_manual(values = c(color, 'gray')) +
+      ggplot2::scale_alpha_manual(values = c(rep(0.95, nsel), 0.25)) +
+      ggplot2::scale_color_manual(values = c(rep('black', nsel), 'gray')) +
       ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
       ggridges::theme_ridges(center_axis_labels = TRUE) +
       ggplot2::scale_x_continuous(expand = c(0, 0)) +
@@ -1486,6 +1500,7 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
 plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
+  if (is.null(pbulk)) return(NULL)
   logcounts <- Biobase::assayDataElement(pbulk, 'vsd')
 
   group <- pbulk$orig.ident
@@ -1554,3 +1569,4 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+

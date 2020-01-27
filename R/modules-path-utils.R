@@ -276,7 +276,7 @@ fit_lm_scseq <- function(scseq) {
 
   # use multiBatchNorm logcounts
   dat <- SingleCellExperiment::logcounts(scseq)
-  group <- paste(scseq$orig.ident, scseq$cluster, sep = '_')
+  group <- paste(scseq$orig.ident, as.numeric(scseq$cluster), sep = '_')
   mod <- stats::model.matrix(~0 + group)
   colnames(mod) <- gsub('^group', '', colnames(mod))
   fit <- limma::lmFit(dat, mod)

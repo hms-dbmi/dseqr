@@ -602,6 +602,8 @@ bulkEndType <- function(input, output, session, fastq_dir) {
 #' @export
 #' @keywords internal
 bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
+  sva_ids <- c('run_sva', 'explore_group_name', 'grouped', 'reset_explore')
+
 
   observe({
     toggleState('run_sva', condition = enable_sva())
@@ -627,6 +629,13 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
   # run surrogate variable analysis
   observeEvent(input$run_sva, {
+    enable_sva(FALSE)
+    toggleAll(sva_ids)
+
+    # Create a Progress object
+    progress <- Progress$new(session, min=0, max = 2)
+    on.exit(progress$close())
+    progress$set(message = "Running SVA", value = 1)
 
 
     eset <- explore_eset()
@@ -655,6 +664,8 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     svobj_r(svobj)
     numsv_r(NULL)
 
+    toggleAll(sva_ids[-1])
+    progress$set(value = 2)
   })
 
   # Gene choices
@@ -1203,7 +1214,7 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
     remove_dataset_files(dataset_dir())
     remove_bulk_anals(dataset_name(), data_dir)
 
-    if (length(group_num) > 1) enable_sva(TRUE)
+    if (group_num > 1) enable_sva(TRUE)
   })
 
 
@@ -1317,14 +1328,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     file.path(dataset_dir(), fname)
   })
 
-  # do we have lm_fit and drug query results?
-  saved_lmfit <- reactive(file.exists(lmfit_path()))
+  # do we have drug query results?
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
 
   # load lm_fit if saved or run limma
   lm_fit <- reactive({
 
-    if (saved_lmfit()) {
+    if (file.exists(lmfit_path())) {
       lm_fit <- readRDS(lmfit_path())
 
     } else {
@@ -1410,6 +1420,12 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
     } else {
       lm_fit <- lm_fit()
+
+      # visual that running
+      toggleAll(input_ids)
+      progress <- Progress$new(session, min=0, max = 2)
+      on.exit(progress$close())
+      progress$set(message = "Running pathway analysis", value = 1)
       groups <- input$contrast_groups
 
       # loses sync when groups selected and change dataset
@@ -1418,6 +1434,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
       res <- get_path_res(ebfit, goana_path, kegga_path)
+      progress$inc(1)
+      toggleAll(input_ids)
     }
 
     return(res)

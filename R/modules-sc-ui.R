@@ -56,11 +56,11 @@ scFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         scSelectedDatasetInput(ns('dataset')),
+        div(class = 'hidden-forms',
+            labelTransferFormInput(ns('transfer')),
+            integrationFormInput(ns('integration'))
+        ),
         div(id = ns('form_container'), style = 'display: none;',
-            div(class = 'hidden-forms',
-                labelTransferFormInput(ns('transfer')),
-                integrationFormInput(ns('integration'))
-            ),
             div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
                 comparisonTypeToggle(ns('comparison'))
             ),
@@ -112,8 +112,7 @@ scSelectedDatasetInput <- function(id) {
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
                               actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn'),
                               actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle dataset integration'),
-                              options = list(placeholder = 'Type name to add new single-cell dataset', create = TRUE),
-                              hide_btns = TRUE),
+                              options = list(placeholder = 'Type name to add new single-cell dataset', create = TRUE)),
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
   )

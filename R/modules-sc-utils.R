@@ -345,7 +345,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   scseq_data <- list(scseq = combined,
                      summed = summed,
                      markers = markers,
-                     ambient,
+                     ambient = ambient,
                      tests = tests,
                      top_markers = top_markers,
                      has_replicates = has_replicates,
