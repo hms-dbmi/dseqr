@@ -281,6 +281,10 @@ fit_lm_scseq <- function(scseq) {
   colnames(mod) <- gsub('^group', '', colnames(mod))
   fit <- limma::lmFit(dat, mod)
 
+  # add enids for goana/kegga pathway analyses
+  data.table::setkey(hs, SYMBOL_9606)
+  fit$genes <- hs[row.names(scseq), list(ENTREZID)]
+
   return(list(fit = fit, mod = mod))
 }
 
@@ -347,6 +351,10 @@ get_path_directions <- function(top_table) {
 #' @keywords internal
 toggleAll <- function(ids){
   for(id in ids) shinyjs::toggleState(id)
+}
+
+disableAll <- function(ids){
+  for(id in ids) shinyjs::disable(id)
 }
 
 

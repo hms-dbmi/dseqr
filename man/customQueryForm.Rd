@@ -11,7 +11,7 @@ customQueryForm(
   show_custom,
   is_custom,
   anal_name,
-  new_anal,
+  new_custom,
   data_dir
 )
 }

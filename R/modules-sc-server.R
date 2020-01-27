@@ -1102,7 +1102,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #' @keywords internal
 scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, input_scseq = function()NULL, is_sc = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('run_comparison', 'selected_clusters')
+  input_ids <- c('download', 'run_comparison', 'selected_clusters')
 
   # use input scseq/annot if available
   scseq <- reactive({
@@ -1167,14 +1167,20 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       )
 
     } else {
-      toggleAll(input_ids)
+
+      progress <- Progress$new(session, min = 0, max = 2)
+      progress$set(message = "Fitting limma model", value = 1)
+      on.exit(progress$close())
+      toggleAll(input_ids[-1])
+
       reps <- has_replicates()
       obj <- if (reps) summed() else scseq()
       resl <- list(
         fit = run_limma_scseq(obj, dataset_dir(), is_summed = reps),
         cluster_markers = get_cluster_markers(input$selected_clusters, dataset_dir())
       )
-      toggleAll(input_ids)
+      toggleAll(input_ids[-1])
+      progress$inc(1)
     }
 
     if (has_replicates()) {
@@ -1263,9 +1269,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       for (i in seq_along(tts)) {
         tt <- tts[[i]]
-        markers <- get_cluster_markers(i, dataset_dir())
+        cluster <- gsub('^test_([0-9]+)-.+?$', '\\1', names(tts)[i])
+
+        markers <- get_cluster_markers(cluster, dataset_dir())
         ambient <- decide_ambient(dataset_ambient(), tt, markers)
-        paths <- get_drug_paths(dataset_dir(), i)
+        paths <- get_drug_paths(dataset_dir(), cluster)
         run_drug_queries(tt, paths, es, ambient)
       }
       res <- lapply(drug_paths(), readRDS)
@@ -1288,6 +1296,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
     } else {
       lm_fit <- lm_fit()
+      toggleAll(input_ids)
+      progress <- Progress$new(session, min = 0, max = 2)
+      progress$set(message = "Running pathway analysis", value = 1)
+      on.exit(progress$close())
 
       selected_clusters <- input$selected_clusters
       groups <- paste(c('test', 'ctrl'), selected_clusters, sep = '_')
@@ -1302,6 +1314,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
       res <- get_path_res(ebfit, goana_path, kegga_path)
+      progress$inc(1)
+      toggleAll(input_ids)
     }
 
     return(res)
@@ -1569,4 +1583,6 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+
+
 
