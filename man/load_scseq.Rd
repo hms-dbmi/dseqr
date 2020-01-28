@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_scseq.R
 \name{load_scseq}
 \alias{load_scseq}
-\title{Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.}
+\title{Load kallisto/bustools quantification into a SingleCellExperiment object.}
 \usage{
 load_scseq(
   data_dir,
@@ -21,10 +21,10 @@ load_scseq(
 \item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
-\code{Seurat} object with whitelist meta data.
+\code{SingleCellExperiment} object with whitelist meta data.
 }
 \description{
-Load kallisto/bustools quantification into a Seurat or SingleCellExperiment object.
+Load kallisto/bustools quantification into a SingleCellExperiment object.
 }
 \examples{
 

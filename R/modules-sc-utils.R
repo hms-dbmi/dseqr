@@ -174,7 +174,7 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
 #' Get/Save cluster stats for single-cell related selectizeInputs
 #'
 #' @param dataset_dir Directory with single cell dataset.
-#' @param scseq \code{Seurat} object to get/save stats for. if \code{NULL} (Default), will be loaded.
+#' @param scseq \code{SingleCellExperiment} object to get/save stats for. if \code{NULL} (Default), will be loaded.
 #'
 #' @return List with cluster stats
 #' @export
@@ -251,7 +251,7 @@ get_contrast_choices <- function(clusters, test) {
 
 #' Add cell percents to gene choices for single cell
 #'
-#' @param scseq Seurat object
+#' @param scseq \code{SingleCellExperiment} object
 #' @param markers data.frame of marker genes.
 #'
 #' @return data.frame of all genes, with markers on top and cell percent columns
@@ -362,14 +362,13 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
 #' Load scRNA-Seq datasets for integration
 #'
-#' Will restore SCT assay if was saved seperately. Downsamples very large datasets.
-#' Also sets orig.ident to \code{ident}.
+#' Sets orig.ident to \code{ident}.
 #'
 #' @param anal_names Character vector of single cell analysis names to load.
 #' @param sc_dir The directory with single-cell datasets
 #' @param ident Either \code{'test'} or \code{'ctrl'}
 #'
-#' @return List of \code{Seurat} objects.
+#' @return List of \code{SingleCellExperiment} objects.
 #' @export
 #' @keywords internal
 load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, ident) {
@@ -407,12 +406,11 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
 #'
 #' @param anal Name of single cell analysis and containing folder.
 #' @param data_dir Path to directory containing \code{anal} folder.
-#' @param downsample Should the loaded Seurat object be downsampled? For reducing speed/memory burden. Default is FALSE.
 #'
-#' @return \code{Seurat} object
+#' @return \code{SingleCellExperiment} object
 #' @export
 #' @keywords internal
-load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
+load_saved_scseq <- function(anal, data_dir) {
   # load scseq
   scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
   scseq <- readRDS(scseq_path)
@@ -423,27 +421,6 @@ load_saved_scseq <- function(anal, data_dir, downsample = FALSE) {
   return(scseq)
 }
 
-
-#' Downsample very large scseq objects for integration
-#'
-#' Used by \code{load_scseqs_for_integration}.
-#'
-#' @param scseq \code{Seurat} object
-#' @param max.cells Maximum number of cells to keep. Default is 10000.
-#' @param seed Integer used for reproducibility.
-#'
-#' @return \code{scseq} with maximum \code{max.cells} cells.
-#' @export
-#' @keywords internal
-downsample_scseq <- function(scseq, max.cells = 1000, seed = 0L) {
-  if (ncol(scseq) > max.cells) {
-    set.seed(seed)
-    scseq <- subset(scseq, cells = sample(Seurat::Cells(scseq), max.cells))
-    gc()
-  }
-
-  return(scseq)
-}
 
 
 #' Save Single Cell RNA-seq data for app
@@ -601,47 +578,6 @@ load_drug_es <- function() {
 }
 
 
-#' Run single cell RNA-Seq test vs ctrl pathway comparison
-#'
-#' Used by \code{run_comparison} for pathway analysis.
-#'
-#' @param scseq \code{Suerat} object
-#' @param selected_clusters Character vector of selected clusters to run comparison for.
-#' @param sc_dir Path to folder with single cell analyses.
-#' @param anal_name Folder name in \code{sc_dir} that contains single cell analysis.
-#' @param res List with previous differential expression analysis results in slot \code{'anal'}.
-#' @param ambient Character vector of ambient genes to exclude from pathway analysis.
-#'
-#' @return \code{res} with slot \code{'path'} containing pathway analysis results. The \code{'anal'}
-#'  slot is also subsetted such that ambient genes are excluded.
-run_path_comparison <- function(scseq, selected_clusters, sc_dir, anal_name, res, ambient) {
-
-  clusters_name <- collapse_sorted(selected_clusters)
-  clusters <- as.character(Seurat::Idents(scseq))
-  in.sel <- clusters %in% selected_clusters
-
-  # run pathway analysis (will load if exists)
-
-
-  Seurat::Idents(scseq) <- scseq$orig.ident
-  scseq <- scseq[, in.sel]
-  res$path <- diff_path_scseq(scseq,
-                              prev_anal = anal,
-                              ambient = ambient,
-                              data_dir = sc_dir,
-                              anal_name = anal_name,
-                              clusters_name = clusters_name,
-                              NI = 24)
-
-  # remove ambient from markers
-  is.ambient <-row.names(res$anal$top_table) %in% ambient
-
-  res$anal$top_table <- res$anal$top_table[!is.ambient, ]
-  res$anal$ebayes_sv$df.residual <- res$anal$ebayes_sv$df.residual[!is.ambient]
-
-  return(res)
-}
-
 
 
 #' Used to generate file names for single cell analyses.
@@ -685,7 +621,7 @@ get_nearest_row <- function(truth, test) {
 #' Get plot to compare original labels for integrated single cell dataset.
 #'
 #' @param anal Name of original analysis in \code{scseq$project} to plot.
-#' @param scseq Integrated \code{Seurat} object.
+#' @param scseq Integrated \code{SingleCellExperiment} object.
 #' @param annot Character vector of original labels for \code{anal}.
 #' @param plot \code{ggplot} object from integrated \code{scseq}.
 #'

@@ -4,17 +4,15 @@
 \alias{load_saved_scseq}
 \title{Load saved single cell RNA-seq dataset}
 \usage{
-load_saved_scseq(anal, data_dir, downsample = FALSE)
+load_saved_scseq(anal, data_dir)
 }
 \arguments{
 \item{anal}{Name of single cell analysis and containing folder.}
 
 \item{data_dir}{Path to directory containing \code{anal} folder.}
-
-\item{downsample}{Should the loaded Seurat object be downsampled? For reducing speed/memory burden. Default is FALSE.}
 }
 \value{
-\code{Seurat} object
+\code{SingleCellExperiment} object
 }
 \description{
 Used for both dataset integration and label transfer.

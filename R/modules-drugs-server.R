@@ -97,7 +97,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
   have_query <- reactive(isTruthy(drugStudy$query_res()))
 
   observe(toggle('drug_study_container', condition = have_queries()))
-  observe(toggle('pert_signature_container', condition = have_query() & !selectedAnal$is_custom()))
+  observe(toggle('pert_signature_container', condition = have_query() & !(selectedAnal$is_custom() | selectedAnal$is_pert())))
 
   return(list(
     top_table = selectedAnal$top_table,

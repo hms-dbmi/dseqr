@@ -5,24 +5,19 @@
 #' @export
 plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
 
-  colnames(scseq) <- make.unique(colnames(scseq))
-  scseq <- Seurat::as.Seurat(scseq, counts = NULL)
-  Idents(scseq) <- scseq$cluster
-
   if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
 
   # make selected cluster and groups stand out
   cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$cluster) %in% selected_clusters, 1, 0.1))
   pt.size <- min(6000/ncol(scseq), 2)
 
-  cluster_plot <- Seurat::DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
+  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +
     theme_dimgray(with_nums = FALSE) +
     ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
 
-  return(cluster_plot)
 }
 
 #' Plot UMAP coloured by HGNC symbol
@@ -35,13 +30,9 @@ plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), 
 #' @export
 plot_tsne_gene <- function(scseq, gene) {
 
-  colnames(scseq) <- make.unique(colnames(scseq))
-  scseq <- Seurat::as.Seurat(scseq, counts = NULL)
-  Idents(scseq) <- scseq$cluster
-
   pt.size <- min(6000/ncol(scseq), 2)
 
-  gene_plot <- Seurat::FeaturePlot(scseq, gene, reduction = 'TSNE', pt.size = pt.size, order = TRUE) +
+  FeaturePlot(scseq, gene, reduction = 'TSNE', pt.size = pt.size, order = TRUE) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +
@@ -49,7 +40,6 @@ plot_tsne_gene <- function(scseq, gene) {
     theme_dimgray(with_nums = FALSE) +
     ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'))
 
-  return(gene_plot)
 }
 
 

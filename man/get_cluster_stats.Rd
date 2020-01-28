@@ -9,7 +9,7 @@ get_cluster_stats(dataset_dir, scseq = NULL)
 \arguments{
 \item{dataset_dir}{Directory with single cell dataset.}
 
-\item{scseq}{\code{Seurat} object to get/save stats for. if \code{NULL} (Default), will be loaded.}
+\item{scseq}{\code{SingleCellExperiment} object to get/save stats for. if \code{NULL} (Default), will be loaded.}
 }
 \value{
 List with cluster stats

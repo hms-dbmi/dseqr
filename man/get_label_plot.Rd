@@ -9,7 +9,7 @@ get_label_plot(anal, scseq, annot, plot)
 \arguments{
 \item{anal}{Name of original analysis in \code{scseq$project} to plot.}
 
-\item{scseq}{Integrated \code{Seurat} object.}
+\item{scseq}{Integrated \code{SingleCellExperiment} object.}
 
 \item{annot}{Character vector of original labels for \code{anal}.}
 

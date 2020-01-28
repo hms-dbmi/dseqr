@@ -7,14 +7,10 @@
 fit_lm_scseq(scseq)
 }
 \arguments{
-\item{scseq}{\code{Seurat} object.}
-
-\item{ident.1}{String with control group name in \code{Idents(scseq)}.}
-
-\item{ident.2}{String with test group name in \code{Idents(scseq)}.}
+\item{scseq}{\code{SingleCellExperiment} object.}
 }
 \value{
-result of call to \code{\link[limma]{eBayes}}
+List with model matrix and result of call to \code{\link[limma]{lmFit}}
 }
 \description{
 Fit limma eBayes on single cell RNA-seq dataset

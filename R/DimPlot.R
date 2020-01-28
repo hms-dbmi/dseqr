@@ -79,6 +79,7 @@ DimPlot <- function(
   ...
 ) {
 
+
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -199,6 +200,7 @@ SingleDimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50'
 ) {
+
   pt.size <- pt.size %||% AutoPointSize(data = data)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -437,3 +439,37 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
 AutoPointSize <- function(data) {
   return(min(1583 / nrow(x = data), 1))
 }
+
+
+CombinePlots <- function (plots, ncol = NULL, legend = NULL, ...) {
+  plots.combined <- if (length(x = plots) > 1) {
+    if (!is.null(x = legend)) {
+      if (legend != "none") {
+        plot.legend <- cowplot::get_legend(plot = plots[[1]] +
+                                    ggplot2::theme(legend.position = legend))
+      }
+      plots <- lapply(X = plots, FUN = function(x) {
+        return(x + NoLegend())
+      })
+    }
+    plots.combined <- cowplot::plot_grid(plotlist = plots, ncol = ncol,
+                                align = "hv", ...)
+    if (!is.null(x = legend)) {
+      plots.combined <- switch(EXPR = legend, bottom = cowplot::plot_grid(plots.combined,
+                                                                 plot.legend, ncol = 1, rel_heights = c(1, 0.2)),
+                               right = cowplot::plot_grid(plots.combined, plot.legend,
+                                                 rel_widths = c(3, 0.3)), plots.combined)
+    }
+    plots.combined
+  }
+  else {
+    plots[[1]]
+  }
+  return(plots.combined)
+}
+
+noLegend <- function (...) {
+  no.legend.theme <- ggplot2::theme(legend.position = "none", validate = TRUE, ...)
+  return(no.legend.theme)
+}
+

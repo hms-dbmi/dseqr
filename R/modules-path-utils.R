@@ -265,11 +265,9 @@ supress.genes <- function(markers, supress) {
 
 #' Fit limma eBayes on single cell RNA-seq dataset
 #'
-#' @param scseq \code{Seurat} object.
-#' @param ident.1 String with control group name in \code{Idents(scseq)}.
-#' @param ident.2 String with test group name in \code{Idents(scseq)}.
+#' @param scseq \code{SingleCellExperiment} object.
 #'
-#' @return result of call to \code{\link[limma]{eBayes}}
+#' @return List with model matrix and result of call to \code{\link[limma]{lmFit}}
 #' @export
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {

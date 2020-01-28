@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_scseq.R
 \name{standardize_cellranger}
 \alias{standardize_cellranger}
-\title{Rename CellRanger files for loading by Seurat::Read10X}
+\title{Rename CellRanger files for loading by Read10X}
 \usage{
 standardize_cellranger(data_dir)
 }
@@ -10,5 +10,5 @@ standardize_cellranger(data_dir)
 \item{data_dir}{Path to folder with CellRanger files.}
 }
 \description{
-Rename CellRanger files for loading by Seurat::Read10X
+Rename CellRanger files for loading by Read10X
 }

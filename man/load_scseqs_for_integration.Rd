@@ -14,10 +14,9 @@ load_scseqs_for_integration(anal_names, exclude_clusters, sc_dir, ident)
 \item{ident}{Either \code{'test'} or \code{'ctrl'}}
 }
 \value{
-List of \code{Seurat} objects.
+List of \code{SingleCellExperiment} objects.
 }
 \description{
-Will restore SCT assay if was saved seperately. Downsamples very large datasets.
-Also sets orig.ident to \code{ident}.
+Sets orig.ident to \code{ident}.
 }
 \keyword{internal}

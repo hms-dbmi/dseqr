@@ -9,7 +9,7 @@ get_gene_choices(markers)
 \arguments{
 \item{markers}{data.frame of marker genes.}
 
-\item{scseq}{Seurat object}
+\item{scseq}{\code{SingleCellExperiment} object}
 }
 \value{
 data.frame of all genes, with markers on top and cell percent columns
