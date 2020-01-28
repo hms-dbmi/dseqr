@@ -1,5 +1,6 @@
 external.libraries:
-ignored.packages:
+ignored.packages: roxygen2, callr, brew, commonmark, rprojroot, desc, ps,
+    processx, pkgbuild, pkgload, xml2
 snapshot.type: packrat
 use.cache: TRUE
 vcs.ignore.library: TRUE

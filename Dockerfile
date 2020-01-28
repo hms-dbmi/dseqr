@@ -8,8 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libbz2-dev \
     liblzma-dev \
+    libhdf5-dev \
     zlib1g-dev \
     libpng-dev \
+    libjpeg-dev \
     git \
     wget && rm -rf /var/lib/apt/lists/*
 
@@ -42,7 +44,7 @@ RUN conda config --add channels bioconda && \
 RUN R -e "drugseqr.data::dl_drug_es()"
 
 # install drugseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.20', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.21', dependencies = FALSE, upgrade = FALSE)"
 
 
 # save image to a tar.gz file and upload to s3
