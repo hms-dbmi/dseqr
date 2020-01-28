@@ -15,30 +15,31 @@ scPageUI <- function(id, tab, active) {
             )
         ),
         hr(),
-        # row for cluster comparison
-        div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-12 col-lg-6 col-lg-push-6",
-                scMarkerPlotOutput(ns('marker_plot_cluster'))
-            ),
-            div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
-                div(id = ns('biogps_container'),
-                    scBioGpsPlotOutput(ns('biogps_plot'))
+        div(id = ns('comparison_row'), style = 'display: none;',
+            # row for cluster comparison
+            div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
+                div(class = "col-sm-12 col-lg-6 col-lg-push-6",
+                    scMarkerPlotOutput(ns('marker_plot_cluster'))
                 ),
-                div( style = 'display: none;', id = ns('ridge_container'),
-                     scRidgePlotOutput(ns('ridge_plot'))
+                div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
+                    div(id = ns('biogps_container'),
+                        scBioGpsPlotOutput(ns('biogps_plot'))
+                    ),
+                    div( style = 'display: none;', id = ns('ridge_container'),
+                         scRidgePlotOutput(ns('ridge_plot'))
+                    )
+                )
+            ),
+            # row for samples comparison (integrated test vs ctrl)
+            div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
+                div(class = "col-sm-12 col-lg-6 mobile-margin",
+                    scSampleMarkerPlotOutput(ns('left'))
+                ),
+                div(class = "col-sm-12 col-lg-6 mobile-margin",
+                    scSampleMarkerPlotOutput(ns('right'))
                 )
             )
         ),
-        # row for samples comparison (integrated test vs ctrl)
-        div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-            div(class = "col-sm-12 col-lg-6 mobile-margin",
-                scSampleMarkerPlotOutput(ns('left'))
-            ),
-            div(class = "col-sm-12 col-lg-6 mobile-margin",
-                scSampleMarkerPlotOutput(ns('right'))
-            )
-        ),
-
         # row for labels comparison (integration before and after)
         div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;')
     )
@@ -233,7 +234,7 @@ scClusterPlotOutput <- function(id) {
 downloadablePlotUI <- function(id) {
   ns <- NS(id)
   withTags({
-    div(class = 'downloadable-plot',
+    div(class = 'downloadable-plot', style = 'display: none;', id = ns('plot_container'),
         div(class = 'clearfix',
             span(
               id = ns('download_container'), class = 'pull-right downloadable-plot-btn',
@@ -304,3 +305,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = 'Cluster (n test :: n ctrl)')
 
 }
+

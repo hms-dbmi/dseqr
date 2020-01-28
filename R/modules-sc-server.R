@@ -55,11 +55,13 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              plot_fun = scForm$samples_pfun_right,
              height = scForm$samples_plot_height_right)
 
+  observe({
+    toggle(id = "comparison_row",  condition = isTruthy(scForm$dataset_name()))
+  })
 
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
     toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
-    toggle(id = "label_comparison_row", condition = scForm$comparison_type() == 'labels')
   })
 
   observe({
@@ -148,7 +150,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scseq <- reactive({
     scseq <- scDataset$scseq()
     annot <- scClusterComparison$annot()
-    req(annot, scseq)
+    if (!isTruthy(annot) | !isTruthy(scseq)) return(NULL)
     levels(scseq$cluster) <- annot
     return(scseq)
   })
@@ -159,11 +161,11 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   })
 
 
+
   # show appropriate inputs based on comparison type
   observe({
-    toggle(id = "label_comparison_inputs",  condition = comparisonType() == 'labels')
+    toggle(id = "cluster_comparison_inputs",  condition = comparisonType() == 'clusters')
     toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
-    toggle(id = "cluster_comparison_inputs", condition = comparisonType() == 'clusters')
   })
 
   return(list(
@@ -209,7 +211,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # load scseq
   scseq <- reactive({
-    req(dataset_name())
+    if (!isTruthy(dataset_name())) return(NULL)
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
     return(scseq)
@@ -993,7 +995,9 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 scClusterPlot <- function(input, output, session, scseq, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
-    plot_tsne_cluster(scseq())
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    plot_tsne_cluster(scseq)
 
   })
 
@@ -1022,8 +1026,14 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 
   # show download button only if plot visible and downloadable
   observe({
-    toggleClass('download_container', class = 'visible-plot', condition = downloadable && isTruthy(plot_fun()))
+    toggleClass('download_container', class = 'visible-plot', condition = downloadable)
   })
+
+  observe({
+    toggle('plot_container', condition = isTruthy(plot_fun()))
+  })
+
+
 
   # click download
   output$download <- downloadHandler(
@@ -1045,25 +1055,21 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun
 
 
   plot <- reactive({
-    req(selected_gene())
-    plot_tsne_gene(scseq(), selected_gene())
-  })
-
-  ploted_plot <- reactive({
-    pl <- plot()
-    req(pl)
-    return(pl)
+    gene <- selected_gene()
+    scseq <- scseq()
+    if (!isTruthy(gene) || !isTruthy(scseq)) return(NULL)
+    plot_tsne_gene(scseq, gene)
   })
 
 
   data_fun <- function() {
-    plot <- ploted_plot()
+    plot <- plot()
     plot$data
   }
 
   callModule(downloadablePlot,
              "marker_plot",
-             plot_fun = ploted_plot,
+             plot_fun = plot,
              fname_fun = fname_fun,
              data_fun = data_fun,
              downloadable = downloadable)
