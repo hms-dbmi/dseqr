@@ -17,7 +17,7 @@ calcx(cor, range = c(-1, 1), width = 180, pad = 0.1)
 correlation text values don't get cut off.}
 }
 \value{
-Numeric vector giving x position for correlation plot in \code{\link{explore_search}}
+Numeric vector giving x position for correlation plot in Drugs tab.
 }
 \description{
 Calculate x position for correlation plot

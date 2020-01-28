@@ -1181,10 +1181,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       reps <- has_replicates()
       obj <- if (reps) summed() else scseq()
+
       resl <- list(
         fit = run_limma_scseq(obj, dataset_dir(), is_summed = reps),
         cluster_markers = get_cluster_markers(input$selected_clusters, dataset_dir())
       )
+
       toggleAll(input_ids[-1])
       progress$inc(1)
     }
@@ -1414,9 +1416,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
 #' Format gene plots for sample comparison for drugseqr app
 #'
-#' @param plot Returned by \code{\link{plot_umap_gene}}
 #' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
-#' @param scseq \code{Seurat} object.
+#' @param scseq \code{SingleCellExperiment} object.
 #'
 #' @return \code{plot} formatted for drugseqr app
 #' @export

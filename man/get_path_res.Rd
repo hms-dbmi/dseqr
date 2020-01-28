@@ -7,10 +7,14 @@
 get_path_res(ebfit, goana_path, kegga_path)
 }
 \arguments{
-\item{kegga_path}{}
+\item{ebfit}{Result of \code{fit_ebayes}}
+
+\item{goana_path}{Path to save \code{goana} result}
+
+\item{kegga_path}{Path to save \code{kegga} result}
 }
 \value{
-
+List with \code{goana} and \code{kegga} results
 }
 \description{
 Used to avoid code reuse for single-cell and bulk

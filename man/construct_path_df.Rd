@@ -7,7 +7,7 @@
 construct_path_df(top_table)
 }
 \arguments{
-\item{top_table}{Filtered result of \code{\link[limma]{topTable}}
+\item{top_table}{Filtered result of \code{\link[limma]{toptable}}
 to limit number of plotted genes.}
 }
 \description{

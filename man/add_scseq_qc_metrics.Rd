@@ -10,7 +10,7 @@ add_scseq_qc_metrics(sce)
 \item{sce}{\code{SingleCellExperiment}}
 }
 \value{
-\code{sce} with qc metrics added by \code{\link[scater]{calculatedQCMetrics}}
+\code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 }
 \description{
 Calculate QC metrics for SingleCellExperiment

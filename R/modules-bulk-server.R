@@ -1495,11 +1495,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #'
 #' Used to avoid code reuse for single-cell and bulk
 #'
-#' @param ebfit
-#' @param goana_path
-#' @param kegga_path
+#' @param ebfit Result of \code{fit_ebayes}
+#' @param goana_path Path to save \code{goana} result
+#' @param kegga_path Path to save \code{kegga} result
 #'
-#' @return
+#' @return List with \code{goana} and \code{kegga} results
 #' @export
 #' @keywords internal
 get_path_res <- function(ebfit, goana_path, kegga_path) {

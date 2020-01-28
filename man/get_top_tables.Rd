@@ -12,7 +12,7 @@ get_top_tables(lm_fit, groups = c("test", "ctrl"), contrasts = NULL)
 \item{contrast}{String specifying contrast.}
 }
 \value{
-result of \link[limma]{topTable}
+result of \link[limma]{toptable}
 }
 \description{
 Get top table

@@ -1,14 +1,10 @@
-#' Differential expression analysis of eset.
+#' Linear model fitting of eset with limma.
 #'
 #' After selecting control and test samples for a contrast, surrogate variable
-#' analysis (\code{\link[sva]{sva}}) and differential expression analysis is performed.
+#' analysis (\code{\link[sva]{sva}}) and linear model fitting with \link[limma]{lmFit} is performed.
 #'
-#' To specify a contrast, first select rows for control samples, and click the \emph{Add Control Rows}
-#' button. Repeat for test samples. After control and test samples have been added
-#' click the \emph{Done} button. If you make a mistake, click the \emph{Reset} button.
 #'
-#' Analysis results are saved in the corresponding in \code{data_dir} as "diff_expr.rds". If analyses
-#' needs to be repeated, previous results can be reloaded with \code{\link[base]{readRDS}}
+#' If analyses need to be repeated, previous results can be reloaded with \code{\link[base]{readRDS}}
 #' and supplied to the \code{prev_anal} parameter. In this case, previous selections will be reused.
 #'
 #' @param eset Annotated eset created by \code{\link{load_seq}}.
@@ -17,27 +13,20 @@
 #'   values in this column, the row with the highest interquartile range
 #'   across selected samples will be kept. Appropriate values are \code{"SYMBOL"} (default - for gene level analysis)
 #'   or \code{"ENTREZID_HS"} (for probe level analysis).
-#' @param prev_anal Previous result of \code{\link{diff_expr}}. If present, previous group
+#' @param prev_anal Previous result of \code{run_limma}. If present, previous group
 #'   selections will be reused.
 #'
 #' @export
 #'
-#' @return List of named lists, one for each GSE. Each named list contains:
-#'   \item{pdata}{data.frame with phenotype data for selected samples.
-#'      Columns \code{treatment} ('ctrl' or 'test'), \code{group}, and \code{pairs} are
-#'      added based on user selections.}
-#'   \item{top_tables}{List with results of \code{\link[limma]{topTable}} call (one per
-#'      contrast). These results account for the effects of nuissance variables
-#'      discovered by surrogate variable analysis.}
-#'   \item{ebayes_sv}{Results of call to \code{\link[limma]{eBayes}} with surrogate
-#'      variables included in the model matrix.}
-#'   \item{annot}{Value of \code{annot} variable.}
+#' @return List with:
+#'   \item{fit}{result of \code{\link[limma]{lmFit}}.}
+#'   \item{mod}{\code{model.matrix} used for \code{fit}}
 #'
 #' @examples
 #'
-#' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
 #' eset <- load_seq(data_dir)
-#' anal <- diff_expr(eset, data_dir, anal_name = 'IBD')
+#' lm_fit <- run_limma(eset)
+#'
 run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL) {
 
   # check for annot column
@@ -133,7 +122,7 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 #' @param lm_fit Result of \link{run_limma}
 #' @param contrast String specifying contrast.
 #'
-#' @return result of \link[limma]{topTable}
+#' @return result of \link[limma]{toptable}
 #' @export
 get_top_tables <- function(lm_fit, groups = c('test', 'ctrl'), contrasts = NULL) {
   if (is.null(contrasts))
@@ -195,16 +184,11 @@ add_adjusted <- function(eset, svobj = list(sv = NULL), numsv = 0, adj_path = NU
 
 #' Get model matrices for surrogate variable analysis
 #'
-#' Used by \code{diff_expr} to create model matrix with surrogate variables
-#' in order to run \code{diff_anal}.
+#' Used by \code{add_adjusted} to create model matrix with surrogate variables.
 #'
 #' @param eset Annotated eset with samples selected during \code{add_contrasts}.
-#' @param svanal Perform surrogate variable analysis? Default is \code{TRUE}.
-#' @param rna_seq Is this an RNA-seq experiment? Inferred from \code{eset}.
 #'
-#' @seealso \code{\link{add_contrast}}.
-#' @return List with model matrix(mod), model matrix with surrogate
-#'         variables(modsv), and result of \code{sva} function.
+#' @return List with model matrix(mod) and null model matrix (mod0) used for \code{sva}.
 #'
 #' @export
 get_mods <- function(eset) {
@@ -548,7 +532,6 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
 #' @param mod Full model matrix supplied to \code{sva}.
 #' @param svs Surrogate variables returned by \code{sva} (svobj$sv).
 #'
-#' @seealso \code{\link{get_contrast_esets}}.
 #' @return Expression data with effects of svs removed.
 clean_y <- function(y, mod, mod.clean) {
 

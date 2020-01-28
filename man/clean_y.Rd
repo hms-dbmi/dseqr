@@ -20,6 +20,3 @@ Expression data with effects of svs removed.
 Factors out effect of surrogate variables discovered during surrogate variable
 analysis.
 }
-\seealso{
-\code{\link{get_contrast_esets}}.
-}

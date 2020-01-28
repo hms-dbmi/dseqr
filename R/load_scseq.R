@@ -573,7 +573,7 @@ add_scseq_clusters <- function(sce) {
 #'
 #' @param sce \code{SingleCellExperiment}
 #'
-#' @return \code{sce} with qc metrics added by \code{\link[scater]{calculatedQCMetrics}}
+#' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 #' @export
 add_scseq_qc_metrics <- function(sce) {
   # calculate qc metrics if haven't previous

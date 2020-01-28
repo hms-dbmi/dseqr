@@ -8,7 +8,6 @@ suppressPackageStartupMessages({
   library(shinyWidgets)
   library(dplyr)
   # Seurat fails to load during cell-type deconvolution
-  library(Seurat)
 })
 
 

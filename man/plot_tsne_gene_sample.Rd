@@ -10,8 +10,6 @@ plot_tsne_gene_sample(gene, scseq, group = "test")
 \item{scseq}{\code{SingleCellExperiment} object.}
 
 \item{group}{Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}}
-
-\item{plot}{Returned by \code{\link{plot_umap_gene}}}
 }
 \value{
 \code{plot} formatted for drugseqr app

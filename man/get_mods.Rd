@@ -8,19 +8,10 @@ get_mods(eset)
 }
 \arguments{
 \item{eset}{Annotated eset with samples selected during \code{add_contrasts}.}
-
-\item{svanal}{Perform surrogate variable analysis? Default is \code{TRUE}.}
-
-\item{rna_seq}{Is this an RNA-seq experiment? Inferred from \code{eset}.}
 }
 \value{
-List with model matrix(mod), model matrix with surrogate
-        variables(modsv), and result of \code{sva} function.
+List with model matrix(mod) and null model matrix (mod0) used for \code{sva}.
 }
 \description{
-Used by \code{diff_expr} to create model matrix with surrogate variables
-in order to run \code{diff_anal}.
-}
-\seealso{
-\code{\link{add_contrast}}.
+Used by \code{add_adjusted} to create model matrix with surrogate variables.
 }

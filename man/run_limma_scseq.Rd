@@ -2,26 +2,24 @@
 % Please edit documentation in R/modules-path-utils.R
 \name{run_limma_scseq}
 \alias{run_limma_scseq}
-\title{Run limma differential expression between test and control groups in single cell RNA-Seq dataset}
+\title{Run limma fit for clusters in single cell RNA-Seq dataset}
 \usage{
 run_limma_scseq(obj, dataset_dir, is_summed)
 }
 \arguments{
-\item{obj}{\code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk}
+\item{obj}{\code{SingleCellExperiment} object}
 
-\item{clusters}{Character vector of clusters to include in analysis}
+\item{dataset_dir}{Path to folder to save results and pseudobulk eset to}
+
+\item{is_summed}{Boolean indicating if \code{obj} is a pseudobulk \code{SingleCellExperiment} object.}
 }
 \value{
 Named list with slots: \itemize{
- \item top_table result of limma::topTable.
- \item ebayes_sv results of \code{\link{fit_ebayes_scseq}}.
- \item pdata \code{data.frame} with column \code{'group'} indicating test and control samples.
+ \item fit result of \link[limma]{lmFit}.
+ \item mod \code{model.matrix} used for \code{fit}.
 }
 }
 \description{
-Run limma differential expression between test and control groups in single cell RNA-Seq dataset
-}
-\seealso{
-\code{\link{get_ambient}}
+Run limma fit for clusters in single cell RNA-Seq dataset
 }
 \keyword{internal}

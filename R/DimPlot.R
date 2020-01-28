@@ -15,7 +15,7 @@
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param split.by Name of a metadata column to split plot by;
-#' see \code{\link{FetchData}} for more details
+#' see \code{\link[Seurat]{FetchData}} for more details
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -41,7 +41,7 @@
 #'
 #' @return A ggplot object
 #'
-#' @importFrom rlang !!
+#' @importFrom rlang !! %||%
 #'
 #' @export
 #'
@@ -441,35 +441,102 @@ AutoPointSize <- function(data) {
 }
 
 
-CombinePlots <- function (plots, ncol = NULL, legend = NULL, ...) {
+#' Combine ggplot2-based plots into a single plot
+#'
+#' @param plots A list of gg objects
+#' @param ncol Number of columns
+#' @param legend Combine legends into a single legend
+#' choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
+#' to leave legends as they are
+#' @param ... Extra parameters passed to plot_grid
+#'
+#' @return A combined plot
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small[['group']] <- sample(
+#'   x = c('g1', 'g2'),
+#'   size = ncol(x = pbmc_small),
+#'   replace = TRUE
+#' )
+#' plots <- FeaturePlot(
+#'   object = pbmc_small,
+#'   features = c('MS4A1', 'FCN1'),
+#'   split.by = 'group',
+#'   combine = FALSE
+#' )
+#' CombinePlots(
+#'   plots = plots,
+#'   legend = 'none',
+#'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
+#' )
+#'
+CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
   plots.combined <- if (length(x = plots) > 1) {
     if (!is.null(x = legend)) {
-      if (legend != "none") {
-        plot.legend <- cowplot::get_legend(plot = plots[[1]] +
-                                    ggplot2::theme(legend.position = legend))
+      if (legend != 'none') {
+        plot.legend <- cowplot::get_legend(plot = plots[[1]] + ggplot2::theme(legend.position = legend))
       }
-      plots <- lapply(X = plots, FUN = function(x) {
-        return(x + NoLegend())
-      })
+      plots <- lapply(
+        X = plots,
+        FUN = function(x) {
+          return(x + NoLegend())
+        }
+      )
     }
-    plots.combined <- cowplot::plot_grid(plotlist = plots, ncol = ncol,
-                                align = "hv", ...)
+    plots.combined <- cowplot::plot_grid(
+      plotlist = plots,
+      ncol = ncol,
+      align = 'hv',
+      ...
+    )
     if (!is.null(x = legend)) {
-      plots.combined <- switch(EXPR = legend, bottom = cowplot::plot_grid(plots.combined,
-                                                                 plot.legend, ncol = 1, rel_heights = c(1, 0.2)),
-                               right = cowplot::plot_grid(plots.combined, plot.legend,
-                                                 rel_widths = c(3, 0.3)), plots.combined)
+      plots.combined <- switch(
+        EXPR = legend,
+        'bottom' = cowplot::plot_grid(
+          plots.combined,
+          plot.legend,
+          ncol = 1,
+          rel_heights = c(1, 0.2)
+        ),
+        'right' = cowplot::plot_grid(
+          plots.combined,
+          plot.legend,
+          rel_widths = c(3, 0.3)
+        ),
+        plots.combined
+      )
     }
     plots.combined
-  }
-  else {
+  } else {
     plots[[1]]
   }
   return(plots.combined)
 }
 
-noLegend <- function (...) {
-  no.legend.theme <- ggplot2::theme(legend.position = "none", validate = TRUE, ...)
+
+
+#' Removes the legend
+#'
+#' @param ... Extra parameters to be passed to \code{theme}
+#'
+#' @export
+#' @examples
+#' # Generate a plot with no legend
+#' library(ggplot2)
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+#' p + NoLegend()
+#'
+NoLegend <- function(...) {
+  no.legend.theme <- ggplot2::theme(
+    # Remove the legend
+    legend.position = 'none',
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
   return(no.legend.theme)
 }
 

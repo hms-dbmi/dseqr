@@ -532,7 +532,7 @@ get_cors_html <- function(cors, titles, cor_titles, cors_range) {
 #' @param pad Numeric value that is respectively, subtracted and added to values in \code{range}. Make it so that circles and
 #' correlation text values don't get cut off.
 #'
-#' @return Numeric vector giving x position for correlation plot in \code{\link{explore_search}}
+#' @return Numeric vector giving x position for correlation plot in Drugs tab.
 #' @export
 calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   range[1] <- range[1] - pad

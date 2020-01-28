@@ -49,7 +49,7 @@ By default, ggplot2 assigns colors}
 (for example, orig.ident); pass 'ident' to group by identity class}
 
 \item{split.by}{Name of a metadata column to split plot by;
-see \code{\link{FetchData}} for more details}
+see \code{\link[Seurat]{FetchData}} for more details}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both

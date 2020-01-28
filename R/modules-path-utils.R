@@ -39,7 +39,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
 
 #' Used by get_path_df to construct the return result
 #'
-#' @param top_table Filtered result of \code{\link[limma]{topTable}}
+#' @param top_table Filtered result of \code{\link[limma]{toptable}}
 #' to limit number of plotted genes.
 #' @export
 #' @keywords internal
@@ -149,16 +149,15 @@ load_scseq_datasets <- function(data_dir) {
 }
 
 
-#' Run limma differential expression between test and control groups in single cell RNA-Seq dataset
+#' Run limma fit for clusters in single cell RNA-Seq dataset
 #'
-#' @param obj \code{SingleCellExperiment} or \code{ExpressionSet} for pseudobulk
-#' @param clusters Character vector of clusters to include in analysis
-#' @seealso \code{\link{get_ambient}}
+#' @param obj \code{SingleCellExperiment} object
+#' @param dataset_dir Path to folder to save results and pseudobulk eset to
+#' @param is_summed Boolean indicating if \code{obj} is a pseudobulk \code{SingleCellExperiment} object.
 #'
 #' @return Named list with slots: \itemize{
-#'  \item top_table result of limma::topTable.
-#'  \item ebayes_sv results of \code{\link{fit_ebayes_scseq}}.
-#'  \item pdata \code{data.frame} with column \code{'group'} indicating test and control samples.
+#'  \item fit result of \link[limma]{lmFit}.
+#'  \item mod \code{model.matrix} used for \code{fit}.
 #' }
 #' @export
 #' @keywords internal
