@@ -650,7 +650,14 @@ dprimesPlotly <- function(path_df) {
                            '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
                            '<extra></extra>')
   ) %>%
-      plotly::config(displayModeBar = FALSE) %>%
+      plotly::config(displayModeBar = 'hover',
+                     displaylogo = FALSE,
+                     modeBarButtonsToRemove = c('lasso2d',
+                                                'select2d',
+                                                'toggleSpikelines',
+                                                'hoverClosestCartesian',
+                                                'hoverCompareCartesian'),
+                     toImageButtonOptions = list(format = "png", filename = 'blah')) %>%
       plotly::layout(hoverdistance = -1,
                      hovermode = 'y',
                      margin = list(t = 65, r = 20, l = 0, pad = 10),

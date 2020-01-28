@@ -78,7 +78,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
                                               'toggleSpikelines',
                                               'hoverClosestCartesian',
                                               'hoverCompareCartesian'),
-                   toImageButtonOptions = list(format = "svg", filename = plot_fname))
+                   toImageButtonOptions = list(format = "png", filename = plot_fname))
 
 }
 
