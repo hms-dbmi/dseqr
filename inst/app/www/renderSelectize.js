@@ -8,15 +8,18 @@ function contrastOptions(item, escape) {
                         item.ncells + " :: " + item.pspace + item.pcells + "%" +
                        "</div>";
 
-  var infoSamples =  "<div style='color: #A0A0A0;text-align:right;'>" +
-                       item.ntest + " :: " + item.nctrl + 
-                      "</div>";
+  var infoSampleNcells =  "<div style='color: #A0A0A0;text-align:right;'>" +
+                          item.ntest + " :: " + item.nctrl + 
+                          "</div>";
+
+  var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" + item.nsig + "</div>";
 
   // for integrated dataset show number of cells in each test/ctrl sample
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
   var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
 
-  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNcells;
+  var info = typeof item.nsig == 'undefined' ? info : infoSampleNsig;
 
   var clustEl = "<div style='columns: 2;' title='" + title + "'>" +
                             "<div style='margin-right: -80px'>" +
@@ -45,8 +48,10 @@ function contrastOptions(item, escape) {
 //styling for current item
 function contrastItem(item, escape) {
   var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pspace + item.pcells + "%" + ")</span>";
-  var infoSamples =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ")</span>";
-  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSamples;
+  var infoSampleNcells =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ")</span>";
+  var infoSampleNsig =  "<span style='color: #A0A0A0;'> [" + item.nsig + "]</span>";
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNcells;
+  var info = typeof item.nsig == 'undefined' ? info : infoSampleNsig;
 
 
   // for integrated dataset show number of cells in each test/ctrl sample

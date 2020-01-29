@@ -139,7 +139,7 @@ get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE) {
+get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comparison = FALSE, top_tables = NULL) {
 
   testColor <- get_palette(clusters)
 
@@ -152,7 +152,7 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
 
-  cluster_stats <- get_cluster_stats(dataset_dir)
+  cluster_stats <- get_cluster_stats(dataset_dir, scseq, top_tables = top_tables)
 
   if (sample_comparison) {
     choices$ntest <- cluster_stats$ntest
@@ -160,6 +160,7 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
     choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
     choices$ntest_each <- cluster_stats$ntest_each
     choices$nctrl_each <- cluster_stats$nctrl_each
+    choices$nsig <- cluster_stats$nsig
 
   } else {
     # show the cell numbers/percentages
@@ -178,7 +179,7 @@ get_cluster_choices <- function(clusters, dataset_dir, sample_comparison = FALSE
 #'
 #' @return List with cluster stats
 #' @export
-get_cluster_stats <- function(dataset_dir, scseq = NULL) {
+get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
 
   # return previously saved stats if exists
   stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
@@ -212,6 +213,16 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL) {
 
     stats$ntest_each <- apply(neach[test,, drop = FALSE], 2, paste, collapse = '-')
     stats$nctrl_each <- apply(neach[ctrl,, drop = FALSE], 2, paste, collapse = '-')
+  }
+
+  # number of significant differentially expressed genes in each cluster (pseudobulk)
+  if (!is.null(top_tables)) {
+    nsig <- rep(0, nbins)
+    names(nsig) <- seq_len(nbins)
+
+    test_clusters <- gsub('^test_([0-9]+)-.+?$', '\\1', names(top_tables))
+    nsig[test_clusters] <- sapply(top_tables, function(tt) sum(tt$adj.P.Val < 0.05))
+    stats$nsig <- nsig
   }
 
   saveRDS(stats, stats_path)
@@ -295,7 +306,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   # default updateProgress and number of steps
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
-  n = 6
+  n = 7
 
   updateProgress(1/n, 'loading')
   test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'test')
@@ -339,9 +350,16 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
-  has_replicates <- length(unique(combined$batch)) > 2
 
-  updateProgress(6/n, 'saving')
+  updateProgress(6/n, 'fitting linear model')
+  obj <- combined
+  pbulk_eset <- NULL
+  has_replicates <- length(unique(combined$batch)) > 2
+  if (has_replicates) pbulk_eset <- obj <- construct_pbulk_eset(summed)
+  lm_fit <- run_limma_scseq(obj)
+
+
+  updateProgress(7/n, 'saving')
   scseq_data <- list(scseq = combined,
                      summed = summed,
                      markers = markers,
@@ -349,13 +367,11 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      tests = tests,
                      top_markers = top_markers,
                      has_replicates = has_replicates,
+                     lm_fit_0svs = lm_fit,
+                     pbulk_eset = pbulk_eset,
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
-
-  # get and save cluster stats
-  get_cluster_stats(file.path(sc_dir, anal_name), combined)
-
   return(NULL)
 }
 

@@ -161,15 +161,11 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #' @export
 #' @keywords internal
-run_limma_scseq <- function(obj, dataset_dir, is_summed) {
+run_limma_scseq <- function(obj) {
 
-  if (is_summed) {
-    # get pbulk eset and save
-    eset <- construct_pbulk_eset(obj)
-    saveRDS(eset, file.path(dataset_dir, 'pbulk_eset.rds'))
-
-    # get lmfit and save
-    lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
+  if ('ExpressionSet' %in% class(obj)) {
+    # run as pseudobulk
+    lm_fit <- run_limma(obj, prev_anal = list(pdata = Biobase::pData(obj)))
     lm_fit$has_replicates <- TRUE
 
   } else {
@@ -177,7 +173,6 @@ run_limma_scseq <- function(obj, dataset_dir, is_summed) {
     lm_fit$has_replicates <- FALSE
   }
 
-  save_lmfit(lm_fit, dataset_dir)
   return(lm_fit)
 }
 

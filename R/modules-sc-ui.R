@@ -302,7 +302,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression
     options = list(multiple = FALSE),
-    label_title = 'Cluster (n test :: n ctrl)')
+    label_title = 'Cluster (n test :: n ctrl) [n significant]')
 
 }
 

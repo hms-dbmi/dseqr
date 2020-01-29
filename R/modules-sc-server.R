@@ -1102,6 +1102,14 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   }, height = height)
 }
 
+readRDS.safe <- function(path) {
+  res <- NULL
+  if (isTruthy(path) && file.exists(path))
+    res <- readRDS(path)
+
+  return(res)
+}
+
 
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #' @export
@@ -1117,27 +1125,24 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     return(scseq)
   })
 
+
   annot <- reactive({
     req(is_sc())
     annot <- levels(input_scseq()$cluster)
-    dir <- dataset_dir()
-    if (is.null(dir)) return(NULL)
-    if (is.null(annot)) annot <- readRDS(file.path(dir, 'annot.rds'))
+    if (is.null(annot)) annot <- readRDS.safe(file.path(dataset_dir(), 'annot.rds'))
     return(annot)
   })
 
-  has_replicates <- reactive(readRDS(file.path(dataset_dir(), 'has_replicates.rds')))
-  summed <- reactive(readRDS(file.path(dataset_dir(), 'summed.rds')))
+  has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
 
-  # pseudo bulk eset
-  pbulk <- reactiveVal()
-  pbulk_path <- reactive(file.path(dataset_dir(), 'pbulk_eset.rds'))
 
   # update cluster choices in UI
   cluster_choices <- reactive({
+    tts <- NULL
     dir <- dataset_dir()
     if (is.null(dir)) return(NULL)
-    get_cluster_choices(annot(), dir, TRUE)
+    if (has_replicates()) tts <- top_tables()
+    get_cluster_choices(annot(), dir, scseq(), sample_comparison = TRUE, top_tables = tts)
   })
 
   observe({
@@ -1149,8 +1154,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
   clusters_str <- reactive(collapse_sorted(input$selected_clusters))
-  lmfit_path <- reactive(file.path(dataset_dir(), 'lm_fit_0svs.rds'))
-  markers_path <- reactive(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds')))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
@@ -1158,49 +1161,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # do we have drug query results?
   saved_drugs <- reactive(file.exists(drug_paths()$cmap))
 
-  # unlike bulk two-group comparisons
-  # need user to indicate when all clusters selected
-  # also require cluster markers and fit result
-  lm_fit <- reactiveVal()
-  cluster_markers <- reactiveVal()
+  # require cluster markers and fit result
+  lm_fit <- reactive(readRDS.safe(file.path(dataset_dir(), 'lm_fit_0svs.rds')))
+  cluster_markers <- reactive(readRDS.safe(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds'))))
 
-  observeEvent(input$run_comparison, {
-
-    if (file.exists(lmfit_path())) {
-      resl <- list(
-        fit = readRDS(lmfit_path()),
-        cluster_markers = readRDS(markers_path())
-      )
-
-    } else {
-
-      progress <- Progress$new(session, min = 0, max = 2)
-      progress$set(message = "Fitting limma model", value = 1)
-      on.exit(progress$close())
-      toggleAll(input_ids[-1])
-
-      reps <- has_replicates()
-      obj <- if (reps) summed() else scseq()
-
-      resl <- list(
-        fit = run_limma_scseq(obj, dataset_dir(), is_summed = reps),
-        cluster_markers = get_cluster_markers(input$selected_clusters, dataset_dir())
-      )
-
-      toggleAll(input_ids[-1])
-      progress$inc(1)
-    }
-
-    if (has_replicates()) {
-      pbulk <- readRDS(pbulk_path())
-      levels(pbulk$cluster) <- annot()
-      pbulk(pbulk)
-    }
-
-    lm_fit(resl$fit)
-    cluster_markers(resl$cluster_markers)
-  })
-
+  pbulk <- reactive(readRDS(file.path(dataset_dir(), 'pbulk_eset.rds')))
 
   # plot functions for left
   pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), top_tables()))
@@ -1223,7 +1188,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     fit <- lm_fit()
     if (is.null(fit)) return(NULL)
     groups <-  c('test', 'ctrl')
-    clusts <- cluster_choices()$value
+    clusts <- seq_along(annot())
 
     tests <- paste0('test_', clusts)
     ctrls <- paste0('ctrl_', clusts)
@@ -1238,15 +1203,16 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   contrast <- reactive({
     sel <- input$selected_clusters
+    if (!isTruthy(sel)) return(NULL)
     paste0('test_', sel, '-ctrl_', sel)
   })
 
 
   # top table for selected cluster only
   top_table <- reactive({
-    fit <- lm_fit()
-    if (is.null(fit)) return(NULL)
-    get_top_tables(fit, contrasts = contrast())[[1]]
+    contrast <- contrast()
+    if (is.null(contrast)) return(NULL)
+    get_top_tables(lm_fit(), contrasts = contrast)[[1]]
   })
 
   dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
@@ -1342,8 +1308,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   observe({
-    lm_fit(NULL)
-    cluster_markers(NULL)
     toggleState('run_comparison', condition = comparison_valid())
   })
 
@@ -1595,3 +1559,4 @@ plot_scseq_gene_medians <- function(gene, pbulk, tts) {
 
 
 }
+
