@@ -1168,7 +1168,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
 
   # do we have drug query results?
-  saved_drugs <- reactive(file.exists(drug_paths()$cmap))
+  saved_drugs <- reactive(any(grepl('^cmap_res_', list.files(dataset_dir()))))
 
   # require cluster markers and fit result
   lm_fit <- reactive(readRDS.safe(file.path(dataset_dir(), 'lm_fit_0svs.rds')))
@@ -1213,6 +1213,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       tt$ambient <- row.names(tt) %in% ambient
       tts[[i]] <- tt
     }
+
     return(tts)
   })
 
@@ -1233,16 +1234,18 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
 
   # need ambient for pathway
-  ambient <- reactive(decide_ambient(dataset_ambient(), top_table(), cluster_markers()))
+  ambient <- reactive({tt <- top_table() ; row.names(tt)[tt$ambient]})
 
   # drug query results
   drug_queries <- reactive({
+    dpaths <- drug_paths()
 
     if (!isTruthy(input$selected_clusters)) {
       res <- NULL
 
     } else if (saved_drugs()) {
-      res <- lapply(drug_paths(), readRDS)
+      if (!file.exists(dpaths$cmap)) res <- NULL
+      else res <- lapply(dpaths, readRDS)
 
     } else {
       # run for all single-cluster comparisons (slowest part is loading es)
@@ -1266,11 +1269,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       progress$inc(1)
       toggleAll(input_ids)
-
-      # sometimes out of sync when flip between datasets
-      dpaths <- drug_paths()
       if (!file.exists(dpaths$cmap)) res <- NULL
       else res <- lapply(dpaths, readRDS)
+
     }
     return(res)
 
