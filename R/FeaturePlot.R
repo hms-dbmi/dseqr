@@ -150,6 +150,7 @@ FeaturePlot <- function(
   }
 
   # Get plotting data
+  colnames(object) <- make.unique(colnames(object))
   cells <- cells %||% colnames(x = object)
   rdata <- SingleCellExperiment::reducedDim(object, reduction)[cells, dims]
   fdata <- SingleCellExperiment::logcounts(object)[features, cells, drop = FALSE]
@@ -157,6 +158,8 @@ FeaturePlot <- function(
   colnames(ident) <- 'ident'
 
   data <- cbind(rdata, ident, t(as.matrix(fdata)))
+  data <- data.frame(data, check.names = FALSE)
+
   dims <- colnames(rdata)
 
   # Check presence of features/dimensions

@@ -4,7 +4,13 @@
 \alias{get_cluster_choices}
 \title{Get cluster choices data.frame for selectize dropdown}
 \usage{
-get_cluster_choices(clusters, dataset_dir, sample_comparison = FALSE)
+get_cluster_choices(
+  clusters,
+  dataset_dir,
+  scseq = NULL,
+  sample_comparison = FALSE,
+  top_tables = NULL
+)
 }
 \arguments{
 \item{clusters}{Character vector of cluster names}

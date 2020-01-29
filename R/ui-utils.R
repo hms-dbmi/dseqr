@@ -164,6 +164,9 @@ selectizeInputWithButtons <- function(id,
   buttons <- list(...)
   buttons <- buttons[!sapply(buttons, is.null)]
 
+  if (length(buttons) == 0)
+    return(selectizeInputWithValidation(id, label, options, container_id, help_id, label_title, placement = placement))
+
   # generate tooltips
   button_tooltips <- NULL
   if (tooltip) {

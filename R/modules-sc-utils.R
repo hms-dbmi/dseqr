@@ -221,7 +221,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
     names(nsig) <- seq_len(nbins)
 
     test_clusters <- gsub('^test_([0-9]+)-.+?$', '\\1', names(top_tables))
-    nsig[test_clusters] <- sapply(top_tables, function(tt) sum(tt$adj.P.Val < 0.05))
+    nsig[test_clusters] <- sapply(top_tables, function(tt) sum(tt$adj.P.Val < 0.05 & !tt$ambient))
     stats$nsig <- nsig
   }
 

@@ -4,7 +4,7 @@
 \alias{run_limma_scseq}
 \title{Run limma fit for clusters in single cell RNA-Seq dataset}
 \usage{
-run_limma_scseq(obj, dataset_dir, is_summed)
+run_limma_scseq(obj)
 }
 \arguments{
 \item{obj}{\code{SingleCellExperiment} object}

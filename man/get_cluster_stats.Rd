@@ -4,7 +4,7 @@
 \alias{get_cluster_stats}
 \title{Get/Save cluster stats for single-cell related selectizeInputs}
 \usage{
-get_cluster_stats(dataset_dir, scseq = NULL)
+get_cluster_stats(dataset_dir, scseq = NULL, top_tables = NULL)
 }
 \arguments{
 \item{dataset_dir}{Directory with single cell dataset.}

@@ -298,11 +298,10 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   selectizeInputWithButtons(
     ns('selected_clusters'),
     label = 'Compare samples for:',
-    actionButton(ns('run_comparison'), '', icon = icon('chevron-right', 'far fa-fw'), title = 'Compare test to control cells'),
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression
     options = list(multiple = FALSE),
-    label_title = 'Cluster (n test :: n ctrl) [n significant]')
+    label_title = 'Cluster [n significant]')
 
 }
 
