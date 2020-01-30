@@ -291,6 +291,7 @@ save_bulk_dataset <- function(dataset_name, dataset_dir, data_dir) {
 #' @keywords internal
 remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$',
                                                         '^iqr_keep_\\d+svs.rds$',
+                                                        '^vsd.rds$',
                                                         '^svobj.rds$',
                                                         '^numsv.rds$',
                                                         '^lm_fit_\\d+svs.rds$',

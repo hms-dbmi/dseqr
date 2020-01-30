@@ -1363,7 +1363,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
                           numsv = numsv,
                           prev_anal = prev_anal)
 
-      save_lmfit(lm_fit, dataset_dir, numsv = 0, anal_suffix = '')
+      save_lmfit(lm_fit, dataset_dir, numsv = numsv)
 
       # visual that done
       progress$inc(1)
@@ -1374,13 +1374,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   drug_queries <- reactive({
+
     if (!full_contrast()) {
       res <- NULL
+
     } else if (saved_drugs()) {
       paths <- drug_paths()
       res <- lapply(paths, readRDS)
 
     } else {
+      tt <- top_table()
+      if (!isTruthy(tt)) return(NULL)
+
       toggleAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 3)
       progress$set(message = "Querying drugs", value = 1)
@@ -1388,7 +1393,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       es <- load_drug_es()
       progress$inc(1)
-      res <- run_drug_queries(top_table(), drug_paths(), es)
+      res <- run_drug_queries(tt, drug_paths(), es)
       progress$inc(1)
       toggleAll(input_ids)
     }
