@@ -38,6 +38,11 @@ scPageUI <- function(id, tab, active) {
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
                     scSampleMarkerPlotOutput(ns('right'))
                 )
+            ),
+            div(class = 'row', id = ns('labels_comparison_row'), style = 'display: none;',
+                div(class = "col-sm-12 col-lg-7",
+                    scLabelsPlotOutput(ns('labels_plot_cluster'))
+                )
             )
         ),
         # row for labels comparison (integration before and after)
@@ -75,8 +80,8 @@ scFormInput <- function(id) {
                 scSampleComparisonInput(ns('sample'), with_dl = TRUE),
                 selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
             ),
-            div(id = ns('label_comparison_inputs'), style = 'display: none;',
-                selectedAnnotDatasetInput(ns('annot'))
+            div(id = ns('labels_comparison_inputs'), style = 'display: none;',
+                scSampleComparisonInput(ns('labels'))
             )
         )
     )
@@ -91,7 +96,7 @@ comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
   shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
-                                  choices = c('clusters', 'samples'),
+                                  choices = c('clusters', 'samples', 'labels'),
                                   selected = 'clusters', justified = TRUE)
 }
 
@@ -282,6 +287,11 @@ scRidgePlotOutput <- function(id) {
   plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
+scLabelsPlotOutput <- function(id) {
+  ns <- NS(id)
+  plotly::plotlyOutput(ns('labels_plot'))
+}
+
 #' Input for Single Cell analysis
 #'
 #' Used in Single Cell, Drugs and Pathways tab
@@ -296,7 +306,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
   selectizeInputWithButtons(
-    ns('selected_clusters'),
+    ns('selected_cluster'),
     label = 'Compare samples for:',
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression

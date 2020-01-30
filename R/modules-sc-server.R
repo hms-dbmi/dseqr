@@ -53,6 +53,13 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_gene = scForm$sample_gene,
              plot_fun = scForm$samples_pfun_right)
 
+
+  # label comparison plot ---
+  callModule(scLabelsPlot, 'labels_plot_cluster',
+             selected_cluster = scForm$label_cluster,
+             scseq = scForm$scseq,
+             sc_dir = sc_dir)
+
   observe({
     toggle(id = "comparison_row",  condition = isTruthy(scForm$dataset_name()))
   })
@@ -60,6 +67,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
     toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
+    toggle(id = "labels_comparison_row", condition = scForm$comparison_type() == 'labels')
   })
 
   observe({
@@ -69,6 +77,98 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   return(NULL)
 }
+
+scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
+
+  output$labels_plot <- plotly::renderPlotly({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+
+    cluster <- as.numeric(selected_cluster())
+    cluster <- levels(scseq$cluster)[cluster]
+    if (is.na(cluster)) return(NULL)
+
+    plot_cluster_labels(scseq, cluster, sc_dir)
+  })
+
+}
+
+plot_cluster_labels <- function(scseq, clust, sc_dir) {
+
+  df <- tibble::as_tibble(scseq@colData) %>%
+    dplyr::filter(cluster == clust) %>%
+    dplyr::group_by(batch) %>%
+    dplyr::mutate(nsample = n()) %>%
+    dplyr::group_by(batch, orig.cluster) %>%
+    dplyr::summarize(ncell = n(),
+                     group = orig.ident[1],
+                     nsample = nsample[1],
+                     pcell = n() / nsample[1] * 100,
+                     boc = paste(batch[1], orig.cluster[1], sep='_')) %>%
+    dplyr::arrange(group, batch, pcell) %>%
+    dplyr::select(-orig.cluster)
+
+  # get mapping between original cluster index and name
+  annots <- c()
+  batches <- unique(df$batch)
+
+  for (i in seq_along(batches)) {
+    batch <- batches[i]
+    annot_path <- file.path(sc_dir, batch, 'annot.rds')
+    annot <- readRDS(annot_path)
+    names(annot) <- paste(batch, seq_along(annot), sep='_')
+    annots <- c(annots, annot)
+  }
+
+  df$oc <- annots[df$boc]
+  df$customdata <- paste(df$ncell, 'of', df$nsample, 'cells')
+
+  (pl <- plotly::plot_ly(data = df,
+                         y = ~boc,
+                         x = ~pcell,
+                         color = ~batch,
+                         customdata = ~customdata,
+                         height = (nrow(df)*30) + 140,
+                         text = ~nsample,
+                         type = 'scatter',
+                         mode = 'markers',
+                         marker = list(size = 9, line = list(width = 1, color = '#333333')),
+                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                         hovertemplate = paste0(
+                           '<span style="color: crimson; font-weight: bold; text-align: left;">From Sample</span>: %{customdata}<br>',
+                           '<extra></extra>')
+  ) %>%
+      plotly::layout(
+        hovermode= 'closest',
+        margin = list(t = 100),
+        title = list(text = 'For Each Sample: Percent of Cells From Original Clusters', x = 0.1, y = .99, yanchor = 'top', font = list(size = 16, color = '#333333')),
+        legend = list(traceorder = 'reversed', itemclick = FALSE, font = list(size = 14, color = '#333333')),
+        xaxis = list(title = '', range = c(-2, 102), fixedrange=TRUE, side = 'top', zeroline = FALSE, tickfont = list(size = 14, color = '#333333')),
+        yaxis = list(title = '', fixedrange=TRUE, tickvals = df$boc, ticktext = df$oc, tickmode = 2, gridwidth = 1, gridcolor = 'gray', ticklen = 10, tickcolor = 'white', tickfont = list(size = 14, color = '#333333'))
+      ) %>%
+      plotly::config(displayModeBar = 'hover',
+                     displaylogo = FALSE,
+                     doubleClick = 0,
+                     showAxisDragHandles = FALSE,
+                     showAxisRangeEntryBoxes = FALSE,
+                     showTips = FALSE,
+                     modeBarButtonsToRemove = c('zoom2d',
+                                                'pan2d',
+                                                'autoScale2d',
+                                                'resetScale2d',
+                                                'hoverClosestCartesian',
+                                                'hoverCompareCartesian',
+                                                'select2d',
+                                                'lasso2d',
+                                                'zoomIn2d',
+                                                'zoomOut2d',
+                                                'toggleSpikelines'),
+                     toImageButtonOptions = list(format = "png", filename = 'blah')
+      ))
+
+  return(pl)
+}
+
 
 #' Logic for form on Single Cell Exploration page
 #' @export
@@ -94,6 +194,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     levels(scseq$cluster) <- annot
     return(scseq)
   })
+
+
 
   #TODO move label transfer and integration into dataset
 
@@ -148,12 +250,14 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
                              selected_markers = scSampleComparison$top_table,
-                             selected_cluster = scSampleComparison$selected_clusters,
+                             selected_cluster = scSampleComparison$selected_cluster,
                              comparison_type = comparisonType,
                              ambient = scSampleComparison$ambient)
 
 
 
+  scLabelsComparison <- callModule(scLabelsComparison, 'labels',
+                                   cluster_choices = scSampleComparison$cluster_choices)
 
 
   # show the toggle if dataset is integrated
@@ -167,6 +271,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   observe({
     toggle(id = "cluster_comparison_inputs",  condition = comparisonType() == 'clusters')
     toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
+    toggle(id = "labels_comparison_inputs",  condition = comparisonType() == 'labels')
   })
 
   return(list(
@@ -177,9 +282,24 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     sample_gene = scSampleGene$selected_gene,
     samples_pfun_left = scSampleComparison$pfun_left,
     samples_pfun_right = scSampleComparison$pfun_right,
-    sample_clusters = scSampleComparison$selected_clusters,
+    sample_cluster = scSampleComparison$selected_cluster,
+    label_cluster = scLabelsComparison$selected_cluster,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name
+  ))
+}
+
+scLabelsComparison <- function(input, output, session, cluster_choices) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  observe({
+    updateSelectizeInput(session, 'selected_cluster',
+                         choices = cluster_choices(),
+                         options = contrast_options, server = TRUE)
+  })
+
+  return(list(
+    selected_cluster = reactive(input$selected_cluster)
   ))
 }
 
@@ -1118,7 +1238,7 @@ readRDS.safe <- function(path) {
 #' @keywords internal
 scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is.integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('download', 'selected_clusters')
+  input_ids <- c('download', 'selected_cluster')
 
   # use input scseq/annot if available
   scseq <- reactive({
@@ -1155,14 +1275,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   observe({
-    updateSelectizeInput(session, 'selected_clusters',
+    updateSelectizeInput(session, 'selected_cluster',
                          choices = cluster_choices(),
                          options = contrast_options, server = TRUE)
   })
 
 
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
-  clusters_str <- reactive(collapse_sorted(input$selected_clusters))
+  clusters_str <- reactive(collapse_sorted(input$selected_cluster))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
@@ -1175,7 +1295,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   cluster_markers <- reactive(readRDS.safe(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds'))))
 
   # plot functions for left
-  sel <- reactive({sel <- input$selected_clusters; req(sel); sel})
+  sel <- reactive({sel <- input$selected_cluster; req(sel); sel})
   pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), sel(), top_tables(), exclude_ambient()))
 
   pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'test'), height = 453))
@@ -1218,7 +1338,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   contrast <- reactive({
-    sel <- input$selected_clusters
+    sel <- input$selected_cluster
     if (!isTruthy(sel)) return(NULL)
     paste0('test_', sel, '-ctrl_', sel)
   })
@@ -1240,7 +1360,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   drug_queries <- reactive({
     dpaths <- drug_paths()
 
-    if (!isTruthy(input$selected_clusters)) {
+    if (!isTruthy(input$selected_cluster)) {
       res <- NULL
 
     } else if (saved_drugs()) {
@@ -1294,8 +1414,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       progress$set(message = "Running pathway analysis", value = 1)
       on.exit(progress$close())
 
-      selected_clusters <- input$selected_clusters
-      groups <- paste(c('test', 'ctrl'), selected_clusters, sep = '_')
+      selected_cluster <- input$selected_cluster
+      groups <- paste(c('test', 'ctrl'), selected_cluster, sep = '_')
 
       # loses sync when groups selected and change dataset
       req(all(groups %in% colnames(lm_fit$mod)))
@@ -1319,7 +1439,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # also disable runing lm_fit if nothing selected or don't have ctrl and test cells
   comparison_valid <- reactive({
     req(is_sc())
-    sel <- as.numeric(input$selected_clusters)
+    sel <- as.numeric(input$selected_cluster)
     if (!isTruthy(sel) | !isTruthy(dataset_dir())) return(FALSE)
 
     stats <- get_cluster_stats(dataset_dir())
@@ -1333,7 +1453,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   annot_clusters <- reactive({
-    clusts <- input$selected_clusters
+    clusts <- input$selected_cluster
     clusts <- as.numeric(clusts)
     req(clusts)
 
@@ -1380,9 +1500,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     ambient = ambient,
     top_table = top_table,
     cluster_markers = cluster_markers,
+    cluster_choices = cluster_choices,
     drug_queries = drug_queries,
     path_res = path_res,
-    selected_clusters = reactive(input$selected_clusters),
+    selected_cluster = reactive(input$selected_cluster),
     annot_clusters = annot_clusters,
     pfun_left = pfun_left,
     pfun_right = pfun_right
@@ -1560,13 +1681,12 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
   lighten <- (tb$clust %in% ambient) & (tb$clust %in% signif)
   if (exclude_ambient) tb[lighten, 'pt.alpha'] <- 0.4
 
-  xcol <- ifelse(levels(tb$clust) == seln, 'black', '#333333')
-  xfac <- ifelse(levels(tb$clust) == seln, 'bold', 'plain')
+  xcol <- ifelse(levels(tb$clust) == seln, 'black', 'dimgray')
 
   pl <- ggplot2::ggplot(tb, ggplot2::aes(x = meds, y = clust, fill = pt.color, alpha = pt.alpha)) +
     ggplot2::scale_fill_identity('', guide = 'legend', labels = labels) +
     ggplot2::scale_alpha_identity() +
-    ggplot2::geom_point(shape = 21, color = '#333333', size = 5) +
+    ggplot2::geom_point(shape = 21, color = '#333333', size = 4) +
     ggplot2::xlab('') +
     ggplot2::ylab('') +
     ggplot2::ggtitle('Pseudobulk Expression by Cluster') +
@@ -1576,10 +1696,12 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
                    plot.title = ggplot2::element_text(size = 16, color = '#333333', face = 'plain', margin = ggplot2::margin(b = 25)),
                    axis.title.x = ggplot2::element_blank(),
                    axis.ticks.x = ggplot2::element_line(size = 0),
-                   axis.text.y = ggplot2::element_text(colour = xcol, face = xfac),
+                   axis.text.y = ggplot2::element_text(colour = xcol),
                    legend.text = ggplot2::element_text(size = 16, color = '#333333'),
-                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'black'))
+                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'gray'))
 
 
   return(list(plot = pl, height = length(unique(tb$clust))*40))
 }
+
+
