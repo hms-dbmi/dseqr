@@ -11,6 +11,7 @@ LabelClusters(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  label.highlight = NULL,
   ...
 )
 }

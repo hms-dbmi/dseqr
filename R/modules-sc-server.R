@@ -15,6 +15,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   scCluster <- callModule(scClusterPlot, 'cluster_plot',
                           scseq = scForm$scseq,
+                          selected_cluster = scForm$selected_cluster,
                           fname_fun = cluster_data_fname,
                           downloadable = TRUE)
 
@@ -23,40 +24,40 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   # filename generator for marker plot data
   cluster_fname <- function() {
     fname <- paste0(scForm$dataset_name(),
-                    '_', scForm$cluster_gene(),
+                    '_', scForm$clusters_gene(),
                     '_marker_plot_data_', Sys.Date(), '.csv')
     return(fname)
   }
 
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
                                 scseq = scForm$scseq,
-                                selected_gene = scForm$cluster_gene,
+                                selected_gene = scForm$clusters_gene,
                                 fname_fun = cluster_fname)
 
   callModule(scBioGpsPlot, 'biogps_plot',
-             selected_gene = scForm$cluster_gene)
+             selected_gene = scForm$clusters_gene)
 
 
   callModule(scRidgePlot, 'ridge_plot',
-             selected_gene = scForm$cluster_gene,
-             selected_cluster = scForm$selected_cluster,
+             selected_gene = scForm$clusters_gene,
+             selected_cluster = scForm$clusters_cluster,
              scseq = scForm$scseq)
 
 
   # sample comparison plots ---
 
   callModule(scSampleMarkerPlot, 'left',
-             selected_gene = scForm$sample_gene,
+             selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_left)
 
   callModule(scSampleMarkerPlot, 'right',
-             selected_gene = scForm$sample_gene,
+             selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right)
 
 
   # label comparison plot ---
   callModule(scLabelsPlot, 'labels_plot_cluster',
-             selected_cluster = scForm$label_cluster,
+             selected_cluster = scForm$labels_cluster,
              scseq = scForm$scseq,
              sc_dir = sc_dir)
 
@@ -274,16 +275,32 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     toggle(id = "labels_comparison_inputs",  condition = comparisonType() == 'labels')
   })
 
+  selected_cluster <- reactiveVal('')
+  observe({
+    type <- comparisonType()
+    req(type)
+
+    old <- isolate(selected_cluster())
+    new <- switch(type,
+                  'clusters' = scClusterComparison$selected_cluster(),
+                  'samples' = scSampleComparison$selected_cluster(),
+                  'labels' = scLabelsComparison$selected_cluster())
+
+    if (is.null(new)) new <- ''
+    if (new != old) selected_cluster(new)
+  })
+
   return(list(
     scseq = scseq,
-    selected_cluster = scClusterComparison$selected_cluster,
-    cluster_gene = scClusterGene$selected_gene,
+    samples_gene = scSampleGene$selected_gene,
+    clusters_gene = scClusterGene$selected_gene,
     show_ridge = scClusterGene$show_ridge,
-    sample_gene = scSampleGene$selected_gene,
     samples_pfun_left = scSampleComparison$pfun_left,
     samples_pfun_right = scSampleComparison$pfun_right,
-    sample_cluster = scSampleComparison$selected_cluster,
-    label_cluster = scLabelsComparison$selected_cluster,
+    clusters_cluster = scClusterComparison$selected_cluster,
+    samples_cluster = scSampleComparison$selected_cluster,
+    labels_cluster = scLabelsComparison$selected_cluster,
+    selected_cluster = selected_cluster,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name
   ))
@@ -1112,14 +1129,20 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, fname_fun = function(){}, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, selected_cluster, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
-    plot_tsne_cluster(scseq)
+
+    label.highlight <- NULL
+    cluster <- selected_cluster()
+    if (isTruthy(cluster)) label.highlight <- as.numeric(cluster)
+
+    plot_tsne_cluster(scseq, label.highlight)
 
   })
+
 
   data_fun <- function() {
     plot <- plot()
@@ -1703,5 +1726,6 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
 
   return(list(plot = pl, height = length(unique(tb$clust))*40))
 }
+
 
 

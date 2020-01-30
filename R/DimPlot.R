@@ -76,6 +76,7 @@ DimPlot <- function(
   na.value = 'grey50',
   combine = TRUE,
   ncol = NULL,
+  label.highlight = NULL,
   ...
 ) {
 
@@ -122,9 +123,12 @@ DimPlot <- function(
         plot <- LabelClusters(
           plot = plot,
           id = x,
+          clusters = levels(data$cluster),
           repel = repel,
           size = label.size,
-          split.by = split.by
+          split.by = split.by,
+          label.highlight = label.highlight
+
         )
       }
       if (!is.null(x = split.by)) {
@@ -324,8 +328,10 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  label.highlight = NULL,
   ...
 ) {
+
   xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -383,10 +389,18 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
+
+  label_colors <- 'black'
+  if (!is.null(label.highlight)) {
+    label_colors <- rep('dimgray', nrow(labels.loc))
+    label_colors[label.highlight] <- 'black'
+  }
+
   geom.use <- ifelse(test = repel, yes = ggrepel::geom_text_repel, no = ggplot2::geom_text)
   plot <- plot + geom.use(
     data = labels.loc,
     mapping = ggplot2::aes_string(x = xynames['x'], y = xynames['y'], label = id),
+    color = label_colors,
     ...
   )
   return(plot)

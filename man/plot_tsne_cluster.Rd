@@ -6,7 +6,7 @@
 \usage{
 plot_tsne_cluster(
   scseq,
-  selected_clusters = levels(scseq$cluster),
+  label.highlight,
   legend_title = "Cluster",
   cols = NULL
 )

@@ -27,6 +27,7 @@ DimPlot(
   na.value = "grey50",
   combine = TRUE,
   ncol = NULL,
+  label.highlight = NULL,
   ...
 )
 }

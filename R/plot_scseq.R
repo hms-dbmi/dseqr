@@ -3,15 +3,14 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_cluster <- function(scseq, selected_clusters = levels(scseq$cluster), legend_title = 'Cluster', cols = NULL) {
+plot_tsne_cluster <- function(scseq, label.highlight, legend_title = 'Cluster', cols = NULL) {
 
   if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
 
   # make selected cluster and groups stand out
-  cols <- ggplot2::alpha(cols, alpha = ifelse(levels(scseq$cluster) %in% selected_clusters, 1, 0.1))
   pt.size <- min(6000/ncol(scseq), 2)
 
-  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE) +
+  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE, label.highlight = label.highlight) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +

@@ -9,6 +9,7 @@ scClusterPlot(
   output,
   session,
   scseq,
+  selected_cluster,
   fname_fun = function() { },
   downloadable = FALSE
 )
