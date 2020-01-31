@@ -238,6 +238,11 @@
   margin-bottom: 0;
 }
 
+/* so that shrinks on mobile */
+.full-height-selectize input {
+  width: 100% !important;
+}
+
 
 
 /* BRAND */
@@ -453,4 +458,26 @@ button.dt-button.buttons-collection,
 
 .bulk-item {
   background-color: white !important;
+}
+
+input[type=text] {   
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none; 
+}
+
+
+/* display: hidden prevents plotly rendering */
+.visibility-lg {
+  visibility: hidden !important;
+  @media (min-width: 1200px) {
+    visibility: visible !important;  
+  }
+}
+
+.visibility-md-down {
+  visibility: visible !important;
+  @media (max-width: 1200px) {
+    visibility: hidden !important;  
+  }
 }

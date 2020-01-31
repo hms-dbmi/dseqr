@@ -4,7 +4,7 @@
 \alias{bulkPlotlyUI}
 \title{Plotly MDS output}
 \usage{
-bulkPlotlyUI(id)
+bulkPlotlyUI(id, height = "auto")
 }
 \description{
 Plotly MDS output

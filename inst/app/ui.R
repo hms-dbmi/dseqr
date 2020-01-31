@@ -1,6 +1,7 @@
 tabs <- c('Bulk Data', 'Single Cell', 'Drugs')
 active <- 'Bulk Data'
 
+
 bootstrapPage(
   useShinyjs(),
   # scrollspy for docs tab

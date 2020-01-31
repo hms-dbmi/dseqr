@@ -4,7 +4,12 @@
 \alias{plotlyMDS}
 \title{Plot MDS plotlys}
 \usage{
-plotlyMDS(scaling, scaling_adj, group_colors = c("#337ab7", "#e6194b"))
+plotlyMDS(
+  scaling,
+  scaling_adj,
+  group_colors = c("#337ab7", "#e6194b"),
+  adjusted = FALSE
+)
 }
 \arguments{
 \item{scaling}{tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA}

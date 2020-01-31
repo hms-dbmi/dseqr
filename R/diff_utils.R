@@ -386,7 +386,7 @@ get_mds <- function(exprs, adj, group) {
 #'
 #' @return plotly object
 #' @export
-plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b')) {
+plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE) {
 
   if(is.null(scaling)) return(NULL)
   # make x and y same range
@@ -399,74 +399,92 @@ plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b
   xrange <- xrange + c(-addx, addx)
   yrange <- yrange + c(-addy, addy)
 
-  # legend styling
-  l <- list(
-    font = list(
-      family = "sans-serif",
-      size = 12,
-      color = "#000"),
-    bgcolor = "#f8f8f8",
-    bordercolor = "#e7e7e7",
-    borderwidth = 1)
+
+  shapes <- list(
+    type = "rect",
+    x0 = 0,
+    x1 = 1,
+    xref = "paper",
+    y0 = 0,
+    y1 = 16,
+    yanchor = 1,
+    yref = "paper",
+    ysizemode = "pixel",
+    fillcolor = '#cccccc',
+    line = list(color = "#cccccc"))
+
+  margin <- list(t = 60, l = 10, r = 10,  b = 10)
+
+  xaxis <-list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
+                        linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
+
+  yaxis <- list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange,
+               linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
 
 
-  p1 <- plotly::plot_ly(scaling, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = FALSE) %>%
-    plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
-    plotly::layout(
-      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
-                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1),
-      yaxis = list(title = 'MDS 2', zeroline = FALSE, showticklabels = FALSE, range = yrange,
-                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
-    )
+  if (!adjusted) {
 
-  p2 <- plotly::plot_ly(scaling_adj, x = ~MDS1, y = ~MDS2, color = ~Group, colors = group_colors, showlegend = TRUE) %>%
-    plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
-    plotly::layout(
-      legend = l,
-      xaxis = list(title = 'MDS 1', zeroline = FALSE, showticklabels = FALSE, range = xrange,
-                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1),
-      yaxis = list(title = '', zeroline = FALSE, showticklabels = FALSE, range = yrange,
-                   linecolor = '#cccccc', mirror = TRUE, linewidth = 1)
-    )
+    pl <- plotly::plot_ly(scaling,
+                          x = ~MDS1,
+                          y = ~MDS2,
+                          customdata = ~Group,
+                          color = ~Group,
+                          colors = group_colors,
+                          showlegend = FALSE,
+                          hovertemplate = paste0(
+                            '<b>Group</b>: %{customdata}<br>',
+                            '<b>Sample</b>: %{text}',
+                            '<extra></extra>')) %>%
+      plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
+      plotly::layout(
+        title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
+        margin = margin,
+        shapes = shapes,
+        xaxis = xaxis,
+        yaxis = yaxis,
+        annotations = list(
+          list(x = 0.5 , y = 1.055, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'))
+        ) %>%
+      plotly::config(displaylogo = FALSE, displayModeBar = FALSE)
 
+  } else {
 
-  (pl <- plotly::subplot(p1, p2, titleX = TRUE, titleY = TRUE) %>%
-    plotly::layout(title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
-                   xaxis = list(fixedrange=TRUE),
-                   yaxis = list(fixedrange=TRUE),
-                   margin = list(t = 60),
-                   annotations = list(
-                     list(x = 0.2 , y = 1.055, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'),
-                     list(x = 0.8 , y = 1.055, text = "Adjusted", showarrow = F, xref='paper', yref='paper')),
-                   shapes = list(
-                     type = "rect",
-                     x0 = 0,
-                     x1 = 1,
-                     xref = "paper",
-                     y0 = 0,
-                     y1 = 16,
-                     yanchor = 1,
-                     yref = "paper",
-                     ysizemode = "pixel",
-                     fillcolor = '#cccccc',
-                     line = list(color = "#cccccc"))))
+    pl <- plotly::plot_ly(scaling_adj,
+                          x = ~MDS1,
+                          y = ~MDS2,
+                          customdata = ~Group,
+                          color = ~Group,
+                          colors = group_colors,
+                          showlegend = FALSE,
+                          hovertemplate = paste0(
+                            '<b>Group</b>: %{customdata}<br>',
+                            '<b>Sample</b>: %{text}',
+                            '<extra></extra>')) %>%
+      plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
+      plotly::layout(
+        margin = margin,
+        shapes = shapes,
+        xaxis = xaxis,
+        yaxis = yaxis,
+        annotations = list(
+          list(x = 0.5 , y = 1.055, text = "Adjusted", showarrow = F, xref='paper', yref='paper'))
+      ) %>%
+      plotly::config(displaylogo = FALSE,
+                     displayModeBar = 'hover',
+                     modeBarButtonsToRemove = c('zoom2d',
+                                                'pan2d',
+                                                'autoScale2d',
+                                                'resetScale2d',
+                                                'hoverClosestCartesian',
+                                                'hoverCompareCartesian',
+                                                'select2d',
+                                                'lasso2d',
+                                                'zoomIn2d',
+                                                'zoomOut2d',
+                                                'toggleSpikelines'))
+  }
 
-  (pl %>%
-    plotly::config(displaylogo = FALSE,
-                   displayModeBar = 'hover',
-                   modeBarButtonsToRemove = c('toImage',
-                                              'zoom2d',
-                                              'pan2d',
-                                              'autoScale2d',
-                                              'resetScale2d',
-                                              'hoverClosestCartesian',
-                                              'hoverCompareCartesian',
-                                              'select2d',
-                                              'lasso2d',
-                                              'zoomIn2d',
-                                              'zoomOut2d',
-                                              'toggleSpikelines')))
-
+  return(pl)
 }
 
 

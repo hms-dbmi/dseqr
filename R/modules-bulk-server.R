@@ -25,10 +25,26 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          enable_sva = dsExploreTable$enable_sva,
                          pdata = dsQuantTable$pdata)
 
-  callModule(bulkMDSplotly, 'mds_plotly',
+  # mds plotly with different orientations for mobile/desktop
+
+  bulkMDS <- callModule(bulkMDS, 'bulk_mds',
+             explore_eset = explore_eset)
+
+  callModule(bulkMDSplotly, 'mds_plotly_unadjusted',
              explore_eset = explore_eset,
              dataset_name = bulkForm$dataset_name,
-             numsv = bulkForm$numsv_r)
+             numsv = bulkForm$numsv_r,
+             mds = bulkMDS$mds,
+             group_colors = bulkMDS$group_colors,
+             adjusted = FALSE)
+
+  callModule(bulkMDSplotly, 'mds_plotly_adjusted',
+             explore_eset = explore_eset,
+             dataset_name = bulkForm$dataset_name,
+             numsv = bulkForm$numsv_r,
+             mds = bulkMDS$mds,
+             group_colors = bulkMDS$group_colors,
+             adjusted = TRUE)
 
 
   # toggle tables
@@ -84,13 +100,12 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 }
 
 
-#' Logic for Bulk Data MDS plotly
+#' Logic for Bulk Data MDS data
 #' @export
 #' @keywords internal
-bulkMDSplotly <- function(input, output, session, dataset_name, explore_eset, numsv) {
+bulkMDS <- function(input, output, session, explore_eset) {
 
-  # MDS plot
-  plotly_fun <- reactive({
+  group <- reactive({
     eset <- explore_eset()
     pdata <- Biobase::pData(eset)
 
@@ -98,13 +113,33 @@ bulkMDSplotly <- function(input, output, session, dataset_name, explore_eset, nu
     group <- pdata$`Group name`
     group_order <- order(unique(pdata$Group))
     group_levels <- unique(group)[group_order]
-    group <- factor(group, levels = group_levels)
-    group_colors <- RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
+    factor(group, levels = group_levels)
+  })
 
+  group_colors <- reactive({
+    RColorBrewer::brewer.pal(8, 'Set2')[seq_along(levels(group()))]
+  })
+
+
+  mds <- reactive({
+    eset <- explore_eset()
     vsd <- Biobase::assayDataElement(eset, 'vsd')
     adj <- Biobase::assayDataElement(eset, 'adjusted')
-    mds <- get_mds(vsd, adj, group)
-    plotlyMDS(mds$scaling, mds$scaling_adj, group_colors = group_colors)
+    get_mds(vsd, adj, group())
+  })
+
+  return(list(
+    mds = mds,
+    group_colors = group_colors
+  ))
+}
+
+bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, numsv, mds, group_colors, adjusted) {
+
+  # MDS plot
+  plotly_fun <- reactive({
+    mds <- mds()
+    plotlyMDS(mds$scaling, mds$scaling_adj, group_colors = group_colors(), adjusted = adjusted)
   })
 
   base_fname <- reactive(paste0(dataset_name(), '_', numsv(), 'SV'))

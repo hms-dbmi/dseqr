@@ -6,11 +6,14 @@ bulkPageUI <- function(id, tab, active) {
   withTags({
     tabPane(tab, active,
             div(class = 'row',
-                div(class = 'col-lg-5',
+                div(class = 'col-lg-4',
                     bulkFormInput(ns('form'))
                 ),
-                div(id = ns('mds_plotly_container'), class = 'col-lg-7 mobile-margin', style = '',
-                    bulkPlotlyUI(ns('mds_plotly'))
+                div(id = ns('mds_plotly_container'), class = 'col-lg-4 mobile-margin',
+                      bulkPlotlyUI(ns('mds_plotly_unadjusted'))
+                ),
+                div(id = ns('mds_plotly_container'), class = 'col-lg-4 mobile-margin',
+                      bulkPlotlyUI(ns('mds_plotly_adjusted'))
                 ),
                 div(id = ns('gene_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
                     bulkPlotlyUI(ns('gene_plotly'))
@@ -34,9 +37,9 @@ bulkPageUI <- function(id, tab, active) {
 #' Plotly MDS output
 #' @export
 #' @keywords internal
-bulkPlotlyUI <- function(id) {
+bulkPlotlyUI <- function(id, height = 'auto') {
   ns <- NS(id)
-  downloadablePlotlyUI(ns('plotly'))
+  downloadablePlotlyUI(ns('plotly'), height)
 }
 
 #' Input form for Bulk Data page
