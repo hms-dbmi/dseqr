@@ -9,11 +9,13 @@ bulkPageUI <- function(id, tab, active) {
                 div(class = 'col-lg-4',
                     bulkFormInput(ns('form'))
                 ),
-                div(id = ns('mds_plotly_container'), class = 'col-lg-4 mobile-margin',
-                      bulkPlotlyUI(ns('mds_plotly_unadjusted'))
-                ),
-                div(id = ns('mds_plotly_container'), class = 'col-lg-4 mobile-margin',
-                      bulkPlotlyUI(ns('mds_plotly_adjusted'))
+                div(id = ns('mds_plotly_container'),
+                    div(class = 'col-lg-4 mobile-margin',
+                        bulkPlotlyUI(ns('mds_plotly_unadjusted'))
+                    ),
+                    div(class = 'col-lg-4 mobile-margin',
+                        bulkPlotlyUI(ns('mds_plotly_adjusted'))
+                    )
                 ),
                 div(id = ns('gene_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
                     bulkPlotlyUI(ns('gene_plotly'))
