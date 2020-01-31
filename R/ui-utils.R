@@ -8,6 +8,12 @@ navbarUI <- function(tabs, active) {
     nav(class = 'navbar navbar-default navbar-static-top',
         div(class = 'container-fluid',
             div(class = 'navbar-header',
+                button(type='button', class='navbar-toggle collapsed', `data-toggle`='collapse', `data-target`='#bs-navbar', `aria-expanded`='false',
+                       span(class = 'sr-only', 'Toggle navigation'),
+                       span(class = 'icon-bar'),
+                       span(class = 'icon-bar'),
+                       span(class = 'icon-bar')
+                ),
                 span(class = 'navbar-brand', title = 'drugseqr',
                      span(class = 'brand-icons',
                           i(class = 'glyphicon glyphicon-leaf'),
@@ -15,18 +21,20 @@ navbarUI <- function(tabs, active) {
                      )
                 )
             ),
-            ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
-               lapply(seq_along(tabs), function(i) {
-                 tab <- tabs[i]
-                 is.active <- tab == active
-                 li(class = ifelse(is.active, 'active', ''),
-                    a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
-                 )
-               })
-               # docs section
-               # li(class = 'navbar-right',
-                  # a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
-               # )
+            div(id = 'bs-navbar', class = 'collapse navbar-collapse',
+                ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
+                   lapply(seq_along(tabs), function(i) {
+                     tab <- tabs[i]
+                     is.active <- tab == active
+                     li(class = ifelse(is.active, 'active', ''), `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
+                        a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
+                     )
+                   })
+                   # docs section
+                   # li(class = 'navbar-right',
+                   # a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+                   # )
+                )
             )
         )
     )
