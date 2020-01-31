@@ -392,7 +392,7 @@ LabelClusters <- function(
 
   color <- 'black'
   if (!is.null(label.highlight)) {
-    color <- rep('darkslategray', nrow(labels.loc))
+    color <- rep('#5f5f5f', nrow(labels.loc))
     color[label.highlight] <- 'black'
   }
 

@@ -1140,7 +1140,6 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, fname
     if (isTruthy(cluster)) label.highlight <- as.numeric(cluster)
 
     plot_tsne_cluster(scseq, label.highlight)
-
   })
 
 
@@ -1726,6 +1725,4 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
 
   return(list(plot = pl, height = length(unique(tb$clust))*40))
 }
-
-
 
