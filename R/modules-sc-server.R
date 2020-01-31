@@ -177,7 +177,8 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
 scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # updates if new integrated dataset
-  new_dataset <- reactive(scIntegration())
+  new_dataset <- reactiveVal()
+  observe(new_dataset(scIntegration()))
 
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
@@ -399,9 +400,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(new_dataset_dir(), showModal(quantModal()))
 
   # run single-cell quantification
+  dataset_inputs <- c('selected_dataset', 'show_integration')
   observeEvent(input$confirm_quant, {
     removeModal()
-    disable('selected_dataset')
+    toggleAll(dataset_inputs)
 
     # standardize cellranger files
     fastq_dir <- new_dataset_dir()
@@ -450,6 +452,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     save_scseq_data(anal, dataset_name, sc_dir)
 
     progress$set(value = 9)
+    toggleAll(dataset_inputs)
+    new_dataset(dataset_name)
   })
 
   # modal to confirm adding single-cell dataset

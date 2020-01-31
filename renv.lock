@@ -686,6 +686,13 @@
       "Repository": "CRAN",
       "Hash": "fe53d2ea110c7772eb382bf058190d66"
     },
+    "e1071": {
+      "Package": "e1071",
+      "Version": "1.7-3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "728e85416ffc90743054c1ac04486d69"
+    },
     "edgeR": {
       "Package": "edgeR",
       "Version": "3.28.0",
