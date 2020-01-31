@@ -390,17 +390,17 @@ LabelClusters <- function(
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
 
-  label_colors <- 'black'
+  color <- 'black'
   if (!is.null(label.highlight)) {
-    label_colors <- rep('dimgray', nrow(labels.loc))
-    label_colors[label.highlight] <- 'black'
+    color <- rep('darkslategray', nrow(labels.loc))
+    color[label.highlight] <- 'black'
   }
 
   geom.use <- ifelse(test = repel, yes = ggrepel::geom_text_repel, no = ggplot2::geom_text)
   plot <- plot + geom.use(
     data = labels.loc,
     mapping = ggplot2::aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    color = label_colors,
+    color = color,
     ...
   )
   return(plot)
