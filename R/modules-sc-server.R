@@ -141,10 +141,10 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
   ) %>%
       plotly::layout(
         hovermode= 'closest',
-        margin = list(t = 100),
-        title = list(text = 'For Each Sample: Percent of Cells From Original Clusters', x = 0.1, y = .99, yanchor = 'top', font = list(size = 16, color = '#333333')),
+        margin = list(t = 65, r = 20, l = 0, pad = 10),
+        title = list(text = 'For Each Sample: Percent of Cells From Original Clusters', x = 0, y = .99, yanchor = 'top', font = list(size = 16, color = '#333333')),
         legend = list(traceorder = 'reversed', itemclick = FALSE, font = list(size = 14, color = '#333333')),
-        xaxis = list(title = '', range = c(-2, 102), fixedrange=TRUE, side = 'top', zeroline = FALSE, tickfont = list(size = 14, color = '#333333')),
+        xaxis = list(title = '', range = c(-4, 104), fixedrange=TRUE, side = 'top', zeroline = FALSE, tickfont = list(size = 14, color = '#333333')),
         yaxis = list(title = '', fixedrange=TRUE, tickvals = df$boc, ticktext = df$oc, tickmode = 2, gridwidth = 1, gridcolor = 'gray', ticklen = 10, tickcolor = 'white', tickfont = list(size = 14, color = '#333333'))
       ) %>%
       plotly::config(displayModeBar = 'hover',
@@ -164,7 +164,7 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
                                                 'zoomIn2d',
                                                 'zoomOut2d',
                                                 'toggleSpikelines'),
-                     toImageButtonOptions = list(format = "png", filename = 'blah')
+                     toImageButtonOptions = list(format = "png")
       ))
 
   return(pl)
@@ -536,12 +536,12 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
     suppressMessages(plot_fun()(gene))
   })
 
-  height <- reactive(res()$height)
+  height <- reactive(ifelse(is_plotly(), 1, res()$height))
 
+  is_plotly <- output$is_plotly <- reactive('plotly' %in% class(res()))
 
-  output$plot <- renderPlot({
-    suppressMessages(print(res()$plot))
-  }, height = height)
+  output$plot <- renderPlot(if (!is_plotly()) suppressMessages(print(res()$plot)) else NULL, height = height)
+  output$plotly <- plotly::renderPlotly(if (is_plotly()) res() else NULL)
 }
 
 #' Logic for label transfer between datasets
@@ -1620,6 +1620,7 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
     ggplot2::xlab('') +
     ggplot2::ggtitle(title) +
     ggplot2::theme(legend.position = 'none',
+                   plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
                    plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
                    axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
                    axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
@@ -1646,87 +1647,29 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
 plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_ambient) {
 
-  if (is.null(pbulk)) return(NULL)
-  logcounts <- Biobase::assayDataElement(pbulk, 'vsd')
+  tt <- lapply(tts, function(x) x[gene, ])
+  tt <- do.call(rbind, tt)
+  tt <- tt[abs(order(tt$dprime, decreasing = TRUE)), ]
 
   group <- pbulk$orig.ident
   clust <- pbulk$cluster
-  batch <- pbulk$batch
 
   seli <- as.numeric(selected_cluster)
   seln <- levels(clust)[seli]
 
   # highlight clusters where this gene is significant
-  pvals <- sapply(tts, function(tt) tt[gene, 'adj.P.Val'])
-  have.clus <- gsub('^.+?_([0-9]+)$', '\\1', names(pvals))
-  have.clus <- levels(clust)[as.numeric(have.clus)]
-  miss.clus <- setdiff(levels(clust), have.clus)
-  names(pvals) <- have.clus
-  pvals[miss.clus] <- 1
-  pvals <- pvals[levels(clust)]
+  have.clus <- gsub('^.+?_([0-9]+)$', '\\1', row.names(tt))
+  row.names(tt) <- levels(clust)[as.numeric(have.clus)]
 
-  # get ambient clusters
-  ambient <- sapply(tts, function(tt) tt[gene, 'ambient'])
-  ambient <- have.clus[ambient]
-  signif  <- names(pvals)[pvals < 0.15]
+  path_df <- get_path_df(tt, path_id = '')
+  path_df$ambient <- tt$ambient
+  link <- as.character(path_df$Gene)
+  path_df$Link <- paste0('<span style="color: dimgray">', link, '</span>')
+  path_df$Link[seli] <- paste0('<span style="color: black">', link[seli], '</span>')
+  path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
-  reds <- RColorBrewer::brewer.pal(9, 'YlOrRd')[c(3, 6, 9)]
-  setup_color <- function(clust, group, sel, pvals) {
+  if (exclude_ambient) path_df$color[tt$ambient] <- 'gray'
 
-    res <- rep('white', length(clust))
-    res[group == 'test'] <- '#87CEEB'
-    res[group == 'test' & pvals[clust] < 0.15] <- reds[1]
-    res[group == 'test' & pvals[clust] < 0.10] <- reds[2]
-    res[group == 'test' & pvals[clust] < 0.05] <- reds[3]
-    return(factor(res, levels = c(rev(reds), '#87CEEB', 'white')))
-  }
-
-  tb <- tibble::tibble(logcounts = logcounts[gene, ],
-                       clust,
-                       group,
-                       batch,
-                       pt.color = setup_color(clust, group, sel, pvals))
-
-  tb <- tb %>%
-    group_by(batch, clust) %>%
-    add_tally() %>%
-    summarise(meds = median(logcounts),
-              n = unique(n),
-              mads = stats::mad(logcounts),
-              group = unique(group),
-              pt.color = unique(pt.color))
-
-
-  # order by significance
-  tb$clust <- factor(tb$clust, levels(clust)[order(-pvals)])
-
-  labels <- c('p<0.05', 'p<0.1', 'p<0.15', 'p>0.15', 'Control')
-  labels <- labels[table(tb$pt.color) > 0]
-
-  tb$pt.alpha <- 0.85
-  lighten <- (tb$clust %in% ambient) & (tb$clust %in% signif)
-  if (exclude_ambient) tb[lighten, 'pt.alpha'] <- 0.4
-
-  xcol <- ifelse(levels(tb$clust) == seln, 'black', 'dimgray')
-
-  pl <- ggplot2::ggplot(tb, ggplot2::aes(x = meds, y = clust, fill = pt.color, alpha = pt.alpha)) +
-    ggplot2::scale_fill_identity('', guide = 'legend', labels = labels) +
-    ggplot2::scale_alpha_identity() +
-    ggplot2::geom_point(shape = 21, color = '#333333', size = 4) +
-    ggplot2::xlab('') +
-    ggplot2::ylab('') +
-    ggplot2::ggtitle('Pseudobulk Expression by Cluster') +
-    ggpubr::theme_pubr(legend = 'top')  +
-    theme_dimgray() +
-    ggplot2::theme(axis.text = ggplot2::element_text(size = 14, color = '#333333'),
-                   plot.title = ggplot2::element_text(size = 16, color = '#333333', face = 'plain', margin = ggplot2::margin(b = 25)),
-                   axis.title.x = ggplot2::element_blank(),
-                   axis.ticks.x = ggplot2::element_line(size = 0),
-                   axis.text.y = ggplot2::element_text(colour = xcol),
-                   legend.text = ggplot2::element_text(size = 16, color = '#333333'),
-                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.3, color = 'gray'))
-
-
-  return(list(plot = pl, height = length(unique(tb$clust))*40))
+  dprimesPlotly(path_df, drugs = FALSE)
 }
 

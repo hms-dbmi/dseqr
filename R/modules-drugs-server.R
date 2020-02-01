@@ -581,8 +581,8 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 
   path_id <- reactive({
     study <- drug_study()
-    if (study == 'CMAP02') return('Query genes - CMAP02')
-    if (grepl('^L1000', study)) return('Query genes - L1000')
+    if (study == 'CMAP02') return('CMAP02')
+    if (grepl('^L1000', study)) return('L1000')
   })
 
 
@@ -622,14 +622,36 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #' @export
 #'
 #' @keywords internal
-dprimesPlotly <- function(path_df) {
+dprimesPlotly <- function(path_df, drugs = TRUE) {
 
-  # so that still shows hover if no sd
-  path_df$sd[is.na(path_df$sd)] <- 'NA'
+  if (drugs) {
+    fontsize = 12
+    pergene = 25
+    title <- 'Standardized Effect Size for Query Genes'
+    hovertemplate = paste0(
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: %{customdata.pval}',
+      '<extra></extra>')
+
+  } else {
+    fontsize = 14
+    pergene = 35
+    title <- 'Standardized Pseudobulk Effect Size for Each Cluster'
+    hovertemplate = paste0(
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: %{text}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: %{customdata.pval}<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: %{customdata.ambient}',
+      '<extra></extra>')
+  }
 
   # 30 pixels width per gene in pathway
   ngenes <- length(unique(path_df$Gene))
-  plot_height <- max(400, ngenes*25 + 125)
+  plot_height <- max(400, ngenes*pergene + 125)
 
 
   (pl <- plotly::plot_ly(data = path_df,
@@ -640,15 +662,10 @@ dprimesPlotly <- function(path_df) {
                          type = 'scatter',
                          mode = 'markers',
                          height = plot_height,
-                         marker = list(size = 5, color = path_df$color),
-                         error_x = ~list(array = sd, color = '#000000', thickness = 0.5, width = 0),
+                         marker = list(size = 6, color = path_df$color, opacity = path_df$opacity),
+                         error_x = ~list(array = sd, color = path_df$color, thickness = 0.5, width = 0, opacity = path_df$opacity),
                          hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                         hovertemplate = paste0(
-                           '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-                           '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-                           '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
-                           '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}',
-                           '<extra></extra>')
+                         hovertemplate = hovertemplate
   ) %>%
       plotly::config(displayModeBar = 'hover',
                      displaylogo = FALSE,
@@ -661,15 +678,19 @@ dprimesPlotly <- function(path_df) {
       plotly::layout(hoverdistance = -1,
                      hovermode = 'y',
                      margin = list(t = 65, r = 20, l = 0, pad = 10),
-                     title = list(text = 'Standardized Effect Size for Query Genes', y = 1, x = 0),
-                     xaxis = list(fixedrange = TRUE, rangemode = "tozero", side = 'top', title = '', tickfont = list(size = 12)),
+                     title = list(text = title, y = 1, x = 0),
+                     xaxis = list(fixedrange = TRUE,
+                                  rangemode = "tozero",
+                                  side = 'top',
+                                  title = '',
+                                  tickfont = list(size = fontsize)),
                      yaxis = list(fixedrange = TRUE,
                                   title = '',
                                   range = c(ngenes, -1),
                                   tickmode = 'array',
                                   tickvals = 0:ngenes,
                                   ticktext = ~Link,
-                                  tickfont = list(size = 12)),
+                                  tickfont = list(size = fontsize)),
                      autosize = TRUE))
 
 

@@ -77,9 +77,10 @@ plot_biogps <- function(gene) {
     ggplot2::theme(plot.title = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(b = 25)),
                    axis.text.y = ggplot2::element_text(color = '#333333'),
                    axis.text = ggplot2::element_text(size = 14),
+                   plot.title.position = "plot",
                    axis.text.x = ggplot2::element_blank(),
                    axis.ticks.x = ggplot2::element_line(size = 0),
-                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.1),
+                   panel.grid.major.y = ggplot2::element_line(linetype = 'longdash', size = 0.5),
                    legend.position = "none")
 }
 

@@ -361,8 +361,8 @@
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteUsername": "LTLA",
       "RemoteRepo": "SingleCellExperiment",
+      "RemoteUsername": "LTLA",
       "RemoteRef": "master",
       "RemoteSha": "432da5ad6b705dc6f36e25fa32c89693f2b7c20e",
       "Hash": "e233dba72f356688fce680ed772d4998"
@@ -673,8 +673,8 @@
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteUsername": "hms-dbmi",
       "RemoteRepo": "drugseqr.data",
+      "RemoteUsername": "hms-dbmi",
       "RemoteRef": "master",
       "RemoteSha": "db40b4cfb41421301524c0e8d3f36d88b844d3c0",
       "Hash": "e3192324bc5512292d31c0a5efb5091b"
@@ -825,10 +825,15 @@
     },
     "ggplot2": {
       "Package": "ggplot2",
-      "Version": "3.2.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "9ac60f09a2f437af8df8638ef3da0288"
+      "Version": "3.3.0.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "tidyverse",
+      "RemoteRepo": "ggplot2",
+      "RemoteRef": "master",
+      "RemoteSha": "b8ce6a9c06697e3ed70193d00e3d581b1961979e",
+      "Hash": "bc4b014f57ca18cb64abd28c4ed1e7e1"
     },
     "ggpubr": {
       "Package": "ggpubr",
@@ -982,6 +987,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "a9ad517358000d57022401ef18ee657a"
+    },
+    "isoband": {
+      "Package": "isoband",
+      "Version": "0.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "15f6d57a664cd953a31ae4ea61e5e60e"
     },
     "iterators": {
       "Package": "iterators",
@@ -1261,6 +1273,13 @@
       "Repository": "CRAN",
       "Hash": "c396592ecfe9e75cee1013533efafe34"
     },
+    "praise": {
+      "Package": "praise",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "a555924add98c99d2f411e37e7d25e9f"
+    },
     "prettyunits": {
       "Package": "prettyunits",
       "Version": "1.1.1",
@@ -1533,6 +1552,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "507f3116a38d37ad330a038b3be07b66"
+    },
+    "testthat": {
+      "Package": "testthat",
+      "Version": "2.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "68dad590f6445cdcdaa5b7eec60e9686"
     },
     "tibble": {
       "Package": "tibble",

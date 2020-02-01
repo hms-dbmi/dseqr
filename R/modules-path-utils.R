@@ -49,6 +49,7 @@ construct_path_df <- function(top_table) {
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
     sd = sqrt(top_table$vardprime),
+    pval = format.pval(top_table$adj.P.Val, eps = 0.005, digits = 2),
     description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
     Link = paste0("<a class='xaxis-tooltip' href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
     stringsAsFactors = FALSE
@@ -78,20 +79,12 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
   is.ambient <- row.names(top_table) %in% ambient
   top_table <- top_table[!is.ambient, ]
 
-  # only show pathway if in GO
-  if (path_id %in% names(gslist.go)) {
-    path_enids <- gslist.go[[path_id]]
-    path_genes <- names(path_enids)
-    top_table <- top_table[row.names(top_table) %in% path_genes, ]
-    top_table <- head(top_table, nmax)
-  }
-
   path_df <- construct_path_df(top_table)
-  path_df$point_color <- 'black'
+  path_df$color <- 'black'
 
   # for drug/genetic queries: keep up to nmax in cmap/l1000
-  is.cmap2 <- path_id == 'Query genes - CMAP02'
-  is.l1000 <- path_id == 'Query genes - L1000'
+  is.cmap2 <- path_id == 'CMAP02'
+  is.l1000 <- path_id == 'L1000'
 
   if (is.l1000 | is.cmap2) {
     if (is.cmap2) keep <- head(which(path_df$Gene %in% unlist(genes)), nmax)

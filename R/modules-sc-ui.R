@@ -279,8 +279,12 @@ scBioGpsPlotOutput <- function(id) {
 
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('plot'), height = 'auto')
+  tagList(
+    tags$div(plotOutput(ns('plot'), height = 'auto'), style = 'line-height: 0px;'),
+    plotly::plotlyOutput(ns('plotly'), height = 'auto')
+  )
 }
+
 
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)

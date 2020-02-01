@@ -4,7 +4,7 @@
 \alias{dprimesPlotly}
 \title{Generate plotly of dprimes values for Drugs and Pathways tab}
 \usage{
-dprimesPlotly(path_df)
+dprimesPlotly(path_df, drugs = TRUE)
 }
 \arguments{
 \item{path_df}{result of \link{get_path_df}.}
