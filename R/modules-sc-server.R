@@ -1141,6 +1141,7 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, fname
 
     label.highlight <- NULL
     cluster <- selected_cluster()
+    cluster <- strsplit(cluster, '-vs-')[[1]]
     if (isTruthy(cluster)) label.highlight <- as.numeric(cluster)
 
     plot_tsne_cluster(scseq, label.highlight)
@@ -1650,6 +1651,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
   tt <- lapply(tts, function(x) x[gene, ])
   tt <- do.call(rbind, tt)
   tt <- tt[abs(order(tt$dprime, decreasing = TRUE)), ]
+  path_df <- get_path_df(tt, path_id = '')
 
   group <- pbulk$orig.ident
   clust <- pbulk$cluster
@@ -1659,16 +1661,15 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
 
   # highlight clusters where this gene is significant
   have.clus <- gsub('^.+?_([0-9]+)$', '\\1', row.names(tt))
-  row.names(tt) <- levels(clust)[as.numeric(have.clus)]
+  row.names(tt) <- row.names(path_df) <- path_df$Gene <- levels(clust)[as.numeric(have.clus)]
 
-  path_df <- get_path_df(tt, path_id = '')
-  path_df$ambient <- tt$ambient
+  path_df$ambient <- tt[row.names(path_df), 'ambient']
   link <- as.character(path_df$Gene)
   path_df$Link <- paste0('<span style="color: dimgray">', link, '</span>')
-  path_df$Link[seli] <- paste0('<span style="color: black">', link[seli], '</span>')
+  path_df[seln, 'Link'] <- gsub('dimgray', 'black', path_df[seln, 'Link'])
   path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
-  if (exclude_ambient) path_df$color[tt$ambient] <- 'gray'
+  if (exclude_ambient) path_df$color[path_idf$ambient] <- 'gray'
 
   dprimesPlotly(path_df, drugs = FALSE)
 }
