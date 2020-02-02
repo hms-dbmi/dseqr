@@ -1669,7 +1669,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
   path_df[seln, 'Link'] <- gsub('dimgray', 'black', path_df[seln, 'Link'])
   path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
-  if (exclude_ambient) path_df$color[path_idf$ambient] <- 'gray'
+  if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
 
   dprimesPlotly(path_df, drugs = FALSE)
 }
