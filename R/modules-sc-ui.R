@@ -179,12 +179,12 @@ clusterComparisonInput <- function(id) {
               selectizeInputWithButtons(ns('selected_cluster'),
                                         label = 'Show marker genes for:',
                                         label_title = 'Cluster (n cells :: % of total)',
-                                        actionButton(ns('show_contrasts'), '',
-                                                     icon = icon('chevron-right', 'fa-fw'),
-                                                     title = 'Toggle single group comparisons'),
                                         actionButton(ns('show_rename'), '',
                                                      icon = icon('tag', 'fa-fw'),
-                                                     title = 'Toggle rename cluster'))
+                                                     title = 'Toggle rename cluster'),
+                                        actionButton(ns('show_contrasts'), '',
+                                                     icon = icon('chevron-right', 'fa-fw'),
+                                                     title = 'Toggle single group comparisons'))
           )
       ),
       div(id = ns('rename_panel'), style = 'display: none',
@@ -216,11 +216,10 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),
-                            label = 'Show expression for:',
+                            label = 'Feature to plot:',
                             exclude_ambient_button,
                             ridge_plot_button,
-                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards'),
-                            label_title = 'Gene (% exp test :: % exp ctrl)'
+                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   )
 }
 
@@ -318,4 +317,5 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = 'Cluster [n significant]')
 
 }
+
 

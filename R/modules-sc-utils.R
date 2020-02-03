@@ -251,6 +251,7 @@ get_contrast_choices <- function(clusters, test) {
 
   contrast_choices <- data.frame(test = stringr::str_trunc(test_name, 11, ellipsis = '..'),
                                  ctrl = stringr::str_trunc(c('all', ctrl_names), 11, ellipsis = '..'),
+                                 name = test_name,
                                  value = c(test, paste0(test, '-vs-', ctrls)),
                                  testColor = colours[test_name],
                                  ctrlColor = c('white', colours[ctrl_names]), row.names = NULL, stringsAsFactors = FALSE)

@@ -237,6 +237,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               dataset_name = scDataset$dataset_name,
+                              is.integrated = scDataset$is.integrated,
                               selected_markers = scClusterComparison$selected_markers,
                               selected_cluster = scClusterComparison$selected_cluster,
                               comparison_type = comparisonType)
@@ -251,6 +252,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              dataset_name = scDataset$dataset_name,
+                             is.integrated = scDataset$is.integrated,
                              selected_markers = scSampleComparison$top_table,
                              selected_cluster = scSampleComparison$selected_cluster,
                              comparison_type = comparisonType,
@@ -885,6 +887,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     req(clusters)
     req(dataset_dir())
 
+    browser()
     if (show_contrasts()) {
       test <- isolate(test_cluster())
       choices <- get_contrast_choices(clusters, test)
@@ -938,7 +941,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     icon <- ifelse(show_contrasts(), 'chevron-down', 'chevron-right')
 
     updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-    toggleState('show_rename', condition = !show_contrasts())
     toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
   })
 
@@ -951,7 +953,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     # update reactive annotation
     choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- which(choices$value == sel_clust)
+    sel_idx <- gsub('-vs-\\d+$', '', sel_clust)
+    sel_idx <- as.numeric(sel_idx)
 
     mod_annot <- annot()
     mod_annot[sel_idx] <- input$new_cluster_name
@@ -979,6 +982,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   observe({
     choices <- choices()
     name <- choices[choices$value == input$selected_cluster, 'name']
+
     if (!show_rename())
       updateTextInput(session, 'new_cluster_name', value = '', placeholder = paste('Type new name for', name, '...'))
   })
@@ -1054,7 +1058,7 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, selected_markers, selected_cluster, comparison_type, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, comparison_type, ambient = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
@@ -1094,8 +1098,16 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
     # will error if labels
     req(type %in% c('samples', 'clusters'))
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
+    gene_choices <- get_gene_choices(markers)
 
-    get_gene_choices(markers)
+    # for plotting doublet score
+    if (type == 'clusters' && !is.integrated()) {
+      gene_choices <- rbind(NA, gene_choices)
+      gene_choices$label[1] <- 'DOUBLET SCORE'
+      gene_choices$value[1] <- 'doublet_score'
+    }
+
+    return(gene_choices)
   })
 
   # click genecards
@@ -1115,8 +1127,15 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 
   # update choices
   observe({
+    type <- isolate(comparison_type())
+    prev <- isolate(input$selected_gene)
+    choices <- gene_choices()
+
+    selected <- NULL
+    if (type == 'clusters' && prev != 'doublet_score') selected <- choices$value[2]
+
     updateSelectizeInput(session, 'selected_gene',
-                         choices = gene_choices(), selected = NULL,
+                         choices = choices, selected = selected,
                          server = TRUE,
                          options = gene_options)
   })
@@ -1133,7 +1152,7 @@ selectedGene <- function(input, output, session, dataset_name, selected_markers,
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, selected_cluster, fname_fun = function(){}, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name, fname_fun = function(){}, downloadable = FALSE) {
 
   plot <- reactive({
     scseq <- scseq()
@@ -1205,6 +1224,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun
     gene <- selected_gene()
     scseq <- scseq()
     if (!isTruthy(gene) || !isTruthy(scseq)) return(NULL)
+    if (!gene %in% row.names(scseq) && !gene %in% colnames(scseq@colData)) return(NULL)
     plot_tsne_gene(scseq, gene)
   })
 
@@ -1602,8 +1622,15 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
     title <- 'Expression by Cluster'
   }
 
-  # order y-axis by mean logcounts
-  x <- SingleCellExperiment::logcounts(scseq)[gene, ]
+  # order y-axis by mean logcounts (or other feature)
+  if (gene == 'doublet_score') {
+    title <- 'Doublet Score by Cluster'
+    x <- scseq@colData[, gene]
+
+  }
+  else
+    x <- SingleCellExperiment::logcounts(scseq)[gene, ]
+
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m)])
   df <- data.frame(x, hl, y)
@@ -1673,4 +1700,3 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
 
   dprimesPlotly(path_df, drugs = FALSE)
 }
-

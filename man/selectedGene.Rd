@@ -9,6 +9,7 @@ selectedGene(
   output,
   session,
   dataset_name,
+  is.integrated,
   selected_markers,
   selected_cluster,
   comparison_type,

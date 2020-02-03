@@ -308,6 +308,21 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   }
 }
 
+# Extract delimiter information from a string.
+#
+# Parses a string (usually a cell name) and extracts fields based on a delimiter
+#
+# @param string String to parse.
+# @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
+# @param delim Delimiter to use, set to underscore by default.
+#
+# @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
+#
+# @export
+#
+# @examples
+# ExtractField(string = 'Hello World', field = 1, delim = '_')
+#
 ExtractField <- function(string, field = 1, delim = "_") {
   fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
   if (length(x = fields) == 1) {
@@ -573,6 +588,26 @@ add_scseq_clusters <- function(sce) {
   # add clusters
   sce$cluster <- factor(choices$clusters[[as.character(npcs)]])
   return(sce)
+}
+
+
+#' Calculate doublet score for each cell
+#'
+#' @param scseq \code{SingleCellExperiment} object with \code{hvg} column in \code{rowData}
+#'   and \code{npcs} in \code{metadata} slot
+#'
+#' @return \code{scseq} with column \code{doublet_score} added to \code{colData}.
+#' @export
+#' @keywords internal
+add_doublet_score <- function(scseq) {
+
+  hvgs <- SingleCellExperiment::rowData(scseq)$hvg
+  hvgs <- row.names(scseq)[hvgs]
+
+  dbl.dens <- scran::doubletCells(scseq, subset.row=hvgs, d=scseq@metadata$npcs)
+  scseq$doublet_score <- log10(dbl.dens+1)
+
+  return(scseq)
 }
 
 
