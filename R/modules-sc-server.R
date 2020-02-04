@@ -376,8 +376,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   is.create <- reactive({
     dataset_name <- input$selected_dataset
     datasets <- datasets()
+    if (!isTruthy(dataset_name)) return(FALSE)
 
-    !dataset_name %in% unlist(datasets)
+    !dataset_name %in% datasets$value
   })
 
   # open shinyFiles selector if creating
@@ -476,8 +477,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # update if options change
+  dataset_options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
+
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = datasets())
+    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = dataset_options)
   })
 
   # show/hide integration/label-transfer forms
@@ -522,11 +525,13 @@ get_sc_dataset_choices <- function(sc_dir) {
   has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
   individual <- individual[unlist(has.scseq)]
 
-  # must be a list if length one for option groups to work
-  if (length(integrated) == 1) integrated <- list(integrated)
-  if (length(individual) == 1) individual <- list(individual)
+  choices <- data.frame(value = c(integrated, individual),
+                        type = c(rep('Integrated', length(integrated)),
+                                 rep('Individual', length(individual))),
+                        stringsAsFactors = FALSE)
 
-  list(Individual = c('', individual), Integrated = integrated)
+  choices$label <- stringr::str_trunc(choices$value, 35)
+  return(choices)
 }
 
 
@@ -748,7 +753,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   integration_name <- reactive(input$integration_name)
-  integration_options <- reactive(datasets()$Individual)
+  integration_options <- reactive(datasets()$value[datasets()$type == 'Individual'])
 
   ctrl <- reactiveVal()
   test <- reactiveVal()
@@ -1337,8 +1342,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
 
-  # do we have drug query results?
-  saved_drugs <- reactive(any(grepl('^cmap_res_', list.files(dataset_dir()))))
 
   # require cluster markers and fit result
   lm_fit <- reactive(readRDS.safe(file.path(dataset_dir(), 'lm_fit_0svs.rds')))
@@ -1409,11 +1412,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # drug query results
   drug_queries <- reactive({
     dpaths <- drug_paths()
+    saved_drugs <- any(grepl('^cmap_res_', list.files(dataset_dir())))
 
     if (!isTruthy(input$selected_cluster)) {
       res <- NULL
 
-    } else if (saved_drugs()) {
+    } else if (saved_drugs) {
       if (!file.exists(dpaths$cmap)) res <- NULL
       else res <- lapply(dpaths, readRDS)
 
@@ -1680,7 +1684,7 @@ plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_
 
   tt <- lapply(tts, function(x) x[gene, ])
   tt <- do.call(rbind, tt)
-  tt <- tt[abs(order(tt$dprime, decreasing = TRUE)), ]
+  tt <- tt[order(abs(tt$dprime), decreasing = TRUE), ]
   path_df <- get_path_df(tt, path_id = '')
 
   group <- pbulk$orig.ident

@@ -118,7 +118,7 @@ scSelectedDatasetInput <- function(id) {
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
                               actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn'),
                               actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle dataset integration'),
-                              options = list(placeholder = 'Type name to add new single-cell dataset', create = TRUE)),
+                              options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)),
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
   )
@@ -314,7 +314,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression
     options = list(multiple = FALSE),
-    label_title = 'Cluster [n significant]')
+    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>nsig</b>]')
 
 }
 

@@ -208,7 +208,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 construct_pbulk_eset <- function(summed, species = 'Homo sapiens', release = '94') {
 
   # discard outlier samples
-  y <- edgeR::DGEList(counts(summed), samples = summed@colData)
+  y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   outl <- scater::isOutlier(y$samples$lib.size, log=TRUE, type="lower")
   y <- y[, !outl]
 

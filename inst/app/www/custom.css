@@ -228,6 +228,7 @@
 
 .full-height-selectize {
   display: table-cell;
+  max-width: 1px;
 }
 
 .full-height-selectize .selectize-input {
@@ -420,6 +421,7 @@ button.dt-button.buttons-collection,
   font-size: 14px;
   background-color:rgba(0,0,0,0.90);
   border-radius:5px;
+  white-space: pre-wrap;
   }
 
   /* for ggplot download data button: making it look like plotly */

@@ -9,10 +9,11 @@ function contrastOptions(item, escape) {
                        "</div>";
 
   var infoSampleNcells =  "<div style='color: #A0A0A0;text-align:right;'>" +
-                          item.ntest + " :: " + item.nctrl + 
+                          item.ntest + " :: " + item.nctrlf + 
                           "</div>";
 
-  var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" + item.nsig + "</div>";
+  var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" +
+                        item.ntest + " :: " + item.nctrlf + " [<span style='color: dimgray;'>" + item.nsigf + "</span>]</div>";
 
   // for integrated dataset show number of cells in each test/ctrl sample
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
@@ -47,9 +48,9 @@ function contrastOptions(item, escape) {
 
 //styling for current item
 function contrastItem(item, escape) {
-  var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pspace + item.pcells + "%" + ")</span>";
+  var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pcells + "%" + ")</span>";
   var infoSampleNcells =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ")</span>";
-  var infoSampleNsig =  "<span style='color: #A0A0A0;'> [" + item.nsig + "]</span>";
+  var infoSampleNsig =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ") [<span style='color: dimgray;'>" + item.nsig + "</span>]</span>";
   var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNcells;
   var info = typeof item.nsig == 'undefined' ? info : infoSampleNsig;
 
@@ -274,6 +275,30 @@ function bulkContrastItem(item, escape) {
                   "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
                   escape(item.name) +
                   "<div class='contrast'>vs</div>" +
+                "</div>";
+
+  return clustEl;
+}
+
+
+
+function scDatasetOptions(item, escape) {
+
+
+  var clustEl = "<div title='" + item.value + "'>" +
+                  escape(item.label) +
+                "</div>";
+
+  return clustEl;
+}
+
+
+
+//styling for current item
+function scDatasetItem(item, escape) {
+
+  var clustEl = "<div title='" + item.value + "'>" +
+                  escape(item.label) +
                 "</div>";
 
   return clustEl;

@@ -36,6 +36,27 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
   return(pred_annot)
 }
 
+run_da <- function(scseq) {
+
+  abundances <- table(scseq$cluster, scseq$batch)
+  abundances <- unclass(abundances)
+
+  extra.info <- scseq@colData[match(colnames(abundances), scseq$batch),]
+  y.ab <- edgeR::DGEList(abundances, samples=extra.info)
+
+  keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
+  y.ab <- y.ab[keep,]
+
+  design <- model.matrix(~factor(orig.ident), y.ab$samples)
+  y.ab <- edgeR::estimateDisp(y.ab, design, trend="none")
+
+  fit.ab <- edgeR::glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
+
+  res <- edgeR::glmQLFTest(fit.ab, coef=ncol(design))
+  res <- edgeR::topTags(res, n = Inf)
+  as.data.frame(res)
+}
+
 
 
 #' Get label transfer choices data.frame
@@ -50,23 +71,17 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
 #' @keywords internal
 get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
 
-  anal_options <- lapply(anal_options, setdiff, c(selected_anal, ''))
+  anal_options <- anal_options[anal_options$value != selected_anal, ]
 
   choices <- data.frame(
-    label = c('Blueprint Encode Data',
-              unlist(anal_options, use.names = FALSE)),
-    type = c('External Reference',
-             rep('Individual', length(anal_options$Individual)),
-             rep('Integrated', length(anal_options$Integrated))),
+    value = c('BlueprintEncodeData', anal_options$value),
+    label = stringr::str_trunc(c('Blueprint Encode Data', anal_options$value), 35),
+    type = c('External Reference', anal_options$type),
     stringsAsFactors = FALSE
   )
 
-  is.ext <- choices$type == 'External Reference'
-
-  choices$value <- choices$label
-  choices$value[is.ext] <- gsub(' ', '', choices$value[is.ext])
   choices$preds <- choices$value %in% names(preds)
-  choices <- rbind(rep(NA, 4), choices)
+  choices <- rbind(NA, choices)
 
   return(choices)
 }
@@ -155,12 +170,18 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
   cluster_stats <- get_cluster_stats(dataset_dir, scseq, top_tables = top_tables)
 
   if (sample_comparison) {
+    # non-formatted for item/hover
     choices$ntest <- cluster_stats$ntest
-    choices$nctrl <- format(cluster_stats$nctrl)
-    choices$nctrl <- gsub(' ', '&nbsp;&nbsp;', choices$nctrl)
+    choices$nctrl <- cluster_stats$nctrl
+    choices$nsig  <- cluster_stats$nsig
     choices$ntest_each <- cluster_stats$ntest_each
     choices$nctrl_each <- cluster_stats$nctrl_each
-    choices$nsig <- cluster_stats$nsig
+
+    # formatted for options
+    choices$nctrlf <- format(cluster_stats$nctrl)
+    choices$nctrlf <- gsub(' ', '&nbsp;&nbsp;', choices$nctrlf)
+    choices$nsigf  <- format(cluster_stats$nsig)
+    choices$nsigf  <- gsub(' ', '&nbsp;&nbsp;', choices$nsigf)
 
   } else {
     # show the cell numbers/percentages
