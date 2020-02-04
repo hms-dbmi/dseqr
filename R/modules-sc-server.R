@@ -572,6 +572,8 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     if (file.exists(preds_path)) readRDS(preds_path) else list()
   })
 
+  observeEvent(dataset_name(), new_preds(NULL))
+
   # update annotation transfer choices
   observe({
     preds <- preds()
@@ -585,7 +587,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   })
 
   # submit annotation transfer
-  observe({
+  observeEvent(input$ref_name, {
 
     query_name <- dataset_name()
     ref_name <- input$ref_name
@@ -594,6 +596,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(query_name, ref_name, preds)
     req(!ref_name %in% names(preds))
     req(show_label_transfer())
+
+    query <- scseq()
+    req(query)
 
     toggleAll(label_transfer_inputs)
 
@@ -614,7 +619,6 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     n = 3
 
     # get arguments for SingleR
-    query <- scseq()
     senv <- loadNamespace('SingleR')
 
     if (ref_name %in% ls(senv)) {
@@ -887,7 +891,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     req(clusters)
     req(dataset_dir())
 
-    browser()
     if (show_contrasts()) {
       test <- isolate(test_cluster())
       choices <- get_contrast_choices(clusters, test)

@@ -431,11 +431,11 @@ add_table_html <- function(query_res) {
                 'https://en.wikipedia.org/wiki/',
                 'https://www.genecards.org/cgi-bin/carddisp.pl?gene=')
 
-  img_urls <- c('https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
-                'http://sideeffects.embl.de/media/images/EMBL_Logo.png',
-                'https://www.drugbank.ca/favicons/favicon.ico',
-                'https://upload.wikimedia.org/wikipedia/commons/5/5a/Wikipedia%27s_W.svg',
-                'https://www.genecards.org/favicon.ico')
+  img_urls <- c('pubchem_logo.ico',
+                'EMBL_Logo.png',
+                'drugbank_logo.ico',
+                'wiki_logo.svg',
+                'genecards_logo.ico')
 
 
   # add linkout to Pubchem, SIDER, and DrugBank
