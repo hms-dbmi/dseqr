@@ -39,7 +39,6 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
 #' @keywords internal
 drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
-
   # dataset/analysis choices
   choices <- reactive({
     # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
@@ -52,7 +51,9 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
     choices <- rbind(bulk_datasets, scseq_datasets, custom_anals, pert_anals)
     choices$value <- seq_len(nrow(choices))+1
-    choices <- rbind(rep(NA, 5), choices)
+    choices$title <- choices$label
+    choices$label <- stringr::str_trunc(choices$label, 35)
+    choices <- rbind(NA, choices)
 
     return(choices)
   })
@@ -717,12 +718,14 @@ dprimesPlotly <- function(path_df, drugs = TRUE) {
 #' @export
 #' @keywords internal
 selectedAnal <- function(input, output, session, data_dir, choices, pert_query_dir = NULL) {
+  options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'))
+
 
   # update dataset/analysis choice
   observe({
     choices <- choices()
     req(choices)
-    updateSelectizeInput(session, 'query', choices = choices, server = TRUE, options = list(render = I('{item: querySignatureItem}')))
+    updateSelectizeInput(session, 'query', choices = choices, server = TRUE, options = options)
   })
 
   # right click load signature logic for Drugs tab

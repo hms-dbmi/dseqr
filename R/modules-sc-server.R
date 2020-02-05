@@ -327,6 +327,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 #' @export
 #' @keywords internal
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+  options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
   # get directory with fastqs
   roots <- c('single-cell' = sc_dir)
@@ -476,11 +477,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   }
 
 
-  # update if options change
-  dataset_options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
-
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = dataset_options)
+    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
   })
 
   # show/hide integration/label-transfer forms

@@ -213,12 +213,18 @@ function transferLabelOption(item, escape) {
 
 function querySignatureItem(item, escape) {
 
-  var info = item.type === "CMAP02/L1000 Perturbations" ? "" : "<span style='color: #A0A0A0;'>" + " (" + item.type + ")" +"</span>";
+  var info = item.type === "CMAP02/L1000 Perturbations" ? "" : " <span style='color: #A0A0A0;white-space: nowrap;'>" + "(" + item.type + ")" +"</span>";
  
-  var res = "<div>" +
+  var res = "<div title='" + item.title + "'>" +
               escape(item.label) + info +
             "</div>";
 
+  return res;
+}
+
+function querySignatureOptions(item, escape) {
+
+  var res = "<div title='" + item.title + "'>" + escape(item.label) + "</div>";
   return res;
 }
 
@@ -284,7 +290,6 @@ function bulkContrastItem(item, escape) {
 
 function scDatasetOptions(item, escape) {
 
-
   var clustEl = "<div title='" + item.value + "'>" +
                   escape(item.label) +
                 "</div>";
@@ -294,7 +299,6 @@ function scDatasetOptions(item, escape) {
 
 
 
-//styling for current item
 function scDatasetItem(item, escape) {
 
   var clustEl = "<div title='" + item.value + "'>" +
