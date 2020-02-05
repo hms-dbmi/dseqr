@@ -1444,7 +1444,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     # loses sync when groups selected and change dataset
     if (!all(groups %in% colnames(lm_fit$mod))) return(NULL)
 
-    get_top_tables(lm_fit, groups)[[1]]
+    get_top_table(lm_fit, groups)
   })
 
   # goana pathway result

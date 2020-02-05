@@ -254,11 +254,14 @@ add_vsd <- function(eset, rna_seq = TRUE, pbulk = FALSE, vsd_path = NULL) {
     vsd <- readRDS(vsd_path)
 
   } else if (pbulk) {
-    # vst faster when lots of samples (clusters * datasets)
     pdata <- Biobase::pData(eset)
     dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
     dds <- DESeq2::estimateSizeFactors(dds)
-    vsd <- DESeq2::vst(dds, blind = FALSE)
+    vsd <- tryCatch(DESeq2::rlog(dds, blind = FALSE),
+                    warning = function(e) {
+                      if (grepl('varianceStabilizingTransformation', e$message))
+                        DESeq2::varianceStabilizingTransformation(dds, blind = FALSE)
+                    })
 
     vsd <- SummarizedExperiment::assay(vsd)
     if (!is.null(vsd_path)) saveRDS(vsd, vsd_path)

@@ -144,7 +144,7 @@ load_scseq_datasets <- function(data_dir) {
 
 #' Run limma fit for clusters in single cell RNA-Seq dataset
 #'
-#' @param obj \code{SingleCellExperiment} object
+#' @param obj \code{SingleCellExperiment} or list of \code{ExpressionSet} objects for pseudobulk.
 #' @param dataset_dir Path to folder to save results and pseudobulk eset to
 #' @param is_summed Boolean indicating if \code{obj} is a pseudobulk \code{SingleCellExperiment} object.
 #'
@@ -156,14 +156,12 @@ load_scseq_datasets <- function(data_dir) {
 #' @keywords internal
 run_limma_scseq <- function(obj) {
 
-  if ('ExpressionSet' %in% class(obj)) {
-    # run as pseudobulk
-    lm_fit <- run_limma(obj, prev_anal = list(pdata = Biobase::pData(obj)))
-    lm_fit$has_replicates <- TRUE
+  if (is.list(obj)) {
+    # run as pseudobulk per eset
+    lm_fit <- lapply(obj, function(x) run_limma(x, prev_anal = list(pdata = Biobase::pData(x))))
 
   } else {
     lm_fit <- fit_lm_scseq(obj)
-    lm_fit$has_replicates <- FALSE
   }
 
   return(lm_fit)
@@ -205,33 +203,46 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'@export
 #'@keywords internal
-construct_pbulk_eset <- function(summed, species = 'Homo sapiens', release = '94') {
+construct_pbulk_esets <- function(summed, species = 'Homo sapiens', release = '94') {
 
-  # discard outlier samples
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
-  outl <- scater::isOutlier(y$samples$lib.size, log=TRUE, type="lower")
-  y <- y[, !outl]
+  clusters <- y$samples$cluster
 
-  # filter genes
-  keep <- edgeR::filterByExpr(y, group = summed$cluster[!outl])
-  y <- y[keep, ]
-
-  # normalize for composition
-  y <- edgeR::calcNormFactors(y)
-
-  # construct eset
   annot <- get_ensdb_package(species, release)
   fdata <- setup_fdata(species, release)
-  eset <- construct_eset(y, fdata, annot)
 
-  # use e.g. test_1 as sample label (test sample cluster 1)
-  pdata <- Biobase::pData(eset)
-  pdata$group <- paste(pdata$orig.ident, pdata$cluster, sep = '_')
-  Biobase::pData(eset) <- pdata
+  esets <- list()
+  for (clust in levels(clusters)) {
+    yi <- y[, clusters == clust]
 
-  # add vst transformed values
-  eset <- add_vsd(eset, pbulk = TRUE)
-  return(eset)
+    # discard outlier samples
+    outl <- scater::isOutlier(yi$samples$lib.size, log=TRUE, type="lower")
+    yi <- yi[, !outl]
+
+    # skip if no replicates remain
+    group <- yi$samples$orig.ident
+    neach <- table(group)
+    if (any(neach == 0) || sum(neach) < 3) next
+
+    # filter genes
+    keep <- edgeR::filterByExpr(yi, group = group)
+    yi <- yi[keep, ]
+
+    # normalize for composition
+    yi <- edgeR::calcNormFactors(yi)
+
+    # construct eset
+    eset <- construct_eset(yi, fdata, annot)
+
+    # use test and ctrl as group
+    eset$group <- eset$orig.ident
+
+    # add vst transformed values
+    eset <- add_vsd(eset, pbulk = TRUE)
+    esets[[clust]] <- eset
+  }
+
+  return(esets)
 }
 
 #' Move genes to bottom of markers data.frame

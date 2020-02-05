@@ -241,7 +241,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
-    test_clusters <- gsub('^test_([0-9]+)-.+?$', '\\1', names(top_tables))
+    test_clusters <- names(top_tables)
     nsig[test_clusters] <- sapply(top_tables, function(tt) sum(tt$adj.P.Val < 0.05 & !tt$ambient))
     stats$nsig <- nsig
   }
@@ -373,11 +373,15 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
 
-  updateProgress(6/n, 'fitting linear model')
+  # TODO: decide if need to split non-replicated by cluster
+  # may make sense to do this and then only test hvgs similar to pbulk
+  # alternatively just require replicates (current)
+
+  updateProgress(6/n, 'fitting linear models')
   obj <- combined
-  pbulk_eset <- NULL
+  pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
-  if (has_replicates) pbulk_eset <- obj <- construct_pbulk_eset(summed)
+  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed)
   lm_fit <- run_limma_scseq(obj)
 
 
@@ -390,7 +394,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      top_markers = top_markers,
                      has_replicates = has_replicates,
                      lm_fit_0svs = lm_fit,
-                     pbulk_eset = pbulk_eset,
+                     pbulk_esets = pbulk_esets,
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
@@ -528,11 +532,11 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
   if (is.null(anal_name) || anal_name == '') {
     msg <- 'Provide a name for integrated analysis'
 
-  } else if (anal_name %in% unlist(anal_options$Individual)) {
-    msg <- 'Analysis name already exists'
-
   } else if (is.null(test) || is.null(ctrl)) {
     msg <- 'Need control and test datasets'
+
+  } else if (length(c(test, ctrl)) < 3) {
+    msg <- 'Need at least 3 datasets'
   }
 
   return(msg)

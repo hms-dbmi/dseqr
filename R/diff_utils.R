@@ -120,24 +120,19 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 #' Get top table
 #'
 #' @param lm_fit Result of \link{run_limma}
-#' @param contrast String specifying contrast.
+#' @param groups Test and Control group as strings.
 #'
 #' @return result of \link[limma]{toptable}
 #' @export
-get_top_tables <- function(lm_fit, groups = c('test', 'ctrl'), contrasts = NULL) {
-  if (is.null(contrasts))
-    contrasts <- paste(groups[1], groups[2], sep = '-')
+get_top_table <- function(lm_fit, groups = c('test', 'ctrl')) {
 
-  ebfit <- fit_ebayes(lm_fit, contrasts)
-  tts <- list()
+  contrast <- paste(groups[1], groups[2], sep = '-')
 
-  for (con in contrasts) {
-    tt <- limma::topTable(ebfit, coef = con, n = Inf, sort.by = 'p')
-    groups <- strsplit(con, '-')[[1]]
-    tts[[con]] <- add_es(tt, ebfit, groups = groups)
-  }
+  ebfit <- fit_ebayes(lm_fit, contrast)
+  tt <- limma::topTable(ebfit, coef = contrast, n = Inf, sort.by = 'p')
+  tt <- add_es(tt, ebfit, groups = groups)
 
-  return(tts)
+  return(tt)
 }
 
 #' Add expression data adjusted for pairs/surrogate variables
@@ -512,7 +507,7 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
     # see https://support.bioconductor.org/p/110780/ for similar
 
     # first round
-    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
+    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
     corfit <- limma::duplicateCorrelation(v, mod, block = pair)
 
     # second round
@@ -524,7 +519,7 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
   } else if (rna_seq) {
     # rna-seq not paired
     # get normalized lib size and voom
-    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, plot = TRUE)
+    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
     fit  <- limma::lmFit(v, design = mod)
 
   } else if (length(pair) & !rna_seq) {

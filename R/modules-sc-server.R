@@ -327,6 +327,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 #' @export
 #' @keywords internal
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
   # get directory with fastqs
@@ -352,8 +353,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # load scseq
   scseq <- reactive({
     if (!isTruthy(dataset_name())) return(NULL)
+    toggleAll(dataset_inputs)
+
     scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
     scseq <- readRDS(scseq_path)
+
+    toggleAll(dataset_inputs)
     return(scseq)
   })
 
@@ -404,7 +409,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(new_dataset_dir(), showModal(quantModal()))
 
   # run single-cell quantification
-  dataset_inputs <- c('selected_dataset', 'show_integration')
   observeEvent(input$confirm_quant, {
     removeModal()
     toggleAll(dataset_inputs)
@@ -822,7 +826,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
         }
         progress$set(value = value, detail = detail)
       }
-
 
       # run integration
       integrate_saved_scseqs(sc_dir,
@@ -1308,12 +1311,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     return(annot)
   })
 
-  pbulk <- reactive({
-    pbulk <- readRDS(file.path(dataset_dir(), 'pbulk_eset.rds'))
-    levels(pbulk$cluster) <- annot()
-    return(pbulk)
-  })
-
   has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
 
 
@@ -1339,6 +1336,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
   goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
   kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
+  top_tables_paths <- reactive(file.path(dataset_dir(), 'top_tables.rds'))
 
 
   # require cluster markers and fit result
@@ -1347,7 +1345,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # plot functions for left
   sel <- reactive({sel <- input$selected_cluster; req(sel); sel})
-  pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, pbulk(), sel(), top_tables(), exclude_ambient()))
+  pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient()))
 
   pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'test'), height = 453))
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
@@ -1357,52 +1355,47 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'ctrl'), height = 453))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
+  dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
 
-    fit <- lm_fit()
-    if (is.null(fit)) return(NULL)
-    groups <-  c('test', 'ctrl')
-    clusts <- unique(gsub('^[^_]+_(\\d+)$', '\\1', colnames(fit$mod)))
-
-    tests <- paste0('test_', clusts)
-    ctrls <- paste0('ctrl_', clusts)
-    have.groups <- tests %in% colnames(fit$mod) & ctrls %in% colnames(fit$mod)
-
-    contrasts <- paste(tests, ctrls, sep = '-')[have.groups]
-    tts <- get_top_tables(fit, contrasts = contrasts)
-
     dataset_dir <- dataset_dir()
-    dataset_ambient <- dataset_ambient()
-    for (i in seq_along(tts)) {
-      tt <- tts[[i]]
-      cluster <- gsub('^test_([0-9]+)-.+?$', '\\1', names(tts)[i])
+    if (is.null(dataset_dir)) return(NULL)
+    tts_path <- file.path(dataset_dir, 'top_tables.rds')
 
-      markers <- get_cluster_markers(cluster, dataset_dir)
-      ambient <- decide_ambient(dataset_ambient, tt, markers)
-      tt$ambient <- row.names(tt) %in% ambient
-      tts[[i]] <- tt
+    if (file.exists(tts_path)) {
+      tts <- readRDS(tts_path)
+
+    } else {
+      fit <- lm_fit()
+      if (is.null(fit)) return(NULL)
+      dataset_ambient <- dataset_ambient()
+
+      tts <- list()
+      for (i in seq_along(fit)) {
+        cluster <- names(fit)[i]
+        tt <- get_top_table(fit[[cluster]])
+        markers <- get_cluster_markers(cluster, dataset_dir)
+        ambient <- decide_ambient(dataset_ambient, tt, markers)
+        tt$ambient <- row.names(tt) %in% ambient
+        tts[[cluster]] <- tt
+      }
+
+      saveRDS(tts, file.path(dataset_dir(), 'top_tables.rds'))
     }
-
     return(tts)
-  })
-
-  contrast <- reactive({
-    sel <- input$selected_cluster
-    if (!isTruthy(sel)) return(NULL)
-    paste0('test_', sel, '-ctrl_', sel)
   })
 
 
   # top table for selected cluster only
   top_table <- reactive({
-    contrast <- contrast()
-    if (is.null(contrast)) return(NULL)
-    tt <- top_tables()[[contrast]]
+    sel <- input$selected_cluster
+    if (!isTruthy(sel)) return(NULL)
+
+    top_tables()[[sel]]
   })
 
-  dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
 
   # need ambient for pathway
   ambient <- reactive({tt <- top_table() ; row.names(tt)[tt$ambient]})
@@ -1432,8 +1425,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       tts <- top_tables()
 
       for (i in seq_along(tts)) {
-        tt <- tts[[i]]
-        cluster <- gsub('^test_([0-9]+)-.+?$', '\\1', names(tts)[i])
+        cluster <- names(tts)[i]
+        tt <- tts[[cluster]]
         ambient <- row.names(tt)[tt$ambient]
         paths <- get_drug_paths(dataset_dir(), cluster)
         run_drug_queries(tt, paths, es, ambient)
@@ -1466,18 +1459,13 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       progress$set(message = "Running pathway analysis", value = 1)
       on.exit(progress$close())
 
-      selected_cluster <- input$selected_cluster
-      groups <- paste(c('test', 'ctrl'), selected_cluster, sep = '_')
-
-      # loses sync when groups selected and change dataset
-      req(all(groups %in% colnames(lm_fit$mod)))
+      cluster <- input$selected_cluster
+      lm_fit <- lm_fit[[cluster]]
 
       # exclude ambient
       ambient <- ambient()
       lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
-
-      contrast <- paste0(groups[1], '-', groups[2])
-      ebfit <- fit_ebayes(lm_fit, contrast)
+      ebfit <- fit_ebayes(lm_fit, 'test-ctrl')
       res <- get_path_res(ebfit, goana_path, kegga_path)
       progress$inc(1)
       toggleAll(input_ids)
@@ -1548,7 +1536,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   )
 
   return(list(
-    lm_fit = lm_fit,
     ambient = ambient,
     top_table = top_table,
     cluster_markers = cluster_markers,
@@ -1678,30 +1665,28 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 }
 
 
-plot_scseq_gene_medians <- function(gene, pbulk, selected_cluster, tts, exclude_ambient) {
+plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_ambient) {
 
   tt <- lapply(tts, function(x) x[gene, ])
   tt <- do.call(rbind, tt)
-  tt <- tt[order(abs(tt$dprime), decreasing = TRUE), ]
+  tt <- tt[!is.na(tt$t), ]
   path_df <- get_path_df(tt, path_id = '')
 
-  group <- pbulk$orig.ident
-  clust <- pbulk$cluster
-
-  seli <- as.numeric(selected_cluster)
-  seln <- levels(clust)[seli]
+  seli <- which(row.names(tt) == selected_cluster)
+  clusters <- as.numeric(row.names(tt))
 
   # highlight clusters where this gene is significant
-  have.clus <- gsub('^.+?_([0-9]+)$', '\\1', row.names(tt))
-  row.names(tt) <- row.names(path_df) <- path_df$Gene <- levels(clust)[as.numeric(have.clus)]
+  row.names(tt) <- row.names(path_df) <- path_df$Gene <- annot[clusters]
 
-  path_df$ambient <- tt[row.names(path_df), 'ambient']
+  path_df$ambient <- tt$ambient
   link <- as.character(path_df$Gene)
   path_df$Link <- paste0('<span style="color: dimgray">', link, '</span>')
-  path_df[seln, 'Link'] <- gsub('dimgray', 'black', path_df[seln, 'Link'])
+  path_df$Link[seli] <- gsub('dimgray', 'black', path_df$Link[seli])
   path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
   if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
 
+  path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
   dprimesPlotly(path_df, drugs = FALSE)
 }
+

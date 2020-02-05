@@ -7,7 +7,7 @@
 run_limma_scseq(obj)
 }
 \arguments{
-\item{obj}{\code{SingleCellExperiment} object}
+\item{obj}{\code{SingleCellExperiment} or list of \code{ExpressionSet} objects for pseudobulk.}
 
 \item{dataset_dir}{Path to folder to save results and pseudobulk eset to}
 
