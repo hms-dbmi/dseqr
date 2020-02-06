@@ -248,6 +248,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                    dataset_name = scDataset$dataset_name,
                                    is.integrated = scDataset$is.integrated,
                                    input_scseq = scseq,
+                                   comparison_type = comparisonType,
                                    exclude_ambient = scSampleGene$exclude_ambient)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
@@ -1292,7 +1293,7 @@ readRDS.safe <- function(path) {
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
-scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is.integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE) {
+scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is.integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')
 
@@ -1379,6 +1380,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
         markers <- get_cluster_markers(cluster, dataset_dir)
         ambient <- decide_ambient(dataset_ambient, tt, markers)
         tt$ambient <- row.names(tt) %in% ambient
+
+        # add ambient-excluded adjusted pvals
+        tt$adj.P.Val.Amb[!tt$ambient] <- p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
         tts[[cluster]] <- tt
       }
 
@@ -1489,7 +1493,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # enable download
   observe({
-    toggleState('download', condition = isTruthy(lm_fit()))
+    toggleState('download', condition = isTruthy(top_table()))
   })
 
   annot_clusters <- reactive({
@@ -1689,4 +1693,3 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
   path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
   dprimesPlotly(path_df, drugs = FALSE)
 }
-

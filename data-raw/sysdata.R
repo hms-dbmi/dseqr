@@ -1,6 +1,7 @@
 setwd("~/Documents/Batcave/zaklab/drugseqr/")
 
 tx2gene <- readRDS('data-raw/tx2gene/tx2gene.rds')
+tx2gene_mouse <- readRDS('data-raw/tx2gene/tx2gene_mouse.rds')
 biogps <- readRDS('data-raw/single-cell/biogps/biogps.rds')
 cell_info <- readRDS('data-raw/cell_info/cell_info.rds')
 gslist.kegg <- readRDS('data-raw/padog/gslist.rds')
@@ -12,4 +13,4 @@ pert_names <- readRDS('data-raw/drug_gene_queries/pert_names.rds')
 homologene <- readRDS('data-raw/homologene/homologene.rds')
 hs <- readRDS('data-raw/homologene/hs.rds')
 
-usethis::use_data(tx2gene, biogps, cell_info, gslist.kegg, gslist.go, gs.names.kegg, gs.names.go, genes, pert_names, homologene, hs, internal = TRUE, overwrite = TRUE)
+usethis::use_data(tx2gene, tx2gene_mouse, biogps, cell_info, gslist.kegg, gslist.go, gs.names.kegg, gs.names.go, genes, pert_names, homologene, hs, internal = TRUE, overwrite = TRUE)

@@ -242,7 +242,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
     names(nsig) <- seq_len(nbins)
 
     test_clusters <- names(top_tables)
-    nsig[test_clusters] <- sapply(top_tables, function(tt) sum(tt$adj.P.Val < 0.05 & !tt$ambient))
+    nsig[test_clusters] <- sapply(top_tables, function(tt) {sum(tt$adj.P.Val.Amb < 0.05 & !tt$ambient)})
     stats$nsig <- nsig
   }
 
@@ -535,8 +535,6 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
   } else if (is.null(test) || is.null(ctrl)) {
     msg <- 'Need control and test datasets'
 
-  } else if (length(c(test, ctrl)) < 3) {
-    msg <- 'Need at least 3 datasets'
   }
 
   return(msg)

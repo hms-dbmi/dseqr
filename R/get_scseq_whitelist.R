@@ -6,7 +6,7 @@
 #' @return Character vector of barcodes called as high quality cells.
 #' @export
 #' @keywords internal
-get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type = c('inflection', 'roryk', 'knee')) {
+get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type = c('inflection', 'roryk', 'knee'), species = 'Homo sapiens') {
 
   # check for previous whitelist
   whitelist_path <- file.path(data_dir, 'whitelist.txt')
@@ -36,7 +36,7 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
 
   # add qc metrics
   sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = counts[, keep]))
-  sce <- add_scseq_qc_metrics(sce)
+  sce <- add_scseq_qc_metrics(sce, species = species)
 
   # detect outliers based on PCA and mitochondrial content above knee
   df <- as.data.frame(sce@colData)
@@ -49,8 +49,11 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
   mito.drop <- scater::isOutlier(stats$subsets_mito_percent, type="higher")
 
   # below knee is low quality
-  # if filtered cellranger then just drop outliers, no modeling
+  # use middle knee value for now
+  # if filtered cellranger then just drop outliers and below knee, no modeling
   if (min(ncount) > 10) {
+    knees <- sapply(knee_type, function(type) get_knee(counts, knee_type = type))
+    knee <- sort(knees)[2]
     df$quality <- 'high'
     df$quality[sce$total <= knee] <- 'low'
 

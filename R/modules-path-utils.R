@@ -269,19 +269,35 @@ supress.genes <- function(markers, supress) {
 #' @export
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {
-
-  # use multiBatchNorm logcounts
-  dat <- SingleCellExperiment::logcounts(scseq)
-  group <- paste(scseq$orig.ident, as.numeric(scseq$cluster), sep = '_')
-  mod <- stats::model.matrix(~0 + group)
-  colnames(mod) <- gsub('^group', '', colnames(mod))
-  fit <- limma::lmFit(dat, mod)
-
-  # add enids for goana/kegga pathway analyses
   data.table::setkey(hs, SYMBOL_9606)
-  fit$genes <- hs[row.names(scseq), list(ENTREZID)]
 
-  return(list(fit = fit, mod = mod))
+
+  # one fit per cluster
+  fits <- list()
+  clusters <- scseq$cluster
+
+  for (clust in levels(clusters)) {
+
+    # use multiBatchNorm logcounts
+    yi <- scseq[, clusters == clust]
+    dat <- SingleCellExperiment::logcounts(yi)
+    dat <- dat[Matrix::rowSums(dat) > 0, ]
+
+    # require at least 5 cells per group
+    group <- yi$orig.ident
+    neach <- table(group)
+    if (any(neach < 5)) next
+
+    mod <- stats::model.matrix(~0 + group)
+    colnames(mod) <- gsub('^group', '', colnames(mod))
+    fit <- limma::lmFit(dat, mod)
+
+    # add enids for goana/kegga pathway analyses
+    fit$genes <- hs[row.names(dat), list(ENTREZID)]
+
+    fits[[clust]] <- list(fit = fit, mod = mod)
+  }
+  return(fits)
 }
 
 #' Get ambient genes to exclude

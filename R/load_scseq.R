@@ -20,24 +20,29 @@
 load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), knee_type = c('inflection', 'roryk', 'knee')) {
 
   # load counts
+  #TODO suport mouse for kallisto
   if (type[1] == 'kallisto') {
     data_dir <- file.path(data_dir, 'bus_output')
     counts <- load_kallisto_counts(data_dir)
+    species <- 'Homo sapiens'
 
   } else if (type[1] == 'cellranger') {
     counts <- load_cellranger_counts(data_dir)
+    species <- get_species(counts)
+
+    counts <- process_cellranger_counts(counts, species)
   }
 
   # generate/load whitelist
-  whitelist <- get_scseq_whitelist(counts, data_dir, knee_type = knee_type)
+  whitelist <- get_scseq_whitelist(counts, data_dir, knee_type = knee_type, species = species)
   kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
   # if pre-filtered cellranger, can't determine outliers
   ncount <- Matrix::colSums(counts)
   if (min(ncount) > 10) {
-    pct_ambient <- 0
-    out_ambient <- FALSE
+    pct_ambient <- rep(0, nrow(counts))
+    out_ambient <- rep(FALSE, nrow(counts))
 
   } else {
     pct_ambient <- get_pct_ambient(counts)
@@ -56,6 +61,9 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), kn
     colData = colData
   )
 
+  # TODO: allow mouse drug queries
+  # flag to know if need to convert for drug queries
+  sce@metadata$species <- species
   return(sce)
 }
 
@@ -138,6 +146,14 @@ load_cellranger_counts <- function(data_dir) {
   }
 
   if (class(counts) == 'list') counts <- counts$`Gene Expression`
+  return(counts)
+}
+
+process_cellranger_counts <- function(counts, species) {
+
+  if (species == 'Homo sapiens') tx2gene <- tx2gene
+  else if (species == 'Mus musculus') tx2gene <- tx2gene_mouse
+  else stop('Species not supported')
 
   counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
 
@@ -159,6 +175,22 @@ load_cellranger_counts <- function(data_dir) {
   counts <- Matrix.utils::aggregate.Matrix(counts, row.names(counts), fun = 'sum')
 
   return(counts)
+}
+
+#' Get tx2gene for human or mouse depending on intersections
+#'
+#' @param counts dgCMatrix where rownames are gene ids
+#'
+#' @return tx2gene for human or mouse
+#' @export
+#' @keywords internal
+#'
+get_species <- function(counts) {
+  nhuman <- sum(row.names(counts) %in% tx2gene$gene_id)
+  nmouse <- sum(row.names(counts) %in% tx2gene_mouse$gene_id)
+
+  if (nhuman > nmouse) return('Homo sapiens')
+  else if (nmouse > nhuman) return('Mus musculus')
 }
 
 #' Load in data from 10X
@@ -463,18 +495,27 @@ standardize_cellranger <- function(data_dir) {
 #'
 #' @return Named list with \code{rrna} and \code{mrna} character vectors.
 #' @export
-load_scseq_qcgenes <- function() {
+load_scseq_qcgenes <- function(species = 'Homo sapiens') {
 
   # load mito and ribo genes
-  rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr', mustWork = TRUE))
-  mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr', mustWork = TRUE))
+  if (species == 'Homo sapiens') {
+    rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr', mustWork = TRUE))
+    mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr', mustWork = TRUE))
+
+  } else if (species == 'Mus musculus') {
+    rrna <- readLines(system.file('extdata', 'rrna_mouse.csv', package = 'drugseqr', mustWork = TRUE))
+    mrna <- readLines(system.file('extdata', 'mrna_mouse.csv', package = 'drugseqr', mustWork = TRUE))
+
+  } else {
+    stop('Only human and mouse supported')
+  }
 
   return(list(rrna=rrna, mrna=mrna))
 }
 
-add_qc_genes <- function(sce) {
+add_qc_genes <- function(sce, species) {
   # add qc genes as metadata
-  qcgenes <- load_scseq_qcgenes()
+  qcgenes <- load_scseq_qcgenes(species)
   sce@metadata$mrna <- qcgenes$mrna
   sce@metadata$rrna <- qcgenes$rrna
 
@@ -618,11 +659,11 @@ add_doublet_score <- function(scseq) {
 #'
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 #' @export
-add_scseq_qc_metrics <- function(sce) {
+add_scseq_qc_metrics <- function(sce, species) {
   # calculate qc metrics if haven't previous
   if (!is.null(sce$total_counts)) return(sce)
 
-  sce <- add_qc_genes(sce)
+  sce <- add_qc_genes(sce, species)
   sce <- scater::addPerCellQC(sce,
                               subsets=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
                                            ribo = which(row.names(sce) %in% sce@metadata$rrna)))

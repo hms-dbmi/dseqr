@@ -22,3 +22,21 @@ mito_genes <- tx2gene %>%
 write.table(mito_genes, 'inst/extdata/mrna.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
 write.table(ribo_genes, 'inst/extdata/rrna.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
 
+# mouse ribo genes from: http://ribosome.med.miyazaki-u.ac.jp/rpg.cgi?mode=search&org=Mus+musculus&gene=
+tx2gene <- readRDS('data-raw/tx2gene/tx2gene_mouse.rds')
+
+ribo_genes <- read.csv('data-raw/single-cell/alevin-args/ribo_mouse.csv')
+ribo_genes <- ribo_genes$Gene.Name
+ribo_genes <- tx2gene$gene_name[tx2gene$gene_name %in% ribo_genes]
+ribo_genes <- unique(ribo_genes)
+
+mito_genes <- tx2gene %>%
+  dplyr::select(seq_name, gene_name) %>%
+  dplyr::filter(seq_name == 'MT') %>%
+  dplyr::select(gene_name) %>%
+  distinct() %>%
+  pull(gene_name)
+
+
+write.table(mito_genes, 'inst/extdata/mrna_mouse.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+write.table(ribo_genes, 'inst/extdata/rrna_mouse.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
