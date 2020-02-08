@@ -8,7 +8,8 @@ get_scseq_whitelist(
   counts,
   data_dir,
   overwrite = FALSE,
-  knee_type = c("inflection", "roryk", "knee")
+  knee_type = c("inflection", "roryk", "knee"),
+  species = "Homo sapiens"
 )
 }
 \arguments{

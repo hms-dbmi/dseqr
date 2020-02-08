@@ -4,7 +4,7 @@
 \alias{load_scseq_qcgenes}
 \title{Load mitochondrial and ribsomal gene names}
 \usage{
-load_scseq_qcgenes()
+load_scseq_qcgenes(species = "Homo sapiens")
 }
 \value{
 Named list with \code{rrna} and \code{mrna} character vectors.

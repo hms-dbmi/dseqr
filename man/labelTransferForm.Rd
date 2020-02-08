@@ -12,7 +12,8 @@ labelTransferForm(
   datasets,
   show_label_transfer,
   dataset_name,
-  scseq
+  scseq,
+  species
 )
 }
 \description{

@@ -69,13 +69,16 @@ run_da <- function(scseq) {
 #' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
 #' @export
 #' @keywords internal
-get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
+get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
   anal_options <- anal_options[anal_options$value != selected_anal, ]
 
+  if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
+  else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
+
   choices <- data.frame(
-    value = c('BlueprintEncodeData', anal_options$value),
-    label = stringr::str_trunc(c('Blueprint Encode Data', anal_options$value), 35),
+    value = c(gsub(' ', '', external), anal_options$value),
+    label = stringr::str_trunc(c(external, anal_options$value), 35),
     type = c('External Reference', anal_options$type),
     stringsAsFactors = FALSE
   )

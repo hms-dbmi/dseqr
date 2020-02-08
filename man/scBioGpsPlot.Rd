@@ -4,7 +4,7 @@
 \alias{scBioGpsPlot}
 \title{Logic for BioGPS plot}
 \usage{
-scBioGpsPlot(input, output, session, selected_gene)
+scBioGpsPlot(input, output, session, selected_gene, species)
 }
 \description{
 Logic for BioGPS plot

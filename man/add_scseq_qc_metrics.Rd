@@ -4,7 +4,7 @@
 \alias{add_scseq_qc_metrics}
 \title{Calculate QC metrics for SingleCellExperiment}
 \usage{
-add_scseq_qc_metrics(sce)
+add_scseq_qc_metrics(sce, species)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment}}

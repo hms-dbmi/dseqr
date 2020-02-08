@@ -23,8 +23,8 @@
 #' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
 #'
-#' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
 #' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
+#' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
 #' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test = TRUE)
 #'
 run_drugseqr <- function(data_dir,

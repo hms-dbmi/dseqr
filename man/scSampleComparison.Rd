@@ -13,7 +13,8 @@ scSampleComparison(
   is.integrated = function() TRUE,
   input_scseq = function() NULL,
   is_sc = function() TRUE,
-  exclude_ambient = function() FALSE
+  exclude_ambient = function() FALSE,
+  comparison_type = function() "samples"
 )
 }
 \description{

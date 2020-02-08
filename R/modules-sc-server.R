@@ -35,7 +35,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
                                 fname_fun = cluster_fname)
 
   callModule(scBioGpsPlot, 'biogps_plot',
-             selected_gene = scForm$clusters_gene)
+             selected_gene = scForm$clusters_gene,
+             species = scForm$species)
 
 
   callModule(scRidgePlot, 'ridge_plot',
@@ -207,7 +208,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                 datasets = scDataset$datasets,
                                 show_label_transfer = scDataset$show_label_transfer,
                                 dataset_name = scDataset$dataset_name,
-                                scseq = scseq)
+                                scseq = scseq,
+                                species = scDataset$species)
 
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
@@ -306,7 +308,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     labels_cluster = scLabelsComparison$selected_cluster,
     selected_cluster = selected_cluster,
     comparison_type = comparisonType,
-    dataset_name = scDataset$dataset_name
+    dataset_name = scDataset$dataset_name,
+    species = scDataset$species
   ))
 }
 
@@ -370,6 +373,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(dataset_name %in% integrated)
   })
 
+  species <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    species <- scseq@metadata$species
+    if (is.null(species)) return('Homo sapiens')
+    return(species)
+  })
 
   # available single-cell datasets
   datasets <- reactive({
@@ -411,6 +421,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # run single-cell quantification
   observeEvent(input$confirm_quant, {
+
     removeModal()
     toggleAll(dataset_inputs)
 
@@ -456,7 +467,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     # top markers for SingleR
     top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-    progress$set(message = "Saving", value = 7)
+    progress$set(message = "Scoring doublets", value = 7)
+    scseq <- add_doublet_score(scseq)
+
+    progress$set(message = "Saving", value = 8)
     anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
     save_scseq_data(anal, dataset_name, sc_dir)
 
@@ -509,7 +523,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     show_integration = show_integration,
     show_label_transfer = show_label_transfer,
     is.integrated = is.integrated,
-    dataset_exists = dataset_exists
+    dataset_exists = dataset_exists,
+    species = species
   ))
 }
 
@@ -557,7 +572,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #' Logic for label transfer between datasets
 #' @export
 #' @keywords internal
-labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq) {
+labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq, species) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
 
   ref_preds <- reactiveVal()
@@ -588,9 +603,10 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
     datasets <- datasets()
     dataset_name <- dataset_name()
-    req(preds, datasets)
+    species <- species()
+    req(preds, datasets, species)
 
-    choices <- get_label_transfer_choices(datasets, dataset_name, preds)
+    choices <- get_label_transfer_choices(datasets, dataset_name, preds, species)
     updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption}')))
   })
 
@@ -1074,8 +1090,8 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   exclude_ambient <- reactive({
-    if (is.null(input$exclude_ambient)) return(FALSE)
-    input$exclude_ambient %% 2 != 0
+    if (is.null(input$exclude_ambient)) return(TRUE)
+    input$exclude_ambient %% 2 != 1
   })
 
   # toggle for excluding ambient
@@ -1262,10 +1278,13 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun
 #' Logic for BioGPS plot
 #' @export
 #' @keywords internal
-scBioGpsPlot <- function(input, output, session, selected_gene) {
+scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
-    plot_biogps(selected_gene())
+    species <- species()
+    gene <- selected_gene()
+    if (species == 'Mus musculus') gene <- toupper(gene)
+    plot_biogps(gene)
   })
 }
 
