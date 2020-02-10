@@ -436,9 +436,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     progress$set(message = "Quantifying files", value = 1)
     if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
 
-    # TODO: figure out whitelist vs kneelist
-    # previously subseted to kneelist in load_scseq then to whitelist just after
-
     progress$set(message = "Loading and QC", value = 2)
     type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
     scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
@@ -473,8 +470,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     save_scseq_data(anal, dataset_name, sc_dir)
 
     progress$set(value = 9)
-    if (ncol(scseq) > 20000)
-      save_scle(scseq, file.path(sc_dir, dataset_name))
+    save_scle(scseq, file.path(sc_dir, dataset_name))
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)

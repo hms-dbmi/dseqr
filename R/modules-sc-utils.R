@@ -57,13 +57,14 @@ diff_abundance <- function(scseq, annot) {
   y.ab <- y.ab[keep,]
 
   group <- y.ab$samples$orig.ident
-  design <- model.matrix(~0 + group)
+  group <- relevel(group, 'ctrl')
+  design <- model.matrix(~group)
   colnames(design) <- gsub('^group', '', colnames(design))
   y.ab <- edgeR::estimateDisp(y.ab, design, trend="none")
 
   fit.ab <- edgeR::glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
 
-  res <- edgeR::glmQLFTest(fit.ab, coef = 1)
+  res <- edgeR::glmQLFTest(fit.ab)
   res <- edgeR::topTags(res, n = Inf)
   as.data.frame(res)
 }
@@ -429,9 +430,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
-  updateProgress(8/n)
-  if (ncol(combined) > 20000)
-    save_scle(scseq, file.path(sc_dir, anal_name))
+  updateProgress(8/n, 'saving loom')
+  save_scle(scseq, file.path(sc_dir, anal_name))
 
   return(NULL)
 }
@@ -453,10 +453,11 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
+  # TODO: make integration work with SingleCellLoomExperiment
   scseqs <- list()
-  for (anal in anal_names) {
-    scseqs[[anal]] <- load_scseq(file.path(sc_dir, anal))
-  }
+  for (anal in anal_names)
+    scseqs[[anal]] <- readRDS(scseq_part_path(sc_dir, anal, 'scseq'))
+
 
   for (i in seq_along(scseqs)) {
     anal <- names(scseqs)[i]
