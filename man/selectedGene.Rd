@@ -12,7 +12,7 @@ selectedGene(
   is.integrated,
   selected_markers,
   selected_cluster,
-  comparison_type,
+  type,
   ambient = function() NULL
 )
 }

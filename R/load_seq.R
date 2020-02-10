@@ -122,8 +122,9 @@ construct_eset <- function(quants, fdata, annot, txi.deseq = NULL) {
 #'
 setup_fdata <- function(species = 'Homo sapiens', release = '94') {
   is.hs <- grepl('sapiens', species)
+  if (species == 'Mus musculus') tx2gene <- tx2gene_mouse
 
-  if (!grepl('sapiens', species)) {
+  if (!grepl('sapiens|musculus', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
   }
 

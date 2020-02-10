@@ -36,10 +36,19 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
   return(pred_annot)
 }
 
-run_da <- function(scseq) {
+#' Run differential abundance analysis
+#'
+#' @param scseq \code{SingleCellExperiment}
+#'
+#' @export
+#' @keywords internal
+diff_abundance <- function(scseq, annot) {
 
   abundances <- table(scseq$cluster, scseq$batch)
   abundances <- unclass(abundances)
+  row.names(abundances) <- annot
+
+  if (ncol(abundances) == 2) return(abundances)
 
   extra.info <- scseq@colData[match(colnames(abundances), scseq$batch),]
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
@@ -157,7 +166,7 @@ get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comparison = FALSE, top_tables = NULL) {
+get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comparison = FALSE, top_tables = NULL, has_replicates = FALSE) {
 
   testColor <- get_palette(clusters)
 
@@ -170,13 +179,14 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
 
-  cluster_stats <- get_cluster_stats(dataset_dir, scseq, top_tables = top_tables)
+  cluster_stats <- get_cluster_stats(dataset_dir, scseq, top_tables = top_tables, has_replicates = has_replicates)
 
   if (sample_comparison) {
     # non-formatted for item/hover
     choices$ntest <- cluster_stats$ntest
     choices$nctrl <- cluster_stats$nctrl
     choices$nsig  <- cluster_stats$nsig
+    choices$nbig  <- cluster_stats$nbig
     choices$ntest_each <- cluster_stats$ntest_each
     choices$nctrl_each <- cluster_stats$nctrl_each
 
@@ -185,6 +195,8 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
     choices$nctrlf <- gsub(' ', '&nbsp;&nbsp;', choices$nctrlf)
     choices$nsigf  <- format(cluster_stats$nsig)
     choices$nsigf  <- gsub(' ', '&nbsp;&nbsp;', choices$nsigf)
+    choices$nbigf  <- format(cluster_stats$nbig)
+    choices$nbigf  <- gsub(' ', '&nbsp;&nbsp;', choices$nbigf)
 
   } else {
     # show the cell numbers/percentages
@@ -203,7 +215,7 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
 #'
 #' @return List with cluster stats
 #' @export
-get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
+get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_replicates = FALSE) {
 
   # return previously saved stats if exists
   stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
@@ -240,13 +252,23 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL) {
   }
 
   # number of significant differentially expressed genes in each cluster (pseudobulk)
-  if (!is.null(top_tables)) {
+  if (!is.null(top_tables) & has_replicates) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
     test_clusters <- names(top_tables)
     nsig[test_clusters] <- sapply(top_tables, function(tt) {sum(tt$adj.P.Val.Amb < 0.05 & !tt$ambient)})
     stats$nsig <- nsig
+  }
+
+  # show number of non-ambient with logFC > 1
+  if (!is.null(top_tables)) {
+    nbig <- rep(0, nbins)
+    names(nbig) <- seq_len(nbins)
+
+    test_clusters <- names(top_tables)
+    nbig[test_clusters] <- sapply(top_tables, function(tt) {sum(abs(tt$logFC) > 1 & !tt$ambient)})
+    stats$nbig <- nbig
   }
 
   saveRDS(stats, stats_path)
@@ -341,16 +363,27 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   scseqs <- c(test_scseqs, ctrl_scseqs)
   ambient <- get_integrated_ambient(scseqs)
 
+  # make sure all the same species
+  species <- unique(sapply(scseqs, function(x) x@metadata$species))
+  if(length(species) > 1) stop('Multi-species integration not supported.')
+
+  if (species == 'Homo sapiens') release <- '94'
+  else if (species == 'Mus musculus') release <- '98'
+
   updateProgress(2/n, 'integrating')
   combined <- integrate_scseqs(scseqs)
+
+  # retain original doublet scores (needs scaling?)
+  combined$doublet_score <- unlist(sapply(scseqs, `[[`, 'doublet_score'))
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
-  # choose number of dims of corrected for TSNE and add clusters
+  # add clusters
   updateProgress(3/n, 'clustering')
   choices <- get_npc_choices(combined, type = 'corrected')
-  npcs <- S4Vectors::metadata(choices)$chosen
-  combined@metadata$npcs <- npcs
-  combined$cluster <- factor(choices$clusters[[as.character(npcs)]])
+
+  combined@metadata$species <- species
+  combined@metadata$npcs <- choices$npcs
+  combined$cluster <- choices$cluster
 
   # TSNE on corrected reducedDim
   updateProgress(4/n, 'reducing')
@@ -358,7 +391,6 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
-
 
   updateProgress(5/n, 'getting markers')
   tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
@@ -375,21 +407,17 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
-
-  # TODO: decide if need to split non-replicated by cluster
-  # may make sense to do this and then only test hvgs similar to pbulk
-  # alternatively just require replicates (current)
-
   updateProgress(6/n, 'fitting linear models')
   obj <- combined
   pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
-  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed)
+  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, species, release)
   lm_fit <- run_limma_scseq(obj)
 
 
   updateProgress(7/n, 'saving')
   scseq_data <- list(scseq = combined,
+                     species = species,
                      summed = summed,
                      markers = markers,
                      ambient = ambient,
@@ -576,10 +604,15 @@ scseq_part_path <- function(data_dir, anal_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #' @export
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL) {
+run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species = NULL) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
+
+  if (isTRUE(species == 'Mus musculus')) {
+    names(dprimes) <- toupper(names(dprimes))
+    ambient <- toupper(ambient)
+  }
 
   # exclude ambient (for single cell only)
   dprimes <- dprimes[!names(dprimes) %in% ambient]

@@ -314,7 +314,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression
     options = list(multiple = FALSE),
-    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>nsig</b>]')
+    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
 

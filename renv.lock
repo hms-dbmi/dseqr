@@ -1217,6 +1217,12 @@
       "Source": "Bioconductor",
       "Hash": "5201dd022e5d661d2634c95fee2cea91"
     },
+    "org.Mm.eg.db": {
+      "Package": "org.Mm.eg.db",
+      "Version": "3.10.0",
+      "Source": "Bioconductor",
+      "Hash": "97c1a688b1dd53dc9469ab3122fa8161"
+    },
     "pbkrtest": {
       "Package": "pbkrtest",
       "Version": "0.4-7",

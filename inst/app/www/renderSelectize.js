@@ -8,19 +8,15 @@ function contrastOptions(item, escape) {
                         item.ncells + " :: " + item.pspace + item.pcells + "%" +
                        "</div>";
 
-  var infoSampleNcells =  "<div style='color: #A0A0A0;text-align:right;'>" +
-                          item.ntest + " :: " + item.nctrlf + 
-                          "</div>";
-
+  var nsigf = typeof item.nsig == 'undefined' ? item.nbigf : item.nsigf;                        
   var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" +
-                        item.ntest + " :: " + item.nctrlf + " [<span style='color: dimgray;'>" + item.nsigf + "</span>]</div>";
+                        item.ntest + " :: " + item.nctrlf + " [<span style='color: dimgray;'>" + nsigf + "</span>]</div>";
 
   // for integrated dataset show number of cells in each test/ctrl sample
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
   var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
 
-  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNcells;
-  var info = typeof item.nsig == 'undefined' ? info : infoSampleNsig;
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 
   var clustEl = "<div style='columns: 2;' title='" + title + "'>" +
                             "<div style='margin-right: -80px'>" +
@@ -49,11 +45,10 @@ function contrastOptions(item, escape) {
 //styling for current item
 function contrastItem(item, escape) {
   var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pcells + "%" + ")</span>";
-  var infoSampleNcells =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ")</span>";
-  var infoSampleNsig =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ") [<span style='color: dimgray;'>" + item.nsig + "</span>]</span>";
-  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNcells;
-  var info = typeof item.nsig == 'undefined' ? info : infoSampleNsig;
 
+  var nsig = typeof item.nsig == 'undefined' ? item.nbig : item.nsig;
+  var infoSampleNsig =  "<span style='color: #A0A0A0;'> (" + item.ntest + " :: " + item.nctrl + ") [<span style='color: dimgray;'>" + nsig + "</span>]</div>";
+  var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 
   // for integrated dataset show number of cells in each test/ctrl sample
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;

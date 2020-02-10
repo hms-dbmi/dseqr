@@ -4,7 +4,7 @@
 \alias{run_drug_queries}
 \title{Run drug queries}
 \usage{
-run_drug_queries(top_table, drug_paths, es, ambient = NULL)
+run_drug_queries(top_table, drug_paths, es, ambient = NULL, species = NULL)
 }
 \arguments{
 \item{ambient}{Character vector of ambient genes to exclude from drug queries.}

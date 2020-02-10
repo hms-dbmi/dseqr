@@ -1542,13 +1542,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' @return List with \code{goana} and \code{kegga} results
 #' @export
 #' @keywords internal
-get_path_res <- function(ebfit, goana_path, kegga_path) {
+get_path_res <- function(ebfit, goana_path, kegga_path, species = 'Hs') {
 
 
-  go <- limma::goana(ebfit, species = 'Hs', geneid = 'ENTREZID')
+  go <- limma::goana(ebfit, species = species, geneid = 'ENTREZID')
   go <- limma::topGO(go, number = Inf)
 
-  kg <- limma::kegga(ebfit, species = 'Hs', geneid = 'ENTREZID')
+  kg <- limma::kegga(ebfit, species = species, geneid = 'ENTREZID')
   kg <- limma::topKEGG(kg, number = Inf)
 
   saveRDS(go, goana_path)

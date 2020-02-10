@@ -4,7 +4,7 @@
 \alias{get_path_res}
 \title{Get and save pathway results for ebfit object}
 \usage{
-get_path_res(ebfit, goana_path, kegga_path)
+get_path_res(ebfit, goana_path, kegga_path, species = "Hs")
 }
 \arguments{
 \item{ebfit}{Result of \code{fit_ebayes}}

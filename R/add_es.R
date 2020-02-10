@@ -24,7 +24,7 @@ add_es <- function(tt, ebfit, cols = c("dprime", "vardprime"), groups = c('test'
 
 
   # get study degrees of freedom and group classes
-  df <- ebfit$df.residual + ebfit$df.prior
+  df <- ebfit$df.total
 
   # get sample sizes for groups
   ni <- sum(ebfit$design[, groups[2]])

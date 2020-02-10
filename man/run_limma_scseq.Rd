@@ -4,14 +4,12 @@
 \alias{run_limma_scseq}
 \title{Run limma fit for clusters in single cell RNA-Seq dataset}
 \usage{
-run_limma_scseq(obj)
+run_limma_scseq(obj, annot = "gene_name")
 }
 \arguments{
 \item{obj}{\code{SingleCellExperiment} or list of \code{ExpressionSet} objects for pseudobulk.}
 
-\item{dataset_dir}{Path to folder to save results and pseudobulk eset to}
-
-\item{is_summed}{Boolean indicating if \code{obj} is a pseudobulk \code{SingleCellExperiment} object.}
+\item{annot}{Annotation to use. Default \code{'gene_name'} works for both mouse and human.}
 }
 \value{
 Named list with slots: \itemize{

@@ -9,7 +9,8 @@ get_cluster_choices(
   dataset_dir,
   scseq = NULL,
   sample_comparison = FALSE,
-  top_tables = NULL
+  top_tables = NULL,
+  has_replicates = FALSE
 )
 }
 \arguments{

@@ -242,7 +242,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                               is.integrated = scDataset$is.integrated,
                               selected_markers = scClusterComparison$selected_markers,
                               selected_cluster = scClusterComparison$selected_cluster,
-                              comparison_type = comparisonType)
+                              type = 'clusters')
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
@@ -258,7 +258,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                              is.integrated = scDataset$is.integrated,
                              selected_markers = scSampleComparison$top_table,
                              selected_cluster = scSampleComparison$selected_cluster,
-                             comparison_type = comparisonType,
+                             type = 'samples',
                              ambient = scSampleComparison$ambient)
 
 
@@ -376,9 +376,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   species <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
-    species <- scseq@metadata$species
-    if (is.null(species)) return('Homo sapiens')
-    return(species)
+    scseq@metadata$species
   })
 
   # available single-cell datasets
@@ -1084,7 +1082,7 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, comparison_type, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, type, ambient = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
@@ -1119,15 +1117,13 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
   gene_choices <- reactive({
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
-    type <- isolate(comparison_type())
 
     # will error if labels
-    req(type %in% c('samples', 'clusters'))
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
     gene_choices <- get_gene_choices(markers)
 
     # for plotting doublet score
-    if (type == 'clusters' && !is.integrated()) {
+    if (type == 'clusters') {
       gene_choices <- rbind(NA, gene_choices)
       gene_choices$label[1] <- 'DOUBLET SCORE'
       gene_choices$value[1] <- 'doublet_score'
@@ -1153,7 +1149,6 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
 
   # update choices
   observe({
-    type <- isolate(comparison_type())
     prev <- isolate(input$selected_gene)
     choices <- gene_choices()
 
@@ -1332,16 +1327,20 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   })
 
   has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
+  species <- reactive(readRDS.safe(file.path(dataset_dir(), 'species.rds')))
 
 
   # update cluster choices in UI
   cluster_choices <- reactive({
     req(is.integrated())
-    tts <- NULL
     dir <- dataset_dir()
     if (is.null(dir)) return(NULL)
-    if (isTruthy(has_replicates())) tts <- top_tables()
-    get_cluster_choices(annot(), dir, scseq(), sample_comparison = TRUE, top_tables = tts)
+    get_cluster_choices(annot(),
+                        dir,
+                        scseq(),
+                        sample_comparison = TRUE,
+                        top_tables = top_tables(),
+                        has_replicates = has_replicates())
   })
 
   observe({
@@ -1394,6 +1393,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       tts <- list()
       for (i in seq_along(fit)) {
+
         cluster <- names(fit)[i]
         tt <- get_top_table(fit[[cluster]])
         markers <- get_cluster_markers(cluster, dataset_dir)
@@ -1446,13 +1446,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       es <- load_drug_es()
       progress$inc(1)
       tts <- top_tables()
+      species <- species()
 
       for (i in seq_along(tts)) {
         cluster <- names(tts)[i]
         tt <- tts[[cluster]]
         ambient <- row.names(tt)[tt$ambient]
         paths <- get_drug_paths(dataset_dir(), cluster)
-        run_drug_queries(tt, paths, es, ambient)
+        run_drug_queries(tt, paths, es, ambient, species)
       }
 
       progress$inc(1)
@@ -1485,17 +1486,22 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       cluster <- input$selected_cluster
       lm_fit <- lm_fit[[cluster]]
 
+      species <- scseq()@metadata$species
+      species <- paste(substring(strsplit(species, ' ')[[1]], 1, 1), collapse = '')
+
       # exclude ambient
       ambient <- ambient()
       lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
       ebfit <- fit_ebayes(lm_fit, 'test-ctrl')
-      res <- get_path_res(ebfit, goana_path, kegga_path)
+      res <- get_path_res(ebfit, goana_path, kegga_path, species)
       progress$inc(1)
       toggleAll(input_ids)
     }
 
     return(res)
   })
+
+  abundances <- reactive(diff_abundance(scseq(), annot()))
 
 
   # reset lm_fit if selected clusters change
@@ -1540,15 +1546,18 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     tt_fname <- 'top_table.csv'
     go_fname <- 'goana.csv'
     kg_fname <- 'kegga.csv'
+    ab_fname <- 'abundances.csv'
 
     tt <- top_table()
     path_res <- path_res()
+    abundances <- abundances()
     write.csv(tt, tt_fname)
     write.csv(path_res$go, go_fname)
     write.csv(path_res$kg, kg_fname)
+    write.csv(abundances, ab_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname, kg_fname))
+    zip(file, c(tt_fname, go_fname, kg_fname, ab_fname))
   }
 
   output$download <- downloadHandler(
@@ -1708,6 +1717,10 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
   path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
   if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
+
+  # plot trips up if numbered clusters
+  is.number <- !is.na(as.numeric(link))
+  path_df$Gene[is.number] <- paste('Cluster', link[is.number])
 
   path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
   dprimesPlotly(path_df, drugs = FALSE)

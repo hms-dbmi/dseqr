@@ -597,13 +597,22 @@ get_npc_choices <- function(sce, type = 'PCA') {
     cluster_fun(g)$membership
   }
 
-  # at most 50 pcs
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
-  pcs <- pcs[,seq_len(min(50, ncol(pcs)))]
 
-  choices <- scran::getClusteredPCs(pcs, FUN = FUN)
-  names(choices$clusters) <- choices$n.pcs
-  return(choices)
+  # use all PCs for corrected
+  if (type == 'corrected') {
+    npcs <- ncol(pcs)
+    cluster <- factor(FUN(pcs))
+
+  } else {
+    choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+    names(choices$clusters) <- choices$n.pcs
+
+    npcs <- S4Vectors::metadata(choices)$chosen
+    cluster <- factor(choices$clusters[[as.character(npcs)]])
+  }
+
+  return(list(npcs = npcs, cluster = cluster))
 }
 
 #' Cluster SingleCellExperiment
@@ -623,11 +632,10 @@ add_scseq_clusters <- function(sce) {
 
   # pick number of PCs
   choices <- get_npc_choices(sce)
-  npcs <- S4Vectors::metadata(choices)$chosen
-  sce@metadata$npcs <- npcs
+  sce@metadata$npcs <- choices$npcs
 
   # add clusters
-  sce$cluster <- factor(choices$clusters[[as.character(npcs)]])
+  sce$cluster <- choices$cluster
   return(sce)
 }
 

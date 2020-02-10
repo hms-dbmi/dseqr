@@ -145,8 +145,7 @@ load_scseq_datasets <- function(data_dir) {
 #' Run limma fit for clusters in single cell RNA-Seq dataset
 #'
 #' @param obj \code{SingleCellExperiment} or list of \code{ExpressionSet} objects for pseudobulk.
-#' @param dataset_dir Path to folder to save results and pseudobulk eset to
-#' @param is_summed Boolean indicating if \code{obj} is a pseudobulk \code{SingleCellExperiment} object.
+#' @param annot Annotation to use. Default \code{'gene_name'} works for both mouse and human.
 #'
 #' @return Named list with slots: \itemize{
 #'  \item fit result of \link[limma]{lmFit}.
@@ -154,11 +153,11 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #' @export
 #' @keywords internal
-run_limma_scseq <- function(obj) {
+run_limma_scseq <- function(obj, annot = 'gene_name') {
 
   if (is.list(obj)) {
     # run as pseudobulk per eset
-    lm_fit <- lapply(obj, function(x) run_limma(x, prev_anal = list(pdata = Biobase::pData(x))))
+    lm_fit <- lapply(obj, function(x) run_limma(x, prev_anal = list(pdata = Biobase::pData(x)), annot = annot))
 
   } else {
     lm_fit <- fit_lm_scseq(obj)
@@ -228,6 +227,9 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', release = '9
     keep <- edgeR::filterByExpr(yi, group = group)
     yi <- yi[keep, ]
 
+    # skip if less than 2 genes (required by voom)
+    if (nrow(yi) < 2) next
+
     # normalize for composition
     yi <- edgeR::calcNormFactors(yi)
 
@@ -275,6 +277,7 @@ fit_lm_scseq <- function(scseq) {
   # one fit per cluster
   fits <- list()
   clusters <- scseq$cluster
+  species <- scseq@metadata$species
 
   for (clust in levels(clusters)) {
 
@@ -293,7 +296,16 @@ fit_lm_scseq <- function(scseq) {
     fit <- limma::lmFit(dat, mod)
 
     # add enids for goana/kegga pathway analyses
-    fit$genes <- hs[row.names(dat), list(ENTREZID)]
+    rn <- row.names(dat)
+    if (species == 'Homo sapiens') {
+      fit$genes <- hs[rn, list(ENTREZID)]
+
+    } else if (species == 'Mus musculus') {
+      tx <- tx2gene_mouse
+      tx$ENTREZID <- as.character(tx$entrezid)
+      ind <- match(rn, tx2gene_mouse$gene_name)
+      fit$genes <- tx[ind, 'ENTREZID']
+    }
 
     fits[[clust]] <- list(fit = fit, mod = mod)
   }

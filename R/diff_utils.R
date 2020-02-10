@@ -210,7 +210,7 @@ get_mods <- function(eset) {
   if (length(pair)) {
     # remove non matched pairs
     pair_cols <- colnames(mod0)[-1]
-    has.pair <- colSums(mod0[, pair_cols]) >= 2
+    has.pair <- colSums(mod0[, pair_cols, drop = FALSE]) >= 2
     has.pair <- names(which(has.pair))
 
     mod <- mod[, c(group_levels, has.pair), drop = FALSE]
@@ -510,11 +510,19 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
     v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
     corfit <- limma::duplicateCorrelation(v, mod, block = pair)
 
-    # second round
-    v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, block = pair, correlation = corfit$consensus.correlation, plot = TRUE)
-    corfit <- limma::duplicateCorrelation(v, mod, block = pair)
+    # if couldn't estimate within-block correlation, model pair as fixed effect
+    if (is.nan(corfit$consensus.correlation)) {
+      mod <- get_mods(eset)$mod
+      v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
+      fit  <- limma::lmFit(v, design = mod)
 
-    fit <- limma::lmFit(v, mod, correlation = corfit$consensus.correlation, block = pair)
+    } else {
+      # second round
+      v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, block = pair, correlation = corfit$consensus.correlation, plot = TRUE)
+      corfit <- limma::duplicateCorrelation(v, mod, block = pair)
+
+      fit <- limma::lmFit(v, mod, correlation = corfit$consensus.correlation, block = pair)
+    }
 
   } else if (rna_seq) {
     # rna-seq not paired
@@ -525,7 +533,15 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
   } else if (length(pair) & !rna_seq) {
     # microarray paired
     corfit <- limma::duplicateCorrelation(y, mod, block = pair)
-    fit <- limma::lmFit(y, mod, correlation = corfit$consensus.correlation, block = pair)
+
+    # if couldn't estimate within-block correlation, model pair as fixed effect
+    if (is.nan(corfit$consensus.correlation)) {
+      mod <- get_mods(eset)$mod
+      fit <- limma::lmFit(y, mod)
+
+    } else {
+      fit <- limma::lmFit(y, mod, correlation = corfit$consensus.correlation, block = pair)
+    }
 
   } else {
     # microarray not paired
