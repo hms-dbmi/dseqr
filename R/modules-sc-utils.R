@@ -429,13 +429,9 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
-  if (ncol(combined) > 30000) {
-    updateProgress(8/n, 'saving loom')
+  updateProgress(8/n)
+  if (ncol(combined) > 20000)
     save_scle(scseq, file.path(sc_dir, anal_name))
-
-  } else {
-    updateProgress(8/n)
-  }
 
   return(NULL)
 }

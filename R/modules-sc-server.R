@@ -430,7 +430,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (is.cellranger) standardize_cellranger(fastq_dir)
 
     # Create a Progress object
-    progress <- Progress$new(session, min=0, max = 8)
+    progress <- Progress$new(session, min=0, max = 9)
     on.exit({progress$close(); enable('selected_dataset')})
 
     progress$set(message = "Quantifying files", value = 1)
@@ -441,7 +441,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     progress$set(message = "Loading and QC", value = 2)
     type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-    scseq <- load_scseq(fastq_dir, project = dataset_name, type = type)
+    scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
     scseq <- scseq[, scseq$whitelist]
     gc()
 
@@ -473,6 +473,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     save_scseq_data(anal, dataset_name, sc_dir)
 
     progress$set(value = 9)
+    if (ncol(scseq) > 20000)
+      save_scle(scseq, file.path(sc_dir, dataset_name))
+
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
   })
@@ -651,7 +654,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     } else {
       markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
       genes <- readRDS(markers_path)
-      ref <- load_saved_scseq(ref_name, sc_dir)
+      ref <- load_scseq(file.path(sc_dir, ref_name))
 
       # need until SingleR #77 fixed
       common <- intersect(row.names(ref), row.names(query))
@@ -1314,7 +1317,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # use input scseq/annot if available
   scseq <- reactive({
     scseq <- input_scseq()
-    if (is.null(scseq)) scseq <- readRDS(file.path(dataset_dir(), 'scseq.rds'))
+    if (is.null(scseq)) scseq <- load_scseq(dataset_dir())
     return(scseq)
   })
 
