@@ -56,12 +56,14 @@ diff_abundance <- function(scseq, annot) {
   keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
   y.ab <- y.ab[keep,]
 
-  design <- model.matrix(~factor(orig.ident), y.ab$samples)
+  group <- y.ab$samples$orig.ident
+  design <- model.matrix(~0 + group)
+  colnames(design) <- gsub('^group', '', colnames(design))
   y.ab <- edgeR::estimateDisp(y.ab, design, trend="none")
 
   fit.ab <- edgeR::glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
 
-  res <- edgeR::glmQLFTest(fit.ab, coef=ncol(design))
+  res <- edgeR::glmQLFTest(fit.ab, coef = 1)
   res <- edgeR::topTags(res, n = Inf)
   as.data.frame(res)
 }
@@ -222,10 +224,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   if (file.exists(stats_path)) return(readRDS(stats_path))
 
   # otherwise generate and save
-  if (is.null(scseq)) {
-    scseq_path <- file.path(dataset_dir, 'scseq.rds')
-    scseq <- readRDS(scseq_path)
-  }
+  if (is.null(scseq)) scseq <- load_scseq(dataset_dir)
 
   ncells <- tabulate(scseq$cluster)
   pcells <- ncells / sum(ncells) * 100
@@ -353,7 +352,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   # default updateProgress and number of steps
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
-  n = 7
+  n = 8
 
   updateProgress(1/n, 'loading')
   test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'test')
@@ -429,6 +428,15 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
+
+  if (ncol(combined) > 30000) {
+    updateProgress(8/n, 'saving loom')
+    save_scle(scseq, file.path(sc_dir, anal_name))
+
+  } else {
+    updateProgress(8/n)
+  }
+
   return(NULL)
 }
 
@@ -451,7 +459,7 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
 
   scseqs <- list()
   for (anal in anal_names) {
-    scseqs[[anal]] <- load_saved_scseq(anal, sc_dir)
+    scseqs[[anal]] <- load_scseq(file.path(sc_dir, anal))
   }
 
   for (i in seq_along(scseqs)) {
@@ -472,28 +480,6 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
 
   return(scseqs)
 }
-
-#' Load saved single cell RNA-seq dataset
-#'
-#' Used for both dataset integration and label transfer.
-#'
-#' @param anal Name of single cell analysis and containing folder.
-#' @param data_dir Path to directory containing \code{anal} folder.
-#'
-#' @return \code{SingleCellExperiment} object
-#' @export
-#' @keywords internal
-load_saved_scseq <- function(anal, data_dir) {
-  # load scseq
-  scseq_path <- scseq_part_path(data_dir, anal, 'scseq')
-  scseq <- readRDS(scseq_path)
-
-  # add original clusters
-  scseq$orig_cluster <- scseq$cluster
-
-  return(scseq)
-}
-
 
 
 #' Save Single Cell RNA-seq data for app

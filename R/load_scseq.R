@@ -17,7 +17,7 @@
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), knee_type = c('inflection', 'roryk', 'knee')) {
+create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), knee_type = c('inflection', 'roryk', 'knee')) {
 
   # load counts
   #TODO suport mouse for kallisto
@@ -65,6 +65,57 @@ load_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), kn
   # flag to know if need to convert for drug queries
   sce@metadata$species <- species
   return(sce)
+}
+
+#' Load SingleCellExperiment
+#'
+#' Loads scle.loom if exists otherwise scseq.rds
+#'
+#' @param dataset_dir Directory with scle.loom or scseq.rds
+#'
+#' @return \code{SingleCellExperiment} or \code{SingleCellLoomExperiment}
+#' @export
+#' @keywords internal
+load_scseq <- function(dataset_dir) {
+  scle_path <- file.path(dataset_dir, 'scle.loom')
+  scseq_path <- file.path(dataset_dir, 'scseq.rds')
+
+  # load loom if available (faster and less memory)
+  if (file.exists(scle_path)) {
+    scseq <- LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment')
+
+    # fixes for SCLE
+    colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
+
+    scseq$cluster <- factor(as.numeric(scseq$cluster))
+    scseq$orig.ident <- factor(scseq$orig.ident, levels = c('test', 'ctrl'))
+    scseq$orig.cluster <- factor(as.numeric(scseq$orig.cluster))
+
+  } else {
+    scseq <- readRDS(scseq_path)
+  }
+
+  return(scseq)
+}
+
+#' Save SingleCellExperiment as loom file
+#'
+#' @param scseq \code{SingleCellExperiment}
+#' @param dataset_dir Directory to save in
+#' @param overwrite Overwrite existing? Default is \code{TRUE}
+#'
+#' @return NULL
+#' @export
+#' @keywords internal
+#'
+save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
+  scle_path <- file.path(dataset_dir, 'scle.loom')
+
+  if (!file.exists(scle_path) | overwrite) {
+    unlink(scle_path)
+    scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
+    LoomExperiment::export(scseq, scle_path)
+  }
 }
 
 #' Determine ambient percent for each gene

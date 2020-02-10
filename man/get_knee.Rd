@@ -8,8 +8,6 @@ get_knee(counts, knee_type = c("inflection", "roryk", "knee"))
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}
-
-\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
 count value corresponding to knee point

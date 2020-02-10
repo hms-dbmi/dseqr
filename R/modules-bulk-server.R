@@ -794,8 +794,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   # scseq for deconvolution
   scseq <- reactive({
     dataset_name <- input$dtangle_dataset
-    scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
-    readRDS(scseq_path)
+    load_scseq(file.path(sc_dir, dataset_name))
   })
 
   observeEvent(input$submit_dtangle, {

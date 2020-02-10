@@ -14,10 +14,6 @@ get_scseq_whitelist(
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}
-
-\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
-
-\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
 Character vector of barcodes called as high quality cells.

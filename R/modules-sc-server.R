@@ -359,8 +359,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (!isTruthy(dataset_name())) return(NULL)
     toggleAll(dataset_inputs)
 
-    scseq_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq')
-    scseq <- readRDS(scseq_path)
+    dataset_dir <- file.path(sc_dir, dataset_name())
+    scseq <- load_scseq(dataset_dir)
 
     toggleAll(dataset_inputs)
     return(scseq)
@@ -1374,7 +1374,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'ctrl'), height = 453))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
-  dataset_ambient <- reactive(readRDS(file.path(dataset_dir(), 'ambient.rds')))
+  dataset_ambient <- reactive(readRDS.safe(file.path(dataset_dir(), 'ambient.rds')))
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
@@ -1388,8 +1388,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
     } else {
       fit <- lm_fit()
-      if (is.null(fit)) return(NULL)
       dataset_ambient <- dataset_ambient()
+      if (is.null(fit) | is.null(dataset_ambient)) return(NULL)
 
       tts <- list()
       for (i in seq_along(fit)) {
@@ -1653,7 +1653,7 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
   }
   else
-    x <- SingleCellExperiment::logcounts(scseq)[gene, ]
+    x <- as.numeric(SingleCellExperiment::logcounts(scseq[gene, ]))
 
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m)])
@@ -1719,9 +1719,10 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
   if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
 
   # plot trips up if numbered clusters
-  is.number <- !is.na(as.numeric(link))
+  is.number <-  suppressWarnings(!is.na(as.numeric(link)))
   path_df$Gene[is.number] <- paste('Cluster', link[is.number])
 
   path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
   dprimesPlotly(path_df, drugs = FALSE)
 }
+

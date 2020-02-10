@@ -6,9 +6,6 @@
 \usage{
 load_cellranger_counts(data_dir)
 }
-\arguments{
-\item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
-}
 \value{
 dgCMatrix
 }

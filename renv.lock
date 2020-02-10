@@ -96,6 +96,12 @@
       "Source": "Bioconductor",
       "Hash": "b69e4e634db423b8e6c58103d579ec95"
     },
+    "Biostrings": {
+      "Package": "Biostrings",
+      "Version": "2.54.0",
+      "Source": "Bioconductor",
+      "Hash": "edf03f0e37fc3c09c95dcf8bf3900972"
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.1.0",
@@ -179,6 +185,12 @@
       "Source": "Bioconductor",
       "Hash": "de42132c04371f624cdea8de86e8fc5d"
     },
+    "GenomicAlignments": {
+      "Package": "GenomicAlignments",
+      "Version": "1.22.1",
+      "Source": "Bioconductor",
+      "Hash": "0bc774dd3636e0aff56a80da6f928211"
+    },
     "GenomicRanges": {
       "Package": "GenomicRanges",
       "Version": "1.38.0",
@@ -210,6 +222,12 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "081f417f4d6d55b7e8981433e8404a22"
+    },
+    "LoomExperiment": {
+      "Package": "LoomExperiment",
+      "Version": "1.4.0",
+      "Source": "Bioconductor",
+      "Hash": "dd6a6ab54a893209d00e04a6749dabe4"
     },
     "MASS": {
       "Package": "MASS",
@@ -329,6 +347,18 @@
       "Source": "Bioconductor",
       "Hash": "4a3bef5117511bfc1a0b23fddd7585ef"
     },
+    "Rhtslib": {
+      "Package": "Rhtslib",
+      "Version": "1.18.1",
+      "Source": "Bioconductor",
+      "Hash": "70d3c447ca9f22a8f0b07328dbe32421"
+    },
+    "Rsamtools": {
+      "Package": "Rsamtools",
+      "Version": "2.2.1",
+      "Source": "Bioconductor",
+      "Hash": "051664357b2ad8565677f1e078715219"
+    },
     "Rtsne": {
       "Package": "Rtsne",
       "Version": "0.15",
@@ -361,8 +391,8 @@
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "SingleCellExperiment",
       "RemoteUsername": "LTLA",
+      "RemoteRepo": "SingleCellExperiment",
       "RemoteRef": "master",
       "RemoteSha": "432da5ad6b705dc6f36e25fa32c89693f2b7c20e",
       "Hash": "e233dba72f356688fce680ed772d4998"
@@ -673,8 +703,8 @@
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "drugseqr.data",
       "RemoteUsername": "hms-dbmi",
+      "RemoteRepo": "drugseqr.data",
       "RemoteRef": "master",
       "RemoteSha": "db40b4cfb41421301524c0e8d3f36d88b844d3c0",
       "Hash": "e3192324bc5512292d31c0a5efb5091b"
@@ -1422,6 +1452,12 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "de6771e89c5e90c664816828b6cb68b5"
+    },
+    "rtracklayer": {
+      "Package": "rtracklayer",
+      "Version": "1.46.0",
+      "Source": "Bioconductor",
+      "Hash": "a635995c99bc0e67fd23167f859893af"
     },
     "scales": {
       "Package": "scales",
