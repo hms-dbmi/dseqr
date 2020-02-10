@@ -86,10 +86,13 @@ load_scseq <- function(dataset_dir) {
 
     # fixes for SCLE
     colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-
     scseq$cluster <- factor(as.numeric(scseq$cluster))
-    scseq$orig.ident <- factor(scseq$orig.ident, levels = c('test', 'ctrl'))
-    scseq$orig.cluster <- factor(as.numeric(scseq$orig.cluster))
+
+    is.integrated <- !is.null(scseq$orig.ident)
+    if (is.integrated) {
+      scseq$orig.ident <- factor(scseq$orig.ident, levels = c('test', 'ctrl'))
+      scseq$orig.cluster <- factor(as.numeric(scseq$orig.cluster))
+    }
 
   } else {
     scseq <- readRDS(scseq_path)
@@ -113,6 +116,12 @@ save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
 
   if (!file.exists(scle_path) | overwrite) {
     unlink(scle_path)
+
+    is.integrated <- !is.null(scseq@metadata$merge.info)
+    if (is.integrated) {
+      class(scseq@metadata$merge.info) <- class(scseq@metadata$cluster) <- 'DataFrame'
+    }
+
     scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
     LoomExperiment::export(scseq, scle_path)
   }
