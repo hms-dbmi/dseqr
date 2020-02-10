@@ -116,12 +116,6 @@ save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
 
   if (!file.exists(scle_path) | overwrite) {
     unlink(scle_path)
-
-    is.integrated <- !is.null(scseq@metadata$merge.info)
-    if (is.integrated) {
-      class(scseq@metadata$merge.info) <- class(scseq@metadata$cluster) <- 'DataFrame'
-    }
-
     scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
     LoomExperiment::export(scseq, scle_path)
   }

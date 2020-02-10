@@ -230,7 +230,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
-  is.integrated <- 'merge.info' %in% names(scseq@metadata)
+  is.integrated <- !is.null(top_tables)
   if (is.integrated) {
 
     # number of total test and ctrl cells (shown)
@@ -251,7 +251,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   }
 
   # number of significant differentially expressed genes in each cluster (pseudobulk)
-  if (!is.null(top_tables) & has_replicates) {
+  if (is.integrated & has_replicates) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
@@ -261,7 +261,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   }
 
   # show number of non-ambient with logFC > 1
-  if (!is.null(top_tables)) {
+  if (is.integrated) {
     nbig <- rep(0, nbins)
     names(nbig) <- seq_len(nbins)
 
