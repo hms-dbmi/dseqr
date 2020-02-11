@@ -4,7 +4,7 @@
 \alias{validate_integration}
 \title{Validate dataset selection for integration}
 \usage{
-validate_integration(test, ctrl, anal_name, anal_options)
+validate_integration(test, ctrl, anal_name, anal_options, pairs)
 }
 \arguments{
 \item{test}{Character vector of test dataset names}

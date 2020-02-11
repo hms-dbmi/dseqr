@@ -194,10 +194,12 @@ get_mods <- function(eset) {
   group <- factor(pdata$group, levels = group_levels)
   pair <- factor(pdata$pair)
 
+  contrasts.fun <- function(l)lapply(l, contrasts, contrasts = FALSE)
+
   # if pairs include in alternative and null model
   if (length(pair)) {
-    mod <- stats::model.matrix(~0 + group + pair)
-    mod0 <- stats::model.matrix(~1 + pair, data = group)
+    mod <- stats::model.matrix(~0 + group + pair, contrasts.arg = contrasts.fun(list(group=group, pair=pair)))
+    mod0 <- stats::model.matrix(~1 + pair, data = group, contrasts.arg = contrasts.fun(list(pair=pair)))
 
   } else {
     mod <- stats::model.matrix(~0 + group)
@@ -213,12 +215,20 @@ get_mods <- function(eset) {
     has.pair <- colSums(mod0[, pair_cols, drop = FALSE]) >= 2
     has.pair <- names(which(has.pair))
 
+    # if multiple pair columns then remove first
+    if (length(has.pair) > 1) has.pair <- has.pair[-1]
+
     mod <- mod[, c(group_levels, has.pair), drop = FALSE]
     mod0 <- mod0[, c("(Intercept)", has.pair), drop = FALSE]
   }
 
   return(list("mod" = mod, "mod0" = mod0))
 }
+
+model.matrix.dummy <- function(group, pair) {
+
+}
+
 
 
 
@@ -512,9 +522,20 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
 
     # if couldn't estimate within-block correlation, model pair as fixed effect
     if (is.nan(corfit$consensus.correlation)) {
+      fit_fun <- function() {
+        v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
+        limma::lmFit(v, design = mod)
+      }
+
       mod <- get_mods(eset)$mod
-      v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
-      fit  <- limma::lmFit(v, design = mod)
+      fit <- fit_fun()
+
+      # if no dof, drop pairs and retry
+      if (fit$df.residual[1] == 0) {
+        eset$pair <- NULL
+        mod <- get_mods(eset)$mod
+        fit <- fit_fun()
+      }
 
     } else {
       # second round
@@ -536,8 +557,14 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
 
     # if couldn't estimate within-block correlation, model pair as fixed effect
     if (is.nan(corfit$consensus.correlation)) {
-      mod <- get_mods(eset)$mod
       fit <- limma::lmFit(y, mod)
+
+      # if no dof, drop pairs and retry
+      if (fit$df.residual == 0) {
+        eset$pair <- NULL
+        mod <- get_mods(eset)$mod
+        fit <- limma::lmFit(y, mod)
+      }
 
     } else {
       fit <- limma::lmFit(y, mod, correlation = corfit$consensus.correlation, block = pair)

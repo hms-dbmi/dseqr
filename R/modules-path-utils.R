@@ -202,7 +202,11 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'@export
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens', release = '94') {
+construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens', release = '94') {
+
+  # add pairings
+  if (!is.null(pairs))
+    summed$pair <- factor(pairs[summed$batch, 'pair'])
 
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   clusters <- y$samples$cluster

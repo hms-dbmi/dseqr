@@ -157,8 +157,15 @@ integrationFormInput <- function(id) {
         textInputWithButtons(ns('integration_name'),
                              container_id = ns('validate'),
                              'Name for new integrated analysis:',
+                             actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
+                             actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
                              actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
-                             help_id = ns('error_msg'))
+                             help_id = ns('error_msg')),
+
+        div(style = 'display: none',
+            fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+        ),
+        downloadLink(ns('dl_samples'), '')
     )
   })
 }

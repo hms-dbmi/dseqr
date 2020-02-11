@@ -592,7 +592,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     updateProgress <- function(value = NULL, detail = NULL) {
       if (is.null(value)) {
         value <- progress$getValue()
-        value <- value + (progress$getMax() - value) / 2
+        value <- value + (progress$getMax() - value) / 3
       }
       progress$set(value = value, detail = detail)
     }
@@ -601,6 +601,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     # get arguments for SingleR
     senv <- loadNamespace('SingleR')
 
+    updateProgress(1/n)
     if (ref_name %in% ls(senv)) {
       ref <- get(ref_name, envir = senv)()
       labels <- ref$label.main
@@ -609,17 +610,27 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     } else {
       markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
       genes <- readRDS(markers_path)
-      ref <- load_scseq(file.path(sc_dir, ref_name))
+      ref <- readRDS(scseq_part_path(sc_dir, ref_name, 'scseq'))
+
+      # use aggregated reference for speed
+      ref_path <- scseq_part_path(sc_dir, ref_name, 'aggr_ref')
+      if (file.exists(ref_path)) {
+        ref <- readRDS(ref_path)
+
+      } else {
+        set.seed(100)
+        ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
+        saveRDS(ref, ref_path)
+      }
 
       # need until SingleR #77 fixed
       common <- intersect(row.names(ref), row.names(query))
       genes <- lapply(genes, function(x) {lapply(x, function(y) intersect(y, common))})
 
-      labels <- as.character(ref$cluster)
+      labels <- ref$label
     }
 
-    updateProgress(1/n)
-
+    updateProgress(2/n)
     # take best label for each cluster
     pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)
     tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
@@ -724,7 +735,13 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, datasets, show_integration) {
 
-  integration_inputs <- c('ctrl_integration', 'integration_name', 'submit_integration', 'test_integration', 'exclude_clusters')
+  integration_inputs <- c('ctrl_integration',
+                          'integration_name',
+                          'submit_integration',
+                          'test_integration',
+                          'exclude_clusters',
+                          'click_up',
+                          'click_dl')
 
 
   integration_name <- reactive(input$integration_name)
@@ -769,6 +786,41 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                          server = TRUE)
   })
 
+  # upload/download pairs
+  pairs <- reactiveVal()
+
+  observeEvent(input$click_up, {
+    pairs(NULL)
+    shinyjs::click('up_pairs')
+  })
+
+  observeEvent(input$click_dl, {
+    shinyjs::click('dl_samples')
+  })
+
+  samples <- reactive({
+    anals <- c(test(), ctrl())
+    req(anals)
+    data.frame(sample = anals, pair = NA)
+  })
+
+
+  output$dl_samples <- downloadHandler(
+    filename = 'samples.csv',
+    content = function(con) {
+      write.csv(samples(), con, row.names = FALSE)
+    }
+  )
+
+  observe({
+    infile <- input$up_pairs
+    req(infile)
+    pairs(read.csv(infile$datapath, row.names = 'sample'))
+  })
+
+  # make upload green when have data
+  observe(toggleClass(id = "click_up", 'btn-success', condition = isTruthy(pairs())))
+
   # run integration
   observeEvent(input$submit_integration, {
 
@@ -777,8 +829,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     exclude_clusters <- input$exclude_clusters
     anal_name <- input$integration_name
     datasets <- datasets()
+    pairs <- pairs()
 
-    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets)
+    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets, pairs)
 
     if (is.null(error_msg)) {
       # clear error and disable button
@@ -806,18 +859,21 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                              ctrl = ctrl_anals,
                              exclude_clusters = exclude_clusters,
                              anal_name = anal_name,
+                             pairs = pairs,
                              updateProgress = updateProgress)
 
 
       # re-enable, clear inputs, and trigger update of available anals
       ctrl(NULL)
       test(NULL)
+      pairs(NULL)
       new_anal(anal_name)
       updateTextInput(session, 'integration_name', value = '')
       toggleAll(integration_inputs)
 
     } else {
       # show error message
+      pairs(NULL)
       html('error_msg', html = error_msg)
       addClass('validate', class = 'has-error')
     }

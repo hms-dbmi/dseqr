@@ -345,7 +345,7 @@ get_gene_choices <- function(markers, type = 'samples') {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, updateProgress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, pairs = NULL, updateProgress = NULL) {
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -414,7 +414,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   obj <- combined
   pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
-  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, species, release)
+  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
   lm_fit <- run_limma_scseq(obj)
 
 
@@ -543,7 +543,7 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 #' @return \code{NULL} if valid, otherwise an error message
 #' @export
 #' @keywords internal
-validate_integration <- function(test, ctrl, anal_name, anal_options) {
+validate_integration <- function(test, ctrl, anal_name, anal_options, pairs) {
   msg <- NULL
 
   if (is.null(anal_name) || anal_name == '') {
@@ -552,6 +552,10 @@ validate_integration <- function(test, ctrl, anal_name, anal_options) {
   } else if (is.null(test) || is.null(ctrl)) {
     msg <- 'Need control and test datasets'
 
+  } else if (!is.null(pairs)) {
+
+    if (!all(pairs$sample %in% c(test, ctrl)))
+      msg <- 'Samples missing from pairs csv'
   }
 
   return(msg)

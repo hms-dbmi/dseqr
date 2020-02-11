@@ -10,6 +10,7 @@ integrate_saved_scseqs(
   ctrl,
   exclude_clusters,
   anal_name,
+  pairs = NULL,
   updateProgress = NULL
 )
 }
