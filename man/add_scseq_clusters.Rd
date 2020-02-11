@@ -4,7 +4,7 @@
 \alias{add_scseq_clusters}
 \title{Cluster SingleCellExperiment}
 \usage{
-add_scseq_clusters(sce)
+add_scseq_clusters(sce, quick = FALSE)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment}}

@@ -1,3 +1,73 @@
+#' Process raw single cell fastq or cellranger files for app
+#'
+#' @param dataset_name Name of dataset
+#' @param fastq_dir Directory with fastq or cellranger files
+#' @param sc_dir Single cell directory for app. Will store results in \code{dataset_name} subdirectory
+#' @param progress Optional shiny \code{Progress} object. Default will print progress.
+#'
+#' @return NULL
+#' @export
+#'
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL) {
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '') {
+      cat(value, message, '...\n')
+    })
+  }
+
+  # standardize cellranger files
+  is.cellranger <- check_is_cellranger(fastq_dir)
+  if (is.cellranger) standardize_cellranger(fastq_dir)
+
+  progress$set(message = "Quantifying files", value = 1)
+  if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
+
+  progress$set(message = "Loading and QC", value = 2)
+  type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
+  scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
+  scseq <- scseq[, scseq$whitelist]
+  gc()
+
+  progress$set(message = "Normalizing", value = 3)
+  scseq <- normalize_scseq(scseq)
+  gc()
+
+  progress$set(message = "Filtering doublets", value = 4)
+  scseq <- add_hvgs(scseq)
+  scseq <- add_scseq_clusters(scseq, quick = TRUE)
+  scseq <- add_doublet_score(scseq)
+  scseq <- filter_doublets(scseq)
+  gc()
+
+
+  progress$set(message = "Clustering", value = 5)
+  scseq <- add_scseq_clusters(scseq)
+  gc()
+
+  progress$set(message = "Reducing dimensions", value = 6)
+  scseq <- run_tsne(scseq)
+  gc()
+
+  progress$set(message = "Getting markers", value = 7)
+  tests <- pairwise_wilcox(scseq)
+  markers <- get_scseq_markers(tests)
+
+  # top markers for SingleR
+  top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
+
+  progress$set(message = "Saving", value = 8)
+  anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
+  save_scseq_data(anal, dataset_name, sc_dir)
+
+  progress$set(value = 9)
+  save_scle(scseq, file.path(sc_dir, dataset_name))
+
+}
+
+
+
+
+
 #' Load kallisto/bustools quantification into a SingleCellExperiment object.
 #'
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
@@ -116,6 +186,12 @@ save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
 
   if (!file.exists(scle_path) | overwrite) {
     unlink(scle_path)
+
+    if ('corrected' %in% SingleCellExperiment::reducedDimNames(scseq)) {
+      SingleCellExperiment::reducedDim(scseq, 'corrected') <-
+        as.matrix(SingleCellExperiment::reducedDim(scseq, 'corrected'))
+    }
+
     scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
     LoomExperiment::export(scseq, scle_path)
   }
@@ -156,6 +232,28 @@ get_outliers <- function(x) {
   return(is.outlier)
 }
 
+
+#' Filter cells and clusters with high doublet score
+#'
+#' @param scseq \code{SingleCellExperiment} with \code{'doublet_score'} and \code{'cluster'} in \code{scseq@colData}
+#'
+#' @return \code{scseq} without cells/clusters that have outlying \code{'doublet_score'}
+#' @export
+#' @keywords internal
+filter_doublets <- function(scseq) {
+  # cells that have outlying doublet scores
+  cells.out <- scater::isOutlier(scseq$doublet_score, type = "higher")
+
+  # clusters that have outlying mean doublet scores
+  clust.out <- tapply(scseq$doublet_score, scseq$cluster, mean)
+  clust.out <- scater::isOutlier(clust.out, type = "higher")
+  clust.out <- names(clust.out[clust.out])
+
+  # filter both
+  scseq <- scseq[, !cells.out]
+  scseq <- scseq[, !scseq$cluster %in% clust.out]
+  return(scseq)
+}
 
 #' Read kallisto/bustools market matrix and annotations
 #'
@@ -639,10 +737,10 @@ run_tsne <- function(sce, dimred = 'PCA') {
 #' @return result of \code{scran::getClusteredPCs}
 #' @export
 #'
-get_npc_choices <- function(sce, type = 'PCA') {
+get_npc_choices <- function(sce, type = 'PCA', quick = FALSE) {
 
   # walktrap very slow if too many cells
-  cluster_fun <- ifelse(ncol(sce) > 10000,
+  cluster_fun <- ifelse(ncol(sce) > 10000 | quick,
                         igraph::cluster_louvain,
                         igraph::cluster_walktrap)
 
@@ -660,6 +758,7 @@ get_npc_choices <- function(sce, type = 'PCA') {
 
   } else {
     choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+
     names(choices$clusters) <- choices$n.pcs
 
     npcs <- S4Vectors::metadata(choices)$chosen
@@ -675,7 +774,7 @@ get_npc_choices <- function(sce, type = 'PCA') {
 #'
 #' @return \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
 #' @export
-add_scseq_clusters <- function(sce) {
+add_scseq_clusters <- function(sce, quick = FALSE) {
 
   # run PCA on HVGs
   rdata <- SummarizedExperiment::rowData(sce)
@@ -685,7 +784,7 @@ add_scseq_clusters <- function(sce) {
   sce <- scater::runPCA(sce, subset_row = subset_row)
 
   # pick number of PCs
-  choices <- get_npc_choices(sce)
+  choices <- get_npc_choices(sce, quick = quick)
   sce@metadata$npcs <- choices$npcs
 
   # add clusters

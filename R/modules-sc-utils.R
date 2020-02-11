@@ -315,13 +315,16 @@ get_contrast_choices <- function(clusters, test) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(markers) {
+get_gene_choices <- function(markers, type = 'samples') {
 
   markers$label <- markers$value <- row.names(markers)
 
   # add description for title
   idx <- match(row.names(markers), tx2gene$gene_name)
   markers$description <- tx2gene$description[idx]
+
+  markers <- markers[, c('label', 'value', 'description')]
+  markers <- data.table::data.table(markers)
   return(markers)
 }
 

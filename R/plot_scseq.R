@@ -3,7 +3,7 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_cluster <- function(scseq, label.highlight, legend_title = 'Cluster', cols = NULL) {
+plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Cluster', cols = NULL) {
 
   if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
 

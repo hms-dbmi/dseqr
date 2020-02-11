@@ -423,54 +423,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     removeModal()
     toggleAll(dataset_inputs)
 
-    # standardize cellranger files
-    fastq_dir <- new_dataset_dir()
-    dataset_name <- input$selected_dataset
-    is.cellranger <- check_is_cellranger(fastq_dir)
-    if (is.cellranger) standardize_cellranger(fastq_dir)
-
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = 9)
-    on.exit({progress$close(); enable('selected_dataset')})
+    on.exit(progress$close())
 
-    progress$set(message = "Quantifying files", value = 1)
-    if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
-
-    progress$set(message = "Loading and QC", value = 2)
-    type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-    scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
-    scseq <- scseq[, scseq$whitelist]
-    gc()
-
-    progress$set(message = "Normalizing", value = 3)
-    scseq <- normalize_scseq(scseq)
-    gc()
-
-    progress$set(message = "Clustering", value = 4)
-    scseq <- add_hvgs(scseq)
-    scseq <- add_scseq_clusters(scseq)
-    gc()
-
-    progress$set(message = "Reducing dimensions", value = 5)
-    scseq <- run_tsne(scseq)
-    gc()
-
-    progress$set(message = "Getting markers", value = 6)
-    tests <- pairwise_wilcox(scseq)
-    markers <- get_scseq_markers(tests)
-
-    # top markers for SingleR
-    top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
-
-    progress$set(message = "Scoring doublets", value = 7)
-    scseq <- add_doublet_score(scseq)
-
-    progress$set(message = "Saving", value = 8)
-    anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
-    save_scseq_data(anal, dataset_name, sc_dir)
-
-    progress$set(value = 9)
-    save_scle(scseq, file.path(sc_dir, dataset_name))
+    fastq_dir <- new_dataset_dir()
+    dataset_name <- input$selected_dataset
+    load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress)
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
@@ -1119,16 +1078,7 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
 
     # will error if labels
     if (is.null(markers) || is.null(selected_cluster)) return(NULL)
-    gene_choices <- get_gene_choices(markers)
-
-    # for plotting doublet score
-    if (type == 'clusters') {
-      gene_choices <- rbind(NA, gene_choices)
-      gene_choices$label[1] <- 'DOUBLET SCORE'
-      gene_choices$value[1] <- 'doublet_score'
-    }
-
-    return(gene_choices)
+    get_gene_choices(markers, type = type)
   })
 
   # click genecards
@@ -1151,11 +1101,8 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
     prev <- isolate(input$selected_gene)
     choices <- gene_choices()
 
-    selected <- NULL
-    if (type == 'clusters' && prev != 'doublet_score') selected <- choices$value[2]
-
     updateSelectizeInput(session, 'selected_gene',
-                         choices = choices, selected = selected,
+                         choices = choices,
                          server = TRUE,
                          options = gene_options)
   })
@@ -1645,14 +1592,7 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
     title <- 'Expression by Cluster'
   }
 
-  # order y-axis by mean logcounts (or other feature)
-  if (gene == 'doublet_score') {
-    title <- 'Doublet Score by Cluster'
-    x <- scseq@colData[, gene]
-
-  }
-  else
-    x <- as.numeric(SingleCellExperiment::logcounts(scseq[gene, ]))
+  x <- as.numeric(SingleCellExperiment::logcounts(scseq[gene, ]))
 
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m)])
@@ -1724,4 +1664,5 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
   path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
   dprimesPlotly(path_df, drugs = FALSE)
 }
+
 

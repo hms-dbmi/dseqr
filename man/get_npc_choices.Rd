@@ -4,7 +4,7 @@
 \alias{get_npc_choices}
 \title{Get number of clusters different number of PCs}
 \usage{
-get_npc_choices(sce, type = "PCA")
+get_npc_choices(sce, type = "PCA", quick = FALSE)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiement}}
