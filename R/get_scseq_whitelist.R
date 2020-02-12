@@ -115,7 +115,7 @@ find_knee <- function(counts) {
   keep <- seq_len(ncol(counts))
 
   # stop if distance between knee and inflection is more than twice between the knees
-  while(!done & !maxit) {
+  while(!done & iter < 100) {
     knee <- get_knee(counts[, keep])
     done <- abs(knee$knee - knee$inflection) > abs(knee$roryk- knee$knee)*2
     keep <- head(keep, round(length(keep)*0.9))
