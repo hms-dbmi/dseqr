@@ -17,12 +17,13 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'H
 
   # based on salmon alevin paper
   # get knee and keep at least 1000 below it
-  knee <- get_knee(counts)
   ncount <- Matrix::colSums(counts)
   ncount.ord <- order(ncount, decreasing = TRUE)
-
   counts <- counts[, ncount.ord]
   ncount <- ncount[ncount.ord]
+
+  knee <- find_knee(counts)
+
   nabove <- sum(ncount > knee)
   nbelow <- max(0.2*nabove, 1000)
 
@@ -96,6 +97,38 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'H
   return(whitelist)
 }
 
+#' Find knee point by looking for convergance of roryk and DropletUtils
+#'
+#' @param counts dgCMatrix
+#'
+#' @return Knee point
+#' @export
+#' @keywords internal
+find_knee <- function(counts) {
+  ncount <- Matrix::colSums(counts)
+  ncount.ord <- order(ncount, decreasing = TRUE)
+  counts <- counts[, ncount.ord]
+  ncount <- ncount[ncount.ord]
+
+  iter <- 1
+  done <- FALSE
+  keep <- seq_len(ncol(counts))
+
+  # stop if distance between knee and inflection is more than twice between the knees
+  while(!done & !maxit) {
+    knee <- get_knee(counts[, keep])
+    done <- abs(knee$knee - knee$inflection) > abs(knee$roryk- knee$knee)*2
+    keep <- head(keep, round(length(keep)*0.9))
+    iter <- iter + 1
+  }
+
+  # if didn't converge pick smallest above inflection
+  if (iter == 100) knee <- get_knee(counts)
+  if (knee$roryk < knee$inflection) knee$roryk <- knee$knee
+
+  min(knee$roryk, knee$knee)
+}
+
 
 #' Get knee point and plot on barcode rank plot
 #'
@@ -126,10 +159,10 @@ get_knee <- function(counts) {
   inflection <- bcrank@metadata$inflection
   knee <- bcrank@metadata$knee
 
-  while (abs(roryk - knee) > abs(knee - inflection))
-    knee <- get_knee(counts[, ncount > (min(ncount) + 50)])
-
-  return(min(knee, roryk))
+  return(list(
+    knee = knee,
+    roryk = roryk,
+    inflection = inflection))
 }
 
 #' Pick Roryk knee point
