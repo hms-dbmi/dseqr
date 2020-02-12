@@ -4,7 +4,7 @@
 \alias{get_knee}
 \title{Get knee point and plot on barcode rank plot}
 \usage{
-get_knee(counts, knee_type = c("inflection", "roryk", "knee"))
+get_knee(counts)
 }
 \arguments{
 \item{counts}{dgTMatrix of counts for all barcodes.}

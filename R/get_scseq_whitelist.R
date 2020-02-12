@@ -6,7 +6,7 @@
 #' @return Character vector of barcodes called as high quality cells.
 #' @export
 #' @keywords internal
-get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type = c('inflection', 'roryk', 'knee'), species = 'Homo sapiens') {
+get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'Homo sapiens') {
 
   # check for previous whitelist
   whitelist_path <- file.path(data_dir, 'whitelist.txt')
@@ -17,7 +17,7 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
 
   # based on salmon alevin paper
   # get knee and keep at least 1000 below it
-  knee <- get_knee(counts, knee_type = knee_type)
+  knee <- get_knee(counts)
   ncount <- Matrix::colSums(counts)
   ncount.ord <- order(ncount, decreasing = TRUE)
 
@@ -38,30 +38,27 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
   sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = counts[, keep]))
   sce <- add_scseq_qc_metrics(sce, species = species)
 
-  # detect outliers based on PCA and mitochondrial content above knee
+  # setup stats for outlier detection
   df <- as.data.frame(sce@colData)
-  stats <- df[1:nabove, c('sum', 'detected', 'subsets_mito_percent', 'subsets_ribo_percent')]
+  stats <- df[, c('sum', 'detected', 'subsets_mito_percent', 'subsets_ribo_percent')]
   stats$sum <- log10(stats$sum)
   stats$detected <- log10(stats$detected)
 
-  outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
-  outl.drop <- scater::isOutlier(outlying, type = "higher")
-  mito.drop <- scater::isOutlier(stats$subsets_mito_percent, type="higher")
-
-  # below knee is low quality
-  # use middle knee value for now
-  # if filtered cellranger then just drop outliers and below knee, no modeling
   if (min(ncount) > 10) {
-    knees <- sapply(knee_type, function(type) get_knee(counts, knee_type = type))
-    knee <- sort(knees)[2]
-    df$quality <- 'high'
-    df$quality[sce$total <= knee] <- 'low'
+    # if filtered cellranger then just drop outliers, no modeling
+    outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
+    outl.drop <- scater::isOutlier(outlying, type = "higher")
 
-    # set outliers above the knee as low quality
-    df[row.names(stats)[mito.drop], 'quality'] <- 'low'
+    # set cell with high outlyingness as low quality
+    df$quality <- 'high'
     df[row.names(stats)[outl.drop], 'quality'] <- 'low'
 
   } else {
+    # detect outliers above knee only
+    stats <- stats[1:nabove, ]
+    outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
+    outl.drop <- scater::isOutlier(outlying, type = "higher")
+
     df$quality <- NA
     df$quality[sce$total <= knee] <- 'low'
 
@@ -71,7 +68,6 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
     df$quality[(midpnt+1):nabove] <- 'ambig'
 
     # set outliers above the knee as low quality
-    df[row.names(stats)[mito.drop], 'quality'] <- 'low'
     df[row.names(stats)[outl.drop], 'quality'] <- 'low'
 
     # clean df
@@ -108,7 +104,8 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = FALSE, knee_type =
 #' @return count value corresponding to knee point
 #' @export
 #' @keywords internal
-get_knee <- function(counts, knee_type = c('inflection', 'roryk', 'knee')) {
+get_knee <- function(counts) {
+  ncount <- Matrix::colSums(counts)
   bcrank <- DropletUtils::barcodeRanks(counts)
 
   # Only showing unique points for plotting speed.
@@ -117,19 +114,22 @@ get_knee <- function(counts, knee_type = c('inflection', 'roryk', 'knee')) {
   plot(bcrank$rank[uniq], bcrank$total[uniq], log="xy",
        xlab="Rank", ylab="Total UMI count", cex.lab=1.2)
 
-  roryk_knee <- pick_roryk_cutoff(bcrank$total)
+  roryk <- pick_roryk_cutoff(bcrank$total)
 
   abline(h=bcrank@metadata$inflection, col="darkgreen", lty=2)
   abline(h=bcrank@metadata$knee, col="dodgerblue", lty=2)
-  abline(h=roryk_knee, col="red", lty=2)
+  abline(h=roryk, col="red", lty=2)
 
   legend("bottomleft", legend=c("Inflection", "Knee", "Roryk Knee"),
          col=c("darkgreen", "dodgerblue", "red"), lty=2, cex=1.2)
 
-  switch(knee_type[1],
-         'inflection' = bcrank@metadata$inflection,
-         'roryk' = roryk_knee,
-         'knee' = bcrank@metadata$knee)
+  inflection <- bcrank@metadata$inflection
+  knee <- bcrank@metadata$knee
+
+  while (abs(roryk - knee) > abs(knee - inflection))
+    knee <- get_knee(counts[, ncount > (min(ncount) + 50)])
+
+  return(min(knee, roryk))
 }
 
 #' Pick Roryk knee point

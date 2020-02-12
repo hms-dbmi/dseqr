@@ -87,7 +87,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 #' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 #' load_scseq(data_dir)
 #'
-create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), knee_type = c('inflection', 'roryk', 'knee')) {
+create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
 
   # load counts
   #TODO suport mouse for kallisto
@@ -104,7 +104,7 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger'), 
   }
 
   # generate/load whitelist
-  whitelist <- get_scseq_whitelist(counts, data_dir, knee_type = knee_type, species = species)
+  whitelist <- get_scseq_whitelist(counts, data_dir, species = species)
   kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
 
   # get ambient expression profile/determine outlier genes
