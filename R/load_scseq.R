@@ -8,7 +8,7 @@
 #' @return NULL
 #' @export
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL) {
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = TRUE) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '') {
       cat(value, message, '...\n')
@@ -20,7 +20,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   if (is.cellranger) standardize_cellranger(fastq_dir)
 
   progress$set(message = "Quantifying files", value = 1)
-  if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir)
+  if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
 
   progress$set(message = "Loading and QC", value = 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')

@@ -14,7 +14,10 @@
 #'
 #' run_kallisto_scseq(indices_dir, data_dir)
 #'
-run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94') {
+run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE) {
+
+  out_dir <- file.path(data_dir, 'bus_output')
+  if (dir.exists(out_dir) & !recount) return(NULL)
 
   # make sure that have whitelist and get path
   dl_10x_whitelists(indices_dir)
@@ -36,7 +39,6 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
   # detect v1/v2/v3 chemistry
   chemistry <- detect_10x_chemistry(indices_dir, index_path, data_dir, bus_args, fqs)
   whitepath <- file.path(indices_dir, paste0(chemistry, '_whitelist.txt'))
-  out_dir <- file.path(data_dir, 'bus_output')
 
   # run quantification/bustools
   bus_args <- c('bus',

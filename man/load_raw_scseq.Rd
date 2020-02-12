@@ -4,7 +4,14 @@
 \alias{load_raw_scseq}
 \title{Process raw single cell fastq or cellranger files for app}
 \usage{
-load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL)
+load_raw_scseq(
+  dataset_name,
+  fastq_dir,
+  sc_dir,
+  indices_dir,
+  progress = NULL,
+  recount = TRUE
+)
 }
 \arguments{
 \item{dataset_name}{Name of dataset}

@@ -9,7 +9,8 @@ run_kallisto_scseq(
   data_dir,
   bus_args = "-t 4",
   species = "homo_sapiens",
-  release = "94"
+  release = "94",
+  recount = TRUE
 )
 }
 \arguments{
