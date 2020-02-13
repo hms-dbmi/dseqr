@@ -1094,8 +1094,6 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
     pdata_path <- pdata_path()
     req(up)
 
-    saveRDS(up, pdata_path)
-    pdata_r(up)
 
     if (file.exists(pdata_path)) {
       prev <- readRDS(pdata_path)
@@ -1107,6 +1105,9 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
         numsv_r(NULL)
       }
     }
+
+    pdata_r(up)
+    saveRDS(up, pdata_path)
   })
 
 
