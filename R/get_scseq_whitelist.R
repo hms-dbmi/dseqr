@@ -38,13 +38,10 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'H
 
   # setup stats for outlier detection
   df <- sce@colData
-  stats <- cbind(log10(df$sum), log10(df$detected), df$subsets_mito_percent, df$subsets_ribo_percent)
-
-  outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
-  outl.drop <- scater::isOutlier(outlying, type = "higher")
+  reasons <- scater::quickPerCellQC(df, percent_subsets=c("subsets_mito_percent", "subsets_ribo_percent"))
 
   kneelist  <- colnames(sce)
-  whitelist <- colnames(sce)[!outl.drop]
+  whitelist <- colnames(sce)[!reasons$discard]
   message('keeping ', length(whitelist), '/', length(kneelist), ' non-empty droplets.')
 
   writeLines(whitelist, whitelist_path)
