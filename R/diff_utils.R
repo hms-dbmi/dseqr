@@ -370,8 +370,8 @@ get_mds <- function(exprs, adj, group) {
   exprs <- t(exprs[complete.cases(exprs), ])
   adj <- t(adj[complete.cases(adj), ])
 
-  dist <- factoextra::get_dist(exprs, method = 'spearman')
-  dist_adj <- factoextra::get_dist(adj, method = 'spearman')
+  dist <- get_dist(exprs, method = 'spearman')
+  dist_adj <- get_dist(adj, method = 'spearman')
 
   # sammon scaling for dimensionality reduction
   capture.output({
@@ -383,6 +383,118 @@ get_mds <- function(exprs, adj, group) {
   })
 
   return(list(scaling = scaling, scaling_adj = scaling_adj))
+}
+
+# file MASS/R/sammon.R
+# copyright (C) 1994-2005 W. N. Venables and B. D. Ripley
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 or 3 of the License
+#  (at your option).
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  A copy of the GNU General Public License is available at
+#  http://www.r-project.org/Licenses/
+#
+sammon <- function(d, y = cmdscale(d, k), k = 2, niter = 100, trace = TRUE, magic = 0.2, tol = 1e-4) {
+  call <- match.call()
+  if(any(is.infinite(d))) stop("Infs not allowed in 'd'")
+  if(any(is.na(d)) && missing(y))
+    stop("an initial configuration must be supplied if there are NAs in 'd'")
+  if(!is.matrix(y)) stop("'y' must be a matrix")
+
+  if(is.null(n <- attr(d, "Size"))) {
+    x <- as.matrix(d)
+    if((n <- nrow(x)) != ncol(x))
+      stop("distances must be result of 'dist' or a square matrix")
+    rn <- rownames(x)
+  } else {
+    x <- matrix(0, n, n)
+    x[row(x) > col(x)] <- d
+    x <- x + t(x)
+    rn <- attr(d, "Labels")
+  }
+  n <- as.integer(n)
+  if(is.na(n)) stop("invalid size")
+  ab <- x[row(x) < col(x)] <= 0
+  if (any(ab, na.rm = TRUE)) {
+    ab <- !is.na(ab) & ab
+    aa <- cbind(as.vector(row(x)), as.vector(col(x)))[row(x) < col(x),]
+    aa <- aa[ab, , drop=FALSE]
+    stop(gettextf("zero or negative distance between objects %d and %d",
+                  aa[1,1], aa[1,2]), domain = NA)
+  }
+  nas <- is.na(x)
+  diag(nas) <- FALSE  # diag never used
+  if(any(rowSums(!nas) < 2)) stop("not enough non-missing data")
+
+  if(any(dim(y) != c(n, k)) ) stop("invalid initial configuration")
+  if(any(!is.finite(y))) stop("initial configuration must be complete")
+  storage.mode(x) <- "double"
+  storage.mode(y) <- "double"
+  z <- .C(VR_sammon,
+          x = x,
+          n,
+          as.integer(k),
+          y = y,
+          as.integer(niter),
+          e = double(1),
+          as.integer(trace),
+          as.double(magic),
+          as.double(tol),
+          NAOK = TRUE)
+  points <- z$y
+  dimnames(points) <- list(rn, NULL)
+  list(points=points, stress=z$e, call=call)
+}
+
+#' Enhanced Distance Matrix Computation and Visualization
+#' @description Clustering methods classify data samples into groups of similar
+#'   objects. This process requires some methods for measuring the distance or
+#'   the (dis)similarity between the observations. Read more:
+#'   \href{http://www.sthda.com/english/wiki/clarifying-distance-measures-unsupervised-machine-learning}{STHDA
+#'    website - clarifying distance measures.}. \itemize{ \item get_dist():
+#'   Computes a distance matrix between the rows of a data matrix. Compared to
+#'   the standard \code{\link[stats]{dist}}() function, it supports
+#'   correlation-based distance measures including "pearson", "kendall" and
+#'   "spearman" methods. \item fviz_dist(): Visualizes a distance matrix }
+#' @param x a numeric matrix or a data frame.
+#' @param method the distance measure to be used. This must be one of
+#'   "euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski",
+#'   "pearson", "spearman" or "kendall".
+#' @param stand logical value; default is FALSE. If TRUE, then the data will be
+#'   standardized using the function scale(). Measurements are standardized for
+#'   each variable (column), by subtracting the variable's mean value and
+#'   dividing by the variable's standard deviation.
+#' @param ... other arguments to be passed to the function dist() when using get_dist().
+#' @return \itemize{ \item get_dist(): returns an object of class "dist". \item
+#'   fviz_dist(): returns a ggplot2 }
+#' @seealso \code{\link[stats]{dist}}
+#' @author Alboukadel Kassambara \email{alboukadel.kassambara@@gmail.com}
+#' @examples
+#' data(USArrests)
+#' res.dist <- get_dist(USArrests, stand = TRUE, method = "pearson")
+#'
+#' fviz_dist(res.dist,
+#'    gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+#' @name dist
+#' @rdname dist
+#' @export
+get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
+
+  if(stand) x <- scale(x)
+  if(method %in% c("pearson", "spearman", "kendall")){
+    res.cor <- stats::cor(t(x),  method = method)
+    res.dist <- stats::as.dist(1 - res.cor, ...)
+  }
+  else res.dist <- stats::dist(x, method = method, ...)
+
+  res.dist
 }
 
 #' Plot MDS plotlys
