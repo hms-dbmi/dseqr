@@ -13,8 +13,7 @@ bulkFormAnal(
   dataset_dir,
   explore_eset,
   numsv_r,
-  svobj_r,
-  enable_sva
+  svobj_r
 )
 }
 \description{

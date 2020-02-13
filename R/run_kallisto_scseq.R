@@ -214,7 +214,7 @@ identify_sc_files <- function(data_dir, read_type = 'R1') {
   if (!length(sc_files))
     stop('No fastq.gz files identified in data_dir in read type of ', read_type)
 
-  if (length(sc_files) == 1) return(file.path(data_dir, sc_files))
+  if (length(sc_files) == 1) return(sc_files)
 
   # order by increasing lane if multiple
   # first try format from mkfastq

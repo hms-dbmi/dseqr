@@ -27,6 +27,9 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'H
     set.seed(100)
     e.out <- DropletUtils::emptyDrops(counts[keep, ], retain = Inf)
     counts <- counts[, which(e.out$FDR <= 0.001)]
+
+  } else {
+    message('Skipping emptyDrops as counts previously filtered.')
   }
 
   # add qc metrics

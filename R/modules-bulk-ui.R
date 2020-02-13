@@ -29,10 +29,33 @@ bulkPageUI <- function(id, tab, active) {
                 bulkTable(ns('quant'))
             ),
             div(id = ns('anal_table_container'), style = 'display: none;',
+                bulkAnnotInput(ns('anal')),
                 bulkTable(ns('explore'))
             )
     )
   })
+}
+
+bulkAnnotInput <- function(id) {
+  ns <- NS(id)
+  tagList(
+    tags$div(id=ns('validate-up'), class='validate-wrapper',
+             shinyWidgets::actionGroupButtons(
+               inputIds = c(ns('click_dl'), ns('click_up')),
+               labels = list(icon('download', 'fa-fw'), icon('upload', 'fa-fw'))
+             ),
+             tags$div(class='help-block', id = ns('error_msg'))
+
+    ),
+    # hidden dl/upload buttons
+    div(style = 'display: none',
+        fileInput(ns('up_annot'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+    ),
+    downloadLink(ns('dl_annot'), ''),
+
+    shinyBS::bsTooltip(id = ns('click_dl'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)', options = list(container = 'body')),
+    shinyBS::bsTooltip(id = ns('click_up'), title = 'Upload filled metadata', options = list(container = 'body'))
+  )
 }
 
 
@@ -124,17 +147,7 @@ bulkFormAnalInput <- function(id) {
     bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
     selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
                    'Show expression for genes:',
-                   options = list(maxItems = 6, multiple = TRUE)),
-
-
-    textInputWithButtons(ns('explore_group_name'),
-                         container_id = ns('validate'),
-                         'Group name for selected rows:',
-                         actionButton(ns('grouped'), '', icon = icon('plus', 'fa-fw'), title = 'Add group'),
-                         actionButton(ns('reset_explore'), '', icon = tags$i(class='fa-trash-alt far fa-fw'), title = 'Clear all groups'),
-                         actionButton(ns('run_sva'), '', icon = icon('redo-alt', 'fa-fw'), title = 'Recalculate surrogate variables'),
-                         help_id = ns('error_msg')
-    )
+                   options = list(maxItems = 6, multiple = TRUE))
   )
 }
 
@@ -219,5 +232,3 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   return(input)
 }
-
-

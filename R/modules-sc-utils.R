@@ -434,7 +434,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
   updateProgress(8/n, 'saving loom')
-  save_scle(scseq, file.path(sc_dir, anal_name))
+  save_scle(combined, file.path(sc_dir, anal_name))
 
   return(NULL)
 }

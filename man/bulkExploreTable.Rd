@@ -9,7 +9,7 @@ bulkExploreTable(
   output,
   session,
   eset,
-  labels,
+  up_annot,
   data_dir,
   dataset_dir,
   dataset_name,

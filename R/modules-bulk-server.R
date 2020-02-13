@@ -22,13 +22,12 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          msg_quant = msg_quant,
                          new_anal = bulk_anal,
                          explore_eset = explore_eset,
-                         enable_sva = dsExploreTable$enable_sva,
                          pdata = dsQuantTable$pdata)
 
   # mds plotly with different orientations for mobile/desktop
 
   bulkMDS <- callModule(bulkMDS, 'bulk_mds',
-             explore_eset = explore_eset)
+                        explore_eset = explore_eset)
 
   callModule(bulkMDSplotly, 'mds_plotly_unadjusted',
              explore_eset = explore_eset,
@@ -67,10 +66,14 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                              labels = bulkForm$quant_labels,
                              paired = bulkForm$paired)
 
+  up_annot <- callModule(bulkAnnot, 'anal',
+                         dataset_name = bulkForm$dataset_name,
+                         annot = dsExploreTable$pdata)
+
 
   dsExploreTable <- callModule(bulkExploreTable, 'explore',
                                eset = eset,
-                               labels = bulkForm$explore_labels,
+                               up_annot = up_annot,
                                data_dir = data_dir,
                                dataset_dir = bulkForm$dataset_dir,
                                dataset_name = bulkForm$dataset_name,
@@ -276,7 +279,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #' Logic for Bulk Data form
 #' @export
 #' @keywords internal
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, new_anal, explore_eset, enable_sva, pdata) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, new_anal, explore_eset, pdata) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -314,8 +317,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
                      dataset_name = dataset$dataset_name,
                      explore_eset = explore_eset,
                      numsv_r = dataset$numsv_r,
-                     svobj_r = dataset$svobj_r,
-                     enable_sva = enable_sva)
+                     svobj_r = dataset$svobj_r)
 
 
 
@@ -325,7 +327,6 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
     quant_labels = quant$labels,
     new_dataset = quant$new_dataset,
     anal_labels = anal$labels,
-    explore_labels = anal$explore_labels,
     explore_genes = anal$explore_genes,
     dataset_name = dataset$dataset_name,
     dataset_dir = dataset$dataset_dir,
@@ -633,53 +634,48 @@ bulkEndType <- function(input, output, session, fastq_dir) {
   return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
+check_bulk_changed <- function(prev, pdata) {
+
+  # don't re-run if Group name or Pairs the same
+  changed <-
+    !identical(prev$`Group name`, pdata$`Group name`) |
+    !identical(prev$Pair, pdata$Pair)
+
+
+  return(changed)
+
+}
+
 #' Logic for differential expression analysis part of bulkForm
 #' @export
 #' @keywords internal
-bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r, enable_sva) {
-  sva_ids <- c('run_sva', 'explore_group_name', 'grouped', 'reset_explore')
+bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r) {
 
 
-  observe({
-    toggleState('run_sva', condition = enable_sva())
-  })
+  # run surrogate variable analysis if required
+  observeEvent(explore_eset(), {
 
-  # Group labels section
-  # ---
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
+    req(eset)
 
-  # logic for group name buttons
-  explore_group_name <- reactive(input$explore_group_name)
+    prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.rds')
+    pdata_path <- file.path(dataset_dir(), 'pdata_explore.rds')
 
-  observeEvent(input$grouped, {
-    updateTextInput(session, 'explore_group_name', value = '')
-  })
+    if (file.exists(prev_path)) {
+      prev <- readRDS(prev_path)
+      saved <- readRDS(pdata_path)
+      changed <- check_bulk_changed(prev, saved)
+      req(changed)
+    }
 
-  explore_labels <- list(
-    grouped = reactive(input$grouped),
-    reset = reactive(input$reset_explore),
-    explore_group_name = explore_group_name
-  )
-
-
-
-  # run surrogate variable analysis
-  observeEvent(input$run_sva, {
-    enable_sva(FALSE)
-    toggleAll(sva_ids)
+    group <- pdata$group
+    req(length(unique(group)) > 1)
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = 2)
     on.exit(progress$close())
     progress$set(message = "Running SVA", value = 1)
-
-
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
-    group <- pdata$group
-    req(length(unique(group)) > 1)
-
-    # remove previously adjusted data
-    remove_dataset_files(dataset_dir(), exclude = '_0svs.rds$')
 
     mods <- get_mods(eset)
     rna_seq <- 'lib.size' %in% colnames(pdata)
@@ -689,8 +685,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     row.names(svobj$sv) <- colnames(eset)
 
     # save current pdata_explore  so that can tell if changed
-    file.copy(file.path(dataset_dir(), 'pdata_explore.rds'),
-              file.path(dataset_dir(), 'pdata_explore_prev.rds'), overwrite = TRUE)
+    file.copy(pdata_path, prev_path, overwrite = TRUE)
 
 
     # update saved svobj
@@ -699,8 +694,8 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     svobj_r(svobj)
     numsv_r(NULL)
 
-    toggleAll(sva_ids[-1])
     progress$set(value = 2)
+
   })
 
   # Gene choices
@@ -726,10 +721,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
 
   return(list(
-    labels = labels,
-    explore_labels = explore_labels,
-    explore_genes = reactive(input$explore_genes),
-    run_sva = reactive(input$run_sva)
+    explore_genes = reactive(input$explore_genes)
   ))
 }
 
@@ -1076,7 +1068,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' Logic for differential expression analysis table
 #' @export
 #' @keywords internal
-bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
+bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
   # colors
   group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
@@ -1084,109 +1076,69 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
 
   # things user will update and return
   pdata_r <- reactiveVal()
-  group_r <- reactiveVal()
-  name_r <- reactiveVal()
-  table_rendered <- reactiveVal()
-  enable_sva <- reactiveVal()
-
   pdata_path <- reactive(file.path(dataset_dir(), 'pdata_explore.rds'))
-
-  # initial sva btn status
-  observe({
-    enable <- TRUE
-    prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.rds')
-    if (file.exists(prev_path)) {
-      prev <- readRDS(prev_path)
-      pdata <- readRDS(pdata_path())
-      enable <- !identical(prev, pdata)
-    }
-
-    enable_sva(enable)
-  })
-
-
-  # pdata that gets returned with group column
-  returned_pdata <- reactive({
-    pdata_path <- pdata_path()
-    pdata <- pdata_r()
-    req(pdata, pdata_path)
-
-    pdata$Group <- group_r()
-    pdata$`Group name` <- name_r()
-
-    # prevent overwriting saved pdata when switch between analyses
-    if (file.exists(pdata_path)) {
-      saved_pdata <- readRDS(pdata_path)
-      req(all(row.names(pdata) == row.names(saved_pdata)))
-    }
-
-    saveRDS(pdata, pdata_path)
-    return(pdata)
-  })
 
   eset_pdata <- reactive({
     eset <- eset()
     req(eset)
 
     pdata <- Biobase::pData(eset) %>%
-      tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset), .before = 1)
+      tibble::add_column(Group = NA, 'Group name' = NA, Title = colnames(eset),  Pair = NA, .before = 1)
 
     return(pdata)
   })
 
+  # update when upload new annotation
+  observeEvent(up_annot(), {
+    up <- up_annot()
+    pdata_path <- pdata_path()
+    req(up)
 
-  # reset when new eset or analysis name
+    saveRDS(up, pdata_path)
+    pdata_r(up)
+
+    if (file.exists(pdata_path)) {
+      prev <- readRDS(pdata_path)
+      changed <- check_bulk_changed(prev, up)
+
+      if (changed) {
+        remove_dataset_files(dataset_dir())
+        svobj_r(NULL)
+        numsv_r(NULL)
+      }
+    }
+  })
+
+
+  # reset when new eset
   observe({
     pdata_path <- pdata_path()
-    eset_pdata <- pdata <- eset_pdata()
-    req(eset_pdata, pdata_path)
+    pdata <- eset_pdata()
+    req(pdata, pdata_path)
 
-    group <- name <- rep(NA, nrow(eset_pdata))
     # load pdata from previous if available
     if (file.exists(pdata_path)) {
-      saved_pdata <- pdata <- readRDS(pdata_path)
+      pdata <- readRDS(pdata_path)
 
-      group <- pdata$Group
-      name  <- pdata$`Group name`
+      # TODO remove
+      # need for legacy purposes
+      pair <- pdata$Pair
+      if (is.null(pair)) pair <- pdata$pair
+      if (is.null(pair)) pair <- NA
+      pdata$Pair <- NULL
+      pdata <- tibble::add_column(pdata, Pair = pair, .after = 'Title')
     }
 
-    table_rendered(FALSE)
-
     pdata_r(pdata)
-    group_r(group)
-    name_r(name)
   })
 
 
-  # redraw table when new pdata (otherwise update data using proxy)
-  output$pdata <- DT::renderDataTable({
 
-    pdata <- pdata_r()
-    hide_target <- which(colnames(pdata) %in% c('lib.size', 'norm.factors', 'pair')) - 1
-
-    table_rendered(TRUE)
-
-    DT::datatable(
-      pdata,
-      class = 'cell-border dt-fake-height',
-      rownames = FALSE,
-      escape = FALSE, # to allow HTML in table
-      options = list(
-        columnDefs = list(
-          list(className = 'dt-nopad', targets = 0),
-          list(targets = hide_target, visible=FALSE)),
-        scrollX = TRUE,
-        paging = FALSE,
-        bInfo = 0
-      )
-    )
-  })
-
-
+  # format pdata for table
   html_pdata <- reactive({
 
     # things that trigger update
-    pdata <- returned_pdata()
+    pdata <- pdata_r()
     group <- pdata$Group
     name  <- pdata$`Group name`
     req(pdata)
@@ -1216,64 +1168,31 @@ bulkExploreTable <- function(input, output, session, eset, labels, data_dir, dat
     return(pdata)
   })
 
+  # redraw table when new pdata
+  output$pdata <- DT::renderDataTable({
 
-  # proxy used to replace data
-  proxy <- DT::dataTableProxy("pdata")
-  shiny::observe({
-    req(html_pdata(), table_rendered())
-    DT::replaceData(proxy, html_pdata(), rownames = FALSE)
+    pdata <- html_pdata()
+    hide_target <- which(colnames(pdata) %in% c('lib.size', 'norm.factors', 'pair')) - 1
+
+    DT::datatable(
+      pdata,
+      class = 'cell-border dt-fake-height',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      options = list(
+        columnDefs = list(
+          list(className = 'dt-nopad', targets = 0),
+          list(targets = hide_target, visible=FALSE)),
+        scrollX = TRUE,
+        paging = FALSE,
+        bInfo = 0
+      )
+    )
   })
-
-
-
-  # click 'grouped'
-  shiny::observeEvent(labels$grouped(), {
-    group_name <- labels$explore_group_name()
-    rows  <- input$pdata_rows_selected
-    req(group_name, length(rows))
-
-    group <- group_r()
-    name <- name_r()
-
-    group_num <- length(unique(setdiff(group, NA))) + 1
-
-    group[rows] <- group_num
-    name[rows] <- group_name
-    group_r(group)
-    name_r(name)
-
-    # remove dataset files since groups changed
-    svobj_r(NULL)
-    numsv_r(0)
-    remove_dataset_files(dataset_dir())
-    remove_bulk_anals(dataset_name(), data_dir)
-
-    if (group_num > 1) enable_sva(TRUE)
-  })
-
-
-
-  # click 'Reset'
-  shiny::observeEvent(labels$reset(), {
-    req(labels$reset())
-    group <- group_r()
-    clear <- rep(NA, length(group))
-    group_r(clear)
-    name_r(clear)
-
-    # remove dataset files since groups changed
-    svobj_r(NULL)
-    numsv_r(0)
-    remove_dataset_files(dataset_dir())
-    remove_bulk_anals(dataset_name(), data_dir)
-    enable_sva(FALSE)
-  })
-
 
 
   return(list(
-    pdata = returned_pdata,
-    enable_sva = enable_sva
+    pdata = pdata_r
   ))
 
 }
@@ -1300,6 +1219,135 @@ get_group_colors <- function(group_levels) {
   RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
 }
 
+bulkAnnot <- function(input, output, session, dataset_name, annot) {
+
+
+  observeEvent(input$click_up, {
+    shinyjs::click('up_annot')
+    error_msg(NULL)
+  })
+
+  observeEvent(input$click_dl, {
+    shinyjs::click('dl_annot')
+    error_msg(NULL)
+  })
+
+  fname <- reactive(paste0(dataset_name(), '_annot.csv'))
+
+  output$dl_annot <- downloadHandler(
+    filename = fname,
+    content = function(con) {
+
+      write.csv(format_dl_annot(annot()), con, row.names = FALSE)
+    }
+  )
+
+  # uploaded annotation
+  up_annot <- reactiveVal()
+  error_msg <- reactiveVal()
+
+  # reset when change dataset
+  observe({
+    dataset_name()
+    up_annot(NULL)
+  })
+
+  observe({
+    msg <- error_msg()
+    html('error_msg', html = msg)
+    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+  })
+
+  observeEvent(input$up_annot, {
+    ref <- annot()
+    req(ref)
+
+    infile <- input$up_annot
+    if (!isTruthy(infile)){
+      res <- msg <- NULL
+
+    } else {
+      res <- read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE)
+      msg <- validate_up_annot(res, annot())
+
+      res <- if (is.null(msg)) format_up_annot(res, ref) else NULL
+    }
+
+    error_msg(msg)
+    up_annot(res)
+  })
+
+  return(up_annot)
+
+}
+
+format_up_annot <- function(up, ref) {
+  row.names(up) <- up$Title
+  up[up == ''] <- NA
+
+  # Group in order of Group name
+  # allows changing color of groups by changing order or samples
+  group <- up$`Group name`
+  levels <- unique(group[!is.na(group)])
+  group <- as.numeric(factor(group, levels =levels))
+  up <- tibble::add_column(up, Group = group, .before = 1)
+
+  up$Pair <- factor(up$Pair)
+
+  # in case order of sample was changed
+  up <- up[row.names(ref), ]
+
+  # restore rna seq specific things
+  up$lib.size <- ref$lib.size
+  up$norm.factors <- ref$norm.factors
+
+  return(up)
+
+}
+
+format_dl_annot <- function(annot) {
+
+  add_pair <- function(df) {
+    pair <- df$Pair
+    if (is.null(pair)) pair <- df$pair
+    if (is.null(pair)) pair <- NA
+
+    df$pair <- df$Pair <- NULL
+    tibble::add_column(df, Pair = pair, .after = 'Title')
+  }
+
+  annot <- add_pair(annot)
+  annot <- annot[, !colnames(annot) %in% c('Group', 'lib.size', 'norm.factors')]
+  return(annot)
+
+}
+
+validate_up_annot <- function(up, ref) {
+  msg <- NULL
+
+
+  req_cols <- c('Title', 'Group name', 'Pair')
+  miss_cols <- req_cols[!req_cols %in% colnames(ref)]
+
+  group <- up$`Group name`
+  group <- group[!is.na(group)]
+  ngroups <- length(unique(group))
+
+  if (length(miss_cols)) {
+    msg <- paste('Missing columns:', paste(miss_cols, collapse = ', '))
+
+  } else if (!all(up$Title %in% ref$Title)) {
+    msg <- 'Do not change Title column'
+
+  } else if (ngroups < 2) {
+    msg <- 'Need at least 2 groups'
+
+  } else if (length(group) < 3) {
+    msg <- 'Need at least 3 grouped samples'
+  }
+
+  return(msg)
+}
 
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #' @export
@@ -1582,9 +1630,13 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     # determine if this is rna seq data
     rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
 
-    # subset eset and add explore_pdata
+    # subset eset and add group/pair
     eset <- eset[, keep]
     pdata$group <- pdata$`Group name`
+
+    pair <- pdata$Pair
+    if (any(!is.na(pair))) pdata$pair <- pair
+
     Biobase::pData(eset) <- pdata
 
 
@@ -1605,8 +1657,9 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     # can lose sync when switching datasets
     if (!is.null(svobj)) {
       req(numsv <= svobj$n.sv)
-      req(row.names(svobj$sv) == colnames(eset))
+      req(identical(row.names(svobj$sv), colnames(eset)))
     }
+
     eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path())
 
     # use SYMBOL as annotation
@@ -1615,6 +1668,6 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
     return(eset)
   })
-  #
   return(explore_eset)
 }
+

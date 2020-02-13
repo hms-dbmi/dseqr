@@ -254,6 +254,7 @@ run_sva <- function(mods, eset, rna_seq = TRUE) {
   # sva or svaseq
   sva_fun <-ifelse(rna_seq, sva::svaseq, sva::sva)
 
+  set.seed(100)
   svobj <- sva_fun(expr, mods$mod, mods$mod0)
   return(svobj)
 }
