@@ -151,7 +151,13 @@ load_scseq <- function(dataset_dir) {
   scseq_path <- file.path(dataset_dir, 'scseq.rds')
 
   # load loom if available (faster and less memory)
-  if (file.exists(scle_path)) {
+  scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
+                    error = function(e) {
+                      unlink(scle_path)
+                      return(NULL)
+                    })
+
+  if (!is.null(scseq)) {
     scseq <- LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment')
 
     # fixes for SCLE
