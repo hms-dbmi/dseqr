@@ -38,7 +38,7 @@ library(drugseqr)
 
 # override default app_dir etc for development
 app_dir <- 'inst/app'
-data_dir <- 'data-raw/patient_data/sjia'
+data_dir <- 'data-raw/patient_data/example'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
 pert_signature_dir <- 'data-raw/drug_es/signatures'
 

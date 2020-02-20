@@ -1781,4 +1781,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs') {
 
   return(res)
 }
-

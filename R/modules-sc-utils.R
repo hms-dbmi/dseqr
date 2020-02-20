@@ -54,7 +54,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
 
   if (!is.null(pairs))
-    y.ab$samples$pair <- pairs[colnames(y.ab), 'pair']
+    y.ab$samples$pair <- factor(pairs[colnames(y.ab),])
 
   group <- y.ab$samples$orig.ident
   group <- relevel(group, 'ctrl')
@@ -68,7 +68,39 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   Biobase::assayDataElement(eset, 'vsd') <- Biobase::exprs(eset)
   Biobase::fData(eset)[, c('SYMBOL', 'ENTREZID')] <- row.names(eset)
 
-  get_top_table(fit, with.es = FALSE)
+  lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
+
+  tt <- get_top_table(lm_fit, with.es = FALSE)
+  return(tt)
+}
+
+run_varPart <- function(eset) {
+
+  pdata <- Biobase::pData(eset)
+  pdata$pair <- factor(pdata$pair)
+  lib.size <- pdata$lib.size * pdata$norm.factors
+
+  y <- Biobase::exprs(eset)
+  v <- limma::voom(y, lm_fit$mod, lib.size = lib.size)
+  form <- ~ (1|group) + (1|pair)
+  param <- BiocParallel::SerialParam()
+  varPart <- variancePartition::fitExtractVarPartModel(v, form, info, BPPARAM = param)
+  return(varPart)
+}
+
+run_dream <- function(eset) {
+
+  pdata <- Biobase::pData(eset)
+  pdata$pair <- factor(pdata$pair)
+  lib.size <- pdata$lib.size * pdata$norm.factors
+
+  form <- ~group + (1|pair)
+  y <- Biobase::exprs(eset)
+  param <- BiocParallel::SerialParam()
+  v <- variancePartition::voomWithDreamWeights(y, form, pdata, lib.size = lib.size, BPPARAM = param)
+  fitmm <- variancePartition::dream(v, form, pdata, BPPARAM = param)
+  tt <- limma::topTable(fitmm, coef = 'grouptest', number = Inf, sort.by = 'P')
+  return(tt)
 }
 
 
