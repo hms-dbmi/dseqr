@@ -1733,6 +1733,15 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
 }
 
 
+#' Get gslist for pathway analysis
+#'
+#' @param species Species identifier
+#' @param universe NULL
+#' @param type either 'go' or 'kegg'
+#' @param gs_dir Directory to save gslist to
+#'
+#' @return gslist
+#' @export
 get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
@@ -1782,6 +1791,12 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
   return(gslist)
 }
 
+#' Convert from species identifier to KEGG species identifier
+#'
+#' @param species species identifier
+#'
+#' @return KEGG species identifier
+#' @export
 get_kegg_species <- function(species) {
   species <- match.arg(species, c("Ag", "At", "Bt", "Ce", "Dm", "Dr", "EcK12", "EcSakai", "Gg", "Hs", "Mm", "Mmu", "Pf", "Pt", "Rn", "Ss", "Xl"))
   #	Convert from Bioconductor to KEGG species codes
@@ -1791,6 +1806,16 @@ get_kegg_species <- function(species) {
 }
 
 
+#' Get names of gene set
+#'
+#' @param gslist result of \code{\link{get_gslist}}
+#' @param type either 'go' or 'kegg'
+#' @param species species identifier
+#' @param gs_dir Directory to save results to
+#'
+#' @return Description of \code{gslist} gene sets
+#' @export
+#'
 get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/drugseqr/gs_dir') {
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 
