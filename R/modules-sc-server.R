@@ -1372,7 +1372,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
   # plot function for right
-  pfun_right_reps <- reactive(function(gene) list(plot = plot_ridge(gene, scseq(), sel(), by.sample = TRUE), height = 453))
+  pfun_right_reps <- reactive(function(gene) plot_ridge(gene, scseq(), sel(), by.sample = TRUE, with.height = TRUE))
   pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'ctrl'), height = 453))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
@@ -1622,7 +1622,7 @@ plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
 }
 
 
-plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
+plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE) {
 
   # for one vs one comparisons
   selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
@@ -1683,6 +1683,8 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
   ncells <- tapply(df$x, as.character(df$y), length)
   xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 
+
+
   for (i in seq_along(ncells)) {
     pl <- pl + ggplot2::annotation_custom(
       grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
@@ -1693,6 +1695,8 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
       xmin = xlim
     )
   }
+
+  if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
   return(pl)
 }
 
