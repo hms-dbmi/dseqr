@@ -1503,7 +1503,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     return(res)
   })
 
-  abundances <- reactive(diff_abundance(scseq(), annot()))
+  pairs <- reactive(readRDS.safe(file.path(dataset_dir(), 'pairs.rds')))
+
+  abundances <- reactive(diff_abundance(scseq(), annot(), pairs()))
 
 
   # reset lm_fit if selected clusters change

@@ -4,7 +4,7 @@
 \alias{diff_abundance}
 \title{Run differential abundance analysis}
 \usage{
-diff_abundance(scseq, annot)
+diff_abundance(scseq, annot, pairs = NULL)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment}}

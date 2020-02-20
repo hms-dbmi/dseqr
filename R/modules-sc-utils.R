@@ -42,7 +42,7 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
 #'
 #' @export
 #' @keywords internal
-diff_abundance <- function(scseq, annot) {
+diff_abundance <- function(scseq, annot, pairs = NULL) {
 
   abundances <- table(scseq$cluster, scseq$batch)
   abundances <- unclass(abundances)
@@ -53,22 +53,23 @@ diff_abundance <- function(scseq, annot) {
   extra.info <- scseq@colData[match(colnames(abundances), scseq$batch),]
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
 
-  keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
-  y.ab <- y.ab[keep,]
+  if (!is.null(pairs))
+    y.ab$samples$pair <- pairs[colnames(y.ab), 'pair']
 
   group <- y.ab$samples$orig.ident
   group <- relevel(group, 'ctrl')
-  design <- model.matrix(~group)
-  colnames(design) <- gsub('^group', '', colnames(design))
-  y.ab <- edgeR::estimateDisp(y.ab, design, trend="none")
+  y.ab$samples$group <- group
 
-  fit.ab <- edgeR::glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
+  keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
+  y.ab <- y.ab[keep,]
 
-  res <- edgeR::glmQLFTest(fit.ab)
-  res <- edgeR::topTags(res, n = Inf)
-  as.data.frame(res)
+  # setup eset so that it will work with run_limma
+  eset <- Biobase::ExpressionSet(y.ab$counts, Biobase::AnnotatedDataFrame(y.ab$samples))
+  Biobase::assayDataElement(eset, 'vsd') <- Biobase::exprs(eset)
+  Biobase::fData(eset)[, c('SYMBOL', 'ENTREZID')] <- row.names(eset)
+
+  get_top_table(fit, with.es = FALSE)
 }
-
 
 
 #' Get label transfer choices data.frame
@@ -425,6 +426,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      markers = markers,
                      ambient = ambient,
                      tests = tests,
+                     pairs = pairs,
                      top_markers = top_markers,
                      has_replicates = has_replicates,
                      lm_fit_0svs = lm_fit,
