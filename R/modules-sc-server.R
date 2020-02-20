@@ -1654,7 +1654,9 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
 
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m)])
-  df <- data.frame(x, hl, y)
+  df <- data.frame(x, hl, y) %>%
+    dplyr::add_count(y) %>%
+    dplyr::filter(n > 2)
 
   pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
     ggplot2::scale_fill_manual(values = c(color, 'gray')) +
@@ -1677,7 +1679,8 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE) {
                    axis.title.y = ggplot2::element_blank()
     )
 
-  ncells <- tapply(x, y, length)
+
+  ncells <- tapply(df$x, as.character(df$y), length)
   xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 
   for (i in seq_along(ncells)) {
