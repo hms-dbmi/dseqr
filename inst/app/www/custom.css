@@ -168,6 +168,7 @@
   border-top-left-radius: 0; 
   border-bottom-left-radius: 0;
   border-left-width: 0px;
+  outline: none;
 }
 
 .input-group-btn.dropdown .caret {
