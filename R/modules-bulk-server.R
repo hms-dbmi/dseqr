@@ -1592,15 +1592,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' @keywords internal
 get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs') {
 
-  if (species != 'Hs') {
-    # TODO make this work
-    # TODO use this to get Hs as well and overwrite saved
-    gs.list.go <- get_gs.list(species)
-    gs.list.kegg <- get_gs.list(species, type = 'kegg')
+  gslist.go <- get_gslist(species)
+  gslist.kegg <- get_gslist(species, type = 'kegg')
 
-    gs.names.go <- get_gs.names(gs.list.go, species = species)
-    gs.names.kegg <- get_gs.names(gs.list.kegg, type = 'kegg', species = species)
-  }
+  gs.names.go <- get_gs.names(gslist.go, species = species)
+  gs.names.kegg <- get_gs.names(gslist.kegg, type = 'kegg', species = species)
 
   statistic <- ebfit$t[, 1]
   names(statistic) <- ebfit$genes$ENTREZID

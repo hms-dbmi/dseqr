@@ -1733,8 +1733,17 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
 }
 
 
-get_gs.list <- function(species = 'Hs', universe = NULL, type = 'go') {
-  if (type == 'go') {
+get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
+
+  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+
+  fname <- paste('gslist', type, species, 'rds', sep = '.')
+  gslist_path <- file.path(gs_dir, fname)
+
+  if (file.exists(gslist_path)) {
+    gslist <- readRDS(gslist_path)
+
+  } else if (type == 'go') {
 
     #	Get access to package of GO terms
     suppressPackageStartupMessages(OK <- requireNamespace("GO.db",quietly=TRUE))
@@ -1754,30 +1763,58 @@ get_gs.list <- function(species = 'Hs', universe = NULL, type = 'go') {
     egGO2ALLEGS <- tryCatch(getFromNamespace(obj,orgPkg), error=function(e) FALSE)
     if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
 
-    return(as.list(egGO2ALLEGS))
+    gslist <- as.list(egGO2ALLEGS)
+    saveRDS(gslist, gslist_path)
 
   } else if (type == 'kegg') {
 
-    # TODO turn into list of lists
-    # TODO turn species to KEGG.species
-    blah <- limma::getGeneKEGGLinks(species, convert = TRUE)
+    kegg_species <- get_kegg_species(species)
+    gkl <- limma::getGeneKEGGLinks(kegg_species, convert = TRUE)
+    gkl <- gkl %>%
+      dplyr::group_by(PathwayID) %>%
+      dplyr::summarise(gslist = list(GeneID))
+
+    gslist <- gkl$gslist
+    names(gslist) <- gkl$PathwayID
+    saveRDS(gslist, gslist_path)
   }
+
+  return(gslist)
+}
+
+get_kegg_species <- function(species) {
+  species <- match.arg(species, c("Ag", "At", "Bt", "Ce", "Dm", "Dr", "EcK12", "EcSakai", "Gg", "Hs", "Mm", "Mmu", "Pf", "Pt", "Rn", "Ss", "Xl"))
+  #	Convert from Bioconductor to KEGG species codes
+  species.KEGG <- switch(species, "Ag"="aga", "At"="ath", "Bt"="bta", "Ce"="cel", "Cf"="cfa", "Dm"="dme", "Dr"="dre", "EcK12"="eco", "EcSakai"="ecs", "Gg"="gga", "Hs"="hsa", "Mm"="mmu", "Mmu"="mcc", "Pf"="pfa", "Pt"="ptr", "Rn"="rno", "Ss"="ssc", "Xl"="xla")
+
+  return(species.KEGG)
 }
 
 
-get_gs.names <- function(gslist, type = 'go', species = 'Hs') {
-  if (type == 'go') {
+get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/drugseqr/gs_dir') {
+  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+
+  fname <- paste('gs.names', type, species, 'rds', sep = '.')
+  gs.names_path <- file.path(gs_dir, fname)
+
+  if (file.exists(gs.names_path)) {
+    gs.names <- readRDS(gs.names_path)
+
+  } else if (type == 'go') {
     GOID <- names(gslist)
     TERM <- suppressMessages(AnnotationDbi::select(GO.db::GO.db,keys=GOID,columns="TERM"))
-    res <- TERM$TERM
-    names(res) <- TERM$GOID
+    gs.names <- TERM$TERM
+    names(gs.names) <- TERM$GOID
+    saveRDS(gs.names, gs.names_path)
 
   } else if (type == 'kegg') {
-    #TODO species to species.KEGG
-    #TODO make it work
-    species.KEGG <- species
-    res <- limma::getKEGGPathwayNames(species.KEGG, remove=TRUE)
+    kegg_species <- get_kegg_species(species)
+    gs.names <- limma::getKEGGPathwayNames(kegg_species, remove=TRUE)
+    row.names(gs.names) <- gs.names$PathwayID
+    gs.names <- gs.names[names(gslist), 'Description']
+    names(gs.names) <- names(gslist)
+    saveRDS(gs.names, gs.names_path)
   }
 
-  return(res)
+  return(gs.names)
 }

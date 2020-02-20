@@ -25,7 +25,7 @@ COPY renv.lock .
 COPY .Renviron .
 
 # restore the package environment
-RUN R -e 'options(renv.consent = TRUE); renv::restore()'
+RUN R -e 'options(renv.consent = TRUE); renv:restore()'
 
 # Download miniconda and kallisto/bustools
 # install in system-wide location
