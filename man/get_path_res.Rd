@@ -4,17 +4,17 @@
 \alias{get_path_res}
 \title{Get and save pathway results for ebfit object}
 \usage{
-get_path_res(ebfit, goana_path, kegga_path, species = "Hs")
+get_path_res(ebfit, go_path, kegg_path, species = "Hs")
 }
 \arguments{
 \item{ebfit}{Result of \code{fit_ebayes}}
 
-\item{goana_path}{Path to save \code{goana} result}
+\item{go_path}{Path to save Gene Ontology result}
 
-\item{kegga_path}{Path to save \code{kegga} result}
+\item{kegg_path}{Path to save KEGG result}
 }
 \value{
-List with \code{goana} and \code{kegga} results
+List with GO and KEGG results
 }
 \description{
 Used to avoid code reuse for single-cell and bulk

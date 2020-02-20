@@ -299,7 +299,7 @@ fit_lm_scseq <- function(scseq) {
     colnames(mod) <- gsub('^group', '', colnames(mod))
     fit <- limma::lmFit(dat, mod)
 
-    # add enids for goana/kegga pathway analyses
+    # add enids for go/kegg pathway analyses
     rn <- row.names(dat)
     if (species == 'Homo sapiens') {
       fit$genes <- hs[rn, list(ENTREZID)]

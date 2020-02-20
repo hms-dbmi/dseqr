@@ -111,7 +111,7 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 
   lm_fit <- run_lmfit(eset, mod, rna_seq)
 
-  # add enids for goana/kegga pathway analyses
+  # add enids for go/kegg pathway analyses
   lm_fit$fit$genes <- Biobase::fData(eset)[, 'ENTREZID', drop = FALSE]
 
   return(lm_fit)

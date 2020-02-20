@@ -1355,8 +1355,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
-  goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
-  kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
+  go_path <- reactive(file.path(dataset_dir(), paste0('go_', clusters_str(), '.rds')))
+  kegg_path <- reactive(file.path(dataset_dir(), paste0('kegg_', clusters_str(), '.rds')))
   top_tables_paths <- reactive(file.path(dataset_dir(), 'top_tables.rds'))
 
 
@@ -1471,12 +1471,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # goana pathway result
   path_res <- reactive({
-    goana_path <- goana_path()
-    kegga_path <- kegga_path()
+    go_path <- go_path()
+    kegg_path <- kegg_path()
 
-    if (file.exists(kegga_path)) {
-      res <- list(go = readRDS(goana_path),
-                  kg = readRDS(kegga_path))
+    if (file.exists(kegg_path)) {
+      res <- list(go = readRDS(go_path),
+                  kg = readRDS(kegg_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1495,7 +1495,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       ambient <- ambient()
       lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
       ebfit <- fit_ebayes(lm_fit, 'test-ctrl')
-      res <- get_path_res(ebfit, goana_path, kegga_path, species)
+      res <- get_path_res(ebfit, go_path, kegg_path, species)
       progress$inc(1)
       toggleAll(input_ids)
     }
@@ -1546,8 +1546,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'goana.csv'
-    kg_fname <- 'kegga.csv'
+    go_fname <- 'go.csv'
+    kg_fname <- 'kegg.csv'
     ab_fname <- 'abundances.csv'
 
     tt <- top_table()
@@ -1582,6 +1582,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right = pfun_right
   ))
 }
+
+
 
 
 #' Format gene plots for sample comparison for drugseqr app
@@ -1721,4 +1723,53 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
   dprimesPlotly(path_df, drugs = FALSE)
 }
 
+
+get_gs.list <- function(species = 'Hs', universe = NULL, type = 'go') {
+  if (type == 'go') {
+
+    #	Get access to package of GO terms
+    suppressPackageStartupMessages(OK <- requireNamespace("GO.db",quietly=TRUE))
+    if(!OK) stop("GO.db package required but is not installed (or can't be loaded)")
+
+    #	Get access to required annotation functions
+    suppressPackageStartupMessages(OK <- requireNamespace("AnnotationDbi",quietly=TRUE))
+    if(!OK) stop("AnnotationDbi package required but is not installed (or can't be loaded)")
+
+    #	Load appropriate organism package
+    orgPkg <- paste0("org.",species,".eg.db")
+    suppressPackageStartupMessages(OK <- requireNamespace(orgPkg,quietly=TRUE))
+    if(!OK) stop(orgPkg," package required but is not installed (or can't be loaded)")
+
+    #	Get GO to Entrez Gene mappings
+    obj <- paste0("org.",species,".egGO2ALLEGS")
+    egGO2ALLEGS <- tryCatch(getFromNamespace(obj,orgPkg), error=function(e) FALSE)
+    if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
+
+    return(as.list(egGO2ALLEGS))
+
+  } else if (type == 'kegg') {
+
+    # TODO turn into list of lists
+    # TODO turn species to KEGG.species
+    blah <- limma::getGeneKEGGLinks(species, convert = TRUE)
+  }
+}
+
+
+get_gs.names <- function(gslist, type = 'go', species = 'Hs') {
+  if (type == 'go') {
+    GOID <- names(gslist)
+    TERM <- suppressMessages(AnnotationDbi::select(GO.db::GO.db,keys=GOID,columns="TERM"))
+    res <- TERM$TERM
+    names(res) <- TERM$GOID
+
+  } else if (type == 'kegg') {
+    #TODO species to species.KEGG
+    #TODO make it work
+    species.KEGG <- species
+    res <- limma::getKEGGPathwayNames(species.KEGG, remove=TRUE)
+  }
+
+  return(res)
+}
 

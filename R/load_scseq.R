@@ -764,7 +764,6 @@ get_npc_choices <- function(sce, type = 'PCA', quick = FALSE) {
 
   } else {
     choices <- scran::getClusteredPCs(pcs, FUN = FUN)
-
     names(choices$clusters) <- choices$n.pcs
 
     npcs <- S4Vectors::metadata(choices)$chosen

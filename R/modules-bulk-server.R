@@ -1401,13 +1401,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     get_drug_paths(dataset_dir(), suffix)
   })
 
-  goana_path <- reactive({
-    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.rds')
+  go_path <- reactive({
+    fname <- paste0('go_', anal_name(), '_', numsv_str(), '.rds')
     file.path(dataset_dir(), fname)
   })
 
-  kegga_path <- reactive({
-    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.rds')
+  kegg_path <- reactive({
+    fname <- paste0('kegg_', anal_name(), '_', numsv_str(), '.rds')
     file.path(dataset_dir(), fname)
   })
 
@@ -1495,16 +1495,16 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     get_top_table(lm_fit, groups)
   })
 
-  # goana pathway result
+  # go/kegg pathway result
   path_res <- reactive({
     req(full_contrast())
-    goana_path <- goana_path()
-    kegga_path <- kegga_path()
+    go_path <- go_path()
+    kegg_path <- kegg_path()
 
-    if (file.exists(kegga_path)) {
+    if (file.exists(kegg_path)) {
       res <- list(
-        go = readRDS(goana_path),
-        kg = readRDS(kegga_path))
+        go = readRDS(go_path),
+        kg = readRDS(kegg_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1521,7 +1521,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
-      res <- get_path_res(ebfit, goana_path, kegga_path)
+      res <- get_path_res(ebfit, go_path, kegg_path)
       progress$inc(1)
       toggleAll(input_ids)
     }
@@ -1549,8 +1549,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'goana.csv'
-    kg_fname <- 'kegga.csv'
+    go_fname <- 'go.csv'
+    kg_fname <- 'kegg.csv'
 
     path_res <- path_res()
     write.csv(top_table(), tt_fname)
@@ -1584,23 +1584,34 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' Used to avoid code reuse for single-cell and bulk
 #'
 #' @param ebfit Result of \code{fit_ebayes}
-#' @param goana_path Path to save \code{goana} result
-#' @param kegga_path Path to save \code{kegga} result
+#' @param go_path Path to save Gene Ontology result
+#' @param kegg_path Path to save KEGG result
 #'
-#' @return List with \code{goana} and \code{kegga} results
+#' @return List with GO and KEGG results
 #' @export
 #' @keywords internal
-get_path_res <- function(ebfit, goana_path, kegga_path, species = 'Hs') {
+get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs') {
 
+  if (species != 'Hs') {
+    # TODO make this work
+    # TODO use this to get Hs as well and overwrite saved
+    gs.list.go <- get_gs.list(species)
+    gs.list.kegg <- get_gs.list(species, type = 'kegg')
 
-  go <- limma::goana(ebfit, species = species, geneid = 'ENTREZID')
-  go <- limma::topGO(go, number = Inf)
+    gs.names.go <- get_gs.names(gs.list.go, species = species)
+    gs.names.kegg <- get_gs.names(gs.list.kegg, type = 'kegg', species = species)
+  }
 
-  kg <- limma::kegga(ebfit, species = species, geneid = 'ENTREZID')
-  kg <- limma::topKEGG(kg, number = Inf)
+  statistic <- ebfit$t[, 1]
+  names(statistic) <- ebfit$genes$ENTREZID
+  go <- limma::cameraPR(statistic, index = gslist.go)
+  go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
 
-  saveRDS(go, goana_path)
-  saveRDS(kg, kegga_path)
+  kg <- limma::cameraPR(statistic, index = gslist.kegg)
+  kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
+
+  saveRDS(go, go_path)
+  saveRDS(kg, kegg_path)
 
   return(list(go = go, kg = kg))
 }
