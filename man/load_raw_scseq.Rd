@@ -10,7 +10,8 @@ load_raw_scseq(
   sc_dir,
   indices_dir,
   progress = NULL,
-  recount = TRUE
+  recount = TRUE,
+  value = 0
 )
 }
 \arguments{

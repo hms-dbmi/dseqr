@@ -8,10 +8,10 @@
 #' @return NULL
 #' @export
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = TRUE) {
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = TRUE, value = 0) {
   if (is.null(progress)) {
-    progress <- list(set = function(value, message = '') {
-      cat(value, message, '...\n')
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
     })
   }
 
@@ -19,20 +19,31 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   is.cellranger <- check_is_cellranger(fastq_dir)
   if (is.cellranger) standardize_cellranger(fastq_dir)
 
-  progress$set(message = "Quantifying files", value = 1)
+  progress$set(message = "Quantifying files", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
 
-  progress$set(message = "Loading and QC", value = 2)
+  progress$set(message = "Loading and QC", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
   scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
   scseq <- scseq[, scseq$whitelist]
   gc()
 
-  progress$set(message = "Normalizing", value = 3)
+  process_raw_scseq(scseq, dataset_name, sc_dir, progress, value = value + 2)
+}
+
+process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, value = 0) {
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+  progress$set(message = "Normalizing", detail = '', value = value + 1)
   scseq <- normalize_scseq(scseq)
   gc()
 
-  progress$set(message = "Clustering", value = 4)
+  progress$set(message = "Clustering", value = value + 2)
   scseq <- add_hvgs(scseq)
   scseq <- add_scseq_clusters(scseq)
   gc()
@@ -42,24 +53,24 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   scseq <- add_doublet_score(scseq)
 
 
-  progress$set(message = "Reducing dimensions", value = 5)
+  progress$set(message = "Reducing dimensions", value = value + 3)
   scseq <- run_tsne(scseq)
   gc()
 
-  progress$set(message = "Getting markers", value = 6)
+  progress$set(message = "Getting markers", value = value + 4)
   tests <- pairwise_wilcox(scseq)
   markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-  progress$set(message = "Saving", value = 7)
+  progress$set(message = "Saving", value = value + 5)
   anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
   save_scseq_data(anal, dataset_name, sc_dir)
 
-  progress$set(value = 8)
+  progress$set(message = "Saving loom", value = value + 6)
   save_scle(scseq, file.path(sc_dir, dataset_name))
-  progress$set(value = 9)
+  progress$set(value = value + 7)
 }
 
 

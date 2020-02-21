@@ -117,7 +117,7 @@ scSelectedDatasetInput <- function(id) {
   tagList(
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
                               actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn'),
-                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle dataset integration'),
+                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle to integrate or subset dataset(s)'),
                               options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)),
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
@@ -151,15 +151,18 @@ integrationFormInput <- function(id) {
 
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('exclude_clusters'), 'Integration excluded clusters:', multiple = TRUE, choices = '', width = '100%', options = list(optgroupField = 'anal')),
+        selectizeInput(ns('test_integration'), 'Integration test or subset datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Select one dataset to subset')),
+        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Leave empty to subset')),
+        selectizeInputWithButtons(ns('exclude_clusters'),
+                                  label = tags$span('Clusters to', tags$span(class="text-warning", 'exclude'), 'or', tags$span(class='text-success', 'include', .noWS = 'after'), ':'),
+                                  actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle exclude or include'),
+                                  options = list(multiple = TRUE, optgroupField = 'anal')),
         textInputWithButtons(ns('integration_name'),
                              container_id = ns('validate'),
-                             'Name for new integrated analysis:',
+                             'Name for new dataset:',
                              actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
                              actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
-                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
+                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate or subset datasets'),
                              help_id = ns('error_msg')),
 
         div(style = 'display: none',
@@ -324,5 +327,6 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+
 
 

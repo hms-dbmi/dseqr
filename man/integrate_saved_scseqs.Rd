@@ -11,7 +11,7 @@ integrate_saved_scseqs(
   exclude_clusters,
   anal_name,
   pairs = NULL,
-  updateProgress = NULL
+  progress = NULL
 )
 }
 \arguments{

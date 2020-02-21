@@ -377,7 +377,12 @@ get_gene_choices <- function(markers, type = 'samples', qc_metrics = NULL) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, pairs = NULL, updateProgress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, pairs = NULL, progress = NULL) {
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -386,11 +391,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
     return(NULL)
   }
 
-  # default updateProgress and number of steps
-  if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
-  n = 8
-
-  updateProgress(1/n, 'loading')
+  progress$set(1, detail = 'loading')
   test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'test')
   ctrl_scseqs <- load_scseqs_for_integration(ctrl, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'ctrl')
 
@@ -405,7 +406,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   if (species == 'Homo sapiens') release <- '94'
   else if (species == 'Mus musculus') release <- '98'
 
-  updateProgress(2/n, 'integrating')
+  progress$set(2, detail = 'integrating')
   combined <- integrate_scseqs(scseqs)
 
   # retain original doublet scores (needs scaling?)
@@ -413,7 +414,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
   # add clusters
-  updateProgress(3/n, 'clustering')
+  progress$set(3, detail = 'clustering')
   choices <- get_npc_choices(combined, type = 'corrected')
 
   combined@metadata$species <- species
@@ -421,13 +422,13 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   combined$cluster <- choices$cluster
 
   # TSNE on corrected reducedDim
-  updateProgress(4/n, 'reducing')
+  progress$set(4, detail = 'reducing')
   combined <- run_tsne(combined, dimred = 'corrected')
 
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
 
-  updateProgress(5/n, 'getting markers')
+  progress$set(5, detail = 'getting markers')
   tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
   markers <- get_scseq_markers(tests)
 
@@ -442,7 +443,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
-  updateProgress(6/n, 'fitting linear models')
+  progress$set(6, detail = 'fitting linear models')
   obj <- combined
   pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
@@ -450,7 +451,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   lm_fit <- run_limma_scseq(obj)
 
 
-  updateProgress(7/n, 'saving')
+  progress$set(7, detail = 'saving')
   scseq_data <- list(scseq = combined,
                      species = species,
                      summed = summed,
@@ -466,7 +467,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
 
-  updateProgress(8/n, 'saving loom')
+  progress$set(8, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, anal_name))
 
   return(NULL)
@@ -484,7 +485,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 #' @return List of \code{SingleCellExperiment} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, ident) {
+load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, ident = scseq$project) {
 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
@@ -499,7 +500,7 @@ load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, id
     anal <- names(scseqs)[i]
     scseq <- scseqs[[anal]]
 
-    # set orig.ident to ctrl/test
+    # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
 
     # only remove excluded clusters if present
@@ -580,10 +581,12 @@ validate_integration <- function(test, ctrl, anal_name, anal_options, pairs) {
   msg <- NULL
 
   if (is.null(anal_name) || anal_name == '') {
-    msg <- 'Provide a name for integrated analysis'
+    msg <- 'Provide a name for new dataset'
 
-  } else if (is.null(test) || is.null(ctrl)) {
-    msg <- 'Need control and test datasets'
+  } else if (is.null(ctrl)) {
+
+    if (length(test) != 1)
+      msg <- 'Need control datasets'
 
   } else if (!is.null(pairs)) {
 

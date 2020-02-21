@@ -362,8 +362,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     dataset_dir <- file.path(sc_dir, dataset_name())
     scseq <- load_scseq(dataset_dir)
-    if (!isolate(is.integrated()))
-      scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
 
     toggleAll(dataset_inputs)
     return(scseq)
@@ -744,11 +742,15 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                           'test_integration',
                           'exclude_clusters',
                           'click_up',
-                          'click_dl')
+                          'click_dl',
+                          'toggle_exclude')
 
 
   integration_name <- reactive(input$integration_name)
   integration_options <- reactive(datasets()$value[datasets()$type == 'Individual'])
+
+  is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
+  is_subset <- reactive(length(test()) == 1 && is.null(ctrl()))
 
   ctrl <- reactiveVal()
   test <- reactiveVal()
@@ -762,10 +764,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   observe(ctrl(input$ctrl_integration))
   observe(test(input$test_integration))
 
-
-
-
-
   # update test dataset choices
   observe({
     options <- integration_options()
@@ -778,15 +776,42 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
   })
 
+  selected_datasets <- reactive(c(test(), ctrl()))
+
+
+  # prevent pairing if not enough datasets
+  allow_pairs <- reactive(length(selected_datasets()) > 2)
+  observe({
+    toggle(id = "click_dl", condition = allow_pairs())
+    toggle(id = "click_up", condition = allow_pairs())
+  })
+
+  excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
+  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  options <- reactiveVal(excludeOptions)
+
+  exclude_choices <- reactive({
+    selected <- selected_datasets()
+
+    if (is_subset()) {
+      dataset_dir <- file.path(sc_dir, selected)
+      clusters <- readRDS(file.path(dataset_dir, 'annot.rds'))
+      choices <- get_cluster_choices(clusters, dataset_dir)
+      choices$value <- paste(selected, choices$value, sep = '_')
+      options(contrastOptions)
+
+    } else {
+      colors <- get_palette(selected)
+      choices <- get_exclude_choices(selected, sc_dir, colors)
+      options(excludeOptions)
+    }
+
+    return(choices)
+  })
+
   # update exclude clusters
   observe({
-    anal_names <- c(test(), ctrl())
-    anal_colors <- get_palette(anal_names)
-    exclude_choices <- get_exclude_choices(anal_names, sc_dir, anal_colors)
-    updateSelectizeInput(session, 'exclude_clusters',
-                         choices = exclude_choices,
-                         options = list(render = I('{option: excludeOptions, item: excludeOptions}')),
-                         server = TRUE)
+    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = options(), server = TRUE)
   })
 
   # upload/download pairs
@@ -824,15 +849,28 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # make upload green when have data
   observe(toggleClass(id = "click_up", 'btn-success', condition = isTruthy(pairs())))
 
+  # change UI of exclude toggle
+  observe({
+    toggleClass(id = 'toggle_icon', 'fa-plus text-success', condition = is_include())
+    toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
+  })
+
   # run integration
   observeEvent(input$submit_integration, {
 
+    exclude_clusters <- input$exclude_clusters
+
+    if (is_include()) {
+      choices <- exclude_choices()
+      exclude_clusters <- setdiff(choices$value, exclude_clusters)
+    }
+
     test_anals <- test()
     ctrl_anals <- ctrl()
-    exclude_clusters <- input$exclude_clusters
     anal_name <- input$integration_name
     datasets <- datasets()
     pairs <- pairs()
+    is_subset <- is_subset()
 
     error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets, pairs)
 
@@ -842,29 +880,31 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       toggleAll(integration_inputs)
 
       # Create a Progress object
-      progress <- Progress$new()
-      progress$set(message = "Integrating datasets", value = 0)
-      # Close the progress when this reactive exits (even if there's an error)
       on.exit(progress$close())
+      if (is_subset) {
+        progress <- Progress$new(session, min=0, max = 8)
+        progress$set(message = "Subsetting dataset", value = 0)
 
-      # Create a callback function to update progress.
-      updateProgress <- function(value = NULL, detail = NULL) {
-        if (is.null(value)) {
-          value <- progress$getValue()
-          value <- value + (progress$getMax() - value) / 5
-        }
-        progress$set(value = value, detail = detail)
+        subset_saved_scseq(sc_dir,
+                           dataset_name = test_anals,
+                           exclude_clusters = exclude_clusters,
+                           save_name = anal_name,
+                           progress = progress)
+
+      } else {
+        progress <- Progress$new(session, min=0, max = 9)
+        progress$set(message = "Integrating datasets", value = 0)
+
+        # run integration
+        integrate_saved_scseqs(sc_dir,
+                               test = test_anals,
+                               ctrl = ctrl_anals,
+                               exclude_clusters = exclude_clusters,
+                               anal_name = anal_name,
+                               pairs = pairs,
+                               progress = progress)
+
       }
-
-      # run integration
-      integrate_saved_scseqs(sc_dir,
-                             test = test_anals,
-                             ctrl = ctrl_anals,
-                             exclude_clusters = exclude_clusters,
-                             anal_name = anal_name,
-                             pairs = pairs,
-                             updateProgress = updateProgress)
-
 
       # re-enable, clear inputs, and trigger update of available anals
       ctrl(NULL)
@@ -884,6 +924,18 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   })
 
   return(new_anal)
+}
+
+subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters, progress = NULL) {
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+  progress$set(1, detail = 'loading')
+  scseq <- load_scseqs_for_integration(dataset_name, exclude_clusters, sc_dir)[[1]]
+  process_raw_scseq(scseq, save_name, sc_dir, progress, value = 1)
 }
 
 #' Logic for comparison type toggle for integrated analyses
