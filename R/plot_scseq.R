@@ -19,19 +19,21 @@ plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Clu
 
 }
 
-#' Plot UMAP coloured by HGNC symbol
+#' Plot UMAP coloured by gene or QC metric
 #'
 #' @param scseq \code{SingleCellExperiment} object.
-#' @param gene Character vector specifying gene to colour cells by.
+#' @param feature Character vector specifying feature to colour cells by.
 #' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_gene <- function(scseq, gene) {
+plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
 
   pt.size <- min(6000/ncol(scseq), 2)
 
-  FeaturePlot(scseq, gene, reduction = 'TSNE', pt.size = pt.size, order = TRUE) +
+  if (reverse_scale) cols <- rev(cols)
+
+  FeaturePlot(scseq, feature, reduction = 'TSNE', pt.size = pt.size, order = TRUE, cols = cols) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +

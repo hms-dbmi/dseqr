@@ -242,6 +242,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                               is.integrated = scDataset$is.integrated,
                               selected_markers = scClusterComparison$selected_markers,
                               selected_cluster = scClusterComparison$selected_cluster,
+                              qc_metrics = scClusterComparison$qc_metrics,
                               type = 'clusters')
 
   # the selected clusters/gene for sample comparison
@@ -361,6 +362,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     dataset_dir <- file.path(sc_dir, dataset_name())
     scseq <- load_scseq(dataset_dir)
+    if (!isolate(is.integrated()))
+      scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
 
     toggleAll(dataset_inputs)
     return(scseq)
@@ -1010,7 +1013,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   observeEvent(choices(), {
 
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = choices(),
+                         choices = rbind(NA, choices()),
                          selected = selected_cluster(),
                          options = contrast_options, server = TRUE)
   })
@@ -1048,6 +1051,13 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     markers(markers)
   })
 
+  qc_metrics <- reactive({
+    scseq <- scseq()
+    if(is.null(scseq)) return(NULL)
+    qc <- colnames(scseq@colData)
+    qc[qc %in% c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')]
+  })
+
 
   observe({
     sel <- selected_cluster()
@@ -1059,7 +1069,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   return(list(
     annot = annot,
     selected_markers = selected_markers,
-    selected_cluster = selected_cluster
+    selected_cluster = selected_cluster,
+    qc_metrics = qc_metrics
   ))
 }
 
@@ -1096,7 +1107,7 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, type, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
@@ -1131,10 +1142,13 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
   gene_choices <- reactive({
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
+    qc_metrics <- qc_metrics()
 
     # will error if labels
-    if (is.null(markers) || is.null(selected_cluster)) return(NULL)
-    get_gene_choices(markers, type = type)
+    if ((is.null(markers) & is.null(qc_metrics)) ||
+        (is.null(markers) & isTruthy(selected_cluster))) return(NULL)
+
+    get_gene_choices(markers, type = type, qc_metrics = qc_metrics)
   })
 
   # click genecards
@@ -1248,7 +1262,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun
     scseq <- scseq()
     if (!isTruthy(gene) || !isTruthy(scseq)) return(NULL)
     if (!gene %in% row.names(scseq) && !gene %in% colnames(scseq@colData)) return(NULL)
-    plot_tsne_gene(scseq, gene)
+    plot_tsne_feature(scseq, gene)
   })
 
 
@@ -1292,7 +1306,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   output$ridge_plot <- renderPlot({
     gene <- selected_gene()
     cluster <- selected_cluster()
-    req(gene, cluster)
+    req(gene)
     suppressMessages(print(plot_ridge(gene, scseq(), cluster)))
   }, height = height)
 }
@@ -1368,12 +1382,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   sel <- reactive({sel <- input$selected_cluster; req(sel); sel})
   pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient()))
 
-  pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'test'), height = 453))
+  pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'test'), height = 453))
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
   # plot function for right
   pfun_right_reps <- reactive(function(gene) plot_ridge(gene, scseq(), sel(), by.sample = TRUE, with.height = TRUE))
-  pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_gene_sample(gene, scseq(), 'ctrl'), height = 453))
+  pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'ctrl'), height = 453))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
   dataset_ambient <- reactive(readRDS.safe(file.path(dataset_dir(), 'ambient.rds')))
@@ -1596,9 +1610,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 #' @return \code{plot} formatted for drugseqr app
 #' @export
 #' @keywords internal
-plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
+plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
 
-  plot <- plot_tsne_gene(scseq, gene)
+  plot <- plot_tsne_feature(scseq, gene)
   gene <- make.names(gene)
 
   # the min and max gene expression value
@@ -1624,7 +1638,8 @@ plot_tsne_gene_sample <- function(gene, scseq, group = 'test') {
 }
 
 
-plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE) {
+plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+  if (is.null(selected_cluster)) selected_cluster <- ''
 
   # for one vs one comparisons
   selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
@@ -1652,10 +1667,14 @@ plot_ridge <- function(gene, scseq, selected_cluster, by.sample = FALSE, with.he
     title <- 'Expression by Cluster'
   }
 
-  x <- as.numeric(SingleCellExperiment::logcounts(scseq[gene, ]))
+
+  if (feature %in% row.names(scseq))
+    x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+  else
+    x <- scseq[[feature]]
 
   m <- tapply(x, y, mean)
-  y <- factor(y, levels = levels(y)[order(m)])
+  y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])
   df <- data.frame(x, hl, y) %>%
     dplyr::add_count(y) %>%
     dplyr::filter(n > 2)
@@ -1843,3 +1862,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

@@ -32,36 +32,34 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   scseq <- normalize_scseq(scseq)
   gc()
 
-  progress$set(message = "Filtering doublets", value = 4)
+  progress$set(message = "Clustering", value = 4)
   scseq <- add_hvgs(scseq)
-  scseq <- add_scseq_clusters(scseq, quick = TRUE)
-  scseq <- add_doublet_score(scseq)
-  scseq <- filter_doublets(scseq)
-  gc()
-
-
-  progress$set(message = "Clustering", value = 5)
   scseq <- add_scseq_clusters(scseq)
   gc()
 
-  progress$set(message = "Reducing dimensions", value = 6)
+  # QC metrics
+  scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
+  scseq <- add_doublet_score(scseq)
+
+
+  progress$set(message = "Reducing dimensions", value = 5)
   scseq <- run_tsne(scseq)
   gc()
 
-  progress$set(message = "Getting markers", value = 7)
+  progress$set(message = "Getting markers", value = 6)
   tests <- pairwise_wilcox(scseq)
   markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-  progress$set(message = "Saving", value = 8)
+  progress$set(message = "Saving", value = 7)
   anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
   save_scseq_data(anal, dataset_name, sc_dir)
 
-  progress$set(value = 9)
+  progress$set(value = 8)
   save_scle(scseq, file.path(sc_dir, dataset_name))
-
+  progress$set(value = 9)
 }
 
 
@@ -665,7 +663,7 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens') {
     mrna <- readLines(system.file('extdata', 'mrna_mouse.csv', package = 'drugseqr', mustWork = TRUE))
 
   } else {
-    stop('Only human and mouse supported')
+    stop("Only 'Homo sapiens' and 'Mus musculus' supported")
   }
 
   return(list(rrna=rrna, mrna=mrna))
@@ -825,7 +823,7 @@ add_doublet_score <- function(scseq) {
 #'
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 #' @export
-add_scseq_qc_metrics <- function(sce, species) {
+add_scseq_qc_metrics <- function(sce, species, for_qcplots = FALSE) {
   # calculate qc metrics if haven't previous
   if (!is.null(sce$total_counts)) return(sce)
 
@@ -833,6 +831,25 @@ add_scseq_qc_metrics <- function(sce, species) {
   sce <- scater::addPerCellQC(sce,
                               subsets=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
                                            ribo = which(row.names(sce) %in% sce@metadata$rrna)))
+
+  if (for_qcplots) sce <- add_scseq_qcplot_metrics(sce)
+
+  return(sce)
+}
+
+#' Add QC metrics to SingleCellExperiment for plotting
+#'
+#' @param sce \code{SingleCellExperiment}
+#'
+#' @return \code{sce} with formated qc metrics.
+#' @export
+add_scseq_qcplot_metrics <- function(sce) {
+
+  sce$mito_percent <- sce$subsets_mito_percent
+  sce$ribo_percent <- sce$subsets_ribo_percent
+  sce$log10_sum <- log10(sce$sum)
+  sce$log10_detected <- log10(sce$detected)
+
   return(sce)
 }
 

@@ -13,6 +13,7 @@ selectedGene(
   selected_markers,
   selected_cluster,
   type,
+  qc_metrics = function() NULL,
   ambient = function() NULL
 )
 }
