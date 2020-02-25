@@ -31,6 +31,16 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   process_raw_scseq(scseq, dataset_name, sc_dir, progress, value = value + 2)
 }
 
+#' Process Count Data for App
+#'
+#' @param scseq \code{SingleCellExperiment}
+#' @param dataset_name Name of dataset to save
+#' @param sc_dir Directory to save dataset to
+#' @param progress Shiny progress object. Default (\code{NULL}) prints to stdout.
+#' @param value Initial value of progress.
+#'
+#' @return NULL
+#' @export
 process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, value = 0) {
 
   if (is.null(progress)) {
@@ -173,7 +183,7 @@ load_scseq <- function(dataset_dir) {
     colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
     scseq$cluster <- factor(as.numeric(scseq$cluster))
 
-    is.integrated <- !is.null(scseq$orig.ident)
+    is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
     if (is.integrated) {
       scseq$orig.ident <- factor(scseq$orig.ident, levels = c('test', 'ctrl'))
       scseq$orig.cluster <- factor(as.numeric(scseq$orig.cluster))

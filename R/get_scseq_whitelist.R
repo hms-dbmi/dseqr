@@ -38,7 +38,7 @@ get_scseq_whitelist <- function(counts, data_dir, overwrite = TRUE, species = 'H
 
   # setup stats for outlier detection
   df <- sce@colData
-  reasons <- scater::quickPerCellQC(df, percent_subsets=c("subsets_mito_percent", "subsets_ribo_percent"))
+  reasons <- scater::quickPerCellQC(df, percent_subsets=c("subsets_mito_percent"))
 
   kneelist  <- colnames(sce)
   whitelist <- colnames(sce)[!reasons$discard]

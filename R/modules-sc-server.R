@@ -1754,6 +1754,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
 
   ncells <- tapply(df$x, as.character(df$y), length)
+  ncells <- ncells[levels(df$y)]
   xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 
 
