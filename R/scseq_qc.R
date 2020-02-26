@@ -53,8 +53,8 @@ run_scseq_qc <- function(sce, metrics = c('low_lib_size',
   not_selected <- setdiff(colnames(reasons), c('discard', metrics))
 
   if (length(not_selected)) {
-    reasons$discard <- apply(reasons, 1, any)
-    sce@colData <- cbind(df, reasons[, c(not_selected, 'discard')])
+    reasons$outlier_any <- apply(reasons, 1, any)
+    sce@colData <- cbind(df, reasons[, c(not_selected, 'outlier_any')])
   }
 
   if (!is.null(metrics)) {

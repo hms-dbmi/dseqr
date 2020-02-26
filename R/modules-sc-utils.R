@@ -348,14 +348,19 @@ get_contrast_choices <- function(clusters, test) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(markers, type = 'samples', qc_metrics = NULL) {
+get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL) {
+  type_score <- c('doublet_score', 'log10_detected', 'log10_sum', 'mito_percent', 'ribo_percent', 'outlyingness')
 
   choices <- c(row.names(markers), qc_metrics)
+  if (length(choices) == length(qc_metrics)) type <- ifelse(choices %in% type_score, 'QC Score', 'QC Outlier')
   idx <- match(choices, tx2gene$gene_name)
 
   choices <- data.table::data.table(label = choices,
                                     value = choices,
-                                    description = tx2gene$description[idx])
+                                    description = tx2gene$description[idx],
+                                    type = type,
+                                    stringsAsFactors = FALSE)
+
 
   return(choices)
 }

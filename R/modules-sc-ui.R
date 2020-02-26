@@ -154,13 +154,14 @@ integrationFormInput <- function(id) {
         selectizeInput(ns('test_integration'), 'Integration test or subset datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Select one dataset to subset')),
         selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Leave empty to subset')),
         selectizeInputWithButtons(ns('exclude_clusters'),
+                                  container_id = ns('exclude-container'),
                                   label = tags$span('Clusters to', tags$span(class="text-warning", 'exclude'), 'or', tags$span(class='text-success', 'include', .noWS = 'after'), ':'),
                                   actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle exclude or include'),
                                   options = list(multiple = TRUE, optgroupField = 'anal')),
         shinyWidgets::radioGroupButtons(ns('integration_type'), 'Integration type:', choices = c('clusterMNN', 'fastMNN'), justified = TRUE, selected = 'clusterMNN'),
         textInputWithButtons(ns('integration_name'),
-                             container_id = ns('validate'),
-                             'Name for new dataset:',
+                             container_id = ns('name-container'),
+                             label = 'Name for new dataset:',
                              actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
                              actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
                              actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate or subset datasets'),
@@ -230,6 +231,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
                             label = 'Feature to plot:',
                             exclude_ambient_button,
                             ridge_plot_button,
+                            options = list(optgroupField = 'type'),
                             actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   )
 }
@@ -328,3 +330,5 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+
+

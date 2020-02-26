@@ -808,6 +808,10 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   observe(toggle(id = 'integration_type', condition = is_integration()))
 
 
+  # show exclude/exclude and new dataset only if something selected
+  observe(toggle(id = 'exclude-container', condition = selected_datasets()))
+  observe(toggle(id = 'name-container', condition = selected_datasets()))
+
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   options <- reactiveVal(excludeOptions)
@@ -900,7 +904,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
     if (is.null(error_msg)) {
       # clear error and disable button
-      removeClass('validate', 'has-error')
+      removeClass('name-container', 'has-error')
       toggleAll(integration_inputs)
 
       # Create a Progress object
@@ -943,7 +947,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       # show error message
       pairs(NULL)
       html('error_msg', html = error_msg)
-      addClass('validate', class = 'has-error')
+      addClass('name-container', class = 'has-error')
     }
 
   })
@@ -1132,18 +1136,19 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
     qc <- colnames(scseq@colData)
-    qc[qc %in% c('log10_sum',
-                 'log10_detected',
-                 'mito_percent',
-                 'ribo_percent',
-                 'doublet_score',
-                 'low_lib_size',
-                 'low_n_features',
-                 'high_subsets_mito_percent',
-                 'low_subsets_ribo_percent',
-                 'high_doublet_score',
-                 'high_outlyingness',
-                 'discard')]
+    qc[match(c('outlier_any',
+               'low_lib_size',
+               'low_n_features',
+               'high_subsets_mito_percent',
+               'low_subsets_ribo_percent',
+               'high_doublet_score',
+               'high_outlyingness',
+               'log10_sum',
+               'log10_detected',
+               'mito_percent',
+               'ribo_percent',
+               'doublet_score',
+               'outlingness'), qc, nomatch = 0)]
   })
 
 
@@ -1233,10 +1238,12 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
     qc_metrics <- qc_metrics()
 
     # will error if labels
+    # also prevents intermediate redraws
     if ((is.null(markers) & is.null(qc_metrics)) ||
         (is.null(markers) & isTruthy(selected_cluster))) return(NULL)
 
-    get_gene_choices(markers, type = type, qc_metrics = qc_metrics)
+
+    get_gene_choices(markers, qc_metrics = qc_metrics)
   })
 
   # click genecards
@@ -1951,4 +1958,6 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
+
 
