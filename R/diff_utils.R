@@ -153,12 +153,12 @@ add_adjusted <- function(eset, svobj = list(sv = NULL), numsv = 0, adj_path = NU
   }
 
   # get mods with group and pair effects
-  mods <- get_mods(eset)
+  mods <- get_mods(eset@phenoData)
   mod <- mods$mod
   mod0 <- mods$mod0
 
   # remove pairs from alternative model so that get cleaned
-  pair_cols <- colnames(mods$mod0)[-1]
+  pair_cols <- colnames(mod0)[-1]
 
   svs <- svobj$sv[, seq_len(numsv), drop = FALSE]
 
@@ -186,10 +186,9 @@ add_adjusted <- function(eset, svobj = list(sv = NULL), numsv = 0, adj_path = NU
 #' @return List with model matrix(mod) and null model matrix (mod0) used for \code{sva}.
 #'
 #' @export
-get_mods <- function(eset) {
+get_mods <- function(pdata) {
 
   # make full and null model matrix
-  pdata <- Biobase::pData(eset)
   group_levels <- setdiff(unique(pdata$group), NA)
   group <- factor(pdata$group, levels = group_levels)
   pair <- factor(pdata$pair)
@@ -640,13 +639,13 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
         limma::lmFit(v, design = mod)
       }
 
-      mod <- get_mods(eset)$mod
+      mod <- get_mods(eset@phenoData)$mod
       fit <- fit_fun()
 
       # if no dof, drop pairs and retry
       if (fit$df.residual[1] == 0) {
         eset$pair <- NULL
-        mod <- get_mods(eset)$mod
+        mod <- get_mods(eset@phenoData)$mod
         fit <- fit_fun()
       }
 
@@ -675,7 +674,7 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
       # if no dof, drop pairs and retry
       if (fit$df.residual == 0) {
         eset$pair <- NULL
-        mod <- get_mods(eset)$mod
+        mod <- get_mods(eset@phenoData)$mod
         fit <- limma::lmFit(y, mod)
       }
 

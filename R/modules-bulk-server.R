@@ -1345,9 +1345,28 @@ validate_up_annot <- function(up, ref) {
 
   } else if (length(group) < 3) {
     msg <- 'Need at least 3 grouped samples'
+
+  } else if (!is_invertible(up)) {
+    msg <- 'Group name and Pair combination not solvable'
   }
 
   return(msg)
+}
+
+
+
+
+is_invertible <- function(pdata) {
+  pdata <- pdata[!is.na(pdata$`Group name`), ]
+
+  pair <- pdata$Pair
+  if (length(unique(pair)) > 1) pdata$pair <- pair
+
+  pdata$group <- pdata$`Group name`
+
+  mod <- get_mods(pdata)$mod
+
+  class(try(solve.default(t(mod) %*% mod),silent=T)) == 'matrix'
 }
 
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
