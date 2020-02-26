@@ -57,13 +57,16 @@ run_scseq_qc <- function(sce, metrics = c('low_lib_size',
     sce@colData <- cbind(df, reasons[, c(not_selected, 'discard')])
   }
 
-  # subset to specified metrics
-  reasons <- reasons[, colnames(reasons) %in% metrics, drop = FALSE]
+  if (!is.null(metrics)) {
+    # subset to specified metrics
+    reasons <- reasons[, colnames(reasons) %in% metrics, drop = FALSE]
 
-  # update discard reasons
-  reasons$discard <- apply(reasons, 1, any)
-  message('keeping ', sum(!reasons$discard), '/', ncol(sce), ' non-empty droplets.')
+    # update discard reasons
+    reasons$discard <- apply(reasons, 1, any)
+    message('keeping ', sum(!reasons$discard), '/', ncol(sce), ' non-empty droplets.')
 
-  sce <- sce[ ,!reasons$discard]
+    sce <- sce[ ,!reasons$discard]
+  }
+
   return(sce)
 }

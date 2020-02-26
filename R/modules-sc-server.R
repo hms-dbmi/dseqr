@@ -765,12 +765,16 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   integration_name <- reactive(input$integration_name)
   integration_options <- reactive(datasets()$value[datasets()$type == 'Individual'])
 
-  is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
-  is_subset <- reactive(length(test()) == 1 && is.null(ctrl()))
-
   ctrl <- reactiveVal()
   test <- reactiveVal()
   new_anal <- reactiveVal()
+  selected_datasets <- reactive(c(test(), ctrl()))
+
+
+  is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
+  is_subset <- reactive(length(test()) == 1 && is.null(ctrl()))
+  is_integration <- reactive(length(test()) && length(ctrl()))
+  allow_pairs <- reactive(length(selected_datasets()) > 2 & is_integration())
 
   # show/hide integration forms
   observe({
@@ -792,15 +796,17 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
   })
 
-  selected_datasets <- reactive(c(test(), ctrl()))
 
 
-  # prevent pairing if not enough datasets
-  allow_pairs <- reactive(length(selected_datasets()) > 2)
+  # hide pairing if not enough datasets
   observe({
     toggle(id = "click_dl", condition = allow_pairs())
     toggle(id = "click_up", condition = allow_pairs())
   })
+
+  # show cluster type choices if enough datasets
+  observe(toggle(id = 'integration_type', condition = is_integration()))
+
 
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -883,10 +889,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
     test_anals <- test()
     ctrl_anals <- ctrl()
-    anal_name <- input$integration_name
     datasets <- datasets()
     pairs <- pairs()
     is_subset <- is_subset()
+
+    type <- input$integration_type
+    anal_name <- input$integration_name
 
     error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets, pairs)
 
@@ -917,6 +925,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                                ctrl = ctrl_anals,
                                exclude_clusters = exclude_clusters,
                                anal_name = anal_name,
+                               type = type,
                                pairs = pairs,
                                progress = progress)
 
@@ -1942,3 +1951,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

@@ -377,7 +377,7 @@ get_gene_choices <- function(markers, type = 'samples', qc_metrics = NULL) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, pairs = NULL, progress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, type = c('clusterMNN', 'fastMNN'), pairs = NULL, progress = NULL) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -407,7 +407,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   else if (species == 'Mus musculus') release <- '98'
 
   progress$set(2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs)
+  combined <- integrate_scseqs(scseqs, type = type)
 
   # retain original doublet scores (needs scaling?)
   combined$doublet_score <- unlist(sapply(scseqs, `[[`, 'doublet_score'))
@@ -533,10 +533,10 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
     int_path <- file.path(sc_dir, 'integrated.rds')
     int_options <- c(readRDS(int_path), anal_name)
     saveRDS(unique(int_options), int_path)
-
-    # remove all previous data in case overwriting
-    unlink(anal_dir, recursive = TRUE)
   }
+
+  # remove all previous data in case overwriting
+  unlink(anal_dir, recursive = TRUE)
 
   dir.create(anal_dir)
   for (type in names(scseq_data)) {

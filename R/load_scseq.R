@@ -85,6 +85,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
 
   progress$set(message = "Saving", value = value + 4)
   anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
+
   save_scseq_data(anal, dataset_name, sc_dir)
 
   progress$set(message = "Saving loom", value = value + 5)
