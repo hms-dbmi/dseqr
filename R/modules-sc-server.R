@@ -335,6 +335,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
+  metric_choices <- c('low_lib_size',
+                      'low_n_features',
+                      'high_subsets_mito_percent',
+                      'low_subsets_ribo_percent',
+                      'high_doublet_score',
+                      'high_outlyingness')
+
   # get directory with fastqs
   roots <- c('single-cell' = sc_dir)
   shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
@@ -421,6 +428,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # run single-cell quantification
   observeEvent(input$confirm_quant, {
 
+    metrics <- input$qc_metrics
+    if (!isTruthy(metrics)) metrics <- metric_choices
+    if ('none' %in% metrics) metrics <- NULL
+
     removeModal()
     toggleAll(dataset_inputs)
 
@@ -430,7 +441,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
-    load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress)
+    load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
@@ -439,7 +450,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # modal to confirm adding single-cell dataset
   quantModal <- function() {
 
-    UI <- withTags(dl(dd('This will take a while.')))
+
+    UI <- selectizeInput(session$ns('qc_metrics'),
+                         'Select QC metrics:',
+                         choices = c('none', metric_choices),
+                         multiple = TRUE,
+                         options = list(placeholder = 'leave empty to use all'))
 
     modalDialog(
       UI,
@@ -935,7 +951,7 @@ subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters
 
   progress$set(1, detail = 'loading')
   scseq <- load_scseqs_for_integration(dataset_name, exclude_clusters, sc_dir)[[1]]
-  process_raw_scseq(scseq, save_name, sc_dir, progress, value = 1)
+  process_raw_scseq(scseq, save_name, sc_dir, progress = progress, value = 1)
 }
 
 #' Logic for comparison type toggle for integrated analyses
@@ -1107,7 +1123,18 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
     qc <- colnames(scseq@colData)
-    qc[qc %in% c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')]
+    qc[qc %in% c('log10_sum',
+                 'log10_detected',
+                 'mito_percent',
+                 'ribo_percent',
+                 'doublet_score',
+                 'low_lib_size',
+                 'low_n_features',
+                 'high_subsets_mito_percent',
+                 'low_subsets_ribo_percent',
+                 'high_doublet_score',
+                 'high_outlyingness',
+                 'discard')]
   })
 
 
@@ -1915,4 +1942,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-

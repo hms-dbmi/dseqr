@@ -8,7 +8,12 @@
 #' @return NULL
 #' @export
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = TRUE, value = 0) {
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, metrics = c('low_lib_size',
+                                                                                                                                 'low_n_features',
+                                                                                                                                 'high_subsets_mito_percent',
+                                                                                                                                 'low_subsets_ribo_percent',
+                                                                                                                                 'high_doublet_score',
+                                                                                                                                 'high_outlyingness')) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -22,13 +27,22 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
   progress$set(message = "Quantifying files", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
 
-  progress$set(message = "Loading and QC", value + 2)
+  progress$set(message = "Loading", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
   scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
-  scseq <- scseq[, scseq$whitelist]
   gc()
 
-  process_raw_scseq(scseq, dataset_name, sc_dir, progress, value = value + 2)
+  progress$set(message = "Running QC", value = value + 3)
+  scseq <- normalize_scseq(scseq)
+  scseq <- add_hvgs(scseq)
+  gc()
+
+  scseq <- add_doublet_score(scseq)
+  scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
+
+  scseq <- run_scseq_qc(scseq, metrics)
+
+  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = value + 3)
 }
 
 #' Process Count Data for App
@@ -36,6 +50,8 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 #' @param scseq \code{SingleCellExperiment}
 #' @param dataset_name Name of dataset to save
 #' @param sc_dir Directory to save dataset to
+#' @param score_doublets Should doublet scores be computed? Intended for non-subsetted data within \code{\link{load_raw_scseq}}.
+#'  Default is \code{FALSE}.
 #' @param progress Shiny progress object. Default (\code{NULL}) prints to stdout.
 #' @param value Initial value of progress.
 #'
@@ -49,36 +65,29 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
     })
   }
 
-  progress$set(message = "Normalizing", detail = '', value = value + 1)
+  progress$set(message = "Clustering", value = value + 1)
   scseq <- normalize_scseq(scseq)
-  gc()
-
-  progress$set(message = "Clustering", value = value + 2)
   scseq <- add_hvgs(scseq)
   scseq <- add_scseq_clusters(scseq)
   gc()
 
-  # QC metrics
-  scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
-  scseq <- add_doublet_score(scseq)
 
-
-  progress$set(message = "Reducing dimensions", value = value + 3)
+  progress$set(message = "Reducing dimensions", value = value + 2)
   scseq <- run_tsne(scseq)
   gc()
 
-  progress$set(message = "Getting markers", value = value + 4)
+  progress$set(message = "Getting markers", value = value + 3)
   tests <- pairwise_wilcox(scseq)
   markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-  progress$set(message = "Saving", value = value + 5)
+  progress$set(message = "Saving", value = value + 4)
   anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
   save_scseq_data(anal, dataset_name, sc_dir)
 
-  progress$set(message = "Saving loom", value = value + 6)
+  progress$set(message = "Saving loom", value = value + 5)
   save_scle(scseq, file.path(sc_dir, dataset_name))
   progress$set(value = value + 7)
 }
@@ -92,13 +101,8 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
 #' @param project String identifying sample.
 #' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.
-#' @param knee_type Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.
 #'
-#' @seealso \link{pick_roryk_cutoff} for details of \code{'roryk'} \code{knee_type}.
-#' \link[DropletUtils]{barcodeRanks} for \code{'inflection'} and \code{'knee'} \code{knee_type}.
-#'
-
-#' @return \code{SingleCellExperiment} object with whitelist meta data.
+#' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @export
 #'
 #' @examples
@@ -122,35 +126,30 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
     counts <- process_cellranger_counts(counts, species)
   }
 
-  # generate/load whitelist
-  whitelist <- get_scseq_whitelist(counts, data_dir, species = species)
-  kneelist  <- readLines(file.path(data_dir, 'kneelist.txt'))
-
   # get ambient expression profile/determine outlier genes
-  # if pre-filtered cellranger, can't determine outliers
+  # if pre-filtered cellranger, can't determine outliers/empty droplets
   ncount <- Matrix::colSums(counts)
   if (min(ncount) > 10) {
     pct_ambient <- rep(0, nrow(counts))
     out_ambient <- rep(FALSE, nrow(counts))
+    keep_cells <- seq_len(ncol(counts))
 
   } else {
     pct_ambient <- get_pct_ambient(counts)
     out_ambient <- get_outliers(pct_ambient)
+    keep_cells <- detect_cells(counts, species = species)
   }
 
-  # covert to SingleCellExperiment object
   # add ambient metadata for genes
   rowData <- S4Vectors::DataFrame(pct_ambient, out_ambient)
-  colData <- S4Vectors::DataFrame(project = rep(project, length(kneelist)),
-                       whitelist = kneelist %in% whitelist)
+  colData <- S4Vectors::DataFrame(project = rep(project, length(keep_cells)))
 
   sce <- SingleCellExperiment::SingleCellExperiment(
-    assays = list(counts = counts[, kneelist]),
+    assays = list(counts = counts[, keep_cells]),
     rowData = rowData,
     colData = colData
   )
 
-  # TODO: allow mouse drug queries
   # flag to know if need to convert for drug queries
   sce@metadata$species <- species
   return(sce)
@@ -258,27 +257,6 @@ get_outliers <- function(x) {
 }
 
 
-#' Filter cells and clusters with high doublet score
-#'
-#' @param scseq \code{SingleCellExperiment} with \code{'doublet_score'} and \code{'cluster'} in \code{scseq@colData}
-#'
-#' @return \code{scseq} without cells/clusters that have outlying \code{'doublet_score'}
-#' @export
-#' @keywords internal
-filter_doublets <- function(scseq) {
-  # cells that have outlying doublet scores
-  cells.out <- scater::isOutlier(scseq$doublet_score, type = "higher")
-
-  # clusters that have outlying mean doublet scores
-  clust.out <- tapply(scseq$doublet_score, scseq$cluster, mean)
-  clust.out <- scater::isOutlier(clust.out, type = "higher")
-  clust.out <- names(clust.out[clust.out])
-
-  # filter both
-  scseq <- scseq[, !cells.out]
-  scseq <- scseq[, !scseq$cluster %in% clust.out]
-  return(scseq)
-}
 
 #' Read kallisto/bustools market matrix and annotations
 #'
@@ -830,7 +808,7 @@ add_doublet_score <- function(scseq) {
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
-  dbl.dens <- scran::doubletCells(scseq, subset.row=hvgs, d=scseq@metadata$npcs)
+  dbl.dens <- scran::doubletCells(scseq, subset.row=hvgs)
   scseq$doublet_score <- log10(dbl.dens+1)
 
   return(scseq)
@@ -845,8 +823,6 @@ add_doublet_score <- function(scseq) {
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 #' @export
 add_scseq_qc_metrics <- function(sce, species, for_qcplots = FALSE) {
-  # calculate qc metrics if haven't previous
-  if (!is.null(sce$total_counts)) return(sce)
 
   sce <- add_qc_genes(sce, species)
   sce <- scater::addPerCellQC(sce,

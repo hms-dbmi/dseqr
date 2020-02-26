@@ -10,8 +10,10 @@ load_raw_scseq(
   sc_dir,
   indices_dir,
   progress = NULL,
-  recount = TRUE,
-  value = 0
+  recount = FALSE,
+  value = 0,
+  metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
+    "low_subsets_ribo_percent", "high_doublet_score", "high_outlyingness")
 )
 }
 \arguments{

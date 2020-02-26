@@ -4,7 +4,7 @@
 \alias{get_mods}
 \title{Get model matrices for surrogate variable analysis}
 \usage{
-get_mods(eset)
+get_mods(pdata)
 }
 \arguments{
 \item{eset}{Annotated eset with samples selected during \code{add_contrasts}.}

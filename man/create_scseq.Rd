@@ -12,11 +12,9 @@ create_scseq(data_dir, project, type = c("kallisto", "cellranger"))
 \item{project}{String identifying sample.}
 
 \item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.}
-
-\item{knee_type}{Knee type used for cell quality whitelist modeling by \code{get_scseq_whitelist}.}
 }
 \value{
-\code{SingleCellExperiment} object with whitelist meta data.
+\code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 }
 \description{
 Load kallisto/bustools quantification into a SingleCellExperiment object.
@@ -26,8 +24,4 @@ Load kallisto/bustools quantification into a SingleCellExperiment object.
 data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
 load_scseq(data_dir)
 
-}
-\seealso{
-\link{pick_roryk_cutoff} for details of \code{'roryk'} \code{knee_type}.
-\link[DropletUtils]{barcodeRanks} for \code{'inflection'} and \code{'knee'} \code{knee_type}.
 }
