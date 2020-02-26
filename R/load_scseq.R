@@ -65,7 +65,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
     })
   }
 
-  progress$set(message = "Clustering", value = value + 1)
+  progress$set(message = "Clustering", detail = '', value = value + 1)
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq)
   scseq <- add_scseq_clusters(scseq)

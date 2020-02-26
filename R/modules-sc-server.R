@@ -429,8 +429,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
-    if (!isTruthy(metrics)) metrics <- metric_choices
-    if ('none' %in% metrics) metrics <- NULL
+    # none, all, all and none: can't combine
+    if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
+
+    if (!isTruthy(metrics)) metrics <- 'none'
+    if (metrics == 'none') metrics <- NULL
+    if (metrics == 'all') metrics <- metric_choices
 
     removeModal()
     toggleAll(dataset_inputs)
@@ -441,7 +445,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
-    load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
+
+    if (metrics == 'all and none') {
+      load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
+      load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices)
+
+    } else {
+      load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
+    }
+
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
@@ -453,9 +465,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     UI <- selectizeInput(session$ns('qc_metrics'),
                          'Select QC metrics:',
-                         choices = c('none', metric_choices),
-                         multiple = TRUE,
-                         options = list(placeholder = 'leave empty to use all'))
+                         choices = c('all and none', 'all', 'none', metric_choices),
+                         selected = 'all and none',
+                         multiple = TRUE)
 
     modalDialog(
       UI,
@@ -756,6 +768,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                           'integration_name',
                           'submit_integration',
                           'test_integration',
+                          'integration_type',
                           'exclude_clusters',
                           'click_up',
                           'click_dl',
