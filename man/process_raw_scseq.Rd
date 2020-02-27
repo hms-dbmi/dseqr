@@ -4,7 +4,14 @@
 \alias{process_raw_scseq}
 \title{Process Count Data for App}
 \usage{
-process_raw_scseq(scseq, dataset_name, sc_dir, progress = NULL, value = 0)
+process_raw_scseq(
+  scseq,
+  dataset_name,
+  sc_dir,
+  progress = NULL,
+  value = 0,
+  founder = NULL
+)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment}}

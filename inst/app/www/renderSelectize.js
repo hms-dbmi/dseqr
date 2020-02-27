@@ -198,7 +198,7 @@ function transferLabelOption(item, escape) {
 
   var res = "<div style='columns: 2;'>" +
               "<div style='margin-right: -80px'>" +
-                  escape(item.label) +
+                  escape(item.optionLabel) +
               "</div>" +
               predsMarkup +
             "</div>";
@@ -286,7 +286,7 @@ function bulkContrastItem(item, escape) {
 function scDatasetOptions(item, escape) {
 
   var clustEl = "<div title='" + item.value + "'>" +
-                  escape(item.label) +
+                  escape(item.optionLabel) +
                 "</div>";
 
   return clustEl;
@@ -297,7 +297,7 @@ function scDatasetOptions(item, escape) {
 function scDatasetItem(item, escape) {
 
   var clustEl = "<div title='" + item.value + "'>" +
-                  escape(item.label) +
+                  escape(item.itemLabel) +
                 "</div>";
 
   return clustEl;

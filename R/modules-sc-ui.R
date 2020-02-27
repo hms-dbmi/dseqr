@@ -151,7 +151,7 @@ integrationFormInput <- function(id) {
 
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Integration test or subset datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Select one dataset to subset')),
+        selectizeInput(ns('test_integration'), 'Integration test or subset datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Select single dataset to subset')),
         selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Leave empty to subset')),
         selectizeInputWithButtons(ns('exclude_clusters'),
                                   container_id = ns('exclude-container'),
@@ -174,7 +174,6 @@ integrationFormInput <- function(id) {
     )
   })
 }
-
 
 
 #' Input form and buttons to select a cluster or contrast and rename a cluster

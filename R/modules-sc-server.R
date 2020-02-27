@@ -448,7 +448,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     if (metrics == 'all and none') {
       load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
-      load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices)
+      load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices, founder = paste0(dataset_name, '_QC0'))
 
     } else {
       load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
@@ -528,14 +528,24 @@ get_sc_dataset_choices <- function(sc_dir) {
   has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
   individual <- individual[unlist(has.scseq)]
 
+  # founder for subsets as type
+  ind_type <- sapply(individual,
+                     function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'), .nofile = 'Individual', .nullfile = 'Individual'), USE.NAMES = FALSE)
+  sub <- ind_type != 'Individual'
+
+  # exclude founder name from option label
+  opt_label <- individual
+  opt_label[sub] <- stringr::str_replace(opt_label[sub], paste0(ind_type[sub], '_'), '')
+
   choices <- data.frame(value = c(integrated, individual),
-                        type = c(rep('Integrated', length(integrated)),
-                                 rep('Individual', length(individual))),
+                        type = c(rep('Integrated', length(integrated)), ind_type),
+                        itemLabel = stringr::str_trunc(c(integrated, individual), 35),
+                        optionLabel = stringr::str_trunc(c(integrated, opt_label), 35),
                         stringsAsFactors = FALSE)
 
-  choices$label <- stringr::str_trunc(choices$value, 35)
   return(choices)
 }
+
 
 
 scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) {
@@ -592,7 +602,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(preds, datasets, species)
 
     choices <- get_label_transfer_choices(datasets, dataset_name, preds, species)
-    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption}')))
+    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption, item: scDatasetItem}')))
   })
 
   # submit annotation transfer
@@ -776,7 +786,18 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   integration_name <- reactive(input$integration_name)
-  integration_options <- reactive(datasets()$value[datasets()$type == 'Individual'])
+
+  # datasets() with server side selectize causes bug
+  integration_choices <- reactive({
+    ds <- datasets()
+    ds <- ds[!ds$type %in% 'Integrated', ]
+    choices <- ds %>%
+      dplyr::group_by(type) %>%
+      dplyr::summarise(values = list(value))
+
+    names(choices$values) <- choices$type
+    choices$values
+  })
 
   ctrl <- reactiveVal()
   test <- reactiveVal()
@@ -799,14 +820,16 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   # update test dataset choices
   observe({
-    options <- integration_options()
-    updateSelectizeInput(session, 'test_integration', choices = options[!options %in% ctrl()], selected = isolate(test()))
+    choices <- integration_choices()
+    choices <- lapply(choices, function(x) x[!x %in% ctrl()])
+    updateSelectizeInput(session, 'test_integration', choices = choices, selected = isolate(test()))
   })
 
   # update control dataset choices
   observe({
-    options <- integration_options()
-    updateSelectizeInput(session, 'ctrl_integration', choices = options[!options %in% test()], selected = isolate(ctrl()))
+    choices <- integration_choices()
+    choices <- lapply(choices, function(x) x[!x %in% test()])
+    updateSelectizeInput(session, 'ctrl_integration', choices = choices, selected = isolate(ctrl()))
   })
 
 
@@ -824,6 +847,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # show exclude/exclude and new dataset only if something selected
   observe(toggle(id = 'exclude-container', condition = selected_datasets()))
   observe(toggle(id = 'name-container', condition = selected_datasets()))
+
+  # update placeholder for dataset name based on if subsettting
+  observe({
+    placeholder <- ifelse(is_subset(), 'eg: QC1 (appended to original dataset name)', '')
+    updateTextInput(session, 'integration_name', placeholder = placeholder)
+  })
 
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -929,7 +958,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
         subset_saved_scseq(sc_dir,
                            dataset_name = test_anals,
                            exclude_clusters = exclude_clusters,
-                           save_name = anal_name,
+                           save_name = paste(test_anals, anal_name, sep = '_'),
                            progress = progress)
 
       } else {
@@ -977,7 +1006,18 @@ subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters
 
   progress$set(1, detail = 'loading')
   scseq <- load_scseqs_for_integration(dataset_name, exclude_clusters, sc_dir)[[1]]
-  process_raw_scseq(scseq, save_name, sc_dir, progress = progress, value = 1)
+  founder <- get_founder(sc_dir, dataset_name)
+
+  process_raw_scseq(scseq, save_name, sc_dir, progress = progress, value = 1, founder = founder)
+}
+
+get_founder <- function(sc_dir, dataset_name) {
+
+  # check for founder of parent
+  fpath <- file.path(sc_dir, dataset_name, 'founder.rds')
+  founder <- readRDS(fpath)
+  if (is.null(founder)) founder <- dataset_name
+  return(founder)
 }
 
 #' Logic for comparison type toggle for integrated analyses
@@ -1419,11 +1459,12 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   }, height = height)
 }
 
-readRDS.safe <- function(path) {
-  res <- NULL
+readRDS.safe <- function(path, .nofile = NULL, .nullfile = NULL) {
+  res <- .nofile
   if (isTruthy(path) && file.exists(path))
     res <- readRDS(path)
 
+  if (is.null(res)) return(.nullfile)
   return(res)
 }
 
@@ -1781,6 +1822,9 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
   else
     x <- scseq[[feature]]
 
+  # errors if boolean
+  if (is.logical(x)) return(NULL)
+
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])
   df <- data.frame(x, hl, y) %>%
@@ -1971,6 +2015,7 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 
 
 

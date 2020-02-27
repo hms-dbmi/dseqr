@@ -8,12 +8,12 @@
 #' @return NULL
 #' @export
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, metrics = c('low_lib_size',
-                                                                                                                                 'low_n_features',
-                                                                                                                                 'high_subsets_mito_percent',
-                                                                                                                                 'low_subsets_ribo_percent',
-                                                                                                                                 'high_doublet_score',
-                                                                                                                                 'high_outlyingness')) {
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, founder = NULL, metrics = c('low_lib_size',
+                                                                                                                                                 'low_n_features',
+                                                                                                                                                 'high_subsets_mito_percent',
+                                                                                                                                                 'low_subsets_ribo_percent',
+                                                                                                                                                 'high_doublet_score',
+                                                                                                                                                 'high_outlyingness')) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -42,7 +42,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 
   scseq <- run_scseq_qc(scseq, metrics)
 
-  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = value + 3)
+  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = value + 3, founder = founder)
 }
 
 #' Process Count Data for App
@@ -57,7 +57,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 #'
 #' @return NULL
 #' @export
-process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, value = 0) {
+process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, value = 0, founder = NULL) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -84,7 +84,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
   progress$set(message = "Saving", value = value + 4)
-  anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers)
+  anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers, founder = founder)
 
   save_scseq_data(anal, dataset_name, sc_dir)
 

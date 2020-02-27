@@ -89,7 +89,7 @@ textInputWithValidation <- function(id, label, container_id = NULL, help_id = NU
 #' @param ... actionButtons
 #' @export
 #' @keywords internal
-textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL, tooltip = TRUE) {
+textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL, tooltip = TRUE, placeholder = '') {
 
   buttons <- list(...)
   buttons <- buttons[!sapply(buttons, is.null)]
@@ -106,7 +106,7 @@ textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = 
   tags$div(class = 'form-group selectize-fh', id = container_id, class = 'validate-wrapper',
            tags$label(class = 'control-label', `for` = id, label),
            tags$div(class = 'input-group',
-                    tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = ''),
+                    tags$input(id = id, type = 'text', class = 'form-control shiny-bound-input', value = '', placeholder = placeholder),
                     tags$span(class = 'input-group-btn',
                               lapply(buttons, function(btn) {
                                 if (tooltip) btn$attribs$title <- NULL

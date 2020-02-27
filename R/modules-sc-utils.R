@@ -123,7 +123,8 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
 
   choices <- data.frame(
     value = c(gsub(' ', '', external), anal_options$value),
-    label = stringr::str_trunc(c(external, anal_options$value), 35),
+    itemLabel = c(stringr::str_trunc(external, 35), anal_options$itemLabel),
+    optionLabel = c(stringr::str_trunc(external, 35), anal_options$optionLabel),
     type = c('External Reference', anal_options$type),
     stringsAsFactors = FALSE
   )

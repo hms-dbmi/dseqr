@@ -10,13 +10,18 @@ textInputWithButtons(
   ...,
   container_id = NULL,
   help_id = NULL,
-  tooltip = TRUE
+  tooltip = TRUE,
+  placeholder = ""
 )
 }
 \arguments{
 \item{label}{Display label for the control, or \code{NULL} for no label.}
 
 \item{...}{actionButtons}
+
+\item{placeholder}{A character string giving the user a hint as to what can
+be entered into the control. Internet Explorer 8 and 9 do not support this
+option.}
 }
 \description{
 textInput with buttons
