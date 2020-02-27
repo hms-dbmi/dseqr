@@ -28,7 +28,7 @@ function contrastOptions(item, escape) {
 
 
   // styling if looking at contrast
-  var conEl  = "<div>" +
+  var conEl  = "<div title='"+ item.title + "'>" +
                  "(<div class='input-swatch' style='margin-left: 5px; background-color:" + item.testColor + "'></div>" +
                  " - " +
                  "<div class='input-swatch' style='background-color:" + item.ctrlColor + "'></div>) " +
@@ -63,7 +63,7 @@ function contrastItem(item, escape) {
                 "</div>";
 
    // styling if looking at contrast
-  var conEl  = "<div>" +
+  var conEl  = "<div title='"+ item.title + "'>" +
                  "(<div class='input-swatch' style='margin-left: 5px; background-color:" + item.testColor + "'></div>" +
                  " - " +
                  "<div class='input-swatch' style='background-color:" + item.ctrlColor + "'></div>) " +

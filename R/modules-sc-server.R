@@ -638,41 +638,60 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     n = 3
 
     # get arguments for SingleR
+    tab <- NULL
     senv <- loadNamespace('SingleR')
-
     updateProgress(1/n)
+
     if (ref_name %in% ls(senv)) {
       ref <- get(ref_name, envir = senv)()
       labels <- ref$label.main
       genes <- 'de'
 
     } else {
-      markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
-      genes <- readRDS(markers_path)
       ref <- readRDS(scseq_part_path(sc_dir, ref_name, 'scseq'))
 
-      # use aggregated reference for speed
-      ref_path <- scseq_part_path(sc_dir, ref_name, 'aggr_ref')
-      if (file.exists(ref_path)) {
-        ref <- readRDS(ref_path)
+      # check if ref and query have the same founder
+      rfound <- readRDS(scseq_part_path(sc_dir, ref_name, 'founder'))
+      qfound <- readRDS(scseq_part_path(sc_dir, query_name, 'founder'))
+
+      # use common cells to transfer labels if so
+      cells <- intersect(colnames(ref), colnames(query))
+
+      if (identical(qfound, rfound) && length(cells)) {
+
+        ref_cluster <- ref[, cells]$cluster
+        query_cluster <- query[, cells]$cluster
+        tab <-  table(assigned = ref_cluster, cluster = query_cluster)
 
       } else {
-        set.seed(100)
-        ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
-        saveRDS(ref, ref_path)
+        markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
+        genes <- readRDS(markers_path)
+
+        # use aggregated reference for speed
+        ref_path <- scseq_part_path(sc_dir, ref_name, 'aggr_ref')
+        if (file.exists(ref_path)) {
+          ref <- readRDS(ref_path)
+
+        } else {
+          set.seed(100)
+          ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
+          saveRDS(ref, ref_path)
+        }
+
+        # need until SingleR #77 fixed
+        common <- intersect(row.names(ref), row.names(query))
+        genes <- lapply(genes, function(x) {lapply(x, function(y) intersect(y, common))})
+
+        labels <- ref$label
       }
-
-      # need until SingleR #77 fixed
-      common <- intersect(row.names(ref), row.names(query))
-      genes <- lapply(genes, function(x) {lapply(x, function(y) intersect(y, common))})
-
-      labels <- ref$label
     }
 
     updateProgress(2/n)
-    # take best label for each cluster
-    pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)
-    tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
+    if (is.null(tab)) {
+      # take best label for each cluster
+      pred <- SingleR::SingleR(test = query, ref = ref, labels = labels, genes = genes)
+      tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
+    }
 
     pred <- row.names(tab)[apply(tab, 2, which.max)]
 
@@ -850,7 +869,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   # update placeholder for dataset name based on if subsettting
   observe({
-    placeholder <- ifelse(is_subset(), 'eg: QC1 (appended to original dataset name)', '')
+    placeholder <- ifelse(is_subset(), 'eg: QC2 (appended to founder dataset name)', '')
     updateTextInput(session, 'integration_name', placeholder = placeholder)
   })
 
@@ -955,10 +974,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
         progress <- Progress$new(session, min=0, max = 8)
         progress$set(message = "Subsetting dataset", value = 0)
 
+        founder <- get_founder(sc_dir, test_anals)
+
         subset_saved_scseq(sc_dir,
                            dataset_name = test_anals,
                            exclude_clusters = exclude_clusters,
-                           save_name = paste(test_anals, anal_name, sep = '_'),
+                           save_name = paste(founder, anal_name, sep = '_'),
                            progress = progress)
 
       } else {
@@ -1442,7 +1463,10 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   output$biogps_plot <- renderPlot({
     species <- species()
     gene <- selected_gene()
+    if (!length(gene)) return(NULL)
     if (species == 'Mus musculus') gene <- toupper(gene)
+    if (!gene %in% biogps[, SYMBOL]) return(NULL)
+
     plot_biogps(gene)
   })
 }
@@ -2015,7 +2039,6 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
 
 
 

@@ -8,12 +8,12 @@
 #' @return NULL
 #' @export
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, founder = NULL, metrics = c('low_lib_size',
-                                                                                                                                                 'low_n_features',
-                                                                                                                                                 'high_subsets_mito_percent',
-                                                                                                                                                 'low_subsets_ribo_percent',
-                                                                                                                                                 'high_doublet_score',
-                                                                                                                                                 'high_outlyingness')) {
+load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, founder = dataset_name, metrics = c('low_lib_size',
+                                                                                                                                                          'low_n_features',
+                                                                                                                                                          'high_subsets_mito_percent',
+                                                                                                                                                          'low_subsets_ribo_percent',
+                                                                                                                                                          'high_doublet_score',
+                                                                                                                                                          'high_outlyingness')) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')

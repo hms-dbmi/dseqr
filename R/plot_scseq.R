@@ -60,7 +60,6 @@ theme_no_axis_vals <- function() {
 #' @return ggplot
 #' @export
 plot_biogps <- function(gene) {
-  if (!length(gene) || !gene %in% biogps[, SYMBOL]) return(NULL)
 
   gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
   gene_dat <- sort(gene_dat, decreasing = TRUE)[1:15]
