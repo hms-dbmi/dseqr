@@ -396,6 +396,16 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
+  # update last selected dataset on-file if changes
+  prev_path <- file.path(sc_dir, 'prev_dataset.rds')
+
+  observeEvent(input$selected_dataset, {
+    sel <- input$selected_dataset
+    req(sel)
+    saveRDS(sel, prev_path)
+  })
+
+
   # are we creating a new dataset?
   is.create <- reactive({
     dataset_name <- input$selected_dataset
@@ -450,11 +460,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (metrics == 'all and none') {
       load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
       load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices, founder = paste0(dataset_name, '_QC0'))
+      saveRDS(paste0(dataset_name, '_QC1'), prev_path)
 
     } else {
       load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
+      saveRDS(dataset_name, prev_path)
     }
-
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
@@ -462,8 +473,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # modal to confirm adding single-cell dataset
   quantModal <- function() {
-
-
     UI <- selectizeInput(session$ns('qc_metrics'),
                          'Select QC metrics:',
                          choices = c('all and none', 'all', 'none', metric_choices),
@@ -483,7 +492,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
+    selected <- readRDS.safe(prev_path)
+    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), selected = selected, server = TRUE, options = options)
   })
 
   # show/hide integration/label-transfer forms
@@ -2052,4 +2062,5 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 

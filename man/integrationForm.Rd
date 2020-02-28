@@ -4,7 +4,15 @@
 \alias{integrationForm}
 \title{Logic for integration form toggled by showIntegration}
 \usage{
-integrationForm(input, output, session, sc_dir, datasets, show_integration)
+integrationForm(
+  input,
+  output,
+  session,
+  sc_dir,
+  datasets,
+  show_integration,
+  dataset_name
+)
 }
 \description{
 Logic for integration form toggled by showIntegration
