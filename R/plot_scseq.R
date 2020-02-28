@@ -11,7 +11,7 @@ plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Clu
   # dynamic label/point size
   pt.size <- min(6000/ncol(scseq), 2)
   nc <- length(levs)
-  num <- !anyNA(as.numeric(levs))
+  num <- suppressWarnings(!anyNA(as.numeric(levs)))
   label.size <- if(num) 6 else if(nc > 30) 5 else if(nc > 17) 5.5 else 6
 
   DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = label.size, repel = TRUE, label.highlight = label.highlight, label.index = TRUE) +
