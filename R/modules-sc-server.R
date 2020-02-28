@@ -612,6 +612,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     ref_name <- input$ref_name
     preds <- preds()
 
+    req(ref_name != 'ResetLabels')
     req(query_name, ref_name, preds)
     req(!ref_name %in% names(preds))
     req(show_label_transfer())
@@ -722,7 +723,6 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
 
   pred_annot <- reactive({
-
     # react to new annotation
     new_annot()
     ref_name <- input$ref_name
@@ -731,7 +731,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(dataset_name)
 
     # show saved annot if nothing selected or label transfer not open
-    if (is.null(ref_preds) | !show_label_transfer()) {
+    if (!isTruthy(ref_name) | !show_label_transfer()) {
       annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
       annot <- readRDS(annot_path)
 
@@ -1143,7 +1143,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
   # modify/save annot if rename a cluster
   observeEvent(input$rename_cluster, {
-
     req(input$new_cluster_name)
 
     # update reactive annotation
@@ -1152,15 +1151,17 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     sel_idx <- gsub('-vs-\\d+$', '', sel_clust)
     sel_idx <- as.numeric(sel_idx)
 
-    mod_annot <- annot()
-    mod_annot[sel_idx] <- input$new_cluster_name
+    # use currently save annot as reference
+    ref_preds <- ref_preds()
+    mod_annot <- readRDS(annot_path())
+    mod_annot[sel_idx] <- ref_preds[sel_idx] <- input$new_cluster_name
     mod_annot <- make.unique(mod_annot, '_')
 
     # save on disc
     saveRDS(mod_annot, annot_path())
 
     # update annot and set selected cluster to new name
-    annot(mod_annot)
+    annot(ref_preds)
   })
 
 
@@ -2039,6 +2040,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
-
 

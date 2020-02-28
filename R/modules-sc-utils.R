@@ -22,7 +22,7 @@ get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
   if (ref_name %in% ls(senv)) {
     pred_annot <- make.unique(ref_preds, '_')
 
-  } else if (ref_name == '') {
+  } else if (ref_name == 'ResetLabels') {
     # reset annotation
     pred_annot <- as.character(seq_along(query_annot))
 
@@ -120,12 +120,13 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
 
   if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
   else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
+  external <- c(external, 'Reset Labels')
 
   choices <- data.frame(
     value = c(gsub(' ', '', external), anal_options$value),
-    itemLabel = c(stringr::str_trunc(external, 35), anal_options$itemLabel),
-    optionLabel = c(stringr::str_trunc(external, 35), anal_options$optionLabel),
-    type = c('External Reference', anal_options$type),
+    itemLabel = c(external, anal_options$itemLabel),
+    optionLabel = c(external, anal_options$optionLabel),
+    type = c(rep('External Reference', 2), anal_options$type),
     stringsAsFactors = FALSE
   )
 
