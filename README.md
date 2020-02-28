@@ -1,17 +1,33 @@
 # drugseqr
 
-<!-- badges: start -->
-<!-- badges: end -->
+drugseqr (*drug-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
 
-The goal of drugseqr (*drug-seek-R*) is to find CMAP02/L1000 compounds that oppose RNA-seq gene expression signatures. The following instructions set up an Amazon EC2 spot instance to host and share the `drugseqr` web app.
+## Local installation and setup
 
-## EC2 setup
+```R
+# install
+install.packages('remotes')
+remotes::install_github('hms-dbmi/drugseqr')
+library(drugseqr)
+
+# run app
+app_name <- 'example'
+data_dir <- 'path/to/app_directory'
+run_drugseqr(app_name, data_dir)
+```
+
+see below for details on adding bulk/single-cell datasets
+
+
+## EC2 installation and setup
+
+The following instructions set up an Amazon EC2 spot instance to host and share the `drugseqr` web app.
 
 Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
 
 Make sure that port 8080 is open to all inbound traffic so that the web app can be accessed.
 
-## Setup the server
+### Setup the server
 
 The basic setup is going to be a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
 
@@ -51,7 +67,7 @@ sudo docker run --rm \
   drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/drugseqr')"
 ```
 
-## Run the app
+### Run the app
 
 Run a ShinyProxy container in detached mode `-d` and set the policy to always [restart](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy):
 
@@ -60,6 +76,15 @@ sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock
 ```
 
 You should now be able to navigate your browser to  [EC2 Public DNS]:8080/app/example where EC2 Public DNS can be found in the EC2 instance description.
+
+### Sync local data with server
+
+One way to this is is with `rsync`. For example:
+
+```bash
+rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" ~/path/to/local/example/ ubuntu@[EC2 Public DNS]:/srv/drugseqr/example/
+```
+
 
 ## Adding single-cell datasets
 
@@ -110,14 +135,4 @@ gse_name <- 'GSE35296'
 # first four samples for demonstration
 srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
 GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
-```
-
-## Sync local data with server
-
-One way to this is is with `rsync`. For example:
-
-```bash
-rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" \
-       ~/path/to/local/example/ \ 
-       ubuntu@[EC2 Public DNS]:/srv/drugseqr/example/
 ```
