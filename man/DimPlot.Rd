@@ -19,6 +19,7 @@ DimPlot(
   shape.by = NULL,
   order = NULL,
   label = FALSE,
+  label.index = TRUE,
   label.size = 4,
   repel = FALSE,
   cells.highlight = NULL,

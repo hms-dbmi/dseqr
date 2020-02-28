@@ -5,12 +5,16 @@
 #' @export
 plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Cluster', cols = NULL) {
 
-  if (is.null(cols)) cols <- get_palette(levels(scseq$cluster))
+  levs <- levels(scseq$cluster)
+  if (is.null(cols)) cols <- get_palette(levs)
 
-  # make selected cluster and groups stand out
+  # dynamic label/point size
   pt.size <- min(6000/ncol(scseq), 2)
+  nc <- length(levs)
+  num <- !anyNA(as.numeric(levs))
+  label.size <- if(num) 6 else if(nc > 30) 5 else if(nc > 17) 5.5 else 6
 
-  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = 6, repel = TRUE, label.highlight = label.highlight) +
+  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = label.size, repel = TRUE, label.highlight = label.highlight, label.index = TRUE) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +

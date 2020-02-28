@@ -68,6 +68,7 @@ DimPlot <- function(
   shape.by = NULL,
   order = NULL,
   label = FALSE,
+  label.index = TRUE,
   label.size = 4,
   repel = FALSE,
   cells.highlight = NULL,
@@ -90,7 +91,20 @@ DimPlot <- function(
   data <- as.data.frame(x = data)
   dims <- paste0(reduction, dims)
   group.by <- group.by %||% 'cluster'
-  data[, group.by] <- SummarizedExperiment::colData(object)[cells, group.by]
+  groups <- SummarizedExperiment::colData(object)[cells, group.by]
+
+  # show group number
+  levs <- levels(groups)
+
+  if (label.index) {
+    inds <- seq_along(levs)
+    not.inds <- levs != inds
+    levs[not.inds] <- paste0(inds[not.inds], ': ', levs[not.inds])
+    levels(groups) <- levs
+  }
+
+
+  data[, group.by] <- groups
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
