@@ -72,6 +72,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
     toggle(id = "labels_comparison_row", condition = scForm$comparison_type() == 'labels')
   })
 
+
   observe({
     toggle(id = 'biogps_container', condition = !scForm$show_ridge())
     toggle(id = 'ridge_container', condition = scForm$show_ridge())
@@ -1313,8 +1314,8 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
   })
 
   # toggle for ridgeline
-  show_ridge <- reactive(input$show_ridge %% 2 != 0)
-  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = show_ridge()))
+  show_ridge <- reactive(input$show_ridge %% 2 != 1)
+  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !show_ridge()))
 
   filtered_markers <- reactive({
 
@@ -2062,6 +2063,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
-
-

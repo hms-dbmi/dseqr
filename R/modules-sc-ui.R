@@ -223,7 +223,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
                                            title = 'Toggle excluding ambient genes', class = 'squashed-btn')
 
   if (!sample_comparison)
-    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle ridgeline plot')
+    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
 
 
   selectizeInputWithButtons(id = ns('selected_gene'),

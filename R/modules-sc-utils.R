@@ -214,11 +214,16 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
 
   testColor <- get_palette(clusters)
 
+  inds <- seq_along(clusters)
+  not.inds <- clusters != inds
+  clusters[not.inds] <- paste0(inds[not.inds], ': ', clusters[not.inds])
+
+
   # cluster choices are the clusters themselves
   # value is original cluster number so that saved pathway analysis name
   # isn't affected by updates to cluster annotation
   choices <- data.frame(name = stringr::str_trunc(clusters, 27),
-                        value = seq(1, along.with = clusters),
+                        value = seq_along(clusters),
                         label = clusters,
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
@@ -235,12 +240,9 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
     choices$nctrl_each <- cluster_stats$nctrl_each
 
     # formatted for options
-    choices$nctrlf <- format(cluster_stats$nctrl)
-    choices$nctrlf <- gsub(' ', '&nbsp;&nbsp;', choices$nctrlf)
-    choices$nsigf  <- format(cluster_stats$nsig)
-    choices$nsigf  <- gsub(' ', '&nbsp;&nbsp;', choices$nsigf)
-    choices$nbigf  <- format(cluster_stats$nbig)
-    choices$nbigf  <- gsub(' ', '&nbsp;&nbsp;', choices$nbigf)
+    choices$nctrlf <- html_space(cluster_stats$nctrl)
+    choices$nsigf  <- html_space(cluster_stats$nsig)
+    choices$nbigf  <- html_space(cluster_stats$nbig)
 
   } else {
     # show the cell numbers/percentages
@@ -250,6 +252,11 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
   }
 
   return(choices)
+}
+
+html_space <- function(x) {
+  x <- format(as.character(x))
+  gsub(' ', '&nbsp;&nbsp;', x)
 }
 
 #' Get/Save cluster stats for single-cell related selectizeInputs
