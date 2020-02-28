@@ -4,8 +4,10 @@
 #'
 #' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
-#' @param app_dir Directory containing drugseqr shiny app files.
+#' @param data_dir Directory containing drugseqr shiny app files.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
+#' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
+#' @param indices_dir Path to directory containing \code{kallisto} indices and whitelists.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
@@ -17,25 +19,32 @@
 #'
 #' library(drugseqr)
 #'
-#' # override default app_dir etc for development
+#' app_name <- 'example'
+#' data_dir <- 'data_dir'
+#' run_drugseqr(app_name, data_dir)
+#'
+#' # override default data_dir etc for development
 #' app_dir <- 'inst/app'
-#' data_dir <- 'data-raw/patient_data/sjia'
+#' data_dir <- 'data-raw/patient_data'
 #' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
+#' indices_dir <- '/srv/drugseqr/indices'
 #'
-#' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
-#' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
-#' run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test = TRUE)
+#' run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir)
 #'
-run_drugseqr <- function(data_dir,
+run_drugseqr <- function(app_name,
+                         data_dir = '/srv/drugseqr',
                          app_dir = system.file('app', package = 'drugseqr', mustWork = TRUE),
-                         pert_query_dir = '/srv/drugseqr/pert_query_dir',
-                         pert_signature_dir = '/srv/drugseqr/pert_signature_dir',
-                         indices_dir = '/srv/drugseqr/indices',
+                         pert_query_dir = file.path(data_dir, 'pert_query_dir'),
+                         pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
+                         indices_dir = file.path(data_dir, 'indices'),
                          test = FALSE,
                          test_data = FALSE,
                          host = '0.0.0.0',
                          port = 3838) {
+
+  data_dir <- file.path(data_dir, app_name)
+  if (!dir.exists(data_dir)) dir.create(data_dir)
 
 
   # pass arguments to app through options then run
@@ -77,9 +86,9 @@ run_drugseqr <- function(data_dir,
 #' @examples
 #'
 #' # app_dir for local development
-#' init_drugseqr('example', app_dir = 'data-raw/patient_data')
+#' init_drugseqr('example', data_dir = 'data-raw/patient_data')
 #'
-init_drugseqr <- function(app_name, app_dir = '/srv/drugseqr') {
+init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
 
   data_dir <- file.path(app_dir, app_name)
   dir.create(data_dir, recursive = TRUE)
