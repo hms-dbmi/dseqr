@@ -285,7 +285,7 @@ function bulkContrastItem(item, escape) {
 
 function scDatasetOptions(item, escape) {
 
-  var clustEl = "<div title='" + item.value + "'>" +
+  var clustEl = "<div title='" + item.name + "'>" +
                   escape(item.optionLabel) +
                 "</div>";
 
@@ -296,7 +296,7 @@ function scDatasetOptions(item, escape) {
 
 function scDatasetItem(item, escape) {
 
-  var clustEl = "<div title='" + item.value + "'>" +
+  var clustEl = "<div title='" + item.name + "'>" +
                   escape(item.itemLabel) +
                 "</div>";
 

@@ -17,11 +17,10 @@
 #'
 #' @examples
 #'
-#' library(drugseqr)
-#'
 #' app_name <- 'example'
 #' data_dir <- 'data_dir'
-#' run_drugseqr(app_name, data_dir)
+#' drugseqr::run_drugseqr(app_name, data_dir)
+#'
 #'
 #' # override default data_dir etc for development
 #' app_dir <- 'inst/app'
@@ -30,7 +29,7 @@
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
 #' indices_dir <- '/srv/drugseqr/indices'
 #'
-#' run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir)
+#' drugseqr::run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
 #'
 run_drugseqr <- function(app_name,
                          data_dir = '/srv/drugseqr',

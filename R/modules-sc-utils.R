@@ -117,18 +117,19 @@ run_dream <- function(eset) {
 get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
   # determine if is subset
-  is.sel <- anal_options$value == selected_anal
-  type   <- anal_options$type[is.sel]
+  is.recent <- anal_options$type == 'Recent'
+  is.sel <- anal_options$name == selected_anal
+  type   <- tail(anal_options$type[is.sel], 1)
   type   <-  ifelse(type %in% c('Integrated', 'Individual'), selected_anal, type)
 
-  anal_options <- anal_options[!is.sel, ]
+  anal_options <- anal_options[!is.sel & !is.recent, ]
 
 
   if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
   else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
 
   choices <- data.frame(
-    value = c('reset', gsub(' ', '', external), anal_options$value),
+    value = c('reset', gsub(' ', '', external), anal_options$name),
     itemLabel = c('Reset Labels', external, anal_options$itemLabel),
     optionLabel = c('Reset Labels', external, anal_options$optionLabel),
     type = factor(c(type, 'External Reference', anal_options$type), ordered = TRUE),
@@ -431,8 +432,10 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   progress$set(2, detail = 'integrating')
   combined <- integrate_scseqs(scseqs, type = type)
 
-  # retain original doublet scores (needs scaling?)
-  combined$doublet_score <- unlist(sapply(scseqs, `[[`, 'doublet_score'))
+  # retain original QC metrics
+  metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
+  for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
+
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
   # add clusters
@@ -484,6 +487,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      top_markers = top_markers,
                      has_replicates = has_replicates,
                      lm_fit_0svs = lm_fit,
+                     founder = anal_name,
                      pbulk_esets = pbulk_esets,
                      annot = names(markers))
 

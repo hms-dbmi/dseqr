@@ -352,7 +352,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   dataset_name <- reactive({
     if (!dataset_exists()) return(NULL)
-    input$selected_dataset
+    ds <- datasets()
+    ds$name[ds$value == input$selected_dataset]
   })
 
 
@@ -397,11 +398,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
-  # update last selected dataset on-file if changes
+  # update previously selected dataset on-file if changes
   prev_path <- file.path(sc_dir, 'prev_dataset.rds')
 
-  observeEvent(input$selected_dataset, {
-    sel <- input$selected_dataset
+  observe({
+    sel <- dataset_name()
     req(sel)
     saveRDS(sel, prev_path)
   })
@@ -461,12 +462,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (metrics == 'all and none') {
       load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
       load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices, founder = paste0(dataset_name, '_QC0'))
-      saveRDS(paste0(dataset_name, '_QC1'), prev_path)
+
+      prev <- paste0(dataset_name, '_QC1')
 
     } else {
       load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
-      saveRDS(dataset_name, prev_path)
+      prev <- dataset_name
     }
+
+    saveRDS(prev, prev_path)
 
     toggleAll(dataset_inputs)
     new_dataset(dataset_name)
@@ -493,8 +497,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   observe({
-    selected <- readRDS.safe(prev_path)
-    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), selected = selected, server = TRUE, options = options)
+    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
   })
 
   # show/hide integration/label-transfer forms
@@ -541,18 +544,24 @@ get_sc_dataset_choices <- function(sc_dir) {
   individual <- individual[unlist(has.scseq)]
 
   # founder for subsets as type
-  ind_type <- sapply(individual,
-                     function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'), .nofile = 'Individual', .nullfile = 'Individual'), USE.NAMES = FALSE)
-  sub <- ind_type != 'Individual'
+  ind_type <- sapply(individual, function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'),
+                                                            .nofile = 'Individual',
+                                                            .nullfile = 'Individual'), USE.NAMES = FALSE)
 
   # exclude founder name from option label
+  sub <- ind_type != 'Individual'
   opt_label <- individual
   opt_label[sub] <- stringr::str_replace(opt_label[sub], paste0(ind_type[sub], '_'), '')
 
-  choices <- data.frame(value = c(integrated, individual),
-                        type = c(rep('Integrated', length(integrated)), ind_type),
-                        itemLabel = stringr::str_trunc(c(integrated, individual), 35),
-                        optionLabel = stringr::str_trunc(c(integrated, opt_label), 35),
+  # get previously selected
+  prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+
+
+  choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
+                        name = c(prev, integrated, individual),
+                        type = c('Previous', rep('Integrated', length(integrated)), ind_type),
+                        itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
+                        optionLabel = stringr::str_trunc(c(prev, integrated, opt_label), 35),
                         stringsAsFactors = FALSE)
 
   return(choices)
@@ -821,12 +830,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # datasets() with server side selectize causes bug
   integration_choices <- reactive({
     ds <- datasets()
-    ds <- ds[!ds$type %in% 'Integrated', ]
+    ds <- ds[!ds$type %in% c('Previous', 'Integrated'), ]
     sel <- dataset_name()
 
-    if (isTruthy(sel)) {
-      is.sel <- ds$value == sel
-      type   <- ds$type[is.sel]
+    if (isTruthy(sel) && sel %in% ds$name) {
+      is.sel <- ds$name == sel
+      type   <- tail(ds$type[is.sel], 1)
       is.sub <- type != 'Individual'
 
       # move within-founder datasets to top of choices
@@ -835,10 +844,10 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
     choices <- ds %>%
       dplyr::group_by(type) %>%
-      dplyr::summarise(values = list(value))
+      dplyr::summarise(names = list(name))
 
-    names(choices$values) <- choices$type
-    choices$values
+    names(choices$names) <- choices$type
+    choices$names
   })
 
   ctrl <- reactiveVal()

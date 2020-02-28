@@ -928,11 +928,14 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
   hvgs <- decs$bio > 0
 
+
   # mnn integration
   # TODO use fastMNN restriction to exclude batch specific cells
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
 
+  # TODO: test this
+  # hvgs <- row.names(combined) %in% scran::getTopHVGs(decs, prop=0.1)
 
   set.seed(1000101001)
   if (type[1] == 'clusterMNN') {
@@ -954,6 +957,11 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
       prop.k = 0.05)
   }
 
+  if (type == 'harmony') {
+    run_harmony(combined, decs)
+
+  }
+
   mnn.out <- do.call(mnn.fun, scseqs) ; gc()
   mnn.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
   mnn.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
@@ -968,6 +976,20 @@ integrate_scseqs <- function(scseqs, type = c('clusterMNN', 'fastMNN')) {
   rm(counts, scseqs); gc()
 
   return(mnn.out)
+}
+
+run_harmony <- function(combined, decs) {
+  hvgs <- row.names(decs)[decs$bio > 0]
+  pca <- set.seed(100)
+  SummarizedExperiment::assay(combined, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+  combined <- scater::runPCA(combined, subset_row = hvgs)
+
+  data_mat <- SingleCellExperiment::reducedDim(combined, 'PCA')
+
+  SummarizedExperiment::assay(combined, 'logcounts') <- SummarizedExperiment::assay(combined, 'merged')
+  harmony_embeddings <- harmony::HarmonyMatrix(data_mat, combined$batch, do_pca = FALSE)
+
+
 }
 
 
