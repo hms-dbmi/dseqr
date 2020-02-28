@@ -692,7 +692,7 @@ normalize_scseq <- function(scseq) {
   doParallel::registerDoParallel(ncores)
 
   set.seed(100)
-  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam(), min.size = 5)
+  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam())
   scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
   scseq <- scater::logNormCounts(scseq)
 

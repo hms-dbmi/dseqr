@@ -215,6 +215,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
                               datasets = scDataset$datasets,
+                              dataset_name = scDataset$dataset_name,
                               show_integration = scDataset$show_integration)
 
 
@@ -791,7 +792,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, datasets, show_integration) {
+integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, dataset_name) {
 
   integration_inputs <- c('ctrl_integration',
                           'integration_name',
@@ -810,6 +811,17 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   integration_choices <- reactive({
     ds <- datasets()
     ds <- ds[!ds$type %in% 'Integrated', ]
+    sel <- dataset_name()
+
+    if (isTruthy(sel)) {
+      is.sel <- ds$value == sel
+      type   <- ds$type[is.sel]
+      is.sub <- type != 'Individual'
+
+      # move within-founder datasets to top of choices
+      if (is.sub) ds$type <- factor(ds$type, levels = unique(c(type, ds$type)))
+    }
+
     choices <- ds %>%
       dplyr::group_by(type) %>%
       dplyr::summarise(values = list(value))

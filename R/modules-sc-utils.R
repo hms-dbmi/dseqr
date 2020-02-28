@@ -116,7 +116,13 @@ run_dream <- function(eset) {
 #' @keywords internal
 get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
-  anal_options <- anal_options[anal_options$value != selected_anal, ]
+  # determine if is subset
+  is.sel <- anal_options$value == selected_anal
+  type   <- anal_options$type[is.sel]
+  is.sub <- !type %in% c('Integrated', 'Individual')
+
+  anal_options <- anal_options[!is.sel, ]
+
 
   if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
   else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
@@ -129,6 +135,14 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
     type = c(rep('External Reference', 2), anal_options$type),
     stringsAsFactors = FALSE
   )
+
+  # move within-founder datasets to top of choices
+  if (is.sub) {
+    type_levels <- unique(c(type, 'External Reference', 'Integrated', 'Individual', choices$type))
+    inds <- order(factor(choices$type, levels = type_levels))
+    choices <- choices[inds, ]
+  }
+
 
   choices$preds <- choices$value %in% names(preds)
   choices <- rbind(NA, choices)
