@@ -623,7 +623,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     ref_name <- input$ref_name
     preds <- preds()
 
-    req(ref_name != 'ResetLabels')
+    req(ref_name != 'reset')
     req(query_name, ref_name, preds)
     req(!ref_name %in% names(preds))
     req(show_label_transfer())
@@ -2062,5 +2062,6 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 
 
