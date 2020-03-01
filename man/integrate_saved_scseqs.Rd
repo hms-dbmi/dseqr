@@ -10,7 +10,7 @@ integrate_saved_scseqs(
   ctrl,
   exclude_clusters,
   anal_name,
-  type = c("clusterMNN", "fastMNN"),
+  type = c("harmony", "liger", "fastMNN"),
   pairs = NULL,
   progress = NULL
 )

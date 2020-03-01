@@ -400,7 +400,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL) {
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, type = c('clusterMNN', 'fastMNN'), pairs = NULL, progress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')

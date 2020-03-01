@@ -218,7 +218,7 @@ save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
         as.matrix(SingleCellExperiment::reducedDim(scseq, 'corrected'))
     }
 
-    # these objects from clusterMNN/fastMNN won't save
+    # these objects from fastMNN won't save
     scseq@metadata <- scseq@metadata[!names(scseq@metadata) %in% c('cluster', 'merge.info')]
 
     scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
@@ -895,20 +895,70 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
 }
 
 
+run_fastmnn <- function(logcounts, hvgs, scseqs) {
+
+  mnn.fun <- function(...) batchelor::fastMNN(
+    ...,
+    subset.row = hvgs,
+    auto.merge = TRUE,
+    correct.all = TRUE,
+    cos.norm = FALSE,
+    prop.k = 0.05)
 
 
+  set.seed(1000101001)
+  cor.out <- do.call(mnn.fun, scseqs) ; gc()
 
+  # store merged (batch normalized) for DE
+  SummarizedExperiment::assay(cor.out, 'logcounts') <- logcounts
+
+  # remove things that dont use (bloats loom object)
+  SummarizedExperiment::assay(cor.out, 'reconstructed') <- NULL
+  SummarizedExperiment::rowData(cor.out)$rotation <- NULL
+
+  return(cor.out)
+}
+
+run_liger <- function(logcounts, scseqs, batch) {
+  countl <- list()
+  for (i in seq_along(scseqs)) {
+    dataset_name <- names(scseqs)[i]
+    counts <- SingleCellExperiment::counts(scseqs[[i]])
+    colnames(counts) <- paste(colnames(counts), dataset_name, sep = '::')
+    countl[[dataset_name]] <- counts
+  }
+
+  countl <- liger::createLiger(countl); gc()
+  countl <- liger::normalize(countl); gc()
+  countl <- liger::selectGenes(countl); gc()
+  countl <- liger::scaleNotCenter(countl); gc()
+  countl <- liger::optimizeALS(countl, k=20); gc()
+  countl <- liger::quantile_norm(countl); gc()
+
+  corrected <- countl@H.norm
+  row.names(corrected) <- gsub('::.+?$', '', row.names(corrected))
+
+  cor.out <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(logcounts = logcounts),
+    reducedDims = list(corrected = corrected),
+    colData =  S4Vectors::DataFrame(batch = batch)
+  )
+
+  return(cor.out)
+
+
+}
 
 
 
 #' Integrate multiple scRNA-seq samples
 #'
 #' @param scseqs List of \code{SingleCellExperiment} objects
-#' @param type One of \code{'clusterMNN'} (default) or \code{'fastMNN'} specifying cluster function to use.
+#' @param type One of \code{'harmony'} (default), \code{'liger'} or \code{'fastMNN'} specifying integration to use.
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs, type = c('harmony', 'clusterMNN', 'fastMNN')) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN')) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -927,139 +977,105 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'clusterMNN', 'fastMNN'
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
   hvgs <- decs$bio > 0
 
-  # mnn integration
+  # integration
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
+  logcounts <- SummarizedExperiment::assay(combined, 'merged')
+  gc()
 
-  if (type[1] == 'clusterMNN') {
-    mnn.fun <- function(...) {
-      mnn.out <- batchelor::clusterMNN(
-        ...,
-        clusters = lapply(scseqs, `[[`, 'cluster'),
-        subset.row = hvgs,
-        auto.merge = TRUE,
-        correct.all = TRUE,
-        cos.norm = FALSE)
+  if (type[1] == 'harmony') {
+    cor.out <- run_harmony(logcounts, hvgs, combined$batch)
 
-      batch.clus <- paste(mnn.out$batch, mnn.out$cluster, sep = '.')
-      cluster <- mnn.out@metadata$cluster
-      row.names(cluster) <- paste(cluster$batch, cluster$cluster, sep = '.')
-      mnn.out$cluster <- factor(cluster[batch.clus, 'meta'])
-      mnn.out
+  } else if (type[1] == 'liger') {
+    cor.out <- run_liger(logcounts, scseqs, combined$batch)
 
-    }
-
-    } else if (type[1] == 'fastMNN') {
-      mnn.fun <- function(...) batchelor::fastMNN(
-        ...,
-        subset.row = hvgs,
-        auto.merge = TRUE,
-        correct.all = TRUE,
-        cos.norm = FALSE,
-        prop.k = 0.05)
-
-    }
-
-    logcounts <- SummarizedExperiment::assay(combined, 'merged')
-
-    if (type[1] == 'harmony') {
-      cor.out <- run_harmony(logcounts, hvgs, combined$batch)
-
-    } else {
-      set.seed(1000101001)
-      cor.out <- do.call(mnn.fun, scseqs) ; gc()
-
-      # store merged (batch normalized) for DE
-      SummarizedExperiment::assay(cor.out, 'logcounts') <- logcounts
-
-      # remove things that dont use (bloats loom object)
-      SummarizedExperiment::assay(cor.out, 'reconstructed') <- NULL
-      SummarizedExperiment::rowData(cor.out)$rotation <- NULL
-    }
-
-    cor.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
-    cor.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
-
-
-    rm(combined); gc()
-
-    # get counts for pseudobulk
-    counts <- do.call(no_correct('counts'), scseqs)
-    SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
-    rm(counts, scseqs); gc()
-
-    return(cor.out)
+  } else if (type[1] == 'fastMNN') {
+    cor.out <- run_fastmnn(logcounts, hvgs, scseqs)
   }
 
-  run_harmony <- function(logcounts, hvgs, batch) {
-
-    set.seed(100)
-    pcs <- scater::calculatePCA(logcounts, subset_row = hvgs)
-    emb <- harmony::HarmonyMatrix(pcs, batch, do_pca = FALSE)
-
-    cor.out <- SingleCellExperiment::SingleCellExperiment(
-      assays = list(logcounts = logcounts),
-      reducedDims = list(corrected = emb),
-      colData =  S4Vectors::DataFrame(batch = batch))
-
-    return(cor.out)
-  }
+  cor.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
+  cor.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
 
 
-  #' Get genes that are ambient in at least one test and control sample
-  #'
-  #' @param scseqs List of \code{SingleCellExperiment} objects.
-  #'
-  #' @return List with test and control ambient genes
-  #' @export
-  #' @keywords internal
-  get_integrated_ambient <- function(scseqs) {
+  rm(combined); gc()
 
-    # datasets that are test samples
-    is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
+  # get counts for pseudobulk
+  counts <- do.call(no_correct('counts'), scseqs)
+  SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
+  rm(counts, scseqs); gc()
 
-    # genes that are ambient in at least one test sample
-    ambient.test <- lapply(scseqs[is.test], function(x) SingleCellExperiment::rowData(x))
-    ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
-    ambient.test <- unique(unlist(ambient.test))
+  return(cor.out)
+}
 
-    # genes that are ambient in at least one ctrl sample
-    ambient.ctrl <- lapply(scseqs[!is.test], function(x) SingleCellExperiment::rowData(x))
-    ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
-    ambient.ctrl <- unique(unlist(ambient.ctrl))
+run_harmony <- function(logcounts, hvgs, batch) {
 
-    return(list(test = ambient.test, ctrl = ambient.ctrl))
-  }
+  set.seed(100)
+  pcs <- scater::calculatePCA(logcounts, subset_row = hvgs)
+  emb <- harmony::HarmonyMatrix(pcs, batch, do_pca = FALSE)
 
-  #' Mark ambient outliers in combined dataset
-  #'
-  #' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
-  #'
-  #' @param scseqs the original scseqs
-  #' @param combined the combined scseqs
-  #'
-  #' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
-  #' @export
-  #' @keywords internal
-  add_integrated_ambient <- function(combined, ambient) {
+  cor.out <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(logcounts = logcounts),
+    reducedDims = list(corrected = emb),
+    colData =  S4Vectors::DataFrame(batch = batch))
 
-    genes <- row.names(combined)
-    SummarizedExperiment::rowData(combined)$test_ambient <- genes %in% ambient$test
-    SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
-
-    return(combined)
-  }
+  return(cor.out)
+}
 
 
-  #' Test is there is at lest two clusters
-  #'
-  #' Used by \code{\link{get_scseq_markers}} to prevent getting markers if there are no clusters to compare
-  #'
-  #' @param scseq
-  #'
-  #' @return TRUE if more than one cluster exists
-  #' @export
-  exist_clusters <- function(scseq) {
-    length(unique(scseq$cluster)) > 1
-  }
+#' Get genes that are ambient in at least one test and control sample
+#'
+#' @param scseqs List of \code{SingleCellExperiment} objects.
+#'
+#' @return List with test and control ambient genes
+#' @export
+#' @keywords internal
+get_integrated_ambient <- function(scseqs) {
+
+  # datasets that are test samples
+  is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
+
+  # genes that are ambient in at least one test sample
+  ambient.test <- lapply(scseqs[is.test], function(x) SingleCellExperiment::rowData(x))
+  ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
+  ambient.test <- unique(unlist(ambient.test))
+
+  # genes that are ambient in at least one ctrl sample
+  ambient.ctrl <- lapply(scseqs[!is.test], function(x) SingleCellExperiment::rowData(x))
+  ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
+  ambient.ctrl <- unique(unlist(ambient.ctrl))
+
+  return(list(test = ambient.test, ctrl = ambient.ctrl))
+}
+
+#' Mark ambient outliers in combined dataset
+#'
+#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
+#'
+#' @param scseqs the original scseqs
+#' @param combined the combined scseqs
+#'
+#' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
+#' @export
+#' @keywords internal
+add_integrated_ambient <- function(combined, ambient) {
+
+  genes <- row.names(combined)
+  SummarizedExperiment::rowData(combined)$test_ambient <- genes %in% ambient$test
+  SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
+
+  return(combined)
+}
+
+
+#' Test is there is at lest two clusters
+#'
+#' Used by \code{\link{get_scseq_markers}} to prevent getting markers if there are no clusters to compare
+#'
+#' @param scseq
+#'
+#' @return TRUE if more than one cluster exists
+#' @export
+exist_clusters <- function(scseq) {
+  length(unique(scseq$cluster)) > 1
+}
 
