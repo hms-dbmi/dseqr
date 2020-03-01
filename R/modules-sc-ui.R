@@ -158,7 +158,7 @@ integrationFormInput <- function(id) {
                                   label = tags$span('Clusters to', tags$span(class="text-warning", 'exclude'), 'or', tags$span(class='text-success', 'include', .noWS = 'after'), ':'),
                                   actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle exclude or include'),
                                   options = list(multiple = TRUE, optgroupField = 'anal')),
-        shinyWidgets::radioGroupButtons(ns('integration_type'), 'Integration type:', choices = c('clusterMNN', 'fastMNN'), justified = TRUE, selected = 'clusterMNN'),
+        shinyWidgets::radioGroupButtons(ns('integration_type'), 'Integration type:', choices = c('harmony', 'liger', 'fastMNN'), justified = TRUE, selected = 'harmony'),
         textInputWithButtons(ns('integration_name'),
                              container_id = ns('name-container'),
                              label = 'Name for new dataset:',

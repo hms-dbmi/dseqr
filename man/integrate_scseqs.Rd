@@ -4,7 +4,7 @@
 \alias{integrate_scseqs}
 \title{Integrate multiple scRNA-seq samples}
 \usage{
-integrate_scseqs(scseqs, type = c("clusterMNN", "fastMNN"))
+integrate_scseqs(scseqs, type = c("harmony", "clusterMNN", "fastMNN"))
 }
 \arguments{
 \item{scseqs}{List of \code{SingleCellExperiment} objects}

@@ -5,11 +5,12 @@
 \title{Run drugseqr app}
 \usage{
 run_drugseqr(
-  data_dir,
+  app_name,
+  data_dir = "/srv/drugseqr",
   app_dir = system.file("app", package = "drugseqr", mustWork = TRUE),
-  pert_query_dir = "/srv/drugseqr/pert_query_dir",
-  pert_signature_dir = "/srv/drugseqr/pert_signature_dir",
-  indices_dir = "/srv/drugseqr/indices",
+  pert_query_dir = file.path(data_dir, "pert_query_dir"),
+  pert_signature_dir = file.path(data_dir, "pert_signature_dir"),
+  indices_dir = file.path(data_dir, "indices"),
   test = FALSE,
   test_data = FALSE,
   host = "0.0.0.0",
@@ -17,12 +18,13 @@ run_drugseqr(
 )
 }
 \arguments{
-\item{data_dir}{Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
-Ignored if \code{test_data} is \code{TRUE}.}
-
-\item{app_dir}{Directory containing drugseqr shiny app files.}
+\item{data_dir}{Directory containing drugseqr shiny app files.}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
+
+\item{pert_signature_dir}{Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.}
+
+\item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
 
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 If \code{TRUE} test data will be used.}
@@ -34,16 +36,18 @@ Used for local development
 }
 \examples{
 
-library(drugseqr)
+app_name <- 'example'
+data_dir <- 'data_dir'
+drugseqr::run_drugseqr(app_name, data_dir)
 
-# override default app_dir etc for development
+
+# override default data_dir etc for development
 app_dir <- 'inst/app'
-data_dir <- 'data-raw/patient_data/sjia'
+data_dir <- 'data-raw/patient_data'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
 pert_signature_dir <- 'data-raw/drug_es/signatures'
+indices_dir <- '/srv/drugseqr/indices'
 
-run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = FALSE)
-run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test_data = TRUE)
-run_drugseqr(data_dir, app_dir, pert_query_dir, pert_signature_dir, test = TRUE)
+drugseqr::run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
 
 }

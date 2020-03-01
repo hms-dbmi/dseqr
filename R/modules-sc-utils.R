@@ -492,6 +492,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
+  rm(scseq_data, summed, markers, ambient, tests, pairs, top_markers, lm_fit, pbulk_esets); gc()
 
   progress$set(8, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, anal_name))
