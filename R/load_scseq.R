@@ -88,6 +88,9 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, valu
 
   save_scseq_data(anal, dataset_name, sc_dir)
 
+  # don't save raw counts for loom (saved as non-sparse)
+  SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
+
   progress$set(message = "Saving loom", value = value + 5)
   save_scle(scseq, file.path(sc_dir, dataset_name))
   progress$set(value = value + 7)
