@@ -1193,7 +1193,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     saveRDS(mod_annot, annot_path())
 
     # update annot and set selected cluster to new name
-    annot(ref_preds)
+    annot(mod_annot)
   })
 
 
