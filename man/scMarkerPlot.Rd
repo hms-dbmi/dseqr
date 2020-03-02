@@ -11,7 +11,8 @@ scMarkerPlot(
   scseq,
   selected_gene,
   fname_fun = function() { },
-  downloadable = TRUE
+  downloadable = TRUE,
+  custom_metrics = function() NULL
 )
 }
 \description{

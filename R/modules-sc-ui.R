@@ -64,7 +64,8 @@ scFormInput <- function(id) {
         scSelectedDatasetInput(ns('dataset')),
         div(class = 'hidden-forms',
             labelTransferFormInput(ns('transfer')),
-            integrationFormInput(ns('integration'))
+            integrationFormInput(ns('integration')),
+            subsetFormInput(ns('subset'))
         ),
         div(id = ns('form_container'), style = 'display: none;',
             div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
@@ -116,8 +117,8 @@ scSelectedDatasetInput <- function(id) {
 
   tagList(
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
-                              actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn'),
-                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle to integrate or subset dataset(s)'),
+                              actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn', `parent-style`='display: none;'),
+                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle <b>once</b> to integrate or <b>twice</b> subset dataset(s)'),
                               options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)),
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
@@ -151,8 +152,8 @@ integrationFormInput <- function(id) {
 
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Integration test or subset datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Select single dataset to subset')),
-        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%', options = list(placeholder = 'Leave empty to subset')),
+        selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
+        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInputWithButtons(ns('exclude_clusters'),
                                   container_id = ns('exclude-container'),
                                   label = tags$span('Clusters to', tags$span(class="text-warning", 'exclude'), 'or', tags$span(class='text-success', 'include', .noWS = 'after'), ':'),
@@ -164,7 +165,7 @@ integrationFormInput <- function(id) {
                              label = 'Name for new dataset:',
                              actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
                              actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
-                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate or subset datasets'),
+                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
                              help_id = ns('error_msg')),
 
         div(style = 'display: none',
@@ -173,6 +174,33 @@ integrationFormInput <- function(id) {
         downloadLink(ns('dl_samples'), '')
     )
   })
+}
+
+subsetFormInput <- function(id) {
+
+  ns <- NS(id)
+
+  withTags({
+    div(id = ns('subset-form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInputWithButtons(ns('exclude_clusters'),
+                                  container_id = ns('exclude-container'),
+                                  label = tags$span('Clusters to', tags$span(class="text-warning", 'exclude'), 'or', tags$span(class='text-success', 'include', .noWS = 'after'), ':'),
+                                  actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle exclude or include'),
+                                  options = list(multiple = TRUE, optgroupField = 'anal')),
+        textInputWithButtons(ns('subset_name'),
+                             container_id = ns('name-container'),
+                             label = 'Name for new dataset:',
+                             actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
+                             help_id = ns('error_msg'),
+                             placeholder = 'eg: QC2 (appended to founder dataset name)'),
+
+        div(style = 'display: none',
+            fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+        ),
+        downloadLink(ns('dl_samples'), '')
+    )
+  })
+
 }
 
 
@@ -190,12 +218,13 @@ clusterComparisonInput <- function(id) {
               selectizeInputWithButtons(ns('selected_cluster'),
                                         label = 'Show marker genes for:',
                                         label_title = 'Cluster (n cells :: % of total)',
-                                        actionButton(ns('show_rename'), '',
-                                                     icon = icon('tag', 'fa-fw'),
-                                                     title = 'Toggle rename cluster'),
                                         actionButton(ns('show_contrasts'), '',
                                                      icon = icon('chevron-right', 'fa-fw'),
-                                                     title = 'Toggle single group comparisons'))
+                                                     title = 'Toggle single group comparisons'),
+                                        actionButton(ns('show_rename'), '',
+                                                     icon = tags$i(class='far fa-fw fa-edit'),
+                                                     title = 'Toggle rename cluster')
+              )
           )
       ),
       div(id = ns('rename_panel'), style = 'display: none',
@@ -216,22 +245,42 @@ clusterComparisonInput <- function(id) {
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
 
-  exclude_ambient_button <- ridge_plot_button <- NULL
+  exclude_ambient_button <- ridge_plot_button <- custom_button <- NULL
   if (sample_comparison)
     exclude_ambient_button <- actionButton(ns('exclude_ambient'), '',
                                            icon = icon('ban', 'fa-fw'),
                                            title = 'Toggle excluding ambient genes', class = 'squashed-btn')
 
-  if (!sample_comparison)
-    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
+  if (!sample_comparison) {
+    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
+    custom_button <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Specify custom metric')
+  }
 
 
-  selectizeInputWithButtons(id = ns('selected_gene'),
-                            label = 'Feature to plot:',
-                            exclude_ambient_button,
-                            ridge_plot_button,
-                            options = list(optgroupField = 'type'),
-                            actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
+
+  tagList(
+    div(id = ns('selected_gene_panel'),
+        selectizeInputWithButtons(id = ns('selected_gene'),
+                                  label = 'Feature to plot:',
+                                  exclude_ambient_button,
+                                  ridge_plot_button,
+                                  options = list(optgroupField = 'type'),
+                                  actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;'),
+                                  custom_button
+        )
+    ),
+    div(id = ns('custom_metric_panel'), style = 'display: none',
+        textInputWithButtons(ns('custom_metric'),
+                             'Custom metric:',
+                             placeholder = 'e.g: PF4 >= 2.2',
+                             actionButton(ns('check_custom_metric'), '',
+                                          icon = icon('redo', 'fa-fw'),
+                                          title = 'Check custom metric'),
+                             actionButton(ns('save_custom_metric'), '',
+                                          icon = icon('plus', 'fa-fw'),
+                                          title = 'Add custom metric'))
+    )
+
   )
 }
 
@@ -329,5 +378,6 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+
 
 

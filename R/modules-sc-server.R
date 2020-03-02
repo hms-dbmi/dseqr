@@ -31,6 +31,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
                                 scseq = scForm$scseq,
+                                custom_metrics = scForm$custom_metrics,
                                 selected_gene = scForm$clusters_gene,
                                 fname_fun = cluster_fname)
 
@@ -190,15 +191,41 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   observe(toggle('form_container', condition = scDataset$dataset_exists()))
 
-  # update scseq with annotation changes
+
+  # update scseq with annotation changes and custom metrics
   scseq <- reactive({
     scseq <- scDataset$scseq()
     annot <- scClusterComparison$annot()
+    metrics <- scClusterGene$saved_metrics()
+
     if (!isTruthy(annot) | !isTruthy(scseq)) return(NULL)
+    if (!is.null(metrics)) scseq@colData <- cbind(scseq@colData, metrics)
     levels(scseq$cluster) <- annot
+
     return(scseq)
   })
 
+  qc_metrics <- reactive({
+    scseq <- scseq()
+    if(is.null(scseq)) return(NULL)
+    qc <- colnames(scseq@colData)
+    custom <- scClusterGene$saved_metrics()
+
+    qc[match(c('outlier_any',
+               'low_lib_size',
+               'low_n_features',
+               'high_subsets_mito_percent',
+               'low_subsets_ribo_percent',
+               'high_doublet_score',
+               'high_outlyingness',
+               'log10_sum',
+               'log10_detected',
+               'mito_percent',
+               'ribo_percent',
+               'doublet_score',
+               'outlingness',
+               colnames(custom)), qc, nomatch = 0)]
+  })
 
 
   #TODO move label transfer and integration into dataset
@@ -218,6 +245,13 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                               datasets = scDataset$datasets,
                               dataset_name = scDataset$dataset_name,
                               show_integration = scDataset$show_integration)
+
+  # dataset subset
+  scSubset <- callModule(subsetForm, 'subset',
+                         sc_dir = sc_dir,
+                         datasets = scDataset$datasets,
+                         dataset_name = scDataset$dataset_name,
+                         show_subset = scDataset$show_subset)
 
 
   # comparison type
@@ -240,12 +274,16 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                     ref_preds = scLabelTransfer)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
+                              scseq = scDataset$scseq,
                               dataset_name = scDataset$dataset_name,
+                              dataset_dir = dataset_dir,
                               is.integrated = scDataset$is.integrated,
                               selected_markers = scClusterComparison$selected_markers,
                               selected_cluster = scClusterComparison$selected_cluster,
-                              qc_metrics = scClusterComparison$qc_metrics,
+                              qc_metrics = qc_metrics,
                               type = 'clusters')
+
+
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
@@ -257,7 +295,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                    exclude_ambient = scSampleGene$exclude_ambient)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
+                             scseq = scDataset$scseq,
                              dataset_name = scDataset$dataset_name,
+                             dataset_dir = dataset_dir,
                              is.integrated = scDataset$is.integrated,
                              selected_markers = scSampleComparison$top_table,
                              selected_cluster = scSampleComparison$selected_cluster,
@@ -299,10 +339,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     if (new != old) selected_cluster(new)
   })
 
+
   return(list(
     scseq = scseq,
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
+    custom_metrics = scClusterGene$custom_metrics,
     show_ridge = scClusterGene$show_ridge,
     samples_pfun_left = scSampleComparison$pfun_left,
     samples_pfun_right = scSampleComparison$pfun_right,
@@ -501,11 +543,24 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # show/hide integration/label-transfer forms
-  show_integration <- reactive(input$show_integration %% 2 != 0)
+  show_integration <- reactive(input$show_integration %% 3 == 1)
+  show_subset <- reactive(input$show_integration %% 3 == 2)
   show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
 
   observe(toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer()))
-  observe(toggleClass(id = "show_integration", 'btn-primary', condition = show_integration()))
+
+  # distinguish between 1/2 toggles for integration vs subset
+  observe({
+    toggleClass(id = "show_integration", 'btn-primary', condition = show_integration() | show_subset())
+  })
+
+  observe({
+    icon <- icon('object-group', 'far fa-fw')
+    if (show_subset()) icon <- icon('object-ungroup', 'far fa-fw')
+
+    updateActionButton(session, 'show_integration', icon = icon)
+  })
+
 
   # hide integration/label-transfer buttons no dataset
   observe({
@@ -521,6 +576,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     annot_path = annot_path,
     datasets = datasets,
     show_integration = show_integration,
+    show_subset = show_subset,
     show_label_transfer = show_label_transfer,
     is.integrated = is.integrated,
     dataset_exists = dataset_exists,
@@ -808,11 +864,91 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   return(pred_annot)
 }
 
+subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, dataset_name) {
+  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+
+  subset_name <- reactive(input$subset_name)
+
+  subset_inputs <- c('subset_name',
+                     'submit_subset',
+                     'exclude_clusters',
+                     'toggle_exclude')
+
+  # show/hide integration forms
+  observe({
+    toggle(id = "subset-form", anim = TRUE, condition = show_subset())
+  })
+
+  is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
+
+  exclude_choices <- reactive({
+    selected <- dataset_name()
+    req(selected)
+    dataset_dir <- file.path(sc_dir, selected)
+    clusters <- readRDS(file.path(dataset_dir, 'annot.rds'))
+    choices <- get_cluster_choices(clusters, dataset_dir)
+    choices$value <- paste(selected, choices$value, sep = '_')
+    return(choices)
+  })
+
+  # change UI of exclude toggle
+  observe({
+    toggleClass(id = 'toggle_icon', 'fa-plus text-success', condition = is_include())
+    toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
+  })
+
+
+  # run integration
+  observeEvent(input$submit_subset, {
+
+    exclude_clusters <- input$exclude_clusters
+
+    if (is_include()) {
+      choices <- exclude_choices()
+      exclude_clusters <- setdiff(choices$value, exclude_clusters)
+    }
+
+    dataset_name <- dataset_name()
+    anal_name <- input$subset_name
+
+
+    # clear error and disable button
+    toggleAll(subset_inputs)
+
+    # Create a Progress object
+    on.exit(progress$close())
+    progress <- Progress$new(session, min=0, max = 9)
+    progress$set(message = "Integrating datasets", value = 0)
+
+    # run integration
+    browser()
+    subset_saved_scseq(sc_dir = sc_dir,
+                       dataset_name = dataset_name,
+                       save_name = anal_name,
+                       exclude_clusters = exclude_clusters,
+                       progress = progress)
+
+
+    # re-enable, clear inputs, and trigger update of available anals
+    new_anal(anal_name)
+    updateTextInput(session, 'subset_name', value = '')
+    toggleAll(subset_inputs)
+  })
+
+  # update exclude clusters
+  observe({
+    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = contrastOptions, server = TRUE)
+  })
+
+
+}
+
 
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, dataset_name) {
+  excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
 
   integration_inputs <- c('ctrl_integration',
                           'integration_name',
@@ -857,9 +993,8 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
-  is_subset <- reactive(length(test()) == 1 && is.null(ctrl()))
-  is_integration <- reactive(length(test()) && length(ctrl()))
-  allow_pairs <- reactive(length(selected_datasets()) > 2 & is_integration())
+  allow_integration <- reactive(length(test()) && length(ctrl()))
+  allow_pairs <- reactive(length(selected_datasets()) > 2 & allow_integration())
 
   # show/hide integration forms
   observe({
@@ -887,50 +1022,29 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   # hide pairing if not enough datasets
   observe({
-    toggle(id = "click_dl", condition = allow_pairs())
-    toggle(id = "click_up", condition = allow_pairs())
+    toggleState(id = "click_dl", condition = allow_pairs())
+    toggleState(id = "click_up", condition = allow_pairs())
   })
 
   # show cluster type choices if enough datasets
-  observe(toggle(id = 'integration_type', condition = is_integration()))
+  observe(toggle(id = 'integration_type', condition = allow_integration()))
 
 
   # show exclude/exclude and new dataset only if something selected
   observe(toggle(id = 'exclude-container', condition = selected_datasets()))
   observe(toggle(id = 'name-container', condition = selected_datasets()))
 
-  # update placeholder for dataset name based on if subsettting
-  observe({
-    placeholder <- ifelse(is_subset(), 'eg: QC2 (appended to founder dataset name)', '')
-    updateTextInput(session, 'integration_name', placeholder = placeholder)
-  })
-
-  excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
-  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  options <- reactiveVal(excludeOptions)
 
   exclude_choices <- reactive({
     selected <- selected_datasets()
-
-    if (is_subset()) {
-      dataset_dir <- file.path(sc_dir, selected)
-      clusters <- readRDS(file.path(dataset_dir, 'annot.rds'))
-      choices <- get_cluster_choices(clusters, dataset_dir)
-      choices$value <- paste(selected, choices$value, sep = '_')
-      options(contrastOptions)
-
-    } else {
-      colors <- get_palette(selected)
-      choices <- get_exclude_choices(selected, sc_dir, colors)
-      options(excludeOptions)
-    }
-
+    colors <- get_palette(selected)
+    choices <- get_exclude_choices(selected, sc_dir, colors)
     return(choices)
   })
 
   # update exclude clusters
   observe({
-    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = options(), server = TRUE)
+    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = excludeOptions, server = TRUE)
   })
 
   # upload/download pairs
@@ -988,7 +1102,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     ctrl_anals <- ctrl()
     datasets <- datasets()
     pairs <- pairs()
-    is_subset <- is_subset()
 
     type <- input$integration_type
     anal_name <- input$integration_name
@@ -1002,33 +1115,19 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
       # Create a Progress object
       on.exit(progress$close())
-      if (is_subset) {
-        progress <- Progress$new(session, min=0, max = 8)
-        progress$set(message = "Subsetting dataset", value = 0)
+      progress <- Progress$new(session, min=0, max = 9)
+      progress$set(message = "Integrating datasets", value = 0)
 
-        founder <- get_founder(sc_dir, test_anals)
+      # run integration
+      integrate_saved_scseqs(sc_dir,
+                             test = test_anals,
+                             ctrl = ctrl_anals,
+                             exclude_clusters = exclude_clusters,
+                             anal_name = anal_name,
+                             type = type,
+                             pairs = pairs,
+                             progress = progress)
 
-        subset_saved_scseq(sc_dir,
-                           dataset_name = test_anals,
-                           exclude_clusters = exclude_clusters,
-                           save_name = paste(founder, anal_name, sep = '_'),
-                           progress = progress)
-
-      } else {
-        progress <- Progress$new(session, min=0, max = 9)
-        progress$set(message = "Integrating datasets", value = 0)
-
-        # run integration
-        integrate_saved_scseqs(sc_dir,
-                               test = test_anals,
-                               ctrl = ctrl_anals,
-                               exclude_clusters = exclude_clusters,
-                               anal_name = anal_name,
-                               type = type,
-                               pairs = pairs,
-                               progress = progress)
-
-      }
 
       # re-enable, clear inputs, and trigger update of available anals
       ctrl(NULL)
@@ -1239,25 +1338,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     markers(markers)
   })
 
-  qc_metrics <- reactive({
-    scseq <- scseq()
-    if(is.null(scseq)) return(NULL)
-    qc <- colnames(scseq@colData)
-    qc[match(c('outlier_any',
-               'low_lib_size',
-               'low_n_features',
-               'high_subsets_mito_percent',
-               'low_subsets_ribo_percent',
-               'high_doublet_score',
-               'high_outlyingness',
-               'log10_sum',
-               'log10_detected',
-               'mito_percent',
-               'ribo_percent',
-               'doublet_score',
-               'outlingness'), qc, nomatch = 0)]
-  })
-
 
   observe({
     sel <- selected_cluster()
@@ -1269,8 +1349,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   return(list(
     annot = annot,
     selected_markers = selected_markers,
-    selected_cluster = selected_cluster,
-    qc_metrics = qc_metrics
+    selected_cluster = selected_cluster
   ))
 }
 
@@ -1307,10 +1386,10 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, is.integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is.integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
+  gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   selected_gene <- reactiveVal(NULL)
-  gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   exclude_ambient <- reactive({
     if (is.null(input$exclude_ambient)) return(TRUE)
@@ -1323,8 +1402,69 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
   })
 
   # toggle for ridgeline
-  show_ridge <- reactive(input$show_ridge %% 2 != 1)
+  gene_selected <- reactive({
+    sel <- input$selected_gene
+    isTruthy(sel) && !sel %in% qc_metrics()
+  })
+
+  show_ridge <- reactive(input$show_ridge %% 2 != 1 | !gene_selected())
+  show_custom_metric <- reactive(type != 'samples' && ((input$show_custom_metric + input$save_custom_metric) %%2 != 0))
+
   observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !show_ridge()))
+
+  observe({
+    toggle('selected_gene_panel', condition = !show_custom_metric())
+    toggle('custom_metric_panel', condition = show_custom_metric())
+  })
+
+  observe({
+    toggle('genecards-parent', condition = gene_selected())
+    toggle('show_ridge-parent', condition = gene_selected())
+  })
+
+
+  custom_metrics <- reactiveVal()
+  allow_save <- reactive(!isTruthy(input$custom_metric) || input$custom_metric %in% colnames(custom_metrics()))
+
+  observe(toggleState('save_custom_metric', condition = allow_save()))
+
+  observeEvent(input$check_custom_metric, {
+    metric <- input$custom_metric
+    req(metric)
+    res <- validate_metric(metric, scseq())
+
+    if (class(res) == 'data.frame') {
+
+      prev <- custom_metrics()
+      if (!is.null(prev)) res <- cbind(prev, res)
+      res <- res[, unique(colnames(res)), drop = FALSE]
+      custom_metrics(res)
+      selected_gene(metric)
+    }
+  })
+
+
+  saved_metrics <- reactiveVal()
+  metrics_path <- reactive(file.path(dataset_dir(), 'saved_metrics.rds'))
+  observe(saved_metrics(readRDS.safe(metrics_path())))
+
+  observeEvent(input$save_custom_metric, {
+    metric <- input$custom_metric
+    if (!isTruthy(metric)) selected_gene(input$selected_gene)
+    req(metric)
+
+    res <- custom_metrics()[, metric, drop = FALSE]
+    prev <- saved_metrics()
+    if (!is.null(prev)) res <- cbind(prev, res)
+
+    saveRDS(res, metrics_path())
+    saved_metrics(res)
+    selected_gene(metric)
+    updateTextInput(session, 'custom_metric', value = '')
+  })
+
+
+
 
   filtered_markers <- reactive({
 
@@ -1338,8 +1478,11 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
     return(markers)
   })
 
+  scseq_genes <- reactive(data.frame(1:nrow(scseq()), row.names = row.names(scseq())))
+
   # update marker genes based on cluster selection
   gene_choices <- reactive({
+    qc_first <- FALSE
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
     qc_metrics <- qc_metrics()
@@ -1349,8 +1492,13 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
     if ((is.null(markers) & is.null(qc_metrics)) ||
         (is.null(markers) & isTruthy(selected_cluster))) return(NULL)
 
+    if (is.null(markers)) {
+      qc_first <- TRUE
+      markers <- scseq_genes()
+    }
 
-    get_gene_choices(markers, qc_metrics = qc_metrics)
+
+    get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first)
   })
 
   # click genecards
@@ -1370,21 +1518,89 @@ selectedGene <- function(input, output, session, dataset_name, is.integrated, se
 
   # update choices
   observe({
-    prev <- isolate(input$selected_gene)
     choices <- gene_choices()
 
     updateSelectizeInput(session, 'selected_gene',
                          choices = choices,
                          server = TRUE,
+                         selected = isolate(selected_gene()),
                          options = gene_options)
   })
 
   return(list(
     selected_gene = selected_gene,
     exclude_ambient = exclude_ambient,
-    show_ridge = show_ridge
+    show_ridge = show_ridge,
+    custom_metrics = custom_metrics,
+    saved_metrics = saved_metrics
   ))
 
+}
+
+validate_metric <- function(metric, scseq) {
+
+  allowed <- interpret(metric)
+  if (!allowed) return("Metric not permitted")
+
+  ft <- get_metric_features(metric)
+  if (!length(ft)) return('No features specified')
+
+  have.ft  <- all(ft %in% c(row.names(scseq), colnames(scseq@colData)))
+  if (!have.ft) return('Missing features')
+
+  dat <- try(evaluate_custom_metric(metric, scseq))
+  if ('try-error' %in% class(dat)) return("Couldn't evaluate expression")
+
+  return(dat)
+}
+
+get_metric_features <- function(metric) {
+
+  ft <- strsplit(metric, '[\'\"|><=\\)\\(&!]')[[1]]
+  ft <- gsub(' ', '', ft)
+  ft <- ft[ft != '']
+  not.num <- is.na(suppressWarnings(as.numeric(ft)))
+  ft[not.num]
+}
+
+
+evaluate_custom_metric <- function(metric, scseq) {
+  ft <- get_metric_features(metric)
+
+  # make sure will run
+  expr <- SingleCellExperiment::logcounts(scseq)
+  expr <- expr[row.names(expr) %in% ft,, drop = FALSE]
+  expr <- t(expr)
+
+  qcs <- scseq@colData
+  qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
+
+  dat <- cbind(expr, qcs)
+  dat <- as.data.frame(cbind(expr, qcs))
+  colnames(dat) <- c(colnames(expr), colnames(qcs))
+
+  dat <- within(dat, metric <- eval(rlang::parse_expr(metric)))
+  dat <- dat[, 'metric', drop = FALSE]
+  colnames(dat) <- metric
+  return(dat)
+}
+
+
+interpret <- function(expr_str,
+                      max_length = 100,
+                      whitelist = c("&", ">=", "<=", ">", "<", '|', '==', '!=')) {
+  safer_eval <- function(expr) {
+    if (rlang::is_call(expr)) {
+      fn_name <- rlang::call_name(expr)
+      if (!fn_name %in% whitelist) return(FALSE)
+      do.call(get(fn_name, baseenv()), Map(safer_eval, rlang::call_args(expr)))
+    } else if (rlang::is_syntactic_literal(expr)) {
+      expr
+    }
+  }
+  if(length(expr_str) >= max_length) return(FALSE)
+  safer_eval(rlang::parse_expr(expr_str))
+  return(TRUE)
 }
 
 
@@ -1456,14 +1672,17 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker gene plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun = function(){}, downloadable = TRUE) {
+scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun = function(){}, downloadable = TRUE, custom_metrics = function()NULL) {
 
 
   plot <- reactive({
     gene <- selected_gene()
     scseq <- scseq()
+    metrics <- custom_metrics()
     if (!isTruthy(gene) || !isTruthy(scseq)) return(NULL)
+    if (!is.null(metrics)) scseq@colData <- cbind(scseq@colData, metrics)
     if (!gene %in% row.names(scseq) && !gene %in% colnames(scseq@colData)) return(NULL)
+
     plot_tsne_feature(scseq, gene)
   })
 
@@ -1881,6 +2100,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
   # errors if boolean
   if (is.logical(x)) return(NULL)
+  if (is.null(x)) return(NULL)
 
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])

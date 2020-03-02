@@ -9,6 +9,8 @@ selectedGene(
   output,
   session,
   dataset_name,
+  dataset_dir,
+  scseq,
   is.integrated,
   selected_markers,
   selected_cluster,

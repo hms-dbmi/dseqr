@@ -366,13 +366,25 @@ get_contrast_choices <- function(clusters, test) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL) {
+get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE) {
   type_score <- c('doublet_score', 'log10_detected', 'log10_sum', 'mito_percent', 'ribo_percent', 'outlyingness')
+  type_outl  <- setdiff(qc_metrics, type_score)
 
-  choices <- c(row.names(markers), qc_metrics)
-  if (length(choices) == length(qc_metrics)) type <- ifelse(choices %in% type_score, 'QC Score', 'QC Outlier')
+  markers <- row.names(markers)
+
+  qc_type <- ifelse(qc_metrics %in% type_score, 'QC Score', 'QC Outlier')
+  gene_type <- rep('Gene', length(markers))
+
+  if (qc_first) {
+    choices <- c(qc_metrics, markers)
+    type <- c(qc_type, gene_type)
+
+  } else {
+    choices <- c(markers, qc_metrics)
+    type <- c(gene_type, qc_type)
+  }
+
   idx <- match(choices, tx2gene$gene_name)
-
   choices <- data.table::data.table(label = choices,
                                     value = choices,
                                     description = tx2gene$description[idx],
@@ -431,6 +443,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   progress$set(2, detail = 'integrating')
   combined <- integrate_scseqs(scseqs, type = type)
+  combined$project <- anal_name
 
   # retain original QC metrics
   metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
@@ -466,7 +479,6 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                                            cluster = combined$cluster,
                                            batch = combined$batch))
 
-  SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
   progress$set(6, detail = 'fitting linear models')
   obj <- combined
@@ -474,7 +486,6 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   has_replicates <- length(unique(combined$batch)) > 2
   if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
   lm_fit <- run_limma_scseq(obj)
-
 
   progress$set(7, detail = 'saving')
   scseq_data <- list(scseq = combined,
@@ -493,6 +504,9 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
   rm(scseq_data, summed, markers, ambient, tests, pairs, top_markers, lm_fit, pbulk_esets); gc()
+
+  # don't save raw counts for loom (saved in non-sparse format)
+  SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
   progress$set(8, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, anal_name))
