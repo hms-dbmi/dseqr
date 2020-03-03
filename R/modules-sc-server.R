@@ -901,7 +901,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
   subset_inputs <- c('subset_name',
                      'submit_subset',
-                     'exclude_clusters',
+                     'subset_clusters',
                      'toggle_exclude')
 
   # show/hide integration forms
@@ -933,7 +933,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     if (!is.null(metric_choices)) {
       metric_choices$type <- 'Exclusion Metrics'
       choices <- rbind(metric_choices, choices)
-      choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
+      choices$pspace <- strrep('&nbsp;&nbsp;', max(0, 2 - nchar(choices$pcells)))
     }
 
     return(choices)
@@ -949,14 +949,14 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   # run integration
   observeEvent(input$submit_subset, {
 
-    exclude <- input$exclude_clusters
+    subset <- input$subset_clusters
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
 
-    exclude_clusters <- intersect(cluster_choices$value, exclude)
-    exclude_metrics <- intersect(metric_choices$value, exclude)
+    exclude_clusters <- intersect(cluster_choices$value, subset)
+    exclude_metrics <- intersect(metric_choices$value, subset)
 
-    if (is_include()) {
+    if (is_include() && length(subset)) {
       choices <- cluster_choices()
       exclude_clusters <- setdiff(choices$value, exclude_clusters)
     }
@@ -991,9 +991,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   # update exclude clusters
   observe({
 
-    updateSelectizeInput(session, 'exclude_clusters',
+    updateSelectizeInput(session, 'subset_clusters',
                          choices = exclude_choices(),
-                         selected = isolate(input$exclude_clusters),
+                         selected = isolate(input$subset_clusters),
                          options = contrastOptions,
                          server = TRUE)
   })
@@ -1013,7 +1013,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                           'submit_integration',
                           'test_integration',
                           'integration_type',
-                          'exclude_clusters',
+                          'subset_clusters',
                           'click_up',
                           'click_dl',
                           'toggle_exclude')
@@ -1092,7 +1092,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   # update exclude clusters
   observe({
-    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = excludeOptions, server = TRUE)
+    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$subset_clusters), options = excludeOptions, server = TRUE)
   })
 
   # upload/download pairs
@@ -1139,11 +1139,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # run integration
   observeEvent(input$submit_integration, {
 
-    exclude_clusters <- input$exclude_clusters
+    subset <- exclude_clusters <- input$subset_clusters
 
-    if (is_include()) {
+    if (is_include() && length(subset)) {
       choices <- exclude_choices()
-      exclude_clusters <- setdiff(choices$value, exclude_clusters)
+      exclude_clusters <- setdiff(choices$value, subset)
     }
 
     test_anals <- test()
@@ -1473,7 +1473,15 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
 
+  saved_metrics <- reactiveVal()
   custom_metrics <- reactiveVal()
+
+
+  observeEvent(dataset_name(), {
+    saved_metrics(NULL)
+    custom_metrics(NULL)
+  })
+
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
 
   observe(toggleState('save_custom_metric', condition = have_metric()))
@@ -1495,7 +1503,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   # for saving custom metric for future sessions
-  saved_metrics <- reactiveVal()
   metrics_path <- reactive(file.path(dataset_dir(), 'saved_metrics.rds'))
   observe(saved_metrics(readRDS.safe(metrics_path())))
 
@@ -2356,4 +2363,5 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 

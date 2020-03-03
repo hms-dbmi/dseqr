@@ -155,7 +155,7 @@ integrationFormInput <- function(id) {
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInputWithButtons(ns('exclude_clusters'),
+        selectizeInputWithButtons(ns('subset_clusters'),
                                   container_id = ns('exclude-container'),
                                   label = 'Clusters to subset on:',
                                   actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> clusters'),
@@ -183,7 +183,7 @@ subsetFormInput <- function(id) {
 
   withTags({
     div(id = ns('subset-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInputWithButtons(ns('exclude_clusters'),
+        selectizeInputWithButtons(ns('subset_clusters'),
                                   container_id = ns('exclude-container'),
                                   label = 'Features to subset on:',
                                   actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> clusters'),

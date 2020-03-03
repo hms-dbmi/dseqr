@@ -117,7 +117,7 @@ run_dream <- function(eset) {
 get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
   # determine if is subset
-  is.recent <- anal_options$type == 'Recent'
+  is.recent <- anal_options$type == 'Previous Session'
   is.sel <- anal_options$name == selected_anal
   type   <- tail(anal_options$type[is.sel], 1)
   type   <-  ifelse(type %in% c('Integrated', 'Individual'), selected_anal, type)
@@ -451,8 +451,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   }
 
   progress$set(1, detail = 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, sc_dir, exclude_clusters, sc_dir, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, sc_dir, exclude_clusters, sc_dir, ident = 'ctrl')
+  test_scseqs <- load_scseqs_for_integration(test, sc_dir, exclude_clusters, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, sc_dir, exclude_clusters, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -544,7 +544,7 @@ add_combined_metrics <- function(combined, scseqs) {
 
   # add mixing (Control, Test, sample origin) related metrics
   combined$is_test <- combined$orig.ident == 'test'
-  combined$is_ctrl <- !combined$is_ctrl
+  combined$is_ctrl <- !combined$is_test
 
   samples <- unique(combined$batch)
   if (length(samples > 2)) {
