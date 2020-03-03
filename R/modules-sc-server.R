@@ -656,7 +656,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
     # load previously saved reference preds
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    if (file.exists(preds_path)) readRDS(preds_path) else list()
+    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+    preds <- validate_preds(preds, sc_dir)
+    return(preds)
   })
 
   observeEvent(dataset_name(), new_preds(NULL))
@@ -673,6 +675,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     choices <- get_label_transfer_choices(datasets, dataset_name, preds, species)
     updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption, item: scDatasetItem}')))
   })
+
 
   # submit annotation transfer
   observeEvent(input$ref_name, {
@@ -718,7 +721,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
       genes <- 'de'
 
     } else {
-      ref <- readRDS(scseq_part_path(sc_dir, ref_name, 'scseq'))
+      ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
+      ref_date <- file.info(ref_path)$ctime
+      ref <- readRDS(ref_path)
 
       # check if ref and query have the same founder
       rfound <- readRDS(scseq_part_path(sc_dir, ref_name, 'founder'))
@@ -731,7 +736,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
         ref_cluster <- ref[, cells]$cluster
         query_cluster <- query[, cells]$cluster
-        tab <-  table(assigned = ref_cluster, cluster = query_cluster)
+        tab <- table(assigned = ref_cluster, cluster = query_cluster)
 
       } else {
         markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
@@ -764,6 +769,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     }
 
     pred <- row.names(tab)[apply(tab, 2, which.max)]
+
+    # keep track of date that reference was used so that can invaludate if overwritten
+    if (!missing(ref_date)) names(pred) <- ref_date
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
     preds[[ref_name]] <- pred
@@ -856,6 +864,36 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   return(pred_annot)
 }
 
+#' Check that label predictions aren't from overwritten datasets
+#'
+#' @param preds List of predictions
+#' @param sc_dir Directory with single-cell datasets
+#'
+#' @return \code{preds} that were generated from current datasets
+#' @export
+#' @keywords internal
+#'
+validate_preds <- function(preds, sc_dir) {
+  senv <- loadNamespace('SingleR')
+
+  ref_names <- names(preds)
+  dated <- c()
+
+  dated <- sapply(ref_names, function(ref_name) {
+    if (ref_name %in% ls(senv)) return(FALSE)
+
+    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
+    ref_date <- file.info(ref_path)$ctime
+    ref_date <- as.character(ref_date)
+    res_date <- names(preds[[ref_name]])[1]
+    dated <- !identical(res_date, ref_date)
+
+    return(dated)
+  })
+
+  return(preds[!dated])
+}
+
 subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, dataset_name, dataset_dir, cluster_choices) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -938,7 +976,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     # run integration
     subset_saved_scseq(sc_dir = sc_dir,
                        dataset_name = dataset_name,
-                       save_name = anal_name,
+                       save_name = paste(dataset_name, anal_name, sep = '_'),
                        exclude_clusters = exclude_clusters,
                        exclude_metrics = exclude_metrics,
                        progress = progress)
