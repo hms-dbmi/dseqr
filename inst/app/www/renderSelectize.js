@@ -18,9 +18,11 @@ function contrastOptions(item, escape) {
 
   var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 
+  var swatchClass = item.testColor == '' ? '' : 'input-swatch';
+
   var clustEl = "<div style='columns: 2;' title='" + title + "'>" +
                             "<div style='margin-right: -80px'>" +
-                              "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
+                              "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
                               escape(item.name) +
                             "</div>" +
                             info +
@@ -54,10 +56,14 @@ function contrastItem(item, escape) {
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
   var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
 
+  console.log(item.testColor == '');
+
+  var swatchClass = item.testColor == '' ? '' : 'input-swatch';
+
 
   // styling if looking at cluster
   var clustEl = "<div title='" + title + "'>" +
-                    "<div class='input-swatch' style='background-color:" + item.testColor + "'></div>" +
+                    "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
                      escape(item.name) +
                      info +
                 "</div>";

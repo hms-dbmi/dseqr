@@ -206,12 +206,13 @@ get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
 #'
 #' @param clusters Character vector of cluster names
 #' @param dataset_dir Directory with single cell dataset.
+#' @param ... Named arguments to \code{\link{get_cluster_stats}}.
 #' @param sample_comparison is this for test vs control comparion? Default is \code{FALSE}.
 #'
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #' @export
 #' @keywords internal
-get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comparison = FALSE, top_tables = NULL, has_replicates = FALSE) {
+get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 
   testColor <- get_palette(clusters)
 
@@ -229,7 +230,7 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
                         testColor,
                         row.names = NULL, stringsAsFactors = FALSE)
 
-  cluster_stats <- get_cluster_stats(dataset_dir, scseq, top_tables = top_tables, has_replicates = has_replicates)
+  cluster_stats <- get_cluster_stats(sample_comparison = sample_comparison, ...)
 
   if (sample_comparison) {
     # non-formatted for item/hover
@@ -249,10 +250,37 @@ get_cluster_choices <- function(clusters, dataset_dir, scseq = NULL, sample_comp
     # show the cell numbers/percentages
     choices$ncells <- cluster_stats$ncells
     choices$pcells <- round(cluster_stats$pcells)
-    choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
+    choices$pspace <- strrep('&nbsp;&nbsp;', max(0, 2 - nchar(choices$pcells)))
   }
 
   return(choices)
+}
+
+
+#' Get choices data.frame for custom metrics
+#'
+#' @param scseq \code{SingleCellExperiment}
+#'
+#' @return data.frame
+#' @export
+get_metric_choices <- function(scseq) {
+
+  metrics <- scseq@colData
+  names <- colnames(metrics)
+  names <- names[sapply(metrics, is.logical)]
+  if (!length(names)) return(NULL)
+
+  levels <- c(TRUE, FALSE)
+  choices <- lapply(names, function(name) {
+    scseq$cluster <- factor(metrics[[name]], levels = levels)
+    get_cluster_choices(levels, scseq = scseq)[1, , drop=FALSE]
+  })
+
+  choices <- do.call(rbind, choices)
+  choices$name <- choices$value <- choices$label <- names
+  choices$testColor <- ''
+  return(choices)
+
 }
 
 html_space <- function(x) {
@@ -267,21 +295,18 @@ html_space <- function(x) {
 #'
 #' @return List with cluster stats
 #' @export
-get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_replicates = FALSE) {
+get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
 
-  # return previously saved stats if exists
   stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
-  if (file.exists(stats_path)) return(readRDS(stats_path))
+  if (file.exists(stats_path) && use_disk) return(readRDS(stats_path))
 
-  # otherwise generate and save
   if (is.null(scseq)) scseq <- load_scseq(dataset_dir)
 
   ncells <- tabulate(scseq$cluster)
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
-  is.integrated <- !is.null(scseq$batch)
-  if (is.integrated) {
+  if (sample_comparison) {
 
     # number of total test and ctrl cells (shown)
     nbins <- length(levels(scseq$cluster))
@@ -301,7 +326,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   }
 
   # number of significant differentially expressed genes in each cluster (pseudobulk)
-  if (is.integrated & has_replicates) {
+  if (sample_comparison & has_replicates) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
@@ -311,7 +336,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   }
 
   # show number of non-ambient with logFC > 1
-  if (is.integrated) {
+  if (sample_comparison) {
     nbig <- rep(0, nbins)
     names(nbig) <- seq_len(nbins)
 
@@ -320,7 +345,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
     stats$nbig <- nbig
   }
 
-  saveRDS(stats, stats_path)
+  if (use_disk) saveRDS(stats, stats_path)
   return(stats)
 }
 
@@ -389,6 +414,8 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
                                     stringsAsFactors = FALSE)
 
 
+
+
   return(choices)
 }
 
@@ -424,8 +451,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   }
 
   progress$set(1, detail = 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, exclude_clusters = exclude_clusters, sc_dir = sc_dir, ident = 'ctrl')
+  test_scseqs <- load_scseqs_for_integration(test, sc_dir, exclude_clusters, sc_dir, ident = 'test')
+  ctrl_scseqs <- load_scseqs_for_integration(ctrl, sc_dir, exclude_clusters, sc_dir, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -516,8 +543,8 @@ add_combined_metrics <- function(combined, scseqs) {
   for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
 
   # add mixing (Control, Test, sample origin) related metrics
-  combined$test_samples <- combined$orig.ident == 'test'
-  combined$control_samples <- !combined$test_samples
+  combined$is_test <- combined$orig.ident == 'test'
+  combined$is_ctrl <- !combined$is_ctrl
 
   samples <- unique(combined$batch)
   if (length(samples > 2)) {
@@ -540,17 +567,31 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, exclude_clusters, sc_dir, ident = scseq$project) {
+load_scseqs_for_integration <- function(anal_names, sc_dir, exclude_clusters, exclude_metrics = NULL, ident = scseq$project) {
 
   exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
-  # TODO: make integration work with SingleCellLoomExperiment
   scseqs <- list()
-  for (anal in anal_names)
-    scseqs[[anal]] <- readRDS(scseq_part_path(sc_dir, anal, 'scseq'))
+
+  # load each scseq and exclude based on metrics
+  for (anal in anal_names) {
+    scseq <- readRDS(scseq_part_path(sc_dir, anal, 'scseq'))
+
+    if (!is.null(exclude_metrics)) {
+      cdata <- scseq@colData
+      metrics <- readRDS.safe(file.path(sc_dir, anal, 'saved_metrics.rds'))
+      if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
+
+      exclude <- cdata[, exclude_metrics, drop = FALSE]
+      exclude <- apply(exclude, 1, any)
+      scseq <- scseq[, !exclude]
+    }
+    scseqs[[anal]] <- scseq
+  }
 
 
+  # remove excluded clusters
   for (i in seq_along(scseqs)) {
     anal <- names(scseqs)[i]
     scseq <- scseqs[[anal]]

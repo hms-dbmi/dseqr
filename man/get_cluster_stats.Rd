@@ -5,10 +5,12 @@
 \title{Get/Save cluster stats for single-cell related selectizeInputs}
 \usage{
 get_cluster_stats(
-  dataset_dir,
+  dataset_dir = NULL,
   scseq = NULL,
   top_tables = NULL,
-  has_replicates = FALSE
+  has_replicates = FALSE,
+  use_disk = FALSE,
+  sample_comparison = FALSE
 )
 }
 \arguments{

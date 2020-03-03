@@ -213,7 +213,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
     names(qc) <- sapply(metrics, class)
 
-    qc[names(qc) %in% c('numeric', 'logical')]
+    qc <- qc[names(qc) %in% c('numeric', 'logical')]
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent', qc)]
   })
 
 
@@ -238,8 +239,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   # dataset subset
   scSubset <- callModule(subsetForm, 'subset',
                          sc_dir = sc_dir,
+                         scseq = scseq,
                          datasets = scDataset$datasets,
                          dataset_name = scDataset$dataset_name,
+                         dataset_dir = dataset_dir,
                          show_subset = scDataset$show_subset)
 
 
@@ -604,7 +607,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
                         name = c(prev, integrated, individual),
-                        type = c('Previous', rep('Integrated', length(integrated)), ind_type),
+                        type = c('Previous Session', rep('Integrated', length(integrated)), ind_type),
                         itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
                         optionLabel = stringr::str_trunc(c(prev, integrated, opt_label), 35),
                         stringsAsFactors = FALSE)
@@ -853,7 +856,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   return(pred_annot)
 }
 
-subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, dataset_name) {
+subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, dataset_name, dataset_dir, cluster_choices) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
@@ -870,13 +873,31 @@ subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, da
 
   is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
 
+  cluster_choices <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    annot <- levels(scseq$cluster)
+    get_cluster_choices(annot, scseq = scseq)
+  })
+
+  metric_choices <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    get_metric_choices(scseq)
+  })
+
   exclude_choices <- reactive({
-    selected <- dataset_name()
-    req(selected)
-    dataset_dir <- file.path(sc_dir, selected)
-    clusters <- readRDS(file.path(dataset_dir, 'annot.rds'))
-    choices <- get_cluster_choices(clusters, dataset_dir)
-    choices$value <- paste(selected, choices$value, sep = '_')
+    choices <- cluster_choices()
+    if (is.null(choices)) return(NULL)
+    choices$type <- 'Cluster'
+
+    metric_choices <- metric_choices()
+    if (!is.null(metric_choices)) {
+      metric_choices$type <- 'Exclusion Metrics'
+      choices <- rbind(metric_choices, choices)
+      choices$pspace <- strrep('&nbsp;&nbsp;', 2 - nchar(choices$pcells))
+    }
+
     return(choices)
   })
 
@@ -890,10 +911,15 @@ subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, da
   # run integration
   observeEvent(input$submit_subset, {
 
-    exclude_clusters <- input$exclude_clusters
+    exclude <- input$exclude_clusters
+    cluster_choices <- cluster_choices()
+    metric_choices <- metric_choices()
+
+    exclude_clusters <- intersect(cluster_choices$value, exclude)
+    exclude_metrics <- intersect(metric_choices$value, exclude)
 
     if (is_include()) {
-      choices <- exclude_choices()
+      choices <- cluster_choices()
       exclude_clusters <- setdiff(choices$value, exclude_clusters)
     }
 
@@ -910,11 +936,11 @@ subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, da
     progress$set(message = "Integrating datasets", value = 0)
 
     # run integration
-    browser()
     subset_saved_scseq(sc_dir = sc_dir,
                        dataset_name = dataset_name,
                        save_name = anal_name,
                        exclude_clusters = exclude_clusters,
+                       exclude_metrics = exclude_metrics,
                        progress = progress)
 
 
@@ -926,7 +952,12 @@ subsetForm <- function(input, output, session, sc_dir, datasets, show_subset, da
 
   # update exclude clusters
   observe({
-    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$exclude_clusters), options = contrastOptions, server = TRUE)
+
+    updateSelectizeInput(session, 'exclude_clusters',
+                         choices = exclude_choices(),
+                         selected = isolate(input$exclude_clusters),
+                         options = contrastOptions,
+                         server = TRUE)
   })
 
 
@@ -955,17 +986,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # datasets() with server side selectize causes bug
   integration_choices <- reactive({
     ds <- datasets()
-    ds <- ds[!ds$type %in% c('Previous', 'Integrated'), ]
-    sel <- dataset_name()
-
-    if (isTruthy(sel) && sel %in% ds$name) {
-      is.sel <- ds$name == sel
-      type   <- tail(ds$type[is.sel], 1)
-      is.sub <- type != 'Individual'
-
-      # move within-founder datasets to top of choices
-      if (is.sub) ds$type <- factor(ds$type, levels = unique(c(type, ds$type)))
-    }
+    ds <- ds[!ds$type %in% c('Previous Session', 'Integrated'), ]
 
     choices <- ds %>%
       dplyr::group_by(type) %>%
@@ -1108,7 +1129,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       progress$set(message = "Integrating datasets", value = 0)
 
       # run integration
-      browser()
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
@@ -1139,7 +1159,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   return(new_anal)
 }
 
-subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters, progress = NULL) {
+subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters, exclude_metrics, progress = NULL) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -1147,7 +1167,7 @@ subset_saved_scseq <- function(sc_dir, dataset_name, save_name, exclude_clusters
   }
 
   progress$set(1, detail = 'loading')
-  scseq <- load_scseqs_for_integration(dataset_name, exclude_clusters, sc_dir)[[1]]
+  scseq <- load_scseqs_for_integration(dataset_name, sc_dir, exclude_clusters, exclude_metrics)[[1]]
   founder <- get_founder(sc_dir, dataset_name)
 
   process_raw_scseq(scseq, save_name, sc_dir, progress = progress, value = 1, founder = founder)
@@ -1203,14 +1223,14 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   choices <- reactive({
     clusters <- annot()
     req(clusters)
-    req(dataset_dir())
+    req(scseq())
 
     if (show_contrasts()) {
       test <- isolate(test_cluster())
       choices <- get_contrast_choices(clusters, test)
 
     } else {
-      choices <- get_cluster_choices(clusters, dataset_dir())
+      choices <- get_cluster_choices(clusters, scseq = scseq())
     }
 
     return(choices)
@@ -1402,7 +1422,11 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !show_ridge()))
 
-  observe(toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric()))
+  observe({
+    toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric())
+    if (!show_custom_metric()) selected_gene(input$selected_gene)
+    if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
+  })
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   observe({
@@ -1413,9 +1437,8 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   custom_metrics <- reactiveVal()
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
-  allow_save <- reactive(!isTruthy(input$custom_metric) || have_metric())
 
-  observe(toggleState('save_custom_metric', condition = allow_save()))
+  observe(toggleState('save_custom_metric', condition = have_metric()))
 
   # for updating plot of current custom metric
   observeEvent(input$update_custom_metric, {
@@ -1449,7 +1472,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
     saveRDS(res, metrics_path())
     saved_metrics(res)
-    selected_gene(metric)
     updateTextInput(session, 'custom_metric', value = '')
   })
 
@@ -1682,8 +1704,18 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_
       pl <- plot_tsne_feature(scseq, feature)
 
     } else {
-      scseq$cluster <- factor(cdata[[feature]], levels = c(FALSE, TRUE))
-      pl <- plot_tsne_cluster(scseq, label = FALSE, legend = TRUE, label.index = FALSE)
+      ft <- cdata[[feature]]
+      scseq$cluster <- factor(ft, levels = c(FALSE, TRUE))
+      ncells <- sum(ft)
+      pcells <- round(ncells / length(ft) * 100)
+
+      title <- paste0(feature, ' (', format(ncells, big.mark=","), ' :: ', pcells, '%)')
+      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE) +
+        ggplot2::ggtitle(title) +
+        ggplot2::theme(
+          plot.title.position = "plot",
+          plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25))
+        )
     }
 
     return(pl)
@@ -1778,12 +1810,13 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # update cluster choices in UI
   cluster_choices <- reactive({
     req(is.integrated())
-    dir <- dataset_dir()
-    if (is.null(dir)) return(NULL)
-    get_cluster_choices(annot(),
-                        dir,
-                        scseq(),
+    dataset_dir <- dataset_dir()
+    if (is.null(dataset_dir)) return(NULL)
+
+    get_cluster_choices(clusters = annot(),
                         sample_comparison = TRUE,
+                        dataset_dir = dataset_dir,
+                        use_disk = TRUE,
                         top_tables = top_tables(),
                         has_replicates = has_replicates())
   })
@@ -1950,17 +1983,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   abundances <- reactive(diff_abundance(scseq(), annot(), pairs()))
 
-
-  # reset lm_fit if selected clusters change
-  # also disable runing lm_fit if nothing selected or don't have ctrl and test cells
-  comparison_valid <- reactive({
-    req(is_sc())
-    sel <- as.numeric(input$selected_cluster)
-    if (!isTruthy(sel) | !isTruthy(dataset_dir())) return(FALSE)
-
-    stats <- get_cluster_stats(dataset_dir())
-    stats$ntest[sel] > 0 & stats$nctrl[sel] > 0
-  })
 
 
   # enable download

@@ -6,8 +6,9 @@
 \usage{
 load_scseqs_for_integration(
   anal_names,
-  exclude_clusters,
   sc_dir,
+  exclude_clusters,
+  exclude_metrics = NULL,
   ident = scseq$project
 )
 }
