@@ -3,7 +3,7 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Cluster', cols = NULL) {
+plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, ...) {
 
   levs <- levels(scseq$cluster)
   if (is.null(cols)) cols <- get_palette(levs)
@@ -14,13 +14,17 @@ plot_tsne_cluster <- function(scseq, label.highlight = NULL, legend_title = 'Clu
   num <- suppressWarnings(!anyNA(as.numeric(levs)))
   label.size <- if(num) 6 else if(nc > 30) 5 else if(nc > 17) 5.5 else 6
 
-  DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label = TRUE, label.size = label.size, repel = TRUE, label.highlight = label.highlight, label.index = TRUE) +
+  pl <- DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label.size = label.size, ...) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +
-    theme_dimgray(with_nums = FALSE) +
-    ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
+    theme_dimgray(with_nums = FALSE)
 
+
+  if (!legend)
+    pl <- pl + ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
+
+  return(pl)
 }
 
 #' Plot UMAP coloured by gene or QC metric
@@ -111,7 +115,10 @@ get_palette <- function(levs) {
 
 
   nlevs <- length(levs)
-  if (nlevs <= 10) {
+  if (nlevs == 2) {
+    values <- c('lightgray', 'blue')
+
+  } else if (nlevs <= 10) {
     values <- head(tableau10medium, nlevs)
 
   } else if (nlevs <= 20) {

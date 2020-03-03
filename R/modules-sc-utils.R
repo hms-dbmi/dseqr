@@ -280,7 +280,7 @@ get_cluster_stats <- function(dataset_dir, scseq = NULL, top_tables = NULL, has_
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
-  is.integrated <- !is.null(top_tables)
+  is.integrated <- !is.null(scseq$batch)
   if (is.integrated) {
 
     # number of total test and ctrl cells (shown)
@@ -367,12 +367,9 @@ get_contrast_choices <- function(clusters, test) {
 #' @export
 #' @keywords internal
 get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE) {
-  type_score <- c('doublet_score', 'log10_detected', 'log10_sum', 'mito_percent', 'ribo_percent', 'outlyingness')
-  type_outl  <- setdiff(qc_metrics, type_score)
-
   markers <- row.names(markers)
 
-  qc_type <- ifelse(qc_metrics %in% type_score, 'QC Score', 'QC Outlier')
+  qc_type <- ifelse(names(qc_metrics) == 'numeric', 'QC Score', 'Boolean Features')
   gene_type <- rep('Gene', length(markers))
 
   if (qc_first) {
@@ -446,8 +443,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   combined$project <- anal_name
 
   # retain original QC metrics
-  metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
-  for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
+  combined <- add_combined_metrics(combined, scseqs)
 
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
@@ -512,6 +508,24 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   save_scle(combined, file.path(sc_dir, anal_name))
 
   return(NULL)
+}
+
+add_combined_metrics <- function(combined, scseqs) {
+  # add original QC metrics
+  metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
+  for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
+
+  # add mixing (Control, Test, sample origin) related metrics
+  combined$test_samples <- combined$orig.ident == 'test'
+  combined$control_samples <- !combined$test_samples
+
+  samples <- unique(combined$batch)
+  if (length(samples > 2)) {
+    for (sample in samples)
+      combined[[sample]] <- combined$batch == sample
+  }
+
+  return(combined)
 }
 
 

@@ -2,20 +2,20 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{scMarkerPlot}
 \alias{scMarkerPlot}
-\title{Logic for marker gene plots}
+\title{Logic for marker feature plots}
 \usage{
 scMarkerPlot(
   input,
   output,
   session,
   scseq,
-  selected_gene,
+  selected_feature,
   fname_fun = function() { },
   downloadable = TRUE,
   custom_metrics = function() NULL
 )
 }
 \description{
-Logic for marker gene plots
+Logic for marker feature plots
 }
 \keyword{internal}

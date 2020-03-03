@@ -4,12 +4,7 @@
 \alias{plot_tsne_cluster}
 \title{Plot TSNE coloured by cluster}
 \usage{
-plot_tsne_cluster(
-  scseq,
-  label.highlight = NULL,
-  legend_title = "Cluster",
-  cols = NULL
-)
+plot_tsne_cluster(scseq, legend = FALSE, cols = NULL, ...)
 }
 \value{
 \code{ggplot}

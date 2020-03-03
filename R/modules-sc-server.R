@@ -32,7 +32,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
                                 scseq = scForm$scseq,
                                 custom_metrics = scForm$custom_metrics,
-                                selected_gene = scForm$clusters_gene,
+                                selected_feature = scForm$clusters_gene,
                                 fname_fun = cluster_fname)
 
   callModule(scBioGpsPlot, 'biogps_plot',
@@ -208,23 +208,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   qc_metrics <- reactive({
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
-    qc <- colnames(scseq@colData)
-    custom <- scClusterGene$saved_metrics()
+    metrics <- scseq@colData
+    qc <- colnames(metrics)
 
-    qc[match(c('outlier_any',
-               'low_lib_size',
-               'low_n_features',
-               'high_subsets_mito_percent',
-               'low_subsets_ribo_percent',
-               'high_doublet_score',
-               'high_outlyingness',
-               'log10_sum',
-               'log10_detected',
-               'mito_percent',
-               'ribo_percent',
-               'doublet_score',
-               'outlingness',
-               colnames(custom)), qc, nomatch = 0)]
+    names(qc) <- sapply(metrics, class)
+
+    qc[names(qc) %in% c('numeric', 'logical')]
   })
 
 
@@ -1119,6 +1108,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       progress$set(message = "Integrating datasets", value = 0)
 
       # run integration
+      browser()
       integrate_saved_scseqs(sc_dir,
                              test = test_anals,
                              ctrl = ctrl_anals,
@@ -1427,6 +1417,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   observe(toggleState('save_custom_metric', condition = allow_save()))
 
+  # for updating plot of current custom metric
   observeEvent(input$update_custom_metric, {
     metric <- input$custom_metric
     req(metric)
@@ -1442,7 +1433,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     }
   })
 
-
+  # for saving custom metric for future sessions
   saved_metrics <- reactiveVal()
   metrics_path <- reactive(file.path(dataset_dir(), 'saved_metrics.rds'))
   observe(saved_metrics(readRDS.safe(metrics_path())))
@@ -1461,8 +1452,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     selected_gene(metric)
     updateTextInput(session, 'custom_metric', value = '')
   })
-
-
 
 
   filtered_markers <- reactive({
@@ -1495,7 +1484,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
       qc_first <- TRUE
       markers <- scseq_genes()
     }
-
 
     get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first)
   })
@@ -1617,7 +1605,7 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
     cluster <- strsplit(cluster, '-vs-')[[1]]
     if (isTruthy(cluster)) label.highlight <- as.numeric(cluster)
 
-    plot_tsne_cluster(scseq, label.highlight)
+    plot_tsne_cluster(scseq, label.highlight = label.highlight)
   })
 
 
@@ -1668,21 +1656,38 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
   }, height = 'auto')
 }
 
-#' Logic for marker gene plots
+#' Logic for marker feature plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_gene, fname_fun = function(){}, downloadable = TRUE, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_fun = function(){}, downloadable = TRUE, custom_metrics = function()NULL) {
 
 
   plot <- reactive({
-    gene <- selected_gene()
+    feature <- selected_feature()
     scseq <- scseq()
-    metrics <- custom_metrics()
-    if (!isTruthy(gene) || !isTruthy(scseq)) return(NULL)
-    if (!is.null(metrics)) scseq@colData <- cbind(scseq@colData, metrics)
-    if (!gene %in% row.names(scseq) && !gene %in% colnames(scseq@colData)) return(NULL)
+    if (!isTruthy(feature) || !isTruthy(scseq)) return(NULL)
 
-    plot_tsne_feature(scseq, gene)
+    metrics <- custom_metrics()
+    cdata <- scseq@colData
+
+    if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
+
+    is_gene <- feature %in% row.names(scseq)
+    is_feature <- feature %in% colnames(cdata)
+    if (!is_gene && !is_feature) return(NULL)
+
+    is_num <- is_gene || is.numeric(cdata[[feature]])
+
+    if (is_num) {
+      pl <- plot_tsne_feature(scseq, feature)
+
+    } else {
+      scseq$cluster <- factor(cdata[[feature]], levels = c(FALSE, TRUE))
+      pl <- plot_tsne_cluster(scseq, label = FALSE, legend = TRUE, label.index = FALSE)
+    }
+
+    return(pl)
+
   })
 
 
