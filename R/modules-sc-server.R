@@ -1408,14 +1408,12 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   show_ridge <- reactive(input$show_ridge %% 2 != 1 | !gene_selected())
-  show_custom_metric <- reactive(type != 'samples' && ((input$show_custom_metric + input$save_custom_metric) %%2 != 0))
+  show_custom_metric <- reactive(type != 'samples' && (input$show_custom_metric %%2 != 0))
 
   observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !show_ridge()))
 
-  observe({
-    toggle('selected_gene_panel', condition = !show_custom_metric())
-    toggle('custom_metric_panel', condition = show_custom_metric())
-  })
+  observe(toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric()))
+  observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   observe({
     toggle('genecards-parent', condition = gene_selected())
@@ -1424,11 +1422,12 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 
   custom_metrics <- reactiveVal()
-  allow_save <- reactive(!isTruthy(input$custom_metric) || input$custom_metric %in% colnames(custom_metrics()))
+  have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
+  allow_save <- reactive(!isTruthy(input$custom_metric) || have_metric())
 
   observe(toggleState('save_custom_metric', condition = allow_save()))
 
-  observeEvent(input$check_custom_metric, {
+  observeEvent(input$update_custom_metric, {
     metric <- input$custom_metric
     req(metric)
     res <- validate_metric(metric, scseq())
@@ -1545,8 +1544,8 @@ validate_metric <- function(metric, scseq) {
   ft <- get_metric_features(metric)
   if (!length(ft)) return('No features specified')
 
-  have.ft  <- all(ft %in% c(row.names(scseq), colnames(scseq@colData)))
-  if (!have.ft) return('Missing features')
+  have.ft  <- any(ft %in% c(row.names(scseq), colnames(scseq@colData)))
+  if (!have.ft) return('No features specified')
 
   dat <- try(evaluate_custom_metric(metric, scseq))
   if ('try-error' %in% class(dat)) return("Couldn't evaluate expression")
@@ -1556,7 +1555,7 @@ validate_metric <- function(metric, scseq) {
 
 get_metric_features <- function(metric) {
 
-  ft <- strsplit(metric, '[\'\"|><=\\)\\(&!]')[[1]]
+  ft <- strsplit(metric, '[|><=\\)\\(&!]')[[1]]
   ft <- gsub(' ', '', ft)
   ft <- ft[ft != '']
   not.num <- is.na(suppressWarnings(as.numeric(ft)))
@@ -1570,7 +1569,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   # make sure will run
   expr <- SingleCellExperiment::logcounts(scseq)
   expr <- expr[row.names(expr) %in% ft,, drop = FALSE]
-  expr <- t(expr)
+  expr <- t(as.matrix(expr))
 
   qcs <- scseq@colData
   qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
@@ -2292,3 +2291,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

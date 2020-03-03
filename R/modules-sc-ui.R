@@ -218,12 +218,12 @@ clusterComparisonInput <- function(id) {
               selectizeInputWithButtons(ns('selected_cluster'),
                                         label = 'Show marker genes for:',
                                         label_title = 'Cluster (n cells :: % of total)',
+                                        actionButton(ns('show_rename'), '',
+                                                     icon = icon('tag', 'fa-fw'),
+                                                     title = 'Toggle rename cluster'),
                                         actionButton(ns('show_contrasts'), '',
                                                      icon = icon('chevron-right', 'fa-fw'),
-                                                     title = 'Toggle single group comparisons'),
-                                        actionButton(ns('show_rename'), '',
-                                                     icon = tags$i(class='far fa-fw fa-edit'),
-                                                     title = 'Toggle rename cluster')
+                                                     title = 'Toggle single group comparisons')
               )
           )
       ),
@@ -253,32 +253,30 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
   if (!sample_comparison) {
     ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
-    custom_button <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Specify custom metric')
+    custom_button <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
   }
 
 
 
   tagList(
-    div(id = ns('selected_gene_panel'),
-        selectizeInputWithButtons(id = ns('selected_gene'),
-                                  label = 'Feature to plot:',
-                                  exclude_ambient_button,
-                                  ridge_plot_button,
-                                  options = list(optgroupField = 'type'),
-                                  actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;'),
-                                  custom_button
-        )
+    selectizeInputWithButtons(id = ns('selected_gene'),
+                              label = 'Feature to plot:',
+                              exclude_ambient_button,
+                              ridge_plot_button,
+                              options = list(optgroupField = 'type'),
+                              actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;'),
+                              custom_button
     ),
-    div(id = ns('custom_metric_panel'), style = 'display: none',
+    div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
         textInputWithButtons(ns('custom_metric'),
                              'Custom metric:',
                              placeholder = 'e.g: PF4 >= 2.2',
-                             actionButton(ns('check_custom_metric'), '',
+                             actionButton(ns('update_custom_metric'), '',
                                           icon = icon('redo', 'fa-fw'),
-                                          title = 'Check custom metric'),
+                                          title = 'Reload custom metric'),
                              actionButton(ns('save_custom_metric'), '',
                                           icon = icon('plus', 'fa-fw'),
-                                          title = 'Add custom metric'))
+                                          title = 'Save custom metric'))
     )
 
   )
@@ -378,6 +376,5 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
-
 
 
