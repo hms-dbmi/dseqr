@@ -1503,6 +1503,10 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   saved_metrics <- reactiveVal()
   custom_metrics <- reactiveVal()
+  exist_metric_names <- reactive(c(row.names(scseq()),
+                                   colnames(scseq()@colData),
+                                   colnames(saved_metrics())
+  ))
 
 
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
@@ -1513,10 +1517,11 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   # for updating plot of current custom metric
   observe({
     metric <- input$custom_metric
+    metric <- gsub('^ | $', '', metric)
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
 
-    if (metric %in% row.names(scseq)) {
+    if (metric %in% exist_metric_names()) {
       selected_gene(metric)
       return(NULL)
     }
@@ -1548,7 +1553,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     prev <- saved_metrics()
     if (!is.null(prev)) res <- cbind(prev, res)
 
-    browser()
     saveRDS(res, metrics_path())
     saved_metrics(res)
     updateTextInput(session, 'custom_metric', value = '')
@@ -2409,4 +2413,5 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 
