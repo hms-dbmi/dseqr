@@ -583,12 +583,23 @@ get_sc_dataset_choices <- function(sc_dir) {
   int_path <- file.path(sc_dir, 'integrated.rds')
   if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
-  # use saved datasets as options
+  # exclude missing from integrated (e.g. manual delete)
   integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+  has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
+  integrated <- integrated[has.scseq]
+
+  int_type <- sapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
+                                                            .nofile = 'Integrated',
+                                                            .nullfile = 'Integrated'), USE.NAMES = FALSE)
+
+  sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
+  int_type[!sub] <- 'Integrated'
+  int_opt <- integrated
+  int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
+
   individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
   # exclude individual without scseq (e.g. folder with fastq.gz files only)
-  # unlist for case when no individual scseqs
   has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
   individual <- individual[unlist(has.scseq)]
 
@@ -599,8 +610,10 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   # exclude founder name from option label
   sub <- ind_type != 'Individual'
-  opt_label <- individual
-  opt_label[sub] <- stringr::str_replace(opt_label[sub], paste0(ind_type[sub], '_'), '')
+  ind_opt <- individual
+  ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_'), '')
+
+
 
   # get previously selected
   prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
@@ -608,9 +621,9 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
                         name = c(prev, integrated, individual),
-                        type = c('Previous Session', rep('Integrated', length(integrated)), ind_type),
+                        type = c('Previous Session', int_type, ind_type),
                         itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
-                        optionLabel = stringr::str_trunc(c(prev, integrated, opt_label), 35),
+                        optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
                         stringsAsFactors = FALSE)
 
   return(choices)
@@ -964,8 +977,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     }
 
     from_dataset <- selected_dataset()
+    founder <- get_founder(sc_dir, from_dataset)
     subset_name <- input$subset_name
-    dataset_name <- paste(from_dataset, subset_name, sep = '_')
+    dataset_name <- paste(founder, subset_name, sep = '_')
 
     # clear error and disable button
     disableAll(subset_inputs)
@@ -977,6 +991,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
     # run integration
     subset_saved_scseq(sc_dir = sc_dir,
+                       founder = founder,
                        from_dataset = from_dataset,
                        dataset_name = dataset_name,
                        exclude_clusters = exclude_clusters,
@@ -1206,14 +1221,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   return(new_dataset)
 }
 
-subset_saved_scseq <- function(sc_dir, from_dataset, dataset_name, exclude_clusters, exclude_metrics, progress = NULL) {
+subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_metrics, progress = NULL) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
   args$date <- Sys.time()
-
-  founder <- get_founder(sc_dir, from_dataset)
-  args$founder <- founder
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -2402,5 +2414,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
 
