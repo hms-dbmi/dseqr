@@ -557,7 +557,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
 #'
 save_scseq_args <- function(args, dataset_name, sc_dir) {
   jsonlite::write_json(args,
-                       file.path(sc_dir, dataset_name),
+                       path = paste0(file.path(sc_dir, dataset_name), '.json'),
                        auto_unbox = TRUE,
                        null = 'null',
                        pretty = TRUE)

@@ -1503,10 +1503,13 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   observe(toggleState('save_custom_metric', condition = have_metric()))
 
   # for updating plot of current custom metric
-  observeEvent(input$update_custom_metric, {
+  observe({
     metric <- input$custom_metric
-    req(metric)
-    res <- validate_metric(metric, scseq())
+    scseq <- scseq()
+    req(metric, scseq, show_custom_metric())
+    res <- suppressWarnings(validate_metric(metric, scseq))
+    res.na <- all(is.na(res[[1]]))
+    req(!res.na)
 
     if (class(res) == 'data.frame') {
 
@@ -1618,7 +1621,7 @@ validate_metric <- function(metric, scseq) {
   have.ft  <- any(ft %in% c(row.names(scseq), colnames(scseq@colData)))
   if (!have.ft) return('No features specified')
 
-  dat <- try(evaluate_custom_metric(metric, scseq))
+  dat <- try(evaluate_custom_metric(metric, scseq), silent = TRUE)
   if ('try-error' %in% class(dat)) return("Couldn't evaluate expression")
 
   return(dat)
@@ -1669,7 +1672,9 @@ interpret <- function(expr_str,
     }
   }
   if(length(expr_str) >= max_length) return(FALSE)
-  safer_eval(rlang::parse_expr(expr_str))
+  parsed <- try(rlang::parse_expr(expr_str), silent = TRUE)
+  if ('try-error' %in% class(parsed)) return(FALSE)
+  safer_eval(parsed)
   return(TRUE)
 }
 

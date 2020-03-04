@@ -272,9 +272,6 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
         textInputWithButtons(ns('custom_metric'),
                              'Custom metric:',
                              placeholder = 'e.g: PF4>2.2',
-                             actionButton(ns('update_custom_metric'), '',
-                                          icon = icon('redo', 'fa-fw'),
-                                          title = 'Reload custom metric'),
                              actionButton(ns('save_custom_metric'), '',
                                           icon = icon('plus', 'fa-fw'),
                                           title = 'Save custom metric'))
