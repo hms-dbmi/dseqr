@@ -604,6 +604,8 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, exclude_
   # load each scseq and exclude based on metrics
   for (dataset_name in dataset_names) {
     scseq <- readRDS(scseq_part_path(sc_dir, dataset_name, 'scseq'))
+    # set orig.ident to ctrl/test (integration) or original dataset name (subset)
+    scseq$orig.ident <- factor(ident)
 
     if (!is.null(exclude_metrics)) {
       cdata <- scseq@colData
@@ -614,24 +616,14 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, exclude_
       exclude <- apply(exclude, 1, any)
       scseq <- scseq[, !exclude]
     }
-    scseqs[[dataset_name]] <- scseq
-  }
 
-
-  # remove excluded clusters
-  for (i in seq_along(scseqs)) {
-    dataset_name <- names(scseqs)[i]
-    scseq <- scseqs[[dataset_name]]
-
-    # set orig.ident to ctrl/test (integration) or original dataset name (subset)
-    scseq$orig.ident <- factor(ident)
-
-    # only remove excluded clusters if present
+    # remove excluded clusters
     is.exclude <- exclude_datasets == dataset_name
     if (any(is.exclude)) {
       exclude <- exclude_clusters[is.exclude]
       scseq <- scseq[, !scseq$cluster %in% exclude]
     }
+
     scseqs[[dataset_name]] <- scseq
   }
 

@@ -930,7 +930,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
     annot <- levels(scseq$cluster)
-    get_cluster_choices(annot, scseq = scseq)
+    cluster_choices <- get_cluster_choices(annot, scseq = scseq)
+    cluster_choices$value <- paste(selected_dataset(), cluster_choices$value, sep = '_')
+    return(cluster_choices)
   })
 
   metric_choices <- reactive({
@@ -987,9 +989,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     # Create a Progress object
     on.exit(progress$close())
     progress <- Progress$new(session, min=0, max = 9)
-    progress$set(message = "Subsetting dataset", value = 0)
 
-    # run integration
+    progress$set(message = "Subsetting dataset", value = 0)
     subset_saved_scseq(sc_dir = sc_dir,
                        founder = founder,
                        from_dataset = from_dataset,
@@ -1533,7 +1534,11 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     if (class(res) == 'data.frame') {
 
       prev <- custom_metrics()
-      if (!is.null(prev) && row.names(prev) != row.names(res)) return(NULL)
+      if (!is.null(prev) && nrow(prev) != nrow(res)) {
+        custom_metrics(NULL)
+        return(NULL)
+      }
+
       if (!is.null(prev)) res <- cbind(prev, res)
       res <- res[, unique(colnames(res)), drop = FALSE]
       custom_metrics(res)
@@ -2413,5 +2418,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
 
