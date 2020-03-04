@@ -222,8 +222,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 
 
   # cluster choices are the clusters themselves
-  # value is original cluster number so that saved pathway analysis name
-  # isn't affected by updates to cluster annotation
+  # value is original cluster number
   choices <- data.frame(name = stringr::str_trunc(clusters, 27),
                         value = seq_along(clusters),
                         label = clusters,
@@ -277,7 +276,8 @@ get_metric_choices <- function(scseq) {
   })
 
   choices <- do.call(rbind, choices)
-  choices$name <- choices$value <- choices$label <- names
+  choices$name <- stringr::str_trunc(names, 27)
+  choices$value <- choices$label <- names
   choices$testColor <- ''
   return(choices)
 
@@ -436,7 +436,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, dataset_name, integration_type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integration_name, integration_type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -447,6 +447,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, dataset
       cat(value, message, detail, '...\n')
     })
   }
+
+  dataset_name <- paste(integration_name, integration_type, sep = '_')
 
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
@@ -525,6 +527,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, dataset
                      pairs = pairs,
                      top_markers = top_markers,
                      has_replicates = has_replicates,
+                     founder = integration_name,
                      lm_fit_0svs = lm_fit,
                      pbulk_esets = pbulk_esets,
                      annot = names(markers))
@@ -696,18 +699,10 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, integrated = FALSE
 #' @return \code{NULL} if valid, otherwise an error message
 #' @export
 #' @keywords internal
-validate_integration <- function(test, ctrl, dataset_name, anal_options, pairs) {
+validate_integration <- function(test, ctrl, pairs) {
   msg <- NULL
 
-  if (is.null(dataset_name) || dataset_name == '') {
-    msg <- 'Provide a name for new dataset'
-
-  } else if (is.null(ctrl)) {
-
-    if (length(test) != 1)
-      msg <- 'Need control datasets'
-
-  } else if (!is.null(pairs)) {
+  if (!is.null(pairs)) {
 
     if (!all(pairs$sample %in% c(test, ctrl)))
       msg <- 'Samples missing from pairs csv'

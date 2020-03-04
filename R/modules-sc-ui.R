@@ -160,14 +160,15 @@ integrationFormInput <- function(id) {
                                   label = 'Clusters to subset on:',
                                   actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> clusters'),
                                   options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
-        shinyWidgets::radioGroupButtons(ns('integration_type'), 'Integration type:', choices = c('harmony', 'liger', 'fastMNN'), justified = TRUE, selected = 'harmony'),
+        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'liger', 'fastMNN'), justified = TRUE, selected = 'harmony'),
         textInputWithButtons(ns('integration_name'),
                              container_id = ns('name-container'),
                              label = 'Name for integrated dataset:',
                              actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
                              actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
                              actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
-                             help_id = ns('error_msg')),
+                             help_id = ns('error_msg'),
+                             placeholder = 'Prepended to integration type(s)'),
 
         div(style = 'display: none',
             fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
@@ -376,3 +377,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+

@@ -9,7 +9,7 @@ integrate_saved_scseqs(
   test,
   ctrl,
   exclude_clusters,
-  dataset_name,
+  integration_name,
   integration_type = c("harmony", "liger", "fastMNN"),
   pairs = NULL,
   progress = NULL
@@ -22,9 +22,9 @@ integrate_saved_scseqs(
 
 \item{ctrl}{Character vector of control analysis names.}
 
-\item{dataset_name}{Name for new integrated analysis.}
-
 \item{progress}{optional Shiny \code{Progress} object.}
+
+\item{dataset_name}{Name for new integrated analysis.}
 }
 \description{
 Performs integration and saves as a new analysis.

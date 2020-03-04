@@ -372,13 +372,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
-  metric_choices <- c('low_lib_size',
-                      'low_n_features',
-                      'high_subsets_mito_percent',
-                      'low_subsets_ribo_percent',
-                      'high_doublet_score',
-                      'high_outlyingness')
-
   # get directory with fastqs
   roots <- c('single-cell' = sc_dir)
   shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
@@ -472,6 +465,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # ask for confirmation after folder selection
   observeEvent(new_dataset_dir(), showModal(quantModal()))
+
+
+  metric_choices <- c('low_lib_size',
+                      'low_n_features',
+                      'high_subsets_mito_percent',
+                      'low_subsets_ribo_percent',
+                      'high_doublet_score',
+                      'high_outlyingness')
 
   # run single-cell quantification
   observeEvent(input$confirm_quant, {
@@ -898,6 +899,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
+  new_dataset <- reactiveVal()
 
   subset_inputs <- c('subset_name',
                      'submit_subset',
@@ -998,7 +1000,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                          server = TRUE)
   })
 
-
+  return(new_dataset)
 }
 
 
@@ -1012,7 +1014,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                           'integration_name',
                           'submit_integration',
                           'test_integration',
-                          'integration_type',
+                          'integration_types',
                           'subset_clusters',
                           'click_up',
                           'click_dl',
@@ -1041,8 +1043,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
-  allow_integration <- reactive(length(test()) && length(ctrl()))
-  allow_pairs <- reactive(length(selected_datasets()) > 2 & allow_integration())
+  have_contrast <- reactive(length(test()) && length(ctrl()))
+  allow_pairs <- reactive(length(selected_datasets()) > 2 && have_contrast())
+  allow_integration <- reactive(have_contrast() && isTruthy(input$integration_name) && isTruthy(input$integration_types))
 
   # show/hide integration forms
   observe({
@@ -1068,19 +1071,21 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
 
-  # hide pairing if not enough datasets
+  # hide pairing/subset if not enough datasets
   observe({
     toggleState(id = "click_dl", condition = allow_pairs())
     toggleState(id = "click_up", condition = allow_pairs())
+    toggleState(id = 'submit_integration', condition = allow_integration())
   })
 
+
   # show cluster type choices if enough datasets
-  observe(toggle(id = 'integration_type', condition = allow_integration()))
+  observe(toggle(id = 'integration_types', condition = have_contrast()))
 
 
   # show exclude/exclude and new dataset only if something selected
-  observe(toggle(id = 'exclude-container', condition = selected_datasets()))
-  observe(toggle(id = 'name-container', condition = selected_datasets()))
+  observe(toggle(id = 'exclude-container', condition = have_contrast()))
+  observe(toggle(id = 'name-container', condition = have_contrast()))
 
 
   exclude_choices <- reactive({
@@ -1148,13 +1153,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
     test <- test()
     ctrl <- ctrl()
-    datasets <- datasets()
     pairs <- pairs()
 
-    integration_type <- input$integration_type
-    dataset_name <- input$integration_name
+    integration_types <- input$integration_types
+    integration_name <- input$integration_name
 
-    error_msg <- validate_integration(test, ctrl, dataset_name, datasets, pairs)
+    error_msg <- validate_integration(test, ctrl, pairs)
 
     if (is.null(error_msg)) {
       # clear error and disable button
@@ -1164,24 +1168,28 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       # Create a Progress object
       on.exit(progress$close())
       progress <- Progress$new(session, min=0, max = 9)
-      progress$set(message = "Integrating datasets", value = 0)
 
-      # run integration
-      integrate_saved_scseqs(sc_dir,
-                             test = test,
-                             ctrl = ctrl,
-                             exclude_clusters = exclude_clusters,
-                             dataset_name = dataset_name,
-                             integration_type = integration_type,
-                             pairs = pairs,
-                             progress = progress)
+      for (integration_type in integration_types) {
+        progress$set(message = paste(integration_type, 'integration:'), value = 0)
+
+        # run integration
+        integrate_saved_scseqs(sc_dir,
+                               test = test,
+                               ctrl = ctrl,
+                               exclude_clusters = exclude_clusters,
+                               integration_name = integration_name,
+                               integration_type = integration_type,
+                               pairs = pairs,
+                               progress = progress)
+      }
+
 
 
       # re-enable, clear inputs, and trigger update of available datasets
       ctrl(NULL)
       test(NULL)
       pairs(NULL)
-      new_dataset(dataset_name)
+      new_dataset(integration_name)
       updateTextInput(session, 'integration_name', value = '')
       enableAll(integration_inputs)
 
@@ -2371,5 +2379,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
-
