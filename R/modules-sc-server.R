@@ -1499,14 +1499,21 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
+  allow_save <- reactive(have_metric() && !input$custom_metric %in% row.names(scseq()))
 
-  observe(toggleState('save_custom_metric', condition = have_metric()))
+  observe(toggleState('save_custom_metric', condition = allow_save()))
 
   # for updating plot of current custom metric
   observe({
     metric <- input$custom_metric
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
+
+    if (metric %in% row.names(scseq)) {
+      selected_gene(metric)
+      return(NULL)
+    }
+
     res <- suppressWarnings(validate_metric(metric, scseq))
     res.na <- all(is.na(res[[1]]))
     req(!res.na)
@@ -1764,12 +1771,13 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_
     is_feature <- feature %in% colnames(cdata)
     if (!is_gene && !is_feature) return(NULL)
 
+    is_log <- is.logical(cdata[[feature]])
     is_num <- is_gene || is.numeric(cdata[[feature]])
 
     if (is_num) {
       pl <- plot_tsne_feature(scseq, feature)
 
-    } else {
+    } else if (is_log) {
       ft <- cdata[[feature]]
       scseq$cluster <- factor(ft, levels = c(FALSE, TRUE))
       ncells <- sum(ft)
@@ -1782,10 +1790,11 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_
           plot.title.position = "plot",
           plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25))
         )
+    } else {
+      pl <- NULL
     }
 
     return(pl)
-
   })
 
 
@@ -2191,7 +2200,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
     x <- scseq[[feature]]
 
   # errors if boolean
-  if (is.logical(x)) return(NULL)
+  if (!is.numeric(x)) return(NULL)
   if (is.null(x)) return(NULL)
 
   m <- tapply(x, y, mean)
@@ -2384,3 +2393,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
