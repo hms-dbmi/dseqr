@@ -269,12 +269,12 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
                               custom_button
     ),
     div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
-        textInputWithButtons(ns('custom_metric'),
-                             'Custom metric:',
-                             placeholder = 'e.g: PF4>2.2',
-                             actionButton(ns('save_custom_metric'), '',
-                                          icon = icon('plus', 'fa-fw'),
-                                          title = 'Save custom metric'))
+        textAreaInputWithButtons(ns('custom_metric'),
+                                 'Custom metric:',
+                                 placeholder = 'e.g: PF4>2.2',
+                                 actionButton(ns('save_custom_metric'), '',
+                                              icon = icon('plus', 'fa-fw'),
+                                              title = 'Save custom metric'))
     )
 
   )

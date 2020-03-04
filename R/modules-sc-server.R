@@ -1167,10 +1167,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
       # Create a Progress object
       on.exit(progress$close())
-      progress <- Progress$new(session, min=0, max = 9)
+      ntype <- length(integration_types)
+      progress <- Progress$new(session, min=0, max = 9*ntype)
 
-      for (integration_type in integration_types) {
-        progress$set(message = paste(integration_type, 'integration:'), value = 0)
+      for (i in seq_along(integration_types)) {
+        progress$set(message = paste(integration_types[i], 'integration:'), detail = '', value = (i-1)*9)
 
         # run integration
         integrate_saved_scseqs(sc_dir,
@@ -1178,7 +1179,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                                ctrl = ctrl,
                                exclude_clusters = exclude_clusters,
                                integration_name = integration_name,
-                               integration_type = integration_type,
+                               integration_type = integration_types[i],
                                pairs = pairs,
                                progress = progress)
       }
@@ -1521,6 +1522,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     if (class(res) == 'data.frame') {
 
       prev <- custom_metrics()
+      if (!is.null(prev) && row.names(prev) != row.names(res)) return(NULL)
       if (!is.null(prev)) res <- cbind(prev, res)
       res <- res[, unique(colnames(res)), drop = FALSE]
       custom_metrics(res)
@@ -1603,7 +1605,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     updateSelectizeInput(session, 'selected_gene',
                          choices = choices,
                          server = TRUE,
-                         selected = isolate(selected_gene()),
                          options = gene_options)
   })
 
@@ -1836,7 +1837,12 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 
 scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
 
-  height <- reactive(length(levels(scseq()$cluster))*50)
+  height <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) height <- 453
+    else height <- length(levels(scseq$cluster))*50
+    return(height)
+  })
 
   output$ridge_plot <- renderPlot({
     gene <- selected_gene()
@@ -2199,9 +2205,12 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
   else
     x <- scseq[[feature]]
 
-  # errors if boolean
-  if (!is.numeric(x)) return(NULL)
-  if (is.null(x)) return(NULL)
+  # errors if boolean/factor/NULL
+  if (!is.numeric(x)) {
+    pl <- NULL
+    if (with.height) pl <- list(plot = plot, height = 453)
+    return(pl)
+  }
 
   m <- tapply(x, y, mean)
   y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])
@@ -2393,4 +2402,5 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 

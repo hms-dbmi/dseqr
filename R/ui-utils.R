@@ -118,6 +118,44 @@ textInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = 
   )
 }
 
+#' textAreaInput with buttons
+#' @inheritParams shiny::textAreaInput
+#' @param ... actionButtons
+#' @export
+#' @keywords internal
+textAreaInputWithButtons <- function(id, label, ..., container_id = NULL, help_id = NULL, tooltip = TRUE, placeholder = '') {
+
+  buttons <- list(...)
+  buttons <- buttons[!sapply(buttons, is.null)]
+
+  # generate tooltips
+  button_tooltips <- NULL
+  if (tooltip) {
+    button_tooltips <- tags$div(
+      lapply(buttons, function(btn)
+        shinyBS::bsTooltip(id = btn$attribs$id, title = btn$attribs$title, options = list(container = 'body')))
+    )
+  }
+
+  tags$div(class = 'form-group selectize-fh', id = container_id, class = 'validate-wrapper',
+           tags$label(class = 'control-label', `for` = id, label),
+           tags$div(class = 'input-group full-height-btn',
+                    tags$textarea(id = id,
+                                  class = 'form-control shiny-bound-input',
+                                  value = '',
+                                  style = 'resize: vertical; min-height: 34px;',
+                                  placeholder = placeholder),
+                    tags$span(class = 'input-group-btn',
+                              lapply(buttons, function(btn) {
+                                if (tooltip) btn$attribs$title <- NULL
+                                return(btn)
+                              }))
+           ),
+           tags$span(class = 'help-block', id = help_id),
+           button_tooltips
+  )
+}
+
 #' selectizeInput with validation
 #' @inheritParams shiny::selectizeInput
 #' @param container_id id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.
