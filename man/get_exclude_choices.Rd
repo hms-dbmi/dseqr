@@ -4,10 +4,10 @@
 \alias{get_exclude_choices}
 \title{Get choices for included cluster in integration}
 \usage{
-get_exclude_choices(anal_names, data_dir, anal_colors = NA)
+get_exclude_choices(dataset_names, data_dir, anal_colors = NA)
 }
 \arguments{
-\item{anal_names}{Names of analyses selected for integration}
+\item{dataset_names}{Names of analyses selected for integration}
 
 \item{data_dir}{Directory with single cell analyses.}
 

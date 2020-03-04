@@ -4,17 +4,17 @@
 #'
 #' @param ref_preds data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}
 #' @param ref_name Name of reference analysis that labels are transfered from.
-#' @param anal_name Name of analysis that labels are transfered to.
-#' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{anal_name}.
+#' @param dataset_name Name of analysis that labels are transfered to.
+#' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{dataset_name}.
 
 #' @return Character vector of predicted labels from \code{ref_name}.
 #' @export
 #' @keywords internal
-get_pred_annot <- function(ref_preds, ref_name, anal_name, sc_dir) {
+get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
 
   # load query annotation
-  query_annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+  query_annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
   query_annot <- readRDS(query_annot_path)
 
   senv <- loadNamespace('SingleR')
@@ -169,29 +169,29 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
 }
 
 #' Get choices for included cluster in integration
-#' @param anal_names Names of analyses selected for integration
+#' @param dataset_names Names of analyses selected for integration
 #' @param anal_colors Character vector of colors to indicate analysis
 #' @param data_dir Directory with single cell analyses.
 #'
 #' @return data.frame with columns for rendering selectizeInput include choices
 #' @export
 #' @keywords internal
-get_exclude_choices <- function(anal_names, data_dir, anal_colors = NA) {
+get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
 
-  if (is.null(anal_names)) return(NULL)
+  if (is.null(dataset_names)) return(NULL)
 
   # load markers and annotation for each
-  annot_paths <- scseq_part_path(data_dir, anal_names, 'annot')
-  marker_paths <- scseq_part_path(data_dir, anal_names, 'markers')
+  annot_paths <- scseq_part_path(data_dir, dataset_names, 'annot')
+  marker_paths <- scseq_part_path(data_dir, dataset_names, 'markers')
 
   annots <- lapply(annot_paths, readRDS)
   clusters <- lapply(annots, function(x) seq(0, length(x)-1))
 
-  exclude_choices <- lapply(seq_along(anal_names), function(i) {
+  exclude_choices <- lapply(seq_along(dataset_names), function(i) {
     data.frame(
       name = stringr::str_trunc(annots[[i]], 27),
-      value = paste(anal_names[i], clusters[[i]], sep = '_'),
-      anal = anal_names[i],
+      value = paste(dataset_names[i], clusters[[i]], sep = '_'),
+      anal = dataset_names[i],
       label = annots[[i]],
       color = anal_colors[i], stringsAsFactors = FALSE
     )
@@ -430,13 +430,13 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @param sc_dir Directory with saved single-cell datasets.
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
-#' @param anal_name Name for new integrated analysis.
+#' @param dataset_name Name for new integrated analysis.
 #' @param progress optional Shiny \code{Progress} object.
 #'
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, dataset_name, integration_type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -450,7 +450,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
     scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
-    save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
+    save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = TRUE)
     return(NULL)
   }
 
@@ -470,8 +470,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   else if (species == 'Mus musculus') release <- '98'
 
   progress$set(2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = type)
-  combined$project <- anal_name
+  combined <- integrate_scseqs(scseqs, type = integration_type)
+  combined$project <- dataset_name
 
   # retain original QC metrics
   combined <- add_combined_metrics(combined, scseqs)
@@ -525,12 +525,11 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      top_markers = top_markers,
                      has_replicates = has_replicates,
                      lm_fit_0svs = lm_fit,
-                     founder = anal_name,
                      pbulk_esets = pbulk_esets,
                      annot = names(markers))
 
-  save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
-  save_scseq_args(args, anal_name, sc_dir)
+  save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = TRUE)
+  save_scseq_args(args, dataset_name, sc_dir)
   rm(scseq_data, summed, markers, ambient, tests, pairs, top_markers, lm_fit, pbulk_esets); gc()
 
 
@@ -538,7 +537,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
   progress$set(8, detail = 'saving loom')
-  save_scle(combined, file.path(sc_dir, anal_name))
+  save_scle(combined, file.path(sc_dir, dataset_name))
 
   return(NULL)
 }
@@ -546,15 +545,15 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
 #' Save arguments for integration/subsetting
 #'
 #' @param args Arguments to save
-#' @param anal_name Name of analysis
+#' @param dataset_name Name of analysis
 #' @param sc_dir Directory with single-cell analyses
 #'
 #' @return NULL
 #' @export
 #'
-save_scseq_args <- function(args, anal_name, sc_dir) {
+save_scseq_args <- function(args, dataset_name, sc_dir) {
   jsonlite::write_json(args,
-                       file.path(sc_dir, anal_name),
+                       file.path(sc_dir, dataset_name),
                        auto_unbox = TRUE,
                        null = 'null',
                        pretty = TRUE)
@@ -638,26 +637,26 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, exclude_
 #' Save Single Cell RNA-seq data for app
 #'
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
-#' @param anal_name The analysis name.
+#' @param dataset_name The analysis name.
 #' @param sc_dir Path to directory with single-cell datasets.
 #' @param integrated is the analysis integration. Default is \code{FALSE}
 #'
 #' @return NULL
 #' @export
-save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
-  anal_dir <- file.path(sc_dir, anal_name)
+save_scseq_data <- function(scseq_data, dataset_name, sc_dir, integrated = FALSE) {
+  dataset_dir <- file.path(sc_dir, dataset_name)
 
   if (integrated) {
     # add to integrated if new
     int_path <- file.path(sc_dir, 'integrated.rds')
-    int_options <- c(readRDS(int_path), anal_name)
+    int_options <- c(readRDS(int_path), dataset_name)
     saveRDS(unique(int_options), int_path)
   }
 
   # remove all previous data in case overwriting
-  unlink(anal_dir, recursive = TRUE)
+  unlink(dataset_dir, recursive = TRUE)
 
-  dir.create(anal_dir)
+  dir.create(dataset_dir)
   for (type in names(scseq_data)) {
 
     if (type == 'markers') {
@@ -665,13 +664,13 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 
       markers <- scseq_data[[type]]
       for (i in names(markers))
-        saveRDS(markers[[i]], scseq_part_path(sc_dir, anal_name, paste0('markers_', i)))
+        saveRDS(markers[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
 
     } else if (type == 'tests') {
       # save pairwise test statistics for fast single group comparisons
 
       tests <- scseq_data[[type]]
-      tests_dir <- file.path(anal_name, 'tests')
+      tests_dir <- file.path(dataset_name, 'tests')
       dir.create(file.path(sc_dir, tests_dir))
 
       saveRDS(tests$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
@@ -680,7 +679,7 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
         saveRDS(tests$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
 
     } else {
-      saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, anal_name, type))
+      saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, dataset_name, type))
     }
 
   }
@@ -696,10 +695,10 @@ save_scseq_data <- function(scseq_data, anal_name, sc_dir, integrated = FALSE) {
 #' @return \code{NULL} if valid, otherwise an error message
 #' @export
 #' @keywords internal
-validate_integration <- function(test, ctrl, anal_name, anal_options, pairs) {
+validate_integration <- function(test, ctrl, dataset_name, anal_options, pairs) {
   msg <- NULL
 
-  if (is.null(anal_name) || anal_name == '') {
+  if (is.null(dataset_name) || dataset_name == '') {
     msg <- 'Provide a name for new dataset'
 
   } else if (is.null(ctrl)) {
@@ -720,15 +719,15 @@ validate_integration <- function(test, ctrl, anal_name, anal_options, pairs) {
 #' Get path to saved scseq part
 #'
 #' @param data_dir Path to directory with analyses.
-#' @param anal_name Name of analysis.
+#' @param dataset_name Name of analysis.
 #' @param part either \code{'annot'}, \code{'scseq'}, or \code{'markers'}.
 #'
 #' @return Path to analysis \code{part}.
 #' @export
 #' @keywords internal
-scseq_part_path <- function(data_dir, anal_name, part) {
+scseq_part_path <- function(data_dir, dataset_name, part) {
   fname <- paste0(part, '.rds')
-  file.path(data_dir, anal_name, fname)
+  file.path(data_dir, dataset_name, fname)
 }
 
 

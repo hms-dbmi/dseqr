@@ -4,12 +4,12 @@
 \alias{save_scseq_data}
 \title{Save Single Cell RNA-seq data for app}
 \usage{
-save_scseq_data(scseq_data, anal_name, sc_dir, integrated = FALSE)
+save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = FALSE)
 }
 \arguments{
 \item{scseq_data}{Named list with \code{scseq}, \code{markers}, and/or \code{annot}}
 
-\item{anal_name}{The analysis name.}
+\item{dataset_name}{The analysis name.}
 
 \item{sc_dir}{Path to directory with single-cell datasets.}
 

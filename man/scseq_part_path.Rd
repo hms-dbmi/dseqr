@@ -4,12 +4,12 @@
 \alias{scseq_part_path}
 \title{Get path to saved scseq part}
 \usage{
-scseq_part_path(data_dir, anal_name, part)
+scseq_part_path(data_dir, dataset_name, part)
 }
 \arguments{
 \item{data_dir}{Path to directory with analyses.}
 
-\item{anal_name}{Name of analysis.}
+\item{dataset_name}{Name of analysis.}
 
 \item{part}{either \code{'annot'}, \code{'scseq'}, or \code{'markers'}.}
 }

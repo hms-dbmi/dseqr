@@ -11,7 +11,7 @@ integrationForm(
   sc_dir,
   datasets,
   show_integration,
-  dataset_name
+  selected_dataset
 )
 }
 \description{

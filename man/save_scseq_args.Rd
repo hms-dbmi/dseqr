@@ -4,12 +4,12 @@
 \alias{save_scseq_args}
 \title{Save arguments for integration/subsetting}
 \usage{
-save_scseq_args(args, anal_name, sc_dir)
+save_scseq_args(args, dataset_name, sc_dir)
 }
 \arguments{
 \item{args}{Arguments to save}
 
-\item{anal_name}{Name of analysis}
+\item{dataset_name}{Name of analysis}
 
 \item{sc_dir}{Directory with single-cell analyses}
 }

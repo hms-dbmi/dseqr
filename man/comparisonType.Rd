@@ -2,11 +2,11 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{comparisonType}
 \alias{comparisonType}
-\title{Logic for comparison type toggle for integrated analyses}
+\title{Logic for comparison type toggle for integrated datasets}
 \usage{
 comparisonType(input, output, session, scseq, is.integrated)
 }
 \description{
-Logic for comparison type toggle for integrated analyses
+Logic for comparison type toggle for integrated datasets
 }
 \keyword{internal}

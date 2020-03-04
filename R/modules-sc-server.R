@@ -179,9 +179,10 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
 #' @keywords internal
 scForm <- function(input, output, session, sc_dir, indices_dir) {
 
-  # updates if new integrated dataset
+  # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
   observe(new_dataset(scIntegration()))
+  observe(new_dataset(scSubset()))
 
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
@@ -233,7 +234,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
                               datasets = scDataset$datasets,
-                              dataset_name = scDataset$dataset_name,
+                              selected_dataset = scDataset$dataset_name,
                               show_integration = scDataset$show_integration)
 
   # dataset subset
@@ -241,7 +242,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                          sc_dir = sc_dir,
                          scseq = scseq,
                          datasets = scDataset$datasets,
-                         dataset_name = scDataset$dataset_name,
+                         selected_dataset = scDataset$dataset_name,
                          dataset_dir = dataset_dir,
                          show_subset = scDataset$show_subset)
 
@@ -560,7 +561,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
-  # return anal and options to app
   return(list(
     dataset_name = dataset_name,
     scseq = scseq,
@@ -837,9 +837,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   observeEvent(input$overwrite_annot, {
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    anal_name <- dataset_name()
+    dataset_name <- dataset_name()
 
-    req(anal_name)
+    req(dataset_name)
 
     showModal(transferModal())
   })
@@ -848,12 +848,12 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     removeModal()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    anal_name <- dataset_name()
+    dataset_name <- dataset_name()
 
-    req(anal_name)
+    req(dataset_name)
 
-    pred_annot <- get_pred_annot(ref_preds, ref_name, anal_name, sc_dir)
-    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
+    pred_annot <- get_pred_annot(ref_preds, ref_name, dataset_name, sc_dir)
+    annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
     saveRDS(pred_annot, annot_path)
 
     new_annot(pred_annot)
@@ -894,7 +894,7 @@ validate_preds <- function(preds, sc_dir) {
   return(preds[!dated])
 }
 
-subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, dataset_name, dataset_dir, cluster_choices) {
+subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
@@ -961,9 +961,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       exclude_clusters <- setdiff(choices$value, exclude_clusters)
     }
 
-    dataset_name <- dataset_name()
-    anal_name <- input$subset_name
-
+    from_dataset <- selected_dataset()
+    subset_name <- input$subset_name
+    dataset_name <- paste(from_dataset, subset_name, sep = '_')
 
     # clear error and disable button
     disableAll(subset_inputs)
@@ -975,15 +975,15 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
     # run integration
     subset_saved_scseq(sc_dir = sc_dir,
+                       from_dataset = from_dataset,
                        dataset_name = dataset_name,
-                       save_name = paste(dataset_name, anal_name, sep = '_'),
                        exclude_clusters = exclude_clusters,
                        exclude_metrics = exclude_metrics,
                        progress = progress)
 
 
-    # re-enable, clear inputs, and trigger update of available anals
-    new_anal(anal_name)
+    # re-enable, clear inputs, and trigger update of available datasets
+    new_dataset(dataset_name)
     updateTextInput(session, 'subset_name', value = '')
     enableAll(subset_inputs)
   })
@@ -1005,7 +1005,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 #' Logic for integration form toggled by showIntegration
 #' @export
 #' @keywords internal
-integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, dataset_name) {
+integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, selected_dataset) {
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
 
   integration_inputs <- c('ctrl_integration',
@@ -1036,7 +1036,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   ctrl <- reactiveVal()
   test <- reactiveVal()
-  new_anal <- reactiveVal()
+  new_dataset <- reactiveVal()
   selected_datasets <- reactive(c(test(), ctrl()))
 
 
@@ -1108,9 +1108,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   })
 
   samples <- reactive({
-    anals <- c(test(), ctrl())
-    req(anals)
-    data.frame(sample = anals, pair = NA)
+    dataset_names <- c(test(), ctrl())
+    req(dataset_names)
+    data.frame(sample = dataset_names, pair = NA)
   })
 
 
@@ -1146,15 +1146,15 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       exclude_clusters <- setdiff(choices$value, subset)
     }
 
-    test_anals <- test()
-    ctrl_anals <- ctrl()
+    test <- test()
+    ctrl <- ctrl()
     datasets <- datasets()
     pairs <- pairs()
 
-    type <- input$integration_type
-    anal_name <- input$integration_name
+    integration_type <- input$integration_type
+    dataset_name <- input$integration_name
 
-    error_msg <- validate_integration(test_anals, ctrl_anals, anal_name, datasets, pairs)
+    error_msg <- validate_integration(test, ctrl, dataset_name, datasets, pairs)
 
     if (is.null(error_msg)) {
       # clear error and disable button
@@ -1168,20 +1168,20 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
       # run integration
       integrate_saved_scseqs(sc_dir,
-                             test = test_anals,
-                             ctrl = ctrl_anals,
+                             test = test,
+                             ctrl = ctrl,
                              exclude_clusters = exclude_clusters,
-                             anal_name = anal_name,
-                             type = type,
+                             dataset_name = dataset_name,
+                             integration_type = integration_type,
                              pairs = pairs,
                              progress = progress)
 
 
-      # re-enable, clear inputs, and trigger update of available anals
+      # re-enable, clear inputs, and trigger update of available datasets
       ctrl(NULL)
       test(NULL)
       pairs(NULL)
-      new_anal(anal_name)
+      new_dataset(dataset_name)
       updateTextInput(session, 'integration_name', value = '')
       enableAll(integration_inputs)
 
@@ -1194,7 +1194,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   })
 
-  return(new_anal)
+  return(new_dataset)
 }
 
 subset_saved_scseq <- function(sc_dir, from_dataset, dataset_name, exclude_clusters, exclude_metrics, progress = NULL) {
@@ -1227,7 +1227,7 @@ get_founder <- function(sc_dir, dataset_name) {
   return(founder)
 }
 
-#' Logic for comparison type toggle for integrated analyses
+#' Logic for comparison type toggle for integrated datasets
 #' @export
 #' @keywords internal
 comparisonType <- function(input, output, session, scseq, is.integrated) {
@@ -1301,7 +1301,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     selected_cluster(input$selected_cluster)
   })
 
-  # reset if switch analysis
+  # reset if switch dataset
   observeEvent(dataset_dir(), {
     markers(list())
     selected_cluster(NULL)
@@ -1569,7 +1569,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
 
-  # reset selected gene if analysis changes
+  # reset selected gene if dataset changes
   observe({
     sel <- input$selected_gene
     if (!isTruthy(sel)| !isTruthy(dataset_name())) selected_gene(NULL)
