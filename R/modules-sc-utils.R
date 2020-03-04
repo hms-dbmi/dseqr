@@ -29,6 +29,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
   } else {
     ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
     ref_annot <- readRDS(ref_annot_path)
+    ref_annot <- gsub('_\\d+$', '', ref_annot)
 
     ref_preds <- ref_annot[as.numeric(ref_preds)]
     pred_annot <- make.unique(ref_preds, '_')

@@ -987,7 +987,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     # Create a Progress object
     on.exit(progress$close())
     progress <- Progress$new(session, min=0, max = 9)
-    progress$set(message = "Integrating datasets", value = 0)
+    progress$set(message = "Subsetting dataset", value = 0)
 
     # run integration
     subset_saved_scseq(sc_dir = sc_dir,
@@ -1501,15 +1501,9 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     toggle('show_ridge-parent', condition = gene_selected())
   })
 
-
   saved_metrics <- reactiveVal()
   custom_metrics <- reactiveVal()
 
-
-  observeEvent(dataset_name(), {
-    saved_metrics(NULL)
-    custom_metrics(NULL)
-  })
 
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
   allow_save <- reactive(have_metric() && !input$custom_metric %in% row.names(scseq()))
@@ -1548,13 +1542,13 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   observeEvent(input$save_custom_metric, {
     metric <- input$custom_metric
-    if (!isTruthy(metric)) selected_gene(input$selected_gene)
     req(metric)
 
     res <- custom_metrics()[, metric, drop = FALSE]
     prev <- saved_metrics()
     if (!is.null(prev)) res <- cbind(prev, res)
 
+    browser()
     saveRDS(res, metrics_path())
     saved_metrics(res)
     updateTextInput(session, 'custom_metric', value = '')
@@ -1616,6 +1610,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
     updateSelectizeInput(session, 'selected_gene',
                          choices = choices,
+                         selected = isolate(input$selected_gene),
                          server = TRUE,
                          options = gene_options)
   })
