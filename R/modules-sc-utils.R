@@ -440,6 +440,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, dataset
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
+  args$date <- Sys.time()
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {

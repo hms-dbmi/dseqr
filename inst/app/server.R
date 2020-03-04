@@ -898,6 +898,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
+  new_dataset <- reactiveVal()
 
   subset_inputs <- c('subset_name',
                      'submit_subset',
@@ -998,7 +999,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                          server = TRUE)
   })
 
-
+  return(new_dataset)
 }
 
 

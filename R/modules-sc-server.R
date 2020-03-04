@@ -1201,6 +1201,7 @@ subset_saved_scseq <- function(sc_dir, from_dataset, dataset_name, exclude_clust
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
+  args$date <- Sys.time()
 
   founder <- get_founder(sc_dir, from_dataset)
   args$founder <- founder
