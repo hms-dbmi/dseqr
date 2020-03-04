@@ -372,11 +372,21 @@ get_path_directions <- function(top_table) {
              stringsAsFactors = FALSE)
 }
 
-#' Toggle disabled state for multiple ids
+#' Disable multiple ids
 #'
 #' @param ids Character vector of ids to disable
 #' @export
 #' @keywords internal
-toggleAll <- function(ids){
-  for(id in ids) shinyjs::toggleState(id)
+disableAll <- function(ids){
+  for (id in ids) shinyjs::disable(id)
+}
+
+
+#' Enable multiple ids
+#'
+#' @param ids Character vector of ids to enable
+#' @export
+#' @keywords internal
+enableAll <- function(ids) {
+  for (id in ids) shinyjs::enable(id)
 }

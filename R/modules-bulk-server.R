@@ -542,7 +542,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     removeModal()
 
     # disable inputs
-    toggleAll(quant_inputs)
+    disableAll(quant_inputs)
 
     # setup
     pdata <- pdata()
@@ -580,7 +580,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     new_dataset(dataset_name)
 
     # re-enable inputs
-    toggleAll(quant_inputs)
+    enableAll(quant_inputs)
     progress$inc(1)
   })
 
@@ -792,7 +792,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   observeEvent(input$submit_dtangle, {
 
     # disable inputs
-    toggleAll(input_ids)
+    disableAll(input_ids)
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = 4)
@@ -867,7 +867,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     dc <- dc$estimates[colnames(eset), ]
     dtangle_est(dc)
-    toggleAll(input_ids)
+    enableAll(input_ids)
     progress$set(value = 4)
   })
 
@@ -1442,7 +1442,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     } else {
 
       # visual that running
-      toggleAll(input_ids)
+      disableAll(input_ids)
 
       progress <- Progress$new(session, min=0, max = 3)
       on.exit(progress$close())
@@ -1469,7 +1469,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       # visual that done
       progress$inc(1)
-      toggleAll(input_ids)
+      enableAll(input_ids)
     }
 
     return(lm_fit)
@@ -1488,7 +1488,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       tt <- top_table()
       if (!isTruthy(tt)) return(NULL)
 
-      toggleAll(input_ids)
+      disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 3)
       progress$set(message = "Querying drugs", value = 1)
       on.exit(progress$close())
@@ -1497,7 +1497,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       progress$inc(1)
       res <- run_drug_queries(tt, drug_paths(), es)
       progress$inc(1)
-      toggleAll(input_ids)
+      enableAll(input_ids)
     }
     return(res)
   })
@@ -1529,7 +1529,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       lm_fit <- lm_fit()
 
       # visual that running
-      toggleAll(input_ids)
+      disableAll(input_ids)
       progress <- Progress$new(session, min=0, max = 2)
       on.exit(progress$close())
       progress$set(message = "Running pathway analysis", value = 1)
@@ -1542,7 +1542,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       ebfit <- fit_ebayes(lm_fit, contrast)
       res <- get_path_res(ebfit, go_path, kegg_path)
       progress$inc(1)
-      toggleAll(input_ids)
+      enableAll(input_ids)
     }
 
     return(res)

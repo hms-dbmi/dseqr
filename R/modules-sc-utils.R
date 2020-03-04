@@ -437,6 +437,10 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @export
 #' @keywords internal
 integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_name, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
+  # for save_scseq_args
+  args <- c(as.list(environment()))
+  args$progress <- args$sc_dir <- NULL
+
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -451,8 +455,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   }
 
   progress$set(1, detail = 'loading')
-  test_scseqs <- load_scseqs_for_integration(test, sc_dir, exclude_clusters, ident = 'test')
-  ctrl_scseqs <- load_scseqs_for_integration(ctrl, sc_dir, exclude_clusters, ident = 'ctrl')
+  test_scseqs <- load_scseq_subsets(test, sc_dir, exclude_clusters, ident = 'test')
+  ctrl_scseqs <- load_scseq_subsets(ctrl, sc_dir, exclude_clusters, ident = 'ctrl')
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -526,7 +530,9 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
                      annot = names(markers))
 
   save_scseq_data(scseq_data, anal_name, sc_dir, integrated = TRUE)
+  save_scseq_args(args, anal_name, sc_dir)
   rm(scseq_data, summed, markers, ambient, tests, pairs, top_markers, lm_fit, pbulk_esets); gc()
+
 
   # don't save raw counts for loom (saved in non-sparse format)
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
@@ -535,6 +541,23 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, anal_na
   save_scle(combined, file.path(sc_dir, anal_name))
 
   return(NULL)
+}
+
+#' Save arguments for integration/subsetting
+#'
+#' @param args Arguments to save
+#' @param anal_name Name of analysis
+#' @param sc_dir Directory with single-cell analyses
+#'
+#' @return NULL
+#' @export
+#'
+save_scseq_args <- function(args, anal_name, sc_dir) {
+  jsonlite::write_json(args,
+                       file.path(sc_dir, anal_name),
+                       auto_unbox = TRUE,
+                       null = 'null',
+                       pretty = TRUE)
 }
 
 add_combined_metrics <- function(combined, scseqs) {
@@ -556,56 +579,56 @@ add_combined_metrics <- function(combined, scseqs) {
 }
 
 
-#' Load scRNA-Seq datasets for integration
+#' Load subsets of scseqs for integration/subsetting
 #'
 #' Sets orig.ident to \code{ident}.
 #'
-#' @param anal_names Character vector of single cell analysis names to load.
+#' @param dataset_names Character vector of single cell analysis names to load.
 #' @param sc_dir The directory with single-cell datasets
 #' @param ident Either \code{'test'} or \code{'ctrl'}
 #'
 #' @return List of \code{SingleCellExperiment} objects.
 #' @export
 #' @keywords internal
-load_scseqs_for_integration <- function(anal_names, sc_dir, exclude_clusters, exclude_metrics = NULL, ident = scseq$project) {
+load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, exclude_metrics = NULL, ident = scseq$project) {
 
-  exclude_anals <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
+  exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
 
   scseqs <- list()
 
   # load each scseq and exclude based on metrics
-  for (anal in anal_names) {
-    scseq <- readRDS(scseq_part_path(sc_dir, anal, 'scseq'))
+  for (dataset_name in dataset_names) {
+    scseq <- readRDS(scseq_part_path(sc_dir, dataset_name, 'scseq'))
 
     if (!is.null(exclude_metrics)) {
       cdata <- scseq@colData
-      metrics <- readRDS.safe(file.path(sc_dir, anal, 'saved_metrics.rds'))
+      metrics <- readRDS.safe(file.path(sc_dir, dataset_name, 'saved_metrics.rds'))
       if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
 
       exclude <- cdata[, exclude_metrics, drop = FALSE]
       exclude <- apply(exclude, 1, any)
       scseq <- scseq[, !exclude]
     }
-    scseqs[[anal]] <- scseq
+    scseqs[[dataset_name]] <- scseq
   }
 
 
   # remove excluded clusters
   for (i in seq_along(scseqs)) {
-    anal <- names(scseqs)[i]
-    scseq <- scseqs[[anal]]
+    dataset_name <- names(scseqs)[i]
+    scseq <- scseqs[[dataset_name]]
 
     # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
 
     # only remove excluded clusters if present
-    is.exclude <- exclude_anals == anal
+    is.exclude <- exclude_datasets == dataset_name
     if (any(is.exclude)) {
       exclude <- exclude_clusters[is.exclude]
       scseq <- scseq[, !scseq$cluster %in% exclude]
     }
-    scseqs[[anal]] <- scseq
+    scseqs[[dataset_name]] <- scseq
   }
 
   return(scseqs)
