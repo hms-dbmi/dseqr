@@ -533,7 +533,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
+    updateSelectizeInput(session, 'selected_dataset', choices =  rbind(NA, datasets()), server = TRUE, options = options)
   })
 
   # show/hide integration/label-transfer forms
@@ -621,6 +621,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
                         name = c(prev, integrated, individual),
+                        label = c(prev, integrated, individual),
                         type = c('Previous Session', int_type, ind_type),
                         itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
                         optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
