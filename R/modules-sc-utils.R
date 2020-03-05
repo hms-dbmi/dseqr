@@ -616,6 +616,9 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, exclude_
       exclude <- cdata[, exclude_metrics, drop = FALSE]
       exclude <- apply(exclude, 1, any)
       scseq <- scseq[, !exclude]
+
+      # remove exclud_metrics hardcoded in scseq (no cells will meet them)
+      scseq@colData <- scseq@colData[, !colnames(scseq@colData) %in% exclude_metrics, drop = FALSE]
     }
 
     # remove excluded clusters

@@ -1791,6 +1791,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     metrics <- custom_metrics()
     cdata <- scseq@colData
 
+    if (!is.null(metrics) && nrow(cdata) != nrow(metrics)) return(NULL)
     if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
 
     is_gene <- feature %in% row.names(scseq)
