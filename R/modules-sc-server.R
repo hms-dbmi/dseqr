@@ -351,7 +351,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = cluster_choices(),
+                         choices = rbind(NA, cluster_choices()),
                          options = contrast_options, server = TRUE)
   })
 
@@ -1374,7 +1374,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   observeEvent(choices(), {
 
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = choices(),
+                         choices = rbind(NA, choices()),
                          selected = selected_cluster(),
                          options = contrast_options, server = TRUE)
   })
@@ -1478,7 +1478,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   # toggle for ridgeline
   gene_selected <- reactive({
     sel <- input$selected_gene
-    isTruthy(sel) && !sel %in% qc_metrics()
+    !isTruthy(sel) || !sel %in% qc_metrics()
   })
 
   show_ridge <- reactive(input$show_ridge %% 2 != 1 | !gene_selected())
@@ -1601,12 +1601,14 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
 
-  # reset selected gene if dataset changes
+  # reset selected gene if dataset or cluster changes
   observe({
     sel <- input$selected_gene
     if (!isTruthy(sel)| !isTruthy(dataset_name())) selected_gene(NULL)
     else selected_gene(sel)
   })
+
+  observeEvent(selected_cluster(), selected_gene(NULL))
 
 
   # update choices
@@ -1615,7 +1617,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
     updateSelectizeInput(session, 'selected_gene',
                          choices = choices,
-                         selected = isolate(input$selected_gene),
+                         selected = isolate(selected_gene()),
                          server = TRUE,
                          options = gene_options)
   })
@@ -1922,7 +1924,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = cluster_choices(),
+                         choices = rbind(NA, cluster_choices()),
                          options = contrast_options, server = TRUE)
   })
 
@@ -2224,7 +2226,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
     x <- scseq[[feature]]
 
   # errors if boolean/factor/NULL
-  if (!is.numeric(x)) {
+  if (is.null(x) || !is.numeric(x)) {
     pl <- NULL
     if (with.height) pl <- list(plot = plot, height = 453)
     return(pl)

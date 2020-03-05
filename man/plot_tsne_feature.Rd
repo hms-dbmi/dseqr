@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_scseq.R
 \name{plot_tsne_feature}
 \alias{plot_tsne_feature}
-\title{Plot UMAP coloured by gene or QC metric}
+\title{Plot TSNE coloured by gene or QC metric}
 \usage{
 plot_tsne_feature(
   scseq,
@@ -23,5 +23,5 @@ plot_tsne_feature(
 \code{ggplot}
 }
 \description{
-Plot UMAP coloured by gene or QC metric
+Plot TSNE coloured by gene or QC metric
 }

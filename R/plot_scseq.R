@@ -3,7 +3,7 @@
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, ...) {
+plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, ...) {
 
   levs <- levels(scseq$cluster)
   if (is.null(cols)) cols <- get_palette(levs)
@@ -24,10 +24,15 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, ...) {
   if (!legend)
     pl <- pl + ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
 
+  if (!is.null(title))
+    pl <- pl + ggplot2::ggtitle(title) +
+    ggplot2::theme(plot.title.position = "plot",
+                   plot.title = ggplot2::element_text(color = '#333333', hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 25)))
+
   return(pl)
 }
 
-#' Plot UMAP coloured by gene or QC metric
+#' Plot TSNE coloured by gene or QC metric
 #'
 #' @param scseq \code{SingleCellExperiment} object.
 #' @param feature Character vector specifying feature to colour cells by.
