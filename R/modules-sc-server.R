@@ -1038,7 +1038,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # datasets() with server side selectize causes bug
   integration_choices <- reactive({
     ds <- datasets()
-    ds <- ds[!ds$type %in% c('Previous Session', 'Integrated'), ]
+    int  <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
+    prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'))
+    ds <- ds[!ds$name %in% c(int, prev), ]
 
     choices <- ds %>%
       dplyr::group_by(type) %>%
