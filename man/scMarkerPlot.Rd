@@ -10,7 +10,7 @@ scMarkerPlot(
   session,
   scseq,
   selected_feature,
-  fname_fun = function() { },
+  dataset_name,
   downloadable = TRUE,
   custom_metrics = function() NULL
 )

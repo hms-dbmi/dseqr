@@ -35,7 +35,7 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, ...) {
 #'
 #' @return \code{ggplot}
 #' @export
-plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), title = paste0('Expression by Cell: ', feature)) {
 
   pt.size <- min(6000/ncol(scseq), 2)
 
@@ -47,7 +47,11 @@ plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), rev
     ggplot2::ylab('TSNE2') +
     ggplot2::theme(plot.title = ggplot2::element_blank()) +
     theme_dimgray(with_nums = FALSE) +
-    ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'))
+    ggplot2::ggtitle(title) +
+    ggplot2::theme(legend.title = ggplot2::element_text(colour = 'black'),
+                   plot.title.position = "plot",
+                   plot.title = ggplot2::element_text(color = '#333333', hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 25)))
+
 
 }
 

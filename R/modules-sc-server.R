@@ -8,32 +8,20 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
                        sc_dir = sc_dir,
                        indices_dir = indices_dir)
 
-
-  cluster_data_fname <- function() {
-    paste0(scForm$dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
-  }
-
-  scCluster <- callModule(scClusterPlot, 'cluster_plot',
-                          scseq = scForm$scseq,
-                          selected_cluster = scForm$selected_cluster,
-                          fname_fun = cluster_data_fname,
-                          downloadable = TRUE)
+  # cluster plot in top right
+  callModule(scClusterPlot, 'cluster_plot',
+             scseq = scForm$scseq,
+             selected_cluster = scForm$selected_cluster,
+             dataset_name = scForm$dataset_name,
+             downloadable = TRUE)
 
   # cluster comparison plots ---
 
-  # filename generator for marker plot data
-  cluster_fname <- function() {
-    fname <- paste0(scForm$dataset_name(),
-                    '_', scForm$clusters_gene(),
-                    '_marker_plot_data_', Sys.Date(), '.csv')
-    return(fname)
-  }
-
-  scMarkerCluster <- callModule(scMarkerPlot, 'marker_plot_cluster',
-                                scseq = scForm$scseq,
-                                custom_metrics = scForm$custom_metrics,
-                                selected_feature = scForm$clusters_gene,
-                                fname_fun = cluster_fname)
+  callModule(scMarkerPlot, 'marker_plot_cluster',
+             scseq = scForm$scseq,
+             custom_metrics = scForm$custom_metrics,
+             selected_feature = scForm$clusters_gene,
+             dataset_name = scForm$dataset_name)
 
   callModule(scBioGpsPlot, 'biogps_plot',
              selected_gene = scForm$clusters_gene,
@@ -55,6 +43,13 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   callModule(scSampleMarkerPlot, 'right',
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right)
+
+
+  callModule(scMarkerPlot, 'marker_plot_sample',
+             scseq = scForm$scseq,
+             custom_metrics = scForm$custom_metrics,
+             selected_feature = scForm$samples_gene,
+             dataset_name = scForm$dataset_name)
 
 
   # label comparison plot ---
@@ -1379,7 +1374,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   observeEvent(choices(), {
 
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = rbind(NA, choices()),
+                         choices = choices(),
                          selected = selected_cluster(),
                          options = contrast_options, server = TRUE)
   })
@@ -1707,7 +1702,12 @@ interpret <- function(expr_str,
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name, fname_fun = function(){}, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name, downloadable = FALSE) {
+
+
+  fname_fun <- function() {
+    paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
+  }
 
   plot <- reactive({
     scseq <- scseq()
@@ -1772,8 +1772,14 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker feature plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_fun = function(){}, downloadable = TRUE, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL) {
 
+  fname_fun <- function() {
+    fname <- paste0(dataset_name(),
+                    '_', selected_feature(),
+                    '_marker_plot_data_', Sys.Date(), '.csv')
+    return(fname)
+  }
 
   plot <- reactive({
     feature <- selected_feature()
@@ -1802,12 +1808,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, fname_
       pcells <- round(ncells / length(ft) * 100)
 
       title <- paste0(feature, ' (', format(ncells, big.mark=","), ' :: ', pcells, '%)')
-      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE) +
-        ggplot2::ggtitle(title) +
-        ggplot2::theme(
-          plot.title.position = "plot",
-          plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25))
-        )
+      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title)
     } else {
       pl <- NULL
     }
@@ -2206,14 +2207,14 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
     scseq <- scseq[, scseq$cluster %in% sel]
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident
-    title <- paste('Expression by Sample for', sel)
+    title <- paste('Expression by Sample:', feature, 'in', sel)
 
   } else {
     y <- scseq$cluster
     hl <- as.character(y)
     hl[!hl %in% sel] <- 'out'
     hl <- factor(hl, levels = c(sel, 'out'))
-    title <- 'Expression by Cluster'
+    title <- paste('Expression by Cluster:', feature)
   }
 
 

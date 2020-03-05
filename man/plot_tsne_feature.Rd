@@ -8,7 +8,8 @@ plot_tsne_feature(
   scseq,
   feature,
   cols = c("lightgray", "blue"),
-  reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected")
+  reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
+  title = paste0("Expression by Cell: ", feature)
 )
 }
 \arguments{

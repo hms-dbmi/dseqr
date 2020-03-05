@@ -21,21 +21,23 @@ scPageUI <- function(id, tab, active) {
                 div(class = "col-sm-12 col-lg-6 col-lg-push-6",
                     scMarkerPlotOutput(ns('marker_plot_cluster'))
                 ),
-                div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
+                div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin beside-downloadable",
                     div(id = ns('biogps_container'),
                         scBioGpsPlotOutput(ns('biogps_plot'))
                     ),
-                    div( style = 'display: none;', id = ns('ridge_container'),
-                         scRidgePlotOutput(ns('ridge_plot'))
+                    div(style = 'display: none;', id = ns('ridge_container'),
+                        scRidgePlotOutput(ns('ridge_plot'))
                     )
                 )
             ),
             # row for samples comparison (integrated test vs ctrl)
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-6 mobile-margin",
+                div(class = "col-sm-12 col-lg-6 mobile-margin beside-downloadable",
                     scSampleMarkerPlotOutput(ns('left'))
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
+                    scMarkerPlotOutput(ns('marker_plot_sample')),
+                    hr(),
                     scSampleMarkerPlotOutput(ns('right'))
                 )
             ),
@@ -374,4 +376,3 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
-

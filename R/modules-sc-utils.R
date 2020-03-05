@@ -72,6 +72,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
 
   tt <- get_top_table(lm_fit, with.es = FALSE)
+  tt$ENTREZID <- NULL
   return(tt)
 }
 
