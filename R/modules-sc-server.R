@@ -532,8 +532,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # show/hide integration/label-transfer forms
-  show_integration <- reactive(input$show_integration %% 3 == 1)
-  show_subset <- reactive(input$show_integration %% 3 == 2)
+  show_integration <- reactive(input$show_integration %% 3 == 2)
+  show_subset <- reactive(input$show_integration %% 3 == 1)
   show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
 
   observe(toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer()))
@@ -544,8 +544,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observe({
-    icon <- icon('object-group', 'far fa-fw')
-    if (show_subset()) icon <- icon('object-ungroup', 'far fa-fw')
+    icon <- icon('object-ungroup', 'far fa-fw')
+    if (show_integration()) icon <- icon('object-group', 'far fa-fw')
 
     updateActionButton(session, 'show_integration', icon = icon)
   })

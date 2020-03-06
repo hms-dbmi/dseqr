@@ -120,7 +120,7 @@ scSelectedDatasetInput <- function(id) {
   tagList(
     selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
                               actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn', `parent-style`='display: none;'),
-                              actionButton(ns('show_integration'), '',icon = icon('object-group', 'far fa-fw'), title = 'Toggle <b>once</b> to integrate or <b>twice</b> to subset dataset(s)'),
+                              actionButton(ns('show_integration'), '',icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate dataset(s)'),
                               options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)),
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
