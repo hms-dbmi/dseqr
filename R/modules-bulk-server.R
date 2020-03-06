@@ -1609,7 +1609,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' @return List with GO and KEGG results
 #' @export
 #' @keywords internal
-get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs') {
+get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 4) {
 
   gslist.go <- get_gslist(species)
   gslist.kegg <- get_gslist(species, type = 'kegg')
@@ -1621,9 +1621,13 @@ get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs') {
   names(statistic) <- ebfit$genes$ENTREZID
   go <- limma::cameraPR(statistic, index = gslist.go)
   go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
+  go <- go[go$NGenes >= min.genes, ]
+  go$FDR <- p.adjust(go$FDR, 'BH')
 
   kg <- limma::cameraPR(statistic, index = gslist.kegg)
   kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
+  kg <- kg[kg$NGenes >= min.genes, ]
+  kg$FDR <- p.adjust(kg$FDR, 'BH')
 
   saveRDS(go, go_path)
   saveRDS(kg, kegg_path)

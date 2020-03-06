@@ -2321,6 +2321,7 @@ plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_
 #' @param universe NULL
 #' @param type either 'go' or 'kegg'
 #' @param gs_dir Directory to save gslist to
+#' @param min.genes Minimum number of genes that intersect universe in each pathway
 #'
 #' @return gslist
 #' @export
@@ -2425,4 +2426,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
