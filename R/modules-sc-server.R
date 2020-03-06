@@ -1636,11 +1636,11 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 validate_metric <- function(metric, scseq) {
 
-  allowed <- interpret(metric)
+  allowed <- tryCatch(interpret(metric), error = function(e) return(FALSE))
   if (!allowed) return("Metric not permitted")
 
   ft <- get_metric_features(metric)
-  if (!length(ft)) return('No features specified')
+  if (length(ft) == 0) return('No features specified')
 
   have.ft  <- any(ft %in% c(row.names(scseq), colnames(scseq@colData)))
   if (!have.ft) return('No features specified')
@@ -1676,7 +1676,15 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- as.data.frame(cbind(expr, qcs))
   colnames(dat) <- c(colnames(expr), colnames(qcs))
 
-  dat <- within(dat, metric <- eval(rlang::parse_expr(metric)))
+  # convert features to generic (in case e.g. minus)
+  seq <- 1:ncol(dat)
+  ft.num <- paste0('ft', seq)
+  colnames(dat) <- ft.num
+
+  metric.num <- metric
+  for (i in seq) metric.num <- gsub(paste0('\\b', ft[i], '\\b'), ft.num[i], metric.num)
+
+  dat <- within(dat, metric <- eval(rlang::parse_expr(metric.num)))
   dat <- dat[, 'metric', drop = FALSE]
   colnames(dat) <- metric
   return(dat)
