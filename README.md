@@ -12,11 +12,67 @@ library(drugseqr)
 
 # run app
 app_name <- 'example'
-data_dir <- 'path/to/app_directory'
+data_dir <- 'path/to/app_dir'
 run_drugseqr(app_name, data_dir)
 ```
 
-see below for details on adding bulk/single-cell datasets
+see below for details on adding single-cell/bulk datasets
+
+
+## Adding single-cell datasets
+
+Add single cell fastq.gz or CellRanger files to a directory inside `single-cell`. For example, download CellRanger files:
+
+```bash
+# directory to store single cell sample data in
+# for EC2 instance: cd /srv/drugseqr/example/single-cell
+cd path/to/app_dir/example/single-cell
+
+mkdir GSM2560249_pbmc_ifnb_full
+cd GSM2560249_pbmc_ifnb_full
+
+# get CellRanger files
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5F2%2E2%2Emtx%2Egz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5Fbarcodes%2Etsv%2Egz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583%5Fbatch2%2Egenes%2Etsv%2Egz
+
+```
+
+Run the app as before, create a new single-cell dataset, and select the folder with the downloaded cellranger files. Single cell 10X fastq.gz files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to FASTQ:
+
+```bash
+# download bamtofastq into directory on the path
+wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
+
+# directory to store single cell sample data in 
+# for EC2 instance: cd /srv/drugseqr/example/single-cell
+cd path/to/app_dir/example/single-cell
+mkdir GSM3304014_lung_healthy
+cd GSM3304014_lung_healthy
+
+# download 10XBAM
+wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genome_bam.bam.1
+
+# convert to fastq
+bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
+```
+
+Run the app again, create a new single-cell dataset, and select the folder with the downloaded fastq files.
+
+## Adding bulk datasets
+
+Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk datasets particularly easy. For example, install `GEOfastq` then:
+
+```R
+# download bulk fastqs to appropriate directory for example app
+# for EC2 instance: /srv/drugseqr/example/bulk
+data_dir <- 'path/to/app_dir/example/bulk'
+gse_name <- 'GSE35296'
+
+# first four samples for demonstration
+srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
+GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
+```
 
 
 ## EC2 installation and setup
@@ -83,56 +139,4 @@ One way to this is is with `rsync`. For example:
 
 ```bash
 rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" ~/path/to/local/example/ ubuntu@[EC2 Public DNS]:/srv/drugseqr/example/
-```
-
-
-## Adding single-cell datasets
-
-Add single cell fastq.gz or CellRanger files to a directory in `single-cell`. For example, download CellRanger files:
-
-```bash
-# directory to store single cell sample data in  
-cd /srv/drugseqr/example/single-cell
-mkdir GSM2560249_pbmc_ifnb_full
-cd GSM2560249_pbmc_ifnb_full
-
-# get CellRanger files
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5F2%2E2%2Emtx%2Egz
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5Fbarcodes%2Etsv%2Egz
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583%5Fbatch2%2Egenes%2Etsv%2Egz
-
-```
-
-Run the app as before, create a new dataset, and select the created folder. Single cell 10X fastq.gz files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to FASTQ:
-
-```bash
-# download bamtofastq into directory on the path
-wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
-
-# directory to store single cell sample data in  
-cd /srv/drugseqr/example/single-cell
-mkdir GSM3304014_lung_healthy
-cd GSM3304014_lung_healthy
-
-# download 10XBAM
-wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genome_bam.bam.1
-
-# convert to fastq
-bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
-```
-
-Run the app again, create a new dataset, and select the folder with the fastq files.
-
-## Adding bulk datasets
-
-Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk datasets particularly easy. For example, install `GEOfastq` then:
-
-```R
-# download bulk fastqs to appropriate directory for example app
-data_dir <- '/srv/drugseqr/example/bulk'
-gse_name <- 'GSE35296'
-
-# first four samples for demonstration
-srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
-GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
 ```
