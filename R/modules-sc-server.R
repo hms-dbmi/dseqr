@@ -1479,8 +1479,8 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   # toggle for ridgeline
   gene_selected <- reactive({
-    sel <- input$selected_gene
-    !isTruthy(sel) || !sel %in% qc_metrics()
+    sel <- selected_gene()
+    !isTruthy(sel) || sel %in% row.names(scseq())
   })
 
   show_ridge <- reactive(input$show_ridge %% 2 != 1 | !gene_selected())
@@ -1490,7 +1490,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   observe({
     toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric())
-    if (!show_custom_metric()) selected_gene(input$selected_gene)
     if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
   })
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
@@ -1570,8 +1569,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     ambient <- NULL
     if (exclude_ambient()) ambient <- ambient()
 
-    markers <- supress.genes(markers, ambient)
-    return(markers)
+    supress.genes(markers, ambient)
   })
 
   scseq_genes <- reactive(data.frame(1:nrow(scseq()), row.names = row.names(scseq())))
@@ -1606,7 +1604,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   # reset selected gene if dataset or cluster changes
   observe({
     sel <- input$selected_gene
-    if (!isTruthy(sel)| !isTruthy(dataset_name())) selected_gene(NULL)
+    if (!isTruthy(sel)| !isTruthy(dataset_name())) return(NULL)
     else selected_gene(sel)
   })
 
@@ -1616,13 +1614,16 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   # update choices
   observe({
     choices <- gene_choices()
+    if(is.null(choices)) return(NULL)
+    selected <- isolate(selected_gene())
 
     updateSelectizeInput(session, 'selected_gene',
                          choices = choices,
-                         selected = isolate(selected_gene()),
+                         selected = selected,
                          server = TRUE,
                          options = gene_options)
   })
+
 
   return(list(
     selected_gene = selected_gene,
@@ -1631,6 +1632,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     custom_metrics = custom_metrics,
     saved_metrics = saved_metrics
   ))
+
 
 }
 
