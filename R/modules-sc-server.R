@@ -2230,6 +2230,14 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
   } else {
     y <- scseq$cluster
+
+    is.char <- suppressWarnings(is.na(as.numeric(clus_levs)))
+    if (any(is.char)) {
+      clus_levs <- paste0(seq_along(clus_levs), ': ', clus_levs)
+      levels(y) <- clus_levs
+      sel <- clus_levs[seli]
+    }
+
     hl <- as.character(y)
     hl[!hl %in% sel] <- 'out'
     hl <- factor(hl, levels = c(sel, 'out'))
@@ -2440,4 +2448,5 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+
 
