@@ -4,7 +4,13 @@
 \alias{get_gene_choices}
 \title{Add cell percents to gene choices for single cell}
 \usage{
-get_gene_choices(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE)
+get_gene_choices(
+  markers,
+  qc_metrics = NULL,
+  type = NULL,
+  qc_first = FALSE,
+  species = "Homo sapiens"
+)
 }
 \arguments{
 \item{markers}{data.frame of marker genes.}

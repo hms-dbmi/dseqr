@@ -4,7 +4,7 @@
 \alias{fit_ebayes}
 \title{Fit ebayes model}
 \usage{
-fit_ebayes(lm_fit, contrasts)
+fit_ebayes(lm_fit, contrasts, robust = TRUE)
 }
 \arguments{
 \item{lm_fit}{Result of call to \link{run_limma}}

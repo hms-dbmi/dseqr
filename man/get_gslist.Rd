@@ -19,6 +19,8 @@ get_gslist(
 \item{type}{either 'go' or 'kegg'}
 
 \item{gs_dir}{Directory to save gslist to}
+
+\item{min.genes}{Minimum number of genes that intersect universe in each pathway}
 }
 \value{
 gslist
