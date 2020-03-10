@@ -961,7 +961,7 @@ run_liger <- function(logcounts, scseqs, batch) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @export
-integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN')) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -987,7 +987,7 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN')) {
   gc()
 
   if (type[1] == 'harmony') {
-    cor.out <- run_harmony(logcounts, hvgs, combined$batch)
+    cor.out <- run_harmony(logcounts, hvgs, combined$batch, pairs = pairs)
 
   } else if (type[1] == 'liger') {
     cor.out <- run_liger(logcounts, scseqs, combined$batch)
@@ -1010,11 +1010,20 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN')) {
   return(cor.out)
 }
 
-run_harmony <- function(logcounts, hvgs, batch) {
+run_harmony <- function(logcounts, hvgs, batch, pairs = NULL) {
+
+  meta_data <- data.frame(batch = batch)
+  vars_use <- 'batch'
+
+  if (!is.null(pairs)) {
+    vars_use <- c('batch', 'pairs')
+    meta_data$pairs <- factor(pairs[batch, 'pair'])
+  }
+
 
   set.seed(100)
   pcs <- scater::calculatePCA(logcounts, subset_row = hvgs)
-  emb <- harmony::HarmonyMatrix(pcs, batch, do_pca = FALSE, max.iter.harmony = 20)
+  emb <- harmony::HarmonyMatrix(pcs, meta_data, vars_use, do_pca = FALSE, max.iter.harmony = 40)
 
   cor.out <- SingleCellExperiment::SingleCellExperiment(
     assays = list(logcounts = logcounts),

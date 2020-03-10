@@ -585,7 +585,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
                                                             .nofile = 'Integrated',
-                                                            .nullfile = 'Integrated'), USE.NAMES = FALSE)
+                                                            .nullfile = 'Integrated'))
   int_type <- unlist(int_type)
 
   sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
@@ -2460,3 +2460,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

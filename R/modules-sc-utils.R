@@ -484,7 +484,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   else if (species == 'Mus musculus') release <- '98'
 
   progress$set(2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type)
+  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs)
   combined$project <- dataset_name
 
   # retain original QC metrics
