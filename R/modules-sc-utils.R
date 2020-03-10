@@ -447,7 +447,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integration_name, integration_type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integration_name, integration_type = c('harmony', 'liger', 'fastMNN'), pairs = NULL, progress = NULL, value = 0) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -468,7 +468,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
     return(NULL)
   }
 
-  progress$set(1, detail = 'loading')
+  progress$set(value+1, detail = 'loading')
   test_scseqs <- load_scseq_subsets(test, sc_dir, exclude_clusters, ident = 'test')
   ctrl_scseqs <- load_scseq_subsets(ctrl, sc_dir, exclude_clusters, ident = 'ctrl')
 
@@ -483,7 +483,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   if (species == 'Homo sapiens') release <- '94'
   else if (species == 'Mus musculus') release <- '98'
 
-  progress$set(2, detail = 'integrating')
+  progress$set(value+2, detail = 'integrating')
   combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs)
   combined$project <- dataset_name
 
@@ -493,7 +493,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
   # add clusters
-  progress$set(3, detail = 'clustering')
+  progress$set(value+3, detail = 'clustering')
   choices <- get_npc_choices(combined, type = 'corrected')
 
   combined@metadata$species <- species
@@ -501,13 +501,13 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   combined$cluster <- choices$cluster
 
   # TSNE on corrected reducedDim
-  progress$set(4, detail = 'reducing')
+  progress$set(value+4, detail = 'reducing')
   combined <- run_tsne(combined, dimred = 'corrected')
 
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
 
-  progress$set(5, detail = 'getting markers')
+  progress$set(value+5, detail = 'getting markers')
   tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
   markers <- get_scseq_markers(tests)
 
@@ -521,14 +521,14 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
                                            batch = combined$batch))
 
 
-  progress$set(6, detail = 'fitting linear models')
+  progress$set(value+6, detail = 'fitting linear models')
   obj <- combined
   pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
   if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
   lm_fit <- run_limma_scseq(obj)
 
-  progress$set(7, detail = 'saving')
+  progress$set(value+7, detail = 'saving')
   scseq_data <- list(scseq = combined,
                      species = species,
                      summed = summed,
@@ -551,7 +551,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   # don't save raw counts for loom (saved in non-sparse format)
   SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
 
-  progress$set(8, detail = 'saving loom')
+  progress$set(value+8, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, dataset_name))
 
   return(NULL)

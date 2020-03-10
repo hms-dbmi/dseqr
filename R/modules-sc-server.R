@@ -1198,7 +1198,8 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       progress <- Progress$new(session, min=0, max = 9*ntype)
 
       for (i in seq_along(integration_types)) {
-        progress$set(message = paste(integration_types[i], 'integration:'), detail = '', value = (i-1)*9)
+        vali <- (i-1)*9
+        progress$set(message = paste(integration_types[i], 'integration:'), detail = '', value = vali)
 
         # run integration
         integrate_saved_scseqs(sc_dir,
@@ -1208,7 +1209,8 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
                                integration_name = integration_name,
                                integration_type = integration_types[i],
                                pairs = pairs,
-                               progress = progress)
+                               progress = progress,
+                               value = vali)
       }
 
 
