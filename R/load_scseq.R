@@ -1014,7 +1014,7 @@ run_harmony <- function(logcounts, hvgs, batch) {
 
   set.seed(100)
   pcs <- scater::calculatePCA(logcounts, subset_row = hvgs)
-  emb <- harmony::HarmonyMatrix(pcs, batch, do_pca = FALSE)
+  emb <- harmony::HarmonyMatrix(pcs, batch, do_pca = FALSE, max.iter.harmony = 20)
 
   cor.out <- SingleCellExperiment::SingleCellExperiment(
     assays = list(logcounts = logcounts),

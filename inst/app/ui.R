@@ -1,5 +1,5 @@
-tabs <- c('Bulk Data', 'Single Cell', 'Drugs')
-active <- 'Bulk Data'
+tabs <- c('Single Cell', 'Bulk Data', 'Drugs')
+active <- 'Single Cell'
 
 bootstrapPage(
   useShinyjs(),
@@ -16,8 +16,8 @@ bootstrapPage(
   navbarUI(tabs, active),
   fluidPage(
     tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
-             bulkPageUI('bulk', tab = 'Bulk Data', active),
              scPageUI("sc", tab = 'Single Cell', active),
+             bulkPageUI('bulk', tab = 'Bulk Data', active),
              drugsPageUI("drug", tab = 'Drugs', active)
              # docsPageUI('docs', tab = 'docs', active)
 

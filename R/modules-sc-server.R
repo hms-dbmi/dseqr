@@ -1041,7 +1041,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     ds <- datasets()
     int  <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
     prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'))
-    ds <- ds[!ds$name %in% c(int, prev), ]
+    ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
 
     choices <- ds %>%
       dplyr::group_by(type) %>%
@@ -1073,14 +1073,26 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # update test dataset choices
   observe({
     choices <- integration_choices()
-    choices <- lapply(choices, function(x) x[!x %in% ctrl()])
+    for (i in seq_along(choices)) {
+      group <- choices[[i]]
+      group <- group[!group %in% ctrl()]
+      if (length(group)==1) group <- list(group)
+      choices[[i]] <- group
+    }
+
     updateSelectizeInput(session, 'test_integration', choices = choices, selected = isolate(test()))
   })
 
   # update control dataset choices
   observe({
     choices <- integration_choices()
-    choices <- lapply(choices, function(x) x[!x %in% test()])
+    for (i in seq_along(choices)) {
+      group <- choices[[i]]
+      group <- group[!group %in% test()]
+      if (length(group)==1) group <- list(group)
+      choices[[i]] <- group
+    }
+
     updateSelectizeInput(session, 'ctrl_integration', choices = choices, selected = isolate(ctrl()))
   })
 
@@ -2448,5 +2460,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
-
