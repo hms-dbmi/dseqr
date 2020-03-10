@@ -583,9 +583,10 @@ get_sc_dataset_choices <- function(sc_dir) {
   has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
   integrated <- integrated[has.scseq]
 
-  int_type <- sapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
+  int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
                                                             .nofile = 'Integrated',
                                                             .nullfile = 'Integrated'), USE.NAMES = FALSE)
+  int_type <- unlist(int_type)
 
   sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
   int_type[!sub] <- 'Integrated'
@@ -1492,6 +1493,8 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric())
     if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
   })
+
+  observe(if (!show_custom_metric()) selected_gene(input$selected_gene))
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   observe({
@@ -1573,6 +1576,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   scseq_genes <- reactive(data.frame(1:nrow(scseq()), row.names = row.names(scseq())))
+  species <- reactive(scseq()@metadata$species)
 
   # update marker genes based on cluster selection
   gene_choices <- reactive({
@@ -1591,7 +1595,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
       markers <- scseq_genes()
     }
 
-    get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first)
+    get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first, species = species())
   })
 
   # click genecards
@@ -2436,3 +2440,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

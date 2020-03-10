@@ -393,7 +393,7 @@ get_contrast_choices <- function(clusters, test) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #' @export
 #' @keywords internal
-get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE) {
+get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE, species = 'Homo sapiens') {
   markers <- row.names(markers)
 
   qc_type <- ifelse(names(qc_metrics) == 'numeric', 'QC Score', 'Boolean Features')
@@ -408,12 +408,21 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
     type <- c(gene_type, qc_type)
   }
 
+  if (species == 'Homo sapiens') tx2gene <- tx2gene
+  else if (species == 'Mus musculus') tx2gene <- tx2gene_mouse
+  else stop('Only Homo sapiens and Mus musculus supported')
+
   idx <- match(choices, tx2gene$gene_name)
+  desc <- tx2gene$description[idx]
+  desc[is.na(desc)] <- choices[is.na(desc)]
+
   choices <- data.table::data.table(label = choices,
                                     value = choices,
-                                    description = tx2gene$description[idx],
+                                    description = desc,
                                     type = type,
                                     stringsAsFactors = FALSE)
+
+  choices
 
 
 
