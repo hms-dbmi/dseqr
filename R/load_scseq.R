@@ -180,8 +180,6 @@ load_scseq <- function(dataset_dir) {
                     })
 
   if (!is.null(scseq)) {
-    scseq <- LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment')
-
     # fixes for SCLE
     colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
     scseq$cluster <- factor(as.numeric(scseq$cluster))
