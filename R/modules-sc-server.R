@@ -44,18 +44,12 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right)
 
-  observe({
-    toggle('marker_plot_sample_hr', condition = scForm$has_replicates())
-    toggleClass('col_left', 'beside-downloadable', condition = scForm$has_replicates())
-  })
+  callModule(scSampleMarkerPlot, 'right_bottom',
+             selected_gene = scForm$samples_gene,
+             plot_fun = scForm$samples_pfun_right_bottom)
 
+  observe(toggleClass('col_left', 'beside-downloadable', condition = scForm$has_replicates()))
 
-  callModule(scMarkerPlot, 'marker_plot_sample',
-             scseq = scForm$scseq,
-             custom_metrics = scForm$custom_metrics,
-             selected_feature = scForm$samples_gene,
-             dataset_name = scForm$dataset_name,
-             show_plot = scForm$has_replicates)
 
 
   # label comparison plot ---
@@ -343,6 +337,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     has_replicates = scSampleComparison$has_replicates,
     samples_pfun_left = scSampleComparison$pfun_left,
     samples_pfun_right = scSampleComparison$pfun_right,
+    samples_pfun_right_bottom = scSampleComparison$pfun_right_bottom,
     clusters_cluster = scClusterComparison$selected_cluster,
     samples_cluster = scSampleComparison$selected_cluster,
     labels_cluster = scLabelsComparison$selected_cluster,
@@ -1990,8 +1985,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'test'), height = 453))
   pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
 
-  # plot function for right
-  pfun_right_reps <- reactive(function(gene) plot_ridge(gene, scseq(), sel(), by.sample = TRUE, with.height = TRUE))
+  # plot functions for right
+  pfun_right_bottom <- reactive(function(gene) plot_ridge(gene, scseq(), sel(), by.sample = TRUE, with.height = TRUE))
+  pfun_right_reps <- reactive(function(gene) list(plot = plot_tsne_feature(scseq(), gene), height = 453))
   pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'ctrl'), height = 453))
   pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
 
@@ -2191,7 +2187,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     selected_cluster = reactive(input$selected_cluster),
     annot_clusters = annot_clusters,
     pfun_left = pfun_left,
-    pfun_right = pfun_right
+    pfun_right = pfun_right,
+    pfun_right_bottom = pfun_right_bottom
   ))
 }
 
@@ -2476,3 +2473,4 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
+

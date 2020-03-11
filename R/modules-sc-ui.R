@@ -36,9 +36,9 @@ scPageUI <- function(id, tab, active) {
                     scSampleMarkerPlotOutput(ns('left'))
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
-                    scMarkerPlotOutput(ns('marker_plot_sample')),
-                    hr(id = ns('marker_plot_sample_hr')),
-                    scSampleMarkerPlotOutput(ns('right'))
+                    scSampleMarkerPlotOutput(ns('right')),
+                    hr(),
+                    scSampleMarkerPlotOutput(ns('right_bottom'))
                 )
             ),
             div(class = 'row', id = ns('labels_comparison_row'), style = 'display: none;',
