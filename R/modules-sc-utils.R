@@ -49,10 +49,15 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   abundances <- unclass(abundances)
   row.names(abundances) <- annot
 
-  if (ncol(abundances) == 2) return(abundances)
 
   extra.info <- scseq@colData[match(colnames(abundances), scseq$batch),]
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
+
+  adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
+  colnames(adj) <- paste0(colnames(adj), '_adjusted_counts')
+
+  if (ncol(adj) == 2) return(adj)
+
 
   if (!is.null(pairs))
     y.ab$samples$pair <- factor(pairs[colnames(y.ab),])
@@ -72,6 +77,8 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
 
   tt <- get_top_table(lm_fit, with.es = FALSE)
+  tt <- cbind(adj[row.names(tt)], tt)
+
   tt$ENTREZID <- NULL
   return(tt)
 }
@@ -285,8 +292,9 @@ get_metric_choices <- function(scseq) {
 
 }
 
-html_space <- function(x) {
-  x <- format(as.character(x))
+html_space <- function(x, justify = 'right') {
+  if (is.null(x)) return(NULL)
+  x <- format(as.character(x), justify = justify)
   gsub(' ', '&nbsp;&nbsp;', x)
 }
 

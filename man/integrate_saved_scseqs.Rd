@@ -12,7 +12,8 @@ integrate_saved_scseqs(
   integration_name,
   integration_type = c("harmony", "liger", "fastMNN"),
   pairs = NULL,
-  progress = NULL
+  progress = NULL,
+  value = 0
 )
 }
 \arguments{
