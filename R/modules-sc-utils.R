@@ -56,15 +56,23 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
   colnames(adj) <- paste0(colnames(adj), '_adjusted_counts')
 
-  if (ncol(adj) == 2) return(adj)
+  group <- y.ab$samples$orig.ident
+  group <- relevel(group, 'ctrl')
+  y.ab$samples$group <- group
+
+  # if only two samples, sort by logFC and return
+  if (ncol(adj) == 2) {
+    ord <- match(c('test', 'ctrl'), y.ab$samples$group)
+    adj <- as.data.frame(adj[, ord])
+    adj$logFC <- log2(adj[[1]]) - log2(adj[[2]])
+    adj <- adj[order(abs(adj$logFC), decreasing = TRUE), ]
+    return(adj)
+  }
 
 
   if (!is.null(pairs))
     y.ab$samples$pair <- factor(pairs[colnames(y.ab),])
 
-  group <- y.ab$samples$orig.ident
-  group <- relevel(group, 'ctrl')
-  y.ab$samples$group <- group
 
   keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
   y.ab <- y.ab[keep,]
