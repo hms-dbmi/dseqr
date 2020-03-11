@@ -54,6 +54,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
 
   adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
+  adj <- round(adj)
   colnames(adj) <- paste0(colnames(adj), '_adjusted_counts')
 
   group <- y.ab$samples$orig.ident
@@ -85,7 +86,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
 
   tt <- get_top_table(lm_fit, with.es = FALSE)
-  tt <- cbind(adj[row.names(tt)], tt)
+  tt <- cbind(tt, adj[row.names(tt), ])
 
   tt$ENTREZID <- NULL
   return(tt)
