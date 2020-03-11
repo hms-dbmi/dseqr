@@ -49,7 +49,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              scseq = scForm$scseq,
              custom_metrics = scForm$custom_metrics,
              selected_feature = scForm$samples_gene,
-             dataset_name = scForm$dataset_name)
+             dataset_name = scForm$dataset_name,
+             show_plot = scForm$has_replicates)
 
 
   # label comparison plot ---
@@ -334,6 +335,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     clusters_gene = scClusterGene$selected_gene,
     custom_metrics = scClusterGene$custom_metrics,
     show_ridge = scClusterGene$show_ridge,
+    has_replicates = scSampleComparison$has_replicates,
     samples_pfun_left = scSampleComparison$pfun_left,
     samples_pfun_right = scSampleComparison$pfun_right,
     clusters_cluster = scClusterComparison$selected_cluster,
@@ -1804,7 +1806,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker feature plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL, show_plot = function()TRUE) {
 
   fname_fun <- function() {
     fname <- paste0(dataset_name(),
@@ -1814,6 +1816,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
   }
 
   plot <- reactive({
+    if (!isTRUE(show_plot())) return(NULL)
     feature <- selected_feature()
     scseq <- scseq()
     if (!isTruthy(feature) || !isTruthy(scseq)) return(NULL)
@@ -1944,6 +1947,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     req(is.integrated())
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
+
 
     get_cluster_choices(clusters = annot(),
                         sample_comparison = TRUE,
@@ -2171,6 +2175,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   return(list(
     ambient = ambient,
     top_table = top_table,
+    has_replicates = has_replicates,
     cluster_markers = cluster_markers,
     cluster_choices = cluster_choices,
     drug_queries = drug_queries,
@@ -2462,4 +2467,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-
