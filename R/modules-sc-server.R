@@ -44,6 +44,11 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right)
 
+  observe({
+    toggle('marker_plot_sample_hr', condition = scForm$has_replicates())
+    toggleClass('col_left', 'beside-downloadable', condition = scForm$has_replicates())
+  })
+
 
   callModule(scMarkerPlot, 'marker_plot_sample',
              scseq = scForm$scseq,
@@ -640,7 +645,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 
   height <- reactive(ifelse(is_plotly(), 1, res()$height))
 
-  is_plotly <- output$is_plotly <- reactive('plotly' %in% class(res()))
+  is_plotly <- reactive('plotly' %in% class(res()))
 
   output$plot <- renderPlot(if (!is_plotly()) suppressMessages(print(res()$plot)) else NULL, height = height)
   output$plotly <- plotly::renderPlotly(if (is_plotly()) res() else NULL)
@@ -1594,8 +1599,10 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   scseq_genes <- reactive(data.frame(1:nrow(scseq()), row.names = row.names(scseq())))
   species <- reactive(scseq()@metadata$species)
 
+
   # update marker genes based on cluster selection
   gene_choices <- reactive({
+
     qc_first <- FALSE
     markers <- filtered_markers()
     selected_cluster <- selected_cluster()
@@ -1977,7 +1984,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   cluster_markers <- reactive(readRDS.safe(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds'))))
 
   # plot functions for left
-  sel <- reactive({sel <- input$selected_cluster; req(sel); sel})
+  sel <- reactive(input$selected_cluster)
   pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient()))
 
   pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'test'), height = 453))
@@ -2172,6 +2179,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     content = data_fun
   )
 
+
   return(list(
     ambient = ambient,
     top_table = top_table,
@@ -2242,6 +2250,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
   # either highlight test group or selected cluster
   if (by.sample) {
+    if (!isTruthy(selected_cluster)) scseq <- scseq[row.names(scseq) != feature, ]
     scseq <- scseq[, scseq$cluster %in% sel]
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident

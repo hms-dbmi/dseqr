@@ -32,12 +32,12 @@ scPageUI <- function(id, tab, active) {
             ),
             # row for samples comparison (integrated test vs ctrl)
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-6 mobile-margin beside-downloadable",
+                div(class = "col-sm-12 col-lg-6 mobile-margin beside-downloadable", id = ns('col_left'),
                     scSampleMarkerPlotOutput(ns('left'))
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
                     scMarkerPlotOutput(ns('marker_plot_sample')),
-                    hr(),
+                    hr(id = ns('marker_plot_sample_hr')),
                     scSampleMarkerPlotOutput(ns('right'))
                 )
             ),
