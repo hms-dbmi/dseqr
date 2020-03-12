@@ -31,8 +31,7 @@ run_scseq_qc <- function(sce, metrics = c('low_lib_size',
                                           'low_n_features',
                                           'high_subsets_mito_percent',
                                           'low_subsets_ribo_percent',
-                                          'high_doublet_score',
-                                          'high_outlyingness')) {
+                                          'high_doublet_score')) {
 
   # remove low lib size/high mito
   df <- sce@colData
@@ -43,11 +42,6 @@ run_scseq_qc <- function(sce, metrics = c('low_lib_size',
 
   # remove high doublet score
   reasons$high_doublet_score <- scater::isOutlier(df$doublet_score, type = 'higher')
-
-  # remove high outlyingness for QC metrics
-  stats <- cbind(log10(df$sum), log10(df$detected), df$subsets_mito_percent, df$subsets_ribo_percent)
-  outlying <- robustbase::adjOutlyingness(stats, only.outlyingness = TRUE)
-  reasons$high_outlyingness <- scater::isOutlier(outlying, type = 'higher')
 
   # allow to see outliers for non-selected metrics/combination of all
   not_selected <- setdiff(colnames(reasons), c('discard', metrics))

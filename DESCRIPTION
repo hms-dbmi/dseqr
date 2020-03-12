@@ -39,7 +39,6 @@ Imports:
     miniUI (>= 0.1.1.1),
     plotly (>= 4.9.1),
     randomcoloR (>= 1.1.0.1),
-    robustbase (>= 0.93.5),
     rlang (>= 0.4.3),
     shiny (>= 1.4.0),
     shinyBS (>= 0.61),

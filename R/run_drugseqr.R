@@ -29,7 +29,7 @@
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
 #' indices_dir <- '/srv/drugseqr/indices'
 #'
-#' drugseqr::run_drugseqr('hydro', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
+#' drugseqr::run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
 #'
 run_drugseqr <- function(app_name,
                          data_dir = '/srv/drugseqr',

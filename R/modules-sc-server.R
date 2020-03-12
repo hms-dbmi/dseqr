@@ -468,8 +468,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                       'low_n_features',
                       'high_subsets_mito_percent',
                       'low_subsets_ribo_percent',
-                      'high_doublet_score',
-                      'high_outlyingness')
+                      'high_doublet_score')
 
   # run single-cell quantification
   observeEvent(input$confirm_quant, {

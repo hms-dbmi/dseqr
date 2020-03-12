@@ -12,8 +12,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
                                                                                                                                                           'low_n_features',
                                                                                                                                                           'high_subsets_mito_percent',
                                                                                                                                                           'low_subsets_ribo_percent',
-                                                                                                                                                          'high_doublet_score',
-                                                                                                                                                          'high_outlyingness')) {
+                                                                                                                                                          'high_doublet_score')) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
