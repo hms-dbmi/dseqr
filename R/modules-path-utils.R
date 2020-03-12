@@ -128,13 +128,17 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 #' @export
 #' @keywords internal
 load_scseq_datasets <- function(data_dir) {
-  int_path <- file.path(data_dir, 'single-cell', 'integrated.rds')
+  sc_dir <- file.path(data_dir, 'single-cell')
+  int_path <- file.path(sc_dir, 'integrated.rds')
 
   datasets <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type")
 
   if (file.exists(int_path)) {
     integrated <- readRDS(int_path)
+    has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
+    integrated <- integrated[has.scseq]
+
     for(ds in integrated) datasets[nrow(datasets) + 1, ] <- c(ds, file.path('single-cell', ds), ds, NA, 'Single Cell')
   }
 
