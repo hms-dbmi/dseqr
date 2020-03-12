@@ -40,6 +40,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_left)
 
+
   callModule(scSampleMarkerPlot, 'right',
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right)
@@ -47,8 +48,6 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   callModule(scSampleMarkerPlot, 'right_bottom',
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_right_bottom)
-
-  observe(toggleClass('col_left', 'beside-downloadable', condition = scForm$has_replicates()))
 
 
 
@@ -81,7 +80,7 @@ scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq
 
   output$labels_plot <- plotly::renderPlotly({
     scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
+    if (is.null(scseq) | is.null(scseq$batch)) return(NULL)
 
     cluster <- as.numeric(selected_cluster())
     cluster <- levels(scseq$cluster)[cluster]
@@ -1393,7 +1392,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
     updateSelectizeInput(session, 'selected_cluster',
                          choices = rbind(NA, choices()),
-                         selected = selected_cluster(),
+                         selected = isolate(selected_cluster()),
                          options = contrast_options, server = TRUE)
   })
 
@@ -1496,7 +1495,9 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   # toggle for ridgeline
   gene_selected <- reactive({
     sel <- selected_gene()
-    !isTruthy(sel) || sel %in% row.names(scseq())
+    scseq <- scseq()
+    if (!isTruthyAll(sel, scseq)) return(FALSE)
+    sel %in% row.names(scseq)
   })
 
   show_ridge <- reactive(input$show_ridge %% 2 != 1 | !gene_selected())
@@ -1509,7 +1510,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
   })
 
-  observe(if (!show_custom_metric()) selected_gene(input$selected_gene))
+  observe(if (!show_custom_metric()) selected_gene(isolate(input$selected_gene)))
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   observe({
@@ -1590,7 +1591,11 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     supress.genes(markers, ambient)
   })
 
-  scseq_genes <- reactive(data.frame(1:nrow(scseq()), row.names = row.names(scseq())))
+  scseq_genes <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    data.frame(1:nrow(scseq), row.names = row.names(scseq))
+  })
   species <- reactive(scseq()@metadata$species)
 
 
@@ -1604,14 +1609,14 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
     # will error if labels
     # also prevents intermediate redraws
-    if ((is.null(markers) & is.null(qc_metrics)) ||
-        (is.null(markers) & isTruthy(selected_cluster))) return(NULL)
+    if (is.null(markers) & isTruthy(selected_cluster)) return(NULL)
 
     if (is.null(markers)) {
       qc_first <- TRUE
       markers <- scseq_genes()
     }
 
+    if (is.null(markers) || is.null(scseq())) return(NULL)
     get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first, species = species())
   })
 
@@ -1629,8 +1634,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     else selected_gene(sel)
   })
 
-  observeEvent(selected_cluster(), selected_gene(NULL))
-
 
   # update choices
   observe({
@@ -1639,7 +1642,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     selected <- isolate(selected_gene())
 
     updateSelectizeInput(session, 'selected_gene',
-                         choices = choices,
+                         choices = rbind(NA, choices, fill = TRUE),
                          selected = selected,
                          server = TRUE,
                          options = gene_options)
@@ -1676,7 +1679,7 @@ validate_metric <- function(metric, scseq) {
 
 get_metric_features <- function(metric) {
 
-  ft <- strsplit(metric, '[|><=\\)\\(&!]')[[1]]
+  ft <- strsplit(metric, '[|><=\\)\\(&!*]')[[1]]
   ft <- gsub(' ', '', ft)
   ft <- ft[ft != '']
   not.num <- is.na(suppressWarnings(as.numeric(ft)))
@@ -1698,6 +1701,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- cbind(expr, qcs)
   dat <- as.data.frame(cbind(expr, qcs))
   colnames(dat) <- c(colnames(expr), colnames(qcs))
+  dat <- dat[, match(ft, colnames(dat))]
 
   # convert features to generic (in case e.g. minus)
   seq <- 1:ncol(dat)
@@ -1716,7 +1720,7 @@ evaluate_custom_metric <- function(metric, scseq) {
 
 interpret <- function(expr_str,
                       max_length = 100,
-                      whitelist = c("&", ">=", "<=", ">", "<", '|', '==', '!=')) {
+                      whitelist = c("&", ">=", "<=", ">", "<", '|', '==', '!=', '*')) {
   safer_eval <- function(expr) {
     if (rlang::is_call(expr)) {
       fn_name <- rlang::call_name(expr)
@@ -1785,9 +1789,6 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
     toggleClass('download_container', class = 'visible-plot', condition = downloadable)
   })
 
-  observe({
-    toggle('plot_container', condition = isTruthy(plot_fun()))
-  })
 
 
 
@@ -1807,7 +1808,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker feature plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL, show_plot = function()TRUE) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL) {
 
   fname_fun <- function() {
     fname <- paste0(dataset_name(),
@@ -1817,7 +1818,6 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
   }
 
   plot <- reactive({
-    if (!isTRUE(show_plot())) return(NULL)
     feature <- selected_feature()
     scseq <- scseq()
     if (!isTruthy(feature) || !isTruthy(scseq)) return(NULL)
@@ -1826,7 +1826,10 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     cdata <- scseq@colData
 
     if (!is.null(metrics) && nrow(cdata) != nrow(metrics)) return(NULL)
-    if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
+    if (!is.null(metrics)) {
+      cdata <- cbind(cdata, metrics)
+      scseq@colData <- cdata
+    }
 
     is_gene <- feature %in% row.names(scseq)
     is_feature <- feature %in% colnames(cdata)
@@ -1834,6 +1837,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 
     is_log <- is.logical(cdata[[feature]])
     is_num <- is_gene || is.numeric(cdata[[feature]])
+
 
     if (is_num) {
       pl <- plot_tsne_feature(scseq, feature)
@@ -1924,6 +1928,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')
 
+
   # use input scseq/annot if available
   scseq <- reactive({
     scseq <- input_scseq()
@@ -1979,16 +1984,45 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # plot functions for left
   sel <- reactive(input$selected_cluster)
-  pfun_left_reps <- reactive(function(gene) plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient()))
+  pfun_left <- reactive({
+    req(is.integrated())
 
-  pfun_left_noreps <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'test'), height = 453))
-  pfun_left <- reactive(if (has_replicates()) pfun_left_reps() else pfun_left_noreps())
+    function(gene) {
+      if(!isTruthy(gene)) return(NULL)
+
+      if (has_replicates()) {
+        if(is.null(top_tables())) return(NULL)
+        pfun <- plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient())
+
+      } else {
+        if(is.null(scseq())) return(NULL)
+        pfun <- list(plot = plot_tsne_feature_sample(gene, scseq(), 'test'), height = 453)
+      }
+      return(pfun)
+    }
+  })
 
   # plot functions for right
-  pfun_right_bottom <- reactive(function(gene) plot_ridge(gene, scseq(), sel(), by.sample = TRUE, with.height = TRUE))
-  pfun_right_reps <- reactive(function(gene) list(plot = plot_tsne_feature(scseq(), gene), height = 453))
-  pfun_right_noreps  <- reactive(function(gene) list(plot = plot_tsne_feature_sample(gene, scseq(), 'ctrl'), height = 453))
-  pfun_right <- reactive(if (has_replicates()) pfun_right_reps() else pfun_right_noreps())
+  pfun_right <- reactive({
+    req(is.integrated())
+
+    function(gene) {
+      scseq <- scseq()
+      if (!isTruthyAll(scseq, gene)) return(NULL)
+      if (has_replicates()) pfun <- list(plot = plot_tsne_feature(scseq, gene), height = 453)
+      else pfun <- list(plot = plot_tsne_feature_sample(gene, scseq, 'ctrl'), height = 453)
+      return(pfun)
+    }
+  })
+  pfun_right_bottom <- reactive({
+    req(is.integrated())
+
+    function(gene) {
+      scseq <- scseq(); sel <- sel()
+      if(!isTruthyAll(sel, scseq, gene)) return(list(plot=NULL, height=1))
+      plot_ridge(gene, scseq, sel, by.sample = TRUE, with.height = TRUE)
+    }
+  })
 
   dataset_ambient <- reactive(readRDS.safe(file.path(dataset_dir(), 'ambient.rds')))
 
@@ -2174,6 +2208,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     content = data_fun
   )
 
+  selected_cluster <- reactiveVal()
+  observe(selected_cluster(input$selected_cluster))
+
 
   return(list(
     ambient = ambient,
@@ -2183,7 +2220,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     cluster_choices = cluster_choices,
     drug_queries = drug_queries,
     path_res = path_res,
-    selected_cluster = reactive(input$selected_cluster),
+    selected_cluster = selected_cluster,
     annot_clusters = annot_clusters,
     pfun_left = pfun_left,
     pfun_right = pfun_right,
@@ -2192,6 +2229,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 }
 
 
+
+isTruthyAll <- function(...) {
+  x <- list(...)
+  for (xi in x) if (!isTruthy(xi)) return(FALSE)
+  return(TRUE)
+}
 
 
 #' Format gene plots for sample comparison for drugseqr app
@@ -2472,4 +2515,3 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
 
   return(gs.names)
 }
-

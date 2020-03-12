@@ -12,8 +12,7 @@ scMarkerPlot(
   selected_feature,
   dataset_name,
   downloadable = TRUE,
-  custom_metrics = function() NULL,
-  show_plot = function() TRUE
+  custom_metrics = function() NULL
 )
 }
 \description{

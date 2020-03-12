@@ -32,7 +32,7 @@ scPageUI <- function(id, tab, active) {
             ),
             # row for samples comparison (integrated test vs ctrl)
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-6 mobile-margin beside-downloadable", id = ns('col_left'),
+                div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
                     scSampleMarkerPlotOutput(ns('left'))
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
@@ -248,27 +248,26 @@ clusterComparisonInput <- function(id) {
 #' @keywords internal
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
+  btn1 <- btn2 <- btn3 <- NULL
+  gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;')
+  custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
+  amb_btn    <- actionButton(ns('exclude_ambient'), label = NULL, icon = icon('ban', 'fa-fw'), title = 'Toggle excluding ambient genes')
+  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
 
-  exclude_ambient_button <- ridge_plot_button <- custom_button <- NULL
-  if (sample_comparison)
-    exclude_ambient_button <- actionButton(ns('exclude_ambient'), '',
-                                           icon = icon('ban', 'fa-fw'),
-                                           title = 'Toggle excluding ambient genes', class = 'squashed-btn')
-
-  if (!sample_comparison) {
-    ridge_plot_button <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
-    custom_button <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
+  if (sample_comparison) {
+    btn1 <- gene_btn
+    btn2 <- amb_btn
+  } else {
+    btn1 <- ridge_btn
+    btn2 <- gene_btn
+    btn3 <-custom_btn
   }
-
 
   tagList(
     selectizeInputWithButtons(id = ns('selected_gene'),
                               label = 'Feature to plot:',
-                              exclude_ambient_button,
-                              ridge_plot_button,
-                              options = list(optgroupField = 'type'),
-                              actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;'),
-                              custom_button
+                              btn1, btn2, btn3,
+                              options = list(optgroupField = 'type')
     ),
     div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
         textAreaInputWithButtons(ns('custom_metric'),
@@ -297,7 +296,7 @@ scClusterPlotOutput <- function(id) {
 downloadablePlotUI <- function(id) {
   ns <- NS(id)
   withTags({
-    div(class = 'downloadable-plot', style = 'display: none;', id = ns('plot_container'),
+    div(class = 'downloadable-plot', id = ns('plot_container'),
         div(class = 'clearfix',
             span(
               id = ns('download_container'), class = 'pull-right downloadable-plot-btn',

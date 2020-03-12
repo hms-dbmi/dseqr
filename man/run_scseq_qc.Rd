@@ -7,7 +7,7 @@
 run_scseq_qc(
   sce,
   metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
-    "low_subsets_ribo_percent", "high_doublet_score", "high_outlyingness")
+    "low_subsets_ribo_percent", "high_doublet_score")
 )
 }
 \arguments{
