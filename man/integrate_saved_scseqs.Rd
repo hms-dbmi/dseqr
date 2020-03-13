@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{integrate_saved_scseqs}
 \alias{integrate_saved_scseqs}
-\title{Integrate previously saved scseqs}
+\title{Integrate previously saved SingleCellExperiments}
 \usage{
 integrate_saved_scseqs(
   sc_dir,
@@ -23,12 +23,19 @@ integrate_saved_scseqs(
 
 \item{ctrl}{Character vector of control analysis names.}
 
-\item{progress}{optional Shiny \code{Progress} object.}
+\item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
-\item{dataset_name}{Name for new integrated analysis.}
+\item{integration_name}{Name for new integrated analysis.}
+
+\item{integration_type}{Charactor vector of one or more integration types.}
+
+\item{progress}{optional Shiny \code{Progress} object.}
 }
 \description{
 Performs integration and saves as a new analysis.
 Used by \code{explore_scseq_clusters} shiny app.
+}
+\seealso{
+\code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
 }
 \keyword{internal}

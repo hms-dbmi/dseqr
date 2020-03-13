@@ -76,97 +76,6 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   return(NULL)
 }
 
-scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
-
-  output$labels_plot <- plotly::renderPlotly({
-    scseq <- scseq()
-    if (is.null(scseq) | is.null(scseq$batch)) return(NULL)
-
-    cluster <- as.numeric(selected_cluster())
-    cluster <- levels(scseq$cluster)[cluster]
-    if (is.na(cluster)) return(NULL)
-
-    plot_cluster_labels(scseq, cluster, sc_dir)
-  })
-
-}
-
-plot_cluster_labels <- function(scseq, clust, sc_dir) {
-
-  df <- tibble::as_tibble(scseq@colData) %>%
-    dplyr::filter(cluster == clust) %>%
-    dplyr::group_by(batch) %>%
-    dplyr::mutate(nsample = n()) %>%
-    dplyr::group_by(batch, orig.cluster) %>%
-    dplyr::summarize(ncell = n(),
-                     group = orig.ident[1],
-                     nsample = nsample[1],
-                     pcell = n() / nsample[1] * 100,
-                     boc = paste(batch[1], orig.cluster[1], sep='_')) %>%
-    dplyr::arrange(group, batch, pcell) %>%
-    dplyr::select(-orig.cluster)
-
-  # get mapping between original cluster index and name
-  annots <- c()
-  batches <- unique(df$batch)
-
-  for (i in seq_along(batches)) {
-    batch <- batches[i]
-    annot_path <- file.path(sc_dir, batch, 'annot.rds')
-    annot <- readRDS(annot_path)
-    names(annot) <- paste(batch, seq_along(annot), sep='_')
-    annots <- c(annots, annot)
-  }
-
-  df$oc <- annots[df$boc]
-  df$customdata <- paste(df$ncell, 'of', df$nsample, 'cells')
-
-  (pl <- plotly::plot_ly(data = df,
-                         y = ~boc,
-                         x = ~pcell,
-                         color = ~batch,
-                         customdata = ~customdata,
-                         height = (nrow(df)*30) + 140,
-                         text = ~nsample,
-                         type = 'scatter',
-                         mode = 'markers',
-                         marker = list(size = 9, line = list(width = 1, color = '#333333')),
-                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                         hovertemplate = paste0(
-                           '<span style="color: crimson; font-weight: bold; text-align: left;">From Sample</span>: %{customdata}<br>',
-                           '<extra></extra>')
-  ) %>%
-      plotly::layout(
-        hovermode= 'closest',
-        margin = list(t = 65, r = 20, l = 0, pad = 10),
-        title = list(text = 'For Each Sample: Percent of Cells From Original Clusters', x = 0, y = .99, yanchor = 'top', font = list(size = 16, color = '#333333')),
-        legend = list(traceorder = 'reversed', itemclick = FALSE, font = list(size = 14, color = '#333333')),
-        xaxis = list(title = '', range = c(-4, 104), fixedrange=TRUE, side = 'top', zeroline = FALSE, tickfont = list(size = 14, color = '#333333')),
-        yaxis = list(title = '', fixedrange=TRUE, tickvals = df$boc, ticktext = df$oc, tickmode = 2, gridwidth = 1, gridcolor = 'gray', ticklen = 10, tickcolor = 'white', tickfont = list(size = 14, color = '#333333'))
-      ) %>%
-      plotly::config(displayModeBar = 'hover',
-                     displaylogo = FALSE,
-                     doubleClick = 0,
-                     showAxisDragHandles = FALSE,
-                     showAxisRangeEntryBoxes = FALSE,
-                     showTips = FALSE,
-                     modeBarButtonsToRemove = c('zoom2d',
-                                                'pan2d',
-                                                'autoScale2d',
-                                                'resetScale2d',
-                                                'hoverClosestCartesian',
-                                                'hoverCompareCartesian',
-                                                'select2d',
-                                                'lasso2d',
-                                                'zoomIn2d',
-                                                'zoomOut2d',
-                                                'toggleSpikelines'),
-                     toImageButtonOptions = list(format = "png")
-      ))
-
-  return(pl)
-}
-
 
 #' Logic for form on Single Cell Exploration page
 #' @export
@@ -347,19 +256,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   ))
 }
 
-scLabelsComparison <- function(input, output, session, cluster_choices) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-
-  observe({
-    updateSelectizeInput(session, 'selected_cluster',
-                         choices = rbind(NA, cluster_choices()),
-                         options = contrast_options, server = TRUE)
-  })
-
-  return(list(
-    selected_cluster = reactive(input$selected_cluster)
-  ))
-}
 
 #' Logic for selected dataset part of scForm
 #' @export
@@ -572,62 +468,49 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   ))
 }
 
-get_sc_dataset_choices <- function(sc_dir) {
 
-  # make sure integrated rds exists
-  int_path <- file.path(sc_dir, 'integrated.rds')
-  if (!file.exists(int_path)) saveRDS(NULL, int_path)
+#' Logic for selecting cluster to plot label origin for integrated dataset
+#' @export
+#' @keywords internal
+scLabelsComparison <- function(input, output, session, cluster_choices) {
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
-  # exclude missing from integrated (e.g. manual delete)
-  integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
-  has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
-  integrated <- integrated[has.scseq]
+  observe({
+    updateSelectizeInput(session, 'selected_cluster',
+                         choices = rbind(NA, cluster_choices()),
+                         options = contrast_options, server = TRUE)
+  })
 
-  int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
-                                                            .nofile = 'Integrated',
-                                                            .nullfile = 'Integrated'))
-  int_type <- unlist(int_type)
+  return(list(
+    selected_cluster = reactive(input$selected_cluster)
+  ))
+}
 
-  sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
-  int_type[!sub] <- 'Integrated'
-  int_opt <- integrated
-  int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
+#' Logic for labels plot for integrated dataset
+#' @export
+#' @keywords internal
+scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
 
-  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+  output$labels_plot <- plotly::renderPlotly({
+    scseq <- scseq()
+    if (is.null(scseq) | is.null(scseq$batch)) return(NULL)
 
-  # exclude individual without scseq (e.g. folder with fastq.gz files only)
-  has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
-  individual <- individual[unlist(has.scseq)]
+    cluster <- as.numeric(selected_cluster())
+    cluster <- levels(scseq$cluster)[cluster]
+    if (is.na(cluster)) return(NULL)
 
-  # founder for subsets as type
-  ind_type <- sapply(individual, function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'),
-                                                            .nofile = 'Individual',
-                                                            .nullfile = 'Individual'), USE.NAMES = FALSE)
+    plot_cluster_labels(scseq, cluster, sc_dir)
+  })
 
-  # exclude founder name from option label
-  sub <- ind_type != 'Individual'
-  ind_opt <- individual
-  ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_'), '')
-
-
-
-  # get previously selected
-  prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
-
-
-  choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
-                        name = c(prev, integrated, individual),
-                        label = c(prev, integrated, individual),
-                        type = c('Previous Session', int_type, ind_type),
-                        itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
-                        optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
-                        stringsAsFactors = FALSE)
-
-  return(choices)
 }
 
 
-
+#' Logic for single-cell sample comparison plots
+#'
+#' setup to allow for ggplot/plotly
+#'
+#' @export
+#' @keywords internal
 scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) {
 
   res <- reactive({
@@ -875,36 +758,9 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   return(pred_annot)
 }
 
-#' Check that label predictions aren't from overwritten datasets
-#'
-#' @param preds List of predictions
-#' @param sc_dir Directory with single-cell datasets
-#'
-#' @return \code{preds} that were generated from current datasets
+#' Logic for subsetting a datatset
 #' @export
 #' @keywords internal
-#'
-validate_preds <- function(preds, sc_dir) {
-  senv <- loadNamespace('SingleR')
-
-  ref_names <- names(preds)
-  dated <- c()
-
-  dated <- sapply(ref_names, function(ref_name) {
-    if (ref_name %in% ls(senv)) return(FALSE)
-
-    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
-    ref_date <- file.info(ref_path)$ctime
-    ref_date <- as.character(ref_date)
-    res_date <- names(preds[[ref_name]])[1]
-    dated <- !identical(res_date, ref_date)
-
-    return(dated)
-  })
-
-  return(preds[!dated])
-}
-
 subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -1235,33 +1091,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   return(new_dataset)
 }
 
-subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_metrics, progress = NULL) {
-  # for save_scseq_args
-  args <- c(as.list(environment()))
-  args$progress <- args$sc_dir <- NULL
-  args$date <- Sys.time()
-
-  if (is.null(progress)) {
-    progress <- list(set = function(value, message = '', detail = '') {
-      cat(value, message, detail, '...\n')
-    })
-  }
-
-  progress$set(1, detail = 'loading')
-  scseq <- load_scseq_subsets(from_dataset, sc_dir, exclude_clusters, exclude_metrics)[[1]]
-
-  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = 1, founder = founder)
-  save_scseq_args(args, dataset_name, sc_dir)
-}
-
-get_founder <- function(sc_dir, dataset_name) {
-
-  # check for founder of parent
-  fpath <- file.path(sc_dir, dataset_name, 'founder.rds')
-  founder <- readRDS(fpath)
-  if (is.null(founder)) founder <- dataset_name
-  return(founder)
-}
 
 #' Logic for comparison type toggle for integrated datasets
 #' @export
@@ -1442,35 +1271,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     selected_markers = selected_markers,
     selected_cluster = selected_cluster
   ))
-}
-
-#' Get markers for one cluster against one other cluster
-#'
-#' @param con String identifying clusters to compare e.g. \code{'1vs2'}
-#' @param dataset_dir Path to folder for dataset
-#'
-#' @return Named list with data.frames for each comparison direction
-#' @export
-#' @keywords internal
-#'
-get_contrast_markers <- function(con, dataset_dir) {
-  con <- strsplit(con, '-vs-')[[1]]
-  tests_dir <- file.path(dataset_dir, 'tests')
-  pairs_path <- file.path(tests_dir, 'pairs.rds')
-  pairs <- readRDS(pairs_path)
-
-  keep <- apply(pairs, 1, function(row) all(con %in% row))
-  keep <- which(keep)
-
-  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.rds'))
-  tests <- list(pairs = pairs[keep, ],
-                statistics = lapply(stat_paths, readRDS))
-
-  # returns both directions
-  con_markers <- get_scseq_markers(tests)
-  names(con_markers) <- paste0(names(con_markers), '-vs-', rev(names(con_markers)))
-
-  return(con_markers)
 }
 
 
@@ -1660,83 +1460,6 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 }
 
-validate_metric <- function(metric, scseq) {
-
-  allowed <- tryCatch(interpret(metric), error = function(e) return(FALSE))
-  if (!allowed) return("Metric not permitted")
-
-  ft <- get_metric_features(metric)
-  if (length(ft) == 0) return('No features specified')
-
-  have.ft  <- any(ft %in% c(row.names(scseq), colnames(scseq@colData)))
-  if (!have.ft) return('No features specified')
-
-  dat <- try(evaluate_custom_metric(metric, scseq), silent = TRUE)
-  if ('try-error' %in% class(dat)) return("Couldn't evaluate expression")
-
-  return(dat)
-}
-
-get_metric_features <- function(metric) {
-
-  ft <- strsplit(metric, '[|><=\\)\\(&!*]')[[1]]
-  ft <- gsub(' ', '', ft)
-  ft <- ft[ft != '']
-  not.num <- is.na(suppressWarnings(as.numeric(ft)))
-  ft[not.num]
-}
-
-
-evaluate_custom_metric <- function(metric, scseq) {
-  ft <- get_metric_features(metric)
-
-  # make sure will run
-  expr <- SingleCellExperiment::logcounts(scseq)
-  expr <- expr[row.names(expr) %in% ft,, drop = FALSE]
-  expr <- t(as.matrix(expr))
-
-  qcs <- scseq@colData
-  qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
-
-  dat <- cbind(expr, qcs)
-  dat <- as.data.frame(cbind(expr, qcs))
-  colnames(dat) <- c(colnames(expr), colnames(qcs))
-  dat <- dat[, match(ft, colnames(dat))]
-
-  # convert features to generic (in case e.g. minus)
-  seq <- 1:ncol(dat)
-  ft.num <- paste0('ft', seq)
-  colnames(dat) <- ft.num
-
-  metric.num <- metric
-  for (i in seq) metric.num <- gsub(paste0('\\b', ft[i], '\\b'), ft.num[i], metric.num)
-
-  dat <- within(dat, metric <- eval(rlang::parse_expr(metric.num)))
-  dat <- dat[, 'metric', drop = FALSE]
-  colnames(dat) <- metric
-  return(dat)
-}
-
-
-interpret <- function(expr_str,
-                      max_length = 100,
-                      whitelist = c("&", ">=", "<=", ">", "<", '|', '==', '!=', '*')) {
-  safer_eval <- function(expr) {
-    if (rlang::is_call(expr)) {
-      fn_name <- rlang::call_name(expr)
-      if (!fn_name %in% whitelist) return(FALSE)
-      do.call(get(fn_name, baseenv()), Map(safer_eval, rlang::call_args(expr)))
-    } else if (rlang::is_syntactic_literal(expr)) {
-      expr
-    }
-  }
-  if(length(expr_str) >= max_length) return(FALSE)
-  parsed <- try(rlang::parse_expr(expr_str), silent = TRUE)
-  if ('try-error' %in% class(parsed)) return(FALSE)
-  safer_eval(parsed)
-  return(TRUE)
-}
-
 
 #' Logic for cluster plots
 #' @export
@@ -1894,6 +1617,9 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   })
 }
 
+#' Logic for Ridge plot for clusters
+#' @export
+#' @keywords internal
 scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
 
   height <- reactive({
@@ -1909,15 +1635,6 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     req(gene)
     suppressMessages(print(plot_ridge(gene, scseq(), cluster)))
   }, height = height)
-}
-
-readRDS.safe <- function(path, .nofile = NULL, .nullfile = NULL) {
-  res <- .nofile
-  if (isTruthy(path) && file.exists(path))
-    res <- readRDS(path)
-
-  if (is.null(res)) return(.nullfile)
-  return(res)
 }
 
 
@@ -1992,7 +1709,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
       if (has_replicates()) {
         if(is.null(top_tables())) return(NULL)
-        pfun <- plot_scseq_gene_medians(gene, annot(), sel(), top_tables(), exclude_ambient())
+        pfun <- plot_scseq_dprimes(gene, annot(), sel(), top_tables(), exclude_ambient())
 
       } else {
         if(is.null(scseq())) return(NULL)
@@ -2228,290 +1945,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   ))
 }
 
-
-
-isTruthyAll <- function(...) {
-  x <- list(...)
-  for (xi in x) if (!isTruthy(xi)) return(FALSE)
-  return(TRUE)
-}
-
-
-#' Format gene plots for sample comparison for drugseqr app
-#'
-#' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
-#' @param scseq \code{SingleCellExperiment} object.
-#'
-#' @return \code{plot} formatted for drugseqr app
-#' @export
-#' @keywords internal
-plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
-
-  plot <- plot_tsne_feature(scseq, gene)
-  gene <- make.names(gene)
-
-  # the min and max gene expression value
-  lims <- range(plot$data[[gene]])
-
-  # show selected group only
-  sel.cells <- colnames(scseq)[scseq$orig.ident == group]
-  plot$data <- plot$data[row.names(plot$data) %in% sel.cells, ]
-
-  # add selected group as title
-  plot <- plot + ggplot2::ggtitle(toupper(group)) +
-    ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
-
-  # use the same scale for each sample so that comparable
-  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low ="lightgray", high = "blue", limits = lims))
-
-  # remove control plot labels and legend
-  if (group == 'ctrl')
-    plot <- plot + ggplot2::xlab('') + ggplot2::ylab('') +
-    ggplot2::theme(legend.position = 'none')
-
-  return(plot)
-}
-
-
-plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
-  if (is.null(selected_cluster)) selected_cluster <- ''
-
-  # for one vs one comparisons
-  selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
-
-  # get color for selected cluster
-  clus_levs <- levels(scseq$cluster)
-  seli <- as.numeric(selected_cluster)
-  sel <- clus_levs[seli]
-  nsel <- length(sel)
-  colors <- get_palette(clus_levs)
-  color  <- colors[seli]
-
-  # either highlight test group or selected cluster
-  if (by.sample) {
-    if (!isTruthy(selected_cluster)) scseq <- scseq[row.names(scseq) != feature, ]
-    scseq <- scseq[, scseq$cluster %in% sel]
-    y <- factor(scseq$batch)
-    hl <- scseq$orig.ident
-    title <- paste('Expression by Sample:', feature, 'in', sel)
-
-  } else {
-    y <- scseq$cluster
-
-    is.char <- suppressWarnings(is.na(as.numeric(clus_levs)))
-    if (any(is.char)) {
-      clus_levs <- paste0(seq_along(clus_levs), ': ', clus_levs)
-      levels(y) <- clus_levs
-      sel <- clus_levs[seli]
-    }
-
-    hl <- as.character(y)
-    hl[!hl %in% sel] <- 'out'
-    hl <- factor(hl, levels = c(sel, 'out'))
-    title <- paste('Expression by Cluster:', feature)
-  }
-
-
-  if (feature %in% row.names(scseq))
-    x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
-  else
-    x <- scseq[[feature]]
-
-  # errors if boolean/factor/NULL
-  if (is.null(x) || !is.numeric(x)) {
-    pl <- NULL
-    if (with.height) pl <- list(plot = plot, height = 453)
-    return(pl)
-  }
-
-  m <- tapply(x, y, mean)
-  y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])
-  df <- data.frame(x, hl, y) %>%
-    dplyr::add_count(y) %>%
-    dplyr::filter(n > 2)
-
-  pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
-    ggplot2::scale_fill_manual(values = c(color, 'gray')) +
-    ggplot2::scale_alpha_manual(values = c(rep(0.95, nsel), 0.25)) +
-    ggplot2::scale_color_manual(values = c(rep('black', nsel), 'gray')) +
-    ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001) +
-    ggridges::theme_ridges(center_axis_labels = TRUE) +
-    ggplot2::scale_x_continuous(expand = c(0, 0)) +
-    ggplot2::scale_y_discrete(expand = c(0, 0)) +
-    ggplot2::coord_cartesian(clip = "off") +
-    theme_dimgray() +
-    ggplot2::xlab('') +
-    ggplot2::ggtitle(title) +
-    ggplot2::theme(legend.position = 'none',
-                   plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
-                   plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
-                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.title.x = ggplot2::element_blank(),
-                   axis.title.y = ggplot2::element_blank()
-    )
-
-
-  ncells <- tapply(df$x, as.character(df$y), length)
-  ncells <- ncells[levels(df$y)]
-  xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
-
-
-
-  for (i in seq_along(ncells)) {
-    pl <- pl + ggplot2::annotation_custom(
-      grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
-                            gp = grid::gpar(fontsize = 14, col = '#333333')),
-      ymax = i,
-      ymin = i,
-      xmax = xlim,
-      xmin = xlim
-    )
-  }
-
-  if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
-  return(pl)
-}
-
-
-plot_scseq_gene_medians <- function(gene, annot, selected_cluster, tts, exclude_ambient) {
-
-  tt <- lapply(tts, function(x) x[gene, ])
-  tt <- do.call(rbind, tt)
-  tt <- tt[!is.na(tt$t), ]
-  path_df <- get_path_df(tt, path_id = '')
-
-  seli <- which(row.names(tt) == selected_cluster)
-  clusters <- as.numeric(row.names(tt))
-
-  # highlight clusters where this gene is significant
-  row.names(tt) <- row.names(path_df) <- path_df$Gene <- annot[clusters]
-
-  path_df$ambient <- tt$ambient
-  link <- as.character(path_df$Gene)
-  path_df$Link <- paste0('<span style="color: dimgray">', link, '</span>')
-  path_df$Link[seli] <- gsub('dimgray', 'black', path_df$Link[seli])
-  path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
-
-  if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
-
-  # plot trips up if numbered clusters
-  is.number <-  suppressWarnings(!is.na(as.numeric(link)))
-  path_df$Gene[is.number] <- paste('Cluster', link[is.number])
-
-  path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
-  dprimesPlotly(path_df, drugs = FALSE)
-}
-
-
-#' Get gslist for pathway analysis
-#'
-#' @param species Species identifier
-#' @param universe NULL
-#' @param type either 'go' or 'kegg'
-#' @param gs_dir Directory to save gslist to
-#' @param min.genes Minimum number of genes that intersect universe in each pathway
-#'
-#' @return gslist
-#' @export
-get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
-
-  if (!dir.exists(gs_dir)) dir.create(gs_dir)
-
-  fname <- paste('gslist', type, species, 'rds', sep = '.')
-  gslist_path <- file.path(gs_dir, fname)
-
-  if (file.exists(gslist_path)) {
-    gslist <- readRDS(gslist_path)
-
-  } else if (type == 'go') {
-
-    #	Get access to package of GO terms
-    suppressPackageStartupMessages(OK <- requireNamespace("GO.db",quietly=TRUE))
-    if(!OK) stop("GO.db package required but is not installed (or can't be loaded)")
-
-    #	Get access to required annotation functions
-    suppressPackageStartupMessages(OK <- requireNamespace("AnnotationDbi",quietly=TRUE))
-    if(!OK) stop("AnnotationDbi package required but is not installed (or can't be loaded)")
-
-    #	Load appropriate organism package
-    orgPkg <- paste0("org.",species,".eg.db")
-    suppressPackageStartupMessages(OK <- requireNamespace(orgPkg,quietly=TRUE))
-    if(!OK) stop(orgPkg," package required but is not installed (or can't be loaded)")
-
-    #	Get GO to Entrez Gene mappings
-    obj <- paste0("org.",species,".egGO2ALLEGS")
-    egGO2ALLEGS <- tryCatch(getFromNamespace(obj,orgPkg), error=function(e) FALSE)
-    if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
-
-    gslist <- as.list(egGO2ALLEGS)
-    saveRDS(gslist, gslist_path)
-
-  } else if (type == 'kegg') {
-
-    kegg_species <- get_kegg_species(species)
-    gkl <- limma::getGeneKEGGLinks(kegg_species, convert = TRUE)
-    gkl <- gkl %>%
-      dplyr::group_by(PathwayID) %>%
-      dplyr::summarise(gslist = list(GeneID))
-
-    gslist <- gkl$gslist
-    names(gslist) <- gkl$PathwayID
-    saveRDS(gslist, gslist_path)
-  }
-
-  return(gslist)
-}
-
-#' Convert from species identifier to KEGG species identifier
-#'
-#' @param species species identifier
-#'
-#' @return KEGG species identifier
-#' @export
-get_kegg_species <- function(species) {
-  species <- match.arg(species, c("Ag", "At", "Bt", "Ce", "Dm", "Dr", "EcK12", "EcSakai", "Gg", "Hs", "Mm", "Mmu", "Pf", "Pt", "Rn", "Ss", "Xl"))
-  #	Convert from Bioconductor to KEGG species codes
-  species.KEGG <- switch(species, "Ag"="aga", "At"="ath", "Bt"="bta", "Ce"="cel", "Cf"="cfa", "Dm"="dme", "Dr"="dre", "EcK12"="eco", "EcSakai"="ecs", "Gg"="gga", "Hs"="hsa", "Mm"="mmu", "Mmu"="mcc", "Pf"="pfa", "Pt"="ptr", "Rn"="rno", "Ss"="ssc", "Xl"="xla")
-
-  return(species.KEGG)
-}
-
-
-#' Get names of gene set
-#'
-#' @param gslist result of \code{\link{get_gslist}}
-#' @param type either 'go' or 'kegg'
-#' @param species species identifier
-#' @param gs_dir Directory to save results to
-#'
-#' @return Description of \code{gslist} gene sets
-#' @export
-#'
-get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/drugseqr/gs_dir') {
-  if (!dir.exists(gs_dir)) dir.create(gs_dir)
-
-  fname <- paste('gs.names', type, species, 'rds', sep = '.')
-  gs.names_path <- file.path(gs_dir, fname)
-
-  if (file.exists(gs.names_path)) {
-    gs.names <- readRDS(gs.names_path)
-
-  } else if (type == 'go') {
-    GOID <- names(gslist)
-    TERM <- suppressMessages(AnnotationDbi::select(GO.db::GO.db,keys=GOID,columns="TERM"))
-    gs.names <- TERM$TERM
-    names(gs.names) <- TERM$GOID
-    saveRDS(gs.names, gs.names_path)
-
-  } else if (type == 'kegg') {
-    kegg_species <- get_kegg_species(species)
-    gs.names <- limma::getKEGGPathwayNames(kegg_species, remove=TRUE)
-    row.names(gs.names) <- gs.names$PathwayID
-    gs.names <- gs.names[names(gslist), 'Description']
-    names(gs.names) <- names(gslist)
-    saveRDS(gs.names, gs.names_path)
-  }
-
-  return(gs.names)
-}

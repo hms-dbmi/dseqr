@@ -603,7 +603,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
 
-    dprimesPlotly(path_df)
+    plot_dprimes(path_df)
 
   })
 
@@ -617,15 +617,16 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
   )
 }
 
-#' Generate plotly of dprimes values for Drugs and Pathways tab
+#' Generate plotly of dprimes values for Drugs tab.
+#'
+#' Also used for pseudobulk single-cell datasets.
 #'
 #' @param path_df result of \link{get_path_df}.
 #'
-#' @return
+#' @return plotly
 #' @export
-#'
 #' @keywords internal
-dprimesPlotly <- function(path_df, drugs = TRUE) {
+plot_dprimes <- function(path_df, drugs = TRUE) {
 
   if (drugs) {
     fontsize = 12

@@ -37,6 +37,35 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
   return(pred_annot)
 }
 
+#' Check that label predictions aren't from overwritten datasets
+#'
+#' @param preds List of predictions
+#' @param sc_dir Directory with single-cell datasets
+#'
+#' @return \code{preds} that were generated from current datasets
+#' @export
+#' @keywords internal
+validate_preds <- function(preds, sc_dir) {
+  senv <- loadNamespace('SingleR')
+
+  ref_names <- names(preds)
+  dated <- c()
+
+  dated <- sapply(ref_names, function(ref_name) {
+    if (ref_name %in% ls(senv)) return(FALSE)
+
+    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
+    ref_date <- file.info(ref_path)$ctime
+    ref_date <- as.character(ref_date)
+    res_date <- names(preds[[ref_name]])[1]
+    dated <- !identical(res_date, ref_date)
+
+    return(dated)
+  })
+
+  return(preds[!dated])
+}
+
 #' Run differential abundance analysis
 #'
 #' @param scseq \code{SingleCellExperiment}
@@ -92,6 +121,14 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   return(tt)
 }
 
+#' Run variance partition on RNA-seq ExpressionSet
+#'
+#' @param eset \code{ExpressionSet} with 'lib.size', 'norm.factors', 'group' and 'pair' columns in \code{pData}.
+#'
+#' @return results of call to \code{\link[varianceParition]{fitExtractVarPartModel}} with
+#'  'group' and 'pair' covariates treated as random effects
+#' @export
+#'
 run_varPart <- function(eset) {
 
   pdata <- Biobase::pData(eset)
@@ -106,6 +143,14 @@ run_varPart <- function(eset) {
   return(varPart)
 }
 
+#' Run dream mixed effect model on RNA-seq ExpressionSet
+#'
+#' @inheritParams run_varPart
+#'
+#' @return \code{\link[limma]{topTable}} result from \code{\link[varianceParition]{dream}} with 'group'
+#'  treated as fixed effect and 'pair' as a random effect.
+#' @export
+#'
 run_dream <- function(eset) {
 
   pdata <- Biobase::pData(eset)
@@ -274,6 +319,68 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 }
 
 
+#' Get data.frame of single-cell dataset choices
+#'
+#' @param sc_dir Directory containing single-cell datasets
+#'
+#' @return data.frame of single-cell dataset choices for selectizeInput
+#' @export
+#' @keywords internal
+get_sc_dataset_choices <- function(sc_dir) {
+
+  # make sure integrated rds exists
+  int_path <- file.path(sc_dir, 'integrated.rds')
+  if (!file.exists(int_path)) saveRDS(NULL, int_path)
+
+  # exclude missing from integrated (e.g. manual delete)
+  integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+  has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
+  integrated <- integrated[has.scseq]
+
+  int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
+                                                            .nofile = 'Integrated',
+                                                            .nullfile = 'Integrated'))
+  int_type <- unlist(int_type)
+
+  sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
+  int_type[!sub] <- 'Integrated'
+  int_opt <- integrated
+  int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
+
+  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+
+  # exclude individual without scseq (e.g. folder with fastq.gz files only)
+  has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+  individual <- individual[unlist(has.scseq)]
+
+  # founder for subsets as type
+  ind_type <- sapply(individual, function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'),
+                                                            .nofile = 'Individual',
+                                                            .nullfile = 'Individual'), USE.NAMES = FALSE)
+
+  # exclude founder name from option label
+  sub <- ind_type != 'Individual'
+  ind_opt <- individual
+  ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_'), '')
+
+
+
+  # get previously selected
+  prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+
+
+  choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
+                        name = c(prev, integrated, individual),
+                        label = c(prev, integrated, individual),
+                        type = c('Previous Session', int_type, ind_type),
+                        itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
+                        optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
+                        stringsAsFactors = FALSE)
+
+  return(choices)
+}
+
+
 #' Get choices data.frame for custom metrics
 #'
 #' @param scseq \code{SingleCellExperiment}
@@ -301,6 +408,122 @@ get_metric_choices <- function(scseq) {
 
 }
 
+#' Validate a custom metric
+#'
+#' @param metric String with custom metric to evaluate.
+#' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
+#'
+#' @return Either a data.frame is successful or a object with class 'try-error'.
+#' @export
+#' @keywords internal
+validate_metric <- function(metric, scseq) {
+
+  allowed <- tryCatch(interpret(metric), error = function(e) return(FALSE))
+  if (!allowed) return("Metric not permitted")
+
+  ft <- get_metric_features(metric)
+  if (length(ft) == 0) return('No features specified')
+
+  have.ft  <- any(ft %in% c(row.names(scseq), colnames(scseq@colData)))
+  if (!have.ft) return('No features specified')
+
+  dat <- try(evaluate_custom_metric(metric, scseq), silent = TRUE)
+  return(dat)
+}
+
+#' Get features from custom metric
+#'
+#' @param metric Custom metric to extract features from.
+#'
+#' @return Character vector of feature names extracted from \code{metric}
+#' @export
+#' @keywords internal
+get_metric_features <- function(metric) {
+
+  ft <- strsplit(metric, '[|><=\\)\\(&!*]')[[1]]
+  ft <- gsub(' ', '', ft)
+  ft <- ft[ft != '']
+  not.num <- is.na(suppressWarnings(as.numeric(ft)))
+  ft[not.num]
+}
+
+
+#' Evaluate custom single-cell metric
+#'
+#' @param metric String with metric to evaluate
+#' @param scseq \code SingleCellExperiment to evaluate \code{metric} for.
+#'
+#' @return data.frame with column name \code{metric} and result.
+#' @export
+#' @keywords internal
+evaluate_custom_metric <- function(metric, scseq) {
+  ft <- get_metric_features(metric)
+
+  # make sure will run
+  expr <- SingleCellExperiment::logcounts(scseq)
+  expr <- expr[row.names(expr) %in% ft,, drop = FALSE]
+  expr <- t(as.matrix(expr))
+
+  qcs <- scseq@colData
+  qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
+
+  dat <- cbind(expr, qcs)
+  dat <- as.data.frame(cbind(expr, qcs))
+  colnames(dat) <- c(colnames(expr), colnames(qcs))
+  dat <- dat[, match(ft, colnames(dat))]
+
+  # convert features to generic (in case e.g. minus)
+  seq <- 1:ncol(dat)
+  ft.num <- paste0('ft', seq)
+  colnames(dat) <- ft.num
+
+  metric.num <- metric
+  for (i in seq) metric.num <- gsub(paste0('\\b', ft[i], '\\b'), ft.num[i], metric.num)
+
+  dat <- within(dat, metric <- eval(rlang::parse_expr(metric.num)))
+  dat <- dat[, 'metric', drop = FALSE]
+  colnames(dat) <- metric
+  return(dat)
+}
+
+
+#' Check safety of evaluating string as R code.
+#'
+#' @param expr_str String to evaluate,
+#' @param max_length maximum length of string to evaluate,
+#' @param whitelist R functions to allow use of.
+#'
+#' @return \code{TRUE} if expression is safe, otherwise \code{FALSE}.
+#' @export
+#' @keywords internal
+interpret <- function(expr_str,
+                      max_length = 200,
+                      whitelist = c("&", ">=", "<=", ">", "<", '|', '==', '!=', '*')) {
+  safer_eval <- function(expr) {
+    if (rlang::is_call(expr)) {
+      fn_name <- rlang::call_name(expr)
+      if (!fn_name %in% whitelist) return(FALSE)
+      do.call(get(fn_name, baseenv()), Map(safer_eval, rlang::call_args(expr)))
+    } else if (rlang::is_syntactic_literal(expr)) {
+      expr
+    }
+  }
+  if(length(expr_str) >= max_length) return(FALSE)
+  parsed <- try(rlang::parse_expr(expr_str), silent = TRUE)
+  if ('try-error' %in% class(parsed)) return(FALSE)
+  safer_eval(parsed)
+  return(TRUE)
+}
+
+
+#' Format character vectors that will be recognized by HTML
+#'
+#' @inheritParams base::format
+#'
+#' @return Formatted \code{x} with &nbsp; substituted for each space.
+#' @export
+#' @keywords internal
+#'
 html_space <- function(x, justify = 'right') {
   if (is.null(x)) return(NULL)
   x <- format(as.character(x), justify = justify)
@@ -402,6 +625,36 @@ get_contrast_choices <- function(clusters, test) {
 }
 
 
+#' Get markers for one cluster against one other cluster
+#'
+#' @param con String identifying clusters to compare e.g. \code{'1vs2'}
+#' @param dataset_dir Path to folder for dataset
+#'
+#' @return Named list with data.frames for each comparison direction
+#' @export
+#' @keywords internal
+#'
+get_contrast_markers <- function(con, dataset_dir) {
+  con <- strsplit(con, '-vs-')[[1]]
+  tests_dir <- file.path(dataset_dir, 'tests')
+  pairs_path <- file.path(tests_dir, 'pairs.rds')
+  pairs <- readRDS(pairs_path)
+
+  keep <- apply(pairs, 1, function(row) all(con %in% row))
+  keep <- which(keep)
+
+  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.rds'))
+  tests <- list(pairs = pairs[keep, ],
+                statistics = lapply(stat_paths, readRDS))
+
+  # returns both directions
+  con_markers <- get_scseq_markers(tests)
+  names(con_markers) <- paste0(names(con_markers), '-vs-', rev(names(con_markers)))
+
+  return(con_markers)
+}
+
+
 #' Add cell percents to gene choices for single cell
 #'
 #' @param scseq \code{SingleCellExperiment} object
@@ -448,9 +701,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 }
 
 
-
-
-#' Integrate previously saved scseqs
+#' Integrate previously saved SingleCellExperiments
 #'
 #' Performs integration and saves as a new analysis.
 #' Used by \code{explore_scseq_clusters} shiny app.
@@ -458,8 +709,12 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @param sc_dir Directory with saved single-cell datasets.
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
-#' @param dataset_name Name for new integrated analysis.
+#' @param exclude_clusters Charactor vector of clusters for excluding cells.
+#' @param integration_name Name for new integrated analysis.
+#' @param integration_type Charactor vector of one or more integration types.
 #' @param progress optional Shiny \code{Progress} object.
+#'
+#' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
 #'
 #' @return NULL
 #' @export
@@ -574,6 +829,61 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, exclude_clusters, integra
   return(NULL)
 }
 
+
+#' Subset previously saved SingleCellExperiment
+#'
+#' @param sc_dir Directory with saved single-cell datasets.
+#' @param founder Name of original founding dataset (may be ancestor of \code{from_dataset}).
+#' @param from_dataset Name of parent dataset.
+#' @param dataset_name Name for new subset dataset.
+#' @param exclude_clusters Charactor vector of clusters for excluding cells.
+#' @param exclude_metrics Character vector of metrics for excluding cells.
+#' @param progress Optional shiny progress object.
+#'
+#' @return NULL
+#' @export
+#' @keywords internal
+#'
+subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_metrics, progress = NULL) {
+  # for save_scseq_args
+  args <- c(as.list(environment()))
+  args$progress <- args$sc_dir <- NULL
+  args$date <- Sys.time()
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+  progress$set(1, detail = 'loading')
+  scseq <- load_scseq_subsets(from_dataset, sc_dir, exclude_clusters, exclude_metrics)[[1]]
+
+  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = 1, founder = founder)
+  save_scseq_args(args, dataset_name, sc_dir)
+}
+
+
+#' Determine the founder of a single-cell dataset
+#'
+#' Founder is not necesarily the parent, but rather the original ancestor.
+#'
+#' @param sc_dir Directory with single-cell datasets.
+#' @param dataset_name Name of dataset to determine founder for.
+#'
+#' @return Name of founder.
+#' @export
+#'
+get_founder <- function(sc_dir, dataset_name) {
+
+  # check for founder of parent
+  fpath <- file.path(sc_dir, dataset_name, 'founder.rds')
+  founder <- readRDS(fpath)
+  if (is.null(founder)) founder <- dataset_name
+  return(founder)
+}
+
+
 #' Save arguments for integration/subsetting
 #'
 #' @param args Arguments to save
@@ -591,6 +901,14 @@ save_scseq_args <- function(args, dataset_name, sc_dir) {
                        pretty = TRUE)
 }
 
+#' Add QC metrics to integrated SingleCellExperiment
+#'
+#' @param combined Integrated \code{SingleCellExperiment}
+#' @param scseqs list of \code{SingleCellExperiment}s used to create \code{combined}
+#'
+#' @return \code{combined} with QC metrics from \code{scseqs} added
+#' @export
+#' @keywords internal
 add_combined_metrics <- function(combined, scseqs) {
   # add original QC metrics
   metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
@@ -605,7 +923,6 @@ add_combined_metrics <- function(combined, scseqs) {
     for (sample in samples)
       combined[[sample]] <- combined$batch == sample
   }
-
   return(combined)
 }
 
@@ -749,12 +1066,6 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
   file.path(data_dir, dataset_name, fname)
 }
 
-
-
-
-
-
-
 #' Run drug queries
 #'
 #' Used by run_comparison
@@ -815,9 +1126,6 @@ load_drug_es <- function() {
     l1000_genes = l1000_genes
   ))
 }
-
-
-
 
 #' Used to generate file names for single cell analyses.
 #'

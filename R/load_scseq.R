@@ -895,11 +895,20 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
 }
 
 
-run_fastmnn <- function(logcounts, hvgs, scseqs) {
+#' Run fastMNN integration
+#'
+#' @param logcounts dgCMatrix of logcounts.
+#' @inheritParams  batchelor::fastMNN
+#' @param scseqs list of \code{SingleCellExperiment} objects to integrate.
+#'
+#' @return Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDim, and batch annotation.
+#' @export
+#' @keywords internal
+run_fastmnn <- function(logcounts, subset.row, scseqs) {
 
   mnn.fun <- function(...) batchelor::fastMNN(
     ...,
-    subset.row = hvgs,
+    subset.row = subset.row,
     auto.merge = TRUE,
     correct.all = TRUE,
     cos.norm = FALSE,
@@ -919,6 +928,15 @@ run_fastmnn <- function(logcounts, hvgs, scseqs) {
   return(cor.out)
 }
 
+#' Run liger integration
+#'
+#' @inheritParams run_fastmnn
+#' @param batch Character vector indicating the original datasets for each cell in scseqs.
+#'  Must be in same order as \code{scseqs}.
+#'
+#' @inherit run_fastmnn return
+#' @export
+#' @keywords internal.
 run_liger <- function(logcounts, scseqs, batch) {
   countl <- list()
   for (i in seq_along(scseqs)) {
@@ -947,6 +965,39 @@ run_liger <- function(logcounts, scseqs, batch) {
   return(cor.out)
 
 
+}
+
+
+#' Run harmony integration
+#'
+#' @inheritParams scater::calculatePCA
+#' @inheritParams run_liger
+#' @param pairs
+#'
+#' @inherit run_fastmnn return
+#' @export
+#' @keywords internal
+run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
+
+  meta_data <- data.frame(batch = batch)
+  vars_use <- 'batch'
+
+  if (!is.null(pairs)) {
+    vars_use <- c('batch', 'pairs')
+    meta_data$pairs <- factor(pairs[batch, 'pair'])
+  }
+
+
+  set.seed(100)
+  pcs <- scater::calculatePCA(logcounts, subset_row = subset_row)
+  emb <- harmony::HarmonyMatrix(pcs, meta_data, vars_use, do_pca = FALSE, max.iter.harmony = 40)
+
+  cor.out <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(logcounts = logcounts),
+    reducedDims = list(corrected = emb),
+    colData =  S4Vectors::DataFrame(batch = batch))
+
+  return(cor.out)
 }
 
 
@@ -1007,28 +1058,6 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pa
   return(cor.out)
 }
 
-run_harmony <- function(logcounts, hvgs, batch, pairs = NULL) {
-
-  meta_data <- data.frame(batch = batch)
-  vars_use <- 'batch'
-
-  if (!is.null(pairs)) {
-    vars_use <- c('batch', 'pairs')
-    meta_data$pairs <- factor(pairs[batch, 'pair'])
-  }
-
-
-  set.seed(100)
-  pcs <- scater::calculatePCA(logcounts, subset_row = hvgs)
-  emb <- harmony::HarmonyMatrix(pcs, meta_data, vars_use, do_pca = FALSE, max.iter.harmony = 40)
-
-  cor.out <- SingleCellExperiment::SingleCellExperiment(
-    assays = list(logcounts = logcounts),
-    reducedDims = list(corrected = emb),
-    colData =  S4Vectors::DataFrame(batch = batch))
-
-  return(cor.out)
-}
 
 
 #' Get genes that are ambient in at least one test and control sample
