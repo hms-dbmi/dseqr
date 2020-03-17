@@ -8,8 +8,9 @@ load_scseq_subsets(
   dataset_names,
   sc_dir,
   exclude_clusters,
-  exclude_metrics = NULL,
-  ident = scseq$project
+  subset_metrics = NULL,
+  is_include = FALSE,
+  ident = "test"
 )
 }
 \arguments{
@@ -17,7 +18,7 @@ load_scseq_subsets(
 
 \item{sc_dir}{The directory with single-cell datasets}
 
-\item{ident}{Either \code{'test'} or \code{'ctrl'}}
+\item{ident}{Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.}
 }
 \value{
 List of \code{SingleCellExperiment} objects.

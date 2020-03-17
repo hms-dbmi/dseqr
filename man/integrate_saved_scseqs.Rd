@@ -8,9 +8,11 @@ integrate_saved_scseqs(
   sc_dir,
   test,
   ctrl,
-  exclude_clusters,
   integration_name,
+  exclude_clusters,
   integration_type = c("harmony", "liger", "fastMNN"),
+  subset_metrics = NULL,
+  is_include = FALSE,
   pairs = NULL,
   progress = NULL,
   value = 0
@@ -23,9 +25,9 @@ integrate_saved_scseqs(
 
 \item{ctrl}{Character vector of control analysis names.}
 
-\item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
-
 \item{integration_name}{Name for new integrated analysis.}
+
+\item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
 \item{integration_type}{Charactor vector of one or more integration types.}
 

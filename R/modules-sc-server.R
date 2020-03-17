@@ -147,13 +147,14 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                          datasets = scDataset$datasets,
                          selected_dataset = scDataset$dataset_name,
                          dataset_dir = dataset_dir,
-                         show_subset = scDataset$show_subset)
+                         show_subset = scDataset$show_subset,
+                         is_integrated = scDataset$is_integrated)
 
 
   # comparison type
   comparisonType <- callModule(comparisonType, 'comparison',
                                scseq = scseq,
-                               is.integrated = scDataset$is.integrated)
+                               is_integrated = scDataset$is_integrated)
 
 
   # the selected cluster/gene for cluster comparison
@@ -173,7 +174,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                               scseq = scDataset$scseq,
                               dataset_name = scDataset$dataset_name,
                               dataset_dir = dataset_dir,
-                              is.integrated = scDataset$is.integrated,
+                              is_integrated = scDataset$is_integrated,
                               selected_markers = scClusterComparison$selected_markers,
                               selected_cluster = scClusterComparison$selected_cluster,
                               qc_metrics = qc_metrics,
@@ -185,7 +186,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   scSampleComparison <- callModule(scSampleComparison, 'sample',
                                    dataset_dir = dataset_dir,
                                    dataset_name = scDataset$dataset_name,
-                                   is.integrated = scDataset$is.integrated,
+                                   is_integrated = scDataset$is_integrated,
                                    input_scseq = scseq,
                                    comparison_type = comparisonType,
                                    exclude_ambient = scSampleGene$exclude_ambient)
@@ -194,7 +195,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                              scseq = scDataset$scseq,
                              dataset_name = scDataset$dataset_name,
                              dataset_dir = dataset_dir,
-                             is.integrated = scDataset$is.integrated,
+                             is_integrated = scDataset$is_integrated,
                              selected_markers = scSampleComparison$top_table,
                              selected_cluster = scSampleComparison$selected_cluster,
                              type = 'samples',
@@ -208,7 +209,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # show the toggle if dataset is integrated
   observe({
-    toggle(id = "comparison_toggle_container",  condition = scDataset$is.integrated())
+    toggle(id = "comparison_toggle_container",  condition = scDataset$is_integrated())
   })
 
 
@@ -297,7 +298,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(scseq)
   })
 
-  is.integrated <- reactive({
+  is_integrated <- reactive({
     dataset_name <- dataset_name()
     req(dataset_name)
     integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
@@ -462,7 +463,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     show_integration = show_integration,
     show_subset = show_subset,
     show_label_transfer = show_label_transfer,
-    is.integrated = is.integrated,
+    is_integrated = is_integrated,
     dataset_exists = dataset_exists,
     species = species
   ))
@@ -761,7 +762,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 #' Logic for subsetting a datatset
 #' @export
 #' @keywords internal
-subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices) {
+subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices, is_integrated) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
@@ -801,7 +802,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
     metric_choices <- metric_choices()
     if (!is.null(metric_choices)) {
-      metric_choices$type <- 'Exclusion Metrics'
+      metric_choices$type <- 'Metrics'
       choices <- rbind(metric_choices, choices)
       choices$pspace <- strrep('&nbsp;&nbsp;', max(0, 2 - nchar(choices$pcells)))
     }
@@ -822,13 +823,13 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     subset <- input$subset_clusters
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
+    is_include <- is_include()
 
     exclude_clusters <- intersect(cluster_choices$value, subset)
-    exclude_metrics <- intersect(metric_choices$value, subset)
+    subset_metrics <- intersect(metric_choices$value, subset)
 
-    if (is_include() && length(subset)) {
-      choices <- cluster_choices()
-      exclude_clusters <- setdiff(choices$value, exclude_clusters)
+    if (is_include && length(exclude_clusters)) {
+      exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
     }
 
     from_dataset <- selected_dataset()
@@ -849,7 +850,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                        from_dataset = from_dataset,
                        dataset_name = dataset_name,
                        exclude_clusters = exclude_clusters,
-                       exclude_metrics = exclude_metrics,
+                       subset_metrics = subset_metrics,
+                       is_include = is_include,
+                       is_integrated = is_integrated(),
                        progress = progress)
 
 
@@ -1062,9 +1065,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
         integrate_saved_scseqs(sc_dir,
                                test = test,
                                ctrl = ctrl,
-                               exclude_clusters = exclude_clusters,
                                integration_name = integration_name,
                                integration_type = integration_types[i],
+                               exclude_clusters = exclude_clusters,
                                pairs = pairs,
                                progress = progress,
                                value = vali)
@@ -1096,11 +1099,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 #' Logic for comparison type toggle for integrated datasets
 #' @export
 #' @keywords internal
-comparisonType <- function(input, output, session, scseq, is.integrated) {
+comparisonType <- function(input, output, session, scseq, is_integrated) {
 
   # always show clusters if not integrated
   observe({
-    if(!is.integrated())
+    if(!is_integrated())
       updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
   })
 
@@ -1278,7 +1281,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 #' Logic for selected gene to show plots for
 #' @export
 #' @keywords internal
-selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is.integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is_integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   selected_gene <- reactiveVal(NULL)
@@ -1642,7 +1645,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #' @export
 #' @keywords internal
-scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is.integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
+scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is_integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')
 
@@ -1668,7 +1671,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # update cluster choices in UI
   cluster_choices <- reactive({
-    req(is.integrated())
+    req(is_integrated())
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
 
@@ -1703,7 +1706,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   # plot functions for left
   sel <- reactive(input$selected_cluster)
   pfun_left <- reactive({
-    req(is.integrated())
+    req(is_integrated())
 
     function(gene) {
       if(!isTruthy(gene)) return(NULL)
@@ -1722,7 +1725,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
   # plot functions for right
   pfun_right <- reactive({
-    req(is.integrated())
+    req(is_integrated())
 
     function(gene) {
       scseq <- scseq()
@@ -1733,7 +1736,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     }
   })
   pfun_right_bottom <- reactive({
-    req(is.integrated())
+    req(is_integrated())
 
     function(gene) {
       scseq <- scseq(); sel <- sel()

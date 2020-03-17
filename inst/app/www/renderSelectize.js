@@ -12,9 +12,10 @@ function contrastOptions(item, escape) {
   var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" +
                         item.ntest + " :: " + item.nctrlf + " [<span style='color: dimgray;'>" + nsigf + "</span>]</div>";
 
-  // for integrated dataset show number of cells in each test/ctrl sample
+  // for integrated dataset show number of cells in each test/ctrl sample as title element
+  // otherwise show potentially truncated label
   var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
-  var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
+  var title = typeof item.ntest_each == 'undefined' ? item.label : integratedTitle;
 
   var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 

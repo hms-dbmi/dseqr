@@ -8,9 +8,9 @@ process_raw_scseq(
   scseq,
   dataset_name,
   sc_dir,
+  founder = NULL,
   progress = NULL,
-  value = 0,
-  founder = NULL
+  value = 0
 )
 }
 \arguments{

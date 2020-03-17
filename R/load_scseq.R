@@ -41,7 +41,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 
   scseq <- run_scseq_qc(scseq, metrics)
 
-  process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = value + 3, founder = founder)
+  process_raw_scseq(scseq, dataset_name, sc_dir, founder, progress = progress, value = value + 3)
 }
 
 #' Process Count Data for App
@@ -56,7 +56,7 @@ load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progres
 #'
 #' @return NULL
 #' @export
-process_raw_scseq <- function(scseq, dataset_name, sc_dir, progress = NULL, value = 0, founder = NULL) {
+process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progress = NULL, value = 0) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
