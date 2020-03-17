@@ -5,7 +5,7 @@
 function contrastOptions(item, escape) {
 
   var infoContrasts =  "<div style='color: #A0A0A0;text-align:right;'>" +
-                        item.ncells + " :: " + item.pspace + item.pcells + "%" +
+                        item.ncells + " :: " + item.pcells + "%" +
                        "</div>";
 
   var nsigf = typeof item.nsig == 'undefined' ? item.nbigf : item.nsigf;                        

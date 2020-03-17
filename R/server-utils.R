@@ -10,8 +10,8 @@
 #'
 readRDS.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
   res <- .nofile
-  if (isTruthy(path) && file.exists(path))
-    res <- readRDS(path)
+  if (isTruthy(file) && file.exists(file))
+    res <- readRDS(file)
 
   if (is.null(res)) return(.nullfile)
   return(res)

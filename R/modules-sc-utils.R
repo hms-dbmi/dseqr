@@ -310,9 +310,8 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 
   } else {
     # show the cell numbers/percentages
-    choices$ncells <- cluster_stats$ncells
-    choices$pcells <- round(cluster_stats$pcells)
-    choices$pspace <- strrep('&nbsp;&nbsp;', max(0, 2 - nchar(choices$pcells)))
+    choices$ncells <- html_space(cluster_stats$ncells)
+    choices$pcells <- html_space(round(cluster_stats$pcells))
   }
 
   return(choices)
@@ -366,13 +365,19 @@ get_sc_dataset_choices <- function(sc_dir) {
 
 
   # get previously selected
-  prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+  prev <- NULL
+  prev_type <- NULL
+
+  if (length(individual)) {
+    prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+    prev_type <- 'Previous Session'
+  }
 
 
   choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
                         name = c(prev, integrated, individual),
                         label = c(prev, integrated, individual),
-                        type = c('Previous Session', int_type, ind_type),
+                        type = c(prev_type, int_type, ind_type),
                         itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
                         optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
                         stringsAsFactors = FALSE)
@@ -451,7 +456,7 @@ get_metric_features <- function(metric) {
 #' Evaluate custom single-cell metric
 #'
 #' @param metric String with metric to evaluate
-#' @param scseq \code SingleCellExperiment to evaluate \code{metric} for.
+#' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
 #'
 #' @return data.frame with column name \code{metric} and result.
 #' @export
@@ -470,7 +475,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- cbind(expr, qcs)
   dat <- as.data.frame(cbind(expr, qcs))
   colnames(dat) <- c(colnames(expr), colnames(qcs))
-  dat <- dat[, match(ft, colnames(dat))]
+  dat <- dat[, match(ft, colnames(dat)), drop = FALSE]
 
   # convert features to generic (in case e.g. minus)
   seq <- 1:ncol(dat)
@@ -1237,4 +1242,5 @@ get_tsne_coords <- function(plot_data) {
     summarise(TSNE_1 = median(TSNE_1),
               TSNE_2 = median(TSNE_2))
 }
+
 

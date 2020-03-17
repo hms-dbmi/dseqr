@@ -895,6 +895,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # datasets() with server side selectize causes bug
   integration_choices <- reactive({
     ds <- datasets()
+    if (!nrow(ds)) return(NULL)
     int  <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
     prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'))
     ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
