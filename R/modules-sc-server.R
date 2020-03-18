@@ -1332,7 +1332,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
-  allow_save <- reactive(have_metric() && !input$custom_metric %in% row.names(scseq()))
+  allow_save <- reactive(!input$custom_metric %in% row.names(scseq()))
 
   observe(toggleState('save_custom_metric', condition = allow_save()))
 
@@ -1373,11 +1373,20 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
   observeEvent(input$save_custom_metric, {
     metric <- input$custom_metric
-    req(metric)
-
-    res <- custom_metrics()[, metric, drop = FALSE]
     prev <- saved_metrics()
-    if (!is.null(prev)) res <- cbind(prev, res)
+    custom_metrics <- custom_metrics()
+
+    # can remove custom metric by selecting as feature and saving empty
+    if (!isTruthy(metric)) {
+      feature <- selected_gene()
+      req(feature %in% colnames(prev))
+      res <- prev[, !colnames(prev) %in% feature, drop = FALSE]
+      if (ncol(res) == 0) res <- NULL
+
+    } else {
+      res <- custom_metrics[, metric, drop = FALSE]
+      if (!is.null(prev)) res <- cbind(prev, res)
+    }
 
     saveRDS(res, metrics_path())
     saved_metrics(res)
@@ -1949,4 +1958,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
