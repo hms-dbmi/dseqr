@@ -346,6 +346,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # get path to dir with new dataset files
   new_dataset_dir <- reactive({
+
     new_dataset_dir <- input$new_dataset_dir
 
     # need selected subfolder

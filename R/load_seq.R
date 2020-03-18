@@ -335,7 +335,7 @@ get_tx2gene <- function(species = 'Homo sapiens', release = '94', columns = c("t
   tx2gene[tx2gene == ""] <- NA
   tx2gene <- tx2gene[!is.na(tx2gene$gene_name), ]
 
-  if ('description' %in% columns)
+  if ('description' %in% colnames(tx2gene))
     tx2gene$description <- gsub(' \\[Source.+?\\]', '', tx2gene$description)
 
   return(tx2gene)
