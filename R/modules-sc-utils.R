@@ -310,8 +310,9 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 
   } else {
     # show the cell numbers/percentages
-    choices$ncells <- html_space(cluster_stats$ncells)
+    choices$ncells <- cluster_stats$ncells
     choices$pcells <- html_space(round(cluster_stats$pcells))
+    choices$ncellsf <- html_space(cluster_stats$ncells)
   }
 
   return(choices)
