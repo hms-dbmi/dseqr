@@ -363,24 +363,30 @@ get_sc_dataset_choices <- function(sc_dir) {
   ind_opt <- individual
   ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_'), '')
 
-
+  label <- c(integrated, individual)
+  type <- c(int_type, ind_type)
+  opt <- c(int_opt, ind_opt)
 
   # get previously selected
-  prev <- NULL
-  prev_type <- NULL
-
   if (length(individual)) {
     prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
-    prev_type <- 'Previous Session'
+    prev_type <- type[label == prev]
+    founder <- get_founder(sc_dir, prev)
+    if (prev_type == founder)
+      prev <- label[type %in% founder]
+
+    type <- c(rep('Previous Session', length(prev)), type)
+    label <- c(prev, label)
+    opt <- c(prev, opt)
   }
 
 
-  choices <- data.frame(value = seq_along(c(prev, integrated, individual)),
-                        name = c(prev, integrated, individual),
-                        label = c(prev, integrated, individual),
-                        type = c(prev_type, int_type, ind_type),
-                        itemLabel = stringr::str_trunc(c(prev, integrated, individual), 35),
-                        optionLabel = stringr::str_trunc(c(prev, int_opt, ind_opt), 35),
+  choices <- data.frame(value = seq_along(label),
+                        name = label,
+                        label = label,
+                        type = type,
+                        itemLabel = stringr::str_trunc(label, 35),
+                        optionLabel = stringr::str_trunc(opt, 35),
                         stringsAsFactors = FALSE)
 
   return(choices)

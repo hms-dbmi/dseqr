@@ -856,6 +856,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                        is_integrated = is_integrated(),
                        progress = progress)
 
+    new_dataset(dataset_name)
+    saveRDS(file.path(sc_dir, 'prev_dataset.rds'))
 
     # re-enable, clear inputs, and trigger update of available datasets
     new_dataset(dataset_name)
@@ -1075,12 +1077,14 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       }
 
 
+      dataset_name <- paste(integration_name, integration_types[1], sep = '_')
+      new_dataset(dataset_name)
+      saveRDS(file.path(sc_dir, 'prev_dataset.rds'))
 
       # re-enable, clear inputs, and trigger update of available datasets
       ctrl(NULL)
       test(NULL)
       pairs(NULL)
-      new_dataset(integration_name)
       updateTextInput(session, 'integration_name', value = '')
       enableAll(integration_inputs)
 
