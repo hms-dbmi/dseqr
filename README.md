@@ -8,11 +8,12 @@ drugseqr (*drug-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential
 # install
 install.packages('remotes')
 remotes::install_github('hms-dbmi/drugseqr')
-library(drugseqr)
 
-# run app
+# initialize and run new app
+library(drugseqr)
 app_name <- 'example'
 data_dir <- 'path/to/app_dir'
+init_drugseqr(app_name, data_dir)
 run_drugseqr(app_name, data_dir)
 ```
 
@@ -21,24 +22,23 @@ see below for details on adding single-cell/bulk datasets
 
 ## Adding single-cell datasets
 
-Add single cell fastq.gz or CellRanger files to a directory inside `single-cell`. For example, download CellRanger files:
+Add single cell fastq.gz or cell ranger format (`matrix.mtx`, `barcodes.tsv`, and `genes.tsv`) files to a directory inside `path/to/app_dir/example/single-cell`. For example, download files from files from [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583):
 
 ```bash
 # directory to store single cell sample data in
 # for EC2 instance: cd /srv/drugseqr/example/single-cell
 cd path/to/app_dir/example/single-cell
 
-mkdir GSM2560249_pbmc_ifnb_full
-cd GSM2560249_pbmc_ifnb_full
+mkdir GSM2560249_pbmc_ifnb_full & cd "$_"
 
-# get CellRanger files
+# get cell ranger files
 wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5F2%2E2%2Emtx%2Egz
 wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5Fbarcodes%2Etsv%2Egz
 wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583%5Fbatch2%2Egenes%2Etsv%2Egz
 
 ```
 
-Run the app as before, create a new single-cell dataset, and select the folder with the downloaded cellranger files. Single cell 10X fastq.gz files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to FASTQ:
+Run the app as before, create a new single-cell dataset, and select the folder with the downloaded cellranger files. Single cell 10X `fastq.gz` files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to `fastq.gz`:
 
 ```bash
 # download bamtofastq into directory on the path
@@ -47,8 +47,7 @@ wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
 # directory to store single cell sample data in 
 # for EC2 instance: cd /srv/drugseqr/example/single-cell
 cd path/to/app_dir/example/single-cell
-mkdir GSM3304014_lung_healthy
-cd GSM3304014_lung_healthy
+mkdir GSM3304014_lung_healthy & cd "$_"
 
 # download 10XBAM
 wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genome_bam.bam.1
@@ -57,7 +56,7 @@ wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genom
 bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
 ```
 
-Run the app again, create a new single-cell dataset, and select the folder with the downloaded fastq files.
+Run the app again, create a new single-cell dataset, and select the folder with the converted fastq files.
 
 ## Adding bulk datasets
 
