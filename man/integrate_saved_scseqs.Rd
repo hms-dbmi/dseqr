@@ -13,6 +13,7 @@ integrate_saved_scseqs(
   integration_type = c("harmony", "liger", "fastMNN"),
   subset_metrics = NULL,
   is_include = FALSE,
+  founder = integration_name,
   pairs = NULL,
   progress = NULL,
   value = 0

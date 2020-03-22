@@ -4,7 +4,7 @@
 \alias{comparisonType}
 \title{Logic for comparison type toggle for integrated datasets}
 \usage{
-comparisonType(input, output, session, scseq, is.integrated)
+comparisonType(input, output, session, scseq, is_integrated)
 }
 \description{
 Logic for comparison type toggle for integrated datasets

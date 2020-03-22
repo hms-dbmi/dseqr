@@ -11,7 +11,7 @@ selectedGene(
   dataset_name,
   dataset_dir,
   scseq,
-  is.integrated,
+  is_integrated,
   selected_markers,
   selected_cluster,
   type,

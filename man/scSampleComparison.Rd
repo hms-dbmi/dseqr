@@ -10,7 +10,7 @@ scSampleComparison(
   session,
   dataset_dir,
   dataset_name,
-  is.integrated = function() TRUE,
+  is_integrated = function() TRUE,
   input_scseq = function() NULL,
   is_sc = function() TRUE,
   exclude_ambient = function() FALSE,

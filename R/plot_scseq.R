@@ -11,12 +11,12 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
   # dynamic label/point size
   pt.size <- min(6000/ncol(scseq), 2)
   nc <- length(levs)
-  if (nc > 30) {
-    levs <- seq_along(levs)
-    levels(scseq$cluster) <- levs
-  }
+  # shorten labels
+  if (nc > 30)
+    levels(scseq$cluster) <- shorten_cluster_labels(levels(scseq$cluster))
+
   num <- suppressWarnings(!anyNA(as.numeric(levs)))
-  label.size <- if(num) 6 else if(nc > 17) 5.5 else 6
+  label.size <- if(num) 6 else if (nc>30) 5.2 else if(nc > 17) 5.5 else 6
 
   pl <- DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label.size = label.size, ...) +
     theme_no_axis_vals() +
@@ -35,6 +35,36 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
 
   return(pl)
 }
+
+#' Shorted cluster labels when there are lots of clusters
+#'
+#' @param labels Character vector of labels
+#'
+#' @return \code{labels} where each word is shortened. trailing underscore numbers are preserved.
+#' @export
+#' @keywords internal
+#' @examples
+#' labels <- c('Non-Classic Mono', 'B-cell', 'B-cell_1', 'B-cell_12')
+#' shorten_cluster_labels(labels)
+#'
+shorten_cluster_labels <- function(labels) {
+  # keep unique numbers
+  has.nums <- grepl('_\\d+$', labels)
+  nums <- gsub('^.+?(_\\d+)$', '\\1', labels)
+  new.labels <- gsub('_\\d+$', '', labels)
+
+  # split labels by seperators
+  new.labels <- strsplit(new.labels, "(?<=.)(?=[-_ ])",perl = TRUE)
+
+  # make sure each word is 4 letters or less plus the seperator
+  new.labels <- lapply(new.labels, function(x) stringr::str_trunc(x, 4, ellipsis = ''))
+  new.labels <- sapply(new.labels, paste, collapse = '')
+
+  # restore underscore_nums
+  new.labels[has.nums] <- paste0(new.labels[has.nums], nums[has.nums])
+  return(new.labels)
+}
+
 
 #' Plot TSNE coloured by gene or QC metric
 #'

@@ -14,7 +14,8 @@ subsetForm(
   show_subset,
   selected_dataset,
   dataset_dir,
-  cluster_choices
+  cluster_choices,
+  is_integrated
 )
 }
 \description{
