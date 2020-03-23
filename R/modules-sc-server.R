@@ -666,8 +666,8 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
     pred <- row.names(tab)[apply(tab, 2, which.max)]
 
-    # keep track of date that reference was used so that can invaludate if overwritten
-    if (!missing(ref_date)) names(pred) <- ref_date
+    # keep track of date that reference was used so that can invalidate if overwritten
+    if (exists('ref_date')) names(pred) <- ref_date
 
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
     preds[[ref_name]] <- pred
@@ -857,7 +857,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                        progress = progress)
 
     new_dataset(dataset_name)
-    saveRDS(file.path(sc_dir, 'prev_dataset.rds'))
+    saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
 
     # re-enable, clear inputs, and trigger update of available datasets
     new_dataset(dataset_name)
@@ -985,9 +985,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     return(choices)
   })
 
-  # update exclude clusters
+  # update subset clusters
   observe({
-    updateSelectizeInput(session, 'exclude_clusters', choices = exclude_choices(),selected = isolate(input$subset_clusters), options = excludeOptions, server = TRUE)
+    updateSelectizeInput(session, 'subset_clusters', choices = exclude_choices(),selected = isolate(input$subset_clusters), options = excludeOptions, server = TRUE)
   })
 
   # upload/download pairs
@@ -1079,7 +1079,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
       dataset_name <- paste(integration_name, integration_types[1], sep = '_')
       new_dataset(dataset_name)
-      saveRDS(file.path(sc_dir, 'prev_dataset.rds'))
+      saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
 
       # re-enable, clear inputs, and trigger update of available datasets
       ctrl(NULL)
@@ -1962,3 +1962,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+
