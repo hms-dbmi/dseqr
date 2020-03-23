@@ -13,7 +13,7 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
   nc <- length(levs)
   # shorten labels
   if (nc > 30)
-    levels(scseq$cluster) <- shorten_cluster_labels(levels(scseq$cluster))
+    levels(scseq$cluster) <- shorten_cluster_labels(levs)
 
   num <- suppressWarnings(!anyNA(as.numeric(levs)))
   label.size <- if(num) 6 else if (nc>30) 5.2 else if(nc > 17) 5.5 else 6
@@ -48,23 +48,20 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
 #' shorten_cluster_labels(labels)
 #'
 shorten_cluster_labels <- function(labels) {
+
   # keep unique numbers
   has.nums <- grepl('_\\d+$', labels)
   nums <- gsub('^.+?(_\\d+)$', '\\1', labels)
-  new.labels <- gsub('_\\d+$', '', labels)
+  new <- gsub('_\\d+$', '', labels)
 
-  # split labels by seperators
-  new.labels <- strsplit(new.labels, "(?<=.)(?=[-_ ])",perl = TRUE)
-
-  # make sure each word is 4 letters or less plus the seperator
-  new.labels <- lapply(new.labels, function(x) stringr::str_trunc(x, 4, ellipsis = ''))
-  new.labels <- sapply(new.labels, paste, collapse = '')
+  # keep at most 15 characters
+  new <- stringr::str_trunc(new, 15)
 
   # restore underscore_nums
-  new.labels[has.nums] <- paste0(new.labels[has.nums], nums[has.nums])
-  return(new.labels)
-}
+  new[has.nums] <- paste0(new[has.nums], nums[has.nums])
 
+  return(new)
+}
 
 #' Plot TSNE coloured by gene or QC metric
 #'
