@@ -15,7 +15,7 @@ scPageUI <- function(id, tab, active) {
             )
         ),
         hr(),
-        div(id = ns('comparison_row'), style = 'display: none;',
+        div(id = ns('comparison_row'), style = '',
             # row for cluster comparison
             div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
                 div(class = "col-sm-12 col-lg-6 col-lg-push-6",

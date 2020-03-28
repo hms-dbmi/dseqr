@@ -346,6 +346,7 @@ plot_scseq_dprimes <- function(gene, annot, selected_cluster, tts, exclude_ambie
   tt <- lapply(tts, function(x) x[gene, ])
   tt <- do.call(rbind, tt)
   tt <- tt[!is.na(tt$t), ]
+  if (nrow(tt) == 0) return(NULL)
   path_df <- get_path_df(tt, path_id = '')
 
   seli <- which(row.names(tt) == selected_cluster)

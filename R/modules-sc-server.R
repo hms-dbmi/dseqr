@@ -57,9 +57,6 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              scseq = scForm$scseq,
              sc_dir = sc_dir)
 
-  observe({
-    toggle(id = "comparison_row",  condition = isTruthy(scForm$dataset_name()))
-  })
 
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
@@ -1962,4 +1959,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
