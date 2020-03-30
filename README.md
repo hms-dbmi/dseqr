@@ -62,11 +62,14 @@ bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
 
 Run the app again, create a new single-cell dataset, and select the folder with the converted fastq files.
 
-## Adding bulk datasets
+## Adding bulk RNA-seq datasets
 
-Adding bulk datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk datasets particularly easy. For example, install `GEOfastq` then:
+Adding bulk RNA-seq datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk RNA-Seq datasets particularly easy. For example, install `GEOfastq` then:
 
 ```R
+# install GEOfastq
+remotes::install_github('alexvpickering/GEOfastq')
+
 # download bulk fastqs to appropriate directory for example app
 # for EC2 instance: /srv/drugseqr/example/bulk
 data_dir <- 'path/to/app_dir/example/bulk'
@@ -77,6 +80,28 @@ srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
 GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
 ```
 
+## Adding bulk microarray datasets
+
+[crossmeta](https://github.com/alexvpickering/crossmeta) has a couple of utilities that make adding public bulk microarray datasets particularly easy. For example, install `crossmeta` then:
+
+```R
+# install crossmeta
+remotes::install_github('alexvpickering/crossmeta')
+
+# download microarray data to appropriate directory for example app
+# for EC2 instance: /srv/drugseqr/example/bulk
+data_dir <- 'path/to/app_dir/example/bulk'
+gse_name <- 'GSE17400'
+crossmeta::get_raw(gse_name, data_dir)
+
+# load/annotate/save microarray data
+eset <- crossmeta::load_raw(gse_name, data_dir)
+
+# covert saved format for drugseqr
+drugseqr::from_crossmeta(gse_name, data_dir)
+```
+
+When you start up `drugseqr`, the added microarray dataset will be available.
 
 ## EC2 installation and setup
 

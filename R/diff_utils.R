@@ -144,10 +144,7 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 #' @return result of \link[limma]{toptable}
 #' @export
 get_top_table <- function(lm_fit, groups = c('test', 'ctrl'), with.es = TRUE, robust = TRUE) {
-
-  groups <- make.names(groups)
-  contrast <- paste(groups[1], groups[2], sep = '-')
-
+  contrast <- paste(make.names(groups[1]), make.names(groups[2]), sep = '-')
 
   ebfit <- fit_ebayes(lm_fit, contrast, robust = robust)
   tt <- limma::topTable(ebfit, coef = contrast, n = Inf, sort.by = 'p')
