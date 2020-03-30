@@ -126,7 +126,9 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
 #' @export
 get_top_table <- function(lm_fit, groups = c('test', 'ctrl'), with.es = TRUE, robust = TRUE) {
 
+  groups <- make.names(groups)
   contrast <- paste(groups[1], groups[2], sep = '-')
+
 
   ebfit <- fit_ebayes(lm_fit, contrast, robust = robust)
   tt <- limma::topTable(ebfit, coef = contrast, n = Inf, sort.by = 'p')
@@ -346,7 +348,9 @@ format_scaling <- function(scaling, adj, group, exprs) {
 #' @return result of \link[limma]{eBayes}
 #' @export
 fit_ebayes <- function(lm_fit, contrasts, robust = TRUE) {
+  colnames(lm_fit$fit$coefficients) <- colnames(lm_fit$mod) <- make.names(colnames(lm_fit$mod))
   contrast_matrix <- limma::makeContrasts(contrasts = contrasts, levels = lm_fit$mod)
+
   eb_fit <- limma::contrasts.fit(lm_fit$fit, contrast_matrix)
   eb_fit <- limma::eBayes(eb_fit, robust = robust)
   return (eb_fit)
