@@ -541,6 +541,13 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
   observeEvent(input$confirm, {
     removeModal()
 
+    # check for index
+    index_path <- get_kallisto_index(indices_dir)
+    if(!length(index_path)) {
+      error_msg('No kallisto index. See github README.')
+      return(NULL)
+    }
+
     # disable inputs
     disableAll(quant_inputs)
 
@@ -1701,4 +1708,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-

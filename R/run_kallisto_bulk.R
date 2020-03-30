@@ -24,17 +24,13 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
 
   # TODO: implement interaction between pairs and duplicates
   data_dir <- path.expand(data_dir)
-  species <- gsub(' ', '_', tolower(species))
 
   # default updateProgress and number of steps
   if (is.null(updateProgress)) updateProgress <- function(...) {NULL}
 
   # get index_path
   kallisto_version <- get_pkg_version('kallisto')
-
-  index_path <- file.path(indices_dir, paste0('kallisto_', kallisto_version))
-  index_path <- list.files(index_path, paste0(species, '.+?.cdna.all.release-', release, '_k31.idx'), full.names = TRUE)
-  if (!file.exists(index_path)) stop('No index found. See ?drugseqr.data::build_kallisto_index')
+  index_path <- get_kallisto_index(indices_dir, species, release)
 
   if (is.null(pdata)) pdata <- select_pairs(data_dir)
 
@@ -108,4 +104,25 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
                    fastq_path))
   }
   return(NULL)
+}
+
+
+#' Get path to kallisto index
+#'
+#' @param indices_dir Path to folder with indices dir
+#' @param species Character vector giving species
+#' @param release Character vector of EnsDB release number
+#'
+#' @return Path to kallisto index
+#' @export
+#' @keywords internal
+#'
+get_kallisto_index <- function(indices_dir, species = 'homo_sapiens', release = '94') {
+  kallisto_version <- get_pkg_version('kallisto')
+  species <- gsub(' ', '_', tolower(species))
+
+  index_path <- file.path(indices_dir, paste0('kallisto_', kallisto_version))
+  index_path <- list.files(index_path, paste0(species, '.+?.cdna.all.release-', release, '_k31.idx'), full.names = TRUE)
+
+  return(index_path)
 }

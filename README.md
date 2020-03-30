@@ -17,7 +17,11 @@ init_drugseqr(app_name, data_dir)
 run_drugseqr(app_name, data_dir)
 ```
 
-see below for details on adding single-cell/bulk datasets
+see below for details on adding single-cell/bulk datasets. Both require building a `kallisto` index for quantification. To do so run:
+
+```R
+drugseqr.data::build_kallisto_index('/srv/drugseqr')
+```
 
 
 ## Adding single-cell datasets
@@ -114,7 +118,7 @@ rm example_data.tar.gz
 sudo rsync -av example/ /srv/drugseqr/example/
 ```
 
-Build kallisto index (optional - if will quantify bulk/sc fastq files on the server):
+Build `kallisto` index (optional - if will quantify bulk/sc fastq files on the server):
 
 ```bash
 sudo docker run --rm \
