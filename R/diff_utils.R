@@ -27,7 +27,7 @@
 #' eset <- load_seq(data_dir)
 #' lm_fit <- run_limma(eset)
 #'
-run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL) {
+run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL, filter = FALSE) {
 
   # check for annot column
   if (!annot %in% colnames(Biobase::fData(eset)))
@@ -49,6 +49,9 @@ run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv 
     eset <- select_contrast(eset)
   }
 
+  # filtering low counts (as in tximport vignette)
+  if (filter & rna_seq) eset <- filter_genes(eset)
+
   # add vsd element for cleaning
   eset <- add_vsd(eset, rna_seq = rna_seq)
 
@@ -64,6 +67,22 @@ run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv 
                    numsv = numsv,
                    rna_seq = rna_seq)
   return (lm_fit)
+}
+
+#' Filter genes in RNA-seq ExpressionSet
+#'
+#' @param eset ExpressionSet with 'counts' assayDataElement and group column in pData
+#'
+#' @return filtered \code{eset}
+#' @export
+#' @keywords internal
+#'
+filter_genes <- function(eset) {
+  counts <- Biobase::assayDataElement(eset, 'counts')
+  keep <- edgeR::filterByExpr(counts, group = eset$group)
+  eset <- eset[keep, ]
+  if (!nrow(eset)) stop("No genes with reads after filtering")
+  return(eset)
 }
 
 #' Save lmfit result to disk

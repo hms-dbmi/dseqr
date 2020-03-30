@@ -8,7 +8,6 @@
 #' @param save_eset If TRUE (default) and either \code{load_saved} is \code{FALSE} or a saved \code{ExpressionSet} does not exist,
 #'   then an ExpressionSet will be saved to disk. Will overwrite if already exists.
 #' @param save_dgel If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.
-#' @param filter if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.
 #'
 #' @return \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:
 #' \itemize{
@@ -30,7 +29,7 @@
 #' data_dir <- 'data-raw/patient_data/sjia/bulk/mono'
 #' eset <- load_seq(data_dir, load_saved = FALSE)
 #'
-load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE, filter = TRUE) {
+load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', release = '94', load_saved = TRUE, save_eset = TRUE, save_dgel = FALSE) {
 
   # check if already have
   eset_path  <- file.path(data_dir, 'eset.rds')
@@ -180,7 +179,7 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #' @inheritParams load_seq
 #' @param return_deseq if \code{TRUE}, returns tximport result for DESeq2 workflow.
 #'
-#' @return \code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
+#' @return \code{DGEList} with length scaled counts.
 #' @keywords internal
 #' @export
 #'
@@ -220,14 +219,6 @@ import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', rele
   txi.deseq <- tximport::tximport(quants_paths, tx2gene = tx2gene, type = type,
                                   ignoreTxVersion = ignore, countsFromAbundance = 'no')
 
-
-  # filtering low counts (as in tximport vignette)
-  if (filter) {
-    keep <- edgeR::filterByExpr(quants)
-    quants <- quants[keep, ]
-    txi.deseq[1:3] <- lapply(txi.deseq[1:3], function(x) x[keep, ])
-    if (!nrow(quants)) stop("No genes with reads after filtering")
-  }
 
   if(return_deseq) return(txi.deseq)
   return(list(quants = quants, txi.deseq = txi.deseq))

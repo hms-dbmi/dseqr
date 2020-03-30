@@ -1677,6 +1677,8 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
     Biobase::pData(eset) <- pdata
 
+    # filter rows by expression
+    if (rna_seq) eset <- filter_genes(eset)
 
     # rlog normalize
     eset <- add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
@@ -1708,3 +1710,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+

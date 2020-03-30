@@ -16,8 +16,6 @@ import_quants(
 \arguments{
 \item{data_dir}{Directory with raw and quantified RNA-Seq files.}
 
-\item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
-
 \item{type}{Either \code{'salmon'} or \code{'kallisto'}. The package used for quantification. Must be on the PATH.}
 
 \item{species}{Character vector indicating species. Genus and species should be space seperated, not underscore. Default is \code{Homo sapiens}.}
@@ -27,7 +25,7 @@ import_quants(
 \item{return_deseq}{if \code{TRUE}, returns tximport result for DESeq2 workflow.}
 }
 \value{
-\code{DGEList} with length scaled counts. Lowly expressed genes are filtered.
+\code{DGEList} with length scaled counts.
 }
 \description{
 Import kallisto quants

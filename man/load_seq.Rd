@@ -11,8 +11,7 @@ load_seq(
   release = "94",
   load_saved = TRUE,
   save_eset = TRUE,
-  save_dgel = FALSE,
-  filter = TRUE
+  save_dgel = FALSE
 )
 }
 \arguments{
@@ -30,8 +29,6 @@ load_seq(
 then an ExpressionSet will be saved to disk. Will overwrite if already exists.}
 
 \item{save_dgel}{If TRUE, will save the \code{DGEList} object. Used for testing purposes. Default is \code{FALSE}.}
-
-\item{filter}{if \code{TRUE} (default), low count genes are filtered using \code{\link[edgeR]{filterByExpr}}.}
 }
 \value{
 \code{\link[Biobase]{ExpressionSet}} with attributes/accessors:

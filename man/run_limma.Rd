@@ -9,7 +9,8 @@ run_limma(
   annot = "SYMBOL",
   svobj = list(sv = NULL),
   numsv = 0,
-  prev_anal = NULL
+  prev_anal = NULL,
+  filter = FALSE
 )
 }
 \arguments{
