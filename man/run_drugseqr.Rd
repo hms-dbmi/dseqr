@@ -11,6 +11,7 @@ run_drugseqr(
   pert_query_dir = file.path(data_dir, "pert_query_dir"),
   pert_signature_dir = file.path(data_dir, "pert_signature_dir"),
   indices_dir = file.path(data_dir, "indices"),
+  tabs = c("Single Cell", "Bulk Data", "Drugs"),
   test = FALSE,
   test_data = FALSE,
   host = "0.0.0.0",

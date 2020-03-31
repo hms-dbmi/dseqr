@@ -1,5 +1,5 @@
-tabs <- c('Single Cell', 'Bulk Data', 'Drugs')
-active <- 'Single Cell'
+tabs <- getShinyOption('tabs')
+active <- tabs[1]
 
 bootstrapPage(
   useShinyjs(),

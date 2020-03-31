@@ -37,6 +37,7 @@ run_drugseqr <- function(app_name,
                          pert_query_dir = file.path(data_dir, 'pert_query_dir'),
                          pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
                          indices_dir = file.path(data_dir, 'indices'),
+                         tabs = c('Single Cell', 'Bulk Data', 'Drugs'),
                          test = FALSE,
                          test_data = FALSE,
                          host = '0.0.0.0',
@@ -45,12 +46,12 @@ run_drugseqr <- function(app_name,
   data_dir <- file.path(data_dir, app_name)
   if (!dir.exists(data_dir)) dir.create(data_dir)
 
-
   # pass arguments to app through options then run
   shiny::shinyOptions(data_dir = normalizePath(data_dir),
                       pert_query_dir = normalizePath(pert_query_dir),
                       pert_signature_dir = normalizePath(pert_signature_dir),
-                      indices_dir = normalizePath(indices_dir))
+                      indices_dir = normalizePath(indices_dir),
+                      tabs = tabs)
 
 
   if (test) {
@@ -89,7 +90,7 @@ run_drugseqr <- function(app_name,
 #'
 init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
 
-  data_dir <- file.path(app_dir, app_name)
+  data_dir <- file.path(data_dir, app_name)
   dir.create(data_dir, recursive = TRUE)
   dir.create(file.path(data_dir, 'bulk'))
   dir.create(file.path(data_dir, 'single-cell'))
