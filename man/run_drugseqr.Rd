@@ -27,6 +27,8 @@ run_drugseqr(
 
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
 
+\item{tabs}{Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.}
+
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 If \code{TRUE} test data will be used.}
 

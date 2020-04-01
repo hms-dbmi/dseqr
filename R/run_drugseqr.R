@@ -8,6 +8,7 @@
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
 #' @param indices_dir Path to directory containing \code{kallisto} indices and whitelists.
+#' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}

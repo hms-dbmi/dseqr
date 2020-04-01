@@ -1545,6 +1545,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       # loses sync when groups selected and change dataset
       req(all(groups %in% colnames(lm_fit$mod)))
 
+      groups <- make.names(groups)
+
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
       res <- get_path_res(ebfit, go_path, kegg_path)
@@ -1710,4 +1712,5 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
 
