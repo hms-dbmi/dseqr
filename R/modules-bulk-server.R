@@ -119,8 +119,9 @@ bulkMDS <- function(input, output, session, explore_eset) {
     factor(group, levels = group_levels)
   })
 
+
   group_colors <- reactive({
-    RColorBrewer::brewer.pal(8, 'Set2')[seq_along(levels(group()))]
+    get_palette(levels(group()))
   })
 
 
@@ -1081,10 +1082,6 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' @keywords internal
 bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
-  # colors
-  group_colors <- RColorBrewer::brewer.pal(8, 'Set2')
-  ncolors <- length(group_colors)
-
   # things user will update and return
   pdata_r <- reactiveVal()
   pdata_path <- reactive(file.path(dataset_dir(), 'pdata_explore.rds'))
@@ -1165,6 +1162,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
     group_nums  <- group_nums[ind]
     group_names <- group_names[ind]
 
+    group_colors <- get_palette(group_nums)
     for (i in seq_along(group_nums)) {
       group_num <- group_nums[i]
       group_name <- group_names[i]
@@ -1394,7 +1392,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     get_group_levels(pdata())
   })
 
-  group_colors <- reactive(get_group_colors(group_levels()))
+  group_colors <- reactive(get_palette(group_levels()))
 
   group_choices <- reactive({
 
