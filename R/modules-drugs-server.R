@@ -691,8 +691,8 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
       '<extra></extra>')
   }
 
-  xrange <- c(min(floor(c(path_df$Dprime, path_df$dprime_sum)), -1),
-              max(ceiling(c(path_df$Dprime, path_df$dprime_sum)),  1))
+  xrange <- c(min(floor(c(path_df$Dprime - path_df$sd, path_df$dprime_sum)), -1),
+              max(ceiling(c(path_df$Dprime + path_df$sd, path_df$dprime_sum)),  1))
 
 
   # 30 pixels width per gene in pathway
