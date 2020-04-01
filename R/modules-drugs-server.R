@@ -98,7 +98,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
   have_query <- reactive(isTruthy(drugStudy$query_res()))
 
   observe(toggle('drug_study_container', condition = have_queries()))
-  observe(toggle('pert_signature_container', condition = have_query() & !(selectedAnal$is_custom() | selectedAnal$is_pert())))
+  observe(toggle('pert_signature_container', condition = have_query() & !selectedAnal$is_pert()))
 
   return(list(
     top_table = selectedAnal$top_table,
@@ -602,6 +602,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
+    if (nrow(path_df) == 0) return(NULL)
 
     plot_dprimes(path_df)
 
@@ -628,41 +629,82 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #' @keywords internal
 plot_dprimes <- function(path_df, drugs = TRUE) {
 
+
+  is_custom <- all(abs(path_df$Dprime) == 0.001)
+  if (is_custom) {
+    path_df$direction <- 'up'
+    path_df$direction[path_df$Dprime < 0] <- 'down'
+  }
+
+  # hovertemplate tooltips miss-behaves when single row
+  # fix is direct substitution
+  if (nrow(path_df) == 1) {
+    sd <- path_df$sd
+    pval <- path_df$pval
+    text <- path_df$Gene
+    dprime <- path_df$Dprime
+    ambient <- path_df$ambient
+    direction <- path_df$direction
+    description <- path_df$description
+
+  } else {
+    sd <- '%{customdata.sd:.2f}'
+    pval <- '%{customdata.pval}'
+    text <- '%{text}'
+    dprime <- '%{x:.2f}'
+    ambient <- '%{customdata.ambient}'
+    direction <- '%{customdata.direction}'
+    description <- '%{customdata.description}'
+  }
+
   if (drugs) {
     fontsize = 12
     pergene = 25
     title <- 'Standardized Effect Size for Query Genes'
-    hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: %{text}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: %{customdata.description}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: %{customdata.pval}',
-      '<extra></extra>')
+    if (is_custom) {
+      hovertemplate = paste0(
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Direction</span>: ', direction, '<br>',
+        '<extra></extra>')
+
+    } else {
+      hovertemplate = paste0(
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+        '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
+        '<extra></extra>')
+    }
 
   } else {
     fontsize = 14
     pergene = 35
     title <- 'Standardized Pseudobulk Effect Size for Each Cluster'
     hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: %{text}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: %{x:.2f}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: %{customdata.sd:.2f}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: %{customdata.pval}<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: %{customdata.ambient}',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: ', text, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: ', ambient,
       '<extra></extra>')
   }
+
+  xrange <- c(min(floor(c(path_df$Dprime, path_df$dprime_sum)), -1),
+              max(ceiling(c(path_df$Dprime, path_df$dprime_sum)),  1))
+
 
   # 30 pixels width per gene in pathway
   ngenes <- length(unique(path_df$Gene))
   plot_height <- max(400, ngenes*pergene + 125)
-
+  customdata <- apply(path_df, 1, as.list)
 
   (pl <- plotly::plot_ly(data = path_df,
                          y = ~Gene,
                          x = ~Dprime,
                          text = ~Gene,
-                         customdata = apply(path_df, 1, as.list),
+                         customdata = customdata,
                          type = 'scatter',
                          mode = 'markers',
                          height = plot_height,
@@ -681,9 +723,10 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
                      toImageButtonOptions = list(format = "png", filename = 'blah')) %>%
       plotly::layout(hoverdistance = -1,
                      hovermode = 'y',
-                     margin = list(t = 65, r = 20, l = 0, pad = 10),
+                     margin = list(t = 65, r = 20, l = 0, pad = 1),
                      title = list(text = title, y = 1, x = 0),
                      xaxis = list(fixedrange = TRUE,
+                                  range = xrange,
                                   rangemode = "tozero",
                                   side = 'top',
                                   title = '',
@@ -850,6 +893,17 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
     } else if (is_bulk()) {
       top_table <- bulkAnal$top_table()
+
+    } else if (is_custom()) {
+      fname <- paste0('query_genes_', sel_name(), '.rds')
+      query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
+      up <- query_genes$up
+      dn <- query_genes$dn
+      top_table <- data.frame(dprime = c(rep(-0.001, length(up)), rep(0.001, length(dn))),
+                              vardprime = 0,
+                              adj.P.Value = NA,
+                              row.names = c(up, dn))
+
 
     } else {
       top_table <- NULL
