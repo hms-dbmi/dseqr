@@ -759,6 +759,10 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     # use saved anals as options
     integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
     individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+
+    # exclude individual without scseq (e.g. folder with fastq.gz files only)
+    has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+    individual <- individual[unlist(has.scseq)]
     return(individual)
   })
 
@@ -1712,5 +1716,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-
-
