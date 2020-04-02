@@ -16,7 +16,12 @@ bootstrapPage(
   includeCSS(path = 'www/pathways.css'),
   navbarUI(tabs, active),
   fluidPage(
-    tags$div(class = "tab-content", `data-tabsetid` = "tabset", id = "tabs",
+    tags$div(class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
+             # rintrojs stuff
+             span(id = 'start_tour', class='action-button shiny-bound-input btn-intro-icon btn-intro', icon('info', 'fa-fw fa-w-6')),
+             shinyBS::bsTooltip(id = 'start_tour', title = 'Tour this page', placement = 'right', options = list(container = 'body')),
+
+             # tabs
              scPageUI("sc", tab = 'Single Cell', active),
              bulkPageUI('bulk', tab = 'Bulk Data', active),
              drugsPageUI("drug", tab = 'Drugs', active)

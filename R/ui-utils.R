@@ -22,14 +22,14 @@ navbarUI <- function(tabs, active) {
                 )
             ),
             div(id = 'bs-navbar', class = 'collapse navbar-collapse',
-                ul(class = 'nav navbar-nav', `data-tabsetid` = 'tabset',
+                ul(class = 'nav navbar-nav shiny-tab-input shiny-bound-input', `data-tabsetid` = 'tabset', id = 'tabs',
                    lapply(seq_along(tabs), function(i) {
                      tab <- tabs[i]
                      is.active <- tab == active
                      li(class = ifelse(is.active, 'active', ''), `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
                         a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
                      )
-                   })
+                   }),
                    # docs section
                    # li(class = 'navbar-right',
                    #    a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')

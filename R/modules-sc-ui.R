@@ -6,11 +6,6 @@ scPageUI <- function(id, tab, active) {
   active_class <- ifelse(tab == active, 'active', '')
   withTags({
     div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
-
-
-        # rintrojs stuff
-        span(id = ns('start_tour'), class='action-button shiny-bound-input btn-intro-icon btn-intro', icon('info', 'fa-fw fa-w-6')),
-        shinyBS::bsTooltip(id = ns('start_tour'), title = 'Tour this page', placement = 'right', options = list(container = 'body')),
         div(class = 'row',
             div(class = 'col-sm-12 col-lg-6',
                 scFormInput(ns('form'))
