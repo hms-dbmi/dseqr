@@ -40,6 +40,7 @@ Imports:
     plotly (>= 4.9.1),
     randomcoloR (>= 1.1.0.1),
     rlang (>= 0.4.3),
+    rintrojs (>=0.2.2),
     shiny (>= 1.4.0),
     shinyBS (>= 0.61),
     shinyjs (>= 1.1),

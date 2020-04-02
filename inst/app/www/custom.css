@@ -485,3 +485,22 @@ and (max-device-width : 1024px) {
         display: none !important;
     }
  }
+
+
+.btn-intro {
+  border: 1px solid #ddd;
+  padding: 4px;
+  padding-top: 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+  position: relative;
+  bottom: 30px;
+  color:#333;
+}
+
+.btn-intro:hover {
+  background:#333;
+  color:#fff;
+  border-color:transparent;
+}

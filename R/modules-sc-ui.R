@@ -6,12 +6,21 @@ scPageUI <- function(id, tab, active) {
   active_class <- ifelse(tab == active, 'active', '')
   withTags({
     div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
+
+
+        # rintrojs stuff
+        span(id = ns('start_tour'), class='action-button shiny-bound-input btn-intro-icon btn-intro', icon('info', 'fa-fw fa-w-6')),
+        shinyBS::bsTooltip(id = ns('start_tour'), title = 'Tour this page', placement = 'right', options = list(container = 'body')),
         div(class = 'row',
             div(class = 'col-sm-12 col-lg-6',
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                scClusterPlotOutput(ns('cluster_plot'))
+                rintrojs::introBox(
+                  scClusterPlotOutput(ns('cluster_plot')),
+                  data.step = 4,
+                  data.intro = "TSNE plot of clusters and associated labels."
+                )
             )
         ),
         hr(),
@@ -19,14 +28,22 @@ scPageUI <- function(id, tab, active) {
             # row for cluster comparison
             div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
                 div(class = "col-sm-12 col-lg-6 col-lg-push-6",
-                    scMarkerPlotOutput(ns('marker_plot_cluster'))
+                    rintrojs::introBox(
+                      scMarkerPlotOutput(ns('marker_plot_cluster')),
+                      data.step = 9,
+                      data.intro = "TSNE plot for the selected feature."
+                    )
                 ),
                 div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin beside-downloadable",
                     div(id = ns('biogps_container'),
                         scBioGpsPlotOutput(ns('biogps_plot'))
                     ),
                     div(style = 'display: none;', id = ns('ridge_container'),
-                        scRidgePlotOutput(ns('ridge_plot'))
+                        rintrojs::introBox(
+                          scRidgePlotOutput(ns('ridge_plot')),
+                          data.step = 10,
+                          data.intro = 'Ridgeline plot shows distribution of selected feature in each cluster.'
+                        )
                     )
                 )
             ),
@@ -60,9 +77,9 @@ scPageUI <- function(id, tab, active) {
 #' @keywords internal
 scFormInput <- function(id) {
   ns <- NS(id)
-
   withTags({
     div(class = "well-form well-bg",
+
         scSelectedDatasetInput(ns('dataset')),
         div(class = 'hidden-forms',
             labelTransferFormInput(ns('transfer')),
@@ -76,7 +93,12 @@ scFormInput <- function(id) {
             # inputs for comparing clusters
             div(id = ns('cluster_comparison_inputs'),
                 clusterComparisonInput(ns('cluster')),
-                selectedGeneInput(ns('gene_clusters'))
+                rintrojs::introBox(
+                  data.step = 8,
+                  data.position = 'right',
+                  data.intro = "Select a gene or QC feature to plot for this intro.",
+                  selectedGeneInput(ns('gene_clusters'))
+                )
             ),
             # inputs for comparing samples
             div(id = ns('sample_comparison_inputs'), style = 'display: none',
@@ -118,10 +140,32 @@ scSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    selectizeInputWithButtons(ns('selected_dataset'), 'Select a single-cell dataset:',
-                              actionButton(ns('show_label_transfer'), '', icon = icon('tag', 'fa-fw'), title = 'Toggle label transfer', class = 'squashed-btn', `parent-style`='display: none;'),
-                              actionButton(ns('show_integration'), '',icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate dataset(s)'),
-                              options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)),
+    rintrojs::introBox(
+      data.step = 1,
+      data.position = 'right',
+      data.intro = "Select a dataset to explore for this intro.",
+      selectizeInputWithButtons(
+        ns('selected_dataset'),
+        label = 'Select a single-cell dataset:',
+        actionButton(
+          ns('show_label_transfer'), '',
+          icon = icon('tag', 'fa-fw'),
+          title = 'Toggle label transfer',
+          class = 'squashed-btn',
+          `parent-style`='display: none;',
+          `data-step` = 2,
+          `data-intro` = "Toggles inputs for transfering labels from another dataset to the selected dataset."),
+        actionButton(
+          ns('show_integration'), '',
+          icon = icon('object-ungroup', 'far fa-fw'),
+          title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate dataset(s)',
+          `data-step` = 3,
+          `data-intro` = "<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br>
+          <b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and
+          drug queries for a set of test samples in comparison to a set of control samples."),
+        options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE))
+    ),
+
     shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
 
   )
@@ -216,27 +260,44 @@ clusterComparisonInput <- function(id) {
 
   withTags({
     tagList(
-      div(id = ns('selected_cluster_panel'),
-          div(id = ns('select_panel'),
-
-              selectizeInputWithButtons(ns('selected_cluster'),
-                                        label = 'Show marker genes for:',
-                                        label_title = 'Cluster (n cells :: % of total)',
-                                        actionButton(ns('show_rename'), '',
-                                                     icon = icon('tag', 'fa-fw'),
-                                                     title = 'Toggle rename cluster'),
-                                        actionButton(ns('show_contrasts'), '',
-                                                     icon = icon('chevron-right', 'fa-fw'),
-                                                     title = 'Toggle single group comparisons')
+      rintrojs::introBox(
+        data.step = 5,
+        data.position = 'top',
+        data.intro = "Select a cluster to sort genes by.</br> Select nothing to show QC features first.</br></br>
+      A selected cluster is compared to each other cluster and then a meta-analysis is performed for each gene to order marker genes.",
+        div(
+          div(id = ns('selected_cluster_panel'),
+              div(id = ns('select_panel'),
+                  selectizeInputWithButtons(
+                    ns('selected_cluster'),
+                    label = 'Sort marker genes for:',
+                    label_title = 'Cluster (n cells :: % of total)',
+                    actionButton(ns('show_rename'), '',
+                                 icon = icon('tag', 'fa-fw'),
+                                 title = 'Toggle rename cluster',
+                                 `data-step` = 6,
+                                 `data-position` = 'top',
+                                 `data-intro` = "Click here to rename the selected cluster."
+                    ),
+                    actionButton(ns('show_contrasts'), '',
+                                 icon = icon('chevron-right', 'fa-fw'),
+                                 title = 'Toggle single group comparisons',
+                                 `data-step` = 7,
+                                 `data-position` = 'top',
+                                 `data-intro` = "Click here to sort genes by comparing the selected cluster to one other cluster.</br></br> This is usefull for distinguishing closely related clusters."
+                    )
+                  )
               )
           )
-      ),
-      div(id = ns('rename_panel'), style = 'display: none',
-          textInputWithButtons(ns('new_cluster_name'),
-                               'New cluster name:',
-                               actionButton(ns('rename_cluster'), '',
-                                            icon = icon('plus', 'fa-fw'),
-                                            title = 'Rename cluster'))
+        ),
+        div(id = ns('rename_panel'), style = 'display: none',
+            textInputWithButtons(ns('new_cluster_name'),
+                                 'New cluster name:',
+                                 actionButton(ns('rename_cluster'), '',
+                                              icon = icon('plus', 'fa-fw'),
+                                              title = 'Rename cluster'))
+        )
+
       )
     )
   })
@@ -250,7 +311,17 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
   btn1 <- btn2 <- btn3 <- NULL
   gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;')
-  custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
+  custom_btn <- actionButton(ns('show_custom_metric'),
+                             label = NULL,
+                             icon = tags$i(class ='far fa-fw fa-edit'),
+                             title = 'Toggle custom metric',
+                             `data-step`=11,
+                             `data-position` = 'left',
+                             `data-intro`="Click to plot complex metrics. For example:</br></br>
+                             <code>FTL*(cluster==1)</code> shows FTL expression in cluster 1.</br></br>
+                             <code>FTL*is_ctrl</code> or <code>FTL*is_test</code> shows FTL expression in control or test samples for integrated datasets.</br></br>
+                             <code>doublet_score>3|mito_percent>15</code> shows cells that meet this criteria.</br></br>
+                              Saved boolean custom metrics can be used for subsetting a dataset for QC or subclustering.")
   amb_btn    <- actionButton(ns('exclude_ambient'), label = NULL, icon = icon('ban', 'fa-fw'), title = 'Toggle excluding ambient genes')
   ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
 

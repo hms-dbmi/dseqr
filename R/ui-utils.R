@@ -32,7 +32,7 @@ navbarUI <- function(tabs, active) {
                    })
                    # docs section
                    # li(class = 'navbar-right',
-                   # a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+                   #    a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
                    # )
                 )
             )

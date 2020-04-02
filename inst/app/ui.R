@@ -3,6 +3,7 @@ active <- tabs[1]
 
 bootstrapPage(
   useShinyjs(),
+  rintrojs::introjsUI(),
   # scrollspy for docs tab
   extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}"),
   includeScript(path = 'www/renderSelectize.js'),
