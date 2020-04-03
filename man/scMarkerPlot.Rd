@@ -11,7 +11,6 @@ scMarkerPlot(
   scseq,
   selected_feature,
   dataset_name,
-  downloadable = TRUE,
   custom_metrics = function() NULL
 )
 }

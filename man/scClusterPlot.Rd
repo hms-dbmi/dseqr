@@ -4,15 +4,7 @@
 \alias{scClusterPlot}
 \title{Logic for cluster plots}
 \usage{
-scClusterPlot(
-  input,
-  output,
-  session,
-  scseq,
-  selected_cluster,
-  dataset_name,
-  downloadable = FALSE
-)
+scClusterPlot(input, output, session, scseq, selected_cluster, dataset_name)
 }
 \description{
 Logic for cluster plots

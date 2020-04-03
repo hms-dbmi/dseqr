@@ -24,8 +24,8 @@ bootstrapPage(
              # tabs
              scPageUI("sc", tab = 'Single Cell', active),
              bulkPageUI('bulk', tab = 'Bulk Data', active),
-             drugsPageUI("drug", tab = 'Drugs', active)
-             # docsPageUI('docs', tab = 'docs', active)
+             drugsPageUI("drug", tab = 'Drugs', active),
+             docsPageUI('docs', tab = 'Docs', active)
 
     )
   )

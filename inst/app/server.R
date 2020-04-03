@@ -36,6 +36,9 @@ server <- function(input, output, session) {
   dir.create(sc_dir, showWarnings = FALSE)
   dir.create(bulk_dir, showWarnings = FALSE)
 
+  # hide tour button for docs page
+  observe(toggleClass('start_tour', 'invisible', condition = input$tabs == 'Docs'))
+
 
   # rintrojs
   observeEvent(input$start_tour, {
@@ -45,6 +48,9 @@ server <- function(input, output, session) {
       steps <- read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
     } else if (input$tabs == 'Drugs') {
       steps <- read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
+    } else {
+      print(input$tabs)
+      return(NULL)
     }
 
     rintrojs::introjs(session,

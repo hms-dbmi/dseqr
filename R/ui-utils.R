@@ -30,10 +30,15 @@ navbarUI <- function(tabs, active) {
                         a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
                      )
                    }),
-                   # docs section
+                   # TODO: uncomment once repo is public
+                   # github linkout section
                    # li(class = 'navbar-right',
-                   #    a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
-                   # )
+                   #    a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
+                   # ),
+                   # docs section
+                   li(class = 'navbar-right',
+                      a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+                   )
                 )
             )
         )

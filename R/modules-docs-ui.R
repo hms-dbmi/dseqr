@@ -18,45 +18,23 @@ docsPageUI <- function(id, tab, active) {
                      content = tagList(
                        HTML(
                          "<p><a href='https://pachterlab.github.io/kallisto/about'>kallisto</a> is used for
-                         quantification and workflow recommendations from <a href='https://osca.bioconductor.org/'>osca.bioconductor.org</a> are followed.</p>"
+                         quantification and workflow recommendations from <a href='https://osca.bioconductor.org/'>osca.bioconductor.org</a> are followed.
+                         Choices are described below.</p>"
                        )
                      )
 
       ),
-      # Manual cluster labeling ----
-      docsSubsection(id = 'sc-label-clusters',
-                     name = 'Manual cluster labeling',
-                     content = tagList(
-                       HTML(
-                         "<p>To identify a single-cell cluster, first <b>Select a single-cell dataset</b>. All clusters with their current labels
-                       are plotted to the right of the input panel. Next, select a cluster to <b>Sort marker genes for</b> and
-                       select a <b>Feature to plot</b>.</p>"
-                       ),
-                       img(src = 'docs-sc-inputs.png', class = 'bs-docs-img'),
-                       div(class = 'bs-callout bs-callout-info',
-                           h4('Gene names on hover'),
-                           p('To see the full name for a gene, hover either the selected gene symbol or a gene symbol in the dropdown list.')
-                       ),
-                       HTML(
-                         "<p>A plot for the selected gene will show up below the cluster plot. If available, a plot of the BioGPS data on
-                       tissue-specific transcription for the chosen gene will also appear below the input panel. Continue to explore
-                       marker genes for the chosen cluster in order to identify the cell type. Click the
-                       <span class='bs-docs-btn'><i class='fa fa-external-link-alt fa-fw'></i></span>
-                       button to visit the GeneCards entry for a selected gene. In order to distinguish similar clusters,
-                       you can toggle single group comparisons. This will calculate marker genes by comparing the chosen cluster to another
-                       cluster instead of to each other clusters.</p>"
-                       ),
-                       img(src = 'docs-sc-single_group.png', class = 'bs-docs-img'),
-                       HTML("
-                          <p>Once you have an identity in mind for a cluster, click the rename cluster toggle, type a <b>New cluster name</b>,
-                          and click <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> to rename the cluster. To return to
-                          the cluster selection without renaming the cluster, leave the cluster name text input blank and click
-                          <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span>.</p>
-                          "),
-                       img(src = 'docs-sc-rename.png', class = 'bs-docs-img'),
-                       img(src = 'docs-sc-new_name.png', class = 'bs-docs-img')
-                     )
-
+      # Feature selection and clustering ----
+      docsSubsection(
+        id = 'sc-preprocessing',
+        name = 'Feature selection and clustering',
+        content = tagList(
+          HTML("
+        <p>Highly variable genes are taken as those within the top 10% of biological variance.</p>
+        <p><code>igraph::cluster_walktrap</code> is used for datasets with less than 10,000 cells. For larger datasets, <code>igraph::cluster_louvain</code> is used for speed.
+        <a href='https://osca.bioconductor.org/dimensionality-reduction.html#based-on-population-structure'>getClusteredPCs</a> is used to pick the number of principle components to use for clustering. This is quite slow but generally provides satisfactory clustering.
+        </p>")
+        )
       ),
       # Automatic cluster labeling ----
       docsSubsection(
@@ -64,18 +42,12 @@ docsPageUI <- function(id, tab, active) {
         name = 'Automatic cluster labeling',
         content = tagList(
           HTML("
-        <p>To automate cell cluster labeling, labels are transfered from a previously labeled dataset to the current dataset. To transfer
-        labels, first <b>Select a dataset</b> to transfer labels to and click the label transfer toggle.</p>
-        "),
-          img(src = 'docs-sc-label_transfer.png', class = 'bs-docs-img'),
-          HTML("
-             <p>Next, select another single cell data to <b>Transfer labels from</b> and click run label transfer</p>
+        <p>To automate cell cluster labeling, labels are transfered from a previously labeled dataset to the current dataset using <a href='https://bioconductor.org/packages/release/bioc/html/SingleR.html'>SingleR</a>.
+        If the two datasets share an ancestor through subsetting, labels are transfered by selecting the most frequent label in the reference dataset. Because this is substantially faster, these datasets are the first choices shown.</p>
+
+        <p>To transfer labels, first <b>Select a dataset</b> to transfer labels to and click the label transfer toggle.
+        Next, select another single cell dataset to <b>Transfer labels from</b>. If you are satisfied, go ahead and overwrite the previous labels.</p>
              "),
-          img(src = 'docs-sc-run_transfer.png', class = 'bs-docs-img'),
-          HTML("
-             <p>Inspect the predicted labels in the various plots. If you are satisfied, go ahead and overwrite the previous labels.</p>
-             "),
-          img(src = 'docs-sc-overwrite_labels.png', class = 'bs-docs-img'),
           div(class = 'bs-callout bs-callout-info',
               h4('Mix automatic and manual labeling'),
               p('Automatic cell-type labeling is often a good starting point for further refinements through manual labeling.')
@@ -85,20 +57,20 @@ docsPageUI <- function(id, tab, active) {
       # Integrate datasets ----
       docsSubsection(
         id = 'sc-integrate-samples',
-        name = 'Integrate datasets',
+        name = 'Dataset integration',
         content = tagList(
           HTML("
-             <p>Integrating single cell samples opens up cross-sample differential expression analyses, pathway analyses, and drug queries.
+             <p>Integrating single cell samples allows for cross-sample differential expression analyses, differential abundance analyses, pathway analyses, and drug queries.
              To integrate single cell samples, click the dataset integation toggle and fill in the inputs.</p>
+             <p>Integrated datasets with at least three samples will use the same <code>limma</code> pipeline used for bulk analyses with <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions'>pseudobulk</a> expression profiles.
+             Aggregative methods <a href='https://www.biorxiv.org/content/biorxiv/early/2019/07/26/713412.full.pdf'>outperform</a> methods that treat each cell as an independant replicate.</p>
+
              "),
-          img(src = 'docs-sc-integration.png', class = 'bs-docs-img'),
           div(class = 'bs-callout bs-callout-danger',
               h4('Identify incorrectly integrated clusters'),
-              HTML('<p>After integrating datasets, you should check to see if any cell-clusters were incorrectly grouped (e.g. RBCs from one sample
-              cluster with B-cells from another sample). To do this, select the newly integrated dataset and inspect the original labels by choosing
-              to <b>Perform comparisons between</b> labels. This will <b>Show original labels for</b> samples in the integrated dataset but with the dimensionality
-                 reduction based on the integrated dataset.</p>'),
-              img(src = 'docs-sc-label_comparison.png', class = 'bs-docs-img')
+              HTML('<p>After integrating datasets, you should look out for clusters that were incorrectly grouped (e.g. RBCs from one sample
+              cluster with B-cells from another sample). One way to do this is to select the newly integrated dataset and inspect the source clusters for each new integrated cluster by choosing
+              to <b>Perform comparisons between: labels</b>.</p>'),
           ),
           div(class = 'bs-callout bs-callout-danger',
               h4('Exclude incorrectly integrated clusters'),
@@ -108,33 +80,21 @@ docsPageUI <- function(id, tab, active) {
           )
         )
       ),
-      # Differential expression analysis ----
+      # Excluding ambient genes ----
       docsSubsection(
         id = 'sc-differential-expression',
-        name = 'Differential expression analysis',
+        name = 'Excluding ambient genes',
         content = tagList(
-          HTML("
-             <p>Differential expression analysis allows you to compare one or more cell clusters across single cell samples. To run cross-sample
-             differential expression, select an integrated single cell dataset and choose to <b>Perform comparisons between</b> samples. Next,
-             choose clusters to <b>Compare samples for</b> and click <span class='bs-docs-btn'><i class='fa fa-chevron-right fa-fw'></i></span> to
-             run differential expression analysis.</p>
-             "),
-          img(src = 'docs-sc-diff_expr.png', class = 'bs-docs-img'),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Integrated differential expression algorithm'),
-              HTML('<p>Differential expression analysis is currently run using <code>limma</code> on <code>Seurat::SCTransform</code> log normalized counts
-                 from the non-integrated data. In practice, we found that this ranks genes similarly as <code>Seurat::FindMarkers</code> but is much
-                 faster, allows pathway analysis and drug queries to use comparable algorithms as used for bulk datasets, and opens up the possibility of transitioning to pseudo-bulk
-                 analyses.</p>')
-          ),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Excluding ambient genes'),
-              HTML("<p>Single cell samples are often plagued by contamination from ruptured cells (seen for example as high baseline expression of
+
+          HTML("<p>Single cell samples are often plagued by contamination from ruptured cells (seen for example as high baseline expression of
                  RBC specific genes in non RBCs). We originally used <code>soupx</code> to correct for this ambient expression but found that correction
                  would often result in misleading differences between samples. Ambient genes are now identified as those that are outliers in
                  empty droplets with less than ten counts and can be excluded by clicking <span class='bs-docs-btn'><i class='fa fa-ban fa-fw'></i></span>.
-                 This simple approach doesn't alter the expression profile and so avoids misleading corrections.</p>")
-          )
+                 This simple approach doesn't alter the expression profile and so avoids misleading corrections. This approach is also suggested
+               by the authors of the <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#ambient-problems'>osca</a> handbook.</p>
+               <p>We additionally only call a gene as ambient if the sample it is in would change the direction of differential expression. For example,
+               if a gene is up-regulated in test samples and called as ambient in one or more control samples, then it won't be excluded. The high background
+               expression in the control samples results in a more conservative estimate of differential expression but does not change the direction.</p>")
         )
       )
     ))
@@ -145,14 +105,14 @@ docsPageUI <- function(id, tab, active) {
     id = 'ds-docs', name = 'Bulk Data',
     content = list(
       # Workflow ----
-      docsSubsection(id = 'bulk-workflow',
-                     name = 'Workflow',
+      docsSubsection(id = 'bulk-overview',
+                     name = 'Overview',
                      content = tagList(
                        HTML(
                          "<p><a href='https://pachterlab.github.io/kallisto/about'>kallisto</a> is used for
-                         quantification, surrogate variable analysis is used to discover and account for sources of variation,
-                         limma is used for fixed and mixed effect differential expression analysis as well as pathway analysis
-                         with cameraPR. Standardized effect sizes (moderated t-statistics in units of standard deviation) are reported
+                         quantification, <a href='https://bioconductor.org/packages/release/bioc/html/sva.html'>surrogate variable analysis</a> is used to discover and account for sources of variation,
+                         <code>limma</code> is used for fixed and mixed effect differential expression analysis as well as pathway analysis
+                         with <code>cameraPR</code>. Standardized effect sizes (moderated t-statistics in units of standard deviation) are reported
                          and are amenable to meta-analyses."
                        )
                      )
@@ -164,68 +124,17 @@ docsPageUI <- function(id, tab, active) {
         name = 'Quantifying RNA-seq datasets',
         content = tagList(
           HTML("<p>To add a new dataset, first make sure the <b>Dataset name</b> input is empty. Then type
-                 a name for your new bulk or single-cell dataset and press enter. You will be prompted to select a subfolder of either the <code>bulk</d>
-                 folder containing fastq.gz files or a subfolder of the </code>single-cell</code> folder containing either fastq.gz or Cell Ranger files.</p>"
+                 a name for your new bulk dataset and press enter. You will be prompted to select a subfolder containing fastq.gz files.</p>"
           ),
-          img(src = 'docs-ds-dataset_name.png', class = 'bs-docs-img'),
           div(class = 'bs-callout bs-callout-danger',
               h4('Expand subfolders on left only'),
-              p('Subfolders can only be expanded on the left side of the popup when selecting a folder with fastq.gz or cellranger files.')
+              p('Subfolders can only be expanded on the left side of the popup when selecting a folder with fastq.gz files.')
           ),
-
           p("If a folder with bulk fastq.gz files is selected, you will be prompted to confirm the auto-detected end type.
               If the end type is pair-ended, you will also need to indicate pairs. To do this, click the table rows corresponding to the
-              paired files and click Paired. If present, you should also indicate any files that are replicates of the same sample
-              before you run quantification."),
-          p("If a folder with single-cell fastq.gz files is selected, nothing further is necessary before running quantification.
-              Quantification uses",
-            tags$a(href = 'https://pachterlab.github.io/kallisto/about', target = '_blank', 'kallisto'),
-            "for both bulk and single-cell RNA-Seq data."),
-          p("After quantification completes, bulk datasets can be selected in the Datasets tab for differential expression and
-              exploratory analyses. Single-cell datasets will show up in the Single Cell tab for exploratory analyses and sample
-              integration."),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Single cell processing algorithm'),
-              p('For single cell datasets,',
-                tags$a(href = 'https://satijalab.org/seurat/', target='_blank', 'Seurat'),
-                'version 3.1 is used for normalization, dimensionality reduction, clustering, and to find marker genes for each cluster.',
-                tags$code('Seurat::SCTransform'),
-                'is used for normalization. The standard Seurat workflow is used for all other steps.'
-              )
-          )
+              paired files and click Paired. If present, you must also indicate any files that are replicates of the same sample
+              before you run quantification.")
         )),
-      # Differential expression ----
-      docsSubsection(
-        id = 'ds-differential-expression',
-        name = 'Differential expression',
-        content = tagList(
-          HTML("<p>To run differential expression analyses between two groups of samples in a dataset, first select a bulk dataset
-                  and ensure that the <b>differential expression</b> analysis type toggle is selected. Next, type a name for your new analysis in the <b>Analysis name</b>
-                  input and type enter.</p>"),
-          img(src = 'docs-ds-diff_expr.png', class = 'bs-docs-img'),
-          HTML("This will bring up additional buttons that allow you to label samples in your dataset as either test or control. For example, to
-                  label a group of samples as the test group, select the rows that correspond to test samples and click the <span class='bs-docs-btn'>test</span> button. After
-                  indicating control and test samples, click <span class='bs-docs-btn bs-docs-primary'>Run Analysis</span>."),
-          img(src = 'docs-ds-label_rows.png', class = 'bs-docs-img'),
-          div(class = 'bs-callout bs-callout-danger',
-              h4('Requires at least three samples'),
-              p('Differential expression analysis requires at least three samples total between control and test groups.')
-          ),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Differential expression analysis algorithm'),
-              p('Differential expression analysis is performed with',
-                tags$a(href = 'https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-2-r29', target='_blank', 'limma-voom.'),
-                'Counts are first imported in accordance with the',
-                tags$a(href = 'https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html#limma-voom', target='_blank', 'tximport vignette.'),
-                'Surrogate variables are discovered using',
-                tags$a(href = 'https://academic.oup.com/nar/article/42/21/e161/2903156', target='_blank', 'svaseq'),
-                'and included in the design matrix.')
-          ),
-          p("After running differential expression analysis, you can re-select the same analysis to view sample labels, download
-               a csv of the limma differential expression results, and inspect multidimensional scaling plots with and without accounting
-               for surrogate variables.")
-        )
-      ),
       # Sample-level gene expression ----
       docsSubsection(
         id = 'ds-gene-plots',
@@ -233,25 +142,12 @@ docsPageUI <- function(id, tab, active) {
         content = tagList(p("Sample level gene expression plots allow you to inspect normalized expression values for genes of
                               interest split by groups of interest. These plots allow you to see expression values for all
                               samples in order to avoid being misled by summary statistics."),
-                          img(src = 'docs-ds-genes_plot.png', class = 'bs-docs-img'),
-                          HTML("<p>To view sample level gene expression plots, select a dataset and make sure the <b>exploratory</b>
-                                  analysis type toggle is selected. If you have not already done so, label samples (table rows) for
-                                  groups of interest. To do this, select rows corresponding to a group of interest,
-                                  type a <b>Group name for selected rows</b> and click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> button to label the
-                                  selected samples. Finally, select genes to <b>Show expression for</b>.</p>"),
-                          img(src = 'docs-ds-explore_genes.png', class = 'bs-docs-img'),
-                          div(class = 'bs-callout bs-callout-danger',
-                              h4('Exploratory plots require two labeled groups'),
-                              p("Sample level gene expression plots won't show up unless at least two groups of samples are labeled. Previously
-                                  labeled groups will be saved between sessions.")
-                          ),
                           div(class = 'bs-callout bs-callout-info',
                               h4('Expression normalization algorithm for visualizations'),
-                              HTML("<p>Gene expression is normalized with the function <code>DESeq2::vst</code> with <code>blind = FALSE</code>.
+                              HTML("<p>Gene expression is normalized with the function <code>DESeq2::rlog</code> with <code>blind = FALSE</code>.
                                      For further details see
                                      <a href='http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization' target='_blank'>Data transformations and visualization</a>
-                                     in the DESeq2 vignette. The same function is used to normalize gene expression values for MDS plots after <a href='#ds-differential-expression'>differential expression</a> and for
-                                     <a href='#ds-cell-plots'>cell-type deconvolution</a>.</p>")
+                                     in the DESeq2 vignette. The same function is used to normalize gene expression values for MDS plots and for cell-type deconvolution.</p>")
                           )
         )
       ),
@@ -264,70 +160,26 @@ docsPageUI <- function(id, tab, active) {
                                confound differential expression but also point to important biology."),
                           div(class = 'bs-callout bs-callout-danger',
                               h4('Requires comparable single-cell dataset'),
-                              HTML("<p>Cell-type deconvolution requires a single-cell dataset that contains atleast the cell types that you expect
+                              HTML("<p>Cell-type deconvolution requires a single-cell dataset that contains at least the cell types that you expect
                                      to observe in the bulk dataset that you are deconvoluting.</p>")
                           ),
-                          img(src = 'docs-ds-cell_deconvolution.png', class = 'bs-docs-img'),
-                          HTML("<p>To run cell-type deconvolution, select a dataset and make sure the <b>exploratory</b> analysis type is
-                              selected. If you have not already done so, label samples (table rows) for
-                                  groups of interest. To do this, select rows corresponding to a group of interest,
-                                  type a <b>Group name for selected rows</b> and click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span> button to label the
-                                  selected samples. Also make sure to <b>Toggle cell-type deconvolution</b></p>"),
-                          img(src = 'docs-ds-cell_deconvolution_toggle.png', class = 'bs-docs-img'),
-                          HTML("Next, select a reference single cell dataset that contains the cell types that you expect to observe in the bulk
-                                 dataset that you are deconvoluting. Also select the cell types to deconvolute. You should not select cell types
-                                 that you don't expect within your bulk dataset."),
-                          img(src = 'docs-ds-cell_deconvolution_ref.png', class = 'bs-docs-img'),
+                          HTML("<p>To run cell-type deconvolution, select a bulk dataset and click the <span class='bs-docs-btn'><i class='fa fa-object-ungroup fa-fw'></i></span></span> button to show inputs for cell
+                               type deconvolution</p>
+                               <p>Next, select a reference single cell dataset that contains the cell types that you expect to observe in the bulk
+                                 dataset that you are deconvoluting. Also select the clusters to use for deconvolution. You should only select cluster types
+                                 that you expect within your bulk dataset.</p>"),
                           div(class = 'bs-callout bs-callout-info',
                               h4('Cell-type deconvolution algorithm'),
                               HTML("<p>Cell-type deconvolution is performed using <code>dtangle</code> as described in the
                                      <a href='https://github.com/gjhunt/dtangle/blob/master/vign/sc_vignette.md' target='_blank'>single-cell vignette</a>
-                                     except using <code>DESeq2::vst</code> to normalize RNA-Seq counts and the <code>sctransform</code> log normalized counts
-                                     for the reference single cell dataset. See the
+                                     except using <code>DESeq2::rlog</code> normalized and surrogate variable/pair adjusted bulk counts. For the reference single cell dataset,
+                                     log normalized counts are used. See the
                                      <a href='https://academic.oup.com/bioinformatics/article/35/12/2093/5165376?guestAccessKey=ac40b15d-bec0-48c1-be94-fbef567f63ec' target='_blank'>dtangle manuscript</a>
                                      for further details.</p>")
                           )
 
         ))
     ))
-
-  # Pathway section -----
-  pathwaySection <- docsSection(
-    id = 'path-docs', name = 'Pathways',
-    content = list(
-      docsSubsection(
-        id = 'path-overview',
-        # Overview -----
-        name = 'Overview',
-        content = tagList(
-          HTML("<p>The Pathways tab allows you to inspect standardized unbiased effect sizes (<i>dprimes</i>) of genes in the most significant KEGG pathways.
-             In addition to KEGG pathways, you can also inspect genes used for CMAP02/L1000 perturbation queries and view the predicted effect of those perturbations.</p>"),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Pathway analysis algorithm'),
-              HTML('<p>Pathway analyses are performed using <a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-136" target="_blank">PADOG</a>, which downweights the importance of genes that are present in multiple pathways.
-              This approach was chosen as it has been shown to outperform other methods in ranking target pathways<sup><a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0079217#pone-0079217-g002" target="_blank">1</a>,<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4707541/#f5" target="_blank">2</a></sup>.</p>')
-          )
-        )
-
-      ),
-      # Perturbation query genes -----
-      docsSubsection(
-        id = 'path-query',
-        name = 'Perturbation query genes',
-        content = tagList(
-          HTML("<p>CMAP02/L1000 perturbation queries are run using the top 200 most significant genes. You can
-        view effect sizes for these genes by selecting either CMAP02 or L1000 query genes in the <b>Select a pathway</b> input.
-             This will bring up the option to <b>Select a perturbation signature</b> so that you can view
-             the predicted effect of the perturbation on the query genes.</p>"),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Perturbation prediction on query genes'),
-              p('The predicted effect of the perturbation on the query genes is shown as an arrow starting from the query signature effect size
-              and finishing on the sum of the query and perturbation standardized effect sizes.')
-          )
-        )
-      )
-    )
-  )
 
   # Drugs section ----
   drugsSection <- docsSection(
@@ -346,7 +198,7 @@ docsPageUI <- function(id, tab, active) {
              "),
           div(class = 'bs-callout bs-callout-info',
               h4('Similarity metrics and data preparations'),
-              HTML("In our benchmarks where we use external data that assayed drugs also measured by CMAP02/L1000, pearson correlation and cosine similarity on limma differential
+              HTML("In our benchmarks where we use external data that assayed drugs also measured by CMAP02/L1000, pearson correlation and cosine similarity on <code>limma</code> differential
             expression values outperform other approaches including Kolmogorov-Smirnov, eXtreme Sum, and cosine similarity performed on characteristic direction differential expression
             values.")
           )
@@ -362,7 +214,6 @@ docsPageUI <- function(id, tab, active) {
              of any differential expression signatures. To run a custom query, toggle the custom signature button, select genes to downregulate, genes
              to upregulate, and provide a name to save the custom query as. Finally, click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span>
              button to run the query. This query signature can then be selected to view the results as normal.</p>"),
-          img(src = 'docs-drugs-custom.png', class = 'bs-docs-img'),
           div(class = 'bs-callout bs-callout-danger',
               h4('Genes not measured by L1000'),
               HTML("<p>When selecting genes to downregulate and upregulate, genes that were not measured by the L1000 platform will show up with a yellow background.
@@ -378,23 +229,6 @@ docsPageUI <- function(id, tab, active) {
                  that the perturbation has the strongest desired effect on each of the query genes over all the queried perturbations.")
           ),
 
-        )
-      ),
-      # Filtering and sorting results ----
-      docsSubsection(
-        id = 'drugs-advanced',
-        name = 'Filtering and sorting results',
-        content = tagList(
-          HTML("
-             <p>Perturbation query results can be filtered such that only compounds with a clinical phase are shown, queries are restricted to specific
-             cell lines, and a minimum number of signatures for a perturbation are required. Perturbations can also be sorted based on either the minimum
-            or the average correlation with the query signature.</p>
-             "),
-          div(class = 'bs-callout bs-callout-info',
-              h4('Sorting by minimum is recommended'),
-              HTML("In our benchmarks where we use external data that assayed drugs also measured by CMAP02/L1000, sorting by minimum improves the rankings of
-            the assayed drugs as compared to sorting by average.")
-          )
         )
       )
     ))
@@ -422,7 +256,7 @@ docsPageUI <- function(id, tab, active) {
             div(class = "bs-docs-container",
                 div(class = 'row',
                     div(class = 'col-md-6 col-md-offset-1', role="main", docsSections),
-                    div(class = "col-md-4 col-md-offset-1 bd-toc", role="complementary", docsSideNav(section_info))
+                    div(class = "col-md-4 col-md-offset-1 bd-toc hidden-xs hidden-sm", role="complementary", docsSideNav(section_info))
                 )
             )
     )

@@ -2,15 +2,11 @@
 % Please edit documentation in R/modules-drugs-ui.R
 \name{selectedAnalInput}
 \alias{selectedAnalInput}
-\title{Analysis input for Drugs and Pathways page}
+\title{Analysis input for Drugs page}
 \usage{
-selectedAnalInput(
-  id,
-  label = "Select a dataset or query signature:",
-  with_custom = TRUE
-)
+selectedAnalInput(id, label = "Select a dataset or query signature:")
 }
 \description{
-Analysis input for Drugs and Pathways page
+Analysis input for Drugs page
 }
 \keyword{internal}
