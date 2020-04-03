@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "3.6.1",
+    "Version": "3.6.2",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -33,6 +33,12 @@
       "Version": "1.48.0",
       "Source": "Bioconductor",
       "Hash": "c5f3f140470b1941580859d3fc5c6bc0"
+    },
+    "AnnotationFilter": {
+      "Package": "AnnotationFilter",
+      "Version": "1.10.0",
+      "Source": "Bioconductor",
+      "Hash": "32e2c269be734c9b07bc530b0ca97540"
     },
     "AnnotationHub": {
       "Package": "AnnotationHub",
@@ -191,6 +197,12 @@
       "Source": "Bioconductor",
       "Hash": "0bc774dd3636e0aff56a80da6f928211"
     },
+    "GenomicFeatures": {
+      "Package": "GenomicFeatures",
+      "Version": "1.38.2",
+      "Source": "Bioconductor",
+      "Hash": "e7b68b361825083dec6055ea8381b6ca"
+    },
     "GenomicRanges": {
       "Package": "GenomicRanges",
       "Version": "1.38.0",
@@ -249,6 +261,12 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "97c9af9652efec616ad69d6acdaef390"
+    },
+    "ProtGenerics": {
+      "Package": "ProtGenerics",
+      "Version": "1.18.0",
+      "Source": "Bioconductor",
+      "Hash": "40797f337889e6cde32c07c41a1aaebe"
     },
     "R.methodsS3": {
       "Package": "R.methodsS3",
@@ -508,6 +526,12 @@
       "Repository": "CRAN",
       "Hash": "dc538ec663e38888807ef3034489403d"
     },
+    "biomaRt": {
+      "Package": "biomaRt",
+      "Version": "2.42.0",
+      "Source": "Bioconductor",
+      "Hash": "1179421c1e80e3c66a58c14f896bec14"
+    },
     "bit": {
       "Package": "bit",
       "Version": "1.1-15.1",
@@ -686,6 +710,12 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "7067d90c1c780bfe80c0d497e3d7b49d"
+    },
+    "ensembldb": {
+      "Package": "ensembldb",
+      "Version": "2.10.2",
+      "Source": "Bioconductor",
+      "Hash": "e9d088b5ad5e9d6fad8b966a85a4aaf4"
     },
     "evaluate": {
       "Package": "evaluate",
@@ -1316,6 +1346,13 @@
       "Source": "Bioconductor",
       "Hash": "413d578e76ee631eaf479d9b98841bf8"
     },
+    "rintrojs": {
+      "Package": "rintrojs",
+      "Version": "0.2.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "15a8768183fd609cee75e4789da27621"
+    },
     "riverplot": {
       "Package": "riverplot",
       "Version": "0.6",
@@ -1329,13 +1366,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "5527892f8ca320dd4d2efb5aa4e3bd89"
-    },
-    "robustbase": {
-      "Package": "robustbase",
-      "Version": "0.93-5",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "0a3d03e70d10dd986398fe47efad4dab"
     },
     "rpart": {
       "Package": "rpart",
