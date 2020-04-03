@@ -1,12 +1,3 @@
-sc_steps <- function() {
-  data.frame(
-    element = c('blah'),
-    intro = c('blah')
-  )
-
-}
-
-
 server <- function(input, output, session) {
 
   # get arguments from calling function
@@ -38,6 +29,7 @@ server <- function(input, output, session) {
     file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
   }
 
+
   sc_dir <- file.path(data_dir, 'single-cell')
   bulk_dir <- file.path(data_dir, 'bulk')
 
@@ -48,11 +40,11 @@ server <- function(input, output, session) {
   # rintrojs
   observeEvent(input$start_tour, {
     if (input$tabs == 'Single Cell') {
-      steps <- sc_steps()
+      steps <- read.csv('www/sc_intro.csv', stringsAsFactors = FALSE)
     } else if (input$tabs == 'Bulk Data') {
-      tour <- bulk_steps()
+      steps <- read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
     } else if (input$tabs == 'Drugs') {
-      steps <- drugs_steps()
+      steps <- read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
     }
 
     rintrojs::introjs(session,
