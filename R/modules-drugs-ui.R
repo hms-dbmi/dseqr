@@ -97,12 +97,12 @@ drugsTableOutput <- function(id) {
 selectedPertSignatureInput <- function(id) {
   ns <- NS(id)
 
-  withTags({
-    selectizeInputWithValidation(ns('pert'),
-                                 label = 'Select perturbation for plot:',
-                                 label_title = 'Perturbation signature (correlation)')
+  div(id = 'drugs-intro-pert',
+      selectizeInputWithValidation(ns('pert'),
+                                   label = 'Select perturbation for plot:',
+                                   label_title = 'Perturbation signature (correlation)')
 
-  })
+  )
 }
 
 
@@ -172,10 +172,13 @@ advancedOptionsInput <- function(id) {
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
 
-  selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
-                            shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-                            shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                            shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
+  div(id='drugs-intro-pert-study',
+
+      selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
+                                shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
+                                shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+                                shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
+  )
 
 
 }
@@ -195,30 +198,27 @@ rightClickMenu <- function() {
 }
 
 
-#' Analysis input for Drugs and Pathways page
+#' Analysis input for Drugs page
 #' @export
 #' @keywords internal
-selectedAnalInput <- function(id, label = 'Select a dataset or query signature:', with_custom = TRUE) {
+selectedAnalInput <- function(id, label = 'Select a dataset or query signature:') {
   ns <- NS(id)
 
-  if (with_custom) {
-    ds_btn <- selectizeInputWithButtons(
-      id = ns('query'), label = label,
-      shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
-      options = list(optgroupField = 'type'))
-  } else {
-    ds_btn <- selectizeInputWithValidation(
-      id = ns('query'), label = label,
-      options = list(optgroupField = 'type'))
-  }
-
   tagList(
-    ds_btn,
-    tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-             scSampleComparisonInput(ns('sc'))
+    div(id='drugs-intro-query',
+        selectizeInputWithButtons(
+          id = ns('query'), label = label,
+          shiny::actionButton(ns('show_custom'), '', icon('object-group', 'fa-fw'), title = 'Toggle custom signature'),
+          options = list(optgroupField = 'type'))
     ),
-    tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
-             bulkAnalInput(ns('bulk'), with_dl = FALSE)
+    tags$div(id='drugs-intro-comparison',
+             tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
+                      scSampleComparisonInput(ns('sc'))
+             ),
+             tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
+                      bulkAnalInput(ns('bulk'), with_dl = FALSE)
+             )
+
     )
   )
 
