@@ -12,8 +12,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   callModule(scClusterPlot, 'cluster_plot',
              scseq = scForm$scseq,
              selected_cluster = scForm$selected_cluster,
-             dataset_name = scForm$dataset_name,
-             downloadable = TRUE)
+             dataset_name = scForm$dataset_name)
 
   # cluster comparison plots ---
 
@@ -1479,7 +1478,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 #' Logic for cluster plots
 #' @export
 #' @keywords internal
-scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name, downloadable = FALSE) {
+scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name) {
 
 
   fname_fun <- function() {
@@ -1504,6 +1503,8 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
     plot$data
   }
 
+  downloadable <- reactive(!is.null(scseq()))
+
   callModule(downloadablePlot,
              "cluster_plot",
              plot_fun = plot,
@@ -1524,7 +1525,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 
   # show download button only if plot visible and downloadable
   observe({
-    toggleClass('download_container', class = 'visible-plot', condition = downloadable)
+    toggleClass('download_container', class = 'visible-plot', condition = downloadable())
   })
 
 
@@ -1546,7 +1547,7 @@ downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_f
 #' Logic for marker feature plots
 #' @export
 #' @keywords internal
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, downloadable = TRUE, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, custom_metrics = function()NULL) {
 
   fname_fun <- function() {
     fname <- paste0(dataset_name(),
@@ -1594,6 +1595,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 
     return(pl)
   })
+
+  downloadable <- reactive(!is.null(plot()))
 
 
   data_fun <- function() {

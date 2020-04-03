@@ -395,6 +395,11 @@ button.dt-button.buttons-collection,
   box-shadow: none !important;
   border: none;
   padding: 3px 4px;
+  display: none;
+}
+
+.visible-plot a.btn {
+  display: block;
 }
 
 
