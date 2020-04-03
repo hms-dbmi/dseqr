@@ -10,10 +10,10 @@ bulkPageUI <- function(id, tab, active) {
                     bulkFormInput(ns('form'))
                 ),
                 div(id = ns('mds_plotly_container'),
-                    div(class = 'col-lg-4 mobile-margin',
+                    div(class = 'col-lg-4 mobile-margin', id = 'bulk-intro-mds-left',
                         bulkPlotlyUI(ns('mds_plotly_unadjusted'))
                     ),
-                    div(class = 'col-lg-4 mobile-margin',
+                    div(class = 'col-lg-4 mobile-margin', id = 'bulk-intro-mds-right',
                         bulkPlotlyUI(ns('mds_plotly_adjusted'))
                     )
                 ),
@@ -94,19 +94,19 @@ bulkDatasetInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(
-      selectizeInputWithButtons(
-        ns('dataset_name'), 'Select a bulk dataset:',
-        container_id = 'dataset_name_container',
-        options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
-        svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
-        actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
-        hide_btns = TRUE
-      ),
-      shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder fastq.gz files'),
-      div(class = 'hidden-forms',
-          dtangleFormInput(ns('dtangle'))
-      )
+    div(id = 'bulk-intro-dataset',
+        selectizeInputWithButtons(
+          ns('dataset_name'), 'Select a bulk dataset:',
+          container_id = 'dataset_name_container',
+          options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
+          svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
+          actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
+          hide_btns = TRUE
+        ),
+        shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder fastq.gz files'),
+        div(class = 'hidden-forms',
+            dtangleFormInput(ns('dtangle'))
+        )
     )
   })
 }
@@ -145,9 +145,11 @@ bulkFormAnalInput <- function(id) {
 
   tagList(
     bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
-    selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
-                   'Show expression for genes:',
-                   options = list(maxItems = 6, multiple = TRUE))
+    div(id = 'bulk-intro-genes',
+        selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
+                       'Show expression for genes:',
+                       options = list(maxItems = 6, multiple = TRUE))
+    )
   )
 }
 
@@ -210,12 +212,14 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   options <- list(maxItems = 2, placeholder = 'Select test then control group')
   if (with_dl) {
-    input <- selectizeInputWithButtons(
-      ns('contrast_groups'),
-      label,
-      downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
-      options = options,
-      container_id = ns('run_anal_container')
+    input <- tags$div(id = 'bulk-intro-comparison',
+                      selectizeInputWithButtons(
+                        ns('contrast_groups'),
+                        label,
+                        downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
+                        options = options,
+                        container_id = ns('run_anal_container')
+                      )
     )
 
   } else {
