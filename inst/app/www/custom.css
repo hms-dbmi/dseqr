@@ -502,6 +502,7 @@ and (max-device-width : 1024px) {
   position: relative;
   bottom: 30px;
   color:#333;
+  box-shadow: 2px 2px 2px gray;
 }
 
 .btn-intro:hover {
