@@ -43,7 +43,7 @@ docsPageUI <- function(id, tab, active) {
         content = tagList(
           HTML("
         <p>To automate cell cluster labeling, labels are transfered from a previously labeled dataset to the current dataset using <a href='https://bioconductor.org/packages/release/bioc/html/SingleR.html'>SingleR</a>.
-        If the two datasets share an ancestor through subsetting, labels are transfered by selecting the most frequent label in the reference dataset. Because this is substantially faster, these datasets are the first choices shown.</p>
+        If the two datasets share an ancestor through subsetting, cluster labels are transfered by using the most frequent label in the reference dataset. Because this is substantially faster, these datasets are the first choices shown.</p>
 
         <p>To transfer labels, first <b>Select a dataset</b> to transfer labels to and click the label transfer toggle.
         Next, select another single cell dataset to <b>Transfer labels from</b>. If you are satisfied, go ahead and overwrite the previous labels.</p>
@@ -61,22 +61,27 @@ docsPageUI <- function(id, tab, active) {
         content = tagList(
           HTML("
              <p>Integrating single cell samples allows for cross-sample differential expression analyses, differential abundance analyses, pathway analyses, and drug queries.
-             To integrate single cell samples, click the dataset integation toggle and fill in the inputs.</p>
+             To integrate single cell samples, click the dataset integation toggle and fill in the inputs. Available integration types include <a href='https://github.com/immunogenomics/harmony'>harmony</a>, <a href='https://macoskolab.github.io/liger/'>liger</a>,
+             and <a href='https://osca.bioconductor.org/integrating-datasets.html#performing-mnn-correction'>fastMNN</a>. You can select all three in order to compare results.</p>
              <p>Integrated datasets with at least three samples will use the same <code>limma</code> pipeline used for bulk analyses with <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions'>pseudobulk</a> expression profiles.
              Aggregative methods <a href='https://www.biorxiv.org/content/biorxiv/early/2019/07/26/713412.full.pdf'>outperform</a> methods that treat each cell as an independant replicate.</p>
+
+             <p>You can also download, fill out, and upload a sample pairs csv in order to model for an additional variable (e.g. individual) for pseudobulk analyses. The additional
+             variable is also added as a covariate for the <code>vars_use</code> argument to <code>harmony::HarmonyMatrix</code> during integration.</p>
 
              "),
           div(class = 'bs-callout bs-callout-danger',
               h4('Identify incorrectly integrated clusters'),
               HTML('<p>After integrating datasets, you should look out for clusters that were incorrectly grouped (e.g. RBCs from one sample
-              cluster with B-cells from another sample). One way to do this is to select the newly integrated dataset and inspect the source clusters for each new integrated cluster by choosing
-              to <b>Perform comparisons between: labels</b>.</p>'),
+              cluster with B-cells from another sample). One way to do this is to select the newly integrated dataset and inspect the source clusters for each new integrated cluster by selecting the <b>labels</b> toggle
+                   from the the <b>Perform comparisons between:</b> choices.</p><p>Another useful exercise is to select the <code>is_test</code>, <code>is_ctrl</code>, and individual sample
+                   names from the <b>Feature to plot</b> input in order to inspect the extent of mixing. Uneven mixing may reflect changes in cell-type abundances or issues with integration. Trying
+                   multiple integration methods can be helpful for deciding between the two.'),
           ),
           div(class = 'bs-callout bs-callout-danger',
               h4('Exclude incorrectly integrated clusters'),
               HTML('<p>If cell labels have changed with integration, you will have to decide if the new labels
-                 are correct by inspecting markers. In my experience, a cell type that exists in one sample but not another is a frequent source of
-                 incorrect integration. If you discover clusters that failed to integrate correctly, re-run integration and exclude any offending clusters.</p>')
+                 are correct by inspecting markers. In my experience, a cell type that exists in one sample but not another can cause issues. If you discover clusters that failed to integrate correctly, re-run integration and exclude any offending clusters.</p>')
           )
         )
       ),
@@ -94,7 +99,7 @@ docsPageUI <- function(id, tab, active) {
                by the authors of the <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#ambient-problems'>osca</a> handbook.</p>
                <p>We additionally only call a gene as ambient if the sample it is in would change the direction of differential expression. For example,
                if a gene is up-regulated in test samples and called as ambient in one or more control samples, then it won't be excluded. The high background
-               expression in the control samples results in a more conservative estimate of differential expression but does not change the direction.</p>")
+               expression in the control samples results in a smaller difference in expression but does will not change the direction of change.</p>")
         )
       )
     ))
@@ -155,7 +160,7 @@ docsPageUI <- function(id, tab, active) {
       docsSubsection(
         id = 'ds-cell-plots',
         name = 'Cell-type deconvolution',
-        content = tagList(p("Cell type deconvolution uses gene expression from single-cell datasets to estimate the proportion
+        content = tagList(p("Cell type deconvolution uses gene expression from a single-cell dataset to estimate the proportion
                                of different cell types in bulk RNA-Seq samples. Large differences in cell-type proportions may
                                confound differential expression but also point to important biology."),
                           div(class = 'bs-callout bs-callout-danger',
@@ -164,7 +169,7 @@ docsPageUI <- function(id, tab, active) {
                                      to observe in the bulk dataset that you are deconvoluting.</p>")
                           ),
                           HTML("<p>To run cell-type deconvolution, select a bulk dataset and click the <span class='bs-docs-btn'><i class='fa fa-object-ungroup fa-fw'></i></span></span> button to show inputs for cell
-                               type deconvolution</p>
+                               type deconvolution.</p>
                                <p>Next, select a reference single cell dataset that contains the cell types that you expect to observe in the bulk
                                  dataset that you are deconvoluting. Also select the clusters to use for deconvolution. You should only select cluster types
                                  that you expect within your bulk dataset.</p>"),
@@ -193,7 +198,7 @@ docsPageUI <- function(id, tab, active) {
           HTML("
         <p>CMAP02/L1000 drug and genetic perturbations are matched to a reference differential expression signature based on pearson correlation with the top 200 query signature genes.
         The most negatively correlated drug signatures are predicted to oppose the disease query signature and may thus act as potential therapeutics. The most strongly correlated (positive
-        or negative) genetic perturbations suggest an importance of the perturbed gene to the disease.
+        or negative) genetic perturbations may reflect an importance of the perturbed gene to the disease.
         </p>
              "),
           div(class = 'bs-callout bs-callout-info',
