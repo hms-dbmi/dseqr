@@ -787,7 +787,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   include_choices <- reactive({
     clusters <- annot()
     dataset_dir <- file.path(sc_dir, input$dtangle_dataset)
-    get_cluster_choices(clusters, dataset_dir)
+    get_cluster_choices(clusters, dataset_dir = dataset_dir)
   })
 
   observe({
@@ -819,15 +819,15 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     # get names of clusters
     include_clusters <- input$include_clusters
     include_choices <- include_choices()
-    include_names <- include_choices$name[as.numeric(include_clusters)]
-
-    # require at least two labeled groups
-    eset <- explore_eset()
-    pdata <- Biobase::pData(eset)
 
     # if select none deconvolute using all clusters
     if (!length(include_clusters))
       include_clusters <- as.character(include_choices$value)
+
+    include_names <- include_choices$name[as.numeric(include_clusters)]
+
+    eset <- explore_eset()
+    pdata <- Biobase::pData(eset)
 
     # subset to selected clusters
     scseq <- scseq()
@@ -847,7 +847,6 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     y <- limma::normalizeBetweenArrays(y)
     y <- t(y)
-
 
     progress$set(value = 3)
     # indicies for cells in each included cluster
@@ -1714,3 +1713,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
