@@ -581,8 +581,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     eset <- load_seq(fastq_dir)
 
     # save to bulk datasets to indicate that has been quantified
-    dataset_dir <- gsub(paste0(data_dir, '/'), '', fastq_dir)
-    save_bulk_dataset(dataset_name, dataset_dir, data_dir)
+    save_bulk_dataset(dataset_name, data_dir)
 
     # trigger to update rest of app
     new_dataset(dataset_name)

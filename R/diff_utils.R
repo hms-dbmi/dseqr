@@ -183,7 +183,7 @@ add_adjusted <- function(eset, svobj = list(sv = NULL), numsv = 0, adj_path = NU
   mod <- mod[, !colnames(mod) %in% pair_cols]
   mod.clean <- cbind(mod0[, pair_cols], svs)
 
-  # used DESeq::vsd transformed counts for RNA-Seq
+  # used DESeq::rlog transformed counts for RNA-Seq
   # for microarray this will be exprs slot
   y <- Biobase::assayDataElement(eset, 'vsd')
 

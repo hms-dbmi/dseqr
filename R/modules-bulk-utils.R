@@ -269,16 +269,15 @@ load_bulk_datasets <-function(data_dir) {
 #' Save new dataset info to datasets dataframe
 #'
 #' @param dataset_name Name of dataset
-#' @param dataset_dir Folder name for dataset
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
 #' @return NULL
 #' @export
 #' @keywords internal
-save_bulk_dataset <- function(dataset_name, dataset_dir, data_dir) {
+save_bulk_dataset <- function(dataset_name, data_dir) {
   datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
   datasets <- readRDS(datasets_path)
 
-  datasets[nrow(datasets)+1, ] <- c(dataset_name, dataset_dir)
+  datasets[nrow(datasets)+1, ] <- c(dataset_name, file.path('bulk', dataset_name))
   saveRDS(datasets, datasets_path)
 }
 

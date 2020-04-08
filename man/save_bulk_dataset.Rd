@@ -4,12 +4,10 @@
 \alias{save_bulk_dataset}
 \title{Save new dataset info to datasets dataframe}
 \usage{
-save_bulk_dataset(dataset_name, dataset_dir, data_dir)
+save_bulk_dataset(dataset_name, data_dir)
 }
 \arguments{
 \item{dataset_name}{Name of dataset}
-
-\item{dataset_dir}{Folder name for dataset}
 
 \item{data_dir}{Path to folder container \code{'bulk'} and \code{'single-cell'} directories}
 }

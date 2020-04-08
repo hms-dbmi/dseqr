@@ -149,10 +149,11 @@ docsPageUI <- function(id, tab, active) {
                               samples in order to avoid being misled by summary statistics."),
                           div(class = 'bs-callout bs-callout-info',
                               h4('Expression normalization algorithm for visualizations'),
-                              HTML("<p>Gene expression is normalized with the function <code>DESeq2::rlog</code> with <code>blind = FALSE</code>.
+                              HTML("<p>Gene expression is normalized with the function <code>DESeq2::rlog</code> with <code>blind = FALSE</code> for RNA-Seq data.
                                      For further details see
                                      <a href='http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization' target='_blank'>Data transformations and visualization</a>
-                                     in the DESeq2 vignette. The same function is used to normalize gene expression values for MDS plots and for cell-type deconvolution.</p>")
+                                     in the DESeq2 vignette. For microarray data, <a href='https://github.com/alexvpickering/crossmeta'>crossmeta</a> uses `affy::rma` or `oligo::rma` for Affymetrix platforms and
+                                   `limma::neqc` for Agilent and Illumina platforms. and These normalized gene expression values are also used for MDS plots and cell-type deconvolution.</p>")
                           )
         )
       ),

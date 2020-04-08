@@ -401,7 +401,6 @@ from_crossmeta <- function(gse_name, data_dir) {
 
   # add to bulk anals
   save_bulk_dataset(gse_name,
-                    dataset_dir = file.path('bulk', gse_name),
                     data_dir = dirname(data_dir))
 }
 

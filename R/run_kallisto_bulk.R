@@ -16,7 +16,7 @@
 #' @examples
 #'
 #' # first place IBD data in data-raw/example-data
-#' indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
+#' indices_dir <- '/srv/drugseqr/indices'
 #' data_dir <- file.path('data-raw', 'example-data')
 #' run_kallisto_bulk(indices_dir, data_dir)
 #'
