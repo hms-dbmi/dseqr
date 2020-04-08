@@ -7,8 +7,8 @@
 #' @param pdata Previous result of call to \code{run_kallisto_bulk} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
-#' @param fl.mean Estimated average fragment length (only relevant for single-end reads).
-#' @param fl.sd Estimated standard deviation of fragment length (only relevant for single-end reads).
+#' @param fl.mean Estimated average fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 200.
+#' @param fl.sd Estimated standard deviation of fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 20.
 #'
 #' @return NULL
 #' @export

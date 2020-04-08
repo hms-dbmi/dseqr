@@ -250,14 +250,15 @@ remove_bulk_anals <- function(dataset_name, data_dir) {
 load_bulk_datasets <-function(data_dir) {
   datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
 
-  if (file.exists(datasets_path)) {
-    datasets <- readRDS(datasets_path)
+  datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
+  colnames(datasets) <- c("dataset_name", "dataset_dir")
 
-  } else {
-    datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
-    colnames(datasets) <- c("dataset_name", "dataset_dir")
-    saveRDS(datasets, datasets_path)
-  }
+  dataset_names <- list.dirs(file.path(data_dir, 'bulk'), full.names = FALSE, recursive = FALSE)
+  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.rds'))
+  dataset_names <- dataset_names[has.eset]
+
+  datasets <- data.frame(dataset_name = dataset_names,
+                         dataset_dir = file.path('bulk', dataset_names), stringsAsFactors = FALSE)
 
   datasets$value <-  datasets$label <- datasets$dataset_name
   if (nrow(datasets)) datasets$type <- 'Bulk Data'
@@ -265,21 +266,6 @@ load_bulk_datasets <-function(data_dir) {
   return(datasets)
 }
 
-
-#' Save new dataset info to datasets dataframe
-#'
-#' @param dataset_name Name of dataset
-#' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
-#' @return NULL
-#' @export
-#' @keywords internal
-save_bulk_dataset <- function(dataset_name, data_dir) {
-  datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
-  datasets <- readRDS(datasets_path)
-
-  datasets[nrow(datasets)+1, ] <- c(dataset_name, file.path('bulk', dataset_name))
-  saveRDS(datasets, datasets_path)
-}
 
 #' Delete stale dataset files after changing sample groups or running sva
 #'

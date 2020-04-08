@@ -580,9 +580,6 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     progress$set(message = 'Annotating dataset')
     eset <- load_seq(fastq_dir)
 
-    # save to bulk datasets to indicate that has been quantified
-    save_bulk_dataset(dataset_name, data_dir)
-
     # trigger to update rest of app
     new_dataset(dataset_name)
 

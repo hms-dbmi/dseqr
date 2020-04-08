@@ -399,9 +399,6 @@ from_crossmeta <- function(gse_name, data_dir) {
   eset <- readRDS(eset_path)[[1]]
   saveRDS(eset, file.path(dataset_dir, 'eset.rds'))
 
-  # add to bulk anals
-  save_bulk_dataset(gse_name,
-                    data_dir = dirname(data_dir))
 }
 
 is.installed <- function(packages, level = c('quiet', 'error', 'message')) {

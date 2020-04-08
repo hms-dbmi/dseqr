@@ -26,9 +26,9 @@ run_kallisto_bulk(
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}
 
-\item{fl.mean}{Estimated average fragment length (only relevant for single-end reads).}
+\item{fl.mean}{Estimated average fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 200.}
 
-\item{fl.sd}{Estimated standard deviation of fragment length (only relevant for single-end reads).}
+\item{fl.sd}{Estimated standard deviation of fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 20.}
 }
 \description{
 For pair-ended experiments, reads for each pair should be in a seperate file.
