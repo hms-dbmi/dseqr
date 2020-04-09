@@ -286,6 +286,9 @@ remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$'
                                                         'l1000_drugs_res_.+_\\d+svs.rds$',
                                                         'l1000_genes_res_.+_\\d+svs.rds$',
                                                         'diff_expr_symbol_.+_\\d+svs.rds$'), exclude = NULL) {
+
+  #TODO: preface everything with hash based on group names so that don't have to delete
+
   for (pattern in patterns) {
     fpaths <- list.files(data_dir, pattern)
     if (!is.null(exclude)) {
