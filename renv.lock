@@ -1232,10 +1232,10 @@
     },
     "plotly": {
       "Package": "plotly",
-      "Version": "4.9.1",
+      "Version": "4.9.2.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "f944fd279ce84daf29b179611bea0345"
+      "Hash": "b08edf378e0e38959a6983e3d5902795"
     },
     "plyr": {
       "Package": "plyr",
@@ -1421,10 +1421,10 @@
     },
     "shiny": {
       "Package": "shiny",
-      "Version": "1.4.0",
+      "Version": "1.4.0.2",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6ca23724bb2c804c1d0b3db4862a39c7"
+      "Hash": "a56d058adfc9df30bdd45dbb01cec39f"
     },
     "shinyBS": {
       "Package": "shinyBS",
@@ -1446,6 +1446,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "fdf6a1a363579afab3d454887936f8cd"
+    },
+    "shinydlplot": {
+      "Package": "shinydlplot",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRepo": "shinydlplot",
+      "RemoteRef": "master",
+      "RemoteSha": "814cb2849319e07d49cfd36f5ef0f8f03e0828a9",
+      "Hash": "876424e34e31f28cee691ea026b05a50"
     },
     "shinyjs": {
       "Package": "shinyjs",
