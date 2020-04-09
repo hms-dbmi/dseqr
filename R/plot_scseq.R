@@ -436,7 +436,7 @@ get_palette <- function(levs) {
 
   nlevs <- length(levs)
   if (nlevs == 2) {
-    values <- c('lightgray', 'blue')
+    values <- c("#729ECE", "#FF9E4A")
 
   } else if (nlevs <= 10) {
     values <- head(tableau10medium, nlevs)

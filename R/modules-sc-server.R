@@ -1588,7 +1588,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
       pcells <- round(ncells / length(ft) * 100)
 
       title <- paste0(feature, ' (', format(ncells, big.mark=","), ' :: ', pcells, '%)')
-      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title)
+      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title, cols =  c('lightgray', 'blue'))
     } else {
       pl <- NULL
     }
