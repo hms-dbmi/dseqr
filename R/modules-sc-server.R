@@ -1481,7 +1481,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name) {
 
 
-  fname_fun <- function() {
+  filename <- function() {
     paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
   }
 
@@ -1498,19 +1498,17 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
   })
 
 
-  data_fun <- function() {
-    plot <- plot()
-    plot$data
+  content <- function(file) {
+    data <- plot()$data
+    write.csv(data, file)
   }
 
-  downloadable <- reactive(!is.null(scseq()))
 
-  callModule(downloadablePlot,
+  callModule(shinydlplot::downloadablePlot,
              "cluster_plot",
-             plot_fun = plot,
-             fname_fun = fname_fun,
-             data_fun = data_fun,
-             downloadable = downloadable)
+             plot = plot,
+             filename = filename,
+             content = content)
 
 
   return(list(
@@ -1518,43 +1516,12 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
   ))
 }
 
-#' Logic for plot with downloadable data
-#' @export
-#' @keywords internal
-downloadablePlot <- function(input, output, session, plot_fun, fname_fun, data_fun, downloadable) {
-
-  # show download button only if plot visible and downloadable
-  observe({
-    toggleClass('download_container', class = 'visible-plot', condition = downloadable())
-  })
-
-
-
-
-  # click download
-  output$download <- downloadHandler(
-    filename = fname_fun,
-    content = function(con) {
-      write.csv(data_fun(), con)
-    }
-  )
-
-  output$dl_plot <- renderPlot({
-    plot_fun()
-  }, height = 'auto')
-}
 
 #' Logic for marker feature plots
 #' @export
 #' @keywords internal
 scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, custom_metrics = function()NULL) {
 
-  fname_fun <- function() {
-    fname <- paste0(dataset_name(),
-                    '_', selected_feature(),
-                    '_marker_plot_data_', Sys.Date(), '.csv')
-    return(fname)
-  }
 
   plot <- reactive({
     feature <- selected_feature()
@@ -1596,20 +1563,24 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     return(pl)
   })
 
-  downloadable <- reactive(!is.null(plot()))
 
-
-  data_fun <- function() {
-    plot <- plot()
-    plot$data
+  filename <- function() {
+    fname <- paste0(dataset_name(),
+                    '_', selected_feature(),
+                    '_marker_plot_data_', Sys.Date(), '.csv')
+    return(fname)
   }
 
-  callModule(downloadablePlot,
+  content <- function(file) {
+    plot <- plot()
+    write.csv(plot$data, file)
+  }
+
+  callModule(shinydlplot::downloadablePlot,
              "marker_plot",
-             plot_fun = plot,
-             fname_fun = fname_fun,
-             data_fun = data_fun,
-             downloadable = downloadable)
+             plot = plot,
+             filename = filename,
+             content = content)
 
 
 

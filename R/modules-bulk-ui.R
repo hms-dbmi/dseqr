@@ -36,6 +36,9 @@ bulkPageUI <- function(id, tab, active) {
   })
 }
 
+#' UI for Bulk Data annotation upload/download
+#' @export
+#' @keywords internal
 bulkAnnotInput <- function(id) {
   ns <- NS(id)
   tagList(
@@ -62,9 +65,9 @@ bulkAnnotInput <- function(id) {
 #' Plotly MDS output
 #' @export
 #' @keywords internal
-bulkPlotlyUI <- function(id, height = 'auto') {
+bulkPlotlyUI <- function(id) {
   ns <- NS(id)
-  downloadablePlotlyUI(ns('plotly'), height)
+  shinydlplot::downloadablePlotlyUI(ns('plotly'))
 }
 
 #' Input form for Bulk Data page

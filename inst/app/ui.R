@@ -1,6 +1,7 @@
 tabs <- getShinyOption('tabs')
 active <- tabs[1]
 
+
 bootstrapPage(
   useShinyjs(),
   rintrojs::introjsUI(),

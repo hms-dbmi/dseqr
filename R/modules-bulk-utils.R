@@ -300,3 +300,164 @@ remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$'
 }
 
 
+#' Format uploaded annotation
+#' @export
+#' @keywords internal
+format_up_annot <- function(up, ref) {
+  row.names(up) <- up$Title
+  up[up == ''] <- NA
+
+  # Group in order of Group name
+  # allows changing color of groups by changing order or samples
+  group <- up$`Group name`
+  levels <- unique(group[!is.na(group)])
+  group <- as.numeric(factor(group, levels =levels))
+  up <- tibble::add_column(up, Group = group, .before = 1)
+
+  up$Pair <- factor(up$Pair)
+
+  # in case order of sample was changed
+  up <- up[row.names(ref), ]
+
+  # restore rna seq specific things
+  up$lib.size <- ref$lib.size
+  up$norm.factors <- ref$norm.factors
+
+  return(up)
+
+}
+
+#' Format downloaded annotation
+#' @export
+#' @keywords internal
+format_dl_annot <- function(annot) {
+
+  add_pair <- function(df) {
+    pair <- df$Pair
+    if (is.null(pair)) pair <- df$pair
+    if (is.null(pair)) pair <- NA
+
+    df$pair <- df$Pair <- NULL
+    tibble::add_column(df, Pair = pair, .after = 'Title')
+  }
+
+  annot <- add_pair(annot)
+  annot <- annot[, !colnames(annot) %in% c('Group', 'lib.size', 'norm.factors')]
+  return(annot)
+
+}
+
+#' Validate uploaded bulk annotation
+#' @export
+#' @keywords internal
+validate_up_annot <- function(up, ref) {
+  msg <- NULL
+
+
+  req_cols <- c('Title', 'Group name', 'Pair')
+  miss_cols <- req_cols[!req_cols %in% colnames(ref)]
+
+  group <- up$`Group name`
+  group <- group[!is.na(group)]
+  ngroups <- length(unique(group))
+
+  if (length(miss_cols)) {
+    msg <- paste('Missing columns:', paste(miss_cols, collapse = ', '))
+
+  } else if (!all(up$Title %in% ref$Title)) {
+    msg <- 'Do not change Title column'
+
+  } else if (ngroups < 2) {
+    msg <- 'Need at least 2 groups'
+
+  } else if (length(group) < 3) {
+    msg <- 'Need at least 3 grouped samples'
+
+  } else if (!is_invertible(up)) {
+    msg <- 'Group name and Pair combination not solvable'
+  }
+
+  return(msg)
+}
+
+#' Check uploaded bulk pdata to make sure the study design is invertible
+#' @export
+#' @keywords internal
+is_invertible <- function(pdata) {
+  pdata <- pdata[!is.na(pdata$`Group name`), ]
+
+  pair <- pdata$Pair
+  if (length(unique(pair)) > 1) pdata$pair <- pair
+
+  pdata$group <- pdata$`Group name`
+
+  mod <- get_mods(pdata)$mod
+
+  class(try(solve.default(t(mod) %*% mod),silent=T)) == 'matrix'
+}
+
+
+#' Get and save pathway results for ebfit object
+#'
+#' Used to avoid code reuse for single-cell and bulk
+#'
+#' @param ebfit Result of \code{fit_ebayes}
+#' @param go_path Path to save Gene Ontology result
+#' @param kegg_path Path to save KEGG result
+#'
+#' @return List with GO and KEGG results
+#' @export
+#' @keywords internal
+get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 4) {
+
+  gslist.go <- get_gslist(species)
+  gslist.kegg <- get_gslist(species, type = 'kegg')
+
+  gs.names.go <- get_gs.names(gslist.go, species = species)
+  gs.names.kegg <- get_gs.names(gslist.kegg, type = 'kegg', species = species)
+
+  statistic <- ebfit$t[, 1]
+  names(statistic) <- ebfit$genes$ENTREZID
+  go <- limma::cameraPR(statistic, index = gslist.go)
+  go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
+  go <- go[go$NGenes >= min.genes, ]
+  go$FDR <- p.adjust(go$FDR, 'BH')
+
+  kg <- limma::cameraPR(statistic, index = gslist.kegg)
+  kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
+  kg <- kg[kg$NGenes >= min.genes, ]
+  kg$FDR <- p.adjust(kg$FDR, 'BH')
+
+  saveRDS(go, go_path)
+  saveRDS(kg, kegg_path)
+
+  return(list(go = go, kg = kg))
+}
+
+
+#' Get group levels for bulk data plots
+#'
+#' @param pdata Data.frame of phenotype data
+#' @export
+#'
+#' @keywords internal
+get_group_levels <- function(pdata) {
+  group <- pdata$`Group name`
+  group_order <- order(unique(pdata$Group))
+  unique(group)[group_order]
+}
+
+
+#' Check if newly uploaded pdata is the same as previously uploaded
+#' @export
+#' @keywords internal
+check_bulk_changed <- function(prev, pdata) {
+
+  # don't re-run if Group name or Pairs the same
+  changed <-
+    !identical(prev$`Group name`, pdata$`Group name`) |
+    !identical(prev$Pair, pdata$Pair)
+
+
+  return(changed)
+}

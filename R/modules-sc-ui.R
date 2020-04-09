@@ -161,7 +161,6 @@ labelTransferFormInput <- function(id) {
 }
 
 
-
 #' Input form for integrating single cell datasets
 #' @export
 #' @keywords internal
@@ -195,6 +194,9 @@ integrationFormInput <- function(id) {
   })
 }
 
+#' Input form for subsetting single cell datasets
+#' @export
+#' @keywords internal
 subsetFormInput <- function(id) {
 
   ns <- NS(id)
@@ -305,34 +307,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @keywords internal
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  downloadablePlotUI(ns('cluster_plot'))
-}
-
-#' UI for plot with downloadable data
-#' @export
-#' @keywords internal
-downloadablePlotUI <- function(id) {
-  ns <- NS(id)
-  withTags({
-    div(class = 'downloadable-plot', id = ns('plot_container'),
-        div(class = 'clearfix',
-            span(
-              id = ns('download_container'), class = 'pull-right downloadable-plot-btn',
-              downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw')),
-              shinyBS::bsTooltip(
-                ns('download'),
-                'Download plot data',
-                placement = 'left',
-                options = list(
-                  container = 'body',
-                  template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
-                ))
-            )
-        ),
-        plotOutput(ns('dl_plot'))
-
-    )
-  })
+  shinydlplot::downloadablePlotUI(ns('cluster_plot'))
 }
 
 
@@ -341,7 +316,7 @@ downloadablePlotUI <- function(id) {
 #' @keywords internal
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  downloadablePlotUI(ns('marker_plot'))
+  shinydlplot::downloadablePlotUI(ns('marker_plot'))
 }
 
 #' Output plot of biogps data for a gene
@@ -352,6 +327,9 @@ scBioGpsPlotOutput <- function(id) {
   plotOutput(ns('biogps_plot'), height = '423px')
 }
 
+#' Output plot/plotly for samples comparison with integrated datasets
+#' @export
+#' @keywords internal
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
   tagList(
@@ -360,12 +338,17 @@ scSampleMarkerPlotOutput <- function(id) {
   )
 }
 
-
+#' Output Ridgeline plot
+#' @export
+#' @keywords internal
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
+#' Output plotly for labels comparison with integrated datasets
+#' @export
+#' @keywords internal
 scLabelsPlotOutput <- function(id) {
   ns <- NS(id)
   plotly::plotlyOutput(ns('labels_plot'))
@@ -373,7 +356,7 @@ scLabelsPlotOutput <- function(id) {
 
 #' Input for Single Cell analysis
 #'
-#' Used in Single Cell, Drugs and Pathways tab
+#' Used in Single Cell and Drugs tab
 #'
 #' @export
 #' @keywords internal

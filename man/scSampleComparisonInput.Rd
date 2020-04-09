@@ -7,6 +7,6 @@
 scSampleComparisonInput(id, with_dl = FALSE)
 }
 \description{
-Used in Single Cell, Drugs and Pathways tab
+Used in Single Cell and Drugs tab
 }
 \keyword{internal}

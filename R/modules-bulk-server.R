@@ -138,17 +138,21 @@ bulkMDS <- function(input, output, session, explore_eset) {
   ))
 }
 
+
+#' Logic for Bulk Data MDS plotly
+#' @export
+#' @keywords internal
 bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, numsv, mds, group_colors, adjusted) {
 
   # MDS plot
-  plotly_fun <- reactive({
+  plot <- reactive({
     mds <- mds()
     plotlyMDS(mds$scaling, mds$scaling_adj, group_colors = group_colors(), adjusted = adjusted)
   })
 
   base_fname <- reactive(paste0(dataset_name(), '_', numsv(), 'SV'))
 
-  data_fun <- function(file) {
+  content <- function(file) {
     #go to a temp dir to avoid permission issues
     owd <- setwd(tempdir())
     on.exit(setwd(owd))
@@ -167,14 +171,14 @@ bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, nu
     zip(file, c(vsd_fname, pdata_fname))
   }
 
-  fname_fun <- function() {paste0(base_fname(), '_', Sys.Date(), '.zip')}
+  filename <- function() {paste0(base_fname(), '_', Sys.Date(), '.zip')}
 
 
   # not currently downloadable so use default fname_fun and data_fun
-  callModule(downloadablePlotly, 'plotly',
-             plotly_fun = plotly_fun,
-             data_fun = data_fun,
-             fname_fun = fname_fun,
+  callModule(shinydlplot::downloadablePlotly, 'plotly',
+             plot = plot,
+             content = content,
+             filename = filename,
              title = 'Download adjusted data')
 }
 
@@ -195,7 +199,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
     get_boxplotly_gene_args(eset, explore_genes, dataset_name())
   })
 
-  plotly_fun <- reactive({
+  plot <- reactive({
 
     args <- boxplotly_args()
 
@@ -207,12 +211,12 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
               xtitle = 'Gene')
   })
 
-  fname_fun <- function() {
+  filename <- function() {
     paste(dataset_name(), '_', paste(explore_genes(), collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
   }
 
 
-  data_fun <- function(file) {
+  content <- function(file) {
     args <- boxplotly_args()
     df <- args$df
     df$color <- NULL
@@ -220,7 +224,11 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
     write.csv(df, file, row.names = FALSE)
   }
 
-  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
+  callModule(shinydlplot::downloadablePlotly,
+             'plotly',
+             plot = plot,
+             filename = filename,
+             content = content)
 
 
 
@@ -244,7 +252,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
     get_boxplotly_cell_args(pdata, dtangle_est, dataset_name())
   })
 
-  plotly_fun <- reactive({
+  plot <- reactive({
 
     args <- boxplotly_args()
 
@@ -256,14 +264,14 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
               xtitle = 'Cluster')
   })
 
-  fname_fun <- function() {
+  filename <- function() {
     clusters <- colnames(dtangle_est())
     clusters <- gsub(' ', '', clusters)
     paste(dataset_name(), '_', paste(clusters, collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
   }
 
 
-  data_fun <- function(file) {
+  content <- function(file) {
     args <- boxplotly_args()
     df <- args$df
     df$color <- NULL
@@ -271,7 +279,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
     write.csv(df, file, row.names = FALSE)
   }
 
-  callModule(downloadablePlotly, 'plotly', plotly_fun = plotly_fun, fname_fun = fname_fun, data_fun = data_fun)
+  callModule(shinydlplot::downloadablePlotly, 'plotly', plot = plot, filename = filename, content = content)
 
 
 }
@@ -638,17 +646,6 @@ bulkEndType <- function(input, output, session, fastq_dir) {
   return(paired = reactive(input$end_type == 'pair-ended'))
 }
 
-check_bulk_changed <- function(prev, pdata) {
-
-  # don't re-run if Group name or Pairs the same
-  changed <-
-    !identical(prev$`Group name`, pdata$`Group name`) |
-    !identical(prev$Pair, pdata$Pair)
-
-
-  return(changed)
-
-}
 
 #' Logic for differential expression analysis part of bulkForm
 #' @export
@@ -1202,28 +1199,9 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 
 }
 
-#' Get group levels for bulk data plots
-#'
-#' @param pdata Data.frame of phenotype data
+#' Logic for downloading and uploading bulk annotation
 #' @export
-#'
 #' @keywords internal
-get_group_levels <- function(pdata) {
-  group <- pdata$`Group name`
-  group_order <- order(unique(pdata$Group))
-  unique(group)[group_order]
-}
-
-#' Get group colors for bulk data plots
-#'
-#' @param group_levels result of \link{get_group_levels}
-#' @export
-#'
-#' @keywords internal
-get_group_colors <- function(group_levels) {
-  RColorBrewer::brewer.pal(8, 'Set2')[seq_along(group_levels)]
-}
-
 bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
 
@@ -1286,92 +1264,6 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
 }
 
-format_up_annot <- function(up, ref) {
-  row.names(up) <- up$Title
-  up[up == ''] <- NA
-
-  # Group in order of Group name
-  # allows changing color of groups by changing order or samples
-  group <- up$`Group name`
-  levels <- unique(group[!is.na(group)])
-  group <- as.numeric(factor(group, levels =levels))
-  up <- tibble::add_column(up, Group = group, .before = 1)
-
-  up$Pair <- factor(up$Pair)
-
-  # in case order of sample was changed
-  up <- up[row.names(ref), ]
-
-  # restore rna seq specific things
-  up$lib.size <- ref$lib.size
-  up$norm.factors <- ref$norm.factors
-
-  return(up)
-
-}
-
-format_dl_annot <- function(annot) {
-
-  add_pair <- function(df) {
-    pair <- df$Pair
-    if (is.null(pair)) pair <- df$pair
-    if (is.null(pair)) pair <- NA
-
-    df$pair <- df$Pair <- NULL
-    tibble::add_column(df, Pair = pair, .after = 'Title')
-  }
-
-  annot <- add_pair(annot)
-  annot <- annot[, !colnames(annot) %in% c('Group', 'lib.size', 'norm.factors')]
-  return(annot)
-
-}
-
-validate_up_annot <- function(up, ref) {
-  msg <- NULL
-
-
-  req_cols <- c('Title', 'Group name', 'Pair')
-  miss_cols <- req_cols[!req_cols %in% colnames(ref)]
-
-  group <- up$`Group name`
-  group <- group[!is.na(group)]
-  ngroups <- length(unique(group))
-
-  if (length(miss_cols)) {
-    msg <- paste('Missing columns:', paste(miss_cols, collapse = ', '))
-
-  } else if (!all(up$Title %in% ref$Title)) {
-    msg <- 'Do not change Title column'
-
-  } else if (ngroups < 2) {
-    msg <- 'Need at least 2 groups'
-
-  } else if (length(group) < 3) {
-    msg <- 'Need at least 3 grouped samples'
-
-  } else if (!is_invertible(up)) {
-    msg <- 'Group name and Pair combination not solvable'
-  }
-
-  return(msg)
-}
-
-
-
-
-is_invertible <- function(pdata) {
-  pdata <- pdata[!is.na(pdata$`Group name`), ]
-
-  pair <- pdata$Pair
-  if (length(unique(pair)) > 1) pdata$pair <- pair
-
-  pdata$group <- pdata$`Group name`
-
-  mod <- get_mods(pdata)$mod
-
-  class(try(solve.default(t(mod) %*% mod),silent=T)) == 'matrix'
-}
 
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #' @export
@@ -1602,45 +1494,6 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     path_res = path_res
   ))
 }
-
-
-#' Get and save pathway results for ebfit object
-#'
-#' Used to avoid code reuse for single-cell and bulk
-#'
-#' @param ebfit Result of \code{fit_ebayes}
-#' @param go_path Path to save Gene Ontology result
-#' @param kegg_path Path to save KEGG result
-#'
-#' @return List with GO and KEGG results
-#' @export
-#' @keywords internal
-get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 4) {
-
-  gslist.go <- get_gslist(species)
-  gslist.kegg <- get_gslist(species, type = 'kegg')
-
-  gs.names.go <- get_gs.names(gslist.go, species = species)
-  gs.names.kegg <- get_gs.names(gslist.kegg, type = 'kegg', species = species)
-
-  statistic <- ebfit$t[, 1]
-  names(statistic) <- ebfit$genes$ENTREZID
-  go <- limma::cameraPR(statistic, index = gslist.go)
-  go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
-  go <- go[go$NGenes >= min.genes, ]
-  go$FDR <- p.adjust(go$FDR, 'BH')
-
-  kg <- limma::cameraPR(statistic, index = gslist.kegg)
-  kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
-  kg <- kg[kg$NGenes >= min.genes, ]
-  kg$FDR <- p.adjust(kg$FDR, 'BH')
-
-  saveRDS(go, go_path)
-  saveRDS(kg, kegg_path)
-
-  return(list(go = go, kg = kg))
-}
-
 
 
 #' Logic to setup explore_eset for Bulk Data plots

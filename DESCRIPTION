@@ -59,9 +59,11 @@ Suggests:
     ensembldb (>= 2.8.1)
 Depends: 
     R (>= 3.6.0),
-    data.table (>= 1.12.8)
+    data.table (>= 1.12.8),
+    shinydlplot (>= 0.1.0),
 Remotes: 
     hms-dbmi/drugseqr.data,
+    alexvpickering/shinydlplot,
     LTLA/batchelor,
     LTLA/SingleR,
     LTLA/BiocSingular,

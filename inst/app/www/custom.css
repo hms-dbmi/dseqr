@@ -358,71 +358,6 @@ td.dt-nopad span {
 }
 
 
-
-/* downloadable plots and table */
-
-.downloadable-plot:hover .visible-plot.downloadable-plot-btn,
-.hide-btn-container:hover button.dt-button.buttons-collection,
-.hide-btn-container .hide-btn  {
-  animation: 0.2s fadeIn;
-  animation-fill-mode: forwards;
-}
-
-.downloadable-plot-btn,
-button.dt-button.buttons-collection,
-.hide-btn {
-  animation: 0.2s fadeOut;
-  animation-fill-mode: forwards;
-}
-
-.downloadable-plot-btn i,
-button.dt-button.buttons-collection i,
-.hide-btn i {
-  color: rgba(68, 68, 68, 0.3);
-}
-
-.downloadable-plot-btn:hover i,
-button.dt-button.buttons-collection:hover i,
-.hide-btn:hover i {
-  color: rgba(68, 68, 68, 0.7);
-}
-
-.downloadable-plot-btn .btn,
-button.dt-button.buttons-collection,
-.hide-btn {
-  background-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border: none;
-  padding: 3px 4px;
-  display: none;
-}
-
-.visible-plot a.btn {
-  display: block;
-}
-
-
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    visibility: visible;
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  0% {
-    opacity: 1;
-    visibility: visible;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 /* custom tooltip styling */
 
 .tooltip .tooltip-inner {
@@ -437,23 +372,6 @@ button.dt-button.buttons-collection,
   white-space: pre-wrap;
   }
 
-  /* for ggplot download data button: making it look like plotly */
-.tooltip.ggplot .tooltip-inner {
-  background: rgb(105, 115, 138);
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 12px;
-  white-space: nowrap;
-  border-radius: 2px;
-}
-
-.tooltip.ggplot.left .tooltip-arrow {
-  border-left-color: rgb(105, 115, 138);
-}
-
-.tooltip.ggplot.bottom .tooltip-arrow {
-  border-bottom-color: rgb(105, 115, 138);
-}
 
 /* for contrast in bulk data */
 .selectize-input > .bulk-item .contrast {
