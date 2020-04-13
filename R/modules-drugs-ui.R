@@ -98,9 +98,10 @@ selectedPertSignatureInput <- function(id) {
   ns <- NS(id)
 
   div(id = 'drugs-intro-pert',
-      selectizeInputWithValidation(ns('pert'),
-                                   label = 'Select perturbation for plot:',
-                                   label_title = 'Perturbation signature (correlation)')
+      shinypanel::selectizeInputWithValidation(
+        ns('pert'),
+        label = 'Select perturbation for plot:',
+        label_title = 'Perturbation signature (correlation)')
 
   )
 }
@@ -128,11 +129,12 @@ customQueryFormInput <- function(id) {
                           multiple = TRUE,
                           width = '100%',
                           options = options),
-           textInputWithButtons(id = ns('custom_name'),
-                                label = 'Name for custom query:',
-                                actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')),
-                                container_id = ns('validate'),
-                                help_id = ns('error_msg'))
+           shinypanel::textInputWithButtons(
+             id = ns('custom_name'),
+             label = 'Name for custom query:',
+             actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')),
+             container_id = ns('validate'),
+             help_id = ns('error_msg'))
   )
 
 }
@@ -174,10 +176,11 @@ selectedDrugStudyInput <- function(id) {
 
   div(id='drugs-intro-pert-study',
 
-      selectizeInputWithButtons(id = ns('study'), label = 'Select perturbation study:',
-                                shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-                                shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
-                                shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
+      shinypanel::selectizeInputWithButtons(
+        id = ns('study'), label = 'Select perturbation study:',
+        shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
+        shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+        shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
   )
 
 
@@ -206,7 +209,7 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
 
   tagList(
     div(id='drugs-intro-query',
-        selectizeInputWithButtons(
+        shinypanel::selectizeInputWithButtons(
           id = ns('query'), label = label,
           shiny::actionButton(ns('show_custom'), '', icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom signature'),
           options = list(optgroupField = 'type'))

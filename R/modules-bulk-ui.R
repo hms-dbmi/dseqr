@@ -98,7 +98,7 @@ bulkDatasetInput <- function(id) {
 
   withTags({
     div(id = 'bulk-intro-dataset',
-        selectizeInputWithButtons(
+        shinypanel::selectizeInputWithButtons(
           ns('dataset_name'), 'Select a bulk dataset:',
           container_id = 'dataset_name_container',
           options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
@@ -196,11 +196,12 @@ dtangleFormInput <- function(id) {
   withTags({
     div(id = ns('dtangle_form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('dtangle_dataset'), 'Reference single-cell dataset:', choices = '', width = '100%'),
-        selectizeInputWithButtons(ns('include_clusters'),
-                                  label = 'Clusters to include:',
-                                  label_title = 'Select cell types that are expected in the bulk dataset',
-                                  options = list(multiple = TRUE, placeholder = 'Select none to include all'),
-                                  actionButton(ns('submit_dtangle'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
+        shinypanel::selectizeInputWithButtons(
+          ns('include_clusters'),
+          label = 'Clusters to include:',
+          label_title = 'Select cell types that are expected in the bulk dataset',
+          options = list(multiple = TRUE, placeholder = 'Select none to include all'),
+          actionButton(ns('submit_dtangle'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
         )
     )
   })
@@ -216,7 +217,7 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
   options <- list(maxItems = 2, placeholder = 'Select test then control group')
   if (with_dl) {
     input <- tags$div(id = 'bulk-intro-comparison',
-                      selectizeInputWithButtons(
+                      shinypanel::selectizeInputWithButtons(
                         ns('contrast_groups'),
                         label,
                         downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
@@ -228,7 +229,7 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
   } else {
     input <- tags$div(
       id = ns('run_anal_container'),
-      selectizeInputWithValidation(
+      shinypanel::selectizeInputWithValidation(
         ns('contrast_groups'),
         label,
         options = options

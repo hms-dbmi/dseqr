@@ -1,430 +1,238 @@
-.hover-info {
-  font-size: 10px;
-  position: relative;
-  padding: 4px;
-  left: -4px;
-  bottom: 10px;
-  color: #A0A0A0;
-}
-
 /* fix for FixedColumns styling in Datasets tab */
 .DTFC_RightWrapper {
-  right: unset !important;
+    right: unset !important;
 }
 
-/* MDS plots */
 
+/* MDS plots */
 .beside-downloadable {
-  margin-top: 0px;
+    margin-top: 0px;
 }
 
 .mobile-margin {
-  margin-top: 50px;
+    margin-top: 50px;
 }
 
 @media (min-width: 1200px) {
-  .mobile-margin {
-    margin-top: 0px;
-  }
-  .beside-downloadable {
-    margin-top: 26px;
-  }
+    .mobile-margin {
+        margin-top: 0px;
+    }
+    .beside-downloadable {
+        margin-top: 26px;
+    }
 }
-
-
-.hover-info:hover {
-  color: cornflowerblue;
-}
-
-.hover-info i {
-  vertical-align: middle;
-}
-
 
 .selectize-dropdown-content {
-  max-height: 450px;
+    max-height: 450px;
 }
+
 
 /* for showing cluster colour in dropdown */
 .input-swatch {
-  height: 10px; 
-  width: 10px; 
-  border: 1px solid #54575a;
-  display: inline-block; 
-  margin-right: 5px;
+    height: 10px;
+    width: 10px;
+    border: 1px solid #54575a;
+    display: inline-block;
+    margin-right: 5px;
 }
+
 
 /* swatch for Pathways plot L1000 label */
 .pert-label .input-swatch {
-  height: 6px; 
-  width: 6px; 
-  border: none;
-  border-radius: 50%;
-  margin-right: 5px;
-  vertical-align: middle;
+    height: 6px;
+    width: 6px;
+    border: none;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
 }
 
 .pert-label .input-swatch.same {
-  background-color: #f64f5a;
+    background-color: #f64f5a;
 }
 
 .pert-label .input-swatch.opposite {
-  background-color: #1863e6;
+    background-color: #1863e6;
 }
 
 .pert-label {
-  display: none;
-  color: #333;
-  font-family: "Open Sans", verdana, arial, sans-serif;
-  font-size: 14px;
+    display: none;
+    color: #333;
+    font-family: "Open Sans", verdana, arial, sans-serif;
+    font-size: 14px;
 }
+
 
 /* swatch for label transfer in Single Cell page */
 .circle-swatch {
-  height: 8px;
-  width: 8px;
-  display: inline-block;
-  border-radius: 50%;
-  background-color: #5cb85c;
-  margin-top: 6px;
+    height: 8px;
+    width: 8px;
+    display: inline-block;
+    border-radius: 50%;
+    background-color: #5cb85c;
+    margin-top: 6px;
 }
 
 .form-control {
-  /* remove ugly box shadow from inputs */
-  box-shadow: inset 0px 0px 0px 0px red;
+    /* remove ugly box shadow from inputs */
+    box-shadow: inset 0px 0px 0px 0px red;
 }
-
-/* INTEGRATION RELATED */
-
-.well-form {
-  border: 1px solid #e7e7e7;
-  max-width: 400px !important;
-  background-color: #f8f8f8;
-  padding: 10px;
-}
-
-.well-form.no-well {
-  background-color: white;
-}
-
-.hidden-form {
-  padding: 15px 0px 0px;
-  border-width: 1px 0px;
-  border-style: solid;
-  border-color: #e7e7e7;
-  margin-bottom: 15px;
-}
-
-.hidden-form.bottom {
-  border-bottom: 0px;
-  margin-bottom: 0px;
-}
-
-/* makes borders work when multiple hidden forms */
-.hidden-forms {
-  margin-bottom: 15px;
-}
-
-.hidden-forms .hidden-form {
-  margin-bottom: -1px;
-}
-
-
-/* VALIDATION RELATED */
-
-.validate-wrapper.has-error button {
-  border-color: #a94442;
-  color: #a94442;
-  outline-color: #a94442;
-}
-
-.validate-wrapper.has-error .help-block {
-  display: block;
-}
-
-.validate-wrapper .help-block {
-  display: none;
-  margin-top: 10px;
-}
-
-
-
-
-/* FORMS BESIDE BUTTONS */
-.well-form .form-group {
-  min-height: 100px;
-}
-
-.selectize-fh,
-.well-form .form-group {
-  min-height: 100px; 
-} 
-
-
-.input-group .selectize-input {
-  border-top-right-radius: 0; 
-  border-bottom-right-radius: 0;
-}
-
-.input-group-btn .dropdown {
-  display: inline-block;
-}
-
-.input-group-btn .dropdown button,
-.input-group-btn a.btn {
-  border-top-left-radius: 0; 
-  border-bottom-left-radius: 0;
-  border-left-width: 0px;
-  outline: none;
-}
-
-.input-group-btn.dropdown .caret {
-  display: none;
-}
-
-.squashed-btn {
-  border-radius: 0px;
-}
-
-
-.input-group-btn {
-  vertical-align: top;
-}
-
-/* same height as selectize input  */
-.input-group-btn .btn {
-  min-height: 34px;
-}
-
-.input-group-btn a {
-  z-index: 0 !important;
-}
-
-
-
-/* FULL HEIGHT BUTTON BESIDE INPUT */
-
-.full-height-btn .input-group-btn,
-.full-height-btn .input-group-btn a {
-  min-width: 42px;
-}
-
-.full-height-btn .input-group-btn a {
-  display: table;
-  height: 100%;
-}
-
-.full-height-btn .input-group-btn a > i {
-  display: table-cell;
-  vertical-align:  middle;
-}
-
-
-
-.full-height-btn .input-group-btn:not(:last-child) button,
-.full-height-btn .input-group-btn:not(:last-child) a {
-  border-radius: 0;
-}
-
-.full-height-btn button, 
-.full-height-btn a {
-  position: absolute !important;
-  top: 0;
-  bottom: 0;
-  right: 0;
-}
-
-.full-height-selectize {
-  display: table-cell;
-  max-width: 1px;
-}
-
-.full-height-selectize .selectize-input {
-  display: block !important; 
-}
-
-.full-height-selectize .selectize-control {
-  margin-bottom: 0;
-}
-
-/* so that shrinks on mobile */
-.full-height-selectize input {
-  width: 100% !important;
-}
-
 
 
 /* BRAND */
+
 .brand-icons {
-  background-color: white;
-  padding: 5px 12px;
-  cursor: default;
-  color: cornflowerblue;
+    background-color: white;
+    padding: 5px 12px;
+    cursor: default;
+    color: cornflowerblue;
 }
 
 .brand-icons i {
-  color: cornflowerblue;
-  font-size: 14px;
+    color: cornflowerblue;
+    font-size: 14px;
 }
 
 
 /* NAVBAR */
 
+
 /* allows for right-aligned tabs inside same ul tabset */
 /* only way I could get it working with shiny */
 ul.nav.navbar-nav {
-  float: none;
+    float: none;
 }
 
 .navbar-default {
-  background-color: white;
+    background-color: white;
 }
 
 .navbar {
-  margin-bottom: 50px;
+    margin-bottom: 50px;
 }
+
 
 /* same box when active/active so that hover doesn't change height on mobile */
 .navbar-nav>li>a {
-  padding: 5px 12px;
-  margin: 9px 2px;
-  border: 1px solid transparent;
+    padding: 5px 12px;
+    margin: 9px 2px;
+    border: 1px solid transparent;
 }
 
 .navbar-default .navbar-nav>.active>a,
 .navbar-default .navbar-nav>.active>a:hover,
 .navbar-default .navbar-nav>.active>a:focus,
 .navbar-default .navbar-nav>li>a:hover {
-  padding: 5px 12px;
-  margin: 9px 2px;
-  border: 1px solid #ccc;
-  background-color: white;
-  color: cornflowerblue;
-  border-radius: 4px;
+    padding: 5px 12px;
+    margin: 9px 2px;
+    border: 1px solid #ccc;
+    background-color: white;
+    color: cornflowerblue;
+    border-radius: 4px;
 }
 
 .navbar-default .navbar-nav>a:hover,
 .navbar-default .navbar-nav>a:focus,
 .navbar-default .navbar-nav>li>a:hover {
-  border: 1px solid white;
+    border: 1px solid white;
 }
-
-
-
-
 
 .btn-group-justified .dropdown-toggle::after {
-  content: ' ';
-  display: block;
-  position: absolute;
-  top: 50%;
-  right: 17px;
-  margin-top: -3px;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 5px 5px 0 5px;
-  border-color: #333333 transparent transparent transparent;
+    content: ' ';
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 17px;
+    margin-top: -3px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 0 5px;
+    border-color: #333333 transparent transparent transparent;
 }
-
 
 
 /* DATATABLES */
 
 .dt-fake-height {
-  height: 1px;
+    height: 1px;
 }
 
 td.dt-nopad {
-  padding: 0px !important; 
-  height: 37px;
+    padding: 0px !important;
+    height: 37px;
 }
 
 td.dt-nopad div {
-  height: 100%; 
-  width: 100%; 
-  text-align: center;
+    height: 100%;
+    width: 100%;
+    text-align: center;
 }
 
 td.dt-nopad span {
-  display: inline-block; 
-  padding: 8px 10px; 
-  color: white;
+    display: inline-block;
+    padding: 8px 10px;
+    color: white;
 }
+
 
 /* table text on 1 line */
 .dt-container {
-  white-space: nowrap;
+    white-space: nowrap;
 }
-
-
-/* custom tooltip styling */
-
-.tooltip .tooltip-inner {
-  font-family: "Open Sans", verdana, arial, sans-serif;
-  max-width: 600px;
-  padding:16px 12px;
-  color:#fff;
-  text-align:center;
-  font-size: 14px;
-  background-color:rgba(0,0,0,0.90);
-  border-radius:5px;
-  white-space: pre-wrap;
-  }
 
 
 /* for contrast in bulk data */
-.selectize-input > .bulk-item .contrast {
-  display: inline-block;
-  padding-left: 6px;
-  padding-right: 3px;
-  font-weight: 700;
+.selectize-input>.bulk-item .contrast {
+    display: inline-block;
+    padding-left: 6px;
+    padding-right: 3px;
+    font-weight: 700;
 }
 
-.selectize-input >.bulk-item ~ .bulk-item .contrast {
-  display: none;
+.selectize-input>.bulk-item~.bulk-item .contrast {
+    display: none;
 }
 
 .bulk-item.active {
-  background-color: #428bca !important;
+    background-color: #428bca !important;
 }
 
 .bulk-item {
-  background-color: white !important;
+    background-color: white !important;
 }
 
-input[type=text] {   
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none; 
+input[type=text] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
 
 /* hide tooltips on mobile */
-@media only screen 
-and (min-device-width : 768px) 
-and (max-device-width : 1024px) {
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
     .tooltip {
         display: none !important;
     }
- }
+}
 
 
+/* introjs button styling */
 .btn-intro {
-  border: 1px solid #ddd;
-  padding: 4px;
-  padding-top: 6px;
-  border-radius: 2px;
-  cursor: pointer;
-  font-size: 12px;
-  position: relative;
-  bottom: 30px;
-  color:#333;
-  box-shadow: 2px 2px 2px gray;
+    border: 1px solid #ddd;
+    padding: 4px;
+    padding-top: 6px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 12px;
+    position: relative;
+    bottom: 30px;
+    color: #333;
+    box-shadow: 2px 2px 2px gray;
 }
 
 .btn-intro:hover {
-  background:#333;
-  color:#fff;
-  border-color:transparent;
+    background: #333;
+    color: #fff;
+    border-color: transparent;
 }

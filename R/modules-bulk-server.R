@@ -362,9 +362,9 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   # only show nsv/dtangle toggle if existing dataset
   observe({
-    toggleSelectizeButtons('dataset_name',
-                           button_ids = c('show_nsv', 'show_dtangle'),
-                           condition = dataset_exists())
+    shinypanel::toggleSelectizeButtons('dataset_name',
+                                       button_ids = c('show_nsv', 'show_dtangle'),
+                                       condition = dataset_exists())
   })
 
 

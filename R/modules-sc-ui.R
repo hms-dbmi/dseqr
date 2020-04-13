@@ -119,7 +119,7 @@ scSelectedDatasetInput <- function(id) {
 
   tagList(
     div(id = 'sc-intro-dataset',
-        selectizeInputWithButtons(
+        shinypanel::selectizeInputWithButtons(
           ns('selected_dataset'),
           label = 'Select a single-cell dataset:',
           actionButton(
@@ -151,10 +151,11 @@ labelTransferFormInput <- function(id) {
   ns <- NS(id)
   withTags({
     div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInputWithButtons(ns('ref_name'), 'Transfer labels from:',
-                                  actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
-                                  options = list(optgroupField = 'type',
-                                                 render = I('{option: transferLabelOption}'))
+        shinypanel::selectizeInputWithButtons(
+          ns('ref_name'), 'Transfer labels from:',
+          actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
+          options = list(optgroupField = 'type',
+                         render = I('{option: transferLabelOption}'))
         )
     )
   })
@@ -171,20 +172,22 @@ integrationFormInput <- function(id) {
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
         selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInputWithButtons(ns('subset_clusters'),
-                                  container_id = ns('exclude-container'),
-                                  label = 'Clusters to subset on:',
-                                  actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected clusters'),
-                                  options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
+        shinypanel::selectizeInputWithButtons(
+          ns('subset_clusters'),
+          container_id = ns('exclude-container'),
+          label = 'Clusters to subset on:',
+          actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected clusters'),
+          options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
         shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'liger', 'fastMNN'), justified = TRUE, selected = 'harmony'),
-        textInputWithButtons(ns('integration_name'),
-                             container_id = ns('name-container'),
-                             label = 'Name for integrated dataset:',
-                             actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
-                             actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
-                             actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
-                             help_id = ns('error_msg'),
-                             placeholder = 'Prepended to integration type(s)'),
+        shinypanel::textInputWithButtons(
+          ns('integration_name'),
+          container_id = ns('name-container'),
+          label = 'Name for integrated dataset:',
+          actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
+          actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
+          actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
+          help_id = ns('error_msg'),
+          placeholder = 'Prepended to integration type(s)'),
 
         div(style = 'display: none',
             fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
@@ -203,17 +206,19 @@ subsetFormInput <- function(id) {
 
   withTags({
     div(id = ns('subset-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInputWithButtons(ns('subset_clusters'),
-                                  container_id = ns('exclude-container'),
-                                  label = 'Features to subset on:',
-                                  actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected features'),
-                                  options = list(multiple = TRUE, optgroupField = 'type')),
-        textInputWithButtons(ns('subset_name'),
-                             container_id = ns('name-container'),
-                             label = 'Name for subset dataset:',
-                             actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
-                             help_id = ns('error_msg'),
-                             placeholder = 'eg: QC2 (appended to founder dataset name)'),
+        shinypanel::selectizeInputWithButtons(
+          ns('subset_clusters'),
+          container_id = ns('exclude-container'),
+          label = 'Features to subset on:',
+          actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected features'),
+          options = list(multiple = TRUE, optgroupField = 'type')),
+        shinypanel::textInputWithButtons(
+          ns('subset_name'),
+          container_id = ns('name-container'),
+          label = 'Name for subset dataset:',
+          actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
+          help_id = ns('error_msg'),
+          placeholder = 'eg: QC2 (appended to founder dataset name)'),
 
         div(style = 'display: none',
             fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
@@ -235,7 +240,7 @@ clusterComparisonInput <- function(id) {
     div(id = 'sc-intro-cluster',
         div(id = ns('selected_cluster_panel'),
             div(id = ns('select_panel'),
-                selectizeInputWithButtons(
+                shinypanel::selectizeInputWithButtons(
                   ns('selected_cluster'),
                   label = 'Sort marker genes for:',
                   label_title = 'Cluster (n cells :: % of total)',
@@ -251,11 +256,12 @@ clusterComparisonInput <- function(id) {
             )
         ),
         div(id = ns('rename_panel'), style = 'display: none',
-            textInputWithButtons(ns('new_cluster_name'),
-                                 'New cluster name:',
-                                 actionButton(ns('rename_cluster'), '',
-                                              icon = icon('plus', 'fa-fw'),
-                                              title = 'Rename cluster'))
+            shinypanel::textInputWithButtons(
+              ns('new_cluster_name'),
+              'New cluster name:',
+              actionButton(ns('rename_cluster'), '',
+                           icon = icon('plus', 'fa-fw'),
+                           title = 'Rename cluster'))
         )
 
     )
@@ -284,18 +290,20 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   }
 
   div(id = 'sc-intro-feature',
-      selectizeInputWithButtons(id = ns('selected_gene'),
-                                label = 'Feature to plot:',
-                                btn1, btn2, btn3,
-                                options = list(optgroupField = 'type')
+      shinypanel::selectizeInputWithButtons(
+        id = ns('selected_gene'),
+        label = 'Feature to plot:',
+        btn1, btn2, btn3,
+        options = list(optgroupField = 'type')
       ),
       div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
-          textAreaInputWithButtons(ns('custom_metric'),
-                                   'Custom metric:',
-                                   placeholder = 'e.g: PF4>2.2',
-                                   actionButton(ns('save_custom_metric'), '',
-                                                icon = icon('plus', 'fa-fw'),
-                                                title = 'Save custom metric'))
+          shinypanel::textAreaInputWithButtons(
+            ns('custom_metric'),
+            'Custom metric:',
+            placeholder = 'e.g: PF4>2.2',
+            actionButton(ns('save_custom_metric'), '',
+                         icon = icon('plus', 'fa-fw'),
+                         title = 'Save custom metric'))
       )
 
   )
@@ -367,7 +375,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   if (with_dl)
     dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
-  selectizeInputWithButtons(
+  shinypanel::selectizeInputWithButtons(
     ns('selected_cluster'),
     label = 'Compare samples for:',
     dl_btn,
