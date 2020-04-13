@@ -22,7 +22,7 @@ drugsPageUI <- function(id, tab, active) {
                                    'Show genes plot',
                                    options = list(
                                      container = 'body',
-                                     template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                                     template = '<div class="tooltip plot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
                                    )
                 )
             )
@@ -84,7 +84,7 @@ drugsTableOutput <- function(id) {
                        'Download full query results',
                        options = list(
                          container = 'body',
-                         template = '<div class="tooltip ggplot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                         template = '<div class="tooltip plot" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
                        )
     )
   )

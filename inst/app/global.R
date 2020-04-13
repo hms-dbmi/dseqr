@@ -4,7 +4,6 @@ suppressPackageStartupMessages({
   library(drugseqr)
   library(shiny)
   library(shinyBS)
-  library(shinydlplot)
   library(shinyjs)
   library(shinyWidgets)
   library(dplyr)
