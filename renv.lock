@@ -1456,8 +1456,8 @@
       "RemoteUsername": "alexvpickering",
       "RemoteRepo": "shinydlplot",
       "RemoteRef": "master",
-      "RemoteSha": "814cb2849319e07d49cfd36f5ef0f8f03e0828a9",
-      "Hash": "876424e34e31f28cee691ea026b05a50"
+      "RemoteSha": "1bdac9dd0123fb8d71a32038ea32d3550dedf880",
+      "Hash": "33ab08d3d8f42dba0495d4be131606c8"
     },
     "shinyjs": {
       "Package": "shinyjs",
@@ -1465,6 +1465,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "b40a5207b6624f6e2b8cdb50689cdb69"
+    },
+    "shinypanel": {
+      "Package": "shinypanel",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRepo": "shinypanel",
+      "RemoteRef": "master",
+      "RemoteSha": "121130338a10fc0bccca78b78223aeecc1e911af",
+      "Hash": "78fcf3027a2488dc8a3811beb7b716e0"
     },
     "sitmo": {
       "Package": "sitmo",

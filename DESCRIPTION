@@ -46,6 +46,8 @@ Imports:
     shinyjs (>= 1.1),
     shinyWidgets (>= 0.5.0),
     shinyFiles (>= 0.7.5),
+    shinydlplot (>= 0.1.0),
+    shinypanel (>= 0.1.0),
     SingleCellExperiment (>= 1.9.1),
     SingleR (>= 1.1.6),
     scran (>= 1.14.5),
@@ -60,10 +62,10 @@ Suggests:
 Depends: 
     R (>= 3.6.0),
     data.table (>= 1.12.8),
-    shinydlplot (>= 0.1.0),
 Remotes: 
     hms-dbmi/drugseqr.data,
     alexvpickering/shinydlplot,
+    alexvpickering/shinypanel,
     LTLA/batchelor,
     LTLA/SingleR,
     LTLA/BiocSingular,
