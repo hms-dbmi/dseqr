@@ -132,7 +132,10 @@ fit_lm <- function(eset, svobj = list(sv = NULL), numsv = 0, rna_seq = TRUE){
   lm_fit <- run_lmfit(eset, mod, rna_seq)
 
   # add enids for go/kegg pathway analyses
-  lm_fit$fit$genes <- Biobase::fData(eset)[, 'ENTREZID', drop = FALSE]
+  # add PROBE for microarray dataset
+  genes <- Biobase::fData(eset)
+  genes <- genes[, colnames(genes) %in% c('ENTREZID', 'PROBE'), drop = FALSE]
+  lm_fit$fit$genes <- genes
 
   return(lm_fit)
 }
@@ -243,9 +246,6 @@ get_mods <- function(pdata) {
   return(list("mod" = mod, "mod0" = mod0))
 }
 
-model.matrix.dummy <- function(group, pair) {
-
-}
 
 
 

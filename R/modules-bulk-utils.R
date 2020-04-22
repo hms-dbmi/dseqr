@@ -421,12 +421,12 @@ get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 
   go <- limma::cameraPR(statistic, index = gslist.go)
   go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
   go <- go[go$NGenes >= min.genes, ]
-  go$FDR <- p.adjust(go$FDR, 'BH')
+  go$FDR <- p.adjust(go$PValue, 'BH')
 
   kg <- limma::cameraPR(statistic, index = gslist.kegg)
   kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
   kg <- kg[kg$NGenes >= min.genes, ]
-  kg$FDR <- p.adjust(kg$FDR, 'BH')
+  kg$FDR <- p.adjust(kg$PValue, 'BH')
 
   saveRDS(go, go_path)
   saveRDS(kg, kegg_path)
