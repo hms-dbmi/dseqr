@@ -1321,8 +1321,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     file.path(dataset_dir(), fname)
   })
 
+  goanna_path <- reactive({
+    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.rds')
+    file.path(dataset_dir(), fname)
+  })
+
   kegg_path <- reactive({
     fname <- paste0('kegg_', anal_name(), '_', numsv_str(), '.rds')
+    file.path(dataset_dir(), fname)
+  })
+
+  kegga_path <- reactive({
+    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.rds')
     file.path(dataset_dir(), fname)
   })
 
@@ -1415,11 +1425,15 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     req(full_contrast())
     go_path <- go_path()
     kegg_path <- kegg_path()
+    goana_path <- goana_path()
+    kegga_path <- kegga_path()
 
-    if (file.exists(kegg_path)) {
+    if (file.exists(kegga_path)) {
       res <- list(
         go = readRDS(go_path),
-        kg = readRDS(kegg_path))
+        kg = readRDS(kegg_path),
+        goana = readRDS(goana_path),
+        kegga = readRDS(kegga_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1438,7 +1452,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- fit_ebayes(lm_fit, contrast)
-      res <- get_path_res(ebfit, go_path, kegg_path)
+      res <- get_path_res(ebfit,
+                          go_path = go_path,
+                          kegg_path = kegg_path,
+                          goana_path = goana_path,
+                          kegga_path = kegga_path)
       progress$inc(1)
       enableAll(input_ids)
     }
@@ -1466,16 +1484,20 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'go.csv'
-    kg_fname <- 'kegg.csv'
+    go_fname <- 'cameraPR_go.csv'
+    kg_fname <- 'cameraPR_kegg.csv'
+    goana_fname <- 'goana.csv'
+    kegga_fname <- 'kegga.csv'
 
     path_res <- path_res()
     write.csv(top_table(), tt_fname)
     write.csv(path_res$go, go_fname)
     write.csv(path_res$kg, kg_fname)
+    write.csv(path_res$kegga, kegga_fname)
+    write.csv(path_res$goana, goana_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname, kg_fname))
+    zip(file, c(tt_fname, go_fname, kg_fname, goana_fname, kegga_fname))
   }
 
   output$download <- downloadHandler(

@@ -402,13 +402,15 @@ is_invertible <- function(pdata) {
 #' Used to avoid code reuse for single-cell and bulk
 #'
 #' @param ebfit Result of \code{fit_ebayes}
-#' @param go_path Path to save Gene Ontology result
-#' @param kegg_path Path to save KEGG result
+#' @param go_path Path to save camerPR Gene Ontology result
+#' @param kegg_path Path to save cameraPR KEGG result
+#' @param goana_path Path to save goana Gene Ontology result
+#' @param kegga_path Path to save kegga KEGG result
 #'
 #' @return List with GO and KEGG results
 #' @export
 #' @keywords internal
-get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 4) {
+get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, species = 'Hs', min.genes = 4) {
 
   gslist.go <- get_gslist(species)
   gslist.kegg <- get_gslist(species, type = 'kegg')
@@ -418,11 +420,14 @@ get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 
 
   statistic <- ebfit$t[, 1]
   names(statistic) <- ebfit$genes$ENTREZID
+
+  # get cameraPR GO result
   go <- limma::cameraPR(statistic, index = gslist.go)
   go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
   go <- go[go$NGenes >= min.genes, ]
   go$FDR <- p.adjust(go$PValue, 'BH')
 
+  # get cameraPR KEGG result
   kg <- limma::cameraPR(statistic, index = gslist.kegg)
   kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
   kg <- kg[kg$NGenes >= min.genes, ]
@@ -431,7 +436,29 @@ get_path_res <- function(ebfit, go_path, kegg_path, species = 'Hs', min.genes = 
   saveRDS(go, go_path)
   saveRDS(kg, kegg_path)
 
-  return(list(go = go, kg = kg))
+  # get goana and kegga results
+  order_or <- function(r) order(pmin(r$P.Up, r$P.Down))
+
+  goana_res <- limma::goana(ebfit, geneid = 'ENTREZID', species = species)
+  goana_res <- goana_res[order_or(goana_res), ]
+
+  kegga_res <- limma::kegga(ebfit, geneid = 'ENTREZID', species = species)
+  kegga_res <- kegga_res[order_or(kegga_res), ]
+
+  saveRDS(goana_res, goana_path)
+  saveRDS(kegga_res, kegga_path)
+
+  return(list(go = go, kg = kg, goana = goana_res, kegga = kegga_res))
+}
+
+order_or <- function()
+
+get_pathway_names <- function(gs.names) {
+  pathway_names <- data.frame(
+    PathwayID = names(gs.names),
+    Description = gs.names,
+    stringsAsFactors = FALSE
+  )
 }
 
 

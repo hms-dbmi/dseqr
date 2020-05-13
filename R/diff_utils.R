@@ -312,11 +312,12 @@ iqr_replicates <- function(eset, annot = "SYMBOL", rm.dup = FALSE, keep_path = N
     Biobase::featureNames(eset) <- fdata[!annot.na, annot]
 
   } else {
-    adj <- Biobase::assayDataElement(eset, 'adjusted')
+    # use rlog transformed or RMA-normalized to compute IQRs
+    y <- Biobase::assayDataElement(eset, 'vsd')
 
     # add inter-quartile ranges, row, and feature data to exprs data
-    data <- as.data.frame(adj)
-    data$iqrange <- matrixStats::rowIQRs(adj)
+    data <- as.data.frame(y)
+    data$iqrange <- matrixStats::rowIQRs(y)
     data$row <- 1:nrow(data)
     data[, colnames(fdata)] <- fdata
 

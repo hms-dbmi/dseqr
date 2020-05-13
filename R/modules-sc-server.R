@@ -1681,6 +1681,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
   go_path <- reactive(file.path(dataset_dir(), paste0('go_', clusters_str(), '.rds')))
   kegg_path <- reactive(file.path(dataset_dir(), paste0('kegg_', clusters_str(), '.rds')))
+  goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
+  kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
   top_tables_paths <- reactive(file.path(dataset_dir(), 'top_tables.rds'))
 
 
@@ -1827,10 +1829,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
   path_res <- reactive({
     go_path <- go_path()
     kegg_path <- kegg_path()
+    goana_path <- goana_path()
+    kegga_path <- kegga_path()
 
-    if (file.exists(kegg_path)) {
+    if (file.exists(kegga_path)) {
       res <- list(go = readRDS(go_path),
-                  kg = readRDS(kegg_path))
+                  kg = readRDS(kegg_path),
+                  kegga = readRDS(kegga_path),
+                  goana = readRDS(goana_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1849,7 +1855,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       ambient <- ambient()
       lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
       ebfit <- fit_ebayes(lm_fit, 'test-ctrl')
-      res <- get_path_res(ebfit, go_path, kegg_path, species)
+      res <- get_path_res(ebfit,
+                          go_path = go_path,
+                          kegg_path = kegg_path,
+                          goana_path = goana_path,
+                          kegga_path = kegga_path,
+                          species = species)
       progress$inc(1)
       enableAll(input_ids)
     }
@@ -1891,9 +1902,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'go.csv'
-    kg_fname <- 'kegg.csv'
+    go_fname <- 'cameraPR_go.csv'
+    kg_fname <- 'cameraPR_kegg.csv'
     ab_fname <- 'abundances.csv'
+    kegga_fname <- 'kegga.csv'
+    goana_fname <- 'goana.csv'
 
     tt <- top_table()
     path_res <- path_res()
@@ -1901,10 +1914,12 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     write.csv(tt, tt_fname)
     write.csv(path_res$go, go_fname)
     write.csv(path_res$kg, kg_fname)
+    write.csv(path_res$kegga, kegga_fname)
+    write.csv(path_res$goana, goana_fname)
     write.csv(abundances, ab_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname, kg_fname, ab_fname))
+    zip(file, c(tt_fname, go_fname, kg_fname, ab_fname, kegga_fname, goana_fname))
   }
 
   output$download <- downloadHandler(

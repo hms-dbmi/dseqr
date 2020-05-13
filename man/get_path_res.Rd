@@ -4,14 +4,26 @@
 \alias{get_path_res}
 \title{Get and save pathway results for ebfit object}
 \usage{
-get_path_res(ebfit, go_path, kegg_path, species = "Hs", min.genes = 4)
+get_path_res(
+  ebfit,
+  go_path,
+  kegg_path,
+  goana_path,
+  kegga_path,
+  species = "Hs",
+  min.genes = 4
+)
 }
 \arguments{
 \item{ebfit}{Result of \code{fit_ebayes}}
 
-\item{go_path}{Path to save Gene Ontology result}
+\item{go_path}{Path to save camerPR Gene Ontology result}
 
-\item{kegg_path}{Path to save KEGG result}
+\item{kegg_path}{Path to save cameraPR KEGG result}
+
+\item{goana_path}{Path to save goana Gene Ontology result}
+
+\item{kegga_path}{Path to save kegga KEGG result}
 }
 \value{
 List with GO and KEGG results
