@@ -521,7 +521,40 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 
   is_plotly <- reactive('plotly' %in% class(res()))
 
-  output$plot <- renderPlot(if (!is_plotly()) suppressMessages(print(res()$plot)) else NULL, height = height)
+
+  filename <- function() {
+    fname <- plot()$labels$title
+    fname <- gsub(':', '', fname)
+    paste0(fname, '.csv')
+  }
+
+  plot <- reactive({
+    if (!is_plotly()) return(res()$plot)
+    return(NULL)
+  })
+
+
+  content <- function(file) {
+    d <- plot()$data
+
+    # clean up data for ridgeplots
+    if (!'TSNE1' %in% colnames(d)) {
+      d <- plot()$data[, c('x', 'y')]
+      colnames(d) <- c(selected_gene(), 'sample')
+    }
+
+    write.csv(d, file)
+  }
+
+
+  callModule(shinydlplot::downloadablePlot,
+             "plot",
+             plot = plot,
+             filename = filename,
+             content = content,
+             height = height)
+
+
   output$plotly <- plotly::renderPlotly(if (is_plotly()) res() else NULL)
 }
 
@@ -1618,12 +1651,29 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     return(height)
   })
 
-  output$ridge_plot <- renderPlot({
+
+
+  plot <- reactive({
     gene <- selected_gene()
     cluster <- selected_cluster()
     req(gene)
-    suppressMessages(print(plot_ridge(gene, scseq(), cluster)))
-  }, height = height)
+    suppressMessages(plot_ridge(gene, scseq(), cluster))
+  })
+
+  content <- function(file){
+    d <- plot()$data[, c('x', 'y')]
+    colnames(d) <- c(selected_gene(), 'cluster')
+    write.csv(d, file, row.names = FALSE)
+  }
+
+  filename <- reactive(paste0(selected_gene(), '.csv'))
+
+  callModule(shinydlplot::downloadablePlot,
+             "ridge_plot",
+             plot = plot,
+             filename = filename,
+             content = content,
+             height = height)
 }
 
 

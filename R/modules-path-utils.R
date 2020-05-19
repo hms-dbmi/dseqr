@@ -223,7 +223,10 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
   for (clust in levels(clusters)) {
     yi <- y[, clusters == clust]
 
+    # skip if no replicates
     group <- yi$samples$orig.ident
+    neach <- table(group)
+    if (any(neach == 0) || sum(neach) < 3) next
 
     # filter genes
     keep <- edgeR::filterByExpr(yi, group = group)

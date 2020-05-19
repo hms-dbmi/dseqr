@@ -37,7 +37,7 @@ scPageUI <- function(id, tab, active) {
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
                     scSampleMarkerPlotOutput(ns('right')),
-                    hr(),
+                    br(),
                     scSampleMarkerPlotOutput(ns('right_bottom'))
                 )
             ),
@@ -46,9 +46,7 @@ scPageUI <- function(id, tab, active) {
                     scLabelsPlotOutput(ns('labels_plot_cluster'))
                 )
             )
-        ),
-        # row for labels comparison (integration before and after)
-        div(class = 'row', id = ns('label_comparison_row'), style = 'display: none;')
+        )
     )
   })
 }
@@ -341,7 +339,7 @@ scBioGpsPlotOutput <- function(id) {
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
   tagList(
-    tags$div(plotOutput(ns('plot'), height = 'auto'), style = 'line-height: 0px;'),
+    tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto'), style = 'line-height: 0px;'),
     plotly::plotlyOutput(ns('plotly'), height = 'auto')
   )
 }
@@ -351,7 +349,8 @@ scSampleMarkerPlotOutput <- function(id) {
 #' @keywords internal
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
-  plotOutput(ns('ridge_plot'), height = 'auto')
+  shinydlplot::downloadablePlotUI(ns('ridge_plot'), height = 'auto')
+  # plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
 #' Output plotly for labels comparison with integrated datasets
@@ -384,3 +383,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+

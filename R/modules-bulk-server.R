@@ -1321,7 +1321,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     file.path(dataset_dir(), fname)
   })
 
-  goanna_path <- reactive({
+  goana_path <- reactive({
     fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.rds')
     file.path(dataset_dir(), fname)
   })
