@@ -192,6 +192,7 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
   else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
 
   choices <- data.frame(
+    label = c('Reset Labels', external, anal_options$name),
     value = c('reset', gsub(' ', '', external), anal_options$name),
     itemLabel = c('Reset Labels', external, anal_options$itemLabel),
     optionLabel = c('Reset Labels', external, anal_options$optionLabel),
