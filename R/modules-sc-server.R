@@ -1481,6 +1481,9 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     else selected_gene(sel)
   })
 
+  # reset custom metric if dataset changes
+  observeEvent(dataset_name(), custom_metrics(NULL))
+
 
   # update choices
   observe({
