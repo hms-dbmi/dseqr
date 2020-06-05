@@ -854,6 +854,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
     is_include <- is_include()
+    is_integrated <- is_integrated()
 
     exclude_clusters <- intersect(cluster_choices$value, subset)
     subset_metrics <- intersect(metric_choices$value, subset)
@@ -874,7 +875,11 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     on.exit(progress$close())
     progress <- Progress$new(session, min=0, max = 9)
 
+    browser()
+
     progress$set(message = "Subsetting dataset", value = 0)
+
+
     subset_saved_scseq(sc_dir = sc_dir,
                        founder = founder,
                        from_dataset = from_dataset,
@@ -882,14 +887,20 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
                        exclude_clusters = exclude_clusters,
                        subset_metrics = subset_metrics,
                        is_include = is_include,
-                       is_integrated = is_integrated(),
+                       is_integrated = is_integrated,
                        progress = progress)
 
+    # need append integration type if integrated
+    if (is_integrated) {
+      args <- jsonlite::read_json(file.path(sc_dir, from_dataset, 'args.json'), simplifyVector = TRUE)
+      dataset_name <- paste(dataset_name, args$integration_type, sep = '_')
+    }
+
+    # save as previously selected
     new_dataset(dataset_name)
     saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
 
     # re-enable, clear inputs, and trigger update of available datasets
-    new_dataset(dataset_name)
     updateTextInput(session, 'subset_name', value = '')
     enableAll(subset_inputs)
   })

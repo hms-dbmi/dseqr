@@ -39,18 +39,16 @@ Used for local development
 }
 \examples{
 
-app_name <- 'example'
-data_dir <- 'data_dir'
-drugseqr::run_drugseqr(app_name, data_dir)
 
 
 # override default data_dir etc for development
+app_name <- 'example'
 app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
 pert_signature_dir <- 'data-raw/drug_es/signatures'
 indices_dir <- '/srv/drugseqr/indices'
 
-drugseqr::run_drugseqr('sjia', data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)
+drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)
 
 }

@@ -6,7 +6,6 @@
 \usage{
 import_quants(
   data_dir,
-  filter,
   type,
   species = "Homo sapiens",
   release = "94",

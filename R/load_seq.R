@@ -37,7 +37,7 @@ load_seq <- function(data_dir, type = 'kallisto', species = 'Homo sapiens', rele
     return(readRDS(eset_path))
 
   # import quants and filter low counts
-  q <- import_quants(data_dir, filter, type = type, species = species, release = release)
+  q <- import_quants(data_dir, type = type, species = species, release = release)
 
   # construct eset
   annot <- get_ensdb_package(species, release)
@@ -183,7 +183,7 @@ setup_fdata <- function(species = 'Homo sapiens', release = '94') {
 #' @keywords internal
 #' @export
 #'
-import_quants <- function(data_dir, filter, type, species = 'Homo sapiens', release = '94', return_deseq = FALSE) {
+import_quants <- function(data_dir, type, species = 'Homo sapiens', release = '94', return_deseq = FALSE) {
 
   if (!grepl('sapiens', species)) {
     tx2gene <- get_tx2gene(species, release, columns = c("tx_id", "gene_name", "entrezid"))
