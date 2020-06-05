@@ -875,8 +875,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     on.exit(progress$close())
     progress <- Progress$new(session, min=0, max = 9)
 
-    browser()
-
     progress$set(message = "Subsetting dataset", value = 0)
 
 
