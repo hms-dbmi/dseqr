@@ -723,8 +723,11 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
 #' @param exclude_clusters Charactor vector of clusters for excluding cells.
+#' @param exclude_cells Character vector of cell names to exclude.
 #' @param integration_name Name for new integrated analysis.
 #' @param integration_type Charactor vector of one or more integration types.
+#' @param subset_metrics Metrics to subset based on.
+#' @param is_include Boolean - are cells that match \code{subset_metrics} included or excluded?
 #' @param progress optional Shiny \code{Progress} object.
 #'
 #' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
@@ -732,7 +735,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @return NULL
 #' @export
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude_clusters, integration_type = c('harmony', 'liger', 'fastMNN'), subset_metrics = NULL, is_include = FALSE, founder = integration_name, pairs = NULL, progress = NULL, value = 0) {
+integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude_clusters, exclude_cells = NULL, integration_type = c('harmony', 'liger', 'fastMNN'), subset_metrics = NULL, is_include = FALSE, founder = integration_name, pairs = NULL, progress = NULL, value = 0) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -755,8 +758,8 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude
   }
 
   progress$set(value+1, detail = 'loading')
-  test_scseqs <- load_scseq_subsets(test, sc_dir, exclude_clusters, subset_metrics, is_include, 'test')
-  ctrl_scseqs <- load_scseq_subsets(ctrl, sc_dir, exclude_clusters, subset_metrics, is_include, 'ctrl')
+  test_scseqs <- load_scseq_subsets(test, sc_dir, exclude_clusters, subset_metrics, is_include, 'test', exclude_cells = exclude_cells)
+  ctrl_scseqs <- load_scseq_subsets(ctrl, sc_dir, exclude_clusters, subset_metrics, is_include, 'ctrl', exclude_cells = exclude_cells)
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -812,6 +815,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude
   pbulk_esets <- NULL
   has_replicates <- length(unique(combined$batch)) > 2
   if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
+
   lm_fit <- run_limma_scseq(obj)
 
   progress$set(value+7, detail = 'saving')
@@ -851,14 +855,15 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude
 #' @param from_dataset Name of parent dataset.
 #' @param dataset_name Name for new subset dataset.
 #' @param exclude_clusters Charactor vector of clusters for excluding cells.
-#' @param exclude_metrics Character vector of metrics for excluding cells.
+#' @param exclude_cells Character vector of cells to exclude. Used for integrated datasets to exclude clusters.
+#' @param subset_metrics Character vector of metrics for excluding cells.
 #' @param progress Optional shiny progress object.
 #'
 #' @return NULL
 #' @export
 #' @keywords internal
 #'
-subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, subset_metrics, is_integrated, is_include, progress = NULL) {
+subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_cells, subset_metrics, is_integrated, is_include, progress = NULL) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -875,12 +880,19 @@ subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, excl
 
   if (is_integrated) {
     args <- jsonlite::read_json(file.path(sc_dir, from_dataset, 'args.json'), simplifyVector = TRUE)
+
+    is_include <- c(rep(is_include, length(subset_metrics)),
+                    rep(args$is_include, length(args$subset_metrics)))
+
+    subset_metrics <- c(subset_metrics, args$subset_metrics)
+
     integrate_saved_scseqs(sc_dir,
                            test = args$test,
                            ctrl = args$ctrl,
                            integration_name = dataset_name,
                            integration_type = args$integration_type,
                            exclude_clusters = args$exclude_clusters,
+                           exclude_cells = exclude_cells,
                            subset_metrics = subset_metrics,
                            is_include = is_include,
                            founder = founder,
@@ -970,7 +982,7 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #' @export
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = FALSE, ident = 'test') {
+load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = FALSE, ident = 'test', exclude_cells = NULL) {
 
   exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
@@ -990,8 +1002,14 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
       if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
 
       exclude <- cdata[, subset_metrics, drop = FALSE]
+
+      if (length(is_include) == 1)
+        is_include <- rep(is_include, length(subset_metrics))
+
+      for (i in seq_len(ncol(exclude)))
+        if (is_include[i]) exclude[,i] <- !exclude[,i]
+
       exclude <- apply(exclude, 1, any)
-      if (is_include) exclude <- !exclude
       scseq <- scseq[, !exclude]
       gc()
 
@@ -1007,7 +1025,13 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
       gc()
     }
 
-    scseqs[[dataset_name]] <- scseq
+    # remove excluded cells
+    if (!is.null(exclude_cells)) {
+      scseq <- scseq[, !colnames(scseq) %in% exclude_cells]
+    }
+
+    # require that have cells left
+    if (ncol(scseq)>0) scseqs[[dataset_name]] <- scseq
   }
 
   return(scseqs)

@@ -654,8 +654,17 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
     v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
     corfit <- limma::duplicateCorrelation(v, mod, block = pair)
 
+    # second round
+    fit <- NULL
+    tryCatch({
+      v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, block = pair, correlation = corfit$consensus.correlation, plot = TRUE)
+      corfit <- limma::duplicateCorrelation(v, mod, block = pair)
+      fit <- limma::lmFit(v, mod, correlation = corfit$consensus.correlation, block = pair)
+    }, error = function(e) NULL)
+
+
     # if couldn't estimate within-block correlation, model pair as fixed effect
-    if (is.nan(corfit$consensus.correlation)) {
+    if (is.null(fit)) {
       fit_fun <- function() {
         v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size)
         limma::lmFit(v, design = mod)
@@ -670,13 +679,6 @@ run_lmfit <- function(eset, mod, rna_seq = TRUE) {
         mod <- get_mods(eset@phenoData)$mod
         fit <- fit_fun()
       }
-
-    } else {
-      # second round
-      v <- limma::voomWithQualityWeights(y, mod, lib.size = lib.size, block = pair, correlation = corfit$consensus.correlation, plot = TRUE)
-      corfit <- limma::duplicateCorrelation(v, mod, block = pair)
-
-      fit <- limma::lmFit(v, mod, correlation = corfit$consensus.correlation, block = pair)
     }
 
   } else if (rna_seq) {

@@ -10,6 +10,7 @@ integrate_saved_scseqs(
   ctrl,
   integration_name,
   exclude_clusters,
+  exclude_cells = NULL,
   integration_type = c("harmony", "liger", "fastMNN"),
   subset_metrics = NULL,
   is_include = FALSE,
@@ -30,7 +31,13 @@ integrate_saved_scseqs(
 
 \item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
+\item{exclude_cells}{Character vector of cell names to exclude.}
+
 \item{integration_type}{Charactor vector of one or more integration types.}
+
+\item{subset_metrics}{Metrics to subset based on.}
+
+\item{is_include}{Boolean - are cells that match \code{subset_metrics} included or excluded?}
 
 \item{progress}{optional Shiny \code{Progress} object.}
 }

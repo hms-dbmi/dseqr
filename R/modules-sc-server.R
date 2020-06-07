@@ -863,6 +863,14 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
     }
 
+    # need exclude by cell name if integrated
+    exclude_cells <- NULL
+    if (is_integrated && length(exclude_clusters)) {
+      scseq <- scseq()
+      exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
+      exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
+    }
+
     from_dataset <- selected_dataset()
     founder <- get_founder(sc_dir, from_dataset)
     subset_name <- input$subset_name
@@ -877,12 +885,12 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
     progress$set(message = "Subsetting dataset", value = 0)
 
-
     subset_saved_scseq(sc_dir = sc_dir,
                        founder = founder,
                        from_dataset = from_dataset,
                        dataset_name = dataset_name,
                        exclude_clusters = exclude_clusters,
+                       exclude_cells = exclude_cells,
                        subset_metrics = subset_metrics,
                        is_include = is_include,
                        is_integrated = is_integrated,
@@ -2010,3 +2018,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+

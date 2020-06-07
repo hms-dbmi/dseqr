@@ -10,6 +10,7 @@ subset_saved_scseq(
   from_dataset,
   dataset_name,
   exclude_clusters,
+  exclude_cells,
   subset_metrics,
   is_integrated,
   is_include,
@@ -27,9 +28,11 @@ subset_saved_scseq(
 
 \item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
-\item{progress}{Optional shiny progress object.}
+\item{exclude_cells}{Character vector of cells to exclude. Used for integrated datasets to exclude clusters.}
 
-\item{exclude_metrics}{Character vector of metrics for excluding cells.}
+\item{subset_metrics}{Character vector of metrics for excluding cells.}
+
+\item{progress}{Optional shiny progress object.}
 }
 \description{
 Subset previously saved SingleCellExperiment

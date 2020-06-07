@@ -10,7 +10,8 @@ load_scseq_subsets(
   exclude_clusters,
   subset_metrics = NULL,
   is_include = FALSE,
-  ident = "test"
+  ident = "test",
+  exclude_cells = NULL
 )
 }
 \arguments{
