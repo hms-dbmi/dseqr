@@ -1830,6 +1830,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
 
         # add ambient-excluded adjusted pvals
         tt$adj.P.Val.Amb[!tt$ambient] <- p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
+        if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
+
         tts[[cluster]] <- tt
       }
 
@@ -2018,4 +2020,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

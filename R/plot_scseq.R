@@ -1,3 +1,5 @@
+
+
 #' Plot TSNE coloured by cluster
 #'
 #'
@@ -286,27 +288,29 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
     dplyr::add_count(y) %>%
     dplyr::filter(n > 2)
 
-
-  (pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl, height = ..density..)) +
-      ggplot2::scale_fill_manual(values = c(color, 'gray')) +
-      ggplot2::scale_alpha_manual(values = c(rep(0.95, nsel), 0.25)) +
-      ggplot2::scale_color_manual(values = c(rep('black', nsel), 'gray')) +
-      ggridges::geom_density_ridges(scale = 3, rel_min_height = 0.001, stat = "density", trim = TRUE) +
-      ggridges::theme_ridges(center_axis_labels = TRUE) +
-      ggplot2::scale_x_continuous(expand = c(0, 0)) +
-      ggplot2::scale_y_discrete(expand = c(0, 0)) +
-      ggplot2::coord_cartesian(clip = "off") +
-      theme_dimgray() +
-      ggplot2::xlab('') +
-      ggplot2::ggtitle(title) +
-      ggplot2::theme(legend.position = 'none',
-                     plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
-                     plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
-                     axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                     axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
-                     axis.title.x = ggplot2::element_blank(),
-                     axis.title.y = ggplot2::element_blank()
-      ))
+  pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
+    ggplot2::scale_fill_manual(values = c(color, 'gray')) +
+    ggplot2::scale_alpha_manual(values = c(rep(0.25, nsel), 0.25)) +
+    ggplot2::scale_color_manual(values = c(rep('#333333', nsel), 'gray')) +
+    ggridges::geom_density_ridges(ggplot2::aes(point_color = hl),
+                                  scale = 3, rel_min_height = 0.001, jittered_points = TRUE,
+                                  point_size = 1, point_shape = '.', point_alpha = 1) +
+    ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color, 'black')) +
+    ggridges::theme_ridges(center_axis_labels = TRUE) +
+    ggplot2::scale_x_continuous(expand = c(0, 0)) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::coord_cartesian(clip = "off") +
+    theme_dimgray() +
+    ggplot2::xlab('') +
+    ggplot2::ggtitle(title) +
+    ggplot2::theme(legend.position = 'none',
+                   plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
+                   plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
+                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.title.x = ggplot2::element_blank(),
+                   axis.title.y = ggplot2::element_blank()
+    )
 
 
   ncells <- tapply(df$x, as.character(df$y), length)
@@ -452,3 +456,4 @@ get_palette <- function(levs) {
   }
   return(values)
 }
+

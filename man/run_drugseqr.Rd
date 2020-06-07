@@ -42,7 +42,7 @@ Used for local development
 
 
 # override default data_dir etc for development
-app_name <- 'example'
+app_name <- 'sjia'
 app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
