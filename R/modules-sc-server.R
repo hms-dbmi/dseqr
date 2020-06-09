@@ -733,7 +733,10 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(dataset_name)
 
     # show saved annot if nothing selected or label transfer not open
-    if (!isTruthy(ref_name) | !show_label_transfer()) {
+    if (is.null(ref_preds)) {
+      annot <- NULL
+
+    } else if (!isTruthy(ref_name) | !show_label_transfer()) {
       annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
       annot <- readRDS(annot_path)
 
@@ -2020,3 +2023,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+

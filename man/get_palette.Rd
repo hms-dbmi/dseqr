@@ -4,7 +4,7 @@
 \alias{get_palette}
 \title{Get a pallete for cluster plots}
 \usage{
-get_palette(levs)
+get_palette(levs, dark = FALSE)
 }
 \arguments{
 \item{levs}{Character vector of levels to get colour pallete for.}

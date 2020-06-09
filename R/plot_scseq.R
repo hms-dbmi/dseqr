@@ -1,5 +1,3 @@
-
-
 #' Plot TSNE coloured by cluster
 #'
 #'
@@ -242,8 +240,11 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
   seli <- as.numeric(selected_cluster)
   sel <- clus_levs[seli]
   nsel <- length(sel)
+
   colors <- get_palette(clus_levs)
   color  <- colors[seli]
+  colors_dark <- get_palette(clus_levs, dark = TRUE)
+  color_dark  <- colors_dark[seli]
 
   # either highlight test group or selected cluster
   if (by.sample) {
@@ -290,12 +291,12 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
   pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
     ggplot2::scale_fill_manual(values = c(color, 'gray')) +
-    ggplot2::scale_alpha_manual(values = c(rep(0.25, nsel), 0.25)) +
-    ggplot2::scale_color_manual(values = c(rep('#333333', nsel), 'gray')) +
+    ggplot2::scale_alpha_manual(values = c(rep(0.4, nsel), 0.25)) +
+    ggplot2::scale_color_manual(values = c(rep('black', nsel), 'gray')) +
     ggridges::geom_density_ridges(ggplot2::aes(point_color = hl),
                                   scale = 3, rel_min_height = 0.001, jittered_points = TRUE,
-                                  point_size = 1, point_shape = '.', point_alpha = 1) +
-    ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color, 'black')) +
+                                  point_size = 1, point_shape = '.', point_alpha = 1, size = 0.2) +
+    ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color_dark, 'black')) +
     ggridges::theme_ridges(center_axis_labels = TRUE) +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::scale_y_discrete(expand = c(0, 0)) +
@@ -311,7 +312,6 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
                    axis.title.x = ggplot2::element_blank(),
                    axis.title.y = ggplot2::element_blank()
     )
-
 
   ncells <- tapply(df$x, as.character(df$y), length)
   ncells <- ncells[levels(df$y)]
@@ -426,7 +426,7 @@ plot_biogps <- function(gene) {
 #' @return Character vector with colour codes of \code{length(levs)}.
 #' @export
 #' @keywords internal
-get_palette <- function(levs) {
+get_palette <- function(levs, dark = FALSE) {
 
   # palettes from scater
   tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C",
@@ -434,9 +434,18 @@ get_palette <- function(levs) {
                  "#8C564B", "#C49C94", "#E377C2", "#F7B6D2", "#7F7F7F",
                  "#C7C7C7", "#BCBD22", "#DBDB8D", "#17BECF", "#9EDAE5")
 
+  tableau20_dark <- c("#004771", "#4075A5", "#984802", "#A06705", "#036003",
+                      "#33870E", "#821919", "#CF1701", "#5B3979", "#7D5E91",
+                      "#55342D", "#7B574F", "#A22283", "#CE308A", "#4B4B4B",
+                      "#727272", "#6D6D01", "#7F7F07", "#056F79", "#028491")
+
   tableau10medium <- c("#729ECE", "#FF9E4A", "#67BF5C", "#ED665D",
                        "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
                        "#CDCC5D", "#6DCCDA")
+
+  tableau10medium_dark <- c("#365D83", "#9C5800", "#33702A", "#A22616",
+                            "#6D4B86", "#644741", "#B62B8A", "#5E5E5E",
+                            "#777600", "#097984")
 
 
   nlevs <- length(levs)
@@ -444,10 +453,12 @@ get_palette <- function(levs) {
     values <- c("#729ECE", "#FF9E4A")
 
   } else if (nlevs <= 10) {
-    values <- head(tableau10medium, nlevs)
+    pal <- if(dark) tableau10medium_dark else tableau10medium
+    values <- head(pal, nlevs)
 
   } else if (nlevs <= 20) {
-    values <- head(tableau20, nlevs)
+    pal <- if(dark) tableau20_dark else tableau20
+    values <- head(pal, nlevs)
 
   } else {
     set.seed(0)
@@ -456,4 +467,3 @@ get_palette <- function(levs) {
   }
   return(values)
 }
-
