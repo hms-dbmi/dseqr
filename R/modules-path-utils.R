@@ -428,6 +428,14 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
     gslist <- gkl$gslist
     names(gslist) <- gkl$PathwayID
     saveRDS(gslist, gslist_path)
+
+  } else if (type == 'c7') {
+
+    c7 <- msigdbr::msigdbr(species = "Homo sapiens", category = c("C7"))
+    gslist <- split(c7, c7$gs_id)
+    gslist <- lapply(gslist, function(gs) {tmp <- as.character(gs$entrez_gene); names(tmp) <- gs$gene_symbol; tmp})
+
+    saveRDS(gslist, gslist_path)
   }
 
   return(gslist)
@@ -480,6 +488,12 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
     row.names(gs.names) <- gs.names$PathwayID
     gs.names <- gs.names[names(gslist), 'Description']
     names(gs.names) <- names(gslist)
+    saveRDS(gs.names, gs.names_path)
+
+  } else if (type == 'c7') {
+    c7 <- msigdbr::msigdbr(species = "Homo sapiens", category = "C7")
+    gslist <- split(c7, c7$gs_id)
+    gs.names <- sapply(gslist, function(gs) gs$gs_name[1])
     saveRDS(gs.names, gs.names_path)
   }
 
