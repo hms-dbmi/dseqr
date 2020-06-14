@@ -451,8 +451,6 @@ get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, spec
   return(list(go = go, kg = kg, goana = goana_res, kegga = kegga_res))
 }
 
-order_or <- function()
-
 get_pathway_names <- function(gs.names) {
   pathway_names <- data.frame(
     PathwayID = names(gs.names),

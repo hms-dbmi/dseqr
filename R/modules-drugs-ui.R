@@ -156,7 +156,7 @@ advancedOptionsInput <- function(id) {
                                       render = I('{option: cellOptions}'),
                                       optgroupField = 'primary_site'),
                        width = '100%'),
-        shinyWidgets::radioGroupButtons(ns('sort_by'), 'Sort based on correlation:', choices = c('minimum' = 'min_cor', 'average' = 'avg_cor'), justified = TRUE),
+        shinyWidgets::radioGroupButtons(ns('sort_by'), 'Sort based on correlation:', choices = c('average' = 'avg_cor', 'minimum' = 'min_cor'), justified = TRUE),
         shiny::sliderInput(ns('min_signatures'), 'Minimum number of signatures:',
                            min = 1,
                            max = 10,
