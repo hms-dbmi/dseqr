@@ -74,11 +74,15 @@ construct_eset <- function(quants, fdata, annot, txi.deseq = NULL) {
     colnames(txi.deseq[[name]]) <-
     paste(colnames(txi.deseq[[name]]), name, sep = '_')
 
+  # workaround: R crashed from unique(mat) with GSE93624
+  counts <- data.frame(quants$counts, rn, stringsAsFactors = FALSE)
 
-  mat <- unique(data.table::data.table(quants$counts,
-                                       txi.deseq$abundance,
-                                       txi.deseq$counts,
-                                       txi.deseq$length, rn, key = 'rn'))
+  mat <- data.table::data.table(counts,
+                                txi.deseq$abundance,
+                                txi.deseq$counts,
+                                txi.deseq$length, key = 'rn')
+
+  mat <- mat[!duplicated(counts), ]
 
   # merge exprs and fdata
   dt <- merge(fdata, mat, by.y = 'rn', by.x = key(fdata), all.y = TRUE, sort = FALSE)
