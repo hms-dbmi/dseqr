@@ -107,7 +107,7 @@ When you start up `drugseqr`, the added microarray dataset will be available.
 
 The following instructions set up an Amazon EC2 spot instance to host and share the `drugseqr` web app.
 
-Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
+Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD on and Ubuntu 18.04 AMI. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
 
 Make sure that port 8080 is open to all inbound traffic so that the web app can be accessed.
 

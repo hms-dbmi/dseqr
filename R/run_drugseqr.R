@@ -21,14 +21,14 @@
 #'
 #'
 #' # override default data_dir etc for development
-#' app_name <- 'sjia'
+#' app_name <- 'crohns'
 #' app_dir <- 'inst/app'
 #' data_dir <- 'data-raw/patient_data'
 #' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
 #' indices_dir <- '/srv/drugseqr/indices'
 #'
-#' drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)
+#' drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3840)
 #'
 run_drugseqr <- function(app_name,
                          data_dir = '/srv/drugseqr',
