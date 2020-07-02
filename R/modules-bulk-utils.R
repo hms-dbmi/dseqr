@@ -441,15 +441,34 @@ get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, spec
 
   goana_res <- limma::goana(ebfit, geneid = 'ENTREZID', species = species)
   goana_res <- goana_res[order_or(goana_res), ]
+  goana_res <- add_path_genes(goana_res, gslist.go, ebfit)
 
   kegga_res <- limma::kegga(ebfit, geneid = 'ENTREZID', species = species)
   kegga_res <- kegga_res[order_or(kegga_res), ]
+  kegga_res <- add_path_genes(kegga_res, gslist.kegg, ebfit)
 
   saveRDS(goana_res, goana_path)
   saveRDS(kegga_res, kegga_path)
 
   return(list(go = go, kg = kg, goana = goana_res, kegga = kegga_res))
 }
+
+add_path_genes <- function(path_res, gslist, ebfit) {
+
+  path_ids <- row.names(path_res)
+
+  # get genes that meet threshold
+  tt <- limma::topTable(ebfit, n = Inf, sort.by = 'p')
+  enids <- na.omit(tt$ENTREZID[tt$adj.P.Val < 0.05])
+
+  gslist <- gslist[path_ids]
+  symbols <- lapply(gslist, function(x) unique(names(x[x %in% enids])))
+  symbols <- sapply(symbols, paste, collapse = '/')
+  path_res$GeneNames <- symbols
+
+  return(path_res)
+}
+
 
 get_pathway_names <- function(gs.names) {
   pathway_names <- data.frame(

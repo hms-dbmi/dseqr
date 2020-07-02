@@ -414,28 +414,32 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
     egGO2ALLEGS <- tryCatch(getFromNamespace(obj,orgPkg), error=function(e) FALSE)
     if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
 
-    gslist <- as.list(egGO2ALLEGS)
+    # Entrez gene to symbol
+    # TODO for Hs: get from toupper(hs[EG.GO$gene_id, SYMBOL_9606]) so that consistent with original annotation
+    EG.GO <- AnnotationDbi::toTable(egGO2ALLEGS)
+    EG.GO$SYMBOL <- AnnotationDbi::mapIds(get(orgPkg), EG.GO$gene_id, column = 'SYMBOL', keytype = 'ENTREZID')
+    gslist <- split(EG.GO, EG.GO$go_id)
+    gslist <- lapply(gslist, function(df) {tmp <- df$gene_id; names(tmp) <- df$SYMBOL; tmp})
     saveRDS(gslist, gslist_path)
 
   } else if (type == 'kegg') {
 
     kegg_species <- get_kegg_species(species)
     gkl <- limma::getGeneKEGGLinks(kegg_species, convert = TRUE)
+    # TODO for Hs: get from toupper(hs[EG.GO$gene_id, SYMBOL_9606]) so that consistent with original annotation
+    gkl$SYMBOL <- AnnotationDbi::mapIds(get(orgPkg), gkl$GeneID, column = 'SYMBOL', keytype = 'ENTREZID')
     gkl <- gkl %>%
       dplyr::group_by(PathwayID) %>%
-      dplyr::summarise(gslist = list(GeneID))
+      dplyr::summarise(gslist = list(GeneID),
+                       symbols = list(SYMBOL))
 
     gslist <- gkl$gslist
+    symbols <- gkl$symbols
+    gslist <- lapply(seq_along(gslist), function(i) {tmp <- gslist[[i]]; names(tmp) <- symbols[[i]]; tmp})
+
     names(gslist) <- gkl$PathwayID
     saveRDS(gslist, gslist_path)
 
-  } else if (type == 'c7') {
-
-    c7 <- msigdbr::msigdbr(species = "Homo sapiens", category = c("C7"))
-    gslist <- split(c7, c7$gs_id)
-    gslist <- lapply(gslist, function(gs) {tmp <- as.character(gs$entrez_gene); names(tmp) <- gs$gene_symbol; tmp})
-
-    saveRDS(gslist, gslist_path)
   }
 
   return(gslist)
