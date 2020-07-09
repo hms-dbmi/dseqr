@@ -2,9 +2,10 @@
 #'
 #' @param pert Name of perturbation signature.
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.
+#' @params pvals If \code{TRUE} returns adjusted pvalues for signature. If \code{FALSE} (default) returns signature.
 #' @export
 #' @keywords internal
-load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
+load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FALSE) {
   sig <- NULL
   type_dir <- file.path(pert_signature_dir, pert_type)
   if (!file.exists(type_dir)) dir.create(type_dir)
@@ -25,12 +26,33 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir) {
 #' @return NULL
 #' @export
 #' @examples
-#' sig_path <- 'cmap_res_BRD-K45319408_PC3_5um_24h.rds'
-#' dl_pert_result(res_path)
+#' sig_path <- file.path('data-raw/drug_es/signatures', 'BRD-K45319408_PC3_5um_24h.rds')
+#' dl_pert_signature(sig_path, pert_type = 'cmap')
 #'
 dl_pert_signature <- function(sig_path, pert_type) {
   # name of the file being requested
   dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_es_dir/', pert_type, '/', basename(sig_path))
+  dl_url <- utils::URLencode(dl_url)
+  dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
+
+  # don't error if pert_type updates but sig_path corresponds to previous pert_type
+  try(download.file(dl_url, sig_path))
+}
+
+#' Download CMAP02/L1000 pert pvals from S3
+#'
+#' @param sig_path Path to download file to.
+#' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
+#'
+#' @return NULL
+#' @export
+#' @examples
+#' sig_path <- file.path('data-raw/drug_es/signatures', 'BRD-K45319408_PC3_5um_24h.rds')
+#' dl_pert_pvals(sig_path, pert_type = 'cmap')
+#'
+dl_pert_pvals <- function(sig_path, pert_type) {
+  # name of the file being requested
+  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_pvals_dir/', pert_type, '/', basename(sig_path))
   dl_url <- utils::URLencode(dl_url)
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
 
@@ -395,6 +417,8 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
     gslist <- readRDS(gslist_path)
 
   } else if (type == 'go') {
+    orgPkg <- paste0("org.",species,".eg.db")
+    require(orgPkg, character.only = TRUE, quietly = TRUE)
 
     #	Get access to package of GO terms
     suppressPackageStartupMessages(OK <- requireNamespace("GO.db",quietly=TRUE))
@@ -405,7 +429,6 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
     if(!OK) stop("AnnotationDbi package required but is not installed (or can't be loaded)")
 
     #	Load appropriate organism package
-    orgPkg <- paste0("org.",species,".eg.db")
     suppressPackageStartupMessages(OK <- requireNamespace(orgPkg,quietly=TRUE))
     if(!OK) stop(orgPkg," package required but is not installed (or can't be loaded)")
 
@@ -423,6 +446,9 @@ get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/
     saveRDS(gslist, gslist_path)
 
   } else if (type == 'kegg') {
+
+    orgPkg <- paste0("org.",species,".eg.db")
+    require(orgPkg, character.only = TRUE, quietly = TRUE)
 
     kegg_species <- get_kegg_species(species)
     gkl <- limma::getGeneKEGGLinks(kegg_species, convert = TRUE)

@@ -4,7 +4,7 @@
 \alias{load_pert_signature}
 \title{Get perturbation signature}
 \usage{
-load_pert_signature(pert, pert_type, pert_signature_dir)
+load_pert_signature(pert, pert_type, pert_signature_dir, pvals = FALSE)
 }
 \arguments{
 \item{pert}{Name of perturbation signature.}
