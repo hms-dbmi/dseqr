@@ -5,6 +5,7 @@
 data-raw/patient_data/*
 data-raw/patient_data/*
 data-raw/drug_es/signatures/*
+data-raw/drug_es/pvals/*
 !generate_examples.R
 !mds-sva.R
 !mds-sva.png
