@@ -419,7 +419,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
       limit_cells(cells()) %>%
       summarize_compound(is_genetic = sort_abs()) %>%
       add_table_html() %>%
-      select(cols, everything())
+      dplyr::select(cols, dplyr::everything())
   })
 
 
