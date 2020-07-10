@@ -2,7 +2,9 @@
 library(drugseqr)
 # load data
 l1000_pvals_path <- system.file('extdata', 'l1000_adj.pval.rds', package = 'drugseqr.data', mustWork = TRUE)
+cmap_pvals_path <- system.file('extdata', 'cmap_pval.adj_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_pvals <- readRDS(l1000_pvals_path)
+cmap_pvals <- readRDS(cmap_pvals_path)
 
 # split l1000 by compounds/genetic perts & ligands
 is.genetic <- grepl('-oe_|-sh_|-lig_', colnames(l1000_pvals))
@@ -35,6 +37,7 @@ save_signatures <- function(es, data_dir) {
 
 save_signatures(l1000_genes_pvals, 'data-raw/drug_es/pvals/l1000_genes')
 save_signatures(l1000_drugs_pvals, 'data-raw/drug_es/pvals/l1000_drugs')
+save_signatures(cmap_pvals, 'data-raw/drug_es/pvals/cmap')
 
 # sync to s3
 # aws s3 sync ~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_es/pvals s3://drugseqr/drug_pvals_dir
