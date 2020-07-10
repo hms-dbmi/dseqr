@@ -1,7 +1,7 @@
 # saves all CMAP02 and L1000 adjusted pvalues as individual files for quick loading for drugseqr::heatplot
 library(drugseqr)
 # load data
-l1000_pvals_path <- system.file('extdata', 'l1000_adj.pval.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_pvals_path <- system.file('extdata', 'l1000_pval.adj.rds', package = 'drugseqr.data', mustWork = TRUE)
 cmap_pvals_path <- system.file('extdata', 'cmap_pval.adj_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
 l1000_pvals <- readRDS(l1000_pvals_path)
 cmap_pvals <- readRDS(cmap_pvals_path)
