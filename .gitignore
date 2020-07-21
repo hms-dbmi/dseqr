@@ -1,6 +1,10 @@
 .Rproj.user
 .Rhistory
 
+# perturbation GO analyses
+data-raw/drug_paths/results/*
+data-raw/drug_paths/tmp/*
+
 # contains raw IBD FASTQ files for dev purposes
 data-raw/patient_data/*
 data-raw/patient_data/*

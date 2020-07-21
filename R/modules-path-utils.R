@@ -399,14 +399,12 @@ get_path_directions <- function(top_table) {
 #' Get gslist for pathway analysis
 #'
 #' @param species Species identifier
-#' @param universe NULL
 #' @param type either 'go' or 'kegg'
 #' @param gs_dir Directory to save gslist to
-#' @param min.genes Minimum number of genes that intersect universe in each pathway
 #'
 #' @return gslist
 #' @export
-get_gslist <- function(species = 'Hs', universe = NULL, type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
+get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 

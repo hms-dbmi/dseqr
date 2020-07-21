@@ -4,23 +4,14 @@
 \alias{get_gslist}
 \title{Get gslist for pathway analysis}
 \usage{
-get_gslist(
-  species = "Hs",
-  universe = NULL,
-  type = "go",
-  gs_dir = "/srv/drugseqr/gs_dir"
-)
+get_gslist(species = "Hs", type = "go", gs_dir = "/srv/drugseqr/gs_dir")
 }
 \arguments{
 \item{species}{Species identifier}
 
-\item{universe}{NULL}
-
 \item{type}{either 'go' or 'kegg'}
 
 \item{gs_dir}{Directory to save gslist to}
-
-\item{min.genes}{Minimum number of genes that intersect universe in each pathway}
 }
 \value{
 gslist
