@@ -4,12 +4,13 @@
 \alias{limit_cells}
 \title{Limit Query Results to Specific Cell Lines}
 \usage{
-limit_cells(query_table, cells)
+limit_cells(query_table, cells = NULL)
 }
 \arguments{
 \item{query_table}{\code{data.frame} with \code{cell_line} column.}
 
-\item{cells}{Character vector of cell lines to limit \code{query_table} by.}
+\item{cells}{Character vector of cell lines to limit \code{query_table} by. If \code{NULL} (default),
+no filtering occurs.}
 }
 \value{
 \code{query_table} for specified \code{cells}

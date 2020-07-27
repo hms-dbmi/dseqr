@@ -10,6 +10,8 @@ load_pert_signature(pert, pert_type, pert_signature_dir, pvals = FALSE)
 \item{pert}{Name of perturbation signature.}
 
 \item{pert_type}{One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.}
+
+\item{pvals}{If \code{TRUE} returns adjusted pvalues for signature. If \code{FALSE} (default) returns signature.}
 }
 \description{
 Get perturbation signature

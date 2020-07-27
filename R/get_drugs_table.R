@@ -1,6 +1,6 @@
 #' Get Drugs metadata table for CMAP02 or L1000
 #'
-#' @param study either \code{'CMAP02'} or \code{'L1000'}
+#' @param study either \code{'CMAP02'} or \code{'L1000_genes'} or \code{'L1000_drugs'}
 #'
 #' @return \code{data.frame} of meta data for CMAP02 or L1000
 #' @export
@@ -8,7 +8,7 @@
 #' @examples
 #'
 #' cmap_meta <- get_drugs_table('CMAP02')
-#' l1000_meta <- get_drugs_table('L1000')
+#' l1000_meta <- get_drugs_table('L1000_genes')
 #'
 get_drugs_table <- function(study) {
 

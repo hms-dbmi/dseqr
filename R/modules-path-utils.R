@@ -2,7 +2,7 @@
 #'
 #' @param pert Name of perturbation signature.
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.
-#' @params pvals If \code{TRUE} returns adjusted pvalues for signature. If \code{FALSE} (default) returns signature.
+#' @param pvals If \code{TRUE} returns adjusted pvalues for signature. If \code{FALSE} (default) returns signature.
 #' @export
 #' @keywords internal
 load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FALSE) {

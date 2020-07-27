@@ -363,8 +363,6 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
-  drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
-  gene_cols <- c('Rank', 'Correlation', 'Compound', 'External Links', 'Description')
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
   dummy_rendered <- reactiveVal(FALSE)
@@ -396,14 +394,9 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
     req(query_res)
 
     drug_annot <- drug_annot()
-    req(query_res, drug_annot)
-    drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
-    stopifnot(all.equal(drug_annot$title, names(query_res)))
+    req(drug_annot)
 
-    tibble::add_column(drug_annot,
-                       Rank = NA,
-                       Correlation = query_res,
-                       .before=0)
+    annot_query_res(query_res, drug_annot)
   })
 
 
@@ -413,13 +406,11 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 
   # subset to selected cells, summarize by compound, and add html
   query_table_summarised <- reactive({
-    cols <- if(is_genetic()) gene_cols else drug_cols
 
-    query_table_annot() %>%
-      limit_cells(cells()) %>%
-      summarize_compound(is_genetic = sort_abs()) %>%
-      add_table_html() %>%
-      dplyr::select(cols, dplyr::everything())
+    summarise_query_table(query_table_annot(),
+                          is_genetic = is_genetic(),
+                          cells = cells(),
+                          sort_abs = sort_abs())
   })
 
 
@@ -428,60 +419,19 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
   # ---
 
   # subset by min signatures
-  query_table_nsig <- reactive(
-    query_table_summarised() %>% dplyr::filter(n >= min_signatures())
-  )
+  query_table_nsig <- reactive(filter_nsig(query_table_summarised(), min_signatures()))
 
   # subset by clinical phase
-  query_table_clin <- reactive({
-    query_table_nsig() %>% {
-      if (show_clinical() && 'Clinical Phase' %in% colnames(.))
-        dplyr::filter(., !is.na(`Clinical Phase`))
-      else .
-    }
-  })
+  query_table_clin <- reactive(filter_clinical(query_table_nsig(), show_clinical()))
 
   # final sorting/filtering
   query_table_final <- reactive({
-    sort_by <- sort_by()
-    sort_abs <- sort_abs()
-    direction <- direction()
-    drug_study <- drug_study()
-    q <- query_table_clin()
 
-    if (sort_by == 'avg_cor') q$Correlation <- gsub('simplot', 'simplot show-meanline', q$Correlation)
-
-    # show largest absolute correlations first for genetic and pert queries
-    # as both directions are informative
-    if (sort_abs) {
-
-      # filter none, opposing, or similar signatures based on direction toggle
-      if (sort_by == 'avg_cor') {
-        is.sim <- q$avg_cor > 0
-
-      } else {
-        mm <- q[, c('min_cor', 'max_cor')]
-        mcol <- max.col(abs(mm), ties.method = 'last')
-        is.sim <- mcol == 2 & mm[, 2] > 0
-      }
-
-      q <- switch(direction, 'both' = q, 'similar' = q[is.sim, ], 'opposing' = q[!is.sim, ]) %>%
-        dplyr::mutate(min_cor = -pmax(abs(min_cor), abs(max_cor))) %>%
-        dplyr::mutate(avg_cor = -abs(avg_cor))
-    }
-
-    # indicate total number of unique perts in title for rank
-    rank_title <- switch(drug_study,
-                         'CMAP02' = 'out of 1,309',
-                         'L1000 Genetic' = 'out of 6,943',
-                         'L1000 Drugs' = 'out of 19,360')
-
-    # sort as desired then add rank
-    q %>%
-      dplyr::arrange(!!sym(sort_by)) %>%
-      dplyr::select(-min_cor, -avg_cor, -max_cor, -n) %>%
-      dplyr::mutate(Rank = paste0('<span class="rank-label label label-default" title="', rank_title, '">', 1:nrow(q), '</span>'))
-
+    sort_query_table_clin(query_table_clin(),
+                          sort_by=sort_by(),
+                          sort_abs=sort_abs(),
+                          direction=direction(),
+                          drug_study=drug_study())
   })
 
   # will update with proxy to prevent redraw
@@ -489,7 +439,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
     study <- drug_study()
     req(study, query_res())
     dummy_rendered(FALSE)
-    cols <- if (study != 'L1000 Genetic') drug_cols else gene_cols
+    cols <- get_query_cols(study == 'L1000 Genetic')
 
     data.frame(matrix(ncol = length(cols), dimnames = list(NULL, cols)), check.names = FALSE)
   })

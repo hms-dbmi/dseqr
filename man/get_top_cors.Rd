@@ -4,10 +4,12 @@
 \alias{get_top_cors}
 \title{Get top correlated compounds for drug query}
 \usage{
-get_top_cors(query_table, is_genetic = FALSE)
+get_top_cors(query_table, ntop, is_genetic = FALSE)
 }
 \arguments{
 \item{query_table}{data.frame with columns \code{'Correlation'} and \code{'Compound'}.}
+
+\item{ntop}{Integer indicating the number of rows to keep after sorting by \code{arrange_by}.}
 
 \item{is_genetic}{Boolean indicating if the query results are from L1000 genetic perturbations.}
 }

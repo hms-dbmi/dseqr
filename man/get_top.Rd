@@ -4,7 +4,7 @@
 \alias{get_top}
 \title{Reduce entries in query results}
 \usage{
-get_top(query_cors, arrange_by, ntop = 1500, decreasing = FALSE)
+get_top(query_cors, arrange_by, ntop, decreasing = FALSE)
 }
 \arguments{
 \item{query_cors}{\code{data.frame} with columns \code{'Compound'} and \code{arrange_by}.}

@@ -212,12 +212,13 @@ get_cell_choices <- function(drug_study) {
 #' Limit Query Results to Specific Cell Lines
 #'
 #' @param query_table \code{data.frame} with \code{cell_line} column.
-#' @param cells Character vector of cell lines to limit \code{query_table} by.
+#' @param cells Character vector of cell lines to limit \code{query_table} by. If \code{NULL} (default),
+#'  no filtering occurs.
 #' @importFrom magrittr "%>%"
 #'
 #' @return \code{query_table} for specified \code{cells}
 #' @export
-limit_cells <- function(query_table, cells) {
+limit_cells <- function(query_table, cells = NULL) {
   if (!is.null(cells))
     query_table <- query_table %>%
       dplyr::filter(cell_line %in% cells)
@@ -239,11 +240,11 @@ limit_cells <- function(query_table, cells) {
 #' @export
 #'
 #' @importFrom magrittr "%>%"
-get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
+get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
   pre <- ifelse(decreasing, -1, 1)
   query_cors %>%
     dplyr::as_tibble() %>%
-    dplyr::arrange(pre*!!sym(arrange_by)) %>%
+    dplyr::arrange(pre*!!rlang::sym(arrange_by)) %>%
     head(ntop) %>%
     dplyr::pull(Compound)
 }
@@ -262,6 +263,7 @@ get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
 #'
 #' @param query_table \code{data.frame} of perturbation correlations and annotations.
 #' @param is_genetic is \code{query_table} from L1000 genetic perts?
+#' @inheritParams get_top
 #'
 #' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
 #' @export
@@ -269,12 +271,12 @@ get_top <- function(query_cors, arrange_by, ntop = 1500, decreasing = FALSE) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-summarize_compound <- function(query_table, is_genetic = FALSE) {
+summarize_compound <- function(query_table, is_genetic = FALSE, ntop = 1500) {
 
-  query_table <- data.table(query_table, key = 'Compound')
+  query_table <- data.table::data.table(query_table, key = 'Compound')
 
 
-  query_cors <- get_top_cors(query_table, is_genetic = is_genetic)
+  query_cors <- get_top_cors(query_table, is_genetic = is_genetic, ntop = ntop)
   query_table <- query_table[Compound %in% query_cors$Compound, ]
 
   # split joined cols
@@ -326,11 +328,12 @@ summarize_compound <- function(query_table, is_genetic = FALSE) {
 #'
 #' @param query_table data.frame with columns \code{'Correlation'} and \code{'Compound'}.
 #' @param is_genetic Boolean indicating if the query results are from L1000 genetic perturbations.
+#' @inheritParams get_top
 #'
 #' @return data.table summarized by Compound with top results.
 #' @export
 #' @keywords internal
-get_top_cors <- function(query_table, is_genetic = FALSE) {
+get_top_cors <- function(query_table, ntop, is_genetic = FALSE) {
   query_table <- data.table::data.table(query_table, key = 'Compound')
 
   # put all correlations together in list
@@ -343,11 +346,11 @@ get_top_cors <- function(query_table, is_genetic = FALSE) {
 
 
   # compounds in top min or avg cor
-  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing = TRUE) else NULL
-  top_min <- get_top(query_cors, 'min_cor')
+  top_max <- if (is_genetic) get_top(query_cors, 'max_cor', decreasing=TRUE, ntop=ntop) else NULL
+  top_min <- get_top(query_cors, 'min_cor', ntop=ntop)
 
-  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing = TRUE) else NULL
-  top_avg_dis <- get_top(query_cors, 'avg_cor')
+  top_avg_sim <- if (is_genetic) get_top(query_cors, 'avg_cor', decreasing=TRUE, ntop=ntop) else NULL
+  top_avg_dis <- get_top(query_cors, 'avg_cor', ntop=ntop)
 
   top <- unique(c(top_min, top_max, top_avg_sim, top_avg_dis))
 
