@@ -207,7 +207,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
               boxgap = args$boxgap,
               boxgroupgap = args$boxgroupgap,
               plot_fname = args$plot_fname,
-              ytitle = 'Adjusted Normalized Expression',
+              ytitle = 'Normalized Expression',
               xtitle = 'Gene')
   })
 
@@ -701,7 +701,8 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
   # Gene choices
   # ---
-  observeEvent(dataset_name(), {
+  observe({
+    dataset_name()
     eset <- explore_eset()
     choices <- c(NA, row.names(eset))
     updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)

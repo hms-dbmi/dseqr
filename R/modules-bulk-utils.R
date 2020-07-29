@@ -91,7 +91,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 #' @return List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'plot_fname'}.
 #' @export
 get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
-  dat <- Biobase::assayDataElement(eset, 'adjusted')
+  dat <- Biobase::assayDataElement(eset, 'vsd')
   pdata <- Biobase::pData(eset)
 
   dfs <- list()
@@ -282,7 +282,9 @@ remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$'
                                                         '^lm_fit_\\d+svs.rds$',
                                                         'cmap_res_.+_\\d+svs.rds$',
                                                         'go_.+_\\d+svs.rds$',
+                                                        'goana_.+_\\d+svs.rds$',
                                                         'kegg_.+_\\d+svs.rds$',
+                                                        'kegga_.+_\\d+svs.rds$',
                                                         'l1000_drugs_res_.+_\\d+svs.rds$',
                                                         'l1000_genes_res_.+_\\d+svs.rds$',
                                                         'diff_expr_symbol_.+_\\d+svs.rds$'), exclude = NULL) {
