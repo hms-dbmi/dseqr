@@ -27,13 +27,13 @@
 #'
 #'
 format_query_res <- function(query_res,
-                               drug_study,
-                               sort_by = c('avg_cor', 'min_cor'),
-                               direction = c('opposing', 'similar', 'both'),
-                               sort_abs = FALSE,
-                               show_clinical = FALSE,
-                               min_signatures = 3,
-                               cells = NULL
+                             drug_study,
+                             sort_by = c('avg_cor', 'min_cor'),
+                             direction = c('opposing', 'similar', 'both'),
+                             sort_abs = FALSE,
+                             show_clinical = FALSE,
+                             min_signatures = 3,
+                             cells = NULL
 ) {
 
   # if didn't make selection, choose defaults
@@ -49,7 +49,7 @@ format_query_res <- function(query_res,
                         'L1000 Drugs' = 'L1000_drugs')
 
   drug_annot <- get_drugs_table(annot_study)
-  query_table_annot <- annot_query_res(query_res, drug_annot)
+  query_table_annot <- annot_query_res(query_res, drug_annot, remove_html = TRUE)
 
   # subset to selected cells, summarize by compound, and add html
   query_table_summarised <- summarise_query_table(query_table_annot,
@@ -86,17 +86,21 @@ format_query_res <- function(query_res,
 #' @return Annotated query table
 #' @export
 #' @keywords internal
-annot_query_res <- function(query_res, drug_annot) {
+annot_query_res <- function(query_res, drug_annot, remove_html = FALSE) {
 
   drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
   query_res <- query_res[drug_annot$title]
 
   if (!all.equal(drug_annot$title, names(query_res))) stop('query_res not complete')
 
-  tibble::add_column(drug_annot,
-                     Rank = NA,
-                     Correlation = query_res,
-                     .before=0)
+  annot_query <- tibble::add_column(drug_annot,
+                                   Rank = NA,
+                                   Correlation = query_res,
+                                   .before=0)
+
+  if (remove_html) annot_query$Rank <- NULL
+  return(annot_query)
+
 
 }
 
@@ -221,7 +225,7 @@ sort_query_table_clin <- function(query_table_clin, sort_by, sort_abs, direction
 
   # sort as desired then add rank
   q <- q %>%
-    dplyr::arrange(!!sym(sort_by)) %>%
+    dplyr::arrange(!!rlang::sym(sort_by)) %>%
     dplyr::select(-min_cor, -avg_cor, -max_cor, -n)
 
   if (!remove_html) q <- q %>%

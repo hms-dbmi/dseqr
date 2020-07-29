@@ -4,7 +4,7 @@
 \alias{annot_query_res}
 \title{Annotate query result}
 \usage{
-annot_query_res(query_res, drug_annot)
+annot_query_res(query_res, drug_annot, remove_html = FALSE)
 }
 \arguments{
 \item{query_res}{Numeric vector of correlation values with names as HGNC symbols}
