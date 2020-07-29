@@ -153,7 +153,7 @@ docsPageUI <- function(id, tab, active) {
                                      For further details see
                                      <a href='http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization' target='_blank'>Data transformations and visualization</a>
                                      in the DESeq2 vignette. For microarray data, <a href='https://github.com/alexvpickering/crossmeta'>crossmeta</a> uses `affy::rma` or `oligo::rma` for Affymetrix platforms and
-                                   `limma::neqc` for Agilent and Illumina platforms. and These normalized gene expression values are also used for MDS plots and cell-type deconvolution.</p>")
+                                   `limma::neqc` for Agilent and Illumina platforms. These normalized gene expression values are also used for MDS plots and cell-type deconvolution.</p>")
                           )
         )
       ),
