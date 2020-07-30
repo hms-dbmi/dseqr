@@ -105,6 +105,73 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
   return(msg)
 }
 
+#' Validate uploaded custom query
+#'
+#' @param top_table data.frame with logFC, dprime, or effect sizes as column 1
+#'   and row.names as HGNC symbols
+#' @param custom_name Name for new custom analysis
+#'
+#' @return \code{NULL} if valid, otherwise an error message
+#' @export
+#' @keywords internal
+validate_up_custom <- function(top_table, custom_name) {
+  msg <- NULL
+
+  if (is.null(top_table)) return('Need two columns: unique HGNC and effect size')
+
+  # need at least one L1000/CMAP gene
+  genes <- unique(unlist(genes))
+  common <- intersect(genes, row.names(top_table))
+
+  if (!length(common)) {
+    msg <- 'First column: HGNC symbols in L1000/CMAP02'
+  }
+
+  # need logFC/dprimes effect size as second column
+  tt_cols <- colnames(top_table)
+  dpcol <- match.arg(c('dprime', 'logFC', tt_cols[1]), tt_cols, several.ok = TRUE)[1]
+  es <- top_table[[dpcol]]
+
+  es.abs <- max(abs(es))
+  if (is.character(es)) {
+    msg <- 'Second column: numeric logFC or dprime values'
+
+  } else if (es.abs > 1000) {
+    msg <- 'Second column: values too large'
+
+  } else if (es.abs <= 1) {
+    msg <- 'Second column: values too small'
+  }
+
+  return(msg)
+
+}
+
+#' Format uploaded custom query signature
+#'
+#' @inheritParams validate_up_custom
+#'
+#' @return \code{top_table} subsetted to rows with HGNC symbols in CMAP02/L1000 and
+#'  with dprime column set to either \code{top_table$dprime}, \code{top_table$logFC},
+#'  or \code{top_table[,1]}.
+#' @export
+#' @keywords internal
+#'
+format_up_custom <- function(top_table) {
+
+  # use common genes
+  genes <- unique(unlist(genes))
+  common <- intersect(genes, row.names(top_table))
+  top_table <- top_table[row.names(top_table) %in% common,, drop = FALSE]
+
+  # set logfc/dprime to dprime for drug queries
+  tt_cols <- colnames(top_table)
+  dpcol <- match.arg(c('dprime', 'logFC', tt_cols[1]), tt_cols, several.ok = TRUE)[1]
+  top_table$dprime <- top_table[[dpcol]]
+  return(top_table)
+}
+
+
 
 #' Load results of previous custom query
 #'

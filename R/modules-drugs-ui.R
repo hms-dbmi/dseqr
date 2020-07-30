@@ -117,24 +117,17 @@ customQueryFormInput <- function(id) {
   options = list(delimiter = ' ', create = I("function(input, callback){return {value: input,label: input};}"))
 
   tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
-           selectizeInput(ns('dn_genes'),
-                          label = 'Genes to downregulate:',
-                          choices = NULL,
-                          multiple = TRUE,
-                          width = '100%',
-                          options = options),
-           selectizeInput(ns('up_genes'),
-                          label = 'Genes to upregulate:',
-                          choices = NULL,
-                          multiple = TRUE,
-                          width = '100%',
-                          options = options),
            shinypanel::textInputWithButtons(
              id = ns('custom_name'),
              label = 'Name for custom query:',
-             actionButton(ns('submit_custom'), '', icon('plus', 'fa-fw')),
+             actionButton(ns('click_custom'), '', icon('upload', 'fa-fw'), title = 'Upload csv with gene names and effect size'),
              container_id = ns('validate'),
-             help_id = ns('error_msg'))
+             help_id = ns('error_msg')),
+
+           # hidden upload button
+           div(style = 'display: none',
+               fileInput(ns('up_custom'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+           )
   )
 
 }
@@ -160,7 +153,7 @@ advancedOptionsInput <- function(id) {
         shiny::sliderInput(ns('min_signatures'), 'Minimum number of signatures:',
                            min = 1,
                            max = 10,
-                           value = 1,
+                           value = 3,
                            ticks = TRUE,
                            width = '100%')
     )
@@ -226,4 +219,3 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
   )
 
 }
-

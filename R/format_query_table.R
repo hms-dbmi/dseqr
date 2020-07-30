@@ -49,7 +49,7 @@ format_query_res <- function(query_res,
                         'L1000 Drugs' = 'L1000_drugs')
 
   drug_annot <- get_drugs_table(annot_study)
-  query_table_annot <- annot_query_res(query_res, drug_annot, remove_html = TRUE)
+  query_table_annot <- annot_query_res(query_res, drug_annot)
 
   # subset to selected cells, summarize by compound, and add html
   query_table_summarised <- summarise_query_table(query_table_annot,
@@ -86,22 +86,17 @@ format_query_res <- function(query_res,
 #' @return Annotated query table
 #' @export
 #' @keywords internal
-annot_query_res <- function(query_res, drug_annot, remove_html = FALSE) {
+annot_query_res <- function(query_res, drug_annot) {
 
   drug_annot <- drug_annot[drug_annot$title %in% names(query_res), ]
   query_res <- query_res[drug_annot$title]
 
   if (!all.equal(drug_annot$title, names(query_res))) stop('query_res not complete')
 
-  annot_query <- tibble::add_column(drug_annot,
-                                   Rank = NA,
-                                   Correlation = query_res,
-                                   .before=0)
-
-  if (remove_html) annot_query$Rank <- NULL
-  return(annot_query)
-
-
+  tibble::add_column(drug_annot,
+                     Rank = NA,
+                     Correlation = query_res,
+                     .before=0)
 }
 
 #' Summarise annotated query table
@@ -127,7 +122,7 @@ summarise_query_table <- function(query_table_annot, is_genetic, cells, sort_abs
     dplyr::select(cols, dplyr::everything())
 
   if (remove_html)
-    res <- res %>% dplyr::select(-c('External Links', 'Correlation'))
+    res <- res %>% dplyr::select(-c('External Links', 'Correlation', 'Rank'))
 
   return(res)
 }

@@ -1138,7 +1138,7 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #' @export
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species = NULL) {
+run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species = NULL, ngenes = 200) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
@@ -1153,9 +1153,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 
   # get correlations between query and drug signatures
   res <- list(
-    cmap = query_drugs(dprimes, es$cmap),
-    l1000_drugs = query_drugs(dprimes, es$l1000_drugs),
-    l1000_genes = query_drugs(dprimes, es$l1000_genes)
+    cmap = query_drugs(dprimes, es$cmap, ngenes = ngenes),
+    l1000_drugs = query_drugs(dprimes, es$l1000_drugs, ngenes = ngenes),
+    l1000_genes = query_drugs(dprimes, es$l1000_genes, ngenes = ngenes)
   )
 
   saveRDS(res$cmap, drug_paths$cmap)

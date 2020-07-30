@@ -2,11 +2,19 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{selectedAnal}
 \alias{selectedAnal}
-\title{Logic for selected dataset/analysis in Drugs and Pathways tabs}
+\title{Logic for selected dataset/analysis in Drugs tab}
 \usage{
-selectedAnal(input, output, session, data_dir, choices, pert_query_dir = NULL)
+selectedAnal(
+  input,
+  output,
+  session,
+  data_dir,
+  choices,
+  new_custom,
+  pert_query_dir = NULL
+)
 }
 \description{
-Logic for selected dataset/analysis in Drugs and Pathways tabs
+Logic for selected dataset/analysis in Drugs tab
 }
 \keyword{internal}

@@ -216,23 +216,14 @@ docsPageUI <- function(id, tab, active) {
         id = 'drugs-custom-queries',
         name = 'Custom queries',
         content = tagList(
-          HTML("<p>Custom queries allow you to specify a set of genes to downregulate and a set of genes to upregulate. Custom queries are independant
-             of any differential expression signatures. To run a custom query, toggle the custom signature button, select genes to downregulate, genes
-             to upregulate, and provide a name to save the custom query as. Finally, click the <span class='bs-docs-btn'><i class='fa fa-plus fa-fw'></i></span>
-             button to run the query. This query signature can then be selected to view the results as normal.</p>"),
-          div(class = 'bs-callout bs-callout-danger',
-              h4('Genes not measured by L1000'),
-              HTML("<p>When selecting genes to downregulate and upregulate, genes that were not measured by the L1000 platform will show up with a yellow background.
-                 These genes will not be used for any queries involving the L1000 reference datasets. If this encompasses all selected genes, only CMAP02 drug
-                 query results will be available.
-                 </p>")
-          ),
+          HTML("<p>Custom queries allow you to specify a custom query signature.
+          To run a custom query, toggle the custom signature button, provide a name to save the custom query then click the <span class='bs-docs-btn'><i class='fa fa-upload fa-fw'></i></span>
+             button to upload a csv with your query signature. The first column of the uploaded csv must be a unique set of HGNC symbols. The uploaded csv should include either a column named
+               one of dprime or logFC, or column of effect size values as it's second column. This query signature can then be selected to view the results as normal.</p>"),
           div(class = 'bs-callout bs-callout-info',
-              h4('Custom query algorithm'),
-              HTML("For custom queries, perturbation effect sizes for genes to upregulate are first multiplied by negative one and then drugs
-                 are sorted by increasing average effect size over the selected genes. To constrain the values in the correlation column between -1 and 1,
-                 average effect sizes are devided by the absolute mean of of the minimum effect sizes for each queried gene. A value of -1 indicates
-                 that the perturbation has the strongest desired effect on each of the query genes over all the queried perturbations.")
+              h4('Custom query differences'),
+              HTML("For custom queries, all uploaded genes that were also measured by L1000/CMAP02 are used. In contrast, query signatures from the Single-Cell or Bulk tabs
+                   use only the top 200 most differentially expressed genes.")
           ),
 
         )

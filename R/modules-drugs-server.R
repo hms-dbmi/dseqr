@@ -39,6 +39,8 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
 #' @keywords internal
 drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
+  new_custom <- reactiveVal()
+
   # dataset/analysis choices
   choices <- reactive({
     # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
@@ -62,6 +64,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
   selectedAnal <- callModule(selectedAnal, 'drugs',
                              choices = choices,
                              data_dir = data_dir,
+                             new_custom = new_custom,
                              pert_query_dir = pert_query_dir)
 
 
@@ -69,7 +72,6 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
 
   # if currently selected analysis is custom then show genes for query
-  new_custom <- reactiveVal()
   custom_query <- callModule(customQueryForm, 'custom-query',
                              show_custom = selectedAnal$show_custom,
                              is_custom = selectedAnal$is_custom,
@@ -121,37 +123,13 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 #' @export
 #' @keywords internal
 customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, data_dir) {
-
-  # setup choices and options
-  choices <- data.frame(gene = c(genes$common, genes$cmap_only), stringsAsFactors = FALSE)
-  choices$value <- choices$label <- choices$gene
-  choices$cmap_only <- choices$gene %in% genes$cmap_only
-  options <- list(render = I('{option: queryGenesOption, item: queryGenesItem}'))
-
+  input_ids <- c('custom_name', 'click_custom')
 
   # show hide custom query signature stuff
   observe({
     shinyjs::toggle('custom_query_container', anim = TRUE, condition = show_custom())
   })
 
-
-  # update genes to downregulate
-  observe({
-
-    # if current signature is custom, then load and show previously selected genes
-    if (is_custom()) {
-      fname <- paste0('query_genes_', anal_name(), '.rds')
-      query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
-      sel_up <- query_genes$up
-      sel_dn <- query_genes$dn
-
-    } else {
-      sel_up <- sel_dn <- NULL
-    }
-
-    updateSelectizeInput(session, 'dn_genes', choices = choices, selected = sel_dn, options = options, server = TRUE)
-    updateSelectizeInput(session, 'up_genes', choices = choices, selected = sel_up, options = options, server = TRUE)
-  })
 
   res_paths <- reactive({
     custom_name <- input$custom_name
@@ -164,28 +142,63 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
   })
 
 
-  observeEvent(input$submit_custom, {
+  # Custom upload
+  error_msg <- reactiveVal()
 
-    error_msg <- validate_custom_query(dn_genes = input$dn_genes,
-                                       up_genes = input$up_genes,
-                                       custom_name = input$custom_name)
 
-    if (is.null(error_msg)) {
-      shinyjs::removeClass('validate', class = 'has-error')
+  observe({
+    msg <- error_msg()
+    html('error_msg', html = msg)
+    toggleClass('validate', 'has-error', condition = isTruthy(msg))
+  })
 
-      query_genes <- list(dn = input$dn_genes, up = input$up_genes)
-      res <- run_custom_query(query_genes = query_genes,
-                              res_paths = res_paths(),
-                              session = session)
+  observeEvent(input$click_custom, {
+    req(input$custom_name)
+    shinyjs::click('up_custom')
+  })
 
-      new_custom(input$custom_name)
 
+  observeEvent(input$up_custom, {
+
+
+    infile <- input$up_custom
+    if (!isTruthy(infile)){
+      msg <- NULL
 
     } else {
-      html('error_msg', html = error_msg)
-      addClass('validate', class = 'has-error')
+      top_table <- tryCatch(
+        read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE, row.names = 1),
+        error = function(e) return(NULL))
+
+      msg <- validate_up_custom(top_table, input$custom_name)
+
+      if (is.null(msg)) {
+        shinyjs::removeClass('validate', class = 'has-error')
+
+        # slowest part is loading es
+        disableAll(input_ids)
+
+        progress <- Progress$new(session, min = 0, max = 2)
+        progress$set(message = "Querying drugs", value = 1)
+        on.exit(progress$close())
+
+        top_table <- format_up_custom(top_table)
+        res_paths <- res_paths()
+        es <- load_drug_es()
+        progress$inc(1)
+
+        run_drug_queries(top_table, res_paths, es, ngenes = nrow(top_table))
+        progress$inc(1)
+
+        saveRDS(top_table, res_paths$query_genes)
+        new_custom(input$custom_name)
+        enableAll(input_ids)
+      }
     }
+
+    error_msg(msg)
   })
+
 }
 
 #' Logic for selected drug study in drugsForm
@@ -199,7 +212,7 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 
   # show advanced options,  clinical only results, and gene plots
   show_advanced <- reactive(input$advanced %% 2 != 0)
-  show_clinical <- reactive(input$clinical %% 2 != 0)
+  show_clinical <- reactive(input$clinical %% 2 != 1)
   show_genes <- reactive(input$show_genes %% 2 != 0)
 
   observe({
@@ -580,12 +593,6 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 plot_dprimes <- function(path_df, drugs = TRUE) {
 
 
-  is_custom <- all(abs(path_df$Dprime) == 0.001)
-  if (is_custom) {
-    path_df$direction <- 'up'
-    path_df$direction[path_df$Dprime < 0] <- 'down'
-  }
-
   # hovertemplate tooltips miss-behaves when single row
   # fix is direct substitution
   if (nrow(path_df) == 1) {
@@ -610,23 +617,14 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
   if (drugs) {
     fontsize = 12
     pergene = 25
-    title <- 'Standardized Effect Size for Query Genes'
-    if (is_custom) {
-      hovertemplate = paste0(
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Direction</span>: ', direction, '<br>',
-        '<extra></extra>')
-
-    } else {
-      hovertemplate = paste0(
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
-        '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
-        '<extra></extra>')
-    }
+    title <- 'Standardized Effect Size for Top Query Genes'
+    hovertemplate = paste0(
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
+      '<extra></extra>')
 
   } else {
     fontsize = 14
@@ -710,10 +708,10 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
 
 
-#' Logic for selected dataset/analysis in Drugs and Pathways tabs
+#' Logic for selected dataset/analysis in Drugs tab
 #' @export
 #' @keywords internal
-selectedAnal <- function(input, output, session, data_dir, choices, pert_query_dir = NULL) {
+selectedAnal <- function(input, output, session, data_dir, choices, new_custom, pert_query_dir = NULL) {
   options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'))
 
 
@@ -722,6 +720,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
     choices <- choices()
     req(choices)
     updateSelectizeInput(session, 'query', choices = choices, server = TRUE, options = options)
+  })
+
+  observe({
+    new_custom <- new_custom()
+    req(new_custom)
+
+    choices <- isolate(choices())
+    new_custom <- which(choices$label == new_custom)
+    updateSelectizeInput(session, 'query', choices = choices, server = TRUE, options = options, selected = new_custom)
   })
 
   # right click load signature logic for Drugs tab
@@ -846,14 +853,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, pert_query_d
 
     } else if (is_custom()) {
       fname <- paste0('query_genes_', sel_name(), '.rds')
-      query_genes <- readRDS(file.path(data_dir, 'custom_queries', fname))
-      up <- query_genes$up
-      dn <- query_genes$dn
-      top_table <- data.frame(dprime = c(rep(-0.001, length(up)), rep(0.001, length(dn))),
-                              vardprime = 0,
-                              adj.P.Value = NA,
-                              row.names = c(up, dn))
-
+      top_table <- readRDS(file.path(data_dir, 'custom_queries', fname))
 
     } else {
       top_table <- NULL
