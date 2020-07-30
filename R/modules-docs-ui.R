@@ -217,9 +217,9 @@ docsPageUI <- function(id, tab, active) {
         name = 'Custom queries',
         content = tagList(
           HTML("<p>Custom queries allow you to specify a custom query signature.
-          To run a custom query, toggle the custom signature button, provide a name to save the custom query then click the <span class='bs-docs-btn'><i class='fa fa-upload fa-fw'></i></span>
-             button to upload a csv with your query signature. The first column of the uploaded csv must be a unique set of HGNC symbols. The uploaded csv should include either a column named
-               one of dprime or logFC, or column of effect size values as it's second column. This query signature can then be selected to view the results as normal.</p>"),
+          To run a custom query, toggle the custom signature button, provide a name to save the custom query as, then click the <span class='bs-docs-btn'><i class='fa fa-upload fa-fw'></i></span>
+             button to upload a csv with your query signature. The first column of the uploaded csv must be unique HGNC symbols. The uploaded csv must also include either 1) a column named
+               one of dprime or logFC, or 2) a column of effect size values as it's second column. This query signature can then be selected to view the results as normal.</p>"),
           div(class = 'bs-callout bs-callout-info',
               h4('Custom query differences'),
               HTML("For custom queries, all uploaded genes that were also measured by L1000/CMAP02 are used. In contrast, query signatures from the Single-Cell or Bulk tabs
