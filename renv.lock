@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "3.6.2",
+    "Version": "3.6.3",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -688,8 +688,8 @@
       "RemoteUsername": "hms-dbmi",
       "RemoteRepo": "drugseqr.data",
       "RemoteRef": "master",
-      "RemoteSha": "db40b4cfb41421301524c0e8d3f36d88b844d3c0",
-      "Hash": "e3192324bc5512292d31c0a5efb5091b"
+      "RemoteSha": "39379bb7b2b7cfe4b1e8088037bfbe29e966fb5c",
+      "Hash": "57546dbcd477d07ec0e652656182b8d2"
     },
     "dtangle": {
       "Package": "dtangle",
@@ -1475,8 +1475,8 @@
       "RemoteUsername": "alexvpickering",
       "RemoteRepo": "shinypanel",
       "RemoteRef": "master",
-      "RemoteSha": "121130338a10fc0bccca78b78223aeecc1e911af",
-      "Hash": "78fcf3027a2488dc8a3811beb7b716e0"
+      "RemoteSha": "bd9ea56c174c035f476b5670b61432cab039c396",
+      "Hash": "a67dd9198df7bf5bfe0db5d6759dee77"
     },
     "sitmo": {
       "Package": "sitmo",
