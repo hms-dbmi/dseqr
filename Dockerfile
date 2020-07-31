@@ -43,7 +43,7 @@ RUN conda config --add channels bioconda && \
 RUN R -e "drugseqr.data::dl_drug_es()"
 
 # install drugseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.75', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.76', dependencies = FALSE, upgrade = FALSE)"
 
 
 # save image to a tar.gz file and upload to s3
