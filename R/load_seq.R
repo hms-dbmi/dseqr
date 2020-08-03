@@ -75,7 +75,7 @@ construct_eset <- function(quants, fdata, annot, txi.deseq = NULL) {
     paste(colnames(txi.deseq[[name]]), name, sep = '_')
 
   # workaround: R crashed from unique(mat) with GSE93624
-  counts <- data.frame(quants$counts, rn, stringsAsFactors = FALSE)
+  counts <- data.frame(quants$counts, rn, stringsAsFactors = FALSE, check.names = FALSE)
 
   mat <- data.table::data.table(counts,
                                 txi.deseq$abundance,
