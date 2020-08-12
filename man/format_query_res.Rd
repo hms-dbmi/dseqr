@@ -10,7 +10,7 @@ format_query_res(
   sort_by = c("avg_cor", "min_cor"),
   direction = c("opposing", "similar", "both"),
   sort_abs = FALSE,
-  show_clinical = FALSE,
+  show_clinical = TRUE,
   min_signatures = 3,
   cells = NULL
 )
@@ -27,7 +27,7 @@ One of \code{'CMAP02'},\code{'L1000 Genetic'}, or \code{'L1000 Drugs'}.}
 
 \item{sort_abs}{Should results be sorted based on absolute correlation? Default is \code{FALSE}.}
 
-\item{show_clinical}{Should result only contain drugs with clinical phase annotation? Default is \code{FALSE}.}
+\item{show_clinical}{Should result only contain drugs with clinical phase annotation? Default is \code{TRUE}.}
 
 \item{min_signatures}{Number of independent perturbagen signatures below which a perturbation is excluded. Default is \code{3}.}
 
@@ -47,7 +47,7 @@ dl_res <- read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
 query_res <- dl_res$correlation
 names(query_res) <- row.names(dl_res)
 
-query_table <- format_query_res(query_res)
+query_table <- format_query_res(query_res, 'L1000 Drugs')
 
 
 }

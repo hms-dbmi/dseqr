@@ -17,7 +17,8 @@ drugsTable(
   sort_by,
   min_signatures,
   is_pert,
-  direction
+  direction,
+  ntop = 1500
 )
 }
 \description{
