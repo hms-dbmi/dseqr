@@ -9,7 +9,7 @@
 #' @param sort_by Metric to sort by. Either \code{'avg_cor'} (default) or \code{'min_cor'}.
 #' @param direction  Direction of correlation to sort results by. One of \code{'both'}, \code{'similar'}, or \code{'opposing'} (default).
 #' @param sort_abs Should results be sorted based on absolute correlation? Default is \code{FALSE}.
-#' @param show_clinical Should result only contain drugs with clinical phase annotation? Default is \code{FALSE}.
+#' @param show_clinical Should result only contain drugs with clinical phase annotation? Default is \code{TRUE}.
 #' @param min_signatures Number of independent perturbagen signatures below which a perturbation is excluded. Default is \code{3}.
 #' @param cells Character vector of cell types to include. Default (\code{NULL}) includes all cell types.
 #'
@@ -23,7 +23,7 @@
 #' query_res <- dl_res$correlation
 #' names(query_res) <- row.names(dl_res)
 #'
-#' query_table <- format_query_res(query_res)
+#' query_table <- format_query_res(query_res, 'L1000 Drugs')
 #'
 #'
 format_query_res <- function(query_res,
@@ -31,7 +31,7 @@ format_query_res <- function(query_res,
                              sort_by = c('avg_cor', 'min_cor'),
                              direction = c('opposing', 'similar', 'both'),
                              sort_abs = FALSE,
-                             show_clinical = FALSE,
+                             show_clinical = TRUE,
                              min_signatures = 3,
                              cells = NULL
 ) {
