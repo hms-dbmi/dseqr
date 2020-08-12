@@ -375,7 +375,7 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
 #' @export
 #' @keywords internal
 #' @importFrom magrittr "%>%"
-drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction) {
+drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction, ntop = 1500) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
   dummy_rendered <- reactiveVal(FALSE)
@@ -423,7 +423,8 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
     summarise_query_table(query_table_annot(),
                           is_genetic = is_genetic(),
                           cells = cells(),
-                          sort_abs = sort_abs())
+                          sort_abs = sort_abs(),
+                          ntop = ntop)
   })
 
 
