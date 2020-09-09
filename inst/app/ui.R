@@ -6,7 +6,7 @@ bootstrapPage(
   useShinyjs(),
   rintrojs::introjsUI(),
   # scrollspy for docs tab
-  extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}"),
+  extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}", functions = 'init'),
   includeScript(path = 'www/renderSelectize.js'),
   includeScript(path = 'www/toggleClinicalTitle.js'),
   includeScript(path = 'www/contextMenu.js'),

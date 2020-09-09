@@ -1,7 +1,7 @@
 Package: drugseqr
 Type: Package
 Title: Finds CMAP02/L1000 Compounds That Oppose Gene Expression Signatures.
-Version: 0.1.76
+Version: 0.1.77
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: Explore single-cell and bulk RNA-seq datasets and run queries against L1000 and CMAP02 signatures.
@@ -60,17 +60,10 @@ Suggests:
     AnnotationDbi (>= 1.48.0),
     ensembldb (>= 2.8.1)
 Depends: 
-    R (>= 3.6.0),
+    R (>= 4.0.2),
     data.table (>= 1.12.8),
 Remotes: 
     hms-dbmi/drugseqr.data,
     alexvpickering/shinydlplot,
-    alexvpickering/shinypanel,
-    LTLA/batchelor,
-    LTLA/SingleR,
-    LTLA/BiocSingular,
-    LTLA/SingleCellExperiment,
-    davismcc/scater,
-    Bioconductor/BiocGenerics,
-    Bioconductor/DelayedArray,
-    Bioconductor/S4Vectors
+    alexvpickering/shinypanel
+    

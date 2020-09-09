@@ -710,7 +710,10 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
   # Bulk anal
   # ---
-  pdata <- reactive(Biobase::pData(explore_eset()))
+  pdata <- reactive({
+    req(explore_eset())
+    Biobase::pData(explore_eset())
+  })
 
 
   bulkAnal <- callModule(bulkAnal, 'ds',
@@ -1585,4 +1588,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-
