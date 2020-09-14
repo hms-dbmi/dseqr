@@ -2,6 +2,7 @@ FROM rocker/r-ver:4.0.2
 
 # install Ubuntu packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
     libcurl4-openssl-dev \
     libv8-dev \
     libxml2-dev \
