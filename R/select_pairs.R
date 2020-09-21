@@ -6,19 +6,14 @@
 #' end-type experiment identification.
 #'
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
-#' @param pdata_path Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-#' The first column should contain sample ids that match a single raw rna-seq data file name.
 #'
-#' @return data.frame of sample annotations with integer columns \code{Pair} (if paired-end) and \code{Replicate} (if added).
+#' @return data.frame with character column \code{'File Name'} and integer columns \code{'Pair'} (if pair-ended) and \code{'Replicate'} (if added).
 #' @export
 #'
 #' @examples
 #'
 #' data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
-#' pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-#'
-#' pdata <- select_pairs(data_dir, pdata_path)
-#'
+#' pdata <- select_pairs(data_dir)
 #'
 select_pairs <- function(data_dir) {
 
@@ -37,7 +32,7 @@ select_pairs <- function(data_dir) {
   fastqs <- list.files(data_dir, '.fastq.gz')
   pdata <- tibble::tibble('File Name' = fastqs)
 
-  pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
+  pdata <- tibble::add_column(pdata, Pair = NA_character_, Replicate = NA_character_, .before = 1)
 
   # auto-detect if paired
   fastq_id1s <- get_fastq_id1s(file.path(data_dir, fastqs))
