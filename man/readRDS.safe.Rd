@@ -18,6 +18,17 @@ readRDS.safe(file, .nofile = NULL, .nullfile = NULL)
 For \code{readRDS}, an \R object.
 
   For \code{saveRDS}, \code{NULL} invisibly.
+
+  For \code{infoRDS}, an \R list with elements \code{version} (version
+  number, currently 2 or 3), \code{writer_version} (version of \R that
+  produced the serialization), \code{min_reader_version} (minimum version of
+  \R that can read the serialization), \code{format} (data representation)
+  and \code{native_encoding} (native encoding of the session that produced
+  the serialization, available since version 3).  The data representation is
+  given as \code{"xdr"} for big-endian binary representation, \code{"ascii"}
+  for ASCII representation (produced via \code{ascii = TRUE} or \code{ascii
+  = NA}) or \code{"binary"} (binary representation with native
+  \sQuote{endianness} which can be produced by \code{\link[base]{serialize}}).
 }
 \description{
 Read RDS file safely

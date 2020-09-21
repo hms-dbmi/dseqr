@@ -11,7 +11,8 @@ get_kallisto_index(indices_dir, species = "homo_sapiens", release = "94")
 
 \item{species}{Character vector giving species}
 
-\item{release}{Character vector of EnsDB release number}
+\item{release}{Character vector of EnsDB release number. Release \code{'94'} is the default because HGNC symbols
+most closely overlap with those used to annotate CMAP02 and L1000.}
 }
 \value{
 Path to kallisto index

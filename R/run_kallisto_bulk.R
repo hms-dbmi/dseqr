@@ -2,23 +2,23 @@
 #'
 #' For pair-ended experiments, reads for each pair should be in a seperate file.
 #'
-#' @param indices_dir Directory with kallisto indices. See \code{\link{build_kallisto_index}}.
+#' @inheritParams get_kallisto_index
+#' @param indices_dir Directory with kallisto indices. See \code{\link[drugseqr.data]{build_kallisto_index}}.
 #' @param data_dir Directory with raw fastq.gz RNA-Seq files.
-#' @param pdata Previous result of call to \code{run_kallisto_bulk} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.
+#' @param paired Boolean indicating if fastq files are paired. If \code{NULL} (default), fastqs are considered paired if there are non \code{NA}
+#'   entries in \code{pdata$Pair}.
+#' @param pdata Previous result of \code{\link{select_pairs}}. Must contain column \code{'File Name'} and optionally
+#'   \code{'Pair'} (rows with same value taken as paired), and \code{Replicate} (rows with same valued taken as replicates). \code{pdata} i used to bypass
+#'   call to \code{select_pairs} GUI for the drugseqr app.
 #' @param species Species name. Default is \code{homo_sapiens}.
 #' Used to determine transcriptome index to use.
 #' @param fl.mean Estimated average fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 200.
 #' @param fl.sd Estimated standard deviation of fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 20.
+#' @param updateProgress Used by drugseqr app to provide visual update of progress.
 #'
 #' @return NULL
 #' @export
 #'
-#' @examples
-#'
-#' # first place IBD data in data-raw/example-data
-#' indices_dir <- '/srv/drugseqr/indices'
-#' data_dir <- file.path('data-raw', 'example-data')
-#' run_kallisto_bulk(indices_dir, data_dir)
 #'
 run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 
@@ -111,7 +111,8 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
 #'
 #' @param indices_dir Path to folder with indices dir
 #' @param species Character vector giving species
-#' @param release Character vector of EnsDB release number
+#' @param release Character vector of EnsDB release number. Release \code{'94'} is the default because HGNC symbols
+#'   most closely overlap with those used to annotate CMAP02 and L1000.
 #'
 #' @return Path to kallisto index
 #' @export

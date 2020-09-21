@@ -17,27 +17,29 @@ run_kallisto_bulk(
 )
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices. See \code{\link{build_kallisto_index}}.}
+\item{indices_dir}{Directory with kallisto indices. See \code{\link[drugseqr.data]{build_kallisto_index}}.}
 
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
 
-\item{pdata}{Previous result of call to \code{run_kallisto_bulk} or \code{\link{select_pairs}}. Used to bypass another call to \code{select_pairs}.}
+\item{paired}{Boolean indicating if fastq files are paired. If \code{NULL} (default), fastqs are considered paired if there are non \code{NA}
+entries in \code{pdata$Pair}.}
+
+\item{pdata}{Previous result of \code{\link{select_pairs}}. Must contain column \code{'File Name'} and optionally
+\code{'Pair'} (rows with same value taken as paired), and \code{Replicate} (rows with same valued taken as replicates). \code{pdata} i used to bypass
+call to \code{select_pairs} GUI for the drugseqr app.}
 
 \item{species}{Species name. Default is \code{homo_sapiens}.
 Used to determine transcriptome index to use.}
 
+\item{release}{Character vector of EnsDB release number. Release \code{'94'} is the default because HGNC symbols
+most closely overlap with those used to annotate CMAP02 and L1000.}
+
 \item{fl.mean}{Estimated average fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 200.}
 
 \item{fl.sd}{Estimated standard deviation of fragment length (only relevant for single-end reads). Default (\code{NULL}) uses 20.}
+
+\item{updateProgress}{Used by drugseqr app to provide visual update of progress.}
 }
 \description{
 For pair-ended experiments, reads for each pair should be in a seperate file.
-}
-\examples{
-
-# first place IBD data in data-raw/example-data
-indices_dir <- '/srv/drugseqr/indices'
-data_dir <- file.path('data-raw', 'example-data')
-run_kallisto_bulk(indices_dir, data_dir)
-
 }

@@ -8,12 +8,9 @@ select_pairs(data_dir)
 }
 \arguments{
 \item{data_dir}{Directory with raw fastq.gz RNA-Seq files.}
-
-\item{pdata_path}{Path to text file with sample annotations. Must be readable by \code{\link[data.table]{fread}}.
-The first column should contain sample ids that match a single raw rna-seq data file name.}
 }
 \value{
-data.frame of sample annotations with integer columns \code{Pair} (if paired-end) and \code{Replicate} (if added).
+data.frame with character column \code{'File Name'} and integer columns \code{'Pair'} (if pair-ended) and \code{'Replicate'} (if added).
 }
 \description{
 Used to select a pairs for paired-end experiments and replicate samples. Please follow prompt, ensuring correct file name matching and
@@ -22,9 +19,6 @@ end-type experiment identification.
 \examples{
 
 data_dir <- system.file('extdata', 'IBD', package='drugseqr', mustWork = TRUE)
-pdata_path <- file.path(data_dir, 'Phenotypes.csv')
-
-pdata <- select_pairs(data_dir, pdata_path)
-
+pdata <- select_pairs(data_dir)
 
 }

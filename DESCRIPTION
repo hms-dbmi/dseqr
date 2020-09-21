@@ -8,7 +8,7 @@ Description: Explore single-cell and bulk RNA-seq datasets and run queries again
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 biocViews:
 SystemRequirements:
   kallisto (0.46.0)
@@ -67,4 +67,3 @@ Remotes:
     alexvpickering/shinydlplot,
     alexvpickering/shinypanel,
     immunogenomics/harmony
-    
