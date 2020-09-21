@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # install drugseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.9.2-20')"
+    R -e "remotes::install_github('rstudio/renv@0.12.0')"
 
 
 COPY renv.lock .
@@ -45,9 +45,3 @@ RUN R -e "drugseqr.data::dl_drug_es()"
 
 # install drugseqr last as will have to redo often
 RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.1.76', dependencies = FALSE, upgrade = FALSE)"
-
-
-# save image to a tar.gz file and upload to s3
-# sudo docker build -t drugseqr .
-# sudo docker save drugseqr:latest | gzip > drugseqr_latest.tar.gz
-# aws s3 cp drugseqr_latest.tar.gz s3://drugseqr/drugseqr_latest.tar.gz

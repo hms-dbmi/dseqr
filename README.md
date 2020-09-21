@@ -122,16 +122,13 @@ Next, create a docker network that ShinyProxy will use to communicate with the S
 The `drugseqr` app won't work yet. To get it working, download the `drugseqr` image, load it, and initialize the example app:
 
 ```bash
-# retrieve pre-built drugseqr docker image
-wget https://drugseqr.s3.us-east-2.amazonaws.com/drugseqr_latest.tar.gz
-sudo docker load < drugseqr_latest.tar.gz
-rm drugseqr_latest.tar.gz
-
+# pull drugseqr docker image
+docker pull alexvpickering/drugseqr
 
 # we mount host:container volume in order to persist example app files/folders that are created inside the container
 sudo docker run --rm \
   -v /srv/drugseqr:/srv/drugseqr \
-  drugseqr R -e "drugseqr::init_drugseqr('example')"
+  alexvpickering/drugseqr R -e "drugseqr::init_drugseqr('example')"
 ```
 
 Then download example data and sync with previously initialized app:
@@ -148,7 +145,7 @@ Build `kallisto` index (optional - if will quantify bulk/sc fastq files on the s
 ```bash
 sudo docker run --rm \
   -v /srv/drugseqr:/srv/drugseqr \
-  drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/drugseqr')"
+  alexvpickering/drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/drugseqr')"
 ```
 
 ### Run the app
