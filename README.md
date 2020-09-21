@@ -76,8 +76,9 @@ data_dir <- 'path/to/app_dir/example/bulk'
 gse_name <- 'GSE35296'
 
 # first four samples for demonstration
-srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
-GEOfastq::get_fastqs(gse_name, srp_meta[1:4, ], data_dir)
+gsm_names <- GEOfastq::get_gsms(gse_name)
+srp_meta <- GEOfastq::crawl_gsms(gsm_names)
+GEOfastq::get_fastqs(srp_meta[1:4, ], data_dir)
 ```
 
 ## Adding bulk microarray datasets
