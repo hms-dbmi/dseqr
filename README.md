@@ -72,13 +72,13 @@ remotes::install_github('alexvpickering/GEOfastq')
 
 # download bulk fastqs to appropriate directory for example app
 # for EC2 instance: /srv/drugseqr/example/bulk
-data_dir <- 'path/to/app_dir/example/bulk'
 gse_name <- 'GSE35296'
+gse_dir <- file.path('path/to/app_dir/example/bulk', gse_name)
 
 # first four samples for demonstration
 gsm_names <- GEOfastq::get_gsms(gse_name)
 srp_meta <- GEOfastq::crawl_gsms(gsm_names)
-GEOfastq::get_fastqs(srp_meta[1:4, ], data_dir)
+GEOfastq::get_fastqs(srp_meta[1:4, ], gse_dir)
 ```
 
 ## Adding bulk microarray datasets
