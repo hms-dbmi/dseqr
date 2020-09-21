@@ -22,7 +22,7 @@ RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.
     R -e "remotes::install_github('rstudio/renv@0.12.0')"
 
 
-COPY renv.lock .
+COPY ./renv.lock .
 
 # restore the package environment
 RUN R -e 'options(renv.consent = TRUE); renv::restore()'
