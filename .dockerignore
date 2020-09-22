@@ -1,10 +1,8 @@
-# Ignore everything
-**
-
-# Allow files and directories
-!/Dockerfile
-!/renv.lock
-!/.Renviron
-!/inst/app
-!/shiny-server.conf
-inst/app/tests
+/data-raw/*
+.git/*
+.Rproj.user/*
+inst/*
+man/*
+renv/*
+tests/*
+example_data.tar.gz
