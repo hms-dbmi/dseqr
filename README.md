@@ -76,7 +76,8 @@ gse_name <- 'GSE35296'
 gse_dir <- file.path('path/to/app_dir/example/bulk', gse_name)
 
 # first four samples for demonstration
-gsm_names <- GEOfastq::get_gsms(gse_name)
+gse_text <- GEOfastq::crawl_gse(gse_name)
+gsm_names <- GEOfastq::extract_gsms(gse_text)
 srp_meta <- GEOfastq::crawl_gsms(gsm_names)
 GEOfastq::get_fastqs(srp_meta[1:4, ], gse_dir)
 ```
