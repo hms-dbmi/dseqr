@@ -6,15 +6,18 @@
 \usage{
 plotlyMDS(
   scaling,
-  scaling_adj,
+  scaling_adj = NULL,
   group_colors = c("#337ab7", "#e6194b"),
   adjusted = FALSE
 )
 }
 \arguments{
-\item{scaling}{tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA}
+\item{scaling}{tibble with coordinate columns MDS1 and MDS2 calculated from expression data without correction for surrogate variables}
 
-\item{scaling_adj}{tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA/pairs}
+\item{scaling_adj}{Optional. Same as \code{scaling} but using expression data adjusted for surrogate variables.
+If omitted, an MDS plot is created only for \code{scaling}.}
+
+\item{group_colors}{colors to use, one for each unique groups in \code{scaling$Group}.}
 }
 \value{
 plotly object

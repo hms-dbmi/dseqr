@@ -520,12 +520,14 @@ get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 
 #' Plot MDS plotlys
 #'
-#' @param scaling tibble with columns MDS1 and MDS2 corresponding to differential expression without SVA
-#' @param scaling_adj tibble with columns MDS1 and MDS2 corresponding to differential expression with SVA/pairs
+#' @param scaling tibble with coordinate columns MDS1 and MDS2 calculated from expression data without correction for surrogate variables
+#' @param scaling_adj Optional. Same as \code{scaling} but using expression data adjusted for surrogate variables.
+#'   If omitted, an MDS plot is created only for \code{scaling}.
+#' @param group_colors colors to use, one for each unique groups in \code{scaling$Group}.
 #'
 #' @return plotly object
 #' @export
-plotlyMDS <- function(scaling, scaling_adj, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE) {
+plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE) {
 
   if(is.null(scaling)) return(NULL)
   # make x and y same range
