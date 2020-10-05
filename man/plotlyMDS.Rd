@@ -8,7 +8,8 @@ plotlyMDS(
   scaling,
   scaling_adj = NULL,
   group_colors = c("#337ab7", "#e6194b"),
-  adjusted = FALSE
+  adjusted = FALSE,
+  title = "Sammon MDS plots"
 )
 }
 \arguments{
@@ -18,6 +19,8 @@ plotlyMDS(
 If omitted, an MDS plot is created only for \code{scaling}.}
 
 \item{group_colors}{colors to use, one for each unique groups in \code{scaling$Group}.}
+
+\item{title}{Plot title.}
 }
 \value{
 plotly object

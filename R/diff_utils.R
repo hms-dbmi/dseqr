@@ -524,10 +524,11 @@ get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 #' @param scaling_adj Optional. Same as \code{scaling} but using expression data adjusted for surrogate variables.
 #'   If omitted, an MDS plot is created only for \code{scaling}.
 #' @param group_colors colors to use, one for each unique groups in \code{scaling$Group}.
+#' @param title Plot title.
 #'
 #' @return plotly object
 #' @export
-plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE) {
+plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE, title = 'Sammon MDS plots') {
 
   if(is.null(scaling)) return(NULL)
   # make x and y same range
@@ -578,7 +579,7 @@ plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '
                             '<extra></extra>')) %>%
       plotly::add_markers(text = ~Sample, hoverinfo = 'text') %>%
       plotly::layout(
-        title = list(text = 'Sammon MDS plots', x = 0.08, y = 0.98),
+        title = list(text = title, x = 0.08, y = 0.98),
         margin = margin,
         shapes = shapes,
         xaxis = xaxis,
