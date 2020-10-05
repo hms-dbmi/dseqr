@@ -21,8 +21,15 @@ values in this column, the row with the highest interquartile range
 across selected samples will be kept. Appropriate values are \code{"SYMBOL"} (default - for gene level analysis)
 or \code{"ENTREZID_HS"} (for probe level analysis).}
 
+\item{svobj}{Surrogate variable analysis results. Returned from \link{run_sva}.}
+
+\item{numsv}{Number of surrogate variables to model.}
+
 \item{prev_anal}{Previous result of \code{run_limma}. If present, previous group
 selections will be reused.}
+
+\item{filter}{For RNA-seq. Should genes with low counts be filtered? drugseqr shiny app performs this step
+separately. Should be \code{TRUE} if used outside of drugseqr shiny app.}
 
 \item{data_dir}{String specifying directory of GSE folders.}
 }
@@ -38,10 +45,4 @@ analysis (\code{\link[sva]{sva}}) and linear model fitting with \link[limma]{lmF
 \details{
 If analyses need to be repeated, previous results can be reloaded with \code{\link[base]{readRDS}}
 and supplied to the \code{prev_anal} parameter. In this case, previous selections will be reused.
-}
-\examples{
-
-eset <- load_seq(data_dir)
-lm_fit <- run_limma(eset)
-
 }

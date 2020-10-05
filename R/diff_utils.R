@@ -13,8 +13,12 @@
 #'   values in this column, the row with the highest interquartile range
 #'   across selected samples will be kept. Appropriate values are \code{"SYMBOL"} (default - for gene level analysis)
 #'   or \code{"ENTREZID_HS"} (for probe level analysis).
+#' @param svobj Surrogate variable analysis results. Returned from \link{run_sva}.
+#' @param numsv Number of surrogate variables to model.
 #' @param prev_anal Previous result of \code{run_limma}. If present, previous group
 #'   selections will be reused.
+#' @param filter For RNA-seq. Should genes with low counts be filtered? drugseqr shiny app performs this step
+#'   separately. Should be \code{TRUE} if used outside of drugseqr shiny app.
 #'
 #' @export
 #'
@@ -22,10 +26,6 @@
 #'   \item{fit}{result of \code{\link[limma]{lmFit}}.}
 #'   \item{mod}{\code{model.matrix} used for \code{fit}}
 #'
-#' @examples
-#'
-#' eset <- load_seq(data_dir)
-#' lm_fit <- run_limma(eset)
 #'
 run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv = 0, prev_anal = NULL, filter = FALSE) {
 
