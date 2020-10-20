@@ -834,14 +834,14 @@
     "harmony": {
       "Package": "harmony",
       "Version": "1.0",
-      "Source": "Local",
-      "RemoteType": "local",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
       "RemoteUsername": "immunogenomics",
       "RemoteRepo": "harmony",
       "RemoteRef": "master",
       "RemoteSha": "c8f4901ef92d6e9b4e1373c52de3b67ff052db3e",
-      "RemoteHost": "api.github.com",
-      "Hash": "2bd11ae1026fb3371d042a85542aa687"
+      "Hash": "bf2c2bb5f1b6a36ab26c4b9eb9e4cade"
     },
     "hdf5r": {
       "Package": "hdf5r",
