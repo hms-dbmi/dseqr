@@ -39,7 +39,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
 
   # get correlations between query and drug signatures
   res$cmap <- query_budger(query_genes, cmap_es)
-  rm(cmap_es); gc()
+  rm(cmap_es)
 
   saveRDS(res$cmap, res_paths$cmap)
   saveRDS(query_genes, res_paths$query_genes)
@@ -54,11 +54,11 @@ run_custom_query <- function(query_genes, res_paths, session) {
 
     l1000_drugs_es <- readRDS(l1000_drugs_path)
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
-    rm(l1000_drugs_es); gc()
+    rm(l1000_drugs_es)
 
     l1000_genes_es <- readRDS(l1000_genes_path)
     res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
-    rm(l1000_genes_es); gc()
+    rm(l1000_genes_es)
 
     saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
     saveRDS(res$l1000_genes, res_paths$l1000_genes)

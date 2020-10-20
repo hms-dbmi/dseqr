@@ -118,7 +118,7 @@ customQueryFormInput <- function(id) {
 
   tags$div(id = ns('custom_query_container'), class = 'hidden-form', style = 'display: none;',
            shinypanel::textInputWithButtons(
-             id = ns('custom_name'),
+             inputId = ns('custom_name'),
              label = 'Name for custom query:',
              actionButton(ns('click_custom'), '', icon('upload', 'fa-fw'), title = 'Upload csv with gene names and effect size'),
              container_id = ns('validate'),
@@ -170,7 +170,7 @@ selectedDrugStudyInput <- function(id) {
   div(id='drugs-intro-pert-study',
 
       shinypanel::selectizeInputWithButtons(
-        id = ns('study'), label = 'Select perturbation study:',
+        inputId = ns('study'), label = 'Select perturbation study:',
         shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
         shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
         shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
@@ -203,7 +203,7 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
   tagList(
     div(id='drugs-intro-query',
         shinypanel::selectizeInputWithButtons(
-          id = ns('query'), label = label,
+          inputId = ns('query'), label = label,
           shiny::actionButton(ns('show_custom'), '', icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom signature'),
           options = list(optgroupField = 'type'))
     ),

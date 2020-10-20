@@ -118,7 +118,7 @@ scSelectedDatasetInput <- function(id) {
   tagList(
     div(id = 'sc-intro-dataset',
         shinypanel::selectizeInputWithButtons(
-          ns('selected_dataset'),
+          inputId = ns('selected_dataset'),
           label = 'Select a single-cell dataset:',
           actionButton(
             ns('show_label_transfer'), '',
@@ -289,15 +289,15 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
   div(id = 'sc-intro-feature',
       shinypanel::selectizeInputWithButtons(
-        id = ns('selected_gene'),
+        inputId = ns('selected_gene'),
         label = 'Feature to plot:',
         btn1, btn2, btn3,
         options = list(optgroupField = 'type')
       ),
       div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
           shinypanel::textAreaInputWithButtons(
-            ns('custom_metric'),
-            'Custom metric:',
+            inputId = ns('custom_metric'),
+            label = 'Custom metric:',
             placeholder = 'e.g: PF4>2.2',
             actionButton(ns('save_custom_metric'), '',
                          icon = icon('plus', 'fa-fw'),
@@ -375,7 +375,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
   shinypanel::selectizeInputWithButtons(
-    ns('selected_cluster'),
+    inputId = ns('selected_cluster'),
     label = 'Compare samples for:',
     dl_btn,
     #TODO: implement logic for multi-cluster differential expression

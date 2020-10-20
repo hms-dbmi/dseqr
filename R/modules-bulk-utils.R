@@ -395,7 +395,7 @@ is_invertible <- function(pdata) {
 
   mod <- get_mods(pdata)$mod
 
-  class(try(solve.default(t(mod) %*% mod),silent=T)) == 'matrix'
+  is(try(solve.default(t(mod) %*% mod),silent=T), 'matrix')
 }
 
 
