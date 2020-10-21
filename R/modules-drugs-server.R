@@ -598,18 +598,22 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
   # fix is direct substitution
   if (nrow(path_df) == 1) {
     sd <- path_df$sd
+    fdr <- path_df$fdr
     pval <- path_df$pval
     text <- path_df$Gene
     dprime <- path_df$Dprime
+    logfc <- path_df$logfc
     ambient <- path_df$ambient
     direction <- path_df$direction
     description <- path_df$description
 
   } else {
     sd <- '%{customdata.sd:.2f}'
+    fdr <- '%{customdata.fdr}'
     pval <- '%{customdata.pval}'
     text <- '%{text}'
     dprime <- '%{x:.2f}'
+    logfc <- '%{customdata.logfc:.2f}'
     ambient <- '%{customdata.ambient}'
     direction <- '%{customdata.direction}'
     description <- '%{customdata.description}'
@@ -624,6 +628,7 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
       '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
       '<extra></extra>')
 
@@ -635,6 +640,8 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
       '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: ', text, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">logFC</span>: ', logfc, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval, '<br>',
       '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: ', ambient,
       '<extra></extra>')

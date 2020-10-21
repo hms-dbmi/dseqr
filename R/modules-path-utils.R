@@ -71,8 +71,10 @@ construct_path_df <- function(top_table) {
   data.frame(
     Gene = row.names(top_table),
     Dprime = top_table$dprime,
+    logfc = top_table$logFC,
     sd = sqrt(top_table$vardprime),
-    pval = format.pval(top_table$adj.P.Val, eps = 0.005, digits = 2),
+    pval = format.pval(top_table$P.Value, eps = 0.005, digits = 2),
+    fdr = format.pval(top_table$adj.P.Val, eps = 0.005, digits = 2),
     description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
     Link = paste0("<a class='xaxis-tooltip' href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
     stringsAsFactors = FALSE
