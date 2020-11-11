@@ -901,13 +901,6 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # colors
   background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
-  group_colors <- c("#C7E9C0", "#C6DBEF", "#FCBBA1", "#FDD0A2", "#BCBDDC", "#D9D9D9", "#F6E8C3", "#DC143C",
-                    "#A1D99B", "#9ECAE1", "#FC9272", "#FDAE6B", "#9E9AC8", "#BDBDBD", "#DFC27D", "#F0EAD6",
-                    "#C3B091", "#007FFF", "#00FFFF", "#7FFFD4", "#228B22", "#808000", "#7FFF00", "#BFFF00",
-                    "#FFD700", "#DAA520", "#FF7F50", "#FA8072","#FC0FC0", "#CC8899", "#E0B0FF", "#B57EDC", "#843179")
-
-  ncolors <- length(group_colors)
-
 
   # reset everything when quant fastq_dir
   observeEvent(fastq_dir(), {
@@ -930,7 +923,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     pairs_r(pdata$Pair)
     reps_r(pdata$Replicate)
 
-    pdata$Pair <- pdata$Replicate <- NA
+    pdata$Pair <- pdata$Replicate <- NA_character_
     pdata_r(pdata)
   })
 
@@ -985,8 +978,9 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
     # update pdata Replicate column
     rep_nums <- sort(unique(setdiff(reps, NA)))
+    rep_colors <- get_palette(rep_nums)
     for (rep_num in rep_nums) {
-      color <- group_colors[ncolors - rep_num]
+      color <- rep_colors[rep_num]
       rows <- which(reps == rep_num)
       pdata[rows, 'Replicate'] <- paste('<div style="background-color:', color, ';"></div>')
     }
@@ -994,8 +988,10 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     # update pdata Pair column
     if (paired()) {
       pair_nums <- sort(unique(setdiff(pairs, NA)))
+      pair_nums <- as.numeric(pair_nums)
+      pair_colors <- get_palette(pair_nums)
       for (pair_num in pair_nums) {
-        color <- group_colors[pair_num]
+        color <- pair_colors[pair_num]
         rows <- which(pairs == pair_num)
         pdata[rows, 'Pair'] <- paste('<div style="background:', color, background, ';"></div>')
       }
@@ -1588,3 +1584,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
