@@ -22,7 +22,6 @@
 #'
 run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL, species = 'homo_sapiens', release = '94', fl.mean = NULL, fl.sd = NULL, updateProgress = NULL) {
 
-  # TODO: implement interaction between pairs and duplicates
   data_dir <- path.expand(data_dir)
 
   # default updateProgress and number of steps
@@ -63,21 +62,27 @@ run_kallisto_bulk <- function(indices_dir, data_dir, paired = NULL, pdata = NULL
 
   while (length(fastq_files)) {
 
-
     # grab next
     fastq_file <-fastq_files[1]
     row_num <- which(pdata$`File Name` == fastq_file)
-
-    # include any replicates
-    rep_num <- pdata$Replicate[row_num]
-    if (!is.null(rep_num) && !is.na(rep_num)) {
-      fastq_file <- pdata[pdata$Replicate %in% rep_num, 'File Name', drop = TRUE]
-    }
 
     # include any pairs
     pair_num <- pdata$Pair[row_num]
     if (!is.null(pair_num) && !is.na(pair_num)) {
       fastq_file <- pdata[pdata$Pair %in% pair_num, 'File Name', drop = TRUE]
+    }
+
+    # include any replicates
+    rep_num <- pdata$Replicate[row_num]
+    if (!is.null(rep_num) && !is.na(rep_num)) {
+      in.rep <- pdata$Replicate %in% rep_num
+      fastq_file <- pdata[in.rep, 'File Name', drop = TRUE]
+
+      # order by pairs
+      pair_nums <- pdata$Pair[in.rep]
+      if (!is.null(pair_nums) && !any(is.na(pair_nums))) {
+        fastq_file <- fastq_file[order(pair_nums)]
+      }
     }
 
     # update progress

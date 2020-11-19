@@ -978,6 +978,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
     # update pdata Replicate column
     rep_nums <- sort(unique(setdiff(reps, NA)))
+    rep_nums <- as.numeric(rep_nums)
     rep_colors <- get_palette(rep_nums)
     for (rep_num in rep_nums) {
       color <- rep_colors[rep_num]
