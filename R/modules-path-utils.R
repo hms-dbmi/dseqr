@@ -70,9 +70,9 @@ construct_path_df <- function(top_table) {
 
   data.frame(
     Gene = row.names(top_table),
-    Dprime = top_table$dprime,
-    logfc = top_table$logFC,
-    sd = sqrt(top_table$vardprime),
+    Dprime = signif(top_table$dprime, digits = 3),
+    logfc = signif(top_table$logFC, digits = 3),
+    sd = signif(sqrt(top_table$vardprime), digits = 3),
     pval = format.pval(top_table$P.Value, eps = 0.005, digits = 2),
     fdr = format.pval(top_table$adj.P.Val, eps = 0.005, digits = 2),
     description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
