@@ -20,7 +20,7 @@ run_drugseqr(app_name, data_dir)
 see below for details on adding single-cell/bulk datasets. Both require building a `kallisto` index for quantification. To do so run:
 
 ```R
-drugseqr.data::build_kallisto_index('/srv/drugseqr')
+GEOkallisto::build_kallisto_index('/srv/drugseqr/indices')
 ```
 
 

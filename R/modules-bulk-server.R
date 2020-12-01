@@ -578,11 +578,12 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     }
 
     # quantification
-    run_kallisto_bulk(indices_dir = indices_dir,
-                      data_dir = fastq_dir,
-                      pdata = pdata,
-                      paired = paired,
-                      updateProgress = updateProgress)
+    GEOkallisto::run_kallisto_bulk(
+      indices_dir = indices_dir,
+      data_dir = fastq_dir,
+      quant_meta = pdata,
+      paired = paired,
+      updateProgress = updateProgress)
 
     # generate eset and save
     progress$set(message = 'Annotating dataset')
