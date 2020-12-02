@@ -587,7 +587,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
     # generate eset and save
     progress$set(message = 'Annotating dataset')
-    eset <- load_seq(fastq_dir)
+    eset <- GEOkallisto::load_seq(fastq_dir)
 
     # trigger to update rest of app
     new_dataset(dataset_name)

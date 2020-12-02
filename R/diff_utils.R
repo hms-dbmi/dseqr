@@ -7,7 +7,7 @@
 #' If analyses need to be repeated, previous results can be reloaded with \code{\link[base]{readRDS}}
 #' and supplied to the \code{prev_anal} parameter. In this case, previous selections will be reused.
 #'
-#' @param eset Annotated eset created by \code{\link{load_seq}}.
+#' @param eset Annotated eset created by \code{\link[GEOkallisto]{load_seq}}.
 #' @param data_dir String specifying directory of GSE folders.
 #' @param annot String, column name in fData. For duplicated
 #'   values in this column, the row with the highest interquartile range

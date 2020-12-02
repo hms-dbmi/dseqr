@@ -21,6 +21,7 @@ Imports:
     DropletUtils(>= 1.6.1),
     DESeq2 (>= 1.26.0),
     doParallel (>= 1.0.15),
+    data.table (>= 1.12.8),
     dtangle (>= 2.0.9),
     drugseqr.data,
     edgeR (>= 3.28.0),
@@ -55,15 +56,12 @@ Imports:
     scran (>= 1.14.5),
     scater (>= 1.15.12),
     sva (>= 3.34.0),
-    tximport (>= 1.14.0),
     tibble (>= 2.1.3)
 Suggests: 
     testthat,
-    AnnotationDbi (>= 1.48.0),
-    ensembldb (>= 2.8.1)
+    AnnotationDbi (>= 1.48.0)
 Depends: 
-    R (>= 4.0.2),
-    data.table (>= 1.12.8),
+    R (>= 4.0.2)
 Remotes: 
     hms-dbmi/drugseqr.data,
     alexvpickering/shinydlplot,
