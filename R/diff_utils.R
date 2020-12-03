@@ -249,7 +249,9 @@ run_sva <- function(mods, eset, rna_seq = TRUE) {
     PROBE <- Biobase::fData(eset)$PROBE
   }
 
-  expr <- unique(data.table::data.table(Biobase::exprs(eset), PROBE))[, PROBE := NULL]
+  expr <- data.frame(Biobase::exprs(eset), PROBE)
+  expr <- unique(expr)
+  expr$PROBE <- NULL
   expr <- as.matrix(expr)
 
   # sva or svaseq
