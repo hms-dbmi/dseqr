@@ -302,9 +302,7 @@ supress.genes <- function(markers, supress) {
 #' @export
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {
-  utils::data(hs, package = 'GEOkallisto', envir = environment())
   data.table::setkey(hs, SYMBOL_9606)
-
 
   # one fit per cluster
   fits <- list()

@@ -50,7 +50,7 @@ run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv 
   }
 
   # filtering low counts (as in tximport vignette)
-  if (filter & rna_seq) eset <- filter_genes(eset)
+  if (filter & rna_seq) eset <- GEOkallisto::filter_genes(eset)
 
   # add vsd element for cleaning
   eset <- add_vsd(eset, rna_seq = rna_seq)
@@ -67,23 +67,6 @@ run_limma <- function (eset, annot = "SYMBOL", svobj = list('sv' = NULL), numsv 
                    numsv = numsv,
                    rna_seq = rna_seq)
   return (lm_fit)
-}
-
-#' Filter genes in RNA-seq ExpressionSet
-#'
-#' @param eset ExpressionSet with 'counts' assayDataElement and group column in pData
-#'
-#' @return filtered \code{eset}
-#' @export
-#' @keywords internal
-#'
-filter_genes <- function(eset) {
-  counts <- Biobase::assayDataElement(eset, 'counts')
-  if (is.null(counts)) return(eset)
-  keep <- edgeR::filterByExpr(counts, group = eset$group)
-  eset <- eset[keep, ]
-  if (!nrow(eset)) stop("No genes with reads after filtering")
-  return(eset)
 }
 
 #' Save lmfit result to disk

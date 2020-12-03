@@ -14,7 +14,7 @@ run_limma(
 )
 }
 \arguments{
-\item{eset}{Annotated eset created by \code{\link{load_seq}}.}
+\item{eset}{Annotated eset created by \code{\link[GEOkallisto]{load_seq}}.}
 
 \item{annot}{String, column name in fData. For duplicated
 values in this column, the row with the highest interquartile range
