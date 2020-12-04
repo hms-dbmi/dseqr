@@ -4,6 +4,8 @@
 #' For microarray datasets duplicates exprs slot into vsd slot.
 #'
 #' @param eset ExpressionSet with group column in \code{pData(eset)}
+#' @param vsd_path Path to save result to. Allows skipping running transform
+#'   on each load.
 #'
 #' @return \code{eset} with \code{'vsd'} \code{assayDataElement} added.
 #' @export
@@ -35,17 +37,7 @@ add_vsd <- function(eset, rna_seq = TRUE, pbulk = FALSE, vsd_path = NULL) {
 
   } else {
     # rlog fast enough for most rna-seq
-    pdata <- Biobase::pData(eset)
-    txi.deseq <- list(countsFromAbundance = 'no',
-                      abundance = Biobase::assayDataElement(eset, 'abundance'),
-                      counts = Biobase::assayDataElement(eset, 'counts'),
-                      length = Biobase::assayDataElement(eset, 'length')
-    )
-
-    dds <- DESeq2::DESeqDataSetFromTximport(txi.deseq, pdata, design = ~group)
-    dds <- DESeq2::estimateSizeFactors(dds)
-    vsd <- DESeq2::rlog(dds, blind = FALSE)
-
+    vsd <- GEOkallisto::get_vsd(eset)
     vsd <- SummarizedExperiment::assay(vsd)
     if (!is.null(vsd_path)) saveRDS(vsd, vsd_path)
   }

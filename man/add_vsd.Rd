@@ -8,6 +8,9 @@ add_vsd(eset, rna_seq = TRUE, pbulk = FALSE, vsd_path = NULL)
 }
 \arguments{
 \item{eset}{ExpressionSet with group column in \code{pData(eset)}}
+
+\item{vsd_path}{Path to save result to. Allows skipping running transform
+on each load.}
 }
 \value{
 \code{eset} with \code{'vsd'} \code{assayDataElement} added.
