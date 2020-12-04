@@ -11,7 +11,7 @@
 #' pbulk_esets <- readRDS("~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/single-cell/sjia_pbmcs_lungdisease_vs_healthy_harmony/pbulk_esets.rds")
 #' qcsets <- construct_pbulk_qcsets(pbulk_esets)
 #' lm_fit <- run_limma_scseq(qcsets)
-#' get_top_table(lm_fit[[1]], robust = FALSE)
+#' crossmeta::get_top_table(lm_fit[[1]], robust = FALSE)
 #'
 construct_pbulk_qcsets <- function(pbulk_esets) {
   qc <- load_scseq_qcgenes()

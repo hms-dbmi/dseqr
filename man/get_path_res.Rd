@@ -15,7 +15,7 @@ get_path_res(
 )
 }
 \arguments{
-\item{ebfit}{Result of \code{fit_ebayes}}
+\item{ebfit}{Result of \code{\link[crossmeta]{fit_ebayes}}}
 
 \item{go_path}{Path to save camerPR Gene Ontology result}
 

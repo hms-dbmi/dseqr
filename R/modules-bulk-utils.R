@@ -393,7 +393,7 @@ is_invertible <- function(pdata) {
 
   pdata$group <- pdata$`Group name`
 
-  mod <- get_mods(pdata)$mod
+  mod <- crossmeta::get_sva_mods(pdata)$mod
 
   is(try(solve.default(t(mod) %*% mod),silent=T), 'matrix')
 }
@@ -403,7 +403,7 @@ is_invertible <- function(pdata) {
 #'
 #' Used to avoid code reuse for single-cell and bulk
 #'
-#' @param ebfit Result of \code{fit_ebayes}
+#' @param ebfit Result of \code{\link[crossmeta]{fit_ebayes}}
 #' @param go_path Path to save camerPR Gene Ontology result
 #' @param kegg_path Path to save cameraPR KEGG result
 #' @param goana_path Path to save goana Gene Ontology result

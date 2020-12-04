@@ -188,7 +188,10 @@ run_limma_scseq <- function(obj, annot = 'gene_name') {
 
   if (is.list(obj)) {
     # run as pseudobulk per eset
-    lm_fit <- lapply(obj, function(x) run_limma(x, prev_anal = list(pdata = Biobase::pData(x)), annot = annot))
+    lm_fit <- lapply(obj, function(x) {
+      x <- crossmeta::run_limma_setup(x, list(pdata = Biobase::pData(x)))
+      crossmeta::run_limma(x,  annot = annot, filter = FALSE)
+    })
 
   } else {
     lm_fit <- fit_lm_scseq(obj)
@@ -271,7 +274,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
     eset$group <- eset$orig.ident
 
     # add vst transformed values
-    eset <- add_vsd(eset, pbulk = TRUE)
+    eset <- crossmeta::add_vsd(eset, pbulk = TRUE)
     esets[[clust]] <- eset
   }
 

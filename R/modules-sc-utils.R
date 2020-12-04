@@ -112,9 +112,11 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   Biobase::assayDataElement(eset, 'vsd') <- Biobase::exprs(eset)
   Biobase::fData(eset)[, c('SYMBOL', 'ENTREZID')] <- row.names(eset)
 
-  lm_fit <- run_limma(eset, prev_anal = list(pdata = Biobase::pData(eset)))
+  prev <- list(pdata = Biobase::pData(eset))
+  eset <- crossmeta::run_limma_setup(eset, prev)
+  lm_fit <- crossmeta::run_limma(eset)
 
-  tt <- get_top_table(lm_fit, with.es = FALSE)
+  tt <- crossmeta::get_top_table(lm_fit, with.es = FALSE)
   tt <- cbind(tt, adj[row.names(tt), ])
 
   tt$ENTREZID <- NULL

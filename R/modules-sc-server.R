@@ -1826,7 +1826,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       for (i in seq_along(fit)) {
 
         cluster <- names(fit)[i]
-        tt <- get_top_table(fit[[cluster]])
+        tt <- crossmeta::get_top_table(fit[[cluster]])
         markers <- get_cluster_markers(cluster, dataset_dir)
         ambient <- decide_ambient(dataset_ambient, tt, markers)
         tt$ambient <- row.names(tt) %in% ambient
@@ -1929,7 +1929,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
       # exclude ambient
       ambient <- ambient()
       lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
-      ebfit <- fit_ebayes(lm_fit, 'test-ctrl')
+      ebfit <- crossmeta::fit_ebayes(lm_fit, 'test-ctrl')
       res <- get_path_res(ebfit,
                           go_path = go_path,
                           kegg_path = kegg_path,

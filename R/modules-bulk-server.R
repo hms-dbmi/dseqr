@@ -679,9 +679,8 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     on.exit(progress$close())
     progress$set(message = "Running SVA", value = 1)
 
-    mods <- get_mods(eset)
-    rna_seq <- 'lib.size' %in% colnames(pdata)
-    svobj <- run_sva(mods, eset, rna_seq = rna_seq)
+    mods <- crossmeta::get_sva_mods(eset)
+    svobj <- crossmeta::run_sva(mods, eset)
 
     # add row names so that can check sync during dataset switch
     row.names(svobj$sv) <- colnames(eset)
@@ -1368,10 +1367,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       # run differential expression
       progress$set(message = "Fitting limma model", value = 1)
-      lm_fit <- run_limma(eset,
+      eset <- crossmeta::run_limma_setup(eset, prev_anal)
+      lm_fit <- crossmeta::run_limma(eset,
                           svobj = svobj,
                           numsv = numsv,
-                          prev_anal = prev_anal)
+                          filter = FALSE)
 
       save_lmfit(lm_fit, dataset_dir, numsv = numsv)
 
@@ -1419,7 +1419,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     # loses sync when groups selected and change dataset
     if (!all(groups %in% colnames(lm_fit$mod))) return(NULL)
 
-    get_top_table(lm_fit, groups)
+    crossmeta::get_top_table(lm_fit, groups)
   })
 
   # go/kegg pathway result
@@ -1453,7 +1453,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       groups <- make.names(groups)
 
       contrast <- paste0(groups[1], '-', groups[2])
-      ebfit <- fit_ebayes(lm_fit, contrast)
+      ebfit <- crossmeta::fit_ebayes(lm_fit, contrast)
       res <- get_path_res(ebfit,
                           go_path = go_path,
                           kegg_path = kegg_path,
@@ -1557,7 +1557,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     if (rna_seq) eset <- GEOkallisto::filter_genes(eset)
 
     # rlog normalize
-    eset <- add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
+    eset <- crossmeta::add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
     return(eset)
   })
 
@@ -1576,11 +1576,11 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
       req(identical(row.names(svobj$sv), colnames(eset)))
     }
 
-    eset <- add_adjusted(eset, svobj, numsv, adj_path = adj_path())
+    eset <- crossmeta::add_adjusted(eset, svobj, numsv, adj_path = adj_path())
 
     # use SYMBOL as annotation
     # keep unique symbol based on row IQRs
-    eset <- iqr_replicates(eset, keep_path = keep_path())
+    eset <- crossmeta::iqr_replicates(eset, keep_path = keep_path())
 
     return(eset)
   })
