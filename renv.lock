@@ -169,15 +169,15 @@
     },
     "GEOkallisto": {
       "Package": "GEOkallisto",
-      "Version": "0.1.5",
+      "Version": "0.1.7",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "GEOkallisto",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "e3399221aef5e7785b221497d13554037d4e43b4",
-      "Hash": "92505bdfc1ba88fa06b3757356d8c751"
+      "RemoteSha": "f5e0cefa0ab2a1d6b780d350dfbcfe83c79d6dfe",
+      "Hash": "281705e842c3ee990d5a513e153262b8"
     },
     "GEOquery": {
       "Package": "GEOquery",
