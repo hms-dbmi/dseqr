@@ -245,8 +245,8 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   clusters <- y$samples$cluster
 
-  annot <- GEOkallisto::get_ensdb_package(species, release)
-  fdata <- GEOkallisto::setup_fdata(species, release)
+  annot <- rkal::get_ensdb_package(species, release)
+  fdata <- rkal::setup_fdata(species, release)
 
   esets <- list()
   for (clust in levels(clusters)) {
@@ -268,7 +268,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
     yi <- edgeR::calcNormFactors(yi)
 
     # construct eset
-    eset <- GEOkallisto::construct_eset(yi, fdata, annot)
+    eset <- rkal::construct_eset(yi, fdata, annot)
 
     # use test and ctrl as group
     eset$group <- eset$orig.ident

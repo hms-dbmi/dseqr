@@ -578,7 +578,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     }
 
     # quantification
-    GEOkallisto::run_kallisto_bulk(
+    rkal::run_kallisto_bulk(
       indices_dir = indices_dir,
       data_dir = fastq_dir,
       quant_meta = pdata,
@@ -587,7 +587,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
     # generate eset and save
     progress$set(message = 'Annotating dataset')
-    eset <- GEOkallisto::load_seq(fastq_dir)
+    eset <- rkal::load_seq(fastq_dir)
 
     # trigger to update rest of app
     new_dataset(dataset_name)
@@ -629,8 +629,8 @@ bulkEndType <- function(input, output, session, fastq_dir) {
     req(fastqs, fastq_dir)
 
     # auto-detect if paired
-    fastq_id1s <- get_fastq_id1s(file.path(fastq_dir, fastqs))
-    detect_paired(fastq_id1s)
+    rkal::fastq_id1s <- get_fastq_id1s(file.path(fastq_dir, fastqs))
+    rkal::detect_paired(fastq_id1s)
   })
 
 
@@ -1022,7 +1022,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     rows  <- input$pdata_rows_selected
 
     # check for incomplete/wrong input
-    msg <- validate_pairs(pairs, rows, reps)
+    msg <- rkal::validate_pairs(pairs, rows, reps)
     valid_msg(msg)
 
     if (is.null(msg)) {
@@ -1043,7 +1043,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
     # get rows
     rows  <- input$pdata_rows_selected
-    msg <- validate_reps(pairs, rows, reps)
+    msg <- rkal::validate_reps(pairs, rows, reps)
     valid_msg(msg)
 
     if (is.null(msg)) {
@@ -1554,7 +1554,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     Biobase::pData(eset) <- pdata
 
     # filter rows by expression
-    if (rna_seq) eset <- GEOkallisto::filter_genes(eset)
+    if (rna_seq) eset <- rkal::filter_genes(eset)
 
     # rlog normalize
     eset <- crossmeta::add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
