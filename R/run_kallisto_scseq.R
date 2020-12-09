@@ -23,7 +23,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
   dl_10x_whitelists(indices_dir)
 
   # get index_path
-  kal_version <- get_pkg_version('kallisto')
+  kal_version <- rkal::get_pkg_version('kallisto')
   index_path <- file.path(indices_dir, paste0('kallisto_', kal_version), paste0(species, '.grch38.cdna.all.release-', release, '_k31.idx'))
 
   # get CB and read fastq files
