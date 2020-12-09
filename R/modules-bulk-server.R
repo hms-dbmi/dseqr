@@ -256,12 +256,12 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 
     args <- boxplotly_args()
 
-    boxPlotly(df = args$df,
-              boxgap = args$boxgap,
-              boxgroupgap = args$boxgroupgap,
-              plot_fname = args$plot_fname,
-              ytitle = 'Estimated Proportion',
-              xtitle = 'Cluster')
+    boxPlotlyCells(df = args$df,
+                   boxgap = args$boxgap,
+                   boxgroupgap = args$boxgroupgap,
+                   plot_fname = args$plot_fname,
+                   ytitle = 'Estimated Proportion',
+                   xtitle = 'Cluster')
   })
 
   filename <- function() {
@@ -1369,9 +1369,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       progress$set(message = "Fitting limma model", value = 1)
       eset <- crossmeta::run_limma_setup(eset, prev_anal)
       lm_fit <- crossmeta::run_limma(eset,
-                          svobj = svobj,
-                          numsv = numsv,
-                          filter = FALSE)
+                                     svobj = svobj,
+                                     numsv = numsv,
+                                     filter = FALSE)
 
       save_lmfit(lm_fit, dataset_dir, numsv = numsv)
 

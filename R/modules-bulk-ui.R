@@ -20,7 +20,7 @@ bulkPageUI <- function(id, tab, active) {
                 div(id = ns('gene_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
                     bulkPlotlyUI(ns('gene_plotly'))
                 ),
-                div(id = ns('cells_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;',
+                div(id = ns('cells_plotly_container'), class = 'col-lg-7 mobile-margin', style = 'display: none;overflow-x: auto;',
                     bulkPlotlyUI(ns('cells_plotly'))
                 )
             ),

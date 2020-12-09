@@ -21,7 +21,7 @@ validate_pdata <- function(pdata) {
   return(msg)
 }
 
-#' Generate boxplotly for vsd normalized gene and cell-type deconvolution plots.
+#' Generate boxplotly for vsd normalized gene plots.
 #'
 #' @param df \code{data.frame} with columns: \itemize{
 #'  \item x Factor for x-labels.
@@ -57,6 +57,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
     plotly::add_trace(x = ~x,
                       y = ~y,
                       color = ~color,
+                      colors = get_palette(levels(df$color)),
                       text = ~text,
                       name = ~name,
                       type = 'violin',
@@ -68,6 +69,75 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
                       hoveron = 'points',
                       marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
     plotly::layout(violinmode = 'group', violingroupgap = boxgroupgap, violingap = boxgap,
+                   xaxis = list(fixedrange=TRUE, title = xtitle),
+                   yaxis = list(fixedrange=TRUE, title = ytitle),
+                   legend = l) %>%
+    plotly::config(displaylogo = FALSE,
+                   displayModeBar = 'hover',
+                   modeBarButtonsToRemove = c('lasso2d',
+                                              'select2d',
+                                              'toggleSpikelines',
+                                              'hoverClosestCartesian',
+                                              'hoverCompareCartesian'),
+                   toImageButtonOptions = list(format = "png", filename = plot_fname))
+
+}
+
+#' Generate boxplotly for cell type deconvolution plots.
+#'
+#' @param df \code{data.frame} with columns: \itemize{
+#'  \item x Factor for x-labels.
+#'  \item y Numeric column used for y-values.
+#'  \item text Character column used for hoverinfo.
+#'  \item name Character column used for legend names of \code{x} values.
+#'  \item color Factor column used to generate ordered colors for boxplots for each \code{'x'} value.
+#' }
+#' @param boxgap Used for plotly layout.
+#' @param boxgroupgap Used for plotly layout.
+#' @param plot_fname Name to save plot as.
+#' @param ytitle Y axis title.
+#' @param xtitle X axis title.
+#'
+#' @return plotly
+#' @export
+#' @keywords internal
+boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
+
+  # legend styling
+  l <- list(
+    font = list(
+      family = "sans-serif",
+      size = 12,
+      color = "#000"),
+    bgcolor = "#f8f8f8",
+    bordercolor = "#e7e7e7",
+    borderwidth = 1)
+
+  # total width of plot
+  nx <- length(unique(df$x))
+  ng <- length(unique(df$name))
+  plot_width <- (ng+2)*25*nx
+
+
+  df %>%
+    plotly::plot_ly() %>%
+    plotly::add_trace(x = ~x,
+                      y = ~y,
+                      color = ~color,
+                      colors = get_palette(levels(df$color)),
+                      text = ~text,
+                      name = ~name,
+                      type = 'box',
+                      boxpoints = 'all',
+                      jitter = 1,
+                      pointpos = 0,
+                      fillcolor = 'transparent',
+                      hoverinfo = 'text',
+                      hoveron = 'points',
+                      marker = list(color = "rgba(0, 0, 0, 0.6)", size = 3)) %>%
+    plotly::layout(boxmode = 'group', boxgroupgap = boxgroupgap, boxgap = boxgap,
+                   width = plot_width,
+                   height = 620,
                    xaxis = list(fixedrange=TRUE, title = xtitle),
                    yaxis = list(fixedrange=TRUE, title = ytitle),
                    legend = l) %>%
@@ -113,10 +183,6 @@ get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
   boxgap <- ifelse(nbox > 5, 0.4, 0.6)
   boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
 
-  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
-  if (length(group_levels) <= 2)
-    group_levels <- c(group_levels, 'NA')
-
   df$color <- factor(df$color, levels = group_levels)
   df$x <- factor(df$x, levels = explore_genes)
 
@@ -157,11 +223,6 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
   nbox <- length(group_levels) * length(clus_levels)
   boxgap <- ifelse(nbox > 5, 0.4, 0.6)
   boxgroupgap <- ifelse(nbox > 6, 0.3, 0.6)
-
-  # plotly bug when two groups uses first and third color in RColorBrewer Set2 pallette
-  if (length(group_levels) <= 2)
-    group_levels <- c(group_levels, 'NA')
-
 
   df$color <- factor(df$color, levels = group_levels)
   df$x <- factor(df$x, levels = clus_levels)
