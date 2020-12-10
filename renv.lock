@@ -632,15 +632,15 @@
     },
     "crossmeta": {
       "Package": "crossmeta",
-      "Version": "1.17.6",
+      "Version": "1.17.9",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "fcccfca2da47457af4b755657c111d0e2fe687f9",
-      "Hash": "5ed3a2b7ec14aa858e1e0a2a0b3a68de"
+      "RemoteSha": "15d081dadbbe84644a95ca389ef910878b24ebd5",
+      "Hash": "3588a1bccc17eecbb05a8201149449eb"
     },
     "crosstalk": {
       "Package": "crosstalk",
