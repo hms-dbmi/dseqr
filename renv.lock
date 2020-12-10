@@ -115,6 +115,12 @@
       "Repository": "CRAN",
       "Hash": "4744be45519d675af66c28478720fce5"
     },
+    "DESeq2": {
+      "Package": "DESeq2",
+      "Version": "1.28.1",
+      "Source": "Bioconductor",
+      "Hash": "7ad18605ccf96f023d018663ba647a43"
+    },
     "DEoptimR": {
       "Package": "DEoptimR",
       "Version": "1.0-8",
@@ -167,23 +173,11 @@
       "Repository": "CRAN",
       "Hash": "cc8c8c4d61346cde1ca60030ff9c241f"
     },
-    "GEOkallisto": {
-      "Package": "GEOkallisto",
-      "Version": "0.1.7",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "GEOkallisto",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "f5e0cefa0ab2a1d6b780d350dfbcfe83c79d6dfe",
-      "Hash": "281705e842c3ee990d5a513e153262b8"
-    },
     "GEOquery": {
       "Package": "GEOquery",
-      "Version": "2.54.1",
+      "Version": "2.56.0",
       "Source": "Bioconductor",
-      "Hash": "d9dfc272bfe6edafb4de3ce32d3d4cdc"
+      "Hash": "710325578289c959f057211c12311270"
     },
     "GO.db": {
       "Package": "GO.db",
@@ -463,21 +457,21 @@
     },
     "affxparser": {
       "Package": "affxparser",
-      "Version": "1.58.0",
+      "Version": "1.60.0",
       "Source": "Bioconductor",
-      "Hash": "62bafd04f6644edabdb9bebca91e7163"
+      "Hash": "4fca40e4bb842b56d6be95bff88ac85f"
     },
     "affy": {
       "Package": "affy",
-      "Version": "1.64.0",
+      "Version": "1.66.0",
       "Source": "Bioconductor",
-      "Hash": "83390377cf81c4fb06f937924f8f351c"
+      "Hash": "c20883978bacc11511e88717ebe821c6"
     },
     "affyio": {
       "Package": "affyio",
-      "Version": "1.56.0",
+      "Version": "1.58.0",
       "Source": "Bioconductor",
-      "Hash": "bb2529820eb29ca72c6fadd7ea05bfbe"
+      "Hash": "c74fdb2854d12ad7fc819bdfbdc0a237"
     },
     "annotate": {
       "Package": "annotate",
@@ -838,6 +832,12 @@
       "Version": "1.70.0",
       "Source": "Bioconductor",
       "Hash": "c6996ce5c3b99c23264e82bd635c7871"
+    },
+    "geneplotter": {
+      "Package": "geneplotter",
+      "Version": "1.66.0",
+      "Source": "Bioconductor",
+      "Hash": "6dba0880b316a6e82a0351353c3a6346"
     },
     "generics": {
       "Package": "generics",
@@ -1293,9 +1293,9 @@
     },
     "preprocessCore": {
       "Package": "preprocessCore",
-      "Version": "1.48.0",
+      "Version": "1.50.0",
       "Source": "Bioconductor",
-      "Hash": "a9cf0915ed400f7c2c4627f2af2c8b4c"
+      "Hash": "23e31327cfd9b9d1359c5f6165414cb9"
     },
     "prettyunits": {
       "Package": "prettyunits",
@@ -1407,6 +1407,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "1038af8c8a8199d387d564d7019258ad"
+    },
+    "rkal": {
+      "Package": "rkal",
+      "Version": "0.1.11",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "rkal",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "efd5ee8dec548224c78cfce9743a46e14e755035",
+      "Hash": "7068ac064ce550b474b80c9a8baa5470"
     },
     "rlang": {
       "Package": "rlang",
