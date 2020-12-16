@@ -8,7 +8,7 @@ function contrastOptions(item, escape) {
                         item.ncellsf + " :: " + item.pcells + "%" +
                        "</div>";
 
-  var nsigf = typeof item.nsig == 'undefined' ? item.nbigf : item.nsigf;                        
+  var nsigf = typeof item.nsig == 'undefined' ? item.nbigf : item.nsigf;
   var infoSampleNsig = "<div style='color: #A0A0A0;text-align:right;'>" +
                         item.ntest + " :: " + item.nctrlf + " [<span style='color: dimgray;'>" + nsigf + "</span>]</div>";
 
@@ -124,9 +124,9 @@ function cellOptions(item, escape) {
 function pathOptions(item, escape) {
 
   var label = "<div class = 'path-fdr pull-left'>" + item.dirLabel + "</div>";
-  var circle = item.ignore ? "<div></div>" : "<div class ='circle-swatch pull-right'></div>";  
+  var circle = item.ignore ? "<div></div>" : "<div class ='circle-swatch pull-right'></div>";
 
-  var markup = 
+  var markup =
   "<div>" +
     "<div class = 'pull-left path-name-option' title = '" + escape(item.name) + "'>" +
         escape(item.label) +
@@ -145,7 +145,7 @@ function pathItem(item, escape) {
 
   var fdr = item.fdr ? " (" + item.fdr + ")" : '';
 
-  var markup = 
+  var markup =
     "<div title = '" + escape(item.name) + "'>" +
         escape(item.label) +
         "<span class = 'path-fdr'>" + fdr + "</span>"
@@ -165,7 +165,7 @@ function studyOption(item, escape) {
             "</div>";
 
 
-  return res;  
+  return res;
 }
 
 
@@ -216,7 +216,7 @@ function transferLabelOption(item, escape) {
 function querySignatureItem(item, escape) {
 
   var info = item.type === "CMAP02/L1000 Perturbations" ? "" : " <span style='color: #A0A0A0;white-space: nowrap;'>" + "(" + item.type + ")" +"</span>";
- 
+
   var res = "<div title='" + item.title + "'>" +
               escape(item.label) + info +
             "</div>";
@@ -235,7 +235,7 @@ function pertOptions(item, escape) {
 
   var cor = item.cor ? item.cor : '';
 
-  var markup = 
+  var markup =
   "<div>" +
     "<div class = 'pull-left path-name-option'>" +
         escape(item.label) +
@@ -253,7 +253,7 @@ function pertItem(item, escape) {
 
   var cor = item.cor ? item.cor : '';
 
-  var markup = 
+  var markup =
     "<div>" +
         escape(item.label) +
         "<span class = 'path-fdr'>" + " (" + cor + ")"  + "</span>" +
@@ -292,8 +292,11 @@ function bulkContrastItem(item, escape) {
 
 function scDatasetOptions(item, escape) {
 
-  var clustEl = "<div title='" + item.name + "'>" +
-                  escape(item.optionLabel) +
+  var label = typeof item.optionLabel == 'undefined' ? item.value : item.optionLabel;
+  var title = typeof item.name == 'undefined' ? item.value : item.name;
+
+  var clustEl = "<div title='" + title + "'>" +
+                  escape(label) +
                 "</div>";
 
   return clustEl;
@@ -303,8 +306,12 @@ function scDatasetOptions(item, escape) {
 
 function scDatasetItem(item, escape) {
 
-  var clustEl = "<div title='" + item.name + "'>" +
-                  escape(item.itemLabel) +
+
+  var label = typeof item.itemLabel == 'undefined' ? item.value : item.itemLabel;
+  var title = typeof item.name == 'undefined' ? item.value : item.name;
+
+  var clustEl = "<div title='" + title + "'>" +
+                  escape(label) +
                 "</div>";
 
   return clustEl;
