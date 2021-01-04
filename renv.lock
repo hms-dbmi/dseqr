@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.0.2",
+    "Version": "4.0.3",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -559,6 +559,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "9addc7e2c5954eca5719928131fed98c"
+    },
+    "boot": {
+      "Package": "boot",
+      "Version": "1.3-25",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "bd51734a754b6c2baf28b2d1ebc11e91"
     },
     "cellranger": {
       "Package": "cellranger",
@@ -1522,10 +1529,15 @@
     },
     "shinypanel": {
       "Package": "shinypanel",
-      "Version": "0.1.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "bb1a16d77544b351cf1baf0f549a2e2e"
+      "Version": "0.1.4",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "shinypanel",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "2039eeecd0d46a473515c6ab7a8e396a695b6655",
+      "Hash": "60857bdb0b6dc7a952f46471f86e3f37"
     },
     "sitmo": {
       "Package": "sitmo",

@@ -71,6 +71,7 @@
     border-radius: 50%;
     background-color: #5cb85c;
     margin-top: 6px;
+    padding-top: 6px;
 }
 
 .form-control {
