@@ -33,8 +33,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$set(message = "Querying drugs", value = 1)
   on.exit(progress$close())
 
-  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-  cmap_es  <- readRDS(cmap_path)
+  cmap_es  <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
   progress$inc(1)
 
   # get correlations between query and drug signatures
@@ -49,14 +48,12 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$inc(ifelse(run.l1000, 1, 2))
 
   if (run.l1000) {
-    l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-    l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
 
-    l1000_drugs_es <- readRDS(l1000_drugs_path)
+    l1000_drugs_es <- drugseqr.data::load_drug_es('l1000_drugs_es.rds')
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
     rm(l1000_drugs_es)
 
-    l1000_genes_es <- readRDS(l1000_genes_path)
+    l1000_genes_es <- drugseqr.data::load_drug_es('l1000_genes_es.rds')
     res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
     rm(l1000_genes_es)
 

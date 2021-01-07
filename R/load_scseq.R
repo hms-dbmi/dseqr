@@ -311,9 +311,8 @@ load_cellranger_counts <- function(data_dir) {
 
 process_cellranger_counts <- function(counts, species) {
 
-  if (species == 'Homo sapiens') tx2gene <- tx2gene
-  else if (species == 'Mus musculus') tx2gene <- tx2gene_mouse
-  else stop('Species not supported')
+  if (!grepl('sapiens|musculus')) stop('Species not supported')
+  tx2gene <- drugseqr.data::load_tx2gene(species)
 
   counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
 
@@ -346,6 +345,10 @@ process_cellranger_counts <- function(counts, species) {
 #' @keywords internal
 #'
 get_species <- function(counts) {
+
+  tx2gene <- drugseqr.data::load_tx2gene('Homo sapiens')
+  tx2gene_mouse <- drugseqr.data::load_tx2gene('Mus musculus')
+
   nhuman <- sum(row.names(counts) %in% tx2gene$gene_id)
   nmouse <- sum(row.names(counts) %in% tx2gene_mouse$gene_id)
 

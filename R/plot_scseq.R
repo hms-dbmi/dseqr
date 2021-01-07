@@ -406,7 +406,7 @@ plot_biogps <- function(gene) {
     ggplot2::ylab('') +
     ggplot2::ggtitle('BioGPS Human Gene Atlas Expression') +
     ggplot2::coord_flip() +
-    ggpubr::theme_pubr()  +
+    theme_pubr()  +
     theme_dimgray() +
     ggplot2::theme(plot.title = ggplot2::element_text(size = 16, color = '#333333', margin = ggplot2::margin(b = 25)),
                    axis.text.y = ggplot2::element_text(color = '#333333'),

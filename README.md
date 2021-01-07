@@ -147,7 +147,7 @@ Build `kallisto` index (optional - if will quantify bulk/sc fastq files on the s
 ```bash
 sudo docker run --rm \
   -v /srv/drugseqr:/srv/drugseqr \
-  alexvpickering/drugseqr R -e "drugseqr.data::build_kallisto_index('/srv/drugseqr')"
+  alexvpickering/drugseqr R -e "rkal::build_kallisto_index('/srv/drugseqr')"
 ```
 
 ### Run the app

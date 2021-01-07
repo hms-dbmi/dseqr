@@ -70,6 +70,8 @@ dl_pert_pvals <- function(sig_path, pert_type) {
 #' @keywords internal
 construct_path_df <- function(top_table) {
 
+  tx2gene <- drugseqr.data::load_tx2gene()
+
   data.frame(
     Gene = row.names(top_table),
     Dprime = signif(top_table$dprime, digits = 3),
@@ -245,7 +247,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   clusters <- y$samples$cluster
 
-  annot <- rkal::get_ensdb_package(species, release)
+  annot <- drugseqr.data::get_ensdb_package(species, release)
   fdata <- rkal::setup_fdata(species, release)
 
   esets <- list()
@@ -305,6 +307,7 @@ supress.genes <- function(markers, supress) {
 #' @export
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {
+  hs <- readRDS(system.file('extdata', 'hs.rds', package = 'drugseqr.data'))
   data.table::setkey(hs, SYMBOL_9606)
 
   # one fit per cluster
@@ -334,6 +337,7 @@ fit_lm_scseq <- function(scseq) {
       fit$genes <- hs[rn, list(ENTREZID)]
 
     } else if (species == 'Mus musculus') {
+      tx2gene_mouse <- drugseqr.data::load_tx2gene(species)
       tx <- tx2gene_mouse
       tx$ENTREZID <- as.character(tx$entrezid)
       ind <- match(rn, tx2gene_mouse$gene_name)

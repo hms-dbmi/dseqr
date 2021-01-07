@@ -693,9 +693,10 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
     type <- c(gene_type, qc_type)
   }
 
-  if (species == 'Homo sapiens') tx2gene <- tx2gene
-  else if (species == 'Mus musculus') tx2gene <- tx2gene_mouse
-  else stop('Only Homo sapiens and Mus musculus supported')
+  if (!grepl('sapiens|musculus', species))
+    stop('Only Homo sapiens and Mus musculus supported')
+
+  tx2gene <- drugseqr.data::load_tx2gene(species)
 
   idx <- match(choices, tx2gene$gene_name)
   desc <- tx2gene$description[idx]
@@ -1174,13 +1175,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 #' @keywords internal
 load_drug_es <- function() {
 
-  cmap_path  <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-  l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-  l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
-
-  cmap  <- readRDS(cmap_path)
-  l1000_drugs <- readRDS(l1000_drugs_path)
-  l1000_genes <- readRDS(l1000_genes_path)
+  cmap  <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
+  l1000_drugs  <- drugseqr.data::load_drug_es('l1000_drugs_es.rds')
+  l1000_genes  <- drugseqr.data::load_drug_es('l1000_genes_es.rds')
 
   return(list(
     cmap = cmap,
