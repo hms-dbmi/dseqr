@@ -88,7 +88,11 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
   } else {
 
     # location of map from transcript names to gene names
-    tgmap_path <- system.file('extdata', 'txp2hgnc.tsv', package = 'drugseqr', mustWork = TRUE)
+    extdata <- system.file('extdata', package = 'drugseqr', mustWork = TRUE)
+    tgzip_path <- file.path(extdata, 'txp2hgnc.zip')
+    tgmap_path <- file.path(extdata, 'txp2hgnc.tsv')
+
+    utils::unzip(tgzip_path, exdir = extdata)
 
     system2('bustools',
             args = c('correct',
@@ -100,6 +104,8 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
                      '-e', file.path(out_dir, 'matrix.ec'),
                      '-t', file.path(out_dir, 'transcripts.txt'),
                      '--genecounts -'))
+
+    unlink(tgmap_path)
   }
 
 }

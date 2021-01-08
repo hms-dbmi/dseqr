@@ -5,7 +5,7 @@ library(data.table)
 library(crossmeta)
 
 # load BioGPS Human U133A Gene Atlas
-atlas <- fread('data-raw/single-cell/biogps/U133AGNF1B.gcrma.avg.csv')
+atlas <- fread('data-raw/biogps/U133AGNF1B.gcrma.avg.csv')
 colnames(atlas)[1] <- 'PROBE'
 
 # annotate to SYMBOL from U133A platform ----
@@ -33,4 +33,4 @@ atlas <- atlas[max_iqr,  -'PROBE']
 setkey(atlas, SYMBOL)
 
 # save expression values
-saveRDS(atlas, 'data-raw/single-cell/biogps/biogps.rds')
+saveRDS(atlas, 'data-raw/biogps/biogps.rds')

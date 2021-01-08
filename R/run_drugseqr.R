@@ -23,7 +23,7 @@
 #' # override default data_dir etc for development
 #' app_name <- 'sjia'
 #' app_dir <- 'inst/app'
-#' data_dir <- 'data-raw/patient_data'
+#' data_dir <- '~/patient_data'
 #' pert_query_dir <- 'data-raw/drug_gene_queries/data'
 #' pert_signature_dir <- 'data-raw/drug_es/signatures'
 #' indices_dir <- '/srv/drugseqr/indices'
@@ -85,7 +85,7 @@ run_drugseqr <- function(app_name,
 #' @examples
 #'
 #' # app_dir for local development
-#' init_drugseqr('example', data_dir = 'data-raw/patient_data')
+#' init_drugseqr('example', data_dir = '~/patient_data')
 #'
 init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
 

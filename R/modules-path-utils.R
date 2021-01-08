@@ -41,26 +41,6 @@ dl_pert_signature <- function(sig_path, pert_type) {
   try(download.file(dl_url, sig_path))
 }
 
-#' Download CMAP02/L1000 pert pvals from S3
-#'
-#' @param sig_path Path to download file to.
-#' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
-#'
-#' @return NULL
-#' @export
-#' @examples
-#' sig_path <- file.path('data-raw/drug_es/signatures', 'BRD-K45319408_PC3_5um_24h.rds')
-#' dl_pert_pvals(sig_path, pert_type = 'cmap')
-#'
-dl_pert_pvals <- function(sig_path, pert_type) {
-  # name of the file being requested
-  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_pvals_dir/', pert_type, '/', basename(sig_path))
-  dl_url <- utils::URLencode(dl_url)
-  dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
-
-  # don't error if pert_type updates but sig_path corresponds to previous pert_type
-  try(download.file(dl_url, sig_path))
-}
 
 #' Used by get_path_df to construct the return result
 #'
