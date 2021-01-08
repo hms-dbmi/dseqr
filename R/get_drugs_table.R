@@ -14,7 +14,8 @@ get_drugs_table <- function(study) {
 
   # load pdata for study
   pdata_fname <- paste0(study, '_pdata.rds')
-  pdata_path <- system.file('extdata', pdata_fname, package = 'drugseqr', mustWork = TRUE)
+  pdata_path <- system.file('extdata', pdata_fname,
+                            package = 'drugseqr.data', mustWork = TRUE)
   pdata <- readRDS(pdata_path)
 
   # append BRH annotation
@@ -53,7 +54,8 @@ get_drugs_table <- function(study) {
 #' @export
 append_annot <- function(pdata, study) {
   annot_fname <- paste0(study, '_annot.rds')
-  annot_path <- system.file('extdata', annot_fname, package = 'drugseqr', mustWork = TRUE)
+  annot_path <- system.file('extdata', annot_fname,
+                            package = 'drugseqr.data', mustWork = TRUE)
 
   annot <- readRDS(annot_path)
   pdata <- cbind(pdata, annot)
