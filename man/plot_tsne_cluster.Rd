@@ -6,9 +6,23 @@
 \usage{
 plot_tsne_cluster(scseq, legend = FALSE, cols = NULL, title = NULL, ...)
 }
+\arguments{
+\item{scseq}{SingleCellExperiment}
+
+\item{legend}{Should legend be kept? Default is \code{FALSE}.}
+
+\item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
+or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+By default, ggplot2 assigns colors}
+
+\item{title}{Title of plot}
+
+\item{...}{additional argument to \code{DimPlot}}
+}
 \value{
 \code{ggplot}
 }
 \description{
 Plot TSNE coloured by cluster
 }
+\keyword{internal}

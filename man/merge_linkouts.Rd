@@ -17,3 +17,4 @@ merge_linkouts(query_res, cols)
 \description{
 Merge columns with image links
 }
+\keyword{internal}

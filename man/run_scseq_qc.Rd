@@ -21,3 +21,4 @@ run_scseq_qc(
 \description{
 Run quality control for single-cell dataset
 }
+\keyword{internal}

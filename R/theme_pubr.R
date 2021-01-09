@@ -19,6 +19,7 @@
 #'@param flip logical. If TRUE, grid lines are added to y axis instead of x
 #'  axis.
 #'@importFrom ggplot2 %+replace%
+#'@keywords internal
 #'
 #'@examples
 #' p <- ggplot(mtcars, aes(x = wt, y = mpg)) +

@@ -6,3 +6,4 @@
 ^packrat/
 ^renv$
 ^renv\.lock$
+^LICENSE\.md$

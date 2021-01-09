@@ -1,10 +1,10 @@
 #' UI for docs page (add new sections here)
-#' @export
+#'
 #' @keywords internal
 #'
 #'
 #' UI for docs page (add new sections here)
-#' @export
+#'
 #' @keywords internal
 docsPageUI <- function(id, tab, active) {
 
@@ -261,7 +261,7 @@ docsPageUI <- function(id, tab, active) {
 }
 
 #' A primary section in the Docs page
-#' @export
+#'
 #' @keywords internal
 docsSection <- function(id, name, content) {
 
@@ -278,7 +278,7 @@ docsSection <- function(id, name, content) {
 }
 
 #' A subsections of a docsSection
-#' @export
+#'
 #' @keywords internal
 docsSubsection <- function(id, name, content) {
   withTags({
@@ -294,7 +294,7 @@ docsSubsection <- function(id, name, content) {
 }
 
 #' Navigation on right side of Docs page
-#' @export
+#'
 #' @keywords internal
 docsSideNav <- function(section_info) {
 
@@ -334,7 +334,7 @@ docsSideNav <- function(section_info) {
 
 
 #' Extracts info needed to construct docsSideNav
-#' @export
+#'
 #' @keywords internal
 extract_section_info <- function(docsSections) {
   section_id_names <- lapply(docsSections, function(docsSection) {

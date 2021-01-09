@@ -15,3 +15,4 @@ KEGG species identifier
 \description{
 Convert from species identifier to KEGG species identifier
 }
+\keyword{internal}

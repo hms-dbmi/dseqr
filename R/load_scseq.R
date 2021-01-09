@@ -4,15 +4,27 @@
 #' @param fastq_dir Directory with fastq or cellranger files
 #' @param sc_dir Single cell directory for app. Will store results in \code{dataset_name} subdirectory
 #' @param progress Optional shiny \code{Progress} object. Default will print progress.
+#' @param value Integer indicating step of pipeline.
+#' @param founder Name of dataset that \code{dataset_name} originates from.
+#' @inheritParams run_drugseqr
+#' @inheritParams run_kallisto_scseq
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 #'
-load_raw_scseq <- function(dataset_name, fastq_dir, sc_dir, indices_dir, progress = NULL, recount = FALSE, value = 0, founder = dataset_name, metrics = c('low_lib_size',
-                                                                                                                                                          'low_n_features',
-                                                                                                                                                          'high_subsets_mito_percent',
-                                                                                                                                                          'low_subsets_ribo_percent',
-                                                                                                                                                          'high_doublet_score')) {
+load_raw_scseq <- function(dataset_name,
+                           fastq_dir,
+                           sc_dir,
+                           indices_dir,
+                           progress = NULL,
+                           recount = FALSE,
+                           value = 0,
+                           founder = dataset_name,
+                           metrics = c('low_lib_size',
+                                       'low_n_features',
+                                       'high_subsets_mito_percent',
+                                       'low_subsets_ribo_percent',
+                                       'high_doublet_score')) {
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -266,16 +278,18 @@ get_outliers <- function(x) {
 #' Read kallisto/bustools market matrix and annotations
 #'
 #'
-#' @inheritParams load_scseq
+#' @param data_dir Path to folder with 'genecount' directory which contains
+#'   'genes.mtx', 'genes.genes.txt', and 'genes.barcodes.txt' files generated
+#'   by kallisto/bustools.
 #'
 #' @return sparse dgTMatrix with barcodes in columns and genes in rows.
-#' @export
+#' @keywords internal
 load_kallisto_counts <- function(data_dir) {
 
   # read sparse matrix
   counts <- Matrix::readMM(file.path(data_dir, 'genecount', 'genes.mtx'))
   counts <- Matrix::t(counts)
-  counts <- as(counts, 'dgCMatrix')
+  counts <- methods::as(counts, 'dgCMatrix')
 
   # read annotations
   row.names(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.genes.txt'))
@@ -289,13 +303,14 @@ load_kallisto_counts <- function(data_dir) {
 
 #' Load cell ranger counts
 #'
-#' Mainly to avoid having to download massive datasets that have already been quantified.
-#'))))
-#' @inheritParams load_scseq
+#' Mainly to avoid having to download massive datasets that have already been
+#' quantified.
+#'
+#' @param data_dir Path to folder with cell ranger files.
 #' @importFrom magrittr "%>%"
+#' @keywords internal
 #'
 #' @return dgCMatrix
-#' @export
 load_cellranger_counts <- function(data_dir) {
   # read the data in using ENSG features
   h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
@@ -437,7 +452,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    feature.names <- read.delim(
+    feature.names <- utils::read.delim(
       file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
       header = FALSE,
       stringsAsFactors = FALSE
@@ -491,7 +506,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   for (j in 1:length(x = full.data[[1]])) {
     list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
     # Fix for Issue #913
-    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
+    list_of_data[[j]] <- methods::as(object = list_of_data[[j]], Class = "dgCMatrix")
   }
   names(x = list_of_data) <- names(x = full.data[[1]])
   # If multiple features, will return a list, otherwise
@@ -583,7 +598,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     }
     rownames(x = sparse.mat) <- features
     colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
+    sparse.mat <- methods::as(object = sparse.mat, Class = 'dgCMatrix')
     # Split v3 multimodal
     if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
@@ -654,10 +669,10 @@ standardize_cellranger <- function(data_dir) {
 
 #' Load mitochondrial and ribsomal gene names
 #'
-#' This are the genes used by alevin for whitelisting.
+#' @inheritParams add_scseq_qc_metrics
 #'
 #' @return Named list with \code{rrna} and \code{mrna} character vectors.
-#' @export
+#' @keywords internal
 load_scseq_qcgenes <- function(species = 'Homo sapiens') {
 
   # load mito and ribo genes
@@ -676,6 +691,11 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens') {
   return(list(rrna=rrna, mrna=mrna))
 }
 
+#' Add Mitochondrial and Ribosomal RNA gene Names to SingelCellExperiment
+#'
+#' @inheritParams add_scseq_qc_metrics
+#'
+#'
 add_qc_genes <- function(sce, species) {
   # add qc genes as metadata
   qcgenes <- load_scseq_qcgenes(species)
@@ -712,7 +732,6 @@ normalize_scseq <- function(scseq) {
 #'
 #' @param sce \code{SingleCellExperiment} object
 #'
-#' @return
 #' @export
 add_hvgs <- function(sce) {
 
@@ -744,9 +763,10 @@ run_tsne <- function(sce, dimred = 'PCA') {
 #' Used to pick number of PCs to retain
 #'
 #' @param sce \code{SingleCellExperiement}
+#' @inheritParams SingleCellExperiment::reducedDim
 #'
 #' @return result of \code{scran::getClusteredPCs}
-#' @export
+#' @keywords internal
 #'
 get_npc_choices <- function(sce, type = 'PCA') {
 
@@ -761,7 +781,7 @@ get_npc_choices <- function(sce, type = 'PCA') {
   }
 
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
-  pcs <- pcs[, head(seq_len(ncol(pcs)), 50)]
+  pcs <- pcs[, utils::head(seq_len(ncol(pcs)), 50)]
 
   choices <- scran::getClusteredPCs(pcs, FUN = FUN)
   names(choices$clusters) <- choices$n.pcs
@@ -822,9 +842,12 @@ add_doublet_score <- function(scseq) {
 #' Calculate QC metrics for SingleCellExperiment
 #'
 #' @param sce \code{SingleCellExperiment}
+#' @param species Character indicating species. Either \code{'Homo sapiens'},
+#' or \code{'Mus musculus'}.
+#' @param for_qcplots Are the QC metrics being added for QC plots? Used by
+#' \link{load_raw_scseq}.
 #'
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
-#' @export
 add_scseq_qc_metrics <- function(sce, species, for_qcplots = FALSE) {
 
   sce <- add_qc_genes(sce, species)
@@ -842,7 +865,6 @@ add_scseq_qc_metrics <- function(sce, species, for_qcplots = FALSE) {
 #' @param sce \code{SingleCellExperiment}
 #'
 #' @return \code{sce} with formated qc metrics.
-#' @export
 add_scseq_qcplot_metrics <- function(sce) {
 
   sce$mito_percent <- sce$subsets_mito_percent
@@ -859,9 +881,10 @@ add_scseq_qcplot_metrics <- function(sce) {
 #' Run pairwise wilcox tests between single cell clusters
 #'
 #' @param scseq \code{SingleCellExperiment} object.
+#' @inheritParams scran::pairwiseWilcox
 #'
 #' @return List of \code{data.frame}s, one for each cluster.
-#' @export
+#' @keywords internal
 pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', block = NULL, restrict = NULL) {
 
   # dont get markers if no clusters
@@ -880,10 +903,10 @@ pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', blo
 #' Combine pairwise wilcox tests between single-cell clusters
 #'
 #' @param tests Result of \code{pairwise_wilcox}
-#' @param pval.type
+#' @inheritParams scran::combineMarkers
 #'
 #' @return List of data.frames
-#' @export
+#' @keywords internal
 get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', keep = NULL) {
   if (is.null(keep)) keep <- rep(TRUE, nrow(tests$pairs))
 
@@ -905,7 +928,6 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
 #' @param scseqs list of \code{SingleCellExperiment} objects to integrate.
 #'
 #' @return Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDim, and batch annotation.
-#' @export
 #' @keywords internal
 run_fastmnn <- function(logcounts, subset.row, scseqs) {
 
@@ -938,8 +960,7 @@ run_fastmnn <- function(logcounts, subset.row, scseqs) {
 #'  Must be in same order as \code{scseqs}.
 #'
 #' @inherit run_fastmnn return
-#' @export
-#' @keywords internal.
+#' @keywords internal
 run_liger <- function(logcounts, scseqs, batch) {
   countl <- list()
   for (i in seq_along(scseqs)) {
@@ -978,7 +999,6 @@ run_liger <- function(logcounts, scseqs, batch) {
 #' @param pairs
 #'
 #' @inherit run_fastmnn return
-#' @export
 #' @keywords internal
 run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 
@@ -1009,9 +1029,13 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @param scseqs List of \code{SingleCellExperiment} objects
 #' @param type One of \code{'harmony'} (default), \code{'liger'} or \code{'fastMNN'} specifying integration to use.
+#' @param pairs data.frame with columns \code{'sample'} with sample
+#'   names of \code{scseqs} and \code{'pair'} with integers indicating paired
+#'   samples. If not \code{NULL} (default), then harmony includes pairings
+#'   as a covariate.
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
-#' @export
+#' @keywords internal
 integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL) {
 
   # all common genes
@@ -1068,7 +1092,6 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pa
 #' @param scseqs List of \code{SingleCellExperiment} objects.
 #'
 #' @return List with test and control ambient genes
-#' @export
 #' @keywords internal
 get_integrated_ambient <- function(scseqs) {
 
@@ -1096,7 +1119,6 @@ get_integrated_ambient <- function(scseqs) {
 #' @param combined the combined scseqs
 #'
 #' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
-#' @export
 #' @keywords internal
 add_integrated_ambient <- function(combined, ambient) {
 
@@ -1115,7 +1137,7 @@ add_integrated_ambient <- function(combined, ambient) {
 #' @param scseq
 #'
 #' @return TRUE if more than one cluster exists
-#' @export
+#' @keywords internal
 exist_clusters <- function(scseq) {
   length(unique(scseq$cluster)) > 1
 }

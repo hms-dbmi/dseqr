@@ -16,7 +16,19 @@ get_cluster_stats(
 \arguments{
 \item{dataset_dir}{Directory with single cell dataset.}
 
-\item{scseq}{\code{SingleCellExperiment} object to get/save stats for. if \code{NULL} (Default), will be loaded.}
+\item{scseq}{\code{SingleCellExperiment} object to get/save stats for.
+if \code{NULL} (Default), will be loaded.}
+
+\item{top_tables}{List of \code{limma::topTable} results used by
+scSampleComparison for integrated datasets.}
+
+\item{has_replicates}{Boolean indicating if integrated dataset has multiple
+samples in at least one group. Used by scSampleComparison.}
+
+\item{use_disk}{Should results by saved to disk? used by scSampleComparison
+to persist results to disk.}
+
+\item{sample_comparison}{is this for test vs control comparion? Default is \code{FALSE}.}
 }
 \value{
 List with cluster stats

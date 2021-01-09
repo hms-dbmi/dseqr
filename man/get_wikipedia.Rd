@@ -15,3 +15,4 @@ Character vector with Wikipedia page
 \description{
 Extract Wikipedia URL from PUG-View
 }
+\keyword{internal}

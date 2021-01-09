@@ -22,3 +22,4 @@ Numeric vector giving x position for correlation plot in Drugs tab.
 \description{
 Calculate x position for correlation plot
 }
+\keyword{internal}

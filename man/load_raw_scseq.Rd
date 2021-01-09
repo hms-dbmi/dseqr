@@ -24,8 +24,17 @@ load_raw_scseq(
 
 \item{sc_dir}{Single cell directory for app. Will store results in \code{dataset_name} subdirectory}
 
+\item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+
 \item{progress}{Optional shiny \code{Progress} object. Default will print progress.}
+
+\item{recount}{Overwrite previous quantification?}
+
+\item{value}{Integer indicating step of pipeline.}
+
+\item{founder}{Name of dataset that \code{dataset_name} originates from.}
 }
 \description{
 Process raw single cell fastq or cellranger files for app
 }
+\keyword{internal}

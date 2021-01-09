@@ -1,7 +1,7 @@
 #' Remove ggplot xaxis title, text, and ticks
 #'
 #' @return \code{theme}
-#' @export
+#'
 #' @keywords internal
 theme_no_xaxis <- function() {
   ggplot2::theme(axis.title.x = ggplot2::element_blank(),
@@ -12,7 +12,7 @@ theme_no_xaxis <- function() {
 #' Remove ggplot yaxis title, text, and ticks
 #'
 #' @return \code{theme}
-#' @export
+#'
 #' @keywords internal
 theme_no_yaxis <- function() {
   ggplot2::theme(axis.title.y = ggplot2::element_blank(),
@@ -25,7 +25,7 @@ theme_no_yaxis <- function() {
 #' @param with_nums Include axis ticks/text? Default is TRUE.
 #'
 #' @return \code{theme}
-#' @export
+#'
 #' @keywords internal
 theme_dimgray <- function(with_nums = TRUE) {
 

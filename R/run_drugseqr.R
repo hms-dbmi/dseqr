@@ -13,6 +13,9 @@
 #'  If \code{TRUE} test data will be used.
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
 #'
+#' @import rintrojs
+#' @import shiny
+#'
 #' @return NULL
 #' @export
 #'
@@ -24,8 +27,8 @@
 #' app_name <- 'sjia'
 #' app_dir <- 'inst/app'
 #' data_dir <- '~/patient_data'
-#' pert_query_dir <- 'data-raw/drug_gene_queries/data'
-#' pert_signature_dir <- 'data-raw/drug_es/signatures'
+#' pert_query_dir <- '~/pert_query_dir'
+#' pert_signature_dir <- '~/pert_signature_dir'
 #' indices_dir <- '/srv/drugseqr/indices'
 #'
 #' drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
@@ -46,7 +49,7 @@ run_drugseqr <- function(app_name,
   if (!dir.exists(data_dir)) dir.create(data_dir)
 
   # pass arguments to app through options then run
-  shiny::shinyOptions(data_dir = normalizePath(data_dir),
+  shinyOptions(data_dir = normalizePath(data_dir),
                       pert_query_dir = normalizePath(pert_query_dir),
                       pert_signature_dir = normalizePath(pert_signature_dir),
                       indices_dir = normalizePath(indices_dir),
@@ -55,7 +58,7 @@ run_drugseqr <- function(app_name,
 
   if (test) {
     # run test and return
-    shinytest::recordTest(app_dir, seed = 0)
+    # shinytest::recordTest(app_dir, seed = 0)
     return(NULL)
 
   } else if (test_data) {
@@ -68,7 +71,7 @@ run_drugseqr <- function(app_name,
 
   # auto-reload if update app files
   options(shiny.autoreload = TRUE)
-  shiny::runApp(app_dir, launch.browser = TRUE, host = host, port = port)
+  runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 
 
@@ -77,7 +80,8 @@ run_drugseqr <- function(app_name,
 #' Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
 #'
 #' @param app_name Name for new drugseqr app.
-#' @param app_dir Path to put \code{app_name} directory where app will be initialized. Default is \code{'/srv/drugseqr'} for shiny.
+#' @param data_dir Path to put \code{app_name} directory where app will be
+#' initialized. Default is \code{'/srv/drugseqr'} for shiny.
 #'
 #' @return NULL
 #' @export

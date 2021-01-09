@@ -7,7 +7,7 @@
 #'  data.frames with results for all \code{cell_types}.
 #'
 #' @return List of data.frames or result of run_drugseqr_table
-#' @export
+#' @keywords internal
 #'
 zakquery <- function(query_res,
                      drug_study = c('CMAP02', 'L1000 Drugs', 'L1000 Genes'),

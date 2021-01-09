@@ -4,7 +4,7 @@
 #' @param suffix string that appears after e.g. \code{'cmap_res_'} in the drug query result filenames.
 #'
 #' @return List with file paths to drug query results
-#' @export
+#'
 #' @keywords internal
 get_drug_paths <- function(data_dir, suffix) {
   suffix <- paste0(suffix, '.rds')
@@ -24,7 +24,7 @@ get_drug_paths <- function(data_dir, suffix) {
 #' @param session session object from Shiny. Used to indicate progress.
 #'
 #' @return List with query results.
-#' @export
+#'
 #' @keywords internal
 run_custom_query <- function(query_genes, res_paths, session) {
   res <- list()
@@ -72,7 +72,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
 #' @param custom_name Name for new custom analysis
 #'
 #' @return \code{NULL} if valid, otherwise an error message
-#' @export
+#'
 #' @keywords internal
 validate_custom_query <- function(dn_genes, up_genes, custom_name) {
   msg <- NULL
@@ -109,7 +109,7 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
 #' @param custom_name Name for new custom analysis
 #'
 #' @return \code{NULL} if valid, otherwise an error message
-#' @export
+#'
 #' @keywords internal
 validate_up_custom <- function(top_table, custom_name) {
   msg <- NULL
@@ -151,7 +151,7 @@ validate_up_custom <- function(top_table, custom_name) {
 #' @return \code{top_table} subsetted to rows with HGNC symbols in CMAP02/L1000 and
 #'  with dprime column set to either \code{top_table$dprime}, \code{top_table$logFC},
 #'  or \code{top_table[,1]}.
-#' @export
+#'
 #' @keywords internal
 #'
 format_up_custom <- function(top_table) {
@@ -178,7 +178,7 @@ format_up_custom <- function(top_table) {
 #' @param res_paths List of named strings with paths to results.
 #'
 #' @return List of names results loaded from \code{res_paths}.
-#' @export
+#'
 #' @keywords internal
 load_custom_results <- function(res_paths, is_pert) {
   res <- list()
@@ -201,7 +201,7 @@ load_custom_results <- function(res_paths, is_pert) {
 #' @param res_path Path to download file to.
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 #' @examples
 #' res_path <- 'cmap_res_BRD-K45319408_PC3_5um_24h.rds'
 #' dl_pert_result(res_path)
@@ -212,7 +212,7 @@ dl_pert_result <- function(res_path) {
   dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/pert_query_dir/', basename(res_path))
   dl_url <- utils::URLencode(dl_url)
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
-  download.file(dl_url, res_path)
+  utils::download.file(dl_url, res_path)
 }
 
 #' Load data.frame of custom anals for selectizeInput
@@ -220,7 +220,7 @@ dl_pert_result <- function(res_path) {
 #' @param data_dir Path to directory containing \code{'custom_queries'} folder.
 #'
 #' @return \code{data.frame} used to show available custom queries in Drugs tab
-#' @export
+#'
 #' @keywords internal
 load_custom_anals <- function(data_dir) {
   custom_dir <- file.path(data_dir, 'custom_queries')
@@ -246,7 +246,7 @@ load_custom_anals <- function(data_dir) {
 #' Load data.frame of CMAP02/L1000 perturbations for right click load signature on correlation points
 #'
 #' @return \code{data.frame} used to show available pertubation queries in Drugs tab
-#' @export
+#'
 #' @keywords internal
 load_pert_anals <- function() {
   anals <- data.frame(matrix(NA, ncol = 5, nrow = length(pert_names)), stringsAsFactors = FALSE)
@@ -264,7 +264,7 @@ load_pert_anals <- function() {
 #' @param drug_study either 'CMAP02', 'L1000 Drugs', or 'L1000 Genetic'
 #'
 #' @return data.frame
-#' @export
+#'
 #' @keywords internal
 get_cell_choices <- function(drug_study) {
   if (drug_study == 'CMAP02') return(cell_info$cmap)
@@ -281,7 +281,7 @@ get_cell_choices <- function(drug_study) {
 #' @importFrom magrittr "%>%"
 #'
 #' @return \code{query_table} for specified \code{cells}
-#' @export
+#' @keywords internal
 limit_cells <- function(query_table, cells = NULL) {
   if (!is.null(cells))
     query_table <- query_table %>%
@@ -299,9 +299,11 @@ limit_cells <- function(query_table, cells = NULL) {
 #' @param query_cors \code{data.frame} with columns \code{'Compound'} and \code{arrange_by}.
 #' @param arrange_by String indicating column name in \code{query_cors} do sort by.
 #' @param ntop Integer indicating the number of rows to keep after sorting by \code{arrange_by}.
+#' @param decreasing Should compounds be ordered from most similar to most
+#'   dissimilar. \code{TRUE} used for genetic perturbations.
 #'
 #' @return Character vector of \code{ntop} compounds.
-#' @export
+#' @keywords internal
 #'
 #' @importFrom magrittr "%>%"
 get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
@@ -309,7 +311,7 @@ get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
   query_cors %>%
     dplyr::as_tibble() %>%
     dplyr::arrange(pre*!!rlang::sym(arrange_by)) %>%
-    head(ntop) %>%
+    utils::head(ntop) %>%
     dplyr::pull(Compound)
 }
 
@@ -330,7 +332,7 @@ get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
 #' @inheritParams get_top
 #'
 #' @return \code{data.frame} of perturbation correlations and annotations summarized by perturbation.
-#' @export
+#'
 #' @keywords internal
 #'
 #' @importFrom magrittr "%>%"
@@ -395,7 +397,7 @@ summarize_compound <- function(query_table, is_genetic = FALSE, ntop = 1500) {
 #' @inheritParams get_top
 #'
 #' @return data.table summarized by Compound with top results.
-#' @export
+#'
 #' @keywords internal
 get_top_cors <- function(query_table, ntop, is_genetic = FALSE) {
   query_table <- data.table::data.table(query_table, key = 'Compound')
@@ -439,7 +441,7 @@ get_top_cors <- function(query_table, ntop, is_genetic = FALSE) {
 #' @param title Character that will be added to hyperlink title attribute. Default is \code{id_col}.
 #'
 #' @return \code{query_res} with HTML for hyperlinks in \code{id_col}.
-#' @export
+#' @keywords internal
 add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, title = id_col) {
 
   if (!id_col %in% colnames(query_res)) return(query_res)
@@ -464,7 +466,7 @@ add_linkout <- function(query_res, id_col, img_url, pre_url, post_url = NULL, ti
 #' @param ids non \code{NA} ids to be inserted between \code{pre_url} and \code{post_url} to form the link.
 #'
 #' @return Character vector of opening HTML a tags
-#' @export
+#' @keywords internal
 get_open_a <- function(pre_url, ids, post_url, title) {
 
   # are some cases with e.g. multiple pubchem cids
@@ -490,7 +492,7 @@ get_open_a <- function(pre_url, ids, post_url, title) {
 #' @param query_res \code{data.frame} returned by \code{\link{summarize_compound}}
 #'
 #' @return \code{query_res} with pubchem cid links and correlation plot HTML.
-#' @export
+#' @keywords internal
 add_table_html <- function(query_res) {
 
   pre_urls <- c('https://pubchem.ncbi.nlm.nih.gov/compound/',
@@ -548,7 +550,7 @@ add_table_html <- function(query_res) {
 #' @importFrom magrittr "%>%"
 #'
 #' @return \code{query_res} with column \code{'External Links'} formed from pasting \code{cols} together. \code{cols} are removed.
-#' @export
+#' @keywords internal
 merge_linkouts <- function(query_res, cols) {
 
   # paste cols with non-NA values
@@ -567,10 +569,12 @@ merge_linkouts <- function(query_res, cols) {
 #'
 #' @param cors List of numeric vectors of pearson correlations.
 #' @param titles List of character vectors of treatment titles for pearson correlations (e.g. MCF7_1e-05M_6h_3).
+#' @param cor_titles List of character vectors used for title element. Used
+#'   to allow right click on correlation point to load query for perturbation signature.
 #' @param cors_range Numeric vector of length two specifying the range of correlation values.
 #'
 #' @return Character vector of HTML markup for the title/circle/text for a correlation plot.
-#' @export
+#' @keywords internal
 get_cors_html <- function(cors, titles, cor_titles, cors_range) {
 
 
@@ -601,7 +605,7 @@ get_cors_html <- function(cors, titles, cor_titles, cors_range) {
 #' correlation text values don't get cut off.
 #'
 #' @return Numeric vector giving x position for correlation plot in Drugs tab.
-#' @export
+#' @keywords internal
 calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   range[1] <- range[1] - pad
   range[2] <- range[2] + pad

@@ -10,6 +10,11 @@ integrate_scseqs(scseqs, type = c("harmony", "liger", "fastMNN"), pairs = NULL)
 \item{scseqs}{List of \code{SingleCellExperiment} objects}
 
 \item{type}{One of \code{'harmony'} (default), \code{'liger'} or \code{'fastMNN'} specifying integration to use.}
+
+\item{pairs}{data.frame with columns \code{'sample'} with sample
+names of \code{scseqs} and \code{'pair'} with integers indicating paired
+samples. If not \code{NULL} (default), then harmony includes pairings
+as a covariate.}
 }
 \value{
 Integrated \code{SingleCellExperiment} object.
@@ -17,3 +22,4 @@ Integrated \code{SingleCellExperiment} object.
 \description{
 Integrate multiple scRNA-seq samples
 }
+\keyword{internal}

@@ -20,4 +20,4 @@ Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDi
 \description{
 Run liger integration
 }
-\keyword{internal.}
+\keyword{internal}

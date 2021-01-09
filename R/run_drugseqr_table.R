@@ -4,7 +4,6 @@
 #'
 #' @inheritParams format_query_res
 #'
-#' @return
 #' @export
 #'
 run_drugseqr_table <- function(query_res,

@@ -15,3 +15,4 @@ data.frame
 \description{
 Get choices data.frame for custom metrics
 }
+\keyword{internal}

@@ -6,9 +6,15 @@
 \usage{
 load_kallisto_counts(data_dir)
 }
+\arguments{
+\item{data_dir}{Path to folder with 'genecount' directory which contains
+'genes.mtx', 'genes.genes.txt', and 'genes.barcodes.txt' files generated
+by kallisto/bustools.}
+}
 \value{
 sparse dgTMatrix with barcodes in columns and genes in rows.
 }
 \description{
 Read kallisto/bustools market matrix and annotations
 }
+\keyword{internal}

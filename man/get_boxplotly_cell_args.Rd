@@ -19,3 +19,4 @@ List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'p
 \description{
 Get arguments for cells boxplotly
 }
+\keyword{internal}

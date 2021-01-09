@@ -43,7 +43,7 @@ web app for performance reasons.
 \examples{
 ## Not run:
 
-dl_res <- read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
+dl_res <- utils::read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
 query_res <- dl_res$correlation
 names(query_res) <- row.names(dl_res)
 
@@ -51,3 +51,4 @@ query_table <- format_query_res(query_res, 'L1000 Drugs')
 
 
 }
+\keyword{internal}

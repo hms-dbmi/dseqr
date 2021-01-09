@@ -19,3 +19,4 @@ a \code{data.frame} with columns: \itemize{
 \description{
 Get direction of pathways
 }
+\keyword{internal}

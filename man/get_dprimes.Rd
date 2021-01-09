@@ -6,6 +6,9 @@
 \usage{
 get_dprimes(top_table)
 }
+\arguments{
+\item{top_table}{data.frame of differential expression results.}
+}
 \value{
 Named numeric vector. Names are gene names, values are effect size values.
 }
@@ -21,3 +24,4 @@ anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
 dprimes <- get_dprimes(anal)
 
 }
+\keyword{internal}

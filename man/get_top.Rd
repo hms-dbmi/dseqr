@@ -12,6 +12,9 @@ get_top(query_cors, arrange_by, ntop, decreasing = FALSE)
 \item{arrange_by}{String indicating column name in \code{query_cors} do sort by.}
 
 \item{ntop}{Integer indicating the number of rows to keep after sorting by \code{arrange_by}.}
+
+\item{decreasing}{Should compounds be ordered from most similar to most
+dissimilar. \code{TRUE} used for genetic perturbations.}
 }
 \value{
 Character vector of \code{ntop} compounds.
@@ -19,3 +22,4 @@ Character vector of \code{ntop} compounds.
 \description{
 Gets all entries for compounds that have a correlation less than the top entries with a clinical phase.
 }
+\keyword{internal}

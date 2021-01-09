@@ -41,3 +41,4 @@ dprimes <- get_dprimes(anal)
 res <- query_drugs(dprimes, cmap_es)
 
 }
+\keyword{internal}

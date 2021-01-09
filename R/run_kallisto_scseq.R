@@ -3,9 +3,11 @@
 #' @param indices_dir Directory with kallisto indices.
 #' @param data_dir Path to folder with 10X fastq.gz scRNA-seq files
 #' @param bus_args Character vector of arguments to bustools.
+#' @inheritParams rkal::build_kallisto_index
+#' @param recount Overwrite previous quantification?
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #'
@@ -60,7 +62,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
 #' @param inspection Boolean indicating if kallisto inspect should be run. Used for \code{detect_10x_chemistry}.
 #'
 #' @return stdout from kallisto inspect if \code{inspection = TRUE}, otherwise \code{NULL}.
-#' @export
+#' @keywords internal
 run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection = FALSE) {
 
 
@@ -123,7 +125,7 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
 #' @param techs 10x chemistries to check. Passed to kallisto -x argument.
 #'
 #' @return one of \code{techs} corresponding to chemistry with most reads that agree with whitelist.
-#' @export
+#' @keywords internal
 detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fqs, techs = c('10xv2', '10xv3')) {
 
   # run quanitification on first 10000 reads
@@ -164,7 +166,7 @@ detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fq
 #' @inheritParams run_kallisto_scseq
 #'
 #' @return Path to 10x whitelist.
-#' @export
+#'
 #' @keywords internal
 get_10x_whitepath <- function(indices_dir, bus_args) {
   if (any(grepl('-x 10xv2', bus_args))) {
@@ -185,7 +187,7 @@ get_10x_whitepath <- function(indices_dir, bus_args) {
 #' @inheritParams run_kallisto_scseq
 #'
 #' @return NULL
-#' @export
+#'
 #' @keywords internal
 dl_10x_whitelists <- function(indices_dir) {
 
@@ -210,7 +212,7 @@ dl_10x_whitelists <- function(indices_dir) {
 #' @param read_type One of \code{'R1'} or \code{'R2'} for CB+UMI and read sequences respectively.
 #'
 #' @return Character vector of lane ordered paths to FastQ read type files.
-#' @export
+#' @keywords internal
 identify_sc_files <- function(data_dir, read_type = 'R1') {
   # see https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/fastq-input for description of file name format
 

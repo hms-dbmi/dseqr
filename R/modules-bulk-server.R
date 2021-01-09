@@ -1,5 +1,5 @@
 #' Logic Bulk Data page
-#' @export
+#'
 #' @keywords internal
 bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
@@ -104,7 +104,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
 
 #' Logic for Bulk Data MDS data
-#' @export
+#'
 #' @keywords internal
 bulkMDS <- function(input, output, session, explore_eset) {
 
@@ -140,7 +140,7 @@ bulkMDS <- function(input, output, session, explore_eset) {
 
 
 #' Logic for Bulk Data MDS plotly
-#' @export
+#'
 #' @keywords internal
 bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, numsv, mds, group_colors, adjusted) {
 
@@ -164,11 +164,11 @@ bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, nu
 
     vsd_fname <- paste0(base_fname, '.csv')
     pdata_fname <- paste0(base_fname, '_pdata.csv')
-    write.csv(vsd, vsd_fname)
-    write.csv(pdata, pdata_fname)
+    utils::write.csv(vsd, vsd_fname)
+    utils::write.csv(pdata, pdata_fname)
 
     #create the zip file
-    zip(file, c(vsd_fname, pdata_fname))
+    utils::zip(file, c(vsd_fname, pdata_fname))
   }
 
   filename <- function() {paste0(base_fname(), '_', Sys.Date(), '.zip')}
@@ -184,7 +184,7 @@ bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, nu
 
 
 #' Logic for Bulk Data gene plotly
-#' @export
+#'
 #' @keywords internal
 bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
 
@@ -221,7 +221,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
     df <- args$df
     df$color <- NULL
     colnames(df) <- c('Sample', 'Gene', 'Normalized Expression', 'Group')
-    write.csv(df, file, row.names = FALSE)
+    utils::write.csv(df, file, row.names = FALSE)
   }
 
   callModule(shinydlplot::downloadablePlotly,
@@ -236,7 +236,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
 
 
 #' Logic for Bulk Data cell type deconvolution plotly
-#' @export
+#'
 #' @keywords internal
 bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
 
@@ -276,7 +276,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
     df <- args$df
     df$color <- NULL
     colnames(df) <- c('Sample', 'Group', 'Proportion', 'Cluster')
-    write.csv(df, file, row.names = FALSE)
+    utils::write.csv(df, file, row.names = FALSE)
   }
 
   callModule(shinydlplot::downloadablePlotly, 'plotly', plot = plot, filename = filename, content = content)
@@ -286,7 +286,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 
 
 #' Logic for Bulk Data form
-#' @export
+#'
 #' @keywords internal
 bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, new_anal, explore_eset, pdata) {
 
@@ -352,7 +352,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 
 
 #' Logic for selected dataset part of bulkFrom
-#' @export
+#'
 #' @keywords internal
 bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
 
@@ -496,7 +496,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
 
 #' Logic for dataset quantification part of bulkForm
-#' @export
+#'
 #' @keywords internal
 bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir) {
   quant_inputs <- c('end_type', 'pair', 'rep', 'reset', 'run_quant')
@@ -609,7 +609,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 }
 
 #' Logic for end type selection is bulkFormQuant
-#' @export
+#'
 #' @keywords internal
 bulkEndType <- function(input, output, session, fastq_dir) {
 
@@ -649,7 +649,7 @@ bulkEndType <- function(input, output, session, fastq_dir) {
 
 
 #' Logic for differential expression analysis part of bulkForm
-#' @export
+#'
 #' @keywords internal
 bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r) {
 
@@ -731,7 +731,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 }
 
 #' Logic for deconvolution form
-#' @export
+#'
 #' @keywords internal
 dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -887,7 +887,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
 
 #' Logic for dataset quantification table
-#' @export
+#'
 #' @keywords internal
 bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
@@ -1071,7 +1071,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
 
 #' Logic for differential expression analysis table
-#' @export
+#'
 #' @keywords internal
 bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
@@ -1201,7 +1201,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 }
 
 #' Logic for downloading and uploading bulk annotation
-#' @export
+#'
 #' @keywords internal
 bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
@@ -1222,7 +1222,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
     filename = fname,
     content = function(con) {
 
-      write.csv(format_dl_annot(annot()), con, row.names = FALSE)
+      utils::write.csv(format_dl_annot(annot()), con, row.names = FALSE)
     }
   )
 
@@ -1251,7 +1251,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
       res <- msg <- NULL
 
     } else {
-      res <- read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE)
+      res <- utils::read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE)
       msg <- validate_up_annot(res, annot())
 
       res <- if (is.null(msg)) format_up_annot(res, ref) else NULL
@@ -1267,7 +1267,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
 
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
-#' @export
+#'
 #' @keywords internal
 bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
@@ -1492,14 +1492,14 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     kegga_fname <- 'kegga.csv'
 
     path_res <- path_res()
-    write.csv(top_table(), tt_fname)
-    write.csv(path_res$go, go_fname)
-    write.csv(path_res$kg, kg_fname)
-    write.csv(path_res$kegga, kegga_fname)
-    write.csv(path_res$goana, goana_fname)
+    utils::write.csv(top_table(), tt_fname)
+    utils::write.csv(path_res$go, go_fname)
+    utils::write.csv(path_res$kg, kg_fname)
+    utils::write.csv(path_res$kegga, kegga_fname)
+    utils::write.csv(path_res$goana, goana_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname, kg_fname, goana_fname, kegga_fname))
+    utils::zip(file, c(tt_fname, go_fname, kg_fname, goana_fname, kegga_fname))
   }
 
   output$download <- downloadHandler(
@@ -1521,7 +1521,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
 
 #' Logic to setup explore_eset for Bulk Data plots
-#' @export
+#'
 #' @keywords internal
 exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 

@@ -1,5 +1,5 @@
 #' UI for Bulk Data page
-#' @export
+#'
 #' @keywords internal
 bulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
@@ -37,7 +37,7 @@ bulkPageUI <- function(id, tab, active) {
 }
 
 #' UI for Bulk Data annotation upload/download
-#' @export
+#'
 #' @keywords internal
 bulkAnnotInput <- function(id) {
   ns <- NS(id)
@@ -63,7 +63,7 @@ bulkAnnotInput <- function(id) {
 
 
 #' Plotly MDS output
-#' @export
+#'
 #' @keywords internal
 bulkPlotlyUI <- function(id) {
   ns <- NS(id)
@@ -71,7 +71,7 @@ bulkPlotlyUI <- function(id) {
 }
 
 #' Input form for Bulk Data page
-#' @export
+#'
 #' @keywords internal
 bulkFormInput <- function(id) {
   ns <- NS(id)
@@ -91,7 +91,7 @@ bulkFormInput <- function(id) {
 
 
 #' Dataset selection input for bulkFormInput
-#' @export
+#'
 #' @keywords internal
 bulkDatasetInput <- function(id) {
   ns <- NS(id)
@@ -116,7 +116,7 @@ bulkDatasetInput <- function(id) {
 
 
 #' Dataset quantification inputs for bulkFormInput
-#' @export
+#'
 #' @keywords internal
 bulkFormQuantInput <- function(id) {
   ns <- NS(id)
@@ -141,7 +141,7 @@ bulkFormQuantInput <- function(id) {
 
 
 #' Differential expression analysis inputs for bulkFormInput
-#' @export
+#'
 #' @keywords internal
 bulkFormAnalInput <- function(id) {
   ns <- NS(id)
@@ -158,7 +158,7 @@ bulkFormAnalInput <- function(id) {
 
 
 #' Button with sliders for adjusting number of surrogate variables
-#' @export
+#'
 #' @keywords internal
 svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
@@ -175,7 +175,7 @@ svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
 
 #' Tables for datasets page
-#' @export
+#'
 #' @keywords internal
 bulkTable <- function(id) {
   ns <- NS(id)
@@ -188,7 +188,7 @@ bulkTable <- function(id) {
 
 
 #' Input form for single-cell deconvolution
-#' @export
+#'
 #' @keywords internal
 dtangleFormInput <- function(id) {
   ns <- NS(id)
@@ -209,7 +209,7 @@ dtangleFormInput <- function(id) {
 
 
 #' Bulk Differential expression analysis input
-#' @export
+#'
 #' @keywords internal
 bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:') {
   ns <- NS(id)

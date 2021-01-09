@@ -6,7 +6,6 @@
 #' @param anal_suffix suffix to append to saved name.
 #'
 #' @return NULL
-#' @export
 #' @keywords internal
 save_lmfit <- function(lm_fit, dataset_dir, numsv = 0, anal_suffix = '') {
 
@@ -40,18 +39,18 @@ format_scaling <- function(scaling, adj, group, exprs) {
 #' @importFrom magrittr "%>%"
 #'
 #' @return List of tibbles with MDS scalings with and without SVA
-#' @export
+#' @keywords internal
 get_mds <- function(exprs, adj, group) {
 
   # get_dist acts on rows
-  exprs <- t(exprs[complete.cases(exprs), ])
-  adj <- t(adj[complete.cases(adj), ])
+  exprs <- t(exprs[methods::complete.cases(exprs), ])
+  adj <- t(adj[methods::complete.cases(adj), ])
 
   dist <- get_dist(exprs, method = 'spearman')
   dist_adj <- get_dist(adj, method = 'spearman')
 
   # sammon scaling for dimensionality reduction
-  capture.output({
+  utils::capture.output({
     scaling <- tibble::as_tibble(MASS::sammon(dist, k = 2)$points) %>%
       format_scaling(adj = FALSE, group = group, exprs = exprs)
 
@@ -161,7 +160,7 @@ sammon <- function(d, y = cmdscale(d, k), k = 2, niter = 100, trace = TRUE, magi
 #'    gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
 #' @name dist
 #' @rdname dist
-#' @export
+#' @keywords internal
 get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 
   if(stand) x <- scale(x)
@@ -183,7 +182,7 @@ get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 #' @param title Plot title.
 #'
 #' @return plotly object
-#' @export
+#' @keywords internal
 plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '#e6194b'), adjusted = FALSE, title = 'Sammon MDS plots') {
 
   if(is.null(scaling)) return(NULL)

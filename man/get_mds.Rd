@@ -19,3 +19,4 @@ List of tibbles with MDS scalings with and without SVA
 \description{
 For interactive MDS plot of expression values with and without surrogate variable analysis.
 }
+\keyword{internal}

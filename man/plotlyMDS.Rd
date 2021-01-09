@@ -28,3 +28,4 @@ plotly object
 \description{
 Plot MDS plotlys
 }
+\keyword{internal}

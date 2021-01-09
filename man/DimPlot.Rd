@@ -63,6 +63,9 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{label}{Whether to label the clusters}
 
+\item{label.index}{Whether to prepend cluster labels with integer indicating
+group number.}
+
 \item{label.size}{Sets size of labels}
 
 \item{repel}{Repel labels}
@@ -85,6 +88,10 @@ groups in cells.highlight}
 
 \item{ncol}{Number of columns for display when combining plots}
 
+\item{label.highlight}{Cluster name to highlight. If specified, cluster label
+will be black and all other cluster labels will be a dim gray. If \code{NULL}
+(default) then all cluster labels are black.}
+
 \item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
@@ -105,6 +112,6 @@ DimPlot(object = pbmc_small, split.by = 'ident')
 
 }
 \seealso{
-\code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-\code{\link{CellSelector}} \code{link{FetchData}}
+\code{\link{FeaturePlot}}
 }
+\keyword{internal}

@@ -1,5 +1,5 @@
 #' UI for Drugs page
-#' @export
+#'
 #' @keywords internal
 drugsPageUI <- function(id, tab, active) {
   ns <- NS(id)
@@ -32,7 +32,7 @@ drugsPageUI <- function(id, tab, active) {
 }
 
 #' Input form for Drugs page
-#' @export
+#'
 #' @keywords internal
 drugsFormInput <- function(id) {
   ns <- NS(id)
@@ -57,7 +57,7 @@ drugsFormInput <- function(id) {
 
 
 #' UI for query/drug genes plotly
-#' @export
+#'
 #' @keywords internal
 drugsGenesPlotlyOutput <- function(id) {
   ns <- NS(id)
@@ -70,7 +70,7 @@ drugsGenesPlotlyOutput <- function(id) {
 
 
 #' Output table for Drugs Page
-#' @export
+#'
 #' @keywords internal
 drugsTableOutput <- function(id) {
   ns <- NS(id)
@@ -92,7 +92,7 @@ drugsTableOutput <- function(id) {
 
 
 #' UI for seperate drugsPertInput for CMAP/L1000
-#' @export
+#'
 #' @keywords internal
 selectedPertSignatureInput <- function(id) {
   ns <- NS(id)
@@ -109,7 +109,7 @@ selectedPertSignatureInput <- function(id) {
 
 
 #' Input form for custom query on Drugs page
-#' @export
+#'
 #' @keywords internal
 customQueryFormInput <- function(id) {
   ns <- NS(id)
@@ -134,7 +134,7 @@ customQueryFormInput <- function(id) {
 
 
 #' advanced options input for drugs page
-#' @export
+#'
 #' @keywords internal
 advancedOptionsInput <- function(id) {
   ns <- NS(id)
@@ -162,7 +162,7 @@ advancedOptionsInput <- function(id) {
 
 
 #' Select drugs study (CMAP or L1000) for drugs page
-#' @export
+#'
 #' @keywords internal
 selectedDrugStudyInput <- function(id) {
   ns <- NS(id)
@@ -181,7 +181,7 @@ selectedDrugStudyInput <- function(id) {
 
 
 #' Custom right click menu for selecting correlation point as query
-#' @export
+#'
 #' @keywords internal
 rightClickMenu <- function() {
   withTags({
@@ -195,7 +195,7 @@ rightClickMenu <- function() {
 
 
 #' Analysis input for Drugs page
-#' @export
+#'
 #' @keywords internal
 selectedAnalInput <- function(id, label = 'Select a dataset or query signature:') {
   ns <- NS(id)

@@ -21,3 +21,4 @@ stdout from kallisto inspect if \code{inspection = TRUE}, otherwise \code{NULL}.
 \description{
 Runs kallisto scseq commands
 }
+\keyword{internal}

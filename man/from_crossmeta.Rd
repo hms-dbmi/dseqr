@@ -11,9 +11,6 @@ from_crossmeta(gse_name, data_dir)
 
 \item{data_dir}{directory that contains \code{gse_name} folder}
 }
-\value{
-
-}
 \description{
 Covert from crossmeta to drugseqr formats
 }

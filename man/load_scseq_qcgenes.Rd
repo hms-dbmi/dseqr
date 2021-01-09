@@ -6,9 +6,14 @@
 \usage{
 load_scseq_qcgenes(species = "Homo sapiens")
 }
+\arguments{
+\item{species}{Character indicating species. Either \code{'Homo sapiens'},
+or \code{'Mus musculus'}.}
+}
 \value{
 Named list with \code{rrna} and \code{mrna} character vectors.
 }
 \description{
-This are the genes used by alevin for whitelisting.
+Load mitochondrial and ribsomal gene names
 }
+\keyword{internal}

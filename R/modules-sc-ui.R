@@ -1,5 +1,5 @@
 #' UI for Single Cell Exploration page
-#' @export
+#'
 #' @keywords internal
 scPageUI <- function(id, tab, active) {
   ns <- NS(id)
@@ -54,7 +54,7 @@ scPageUI <- function(id, tab, active) {
 
 
 #' Input form for Single Cell Exploration page
-#' @export
+#'
 #' @keywords internal
 scFormInput <- function(id) {
   ns <- NS(id)
@@ -91,7 +91,7 @@ scFormInput <- function(id) {
 
 
 #' Input form to control/test/all groups for integrated datasets
-#' @export
+#'
 #' @keywords internal
 comparisonTypeToggle <- function(id) {
   ns <- NS(id)
@@ -102,7 +102,7 @@ comparisonTypeToggle <- function(id) {
 }
 
 #' Input for selecting datasets to show original labels for
-#' @export
+#'
 #' @keywords internal
 selectedAnnotDatasetInput <- function(id) {
   ns <- NS(id)
@@ -110,7 +110,7 @@ selectedAnnotDatasetInput <- function(id) {
 }
 
 #' Input form/associated buttons for selecting single cell dataset
-#' @export
+#'
 #' @keywords internal
 scSelectedDatasetInput <- function(id) {
   ns <- NS(id)
@@ -143,7 +143,7 @@ scSelectedDatasetInput <- function(id) {
 
 
 #' Input form for transfering labels between single cell datasets
-#' @export
+#'
 #' @keywords internal
 labelTransferFormInput <- function(id) {
   ns <- NS(id)
@@ -161,7 +161,7 @@ labelTransferFormInput <- function(id) {
 
 
 #' Input form for integrating single cell datasets
-#' @export
+#'
 #' @keywords internal
 integrationFormInput <- function(id) {
   ns <- NS(id)
@@ -196,7 +196,7 @@ integrationFormInput <- function(id) {
 }
 
 #' Input form for subsetting single cell datasets
-#' @export
+#'
 #' @keywords internal
 subsetFormInput <- function(id) {
 
@@ -229,7 +229,7 @@ subsetFormInput <- function(id) {
 
 
 #' Input form and buttons to select a cluster or contrast and rename a cluster
-#' @export
+#'
 #' @keywords internal
 clusterComparisonInput <- function(id) {
   ns <- NS(id)
@@ -268,7 +268,7 @@ clusterComparisonInput <- function(id) {
 
 
 #' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
-#' @export
+#'
 #' @keywords internal
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
@@ -309,7 +309,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
 
 #' Output plot of single cell clusters
-#' @export
+#'
 #' @keywords internal
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
@@ -318,7 +318,7 @@ scClusterPlotOutput <- function(id) {
 
 
 #' Output plot of single cell markers
-#' @export
+#'
 #' @keywords internal
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
@@ -326,7 +326,7 @@ scMarkerPlotOutput <- function(id) {
 }
 
 #' Output plot of biogps data for a gene
-#' @export
+#'
 #' @keywords internal
 scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
@@ -334,7 +334,7 @@ scBioGpsPlotOutput <- function(id) {
 }
 
 #' Output plot/plotly for samples comparison with integrated datasets
-#' @export
+#'
 #' @keywords internal
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
@@ -345,7 +345,7 @@ scSampleMarkerPlotOutput <- function(id) {
 }
 
 #' Output Ridgeline plot
-#' @export
+#'
 #' @keywords internal
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
@@ -354,7 +354,7 @@ scRidgePlotOutput <- function(id) {
 }
 
 #' Output plotly for labels comparison with integrated datasets
-#' @export
+#'
 #' @keywords internal
 scLabelsPlotOutput <- function(id) {
   ns <- NS(id)
@@ -365,7 +365,7 @@ scLabelsPlotOutput <- function(id) {
 #'
 #' Used in Single Cell and Drugs tab
 #'
-#' @export
+#'
 #' @keywords internal
 scSampleComparisonInput <- function(id, with_dl = FALSE) {
   ns <- NS(id)

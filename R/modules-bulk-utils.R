@@ -3,7 +3,7 @@
 #' @param pdata data.frame with column \code{'Group'}
 #'
 #' @return NULL if valid, otherwise a character vector indicating what's wrong
-#' @export
+#'
 #' @keywords internal
 validate_pdata <- function(pdata) {
   group <- pdata$Group
@@ -37,7 +37,7 @@ validate_pdata <- function(pdata) {
 #' @param xtitle X axis title.
 #'
 #' @return plotly
-#' @export
+#'
 #' @keywords internal
 boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 
@@ -99,7 +99,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 #' @param xtitle X axis title.
 #'
 #' @return plotly
-#' @export
+#'
 #' @keywords internal
 boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 
@@ -159,7 +159,8 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) 
 #' @param dataset_name Name of bulk dataset.
 #'
 #' @return List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'plot_fname'}.
-#' @export
+#' @keywords internal
+#'
 get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
   dat <- Biobase::assayDataElement(eset, 'vsd')
   pdata <- Biobase::pData(eset)
@@ -204,7 +205,8 @@ get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
 #' @param dataset_name Name of bulk dataset.
 #'
 #' @return List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'plot_fname'}.
-#' @export
+#' @keywords internal
+#'
 get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 
   common <- intersect(row.names(dtangle_est), row.names(pdata))
@@ -212,7 +214,7 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
   pdata <- pdata[common, c('Title', 'Group name', 'Group')]
   colnames(pdata) <- c('text', 'name', 'color')
 
-  df <- stack(dtangle_est)
+  df <- utils::stack(dtangle_est)
   colnames(df) <- c('y', 'x')
 
   df <- cbind(pdata, df)
@@ -246,7 +248,7 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 #'
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
 #' @return data.frame with columns "dataset_name" "dataset_dir" and "anal_name".
-#' @export
+#'
 #' @keywords internal
 load_bulk_anals <- function(data_dir) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
@@ -274,7 +276,7 @@ load_bulk_anals <- function(data_dir) {
 #' @param anal_name Name of new analysis
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
 #' @return NULL
-#' @export
+#'
 #' @keywords internal
 save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
@@ -292,7 +294,7 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
 #' @inheritParams save_bulk_anals
 #'
 #' @return NULL
-#' @export
+#'
 #' @keywords internal
 remove_bulk_anals <- function(dataset_name, data_dir) {
   anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
@@ -306,7 +308,7 @@ remove_bulk_anals <- function(dataset_name, data_dir) {
 #'
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
 #' @return data.frame with columns "dataset_name" and "dataset_dir"
-#' @export
+#'
 #' @keywords internal
 load_bulk_datasets <-function(data_dir) {
   datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
@@ -333,7 +335,7 @@ load_bulk_datasets <-function(data_dir) {
 #' @param data_dir Path to folder with dataset files
 #' @param patterns patterns to remove. Default is all.
 #'
-#' @export
+#'
 #' @keywords internal
 remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$',
                                                         '^iqr_keep_\\d+svs.rds$',
@@ -364,7 +366,7 @@ remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$'
 
 
 #' Format uploaded annotation
-#' @export
+#'
 #' @keywords internal
 format_up_annot <- function(up, ref) {
   row.names(up) <- up$Title
@@ -391,7 +393,7 @@ format_up_annot <- function(up, ref) {
 }
 
 #' Format downloaded annotation
-#' @export
+#'
 #' @keywords internal
 format_dl_annot <- function(annot) {
 
@@ -411,7 +413,7 @@ format_dl_annot <- function(annot) {
 }
 
 #' Validate uploaded bulk annotation
-#' @export
+#'
 #' @keywords internal
 validate_up_annot <- function(up, ref) {
   msg <- NULL
@@ -444,7 +446,7 @@ validate_up_annot <- function(up, ref) {
 }
 
 #' Check uploaded bulk pdata to make sure the study design is invertible
-#' @export
+#'
 #' @keywords internal
 is_invertible <- function(pdata) {
   pdata <- pdata[!is.na(pdata$`Group name`), ]
@@ -471,7 +473,7 @@ is_invertible <- function(pdata) {
 #' @param kegga_path Path to save kegga KEGG result
 #'
 #' @return List with GO and KEGG results
-#' @export
+#'
 #' @keywords internal
 get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, species = 'Hs', min.genes = 4) {
 
@@ -488,13 +490,13 @@ get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, spec
   go <- limma::cameraPR(statistic, index = gslist.go)
   go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
   go <- go[go$NGenes >= min.genes, ]
-  go$FDR <- p.adjust(go$PValue, 'BH')
+  go$FDR <- stats::p.adjust(go$PValue, 'BH')
 
   # get cameraPR KEGG result
   kg <- limma::cameraPR(statistic, index = gslist.kegg)
   kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
   kg <- kg[kg$NGenes >= min.genes, ]
-  kg$FDR <- p.adjust(kg$PValue, 'BH')
+  kg$FDR <- stats::p.adjust(kg$PValue, 'BH')
 
   saveRDS(go, go_path)
   saveRDS(kg, kegg_path)
@@ -528,7 +530,7 @@ get_pathway_names <- function(gs.names) {
 #' Get group levels for bulk data plots
 #'
 #' @param pdata Data.frame of phenotype data
-#' @export
+#'
 #'
 #' @keywords internal
 get_group_levels <- function(pdata) {
@@ -539,7 +541,7 @@ get_group_levels <- function(pdata) {
 
 
 #' Check if newly uploaded pdata is the same as previously uploaded
-#' @export
+#'
 #' @keywords internal
 check_bulk_changed <- function(prev, pdata) {
 

@@ -20,3 +20,4 @@ p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(c
 p + NoLegend()
 
 }
+\keyword{internal}

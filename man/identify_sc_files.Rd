@@ -17,3 +17,4 @@ Character vector of lane ordered paths to FastQ read type files.
 \description{
 Get 10X FastQ paths for a read type and sort by increasing lane number
 }
+\keyword{internal}

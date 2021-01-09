@@ -17,3 +17,4 @@ append_annot(pdata, study)
 \description{
 For the moment, annotation data is Broad Repurposing Hub data.
 }
+\keyword{internal}

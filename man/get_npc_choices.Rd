@@ -15,3 +15,4 @@ result of \code{scran::getClusteredPCs}
 \description{
 Used to pick number of PCs to retain
 }
+\keyword{internal}

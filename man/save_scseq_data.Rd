@@ -18,3 +18,4 @@ save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = FALSE)
 \description{
 Save Single Cell RNA-seq data for app
 }
+\keyword{internal}

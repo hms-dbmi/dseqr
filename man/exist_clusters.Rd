@@ -15,3 +15,4 @@ TRUE if more than one cluster exists
 \description{
 Used by \code{\link{get_scseq_markers}} to prevent getting markers if there are no clusters to compare
 }
+\keyword{internal}

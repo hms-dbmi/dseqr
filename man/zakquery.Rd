@@ -29,3 +29,4 @@ List of data.frames or result of run_drugseqr_table
 \description{
 Only clinical drugs, cells types: all, haematopoietic, monocytic, and lung
 }
+\keyword{internal}

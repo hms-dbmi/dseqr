@@ -14,12 +14,12 @@
 #' @param cells Character vector of cell types to include. Default (\code{NULL}) includes all cell types.
 #'
 #' @return \code{data.frame} with annotated, filtered, and sorted query result.
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' ## Not run:
 #'
-#' dl_res <- read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
+#' dl_res <- utils::read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
 #' query_res <- dl_res$correlation
 #' names(query_res) <- row.names(dl_res)
 #'
@@ -84,7 +84,6 @@ format_query_res <- function(query_res,
 #' @param drug_annot result of \link{get_drugs_table}
 #'
 #' @return Annotated query table
-#' @export
 #' @keywords internal
 annot_query_res <- function(query_res, drug_annot) {
 
@@ -107,7 +106,6 @@ annot_query_res <- function(query_res, drug_annot) {
 #' @inheritParams get_top_cors
 #'
 #' @return summarised query table
-#' @export
 #' @keywords internal
 summarise_query_table <- function(query_table_annot, is_genetic, cells, sort_abs, remove_html = FALSE, ntop = 1500) {
 
@@ -134,7 +132,6 @@ summarise_query_table <- function(query_table_annot, is_genetic, cells, sort_abs
 #' @param is_genetic Should gene columns be returned? If \code{FALSE} drug columns are returned.
 #'
 #' @return Character vector of column names.
-#' @export
 #' @keywords internal
 get_query_cols <- function(is_genetic) {
   drug_cols <- c('Rank', 'Correlation', 'Compound', 'Clinical Phase', 'External Links', 'MOA', 'Target', 'Disease Area', 'Indication', 'Vendor', 'Catalog #', 'Vendor Name')
@@ -151,7 +148,6 @@ get_query_cols <- function(is_genetic) {
 #' @inheritParams format_query_res
 #'
 #' @return \code{query_table_summarised} with drugs filtered that contain fewer than \code{min_signatures}.
-#' @export
 #' @keywords internal
 filter_nsig <- function(query_table_summarised, min_signatures) {
   query_table_summarised %>% dplyr::filter(n >= min_signatures)
@@ -164,7 +160,6 @@ filter_nsig <- function(query_table_summarised, min_signatures) {
 #'
 #' @return \code{query_table_nsig}.
 #'   Drugs without a clinical phase annotation are removed if \code{show_clinical} is \code{FALSE}
-#' @export
 #' @keywords internal
 filter_clinical <- function(query_table_nsig, show_clinical) {
   query_table_nsig %>% {
@@ -181,7 +176,6 @@ filter_clinical <- function(query_table_nsig, show_clinical) {
 #' @inheritParams summarise_query_table
 #'
 #' @return Final query table
-#' @export
 #' @keywords internal
 sort_query_table_clin <- function(query_table_clin, sort_by, sort_abs, direction, drug_study, remove_html = FALSE) {
 

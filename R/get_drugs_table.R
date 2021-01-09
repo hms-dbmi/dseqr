@@ -3,7 +3,6 @@
 #' @param study either \code{'CMAP02'} or \code{'L1000_genes'} or \code{'L1000_drugs'}
 #'
 #' @return \code{data.frame} of meta data for CMAP02 or L1000
-#' @export
 #' @keywords internal
 #' @examples
 #'
@@ -51,7 +50,7 @@ get_drugs_table <- function(study) {
 #' @param study Character identifying study. Either \code{'CMAP02'} or \code{'L1000'}.
 #'
 #' @return \code{pdata} with bound annotation columns.
-#' @export
+#' @keywords internal
 append_annot <- function(pdata, study) {
   annot_fname <- paste0(study, '_annot.rds')
   annot_path <- system.file('extdata', annot_fname,

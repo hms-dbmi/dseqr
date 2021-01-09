@@ -15,3 +15,4 @@ Character vector with DrugBank ID or NA if none exists
 \description{
 Extract DrugBank URL from PUG-View
 }
+\keyword{internal}

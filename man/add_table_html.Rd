@@ -15,3 +15,4 @@ add_table_html(query_res)
 \description{
 Add HTML to query results table
 }
+\keyword{internal}

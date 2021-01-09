@@ -95,14 +95,14 @@ get_drug_paths <- function(ebfit_path, map, gslist.go, gslist.kegg, gs.names.go,
   go <- limma::cameraPR(statistic, index = gslist.go)
   go <- tibble::add_column(go, Term = gs.names.go[row.names(go)], .before = 'NGenes')
   go <- go[go$NGenes >= min.genes, ]
-  go$FDR <- p.adjust(go$PValue, 'BH')
+  go$FDR <- stats::p.adjust(go$PValue, 'BH')
   go <- go[go$PValue < 0.1, ]
 
   # get cameraPR KEGG result
   kg <- limma::cameraPR(statistic, index = gslist.kegg)
   kg <- tibble::add_column(kg, Term = gs.names.kegg[row.names(kg)], .before = 'NGenes')
   kg <- kg[kg$NGenes >= min.genes, ]
-  kg$FDR <- p.adjust(kg$PValue, 'BH')
+  kg$FDR <- stats::p.adjust(kg$PValue, 'BH')
   kg <- kg[kg$PValue < 0.1, ]
 
   if (filter_tt) tt <- tt[tt$P.Value < 0.5, ]

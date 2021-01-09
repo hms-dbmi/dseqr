@@ -1,5 +1,5 @@
 #' Logic for Single Cell Exploration page
-#' @export
+#'
 #' @keywords internal
 scPage <- function(input, output, session, sc_dir, indices_dir) {
 
@@ -74,7 +74,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 
 
 #' Logic for form on Single Cell Exploration page
-#' @export
+#'
 #' @keywords internal
 scForm <- function(input, output, session, sc_dir, indices_dir) {
 
@@ -255,7 +255,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
 
 #' Logic for selected dataset part of scForm
-#' @export
+#'
 #' @keywords internal
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
@@ -468,7 +468,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
 #' Logic for selecting cluster to plot label origin for integrated dataset
-#' @export
+#'
 #' @keywords internal
 scLabelsComparison <- function(input, output, session, cluster_choices) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -485,7 +485,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 }
 
 #' Logic for labels plot for integrated dataset
-#' @export
+#'
 #' @keywords internal
 scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
 
@@ -507,7 +507,7 @@ scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq
 #'
 #' setup to allow for ggplot/plotly
 #'
-#' @export
+#'
 #' @keywords internal
 scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) {
 
@@ -543,7 +543,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
       colnames(d) <- c(selected_gene(), 'sample')
     }
 
-    write.csv(d, file)
+    utils::write.csv(d, file)
   }
 
 
@@ -559,7 +559,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 }
 
 #' Logic for label transfer between datasets
-#' @export
+#'
 #' @keywords internal
 labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq, species) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
@@ -793,7 +793,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 }
 
 #' Logic for subsetting a datatset
-#' @export
+#'
 #' @keywords internal
 subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices, is_integrated) {
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -929,7 +929,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
 
 #' Logic for integration form toggled by showIntegration
-#' @export
+#'
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, selected_dataset) {
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
@@ -1061,14 +1061,14 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   output$dl_samples <- downloadHandler(
     filename = 'samples.csv',
     content = function(con) {
-      write.csv(samples(), con, row.names = FALSE)
+      utils::write.csv(samples(), con, row.names = FALSE)
     }
   )
 
   observe({
     infile <- input$up_pairs
     req(infile)
-    pairs(read.csv(infile$datapath, row.names = 'sample'))
+    pairs(utils::read.csv(infile$datapath, row.names = 'sample'))
   })
 
   # make upload green when have data
@@ -1151,7 +1151,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
 #' Logic for comparison type toggle for integrated datasets
-#' @export
+#'
 #' @keywords internal
 comparisonType <- function(input, output, session, scseq, is_integrated) {
 
@@ -1165,7 +1165,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 }
 
 #' Logic for cluster comparison input
-#' @export
+#'
 #' @keywords internal
 clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_path, ref_preds) {
 
@@ -1333,7 +1333,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
 
 #' Logic for selected gene to show plots for
-#' @export
+#'
 #' @keywords internal
 selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is_integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
@@ -1532,7 +1532,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 
 #' Logic for cluster plots
-#' @export
+#'
 #' @keywords internal
 scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name) {
 
@@ -1556,7 +1556,7 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
 
   content <- function(file) {
     data <- plot()$data
-    write.csv(data, file)
+    utils::write.csv(data, file)
   }
 
 
@@ -1574,7 +1574,7 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
 
 
 #' Logic for marker feature plots
-#' @export
+#'
 #' @keywords internal
 scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, custom_metrics = function()NULL) {
 
@@ -1629,7 +1629,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 
   content <- function(file) {
     plot <- plot()
-    write.csv(plot$data, file)
+    utils::write.csv(plot$data, file)
   }
 
   callModule(shinydlplot::downloadablePlot,
@@ -1647,7 +1647,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 }
 
 #' Logic for BioGPS plot
-#' @export
+#'
 #' @keywords internal
 scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   # plot BioGPS data
@@ -1663,7 +1663,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 }
 
 #' Logic for Ridge plot for clusters
-#' @export
+#'
 #' @keywords internal
 scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
 
@@ -1686,7 +1686,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   content <- function(file){
     d <- plot()$data[, c('x', 'y')]
     colnames(d) <- c(selected_gene(), 'cluster')
-    write.csv(d, file, row.names = FALSE)
+    utils::write.csv(d, file, row.names = FALSE)
   }
 
   filename <- reactive(paste0(selected_gene(), '.csv'))
@@ -1701,7 +1701,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 
 
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
-#' @export
+#'
 #' @keywords internal
 scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is_integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -1832,7 +1832,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
         tt$ambient <- row.names(tt) %in% ambient
 
         # add ambient-excluded adjusted pvals
-        tt$adj.P.Val.Amb[!tt$ambient] <- p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
+        tt$adj.P.Val.Amb[!tt$ambient] <- methods::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
         if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
 
         tts[[cluster]] <- tt
@@ -1986,15 +1986,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     tt <- top_table()
     path_res <- path_res()
     abundances <- abundances()
-    write.csv(tt, tt_fname)
-    write.csv(path_res$go, go_fname)
-    write.csv(path_res$kg, kg_fname)
-    write.csv(path_res$kegga, kegga_fname)
-    write.csv(path_res$goana, goana_fname)
-    write.csv(abundances, ab_fname)
+    utils::write.csv(tt, tt_fname)
+    utils::write.csv(path_res$go, go_fname)
+    utils::write.csv(path_res$kg, kg_fname)
+    utils::write.csv(path_res$kegga, kegga_fname)
+    utils::write.csv(path_res$goana, goana_fname)
+    utils::write.csv(abundances, ab_fname)
 
     #create the zip file
-    zip(file, c(tt_fname, go_fname, kg_fname, ab_fname, kegga_fname, goana_fname))
+    utils::zip(file, c(tt_fname, go_fname, kg_fname, ab_fname, kegga_fname, goana_fname))
   }
 
   output$download <- downloadHandler(

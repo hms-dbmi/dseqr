@@ -5,7 +5,6 @@
 #' @inheritParams shinyWidgets::dropdownButton
 #' @param title title attribute for button
 #'
-#' @export
 #' @keywords internal
 dropdownButton <- function(..., circle = TRUE, status = "default",
                            size = "default", icon = NULL,

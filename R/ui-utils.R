@@ -1,6 +1,6 @@
 #' UI for navbar
 #' @param active the active tab name
-#' @export
+#'
 #' @keywords internal
 navbarUI <- function(tabs, active) {
 
@@ -53,7 +53,7 @@ navbarUI <- function(tabs, active) {
 #' @param active The name of the active tab
 #' @param ... The UI elements to place in the tab
 #' @return shiny div tag with UI for tab
-#' @export
+#'
 #' @keywords internal
 tabPane <- function(tab, active, ...) {
   active_class <- ifelse(tab == active, 'active', '')
@@ -65,7 +65,7 @@ tabPane <- function(tab, active, ...) {
 #' used by navbarUI and *PageUI for drugseqr app
 #'
 #' @param tab The name of the tab (e.g. \code{'Single Cell'})
-#' @export
+#'
 #' @keywords internal
 id_from_tab <- function(tab) {
   id <- tolower(tab)
@@ -79,7 +79,7 @@ id_from_tab <- function(tab) {
 #' @param label Character vector. Label above button group.
 #' @param container_id id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.
 #' @param help_id id of help block. Used to show help message in change shinyjs::html
-#' @export
+#'
 #' @keywords internal
 justifiedButtonGroup <- function(..., label, container_id = NULL, help_id = NULL) {
   tags$div(class = 'form-group selectize-fh', id = container_id,
@@ -125,7 +125,7 @@ dsLabelRowsUI <- function(id) {
 
 
 #' Dropdown menu button for dsLabelRowsUI
-#' @export
+#'
 #' @keywords internal
 dropdownMenuButton <- function(id, label) {
   tags$li(

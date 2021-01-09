@@ -40,14 +40,13 @@
 #' If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 #'
 #'
-#' @export
+#' @keywords internal
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases FeatureHeatmap
-#' @seealso \code{\link{DimPlot}} \code{\link{HoverLocator}}
-#' \code{\link{CellSelector}}
+#' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
 #' FeaturePlot(object = pbmc_small, features = 'PC_1')
@@ -249,13 +248,8 @@ FeaturePlot <- function(
   # Figure out splits (FeatureHeatmap)
   data$split <- if (is.null(x = split.by)) {
     RandomName()
-  } else {
-    switch(
-      EXPR = split.by,
-      ident = Idents(object = object)[cells],
-      object[[split.by, drop = TRUE]][cells]
-    )
   }
+
   if (!is.factor(x = data$split)) {
     data$split <- factor(x = data$split)
   }
@@ -275,40 +269,13 @@ FeaturePlot <- function(
   # Apply common limits
   xlims <- c(floor(x = min(data[, dims[1]])), ceiling(x = max(data[, dims[1]])))
   ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
-  # Set blended colors
-  if (blend) {
-    ncol <- 4
-    color.matrix <- BlendMatrix(
-      two.colors = cols[2:3],
-      col.threshold = blend.threshold,
-      negative.color = cols[1]
-    )
-    cols <- cols[2:3]
-    colors <- list(
-      color.matrix[, 1],
-      color.matrix[1, ],
-      as.vector(x = color.matrix)
-    )
-  }
+
   # Make the plots
   for (i in 1:length(x = levels(x = data$split))) {
     # Figre out which split we're working with
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
-    # Blend expression values
-    if (blend) {
-      features <- features[1:2]
-      no.expression <- features[colMeans(x = data.plot[, features]) == 0]
-      if (length(x = no.expression) != 0) {
-        stop(
-          "The following features have no value: ",
-          paste(no.expression, collapse = ', '),
-          call. = FALSE
-        )
-      }
-      data.plot <- cbind(data.plot[, c(dims, 'ident')], BlendExpression(data = data.plot[, features[1:2]]))
-      features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
-    }
+
     # Make per-feature plots
     for (j in 1:length(x = features)) {
       feature <- features[j]
@@ -348,43 +315,8 @@ FeaturePlot <- function(
         )
       }
       # Make FeatureHeatmaps look nice(ish)
-      if (length(x = levels(x = data$split)) > 1) {
-        plot <- plot + theme(panel.border = element_rect(fill = NA, colour = 'black'))
-        # Add title
-        plot <- plot + if (i == 1) {
-          labs(title = feature)
-        } else {
-          labs(title = NULL)
-        }
-        # Add second axis
-        if (j == length(x = features) && !blend) {
-          suppressMessages(
-            expr = plot <- plot +
-              ggplot2::scale_y_continuous(sec.axis = ggplot2::dup_axis(name = ident)) +
-              no.right
-          )
-        }
-        # Remove left Y axis
-        if (j != 1) {
-          plot <- plot + ggplot2::theme(
-            axis.line.y = ggplot2::element_blank(),
-            axis.ticks.y = ggplot2::element_blank(),
-            axis.text.y = ggplot2::element_blank(),
-            axis.title.y.left = ggplot2::element_blank()
-          )
-        }
-        # Remove bottom X axis
-        if (i != length(x = levels(x = data$split))) {
-          plot <- plot + ggplot2::theme(
-            axis.line.x = ggplot2::element_blank(),
-            axis.ticks.x = ggplot2::element_blank(),
-            axis.text.x = ggplot2::element_blank(),
-            axis.title.x = ggplot2::element_blank()
-          )
-        }
-      } else {
-        plot <- plot + ggplot2::labs(title = feature)
-      }
+      plot <- plot + ggplot2::labs(title = feature)
+
       # Add colors scale for normal FeaturePlots
       if (!blend) {
         plot <- plot + ggplot2::guides(color = NULL)
@@ -420,37 +352,7 @@ FeaturePlot <- function(
       plots[[(length(x = features) * (i - 1)) + j]] <- plot
     }
   }
-  # Add blended color key
-  if (blend) {
-    blend.legend <- BlendMap(color.matrix = color.matrix)
-    for (ii in 1:length(x = levels(x = data$split))) {
-      suppressMessages(expr = plots <- append(
-        x = plots,
-        values = list(
-          blend.legend +
-            ggplot2::scale_y_continuous(
-              sec.axis = ggplot2::dup_axis(name = ifelse(
-                test = length(x = levels(x = data$split)) > 1,
-                yes = levels(x = data$split)[ii],
-                no = ''
-              )),
-              expand = c(0, 0)
-            ) +
-            labs(
-              x = features[1],
-              y = features[2],
-              title = if (ii == 1) {
-                paste('Color threshold:', blend.threshold)
-              } else {
-                NULL
-              }
-            ) +
-            no.right
-        ),
-        after = 4 * ii - 1
-      ))
-    }
-  }
+
   # Remove NULL plots
   plots <- Filter(f = Negate(f = is.null), x = plots)
   # Combine the plots
@@ -485,7 +387,7 @@ FeaturePlot <- function(
           return(suppressMessages(
             expr = x +
               cowplot::theme_cowplot() +
-              ggtitle("") +
+              ggplot2::ggtitle("") +
               ggplot2::scale_y_continuous(sec.axis = ggplot2::dup_axis(name = "")) +
               no.right
           ))
@@ -687,29 +589,6 @@ CheckDots <- function(..., fxns = NULL) {
       },
       x = args.names
     )
-    if (length(x = unused) > 0) {
-      msg <- paste0(
-        "The following arguments are not used: ",
-        paste(unused, collapse = ', ')
-      )
-      switch(
-        EXPR = getOption(x = "Seurat.checkdots"),
-        "warn" = warning(msg, call. = FALSE, immediate. = TRUE),
-        "stop" = stop(msg),
-        "silent" = NULL,
-        stop("Invalid Seurat.checkdots option. Please choose one of warn, stop, silent")
-      )
-      unused.hints <- sapply(X = unused, FUN = OldParamHints)
-      names(x = unused.hints) <- unused
-      unused.hints <- na.omit(object = unused.hints)
-      if (length(x = unused.hints) > 0) {
-        message(
-          "Suggested parameter: ",
-          paste(unused.hints, "instead of", names(x = unused.hints), collapse = '; '),
-          "\n"
-        )
-      }
-    }
   }
 }
 

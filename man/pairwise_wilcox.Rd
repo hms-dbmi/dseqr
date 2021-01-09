@@ -14,6 +14,15 @@ pairwise_wilcox(
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} object.}
+
+\item{groups}{A vector of length equal to \code{ncol(x)}, specifying the group assignment for each cell.
+If \code{x} is a SingleCellExperiment, this is automatically derived from \code{\link{colLabels}}.}
+
+\item{direction}{A string specifying the direction of differences to be considered in the alternative hypothesis.}
+
+\item{block}{A factor specifying the blocking level for each cell.}
+
+\item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
 }
 \value{
 List of \code{data.frame}s, one for each cluster.
@@ -21,3 +30,4 @@ List of \code{data.frame}s, one for each cluster.
 \description{
 Run pairwise wilcox tests between single cell clusters
 }
+\keyword{internal}

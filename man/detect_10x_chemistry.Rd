@@ -33,3 +33,4 @@ one of \code{techs} corresponding to chemistry with most reads that agree with w
 Creates samples of 10,000 reads per lane and then determins the number of reads
 with barcodes in agreement with the chemistry whitelist.
 }
+\keyword{internal}

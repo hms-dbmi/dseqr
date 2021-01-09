@@ -9,9 +9,6 @@ add_hvgs(sce)
 \arguments{
 \item{sce}{\code{SingleCellExperiment} object}
 }
-\value{
-
-}
 \description{
 Runs after \code{preprocess_scseq}
 }

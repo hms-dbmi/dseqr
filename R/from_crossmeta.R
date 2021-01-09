@@ -3,7 +3,6 @@
 #' @param data_dir directory that contains \code{gse_name} folder
 #' @param gse_name Name of GSE accession dataset, must be folder in data_dir
 #'
-#' @return
 #' @export
 #'
 #' @examples

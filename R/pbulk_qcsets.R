@@ -5,10 +5,10 @@
 #' @param pbulk_esets List of pseudobulk expression sets
 #'
 #' @return List of pseodobulk qc expression sets
-#' @export
+#' @keywords internal
 #'
 #' @examples
-#' pbulk_esets <- readRDS("~/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data/sjia/single-cell/sjia_pbmcs_lungdisease_vs_healthy_harmony/pbulk_esets.rds")
+#' pbulk_esets <- readRDS("~/patient_data/sjia/single-cell/sjia_pbmcs_lungdisease_vs_healthy_harmony/pbulk_esets.rds")
 #' qcsets <- construct_pbulk_qcsets(pbulk_esets)
 #' lm_fit <- run_limma_scseq(qcsets)
 #' crossmeta::get_top_table(lm_fit[[1]], robust = FALSE)

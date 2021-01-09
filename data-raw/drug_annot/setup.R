@@ -19,7 +19,7 @@ remove_non_utf8 <- function(df) {
 
 summarise_func <- function(x) {
 
-  unqx <- na.omit(x)
+  unqx <- stats::na.omit(x)
   unqx <- unlist(strsplit(unqx, '|', fixed = TRUE))
   unqx <- unique(unqx)
 

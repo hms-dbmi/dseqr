@@ -22,3 +22,4 @@ Character vector of opening HTML a tags
 If there are multiple-entry \code{ids} (e.g. \code{'2250, | 60823'}), the first entry
 is added to the href attribute and subsequent entries are added to onclick javascript.
 }
+\keyword{internal}

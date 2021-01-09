@@ -5,7 +5,7 @@
 #' @param pert Name of perturbation signature.
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_genes'}, or \code{'l1000_drugs'}.
 #' @param pvals If \code{TRUE} returns adjusted pvalues for signature. If \code{FALSE} (default) returns signature.
-#' @export
+#'
 #' @keywords internal
 load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FALSE) {
   sig <- NULL
@@ -26,7 +26,7 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FAL
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
 #'
 #' @return NULL
-#' @export
+#'
 #' @examples
 #' sig_path <- file.path('data-raw/drug_es/signatures', 'BRD-K45319408_PC3_5um_24h.rds')
 #' dl_pert_signature(sig_path, pert_type = 'cmap')
@@ -38,7 +38,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
 
   # don't error if pert_type updates but sig_path corresponds to previous pert_type
-  try(download.file(dl_url, sig_path))
+  try(utils::download.file(dl_url, sig_path))
 }
 
 
@@ -46,7 +46,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
 #'
 #' @param top_table Filtered result of \code{\link[limma]{toptable}}
 #' to limit number of plotted genes.
-#' @export
+#'
 #' @keywords internal
 construct_path_df <- function(top_table) {
 
@@ -80,7 +80,7 @@ construct_path_df <- function(top_table) {
 #'  \item sd standard deviations of \code{Dprime}.
 #'  \item Link url to GeneCards page for gene.
 #' }
-#' @export
+#'
 #' @keywords internal
 get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200, ambient = NULL) {
 
@@ -96,8 +96,8 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
   is.l1000 <- path_id == 'L1000'
 
   if (is.l1000 | is.cmap2) {
-    if (is.cmap2) keep <- head(which(path_df$Gene %in% unlist(genes)), nmax)
-    if (is.l1000) keep <- head(which(path_df$Gene %in% genes$common), nmax)
+    if (is.cmap2) keep <- utils::head(which(path_df$Gene %in% unlist(genes)), nmax)
+    if (is.l1000) keep <- utils::head(which(path_df$Gene %in% genes$common), nmax)
 
     path_df <- path_df[row.names(path_df) %in% keep, ]
   }
@@ -134,7 +134,7 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 #'  \item anal_name Name of single cell analysis. Same as \code{dataset_dir}.
 #'
 #' }
-#' @export
+#'
 #' @keywords internal
 load_scseq_datasets <- function(data_dir) {
   sc_dir <- file.path(data_dir, 'single-cell')
@@ -164,7 +164,7 @@ load_scseq_datasets <- function(data_dir) {
 #'  \item fit result of \link[limma]{lmFit}.
 #'  \item mod \code{model.matrix} used for \code{fit}.
 #' }
-#' @export
+#'
 #' @keywords internal
 run_limma_scseq <- function(obj, annot = 'gene_name') {
 
@@ -188,7 +188,7 @@ run_limma_scseq <- function(obj, annot = 'gene_name') {
 #' @param dataset_dir Directory to folder with single-cell dataset
 
 #' @return data.frame with markers
-#' @export
+#'
 #' @keywords internal
 get_cluster_markers <- function(selected_clusters, dataset_dir) {
 
@@ -216,7 +216,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #' @param summed Pseudobulk \code{SingleCellExperiment}
 #' @return Normalized \code{ExpressionSet}
 #'
-#'@export
+#'
 #'@keywords internal
 construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens', release = '94') {
 
@@ -271,7 +271,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
 #' @param supress Genes to move to bottom of \code{markers}.
 #'
 #' @return \code{markers} with genes in \code{supress} at bottom.
-#' @export
+#'
 #' @keywords internal
 supress.genes <- function(markers, supress) {
   other <- setdiff(row.names(markers), supress)
@@ -284,7 +284,7 @@ supress.genes <- function(markers, supress) {
 #' @param scseq \code{SingleCellExperiment} object.
 #'
 #' @return List with model matrix and result of call to \code{\link[limma]{lmFit}}
-#' @export
+#'
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {
   hs <- readRDS(system.file('extdata', 'hs.rds', package = 'drugseqr.data'))
@@ -337,7 +337,7 @@ fit_lm_scseq <- function(scseq) {
 #' @param scseq \code{SingleCellExperiment} object.
 #'
 #' @return Character vector of HGNC symbols representing ambient genes to exclude
-#' @export
+#'
 #' @keywords internal
 decide_ambient <- function(ambient, top_table, cluster_markers) {
 
@@ -369,7 +369,7 @@ decide_ambient <- function(ambient, top_table, cluster_markers) {
 #'  \item label Character vector with values \code{'Mostly Up'} or \code{'Mostly Down'}.
 #'  These are used for selectize input option group field.
 #' }
-#' @export
+#' @keywords internal
 get_path_directions <- function(top_table) {
 
   is.up <- sapply(gslist.kegg, function(gs) {
@@ -393,7 +393,7 @@ get_path_directions <- function(top_table) {
 #' @param gs_dir Directory to save gslist to
 #'
 #' @return gslist
-#' @export
+#' @keywords internal
 get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
@@ -422,7 +422,7 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_d
 
     #	Get GO to Entrez Gene mappings
     obj <- paste0("org.",species,".egGO2ALLEGS")
-    egGO2ALLEGS <- tryCatch(getFromNamespace(obj,orgPkg), error=function(e) FALSE)
+    egGO2ALLEGS <- tryCatch(utils::getFromNamespace(obj,orgPkg), error=function(e) FALSE)
     if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
 
     # Entrez gene to symbol
@@ -464,7 +464,7 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_d
 #' @param species species identifier
 #'
 #' @return KEGG species identifier
-#' @export
+#' @keywords internal
 get_kegg_species <- function(species) {
   species <- match.arg(species, c("Ag", "At", "Bt", "Ce", "Dm", "Dr", "EcK12", "EcSakai", "Gg", "Hs", "Mm", "Mmu", "Pf", "Pt", "Rn", "Ss", "Xl"))
   #	Convert from Bioconductor to KEGG species codes
@@ -482,7 +482,7 @@ get_kegg_species <- function(species) {
 #' @param gs_dir Directory to save results to
 #'
 #' @return Description of \code{gslist} gene sets
-#' @export
+#' @keywords internal
 #'
 get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/drugseqr/gs_dir') {
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
@@ -508,11 +508,6 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dru
     names(gs.names) <- names(gslist)
     saveRDS(gs.names, gs.names_path)
 
-  } else if (type == 'c7') {
-    c7 <- msigdbr::msigdbr(species = "Homo sapiens", category = "C7")
-    gslist <- split(c7, c7$gs_id)
-    gs.names <- sapply(gslist, function(gs) gs$gs_name[1])
-    saveRDS(gs.names, gs.names_path)
   }
 
   return(gs.names)

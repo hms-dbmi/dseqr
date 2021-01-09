@@ -3,11 +3,11 @@
 #' @param pug_view List from reading PUG-View JSON data with \code{\link[rjson]{fromJSON}}
 #'
 #' @return Boolean indicating if \code{pug_view} has a GRAS notice.
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #'
-#' pug_view <- fromJSON(file='/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view/views/4091.json')
+#' pug_view <- fromJSON(file='data-raw/drug_annot/pug_view/views/4091.json')
 #'
 check_gras <- function(pug_view) {
 
@@ -35,7 +35,7 @@ check_gras <- function(pug_view) {
 #' @inheritParams check_gras
 #'
 #' @return Character vector with DrugBank ID or NA if none exists
-#' @export
+#' @keywords internal
 get_drugbank <- function(pug_view) {
 
   # default
@@ -62,7 +62,7 @@ get_drugbank <- function(pug_view) {
 #' @inheritParams check_gras
 #'
 #' @return Character vector with Wikipedia page
-#' @export
+#' @keywords internal
 get_wikipedia <- function(pug_view) {
 
   # default

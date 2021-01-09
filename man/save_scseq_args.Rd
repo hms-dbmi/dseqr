@@ -16,3 +16,4 @@ save_scseq_args(args, dataset_name, sc_dir)
 \description{
 Save arguments for integration/subsetting
 }
+\keyword{internal}

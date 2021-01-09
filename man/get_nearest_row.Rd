@@ -29,3 +29,4 @@ test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 get_nearest_row(truth, test)
 #[1] 4 3
 }
+\keyword{internal}

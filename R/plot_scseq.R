@@ -1,8 +1,14 @@
 #' Plot TSNE coloured by cluster
 #'
+#' @param scseq SingleCellExperiment
+#' @param legend Should legend be kept? Default is \code{FALSE}.
+#' @param title Title of plot
+#' @param ... additional argument to \code{DimPlot}
+#' @inheritParams DimPlot
+#'
 #'
 #' @return \code{ggplot}
-#' @export
+#' @keywords internal
 plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, ...) {
 
   levs <- levels(scseq$cluster)
@@ -41,7 +47,7 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
 #' @param labels Character vector of labels
 #'
 #' @return \code{labels} where each word is shortened. trailing underscore numbers are preserved.
-#' @export
+#'
 #' @keywords internal
 #' @examples
 #' labels <- c('Non-Classic Mono', 'B-cell', 'B-cell_1', 'B-cell_12')
@@ -67,11 +73,19 @@ shorten_cluster_labels <- function(labels) {
 #'
 #' @param scseq \code{SingleCellExperiment} object.
 #' @param feature Character vector specifying feature to colour cells by.
-#' @param pt.size Numeric scalar, specifying the size of the points. Defaults to 3.
+#' @param reverse_scale Should the scale be reversed (lower values of feature
+#'   are darker)?
+#' @param title Title to add to plot.
+#' @inheritParams FeaturePlot
+#'
 #'
 #' @return \code{ggplot}
-#' @export
-plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), title = paste0('Expression by Cell: ', feature)) {
+#' @keywords internal
+plot_tsne_feature <- function(scseq,
+                              feature,
+                              cols = c('lightgray', 'blue'),
+                              reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
+                              title = paste0('Expression by Cell: ', feature)) {
 
   pt.size <- min(6000/ncol(scseq), 2)
 
@@ -100,7 +114,7 @@ plot_tsne_feature <- function(scseq, feature, cols = c('lightgray', 'blue'), rev
 #' @param sc_dir Directory containing original datasets used when integrating \code{scseq}
 #'
 #' @return plotly
-#' @export
+#'
 #' @keywords internal
 #'
 plot_cluster_labels <- function(scseq, clust, sc_dir) {
@@ -185,7 +199,7 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
 #' @param scseq \code{SingleCellExperiment} object.
 #'
 #' @return \code{plot} formatted for drugseqr app
-#' @export
+#'
 #' @keywords internal
 plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
 
@@ -227,7 +241,7 @@ plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
 #'  Used to show features where smaller values indicate potential QC issues.
 #'
 #' @return ggplot object
-#' @export
+#'
 #' @keywords internal
 plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
   if (is.null(selected_cluster)) selected_cluster <- ''
@@ -344,7 +358,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 #' @param exclude_ambient If true, ambient dprimes are greyed out along with non-significant genes.
 #'
 #' @return plotly object.
-#' @export
+#'
 #' @keywords internal
 plot_scseq_dprimes <- function(gene, annot, selected_cluster, tts, exclude_ambient) {
 
@@ -391,7 +405,7 @@ theme_no_axis_vals <- function() {
 #' @keywords internal
 #'
 #' @return ggplot
-#' @export
+#'
 plot_biogps <- function(gene) {
 
   gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
@@ -424,7 +438,7 @@ plot_biogps <- function(gene) {
 #' @param levs Character vector of levels to get colour pallete for.
 #'
 #' @return Character vector with colour codes of \code{length(levs)}.
-#' @export
+#'
 #' @keywords internal
 get_palette <- function(levs, dark = FALSE) {
 
@@ -454,11 +468,11 @@ get_palette <- function(levs, dark = FALSE) {
 
   } else if (nlevs <= 10) {
     pal <- if(dark) tableau10medium_dark else tableau10medium
-    values <- head(pal, nlevs)
+    values <- utils::head(pal, nlevs)
 
   } else if (nlevs <= 20) {
     pal <- if(dark) tableau20_dark else tableau20
-    values <- head(pal, nlevs)
+    values <- utils::head(pal, nlevs)
 
   } else {
     set.seed(0)

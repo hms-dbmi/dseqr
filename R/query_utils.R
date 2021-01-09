@@ -2,9 +2,9 @@
 #'
 #' These are used to query against drug effect size matrices.
 #'
-#'
+#' @param top_table data.frame of differential expression results.
 #' @return Named numeric vector. Names are gene names, values are effect size values.
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #'
@@ -36,7 +36,7 @@ get_dprimes <- function(top_table) {
 #'
 #' @return Named vector of pearson correlations between query and drug combination signatures.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #'
@@ -83,7 +83,7 @@ query_drugs <- function(query_genes, drug_es, ngenes = 200) {
 #'
 #' @return Named numeric vector where most negative results are predicted to have the strongest desired effect as
 #'  indicated by \code{query_genes}.
-#' @export
+#'
 #' @keywords internal
 query_budger <- function(query_genes, drug_es) {
 

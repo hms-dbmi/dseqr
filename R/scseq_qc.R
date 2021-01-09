@@ -5,7 +5,7 @@
 #' @param species Character vector with names of species. Supports Homo sapiens or Mus musculus.
 #'
 #' @return Indices of columns of counts corresponding to non-empty droplets
-#' @export
+#' @keywords internal
 #'
 detect_cells <- function(counts, species = 'Homo sapiens') {
 
@@ -26,7 +26,7 @@ detect_cells <- function(counts, species = 'Homo sapiens') {
 #' @param metrics Character vector of metrics to remove outliers for.
 #'
 #' @return \code{sce} with outliers removed.
-#' @export
+#' @keywords internal
 run_scseq_qc <- function(sce, metrics = c('low_lib_size',
                                           'low_n_features',
                                           'high_subsets_mito_percent',

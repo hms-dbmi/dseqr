@@ -29,6 +29,10 @@ LabelClusters(
 
 \item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
 
+\item{label.highlight}{Cluster name to highlight. If specified, cluster label
+will be black and all other cluster labels will be a dim gray. If \code{NULL}
+(default) then all cluster labels are black.}
+
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}
 }
 \value{
@@ -45,3 +49,4 @@ LabelClusters(plot = plot, id = 'ident')
 \seealso{
 \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 }
+\keyword{internal}

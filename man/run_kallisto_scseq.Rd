@@ -19,6 +19,14 @@ run_kallisto_scseq(
 \item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
 
 \item{bus_args}{Character vector of arguments to bustools.}
+
+\item{species}{The species. Default is \code{homo_sapiens}.}
+
+\item{release}{ensembl release. Default is \code{94} (latest in release for
+AnnotationHub - needs to match with
+\code{\link[drugseqr.data]{build_ensdb}}).}
+
+\item{recount}{Overwrite previous quantification?}
 }
 \description{
 Run kallisto/bustools for quantifying 10X scRNA-seq data
@@ -31,3 +39,4 @@ data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Dis
 run_kallisto_scseq(indices_dir, data_dir)
 
 }
+\keyword{internal}

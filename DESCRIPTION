@@ -1,12 +1,20 @@
 Package: drugseqr
 Type: Package
-Title: Finds CMAP02/L1000 Compounds That Oppose Gene Expression Signatures.
+Title: GUI to Explore Single-Cell and Bulk RNA-Seq data from Fastq to Pathways
 Version: 0.2.27
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
-Description: Explore single-cell and bulk RNA-seq datasets and run queries 
-    against L1000 and CMAP02 signatures.
-License: What license is it under?
+Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
+    and run queries to find similar and opposing L1000 and CMAP02 perturbation 
+    signatures. Single-cell fastq files can be quantified, imported, QC'ed,
+    annotated and integrated. For integrated datasets, 'limma' pseudobulk 
+    differential expression results can be explored within the app or downloaded
+    along with pathway and differential abundance analyses. Bulk RNA-seq
+    fastq files can also be quantified, imported, analysed, and deconvoluted
+    using a single-cell dataset. Finally, differential expression analyses from
+    bulk and single-cell datasets can be used to find similar and opposing
+    CMAP02 and L1000 perturbation signatures.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
@@ -16,8 +24,10 @@ SystemRequirements:
 Imports:
     AnnotationDbi (>= 1.48.0),
     Biobase (>= 2.46.0),
+    BiocParallel,
     batchelor (>= 1.3.9),
     crossmeta,
+    cowplot,
     dplyr (>= 0.8.3),
     DT (>= 0.11),
     DropletUtils(>= 1.6.1),
@@ -26,23 +36,32 @@ Imports:
     dtangle (>= 2.0.9),
     drugseqr.data,
     edgeR (>= 3.28.0),
+    fs,
     ggplot2 (>= 3.2.1),
     ggridges (>= 0.5.1),
+    ggrepel,
     GO.db (>= 3.10.0),
+    jsonlite,
     rkal (>= 0.1.12),
     hdf5r (>= 1.3.1),
+    htmltools,
     harmony (>= 1.0),
     igraph (>= 1.2.4.2),
     limma (>= 3.40.2),
     liger (>= 0.5.0),
+    LoomExperiment,
     org.Hs.eg.db (>= 3.10.0),
     org.Mm.eg.db (>= 3.10.0),
     magrittr (>= 1.5),
     Matrix.utils (>= 0.9.7),
+    Matrix,
+    MASS,
     plotly (>= 4.9.1),
     randomcoloR (>= 1.1.0.1),
     rlang (>= 0.4.3),
     rintrojs (>= 0.2.2),
+    RColorBrewer,
+    S4Vectors,
     shiny (>= 1.4.0),
     shinyBS (>= 0.61),
     shinyjs (>= 1.1),
@@ -52,7 +71,9 @@ Imports:
     shinypanel (>= 0.1.0),
     SingleCellExperiment (>= 1.9.1),
     SingleR (>= 1.1.6),
+    SummarizedExperiment,
     scran (>= 1.14.5),
+    stringr,
     scater (>= 1.15.12),
     tibble (>= 2.1.3)
 Suggests: 

@@ -19,3 +19,4 @@ gslist
 \description{
 Get gslist for pathway analysis
 }
+\keyword{internal}

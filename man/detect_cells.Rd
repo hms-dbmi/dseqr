@@ -17,3 +17,4 @@ Indices of columns of counts corresponding to non-empty droplets
 \description{
 Determine non-empty droplets
 }
+\keyword{internal}

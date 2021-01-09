@@ -43,11 +43,11 @@ server <- function(input, output, session) {
   # rintrojs
   observeEvent(input$start_tour, {
     if (input$tabs == 'Single Cell') {
-      steps <- read.csv('www/sc_intro.csv', stringsAsFactors = FALSE)
+      steps <- utils::read.csv('www/sc_intro.csv', stringsAsFactors = FALSE)
     } else if (input$tabs == 'Bulk Data') {
-      steps <- read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
+      steps <- utils::read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
     } else if (input$tabs == 'Drugs') {
-      steps <- read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
+      steps <- utils::read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
     } else {
       print(input$tabs)
       return(NULL)

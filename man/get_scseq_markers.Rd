@@ -9,7 +9,10 @@ get_scseq_markers(tests, pval.type = "some", effect.field = "AUC", keep = NULL)
 \arguments{
 \item{tests}{Result of \code{pairwise_wilcox}}
 
-\item{pval.type}{}
+\item{pval.type}{A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.}
+
+\item{effect.field}{A string specifying the column name of each element of \code{de.lists} that contains the effect size.
+If \code{NULL}, effect sizes are not reported in the output.}
 }
 \value{
 List of data.frames
@@ -17,3 +20,4 @@ List of data.frames
 \description{
 Combine pairwise wilcox tests between single-cell clusters
 }
+\keyword{internal}

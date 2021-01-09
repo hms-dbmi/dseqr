@@ -49,3 +49,4 @@ fviz_dist(res.dist,
 \author{
 Alboukadel Kassambara \email{alboukadel.kassambara@gmail.com}
 }
+\keyword{internal}

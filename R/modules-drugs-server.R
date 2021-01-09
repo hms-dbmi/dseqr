@@ -1,5 +1,5 @@
 #' Logic for Drugs page
-#' @export
+#'
 #' @keywords internal
 drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir, pert_signature_dir) {
 
@@ -35,7 +35,7 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
 }
 
 # Logic for form on drugs page
-#' @export
+#'
 #' @keywords internal
 drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
@@ -120,7 +120,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 }
 
 #' Logic for custom query form on Drugs page
-#' @export
+#'
 #' @keywords internal
 customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, data_dir) {
   input_ids <- c('custom_name', 'click_custom')
@@ -167,7 +167,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 
     } else {
       top_table <- tryCatch(
-        read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE, row.names = 1),
+        utils::read.csv(infile$datapath, check.names = FALSE, stringsAsFactors = FALSE, row.names = 1),
         error = function(e) return(NULL))
 
       msg <- validate_up_custom(top_table, input$custom_name)
@@ -202,7 +202,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 }
 
 #' Logic for selected drug study in drugsForm
-#' @export
+#'
 #' @keywords internal
 selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 
@@ -290,7 +290,7 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 }
 
 #' Logic for advanced options in drugsForm
-#' @export
+#'
 #' @keywords internal
 advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 
@@ -320,7 +320,7 @@ advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 }
 
 #' Logic for showing pert selection for gene plot
-#' @export
+#'
 #' @keywords internal
 selectedPertSignature <- function(input, output, session, data_dir, query_res, query_type, pert_signature_dir) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
@@ -372,7 +372,7 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
 }
 
 #' Logic for drug table
-#' @export
+#'
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction, ntop = 1500) {
@@ -532,13 +532,13 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
       drug_study <- gsub(' ', '_', drug_study)
       paste0(anal_name, '_', drug_study, '.csv')
     },
-    content = function(con) {write.csv(query_table_dl(), con, row.names = FALSE)}
+    content = function(con) {utils::write.csv(query_table_dl(), con, row.names = FALSE)}
   )
 
 }
 
 #' Logic query/drug genes plotly
-#' @export
+#'
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, pert_signature) {
@@ -589,7 +589,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #' @param path_df result of \link{get_path_df}.
 #'
 #' @return plotly
-#' @export
+#'
 #' @keywords internal
 plot_dprimes <- function(path_df, drugs = TRUE) {
 
@@ -717,7 +717,7 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
 
 #' Logic for selected dataset/analysis in Drugs tab
-#' @export
+#'
 #' @keywords internal
 selectedAnal <- function(input, output, session, data_dir, choices, new_custom, pert_query_dir = NULL) {
   options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'))

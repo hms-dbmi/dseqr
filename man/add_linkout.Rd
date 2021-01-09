@@ -35,3 +35,4 @@ values will be ignored.}
 Non \code{NA} values in \code{id_col} of \code{query_res} are inserted between
 \code{pre_url} and \code{post_url} to form hyperlinks. Relevant HTML markup is also added.
 }
+\keyword{internal}

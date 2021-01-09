@@ -114,6 +114,6 @@ FeaturePlot(object = pbmc_small, features = 'PC_1')
 
 }
 \seealso{
-\code{\link{DimPlot}} \code{\link{HoverLocator}}
-\code{\link{CellSelector}}
+\code{\link{DimPlot}}
 }
+\keyword{internal}

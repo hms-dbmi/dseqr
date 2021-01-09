@@ -11,6 +11,9 @@ get_cors_html(cors, titles, cor_titles, cors_range)
 
 \item{titles}{List of character vectors of treatment titles for pearson correlations (e.g. MCF7_1e-05M_6h_3).}
 
+\item{cor_titles}{List of character vectors used for title element. Used
+to allow right click on correlation point to load query for perturbation signature.}
+
 \item{cors_range}{Numeric vector of length two specifying the range of correlation values.}
 }
 \value{
@@ -19,3 +22,4 @@ Character vector of HTML markup for the title/circle/text for a correlation plot
 \description{
 Get HTML for correlation values.
 }
+\keyword{internal}

@@ -8,7 +8,7 @@
 #' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{dataset_name}.
 
 #' @return Character vector of predicted labels from \code{ref_name}.
-#' @export
+#'
 #' @keywords internal
 get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
@@ -43,7 +43,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 #' @param sc_dir Directory with single-cell datasets
 #'
 #' @return \code{preds} that were generated from current datasets
-#' @export
+#'
 #' @keywords internal
 validate_preds <- function(preds, sc_dir) {
   senv <- loadNamespace('SingleR')
@@ -70,7 +70,7 @@ validate_preds <- function(preds, sc_dir) {
 #'
 #' @param scseq \code{SingleCellExperiment}
 #'
-#' @export
+#'
 #' @keywords internal
 diff_abundance <- function(scseq, annot, pairs = NULL) {
 
@@ -87,7 +87,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   colnames(adj) <- paste0(colnames(adj), '_adjusted_counts')
 
   group <- y.ab$samples$orig.ident
-  group <- relevel(group, 'ctrl')
+  group <- stats::relevel(group, 'ctrl')
   y.ab$samples$group <- group
 
   # if only two samples, sort by logFC and return
@@ -123,51 +123,6 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   return(tt)
 }
 
-#' Run variance partition on RNA-seq ExpressionSet
-#'
-#' @param eset \code{ExpressionSet} with 'lib.size', 'norm.factors', 'group' and 'pair' columns in \code{pData}.
-#'
-#' @return results of call to \code{\link[varianceParition]{fitExtractVarPartModel}} with
-#'  'group' and 'pair' covariates treated as random effects
-#' @export
-#'
-run_varPart <- function(eset) {
-
-  pdata <- Biobase::pData(eset)
-  pdata$pair <- factor(pdata$pair)
-  lib.size <- pdata$lib.size * pdata$norm.factors
-
-  y <- Biobase::exprs(eset)
-  v <- limma::voom(y, lm_fit$mod, lib.size = lib.size)
-  form <- ~ (1|group) + (1|pair)
-  param <- BiocParallel::SerialParam()
-  varPart <- variancePartition::fitExtractVarPartModel(v, form, info, BPPARAM = param)
-  return(varPart)
-}
-
-#' Run dream mixed effect model on RNA-seq ExpressionSet
-#'
-#' @inheritParams run_varPart
-#'
-#' @return \code{\link[limma]{topTable}} result from \code{\link[varianceParition]{dream}} with 'group'
-#'  treated as fixed effect and 'pair' as a random effect.
-#' @export
-#'
-run_dream <- function(eset) {
-
-  pdata <- Biobase::pData(eset)
-  pdata$pair <- factor(pdata$pair)
-  lib.size <- pdata$lib.size * pdata$norm.factors
-
-  form <- ~group + (1|pair)
-  y <- Biobase::exprs(eset)
-  param <- BiocParallel::SerialParam()
-  v <- variancePartition::voomWithDreamWeights(y, form, pdata, lib.size = lib.size, BPPARAM = param)
-  fitmm <- variancePartition::dream(v, form, pdata, BPPARAM = param)
-  tt <- limma::topTable(fitmm, coef = 'grouptest', number = Inf, sort.by = 'P')
-  return(tt)
-}
-
 
 #' Get label transfer choices data.frame
 #'
@@ -177,14 +132,14 @@ run_dream <- function(eset) {
 #' @param preds Named list of predicted cluster labels. Names are values in \code{anal_options} lists.
 #'
 #' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
-#' @export
+#'
 #' @keywords internal
 get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
   # determine if is subset
   is.recent <- anal_options$type == 'Previous Session'
   is.sel <- anal_options$name == selected_anal
-  type   <- tail(anal_options$type[is.sel], 1)
+  type   <- utils::tail(anal_options$type[is.sel], 1)
   type   <-  ifelse(type %in% c('Integrated', 'Individual'), selected_anal, type)
 
   anal_options <- anal_options[!is.sel & !is.recent, ]
@@ -219,7 +174,7 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
 #' @param comparison_type either 'samples' or 'clusters'
 #'
 #' @return File name string
-#' @export
+#'
 #' @keywords internal
 sc_dl_filename <- function(cluster, anal, comparison_type) {
 
@@ -240,7 +195,7 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
 #' @param data_dir Directory with single cell analyses.
 #'
 #' @return data.frame with columns for rendering selectizeInput include choices
-#' @export
+#'
 #' @keywords internal
 get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
 
@@ -276,7 +231,7 @@ get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
 #' @param sample_comparison is this for test vs control comparion? Default is \code{FALSE}.
 #'
 #' @return data.frame with columns for rendering selectizeInput cluster choices
-#' @export
+#'
 #' @keywords internal
 get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 
@@ -327,7 +282,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
 #' @param sc_dir Directory containing single-cell datasets
 #'
 #' @return data.frame of single-cell dataset choices for selectizeInput
-#' @export
+#'
 #' @keywords internal
 get_sc_dataset_choices <- function(sc_dir) {
 
@@ -401,7 +356,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 #' @param scseq \code{SingleCellExperiment}
 #'
 #' @return data.frame
-#' @export
+#' @keywords internal
 get_metric_choices <- function(scseq) {
 
   metrics <- scseq@colData
@@ -429,7 +384,7 @@ get_metric_choices <- function(scseq) {
 #' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
 #'
 #' @return Either a data.frame is successful or a object with class 'try-error'.
-#' @export
+#'
 #' @keywords internal
 validate_metric <- function(metric, scseq) {
 
@@ -451,7 +406,7 @@ validate_metric <- function(metric, scseq) {
 #' @param metric Custom metric to extract features from.
 #'
 #' @return Character vector of feature names extracted from \code{metric}
-#' @export
+#'
 #' @keywords internal
 get_metric_features <- function(metric) {
 
@@ -469,7 +424,7 @@ get_metric_features <- function(metric) {
 #' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
 #'
 #' @return data.frame with column name \code{metric} and result.
-#' @export
+#'
 #' @keywords internal
 evaluate_custom_metric <- function(metric, scseq) {
   ft <- get_metric_features(metric)
@@ -509,7 +464,7 @@ evaluate_custom_metric <- function(metric, scseq) {
 #' @param whitelist R functions to allow use of.
 #'
 #' @return \code{TRUE} if expression is safe, otherwise \code{FALSE}.
-#' @export
+#'
 #' @keywords internal
 interpret <- function(expr_str,
                       max_length = 200,
@@ -536,7 +491,7 @@ interpret <- function(expr_str,
 #' @inheritParams base::format
 #'
 #' @return Formatted \code{x} with &nbsp; substituted for each space.
-#' @export
+#'
 #' @keywords internal
 #'
 html_space <- function(x, justify = 'right') {
@@ -548,10 +503,17 @@ html_space <- function(x, justify = 'right') {
 #' Get/Save cluster stats for single-cell related selectizeInputs
 #'
 #' @param dataset_dir Directory with single cell dataset.
-#' @param scseq \code{SingleCellExperiment} object to get/save stats for. if \code{NULL} (Default), will be loaded.
+#' @param scseq \code{SingleCellExperiment} object to get/save stats for.
+#'   if \code{NULL} (Default), will be loaded.
+#' @param top_tables List of \code{limma::topTable} results used by
+#'   scSampleComparison for integrated datasets.
+#' @param has_replicates Boolean indicating if integrated dataset has multiple
+#'   samples in at least one group. Used by scSampleComparison.
+#' @param use_disk Should results by saved to disk? used by scSampleComparison
+#'   to persist results to disk.
+#' @inheritParams get_cluster_choices
 #'
 #' @return List with cluster stats
-#' @export
 get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
 
   stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
@@ -614,7 +576,7 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
 #' @param test Name of test contrast
 #'
 #' @return data.frame with columns for rendering selectizeInput contrast choices
-#' @export
+#'
 #' @keywords internal
 get_contrast_choices <- function(clusters, test) {
 
@@ -646,7 +608,7 @@ get_contrast_choices <- function(clusters, test) {
 #' @param dataset_dir Path to folder for dataset
 #'
 #' @return Named list with data.frames for each comparison direction
-#' @export
+#'
 #' @keywords internal
 #'
 get_contrast_markers <- function(con, dataset_dir) {
@@ -676,7 +638,7 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' @param markers data.frame of marker genes.
 #'
 #' @return data.frame of all genes, with markers on top and cell percent columns
-#' @export
+#'
 #' @keywords internal
 get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE, species = 'Homo sapiens') {
   markers <- row.names(markers)
@@ -736,9 +698,23 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
 #'
 #' @return NULL
-#' @export
+#'
 #' @keywords internal
-integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude_clusters, exclude_cells = NULL, integration_type = c('harmony', 'liger', 'fastMNN'), subset_metrics = NULL, is_include = FALSE, founder = integration_name, pairs = NULL, progress = NULL, value = 0) {
+integrate_saved_scseqs <- function(
+  sc_dir,
+  test,
+  ctrl,
+  integration_name,
+  exclude_clusters,
+  exclude_cells = NULL,
+  integration_type = c('harmony', 'liger', 'fastMNN'),
+  subset_metrics = NULL,
+  is_include = FALSE,
+  founder = integration_name,
+  pairs = NULL,
+  progress = NULL,
+  value = 0) {
+
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -863,7 +839,7 @@ integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name, exclude
 #' @param progress Optional shiny progress object.
 #'
 #' @return NULL
-#' @export
+#'
 #' @keywords internal
 #'
 subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_cells, subset_metrics, is_integrated, is_include, progress = NULL) {
@@ -919,7 +895,7 @@ subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, excl
 #' @param dataset_name Name of dataset to determine founder for.
 #'
 #' @return Name of founder.
-#' @export
+#' @keywords internal
 #'
 get_founder <- function(sc_dir, dataset_name) {
 
@@ -938,7 +914,7 @@ get_founder <- function(sc_dir, dataset_name) {
 #' @param sc_dir Directory with single-cell analyses
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 #'
 save_scseq_args <- function(args, dataset_name, sc_dir) {
   jsonlite::write_json(args,
@@ -954,7 +930,7 @@ save_scseq_args <- function(args, dataset_name, sc_dir) {
 #' @param scseqs list of \code{SingleCellExperiment}s used to create \code{combined}
 #'
 #' @return \code{combined} with QC metrics from \code{scseqs} added
-#' @export
+#'
 #' @keywords internal
 add_combined_metrics <- function(combined, scseqs) {
   # add original QC metrics
@@ -983,7 +959,7 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @param ident Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.
 #'
 #' @return List of \code{SingleCellExperiment} objects.
-#' @export
+#'
 #' @keywords internal
 load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = FALSE, ident = 'test', exclude_cells = NULL) {
 
@@ -1049,7 +1025,7 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 #' @param integrated is the analysis integration. Default is \code{FALSE}
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 save_scseq_data <- function(scseq_data, dataset_name, sc_dir, integrated = FALSE) {
   dataset_dir <- file.path(sc_dir, dataset_name)
 
@@ -1100,7 +1076,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, integrated = FALSE
 #' @param ctrl Character vector of control dataset names
 #'
 #' @return \code{NULL} if valid, otherwise an error message
-#' @export
+#'
 #' @keywords internal
 validate_integration <- function(test, ctrl, pairs) {
   msg <- NULL
@@ -1122,7 +1098,7 @@ validate_integration <- function(test, ctrl, pairs) {
 #' @param part either \code{'annot'}, \code{'scseq'}, or \code{'markers'}.
 #'
 #' @return Path to analysis \code{part}.
-#' @export
+#'
 #' @keywords internal
 scseq_part_path <- function(data_dir, dataset_name, part) {
   fname <- paste0(part, '.rds')
@@ -1139,7 +1115,7 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @param ambient Character vector of ambient genes to exclude from drug queries.
 #'
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
-#' @export
+#'
 #' @keywords internal
 run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species = NULL, ngenes = 200) {
 
@@ -1171,7 +1147,7 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 #' Load drug effect size matrices for drug queries
 #'
 #' @return list of matrices
-#' @export
+#'
 #' @keywords internal
 load_drug_es <- function() {
 
@@ -1190,7 +1166,7 @@ load_drug_es <- function() {
 #'
 #' @param x Character vector of selected cluster numbers
 #' @return String with sorted cluster numbers comma collapsed.
-#' @export
+#'
 #' @keywords internal
 collapse_sorted <- function(x, collapse = ',') {
   paste(sort(as.numeric(x)), collapse = ',')
@@ -1205,7 +1181,7 @@ collapse_sorted <- function(x, collapse = ',') {
 #' @param test matrix to test each row of and find closest rows in \code{truth}.
 #'
 #' @return vector of rows in \code{truth} that are the nearest to each row in \code{test}.
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' set.seed(123)  ## for reproducibility
@@ -1233,7 +1209,7 @@ get_nearest_row <- function(truth, test) {
 #'
 #' @return \code{ggplot} object showing cells in \code{anal} with original labels but coordinates from \code{plot}
 #'  of integrated \code{scseq}.
-#' @export
+#'
 #' @keywords internal
 #'
 get_label_plot <- function(anal, scseq, annot, plot) {
@@ -1293,8 +1269,8 @@ get_label_plot <- function(anal, scseq, annot, plot) {
 get_tsne_coords <- function(plot_data) {
   plot_data %>%
     group_by(ident) %>%
-    summarise(TSNE_1 = median(TSNE_1),
-              TSNE_2 = median(TSNE_2))
+    summarise(TSNE_1 = stats::median(TSNE_1),
+              TSNE_2 = stats::median(TSNE_2))
 }
 
 

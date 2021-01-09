@@ -24,6 +24,11 @@
 #' either a full list of valid idents or a subset to be plotted last (on top)
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param label.index Whether to prepend cluster labels with integer indicating
+#' group number.
+#' @param label.highlight Cluster name to highlight. If specified, cluster label
+#' will be black and all other cluster labels will be a dim gray. If \code{NULL}
+#' (default) then all cluster labels are black.
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -43,14 +48,13 @@
 #'
 #' @importFrom rlang !! %||%
 #'
-#' @export
+#' @keywords internal
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases TSNEPlot PCAPlot ICAPlot
-#' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-#' \code{\link{CellSelector}} \code{link{FetchData}}
+#' @seealso \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
@@ -145,17 +149,7 @@ DimPlot <- function(
 
         )
       }
-      if (!is.null(x = split.by)) {
-        plot <- plot + FacetTheme() +
-          facet_wrap(
-            facets = vars(!!sym(x = split.by)),
-            ncol = if (length(x = group.by) > 1 || is.null(x = ncol)) {
-              length(x = unique(x = data[, split.by]))
-            } else {
-              ncol
-            }
-          )
-      }
+
       return(plot)
     }
   )
@@ -231,21 +225,7 @@ SingleDimPlot <- function(
   } else if (is.numeric(x = dims)) {
     dims <- colnames(x = data)[dims]
   }
-  if (!is.null(x = cells.highlight)) {
-    highlight.info <- SetHighlight(
-      cells.highlight = cells.highlight,
-      cells.all = rownames(x = data),
-      sizes.highlight = sizes.highlight %||% pt.size,
-      cols.highlight = cols.highlight,
-      col.base = cols[1] %||% '#C3C3C3',
-      pt.size = pt.size
-    )
-    order <- highlight.info$plot.order
-    data$highlight <- highlight.info$highlight
-    col.by <- 'highlight'
-    pt.size <- highlight.info$size
-    cols <- highlight.info$color
-  }
+
   if (!is.null(x = order) && !is.null(x = col.by)) {
     if (typeof(x = order) == "logical") {
       if (order) {
@@ -302,13 +282,7 @@ SingleDimPlot <- function(
       size = label.size
     )
   }
-  if (!is.null(x = cols)) {
-    plot <- plot + if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
-      ggplot2::scale_color_brewer(palette = cols, na.value = na.value)
-    } else {
-      ggplot2::scale_color_manual(values = cols, na.value = na.value)
-    }
-  }
+
   plot <- plot + cowplot::theme_cowplot()
   return(plot)
 }
@@ -324,10 +298,11 @@ SingleDimPlot <- function(
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
+#' @inheritParams DimPlot
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
-#' @export
+#' @keywords internal
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 #'
@@ -355,8 +330,8 @@ LabelClusters <- function(
     split.by <- NULL
   }
   data <- plot$data[, c(xynames, id, split.by)]
-  possible.clusters <- as.character(x = na.omit(object = unique(x = data[, id])))
-  groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
+  possible.clusters <- as.character(x = stats::na.omit(object = unique(x = data[, id])))
+  groups <- clusters %||% as.character(x = stats::na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
@@ -373,7 +348,7 @@ LabelClusters <- function(
               medians <- apply(
                 X = data.use[data.use[, split.by] == split, xynames, drop = FALSE],
                 MARGIN = 2,
-                FUN = median,
+                FUN = stats::median,
                 na.rm = TRUE
               )
               medians <- as.data.frame(x = t(x = medians))
@@ -386,7 +361,7 @@ LabelClusters <- function(
         as.data.frame(x = t(x = apply(
           X = data.use[, xynames, drop = FALSE],
           MARGIN = 2,
-          FUN = median,
+          FUN = stats::median,
           na.rm = TRUE
         )))
       }
@@ -480,7 +455,7 @@ AutoPointSize <- function(data) {
 #'
 #' @return A combined plot
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' pbmc_small[['group']] <- sample(
@@ -549,7 +524,7 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #'
 #' @param ... Extra parameters to be passed to \code{theme}
 #'
-#' @export
+#' @keywords internal
 #' @examples
 #' # Generate a plot with no legend
 #' library(ggplot2)

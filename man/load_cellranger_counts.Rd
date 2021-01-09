@@ -6,10 +6,14 @@
 \usage{
 load_cellranger_counts(data_dir)
 }
+\arguments{
+\item{data_dir}{Path to folder with cell ranger files.}
+}
 \value{
 dgCMatrix
 }
 \description{
-Mainly to avoid having to download massive datasets that have already been quantified.
-))))
+Mainly to avoid having to download massive datasets that have already been
+quantified.
 }
+\keyword{internal}

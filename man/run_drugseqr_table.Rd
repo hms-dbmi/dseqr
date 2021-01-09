@@ -35,9 +35,6 @@ One of \code{'CMAP02'},\code{'L1000 Genetic'}, or \code{'L1000 Drugs'}.}
 
 \item{direction}{Direction of correlation to sort results by. One of \code{'both'}, \code{'similar'}, or \code{'opposing'} (default).}
 }
-\value{
-
-}
 \description{
 Used to show full query table and use programmatic filter options
 }

@@ -26,3 +26,4 @@ Description of \code{gslist} gene sets
 \description{
 Get names of gene set
 }
+\keyword{internal}
