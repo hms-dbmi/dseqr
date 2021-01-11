@@ -20,12 +20,11 @@ process_raw_scseq(
 
 \item{sc_dir}{Directory to save dataset to}
 
+\item{founder}{Name of original founding dataset (may be ancestor of \code{from_dataset}).}
+
 \item{progress}{Shiny progress object. Default (\code{NULL}) prints to stdout.}
 
 \item{value}{Initial value of progress.}
-
-\item{score_doublets}{Should doublet scores be computed? Intended for non-subsetted data within \code{\link{load_raw_scseq}}.
-Default is \code{FALSE}.}
 }
 \description{
 Process Count Data for App

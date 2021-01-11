@@ -13,13 +13,6 @@ zakquery(
 )
 }
 \arguments{
-\item{query_res}{Numeric vector of correlation values with names as HGNC symbols}
-
-\item{drug_study}{Queried database giving rise to \code{query_res}.
-One of \code{'CMAP02'},\code{'L1000 Genetic'}, or \code{'L1000 Drugs'}.}
-
-\item{min_signatures}{Number of independent perturbagen signatures below which a perturbation is excluded. Default is \code{3}.}
-
 \item{interactive}{if \code{TRUE} (default) then starts shiny app with first \code{cell_types}. Otherwise returns
 data.frames with results for all \code{cell_types}.}
 }

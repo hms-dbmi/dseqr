@@ -100,7 +100,7 @@ annot_query_res <- function(query_res, drug_annot) {
 
 #' Summarise annotated query table
 #'
-#' @param query_table_annot result of \link{query_table_annot}
+#' @param query_table_annot result of \link{annot_query_res}
 #' @param remove_html Should html columns be removed? For non-webapp usage.
 #' @inheritParams format_query_res
 #' @inheritParams get_top_cors
@@ -150,6 +150,7 @@ get_query_cols <- function(is_genetic) {
 #' @return \code{query_table_summarised} with drugs filtered that contain fewer than \code{min_signatures}.
 #' @keywords internal
 filter_nsig <- function(query_table_summarised, min_signatures) {
+  n <- NULL
   query_table_summarised %>% dplyr::filter(n >= min_signatures)
 }
 
@@ -162,6 +163,8 @@ filter_nsig <- function(query_table_summarised, min_signatures) {
 #'   Drugs without a clinical phase annotation are removed if \code{show_clinical} is \code{FALSE}
 #' @keywords internal
 filter_clinical <- function(query_table_nsig, show_clinical) {
+  . <- `Clinical Phase` <- NULL
+
   query_table_nsig %>% {
     if (show_clinical && 'Clinical Phase' %in% colnames(.))
       dplyr::filter(., !is.na(`Clinical Phase`))
@@ -178,6 +181,7 @@ filter_clinical <- function(query_table_nsig, show_clinical) {
 #' @return Final query table
 #' @keywords internal
 sort_query_table_clin <- function(query_table_clin, sort_by, sort_abs, direction, drug_study, remove_html = FALSE) {
+  min_cor <- max_cor <- avg_cor <- n <- NULL
 
   # final sorting/filtering
   q <- query_table_clin

@@ -61,10 +61,9 @@ load_raw_scseq <- function(dataset_name,
 #' @param scseq \code{SingleCellExperiment}
 #' @param dataset_name Name of dataset to save
 #' @param sc_dir Directory to save dataset to
-#' @param score_doublets Should doublet scores be computed? Intended for non-subsetted data within \code{\link{load_raw_scseq}}.
-#'  Default is \code{FALSE}.
 #' @param progress Shiny progress object. Default (\code{NULL}) prints to stdout.
 #' @param value Initial value of progress.
+#' @inheritParams subset_saved_scseq
 #'
 #' @return NULL
 #' @export
@@ -325,6 +324,7 @@ load_cellranger_counts <- function(data_dir) {
 }
 
 process_cellranger_counts <- function(counts, species) {
+  gene_id <- gene_name <- NULL
 
   if (!grepl('sapiens|musculus')) stop('Species not supported')
   tx2gene <- drugseqr.data::load_tx2gene(species)

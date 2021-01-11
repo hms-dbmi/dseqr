@@ -49,6 +49,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
 #'
 #' @keywords internal
 construct_path_df <- function(top_table) {
+  Gene <- NULL
 
   tx2gene <- drugseqr.data::load_tx2gene()
 
@@ -63,7 +64,7 @@ construct_path_df <- function(top_table) {
     Link = paste0("<a class='xaxis-tooltip' href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
     stringsAsFactors = FALSE
   ) %>%
-    mutate(Gene = factor(Gene, levels = Gene))
+    dplyr::mutate(Gene = factor(Gene, levels = Gene))
 }
 
 
@@ -287,6 +288,8 @@ supress.genes <- function(markers, supress) {
 #'
 #' @keywords internal
 fit_lm_scseq <- function(scseq) {
+  SYMBOL_9606 <- ENTREZID <- NULL
+
   hs <- readRDS(system.file('extdata', 'hs.rds', package = 'drugseqr.data'))
   data.table::setkey(hs, SYMBOL_9606)
 
@@ -360,30 +363,6 @@ decide_ambient <- function(ambient, top_table, cluster_markers) {
   return(ambient)
 }
 
-#' Get direction of pathways
-#'
-#' @param top_table
-#'
-#' @return a \code{data.frame} with columns: \itemize{
-#'  \item is.up Boolean indicating if direction is mostly up
-#'  \item label Character vector with values \code{'Mostly Up'} or \code{'Mostly Down'}.
-#'  These are used for selectize input option group field.
-#' }
-#' @keywords internal
-get_path_directions <- function(top_table) {
-
-  is.up <- sapply(gslist.kegg, function(gs) {
-    in.gs <- row.names(top_table) %in% names(gs)
-    mean(top_table[in.gs, 't']) > 0
-  })
-
-  is.up <- is.up[!is.na(is.up)]
-
-  data.frame(label = ifelse(is.up, 'Mostly Up', 'Mostly Down'),
-             is.up = is.up,
-             row.names = names(is.up),
-             stringsAsFactors = FALSE)
-}
 
 
 #' Get gslist for pathway analysis
@@ -395,6 +374,7 @@ get_path_directions <- function(top_table) {
 #' @return gslist
 #' @keywords internal
 get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
+  PathwayID <- GeneID <- SYMBOL <- NULL
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 

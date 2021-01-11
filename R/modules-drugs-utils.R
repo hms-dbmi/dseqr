@@ -283,6 +283,8 @@ get_cell_choices <- function(drug_study) {
 #' @return \code{query_table} for specified \code{cells}
 #' @keywords internal
 limit_cells <- function(query_table, cells = NULL) {
+  cell_line <- NULL
+
   if (!is.null(cells))
     query_table <- query_table %>%
       dplyr::filter(cell_line %in% cells)
@@ -307,6 +309,8 @@ limit_cells <- function(query_table, cells = NULL) {
 #'
 #' @importFrom magrittr "%>%"
 get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
+  Compound <- NULL
+
   pre <- ifelse(decreasing, -1, 1)
   query_cors %>%
     dplyr::as_tibble() %>%
@@ -336,8 +340,10 @@ get_top <- function(query_cors, arrange_by, ntop, decreasing = FALSE) {
 #' @keywords internal
 #'
 #' @importFrom magrittr "%>%"
+#' @importFrom rlang :=
 #'
 summarize_compound <- function(query_table, is_genetic = FALSE, ntop = 1500) {
+  Compound <- `Clinical Phase` <- .SD <- . <- NULL
 
   query_table <- data.table::data.table(query_table, key = 'Compound')
 
@@ -400,6 +406,8 @@ summarize_compound <- function(query_table, is_genetic = FALSE, ntop = 1500) {
 #'
 #' @keywords internal
 get_top_cors <- function(query_table, ntop, is_genetic = FALSE) {
+  Correlation <- .N <- Compound <- NULL
+
   query_table <- data.table::data.table(query_table, key = 'Compound')
 
   # put all correlations together in list

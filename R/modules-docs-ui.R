@@ -304,8 +304,8 @@ docsSideNav <- function(section_info) {
   nsections <- length(section_id_names)
 
   withTags({
-    nav(class = "bs-docs-sidebar well-form well-bg",
-        ul(class="nav bs-docs-sidenav",
+    tags$nav(class = "bs-docs-sidebar well-form well-bg",
+        tags$ul(class="nav bs-docs-sidenav",
            lapply(seq_len(nsections), function(i) {
 
              # get id and name for current section
@@ -314,13 +314,13 @@ docsSideNav <- function(section_info) {
              # get id and names list of subsections for current section
              subsectioni_id_names <- subsection_id_names[[i]]
 
-             li(
+             tags$li(
                # link for current section
                a(href=paste0("#", section_id_name[1]), section_id_name[2]),
-               ul(class="nav",
+               tags$ul(class="nav",
                   # link for each subsection of current section
                   lapply(subsectioni_id_names, function(subsectioni_id_name) {
-                    li(
+                    tags$li(
                       a(href = paste0("#", subsectioni_id_name[1]), subsectioni_id_name[2])
                     )
                   }

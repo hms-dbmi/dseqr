@@ -434,6 +434,7 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
 #' @param data A data frame being passed to ggplot2
 #'
 #' @return The "optimal" point size for visualizing these data
+#' @keywords internal
 #'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))

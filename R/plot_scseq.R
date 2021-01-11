@@ -118,16 +118,17 @@ plot_tsne_feature <- function(scseq,
 #' @keywords internal
 #'
 plot_cluster_labels <- function(scseq, clust, sc_dir) {
+  cluster  <- orig.cluster <- orig.ident <- nsample <- group <- pcell <- NULL
 
   df <- tibble::as_tibble(scseq@colData) %>%
     dplyr::filter(cluster == clust) %>%
     dplyr::group_by(batch) %>%
-    dplyr::mutate(nsample = n()) %>%
+    dplyr::mutate(nsample = dplyr::n()) %>%
     dplyr::group_by(batch, orig.cluster) %>%
-    dplyr::summarize(ncell = n(),
+    dplyr::summarize(ncell = dplyr::n(),
                      group = orig.ident[1],
                      nsample = nsample[1],
-                     pcell = n() / nsample[1] * 100,
+                     pcell = dplyr::n() / nsample[1] * 100,
                      boc = paste(batch[1], orig.cluster[1], sep='_')) %>%
     dplyr::arrange(group, batch, pcell) %>%
     dplyr::select(-orig.cluster)
@@ -244,6 +245,8 @@ plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
 #'
 #' @keywords internal
 plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+  n <- NULL
+
   if (is.null(selected_cluster)) selected_cluster <- ''
 
   # for one vs one comparisons

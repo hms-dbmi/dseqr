@@ -18,6 +18,7 @@ save_lmfit <- function(lm_fit, dataset_dir, numsv = 0, anal_suffix = '') {
 
 
 format_scaling <- function(scaling, adj, group, exprs) {
+  V1 <- V2 <- Group <- NULL
 
   scaling %>%
     dplyr::rename('MDS1' = V1, 'MDS2' = V2) %>%
@@ -77,7 +78,9 @@ get_mds <- function(exprs, adj, group) {
 #  A copy of the GNU General Public License is available at
 #  http://www.r-project.org/Licenses/
 #
-sammon <- function(d, y = cmdscale(d, k), k = 2, niter = 100, trace = TRUE, magic = 0.2, tol = 1e-4) {
+sammon <- function(d, y = stats::cmdscale(d, k), k = 2, niter = 100, trace = TRUE, magic = 0.2, tol = 1e-4) {
+  VR_sammon <- NULL
+
   call <- match.call()
   if(any(is.infinite(d))) stop("Infs not allowed in 'd'")
   if(any(is.na(d)) && missing(y))

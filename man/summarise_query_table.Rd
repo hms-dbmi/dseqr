@@ -14,7 +14,7 @@ summarise_query_table(
 )
 }
 \arguments{
-\item{query_table_annot}{result of \link{query_table_annot}}
+\item{query_table_annot}{result of \link{annot_query_res}}
 
 \item{is_genetic}{Boolean indicating if the query results are from L1000 genetic perturbations.}
 

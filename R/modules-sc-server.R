@@ -796,6 +796,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 #'
 #' @keywords internal
 subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices, is_integrated) {
+  type <- name <- NULL
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   subset_name <- reactive(input$subset_name)
@@ -1158,7 +1159,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
   # always show clusters if not integrated
   observe({
     if(!is_integrated())
-      updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
+      shinyWidgets::updateRadioGroupButtons(session, 'comparison_type', selected = 'clusters')
   })
 
   return(reactive(input$comparison_type))
@@ -1650,6 +1651,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 #'
 #' @keywords internal
 scBioGpsPlot <- function(input, output, session, selected_gene, species) {
+  SYMBOL <- NULL
+
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
     species <- species()

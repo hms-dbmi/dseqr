@@ -5,43 +5,43 @@
 navbarUI <- function(tabs, active) {
 
   withTags({
-    nav(class = 'navbar navbar-default navbar-static-top',
-        div(class = 'container-fluid',
-            div(class = 'navbar-header',
-                button(type='button', class='navbar-toggle collapsed', `data-toggle`='collapse', `data-target`='#bs-navbar', `aria-expanded`='false',
-                       span(class = 'sr-only', 'Toggle navigation'),
-                       span(class = 'icon-bar'),
-                       span(class = 'icon-bar'),
-                       span(class = 'icon-bar')
-                ),
-                span(class = 'navbar-brand', title = 'drugseqr',
-                     span(class = 'brand-icons',
-                          i(class = 'glyphicon glyphicon-leaf'),
-                          'drugseqr'
+    tags$nav(class = 'navbar navbar-default navbar-static-top',
+             div(class = 'container-fluid',
+                 div(class = 'navbar-header',
+                     tags$button(type='button', class='navbar-toggle collapsed', `data-toggle`='collapse', `data-target`='#bs-navbar', `aria-expanded`='false',
+                                 span(class = 'sr-only', 'Toggle navigation'),
+                                 span(class = 'icon-bar'),
+                                 span(class = 'icon-bar'),
+                                 span(class = 'icon-bar')
+                     ),
+                     span(class = 'navbar-brand', title = 'drugseqr',
+                          span(class = 'brand-icons',
+                               tags$i(class = 'glyphicon glyphicon-leaf'),
+                               'drugseqr'
+                          )
                      )
-                )
-            ),
-            div(id = 'bs-navbar', class = 'collapse navbar-collapse',
-                ul(class = 'nav navbar-nav shiny-tab-input shiny-bound-input', `data-tabsetid` = 'tabset', id = 'tabs',
-                   lapply(seq_along(tabs), function(i) {
-                     tab <- tabs[i]
-                     is.active <- tab == active
-                     li(class = ifelse(is.active, 'active', ''), `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
-                        a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
+                 ),
+                 div(id = 'bs-navbar', class = 'collapse navbar-collapse',
+                     tags$ul(class = 'nav navbar-nav shiny-tab-input shiny-bound-input', `data-tabsetid` = 'tabset', id = 'tabs',
+                             lapply(seq_along(tabs), function(i) {
+                               tab <- tabs[i]
+                               is.active <- tab == active
+                               tags$li(class = ifelse(is.active, 'active', ''), `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
+                                       a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
+                               )
+                             }),
+                             # TODO: uncomment once repo is public
+                             # github linkout section
+                             # li(class = 'navbar-right',
+                             #    a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
+                             # ),
+                             # docs section
+                             tags$li(class = 'navbar-right',
+                                     a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+                             )
                      )
-                   }),
-                   # TODO: uncomment once repo is public
-                   # github linkout section
-                   # li(class = 'navbar-right',
-                   #    a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
-                   # ),
-                   # docs section
-                   li(class = 'navbar-right',
-                      a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
-                   )
-                )
-            )
-        )
+                 )
+             )
     )
   })
 }
@@ -100,23 +100,23 @@ dsLabelRowsUI <- function(id) {
   withTags({
     div(class = 'btn-group btn-group-justified',
         div(class = 'btn-group',
-            button(type = 'button',
-                   class = 'btn btn-default dropdown-toggle',
-                   `data-toggle`='dropdown',
-                   `aria-haspopup`='true',
-                   `aria-expanded`='false',
-                   span('Label Selected Rows')
+            tags$button(type = 'button',
+                        class = 'btn btn-default dropdown-toggle',
+                        `data-toggle`='dropdown',
+                        `aria-haspopup`='true',
+                        `aria-expanded`='false',
+                        span('Label Selected Rows')
             ),
-            ul(class = 'dropdown-menu', style = 'width: 100%;',
-               li(class="dropdown-header", 'Files'),
-               dropdownMenuButton(ns('pair'), 'Paired'),
-               dropdownMenuButton(ns('rep'), 'Replicates'),
-               li(role = 'separator', class='divider'),
-               li(class="dropdown-header", 'Group'),
-               dropdownMenuButton(ns('test'), 'Test'),
-               dropdownMenuButton(ns('ctrl'), 'Control'),
-               li(role = 'separator', class='divider'),
-               dropdownMenuButton(ns('reset'), 'Reset Labels')
+            tags$ul(class = 'dropdown-menu', style = 'width: 100%;',
+                    tags$li(class="dropdown-header", 'Files'),
+                    dropdownMenuButton(ns('pair'), 'Paired'),
+                    dropdownMenuButton(ns('rep'), 'Replicates'),
+                    tags$li(role = 'separator', class='divider'),
+                    tags$li(class="dropdown-header", 'Group'),
+                    dropdownMenuButton(ns('test'), 'Test'),
+                    dropdownMenuButton(ns('ctrl'), 'Control'),
+                    tags$li(role = 'separator', class='divider'),
+                    dropdownMenuButton(ns('reset'), 'Reset Labels')
             )
         )
     )

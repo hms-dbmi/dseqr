@@ -162,7 +162,7 @@ bulkFormAnalInput <- function(id) {
 #' @keywords internal
 svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
-  drugseqr::dropdownButton(
+  dropdownButtonMod(
     br(),
     inputId = inputId,
     sliderInput(sliderId, 'Surrogate variables:',

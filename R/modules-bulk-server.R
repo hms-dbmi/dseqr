@@ -20,9 +20,9 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          sc_dir = sc_dir,
                          bulk_dir = bulk_dir,
                          msg_quant = msg_quant,
-                         new_anal = bulk_anal,
                          explore_eset = explore_eset,
-                         pdata = dsQuantTable$pdata)
+                         pdata = dsQuantTable$pdata,
+                         indices_dir = indices_dir)
 
   # mds plotly with different orientations for mobile/desktop
 
@@ -288,7 +288,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #' Logic for Bulk Data form
 #'
 #' @keywords internal
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, new_anal, explore_eset, pdata) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, pdata, indices_dir) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -317,7 +317,8 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
                       error_msg = msg_quant,
                       dataset_name = dataset$dataset_name,
                       pdata = pdata,
-                      fastq_dir = dataset$fastq_dir)
+                      fastq_dir = dataset$fastq_dir,
+                      indices_dir = indices_dir)
 
 
   anal <- callModule(bulkFormAnal, 'anal_form',
@@ -498,7 +499,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 #' Logic for dataset quantification part of bulkForm
 #'
 #' @keywords internal
-bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir) {
+bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir, indices_dir) {
   quant_inputs <- c('end_type', 'pair', 'rep', 'reset', 'run_quant')
 
   paired <- bulkEndType(input, output, session, fastq_dir)
@@ -522,9 +523,9 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     end_type <- ifelse(paired, 'pair ended', 'single ended')
 
     UI <- withTags({
-      dl(
-        dt('Are you sure?'),
-        dd('This will take a while.')
+      tags$dl(
+        tags$dt('Are you sure?'),
+        tags$dd('This will take a while.')
       )
     })
 
@@ -551,7 +552,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     removeModal()
 
     # check for index
-    index_path <- get_kallisto_index(indices_dir)
+    index_path <- rkal::get_kallisto_index(indices_dir)
     if(!length(index_path)) {
       error_msg('No kallisto index. See github README.')
       return(NULL)
@@ -629,7 +630,7 @@ bulkEndType <- function(input, output, session, fastq_dir) {
     req(fastqs, fastq_dir)
 
     # auto-detect if paired
-    rkal::fastq_id1s <- get_fastq_id1s(file.path(fastq_dir, fastqs))
+    fastq_id1s <- rkal::get_fastq_id1s(file.path(fastq_dir, fastqs))
     rkal::detect_paired(fastq_id1s)
   })
 

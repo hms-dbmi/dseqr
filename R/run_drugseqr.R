@@ -1,10 +1,13 @@
 #' Run drugseqr app
 #'
-#' Used for local development
+#' Run drugseqr application to explore single-cell and bulk RNA-seq datasets.
 #'
+#' @inheritParams init_drugseqr
+#' @inheritParams shiny::runApp
 #' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
-#' @param data_dir Directory containing drugseqr shiny app files.
+#' @param app_dir Directory containing shiny app files. Can be 'inst/app' if working from source code.
+#' @param data_dir Directory containing folder \code{app_name} with saved analyses.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
 #' @param indices_dir Path to directory containing \code{kallisto} indices and whitelists.
@@ -15,6 +18,7 @@
 #'
 #' @import rintrojs
 #' @import shiny
+#' @import shinyjs
 #'
 #' @return NULL
 #' @export

@@ -6,7 +6,7 @@
 #' @param title title attribute for button
 #'
 #' @keywords internal
-dropdownButton <- function(..., circle = TRUE, status = "default",
+dropdownButtonMod <- function(..., circle = TRUE, status = "default",
                            size = "default", icon = NULL,
                            label = NULL, tooltip = FALSE,
                            right = FALSE, up = FALSE,
@@ -34,7 +34,7 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
 
   # button
   if (circle) {
-    html_button <- circleButton(
+    html_button <- shinyWidgets::circleButton(
       inputId = inputId, icon = icon, status = status, size = size,
       class = paste("dropdown-toggle", circle_class),
       `data-toggle` = "dropdown"
@@ -57,7 +57,7 @@ dropdownButton <- function(..., circle = TRUE, status = "default",
 
   # tooltip
   if (identical(tooltip, TRUE))
-    tooltip <- tooltipOptions(title = label)
+    tooltip <- shinyWidgets::tooltipOptions(title = label)
 
   if (!is.null(tooltip) && !identical(tooltip, FALSE)) {
     tooltip <- lapply(tooltip, function(x) {

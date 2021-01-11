@@ -458,7 +458,7 @@ is_invertible <- function(pdata) {
 
   mod <- crossmeta::get_sva_mods(pdata)$mod
 
-  is(try(solve.default(t(mod) %*% mod),silent=T), 'matrix')
+  methods::is(try(solve.default(t(mod) %*% mod),silent=T), 'matrix')
 }
 
 

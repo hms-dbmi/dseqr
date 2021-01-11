@@ -12,7 +12,8 @@ bulkFormQuant(
   dataset_name,
   pdata,
   fastq_dir,
-  data_dir
+  data_dir,
+  indices_dir
 )
 }
 \description{

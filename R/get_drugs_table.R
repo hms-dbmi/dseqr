@@ -10,6 +10,7 @@
 #' l1000_meta <- get_drugs_table('L1000_genes')
 #'
 get_drugs_table <- function(study) {
+  title <- `Samples(n)` <- NULL
 
   # load pdata for study
   pdata_fname <- paste0(study, '_pdata.rds')

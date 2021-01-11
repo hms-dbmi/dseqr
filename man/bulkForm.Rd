@@ -12,9 +12,9 @@ bulkForm(
   sc_dir,
   bulk_dir,
   msg_quant,
-  new_anal,
   explore_eset,
-  pdata
+  pdata,
+  indices_dir
 )
 }
 \description{

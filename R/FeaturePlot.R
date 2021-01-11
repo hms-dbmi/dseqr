@@ -279,13 +279,8 @@ FeaturePlot <- function(
     # Make per-feature plots
     for (j in 1:length(x = features)) {
       feature <- features[j]
-      # Get blended colors
-      if (blend) {
-        cols.use <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
-        cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
-      } else {
-        cols.use <- NULL
-      }
+      cols.use <- NULL
+
       data.single <- data.plot[, c(dims, 'ident', feature, shape.by)]
       if (sort.cell) {
         data.single <- data.single[order(data.single[, feature]),]
@@ -322,7 +317,7 @@ FeaturePlot <- function(
         plot <- plot + ggplot2::guides(color = NULL)
         cols.grad <- cols
         if (length(x = cols) == 1) {
-          plot <- plot + RColorBrewer::scale_color_brewer(palette = cols)
+          plot <- plot + ggplot2::scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
           unique.feature.exp <- unique(data.plot[, feature])
           if (length(unique.feature.exp) == 1) {

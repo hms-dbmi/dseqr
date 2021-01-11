@@ -19,7 +19,11 @@ run_drugseqr(
 )
 }
 \arguments{
-\item{data_dir}{Directory containing drugseqr shiny app files.}
+\item{app_name}{Name for new drugseqr app.}
+
+\item{data_dir}{Directory containing folder \code{app_name} with saved analyses.}
+
+\item{app_dir}{Directory containing shiny app files. Can be 'inst/app' if working from source code.}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 
@@ -33,9 +37,18 @@ run_drugseqr(
 If \code{TRUE} test data will be used.}
 
 \item{test_data}{Boolean indicating if test data should be used. Default is \code{TRUE}}
+
+\item{host}{The IPv4 address that the application should listen on. Defaults
+to the \code{shiny.host} option, if set, or \code{"127.0.0.1"} if not. See
+Details.}
+
+\item{port}{The TCP port that the application should listen on. If the
+\code{port} is not specified, and the \code{shiny.port} option is set (with
+\code{options(shiny.port = XX)}), then that port will be used. Otherwise,
+use a random port.}
 }
 \description{
-Used for local development
+Run drugseqr application to explore single-cell and bulk RNA-seq datasets.
 }
 \examples{
 

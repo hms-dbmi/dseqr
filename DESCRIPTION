@@ -79,7 +79,7 @@ Imports:
 Suggests: 
     testthat,
 Depends: 
-    R (>= 4.0.2)
+    R (>= 4.0)
 Remotes: 
     hms-dbmi/drugseqr.data,
     alexvpickering/rkal,

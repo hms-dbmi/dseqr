@@ -1213,6 +1213,7 @@ get_nearest_row <- function(truth, test) {
 #' @keywords internal
 #'
 get_label_plot <- function(anal, scseq, annot, plot) {
+  ident <- NULL
 
   # current colors used in plot with associated cluster
   cols <- get_palette(levels(scseq$cluster))
@@ -1237,8 +1238,8 @@ get_label_plot <- function(anal, scseq, annot, plot) {
   # closest match for each anal cluster
   match <- get_nearest_row(int_coords[ ,-1], anal_coords[, -1])
   anal_coords <- anal_coords %>%
-    mutate(match = int_coords$ident[match]) %>%
-    arrange(as.numeric(ident))
+    dplyr::mutate(match = int_coords$ident[match]) %>%
+    dplyr::arrange(as.numeric(ident))
 
   # change identity to previous labels
   cl <- scseq$orig.cluster
@@ -1267,10 +1268,12 @@ get_label_plot <- function(anal, scseq, annot, plot) {
 #'
 #' @param plot_data data.frame with columns \code{'ident'}, \code{'TSNE_1'}, and \code{'TSNE_2'}.
 get_tsne_coords <- function(plot_data) {
+  ident <- TSNE_1 <- TSNE_2 <- ident <- NULL
+
   plot_data %>%
-    group_by(ident) %>%
-    summarise(TSNE_1 = stats::median(TSNE_1),
-              TSNE_2 = stats::median(TSNE_2))
+    dplyr::group_by(ident) %>%
+    dplyr::summarise(TSNE_1 = stats::median(TSNE_1),
+                     TSNE_2 = stats::median(TSNE_2))
 }
 
 

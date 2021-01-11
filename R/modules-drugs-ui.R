@@ -184,13 +184,11 @@ selectedDrugStudyInput <- function(id) {
 #'
 #' @keywords internal
 rightClickMenu <- function() {
-  withTags({
-    ul(
-      class = 'custom-menu', id = 'cor-menu',
-      li(id='menu-title', 'Signature title'),
-      li('data-action' = 'load', id = 'cor-signature', 'Load as query')
-    )
-  })
+  tags$ul(
+    class = 'custom-menu', id = 'cor-menu',
+    tags$li(id='menu-title', 'Signature title'),
+    tags$li('data-action' = 'load', id = 'cor-signature', 'Load as query')
+  )
 }
 
 
