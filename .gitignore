@@ -1,44 +1,6 @@
 .Rproj.user
 .Rhistory
 
-# perturbation GO analyses
-data-raw/drug_paths/results/*
-data-raw/drug_paths/tmp/*
-
-# contains raw IBD FASTQ files for dev purposes
-data-raw/patient_data/*
-data-raw/patient_data/*
-data-raw/drug_es/signatures/*
-data-raw/drug_es/pvals/*
-!generate_examples.R
-!mds-sva.R
-!mds-sva.png
-
-*.fastq.gz
-data-raw/benchmarks/rnaseq_microarray_cmap/GSE*/*
-data-raw/drug_gene_queries/data/*
-
-# contains PUG-View files from Pubchem
-data-raw/drug_annot/pug_view/views/*
-
-
-# test stuff for app
-inst/app/tests/**/*.png
-inst/app/tests/*-current/*
-inst/app/tests/data/test/*
-
-# until shinytest works
-inst/app/tests/data/static/*
-inst/app/tests/shinytests/*
-
-# txp2gene for alevin
-data-raw/single-cell/alevin-args/*.gz
-data-raw/single-cell/kallisto-args/*
-
-data-raw/single-cell/reference-data/*
-
-*.tar.gz
-
 # personal files
 sync-aws.sh
 run_sjia.R
