@@ -1,6 +1,10 @@
 .Rproj.user
 .Rhistory
 
+data-raw/drug_annot/repurposing_*.txt
+data-raw/biogps/biogps.rds
+data-raw/drug_gene_queries/pert_names*\.rds
+
 # personal files
 sync-aws.sh
 run_sjia.R
