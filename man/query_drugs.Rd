@@ -27,18 +27,14 @@ respectively, mimic and reverse the query signature. Values range from +1 to -1.
 \examples{
 
 # load CMAP02 data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-cmap_es <- readRDS(cmap_path)
+cmap_es <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
 
-# load previous differential expression analysis
-data_dir <- 'data-raw/example-data'
-anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
-
-# get dprime effect size values for analysis
-dprimes <- get_dprimes(anal)
+# use first cmap_es signature as query
+dprimes <- cmap_es[1:100, 1]
+names(dprimes) <- row.names(cmap_es)[1:100]
 
 # get correlations between query and drug signatures
-res <- query_drugs(dprimes, cmap_es)
+res <- drugseqr:::query_drugs(dprimes, cmap_es)
 
 }
 \keyword{internal}

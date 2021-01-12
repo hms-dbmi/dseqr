@@ -9,13 +9,6 @@
 #' @return NULL
 #' @keywords internal
 #'
-#' @examples
-#'
-#' indices_dir <- 'data-raw/indices'
-#' data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-#'
-#' run_kallisto_scseq(indices_dir, data_dir)
-#'
 run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE) {
 
   out_dir <- file.path(data_dir, 'bus_output')

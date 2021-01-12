@@ -41,6 +41,8 @@ axis.}
 Create a publication ready theme. From package ggpubr.
 }
 \examples{
+library(ggplot2)
+
 p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
    geom_point(aes(color = gear))
 
@@ -48,7 +50,7 @@ p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
 p
 
 # Use theme_pubr()
-p + theme_pubr()
+p + drugseqr:::theme_pubr()
 
 
 }

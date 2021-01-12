@@ -23,23 +23,4 @@ A combined plot
 \description{
 Combine ggplot2-based plots into a single plot
 }
-\examples{
-pbmc_small[['group']] <- sample(
-  x = c('g1', 'g2'),
-  size = ncol(x = pbmc_small),
-  replace = TRUE
-)
-plots <- FeaturePlot(
-  object = pbmc_small,
-  features = c('MS4A1', 'FCN1'),
-  split.by = 'group',
-  combine = FALSE
-)
-CombinePlots(
-  plots = plots,
-  legend = 'none',
-  nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
-)
-
-}
 \keyword{internal}

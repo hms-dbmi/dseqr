@@ -10,14 +10,14 @@ init_drugseqr(app_name, data_dir = "/srv/drugseqr")
 \item{app_name}{Name for new drugseqr app.}
 
 \item{data_dir}{Path to put \code{app_name} directory where app will be
-initialized. Default is \code{'/srv/drugseqr'} for shiny.}
+initialized. Default is \code{'/srv/drugseqr'} (for hosting app on server).}
 }
 \description{
 Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
 }
 \examples{
 
-# app_dir for local development
-init_drugseqr('example', data_dir = '~/patient_data')
+data_dir <- tempdir()
+init_drugseqr('example', data_dir)
 
 }

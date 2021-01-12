@@ -2,6 +2,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^run_sjia\.R$
+^sync-aws\.sh$
 
 ^packrat/
 ^renv$

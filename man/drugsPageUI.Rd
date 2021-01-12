@@ -9,4 +9,3 @@ drugsPageUI(id, tab, active)
 \description{
 UI for Drugs page
 }
-\keyword{internal}

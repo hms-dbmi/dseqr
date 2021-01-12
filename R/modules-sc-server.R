@@ -1,6 +1,6 @@
 #' Logic for Single Cell Exploration page
 #'
-#' @keywords internal
+#' @export
 scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   # the analysis and options
@@ -347,7 +347,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     # need selected subfolder
     # will be integer on create
-    req(!'integer' %in% class(new_dataset_dir))
+    req(!methods::is(new_dataset_dir, 'integer'))
 
     dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
     as.character(dir)
@@ -519,7 +519,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 
   height <- reactive(ifelse(is_plotly(), 1, res()$height))
 
-  is_plotly <- reactive('plotly' %in% class(res()))
+  is_plotly <- reactive(methods::is(res(), 'plotly'))
 
 
   filename <- function() {
@@ -933,6 +933,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 #'
 #' @keywords internal
 integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, selected_dataset) {
+  type <- name <- NULL
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
 
   integration_inputs <- c('ctrl_integration',
@@ -1406,7 +1407,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     res.na <- all(is.na(res[[1]]))
     req(!res.na)
 
-    if (class(res) == 'data.frame') {
+    if (methods::is(res, 'data.frame')) {
 
       prev <- custom_metrics()
       if (!is.null(prev) && nrow(prev) != nrow(res)) {

@@ -19,9 +19,3 @@ create_scseq(data_dir, project, type = c("kallisto", "cellranger"))
 \description{
 Load kallisto/bustools quantification into a SingleCellExperiment object.
 }
-\examples{
-
-data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-load_scseq(data_dir)
-
-}

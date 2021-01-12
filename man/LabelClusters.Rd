@@ -41,11 +41,6 @@ A ggplot2-based scatter plot with cluster labels
 \description{
 Label clusters on a ggplot2-based scatter plot
 }
-\examples{
-plot <- DimPlot(object = pbmc_small)
-LabelClusters(plot = plot, id = 'ident')
-
-}
 \seealso{
 \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 }

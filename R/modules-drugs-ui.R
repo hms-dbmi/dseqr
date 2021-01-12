@@ -1,6 +1,6 @@
 #' UI for Drugs page
 #'
-#' @keywords internal
+#' @export
 drugsPageUI <- function(id, tab, active) {
   ns <- NS(id)
 

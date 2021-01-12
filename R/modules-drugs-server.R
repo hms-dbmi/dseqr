@@ -1,6 +1,6 @@
 #' Logic for Drugs page
 #'
-#' @keywords internal
+#' @export
 drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir, pert_signature_dir) {
 
   # the form area inputs/results

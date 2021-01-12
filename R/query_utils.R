@@ -8,11 +8,10 @@
 #'
 #' @examples
 #'
-#' # load result of previous differential expression analysis
-#' data_dir <- file.path('data-raw/example-data')
-#' anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
+#' # generate fake previous result
+#' top_table <- data.frame(dprimes=rnorm(5), row.names = paste0('gene', 1:5))
 #'
-#' dprimes <- get_dprimes(anal)
+#' dprimes <- drugseqr:::get_dprimes(top_table)
 #'
 get_dprimes <- function(top_table) {
   dprimes <- top_table$dprime
@@ -41,18 +40,14 @@ get_dprimes <- function(top_table) {
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
-#' cmap_es <- readRDS(cmap_path)
+#' cmap_es <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
 #'
-#' # load previous differential expression analysis
-#' data_dir <- 'data-raw/example-data'
-#' anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
-#'
-#' # get dprime effect size values for analysis
-#' dprimes <- get_dprimes(anal)
+#' # use first cmap_es signature as query
+#' dprimes <- cmap_es[1:100, 1]
+#' names(dprimes) <- row.names(cmap_es)[1:100]
 #'
 #' # get correlations between query and drug signatures
-#' res <- query_drugs(dprimes, cmap_es)
+#' res <- drugseqr:::query_drugs(dprimes, cmap_es)
 #'
 query_drugs <- function(query_genes, drug_es, ngenes = 200) {
 

@@ -24,12 +24,14 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FAL
 #'
 #' @param sig_path Path to download file to.
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
+#' @keywords internal
 #'
 #' @return NULL
 #'
 #' @examples
-#' sig_path <- file.path('data-raw/drug_es/signatures', 'BRD-K45319408_PC3_5um_24h.rds')
-#' dl_pert_signature(sig_path, pert_type = 'cmap')
+#' data_dir <- tempdir()
+#' sig_path <- file.path(data_dir, '0317956-0000_PC3_1e-06M_6h.rds')
+#' drugseqr:::dl_pert_signature(sig_path, pert_type = 'cmap')
 #'
 dl_pert_signature <- function(sig_path, pert_type) {
   # name of the file being requested
@@ -200,10 +202,6 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 
   if (file.exists(fpath)) {
     cluster_markers <- readRDS(fpath)
-
-  } else {
-    # get markers for multi-cluster selections
-    browser()
 
   }
 

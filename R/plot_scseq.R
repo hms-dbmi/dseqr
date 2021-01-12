@@ -51,7 +51,7 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
 #' @keywords internal
 #' @examples
 #' labels <- c('Non-Classic Mono', 'B-cell', 'B-cell_1', 'B-cell_12')
-#' shorten_cluster_labels(labels)
+#' drugseqr:::shorten_cluster_labels(labels)
 #'
 shorten_cluster_labels <- function(labels) {
 

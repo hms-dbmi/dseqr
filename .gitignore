@@ -41,3 +41,4 @@ data-raw/single-cell/reference-data/*
 
 # personal files
 sync-aws.sh
+run_sjia.R

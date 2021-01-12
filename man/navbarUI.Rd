@@ -12,4 +12,3 @@ navbarUI(tabs, active)
 \description{
 UI for navbar
 }
-\keyword{internal}

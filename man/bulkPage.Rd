@@ -9,4 +9,3 @@ bulkPage(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir)
 \description{
 Logic Bulk Data page
 }
-\keyword{internal}

@@ -48,9 +48,6 @@
 #' @aliases FeatureHeatmap
 #' @seealso \code{\link{DimPlot}}
 #'
-#' @examples
-#' FeaturePlot(object = pbmc_small, features = 'PC_1')
-#'
 FeaturePlot <- function(
   object,
   features,
@@ -473,18 +470,17 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
-# Check the use of ...
-#
-# @param ... Arguments passed to a function that fall under ...
-# @param fxns A list/vector of functions or function names
-#
-# @return ...
-#
-# @importFrom utils argsAnywhere getAnywhere
+#' Check the use of ...
+#'
+#' @param ... Arguments passed to a function that fall under ...
+#' @param fxns A list/vector of functions or function names
+#'
+#' @return ...
+#'
+#' @importFrom utils argsAnywhere getAnywhere
 #' @importFrom utils isS3stdGeneric methods argsAnywhere isS3method
-#
-# @examples
-#
+#' @keywords internal
+#'
 CheckDots <- function(..., fxns = NULL) {
   args.names <- names(x = list(...))
   if (length(x = list(...)) == 0) {

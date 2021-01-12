@@ -1,11 +1,7 @@
 #' UI for docs page (add new sections here)
 #'
-#' @keywords internal
+#' @export
 #'
-#'
-#' UI for docs page (add new sections here)
-#'
-#' @keywords internal
 docsPageUI <- function(id, tab, active) {
 
   # Single Cell section ----

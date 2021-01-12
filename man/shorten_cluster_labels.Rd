@@ -17,7 +17,7 @@ Shorted cluster labels when there are lots of clusters
 }
 \examples{
 labels <- c('Non-Classic Mono', 'B-cell', 'B-cell_1', 'B-cell_12')
-shorten_cluster_labels(labels)
+drugseqr:::shorten_cluster_labels(labels)
 
 }
 \keyword{internal}

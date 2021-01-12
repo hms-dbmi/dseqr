@@ -17,25 +17,22 @@
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
 #'
 #' @import rintrojs
-#' @import shiny
-#' @import shinyjs
+#' @import shinyjs shiny
+#' @import org.Hs.eg.db org.Mm.eg.db
 #'
-#' @return NULL
+#' @return Runs drugseqr app
 #' @export
 #'
 #' @examples
 #'
+#' # create directory structure for new datasets
+#' data_dir <- tempdir()
+#' app_name <- 'example'
+#' init_drugseqr(app_name, data_dir)
 #'
 #'
-#' # override default data_dir etc for development
-#' app_name <- 'sjia'
-#' app_dir <- 'inst/app'
-#' data_dir <- '~/patient_data'
-#' pert_query_dir <- '~/pert_query_dir'
-#' pert_signature_dir <- '~/pert_signature_dir'
-#' indices_dir <- '/srv/drugseqr/indices'
-#'
-#' drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
+#' # run app
+#' # run_drugseqr(app_name, data_dir)
 #'
 run_drugseqr <- function(app_name,
                          data_dir = '/srv/drugseqr',
@@ -85,15 +82,15 @@ run_drugseqr <- function(app_name,
 #'
 #' @param app_name Name for new drugseqr app.
 #' @param data_dir Path to put \code{app_name} directory where app will be
-#' initialized. Default is \code{'/srv/drugseqr'} for shiny.
+#' initialized. Default is \code{'/srv/drugseqr'} (for hosting app on server).
 #'
 #' @return NULL
 #' @export
 #'
 #' @examples
 #'
-#' # app_dir for local development
-#' init_drugseqr('example', data_dir = '~/patient_data')
+#' data_dir <- tempdir()
+#' init_drugseqr('example', data_dir)
 #'
 init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
 

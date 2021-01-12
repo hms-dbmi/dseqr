@@ -119,11 +119,6 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progr
 #' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @export
 #'
-#' @examples
-#'
-#' data_dir <- 'data-raw/single-cell/example-data/Run2644-10X-Lung/10X_FID12518_Normal_3hg'
-#' load_scseq(data_dir)
-#'
 create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
 
   # load counts
@@ -319,7 +314,7 @@ load_cellranger_counts <- function(data_dir) {
     counts <- Read10X(data_dir, gene.column = 1)
   }
 
-  if (class(counts) == 'list') counts <- counts$`Gene Expression`
+  if (methods:is(counts, 'list')) counts <- counts$`Gene Expression`
   return(counts)
 }
 
@@ -386,23 +381,7 @@ get_species <- function(counts) {
 #'   containing a sparse matrix of the data from each type will be returned.
 #'   Otherwise a sparse matrix containing the expression data will be returned.
 #'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' # For output from CellRanger < 3.0
-#' data_dir <- 'path/to/data/directory'
-#' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
-#' expression_matrix <- Read10X(data.dir = data_dir)
-#' seurat_object = CreateSeuratObject(counts = expression_matrix)
-#'
-#' # For output from CellRanger >= 3.0 with multiple data types
-#' data_dir <- 'path/to/data/directory'
-#' list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
-#' data <- Read10X(data.dir = data_dir)
-#' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
-#' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
-#' }
+#' @keywords internal
 #'
 Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   full.data <- list()
@@ -553,7 +532,7 @@ ExtractField <- function(string, field = 1, delim = "_") {
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
-#' @export
+#' @keywords internal
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {

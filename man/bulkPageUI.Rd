@@ -9,4 +9,3 @@ bulkPageUI(id, tab, active)
 \description{
 UI for Bulk Data page
 }
-\keyword{internal}

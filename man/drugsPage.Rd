@@ -17,4 +17,3 @@ drugsPage(
 \description{
 Logic for Drugs page
 }
-\keyword{internal}

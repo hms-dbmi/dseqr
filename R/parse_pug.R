@@ -5,9 +5,6 @@
 #' @return Boolean indicating if \code{pug_view} has a GRAS notice.
 #' @keywords internal
 #'
-#' @examples
-#'
-#' pug_view <- fromJSON(file='data-raw/drug_annot/pug_view/views/4091.json')
 #'
 check_gras <- function(pug_view) {
 

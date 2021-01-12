@@ -31,12 +31,4 @@ AnnotationHub - needs to match with
 \description{
 Run kallisto/bustools for quantifying 10X scRNA-seq data
 }
-\examples{
-
-indices_dir <- 'data-raw/indices'
-data_dir <- 'data-raw/single-cell/example-data/Run2643-10X-Lung/10X_FID12518_Diseased_3hg'
-
-run_kallisto_scseq(indices_dir, data_dir)
-
-}
 \keyword{internal}

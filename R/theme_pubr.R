@@ -1,12 +1,12 @@
-#'Publication ready theme
+#' Publication ready theme
 #'
-#'Create a publication ready theme. From package ggpubr.
+#' Create a publication ready theme. From package ggpubr.
 #'
-#'@param base_size base font size
-#'@param base_family base font family
-#'@param border logical value. Default is FALSE. If TRUE, add panel border.
-#'@param margin logical value. Default is TRUE. If FALSE, reduce plot margin.
-#'@param legend character specifying legend position. Allowed values are one of
+#' @param base_size base font size
+#' @param base_family base font family
+#' @param border logical value. Default is FALSE. If TRUE, add panel border.
+#' @param margin logical value. Default is TRUE. If FALSE, reduce plot margin.
+#' @param legend character specifying legend position. Allowed values are one of
 #'  c("top", "bottom", "left", "right", "none"). Default is "top" side position.
 #'  to remove the legend use legend = "none". Legend position can be also
 #'  specified using a numeric vector c(x, y).  In this case it is possible to
@@ -14,14 +14,16 @@
 #'  the legend box. Their values should be between 0 and 1. c(0,0) corresponds
 #'  to the "bottom left" and c(1,1) corresponds to the "top right" position. For
 #'  instance use legend = c(0.8, 0.2).
-#'@param x.text.angle Rotation angle of x axis tick labels. Default value is 0.
+#' @param x.text.angle Rotation angle of x axis tick labels. Default value is 0.
 #'  Use 90 for vertical text.
-#'@param flip logical. If TRUE, grid lines are added to y axis instead of x
+#' @param flip logical. If TRUE, grid lines are added to y axis instead of x
 #'  axis.
-#'@importFrom ggplot2 %+replace%
-#'@keywords internal
+#' @importFrom ggplot2 %+replace%
+#' @keywords internal
 #'
-#'@examples
+#' @examples
+#' library(ggplot2)
+#'
 #' p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
 #'    geom_point(aes(color = gear))
 #'
@@ -29,10 +31,10 @@
 #' p
 #'
 #' # Use theme_pubr()
-#' p + theme_pubr()
+#' p + drugseqr:::theme_pubr()
 #'
 #'
-theme_pubr <- function (base_size = 12, base_family = "",
+theme_pubr <- function(base_size = 12, base_family = "",
                         border = FALSE, margin = TRUE,
                         legend = c("top", "bottom", "left", "right", "none"),
                         x.text.angle = 0)

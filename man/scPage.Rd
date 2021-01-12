@@ -9,4 +9,3 @@ scPage(input, output, session, sc_dir, indices_dir)
 \description{
 Logic for Single Cell Exploration page
 }
-\keyword{internal}

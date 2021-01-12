@@ -1,6 +1,6 @@
 #' Logic Bulk Data page
 #'
-#' @keywords internal
+#' @export
 bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
 
   msg_quant <- reactiveVal()
@@ -398,7 +398,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   # directory with fastq files for quantificant
   fastq_dir <- reactive({
-    req(!'integer' %in% class(input$new_dataset_dir))
+    req(!methods::is(input$new_dataset_dir, 'integer'))
     dir <- shinyFiles::parseDirPath(roots, input$new_dataset_dir)
     as.character(dir)
   })

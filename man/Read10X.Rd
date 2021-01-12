@@ -24,20 +24,4 @@ If features.csv indicates the data has multiple data types, a list
 \description{
 Enables easy loading of sparse data matrices provided by 10X genomics.
 }
-\examples{
-\dontrun{
-# For output from CellRanger < 3.0
-data_dir <- 'path/to/data/directory'
-list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
-expression_matrix <- Read10X(data.dir = data_dir)
-seurat_object = CreateSeuratObject(counts = expression_matrix)
-
-# For output from CellRanger >= 3.0 with multiple data types
-data_dir <- 'path/to/data/directory'
-list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
-data <- Read10X(data.dir = data_dir)
-seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
-seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
-}
-
-}
+\keyword{internal}

@@ -1,7 +1,7 @@
 #' UI for navbar
 #' @param active the active tab name
 #'
-#' @keywords internal
+#' @export
 navbarUI <- function(tabs, active) {
 
   withTags({

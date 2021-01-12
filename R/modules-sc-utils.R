@@ -480,7 +480,7 @@ interpret <- function(expr_str,
   }
   if(length(expr_str) >= max_length) return(FALSE)
   parsed <- try(rlang::parse_expr(expr_str), silent = TRUE)
-  if ('try-error' %in% class(parsed)) return(FALSE)
+  if (methods::is(parsed, 'try-error')) return(FALSE)
   safer_eval(parsed)
   return(TRUE)
 }
@@ -1192,7 +1192,7 @@ collapse_sorted <- function(x, collapse = ',') {
 #' E <- 2
 #' test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 #'
-#' get_nearest_row(truth, test)
+#' drugseqr:::get_nearest_row(truth, test)
 #' #[1] 4 3
 get_nearest_row <- function(truth, test) {
   diffs   <- truth[rep(1:nrow(truth), nrow(test)),] -test[rep(1:nrow(test), each=nrow(truth)),]

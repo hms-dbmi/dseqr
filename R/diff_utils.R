@@ -155,15 +155,11 @@ sammon <- function(d, y = stats::cmdscale(d, k), k = 2, niter = 100, trace = TRU
 #'   fviz_dist(): returns a ggplot2 }
 #' @seealso \code{\link[stats]{dist}}
 #' @author Alboukadel Kassambara \email{alboukadel.kassambara@@gmail.com}
+#' @keywords internal
 #' @examples
 #' data(USArrests)
-#' res.dist <- get_dist(USArrests, stand = TRUE, method = "pearson")
-#'
-#' fviz_dist(res.dist,
-#'    gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
-#' @name dist
-#' @rdname dist
-#' @keywords internal
+#' res.dist <- drugseqr:::get_dist(USArrests, stand = TRUE, method = "pearson")
+
 get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 
   if(stand) x <- scale(x)

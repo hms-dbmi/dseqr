@@ -1,6 +1,6 @@
 #' UI for Single Cell Exploration page
 #'
-#' @keywords internal
+#' @export
 scPageUI <- function(id, tab, active) {
   ns <- NS(id)
   active_class <- ifelse(tab == active, 'active', '')

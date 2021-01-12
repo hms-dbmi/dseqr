@@ -47,21 +47,21 @@ Details.}
 \code{options(shiny.port = XX)}), then that port will be used. Otherwise,
 use a random port.}
 }
+\value{
+Runs drugseqr app
+}
 \description{
 Run drugseqr application to explore single-cell and bulk RNA-seq datasets.
 }
 \examples{
 
+# create directory structure for new datasets
+data_dir <- tempdir()
+app_name <- 'example'
+init_drugseqr(app_name, data_dir)
 
 
-# override default data_dir etc for development
-app_name <- 'sjia'
-app_dir <- 'inst/app'
-data_dir <- '~/patient_data'
-pert_query_dir <- '~/pert_query_dir'
-pert_signature_dir <- '~/pert_signature_dir'
-indices_dir <- '/srv/drugseqr/indices'
-
-drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3839)
+# run app
+# run_drugseqr(app_name, data_dir)
 
 }

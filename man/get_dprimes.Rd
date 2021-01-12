@@ -17,11 +17,10 @@ These are used to query against drug effect size matrices.
 }
 \examples{
 
-# load result of previous differential expression analysis
-data_dir <- file.path('data-raw/example-data')
-anal <- readRDS(file.path(data_dir, 'diff_expr_symbol.rds'))
+# generate fake previous result
+top_table <- data.frame(dprimes=rnorm(5), row.names = paste0('gene', 1:5))
 
-dprimes <- get_dprimes(anal)
+dprimes <- drugseqr:::get_dprimes(top_table)
 
 }
 \keyword{internal}

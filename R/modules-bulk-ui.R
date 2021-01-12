@@ -1,6 +1,6 @@
 #' UI for Bulk Data page
 #'
-#' @keywords internal
+#' @export
 bulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
   withTags({

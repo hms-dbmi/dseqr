@@ -56,10 +56,6 @@
 #' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}}
 #'
-#' @examples
-#' DimPlot(object = pbmc_small)
-#' DimPlot(object = pbmc_small, split.by = 'ident')
-#'
 DimPlot <- function(
   object,
   dims = c(1,2),
@@ -283,6 +279,14 @@ SingleDimPlot <- function(
     )
   }
 
+  if (!is.null(x = cols)) {
+    plot <- plot + if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = RColorBrewer::brewer.pal.info))) {
+      ggplot2::scale_color_brewer(palette = cols, na.value = na.value)
+    } else {
+      ggplot2::scale_color_manual(values = cols, na.value = na.value)
+    }
+  }
+
   plot <- plot + cowplot::theme_cowplot()
   return(plot)
 }
@@ -305,10 +309,6 @@ SingleDimPlot <- function(
 #' @keywords internal
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
-#'
-#' @examples
-#' plot <- DimPlot(object = pbmc_small)
-#' LabelClusters(plot = plot, id = 'ident')
 #'
 LabelClusters <- function(
   plot,
@@ -438,7 +438,7 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
 #'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
-#' AutoPointSize(data = df)
+#' drugseqr:::AutoPointSize(data = df)
 #'
 AutoPointSize <- function(data) {
   return(min(1583 / nrow(x = data), 1))
@@ -457,24 +457,6 @@ AutoPointSize <- function(data) {
 #' @return A combined plot
 #'
 #' @keywords internal
-#'
-#' @examples
-#' pbmc_small[['group']] <- sample(
-#'   x = c('g1', 'g2'),
-#'   size = ncol(x = pbmc_small),
-#'   replace = TRUE
-#' )
-#' plots <- FeaturePlot(
-#'   object = pbmc_small,
-#'   features = c('MS4A1', 'FCN1'),
-#'   split.by = 'group',
-#'   combine = FALSE
-#' )
-#' CombinePlots(
-#'   plots = plots,
-#'   legend = 'none',
-#'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
-#' )
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
   plots.combined <- if (length(x = plots) > 1) {
@@ -531,7 +513,7 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-#' p + NoLegend()
+#' p + drugseqr:::NoLegend()
 #'
 NoLegend <- function(...) {
   no.legend.theme <- ggplot2::theme(

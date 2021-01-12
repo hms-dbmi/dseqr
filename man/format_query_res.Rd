@@ -41,14 +41,12 @@ Used to get unfiltered query table from downloaded perturbation query result. A 
 web app for performance reasons.
 }
 \examples{
-## Not run:
 
-dl_res <- utils::read.csv('path/to/downloaded_full_query_result.csv', row.names = 2)
-query_res <- dl_res$correlation
-names(query_res) <- row.names(dl_res)
-
-query_table <- format_query_res(query_res, 'L1000 Drugs')
-
+# generate fake result
+annot <-  drugseqr:::get_drugs_table('L1000_drugs')
+query_res <- rnorm(nrow(annot), 0, 0.25)
+names(query_res) <- annot$title
+formatted <- drugseqr:::format_query_res(query_res, 'L1000 Drugs', sort_by = 'min_cor')
 
 }
 \keyword{internal}

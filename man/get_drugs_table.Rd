@@ -17,8 +17,8 @@ Get Drugs metadata table for CMAP02 or L1000
 }
 \examples{
 
-cmap_meta <- get_drugs_table('CMAP02')
-l1000_meta <- get_drugs_table('L1000_genes')
+cmap_meta <- drugseqr:::get_drugs_table('CMAP02')
+l1000_meta <- drugseqr:::get_drugs_table('L1000_genes')
 
 }
 \keyword{internal}
