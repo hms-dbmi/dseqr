@@ -7,7 +7,7 @@
 get_pred_annot(ref_preds, ref_name, dataset_name, sc_dir)
 }
 \arguments{
-\item{ref_preds}{data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}}
+\item{ref_preds}{data.frame generated in \code{labelTransferForm} on event \code{submit_transfer}}
 
 \item{ref_name}{Name of reference analysis that labels are transfered from.}
 

@@ -20,7 +20,7 @@ run_kallisto_scseq(
 
 \item{bus_args}{Character vector of arguments to bustools.}
 
-\item{species}{The species. Default is \code{homo_sapiens}.}
+\item{species}{The species. Default is \code{'homo_sapiens'}.}
 
 \item{release}{ensembl release. Default is \code{94} (latest in release for
 AnnotationHub - needs to match with

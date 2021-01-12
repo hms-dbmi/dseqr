@@ -7,7 +7,12 @@
 navbarUI(tabs, active)
 }
 \arguments{
+\item{tabs}{Character vector of tab names to display}
+
 \item{active}{the active tab name}
+}
+\value{
+shiny.tag with html for navbar
 }
 \description{
 UI for navbar

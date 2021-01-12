@@ -11,7 +11,7 @@ integrate_saved_scseqs(
   integration_name,
   exclude_clusters,
   exclude_cells = NULL,
-  integration_type = c("harmony", "liger", "fastMNN"),
+  integration_type = c("harmony", "fastMNN"),
   subset_metrics = NULL,
   is_include = FALSE,
   founder = integration_name,
@@ -46,6 +46,6 @@ Performs integration and saves as a new analysis.
 Used by \code{explore_scseq_clusters} shiny app.
 }
 \seealso{
-\code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
+\code{\link{run_fastmnn}} \code{\link{run_harmony}}
 }
 \keyword{internal}

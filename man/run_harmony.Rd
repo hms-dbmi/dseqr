@@ -12,9 +12,6 @@ run_harmony(logcounts, subset_row, batch, pairs = NULL)
 \item{subset_row}{Vector specifying the subset of features to use for dimensionality reduction.
 This can be a character vector of row names, an integer vector of row indices or a logical vector.}
 
-\item{batch}{Character vector indicating the original datasets for each cell in scseqs.
-Must be in same order as \code{scseqs}.}
-
 \item{pairs}{}
 }
 \value{

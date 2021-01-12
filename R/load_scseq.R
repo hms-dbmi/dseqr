@@ -314,7 +314,7 @@ load_cellranger_counts <- function(data_dir) {
     counts <- Read10X(data_dir, gene.column = 1)
   }
 
-  if (methods:is(counts, 'list')) counts <- counts$`Gene Expression`
+  if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
   return(counts)
 }
 
@@ -932,49 +932,11 @@ run_fastmnn <- function(logcounts, subset.row, scseqs) {
   return(cor.out)
 }
 
-#' Run liger integration
-#'
-#' @inheritParams run_fastmnn
-#' @param batch Character vector indicating the original datasets for each cell in scseqs.
-#'  Must be in same order as \code{scseqs}.
-#'
-#' @inherit run_fastmnn return
-#' @keywords internal
-run_liger <- function(logcounts, scseqs, batch) {
-  countl <- list()
-  for (i in seq_along(scseqs)) {
-    dataset_name <- names(scseqs)[i]
-    counts <- SingleCellExperiment::counts(scseqs[[i]])
-    colnames(counts) <- paste(colnames(counts), dataset_name, sep = '::')
-    countl[[dataset_name]] <- counts
-  }
-
-  countl <- liger::createLiger(countl); gc()
-  countl <- liger::normalize(countl); gc()
-  countl <- liger::selectGenes(countl); gc()
-  countl <- liger::scaleNotCenter(countl); gc()
-  countl <- liger::optimizeALS(countl, k=20); gc()
-  countl <- liger::quantile_norm(countl); gc()
-
-  corrected <- countl@H.norm
-  row.names(corrected) <- gsub('::.+?$', '', row.names(corrected))
-
-  cor.out <- SingleCellExperiment::SingleCellExperiment(
-    assays = list(logcounts = logcounts),
-    reducedDims = list(corrected = corrected),
-    colData =  S4Vectors::DataFrame(batch = batch)
-  )
-
-  return(cor.out)
-
-
-}
-
 
 #' Run harmony integration
 #'
 #' @inheritParams scater::calculatePCA
-#' @inheritParams run_liger
+#' @inheritParams run_fastmnn
 #' @param pairs
 #'
 #' @inherit run_fastmnn return
@@ -1007,7 +969,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #' Integrate multiple scRNA-seq samples
 #'
 #' @param scseqs List of \code{SingleCellExperiment} objects
-#' @param type One of \code{'harmony'} (default), \code{'liger'} or \code{'fastMNN'} specifying integration to use.
+#' @param type One of \code{'harmony'} (default) or \code{'fastMNN'} specifying integration to use.
 #' @param pairs data.frame with columns \code{'sample'} with sample
 #'   names of \code{scseqs} and \code{'pair'} with integers indicating paired
 #'   samples. If not \code{NULL} (default), then harmony includes pairings
@@ -1015,7 +977,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pairs = NULL) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -1042,9 +1004,6 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'liger', 'fastMNN'), pa
 
   if (type[1] == 'harmony') {
     cor.out <- run_harmony(logcounts, hvgs, combined$batch, pairs = pairs)
-
-  } else if (type[1] == 'liger') {
-    cor.out <- run_liger(logcounts, scseqs, combined$batch)
 
   } else if (type[1] == 'fastMNN') {
     cor.out <- run_fastmnn(logcounts, hvgs, scseqs)

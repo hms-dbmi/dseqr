@@ -18,7 +18,7 @@
 #'
 #' @import rintrojs
 #' @import shiny
-#' @importFrom shinyjs toggle toggleClass toggleState html addClass removeClass
+#' @importFrom shinyjs toggle toggleClass toggleState html addClass removeClass hidden runjs
 #' @import org.Hs.eg.db org.Mm.eg.db
 #'
 #' @return Runs drugseqr app

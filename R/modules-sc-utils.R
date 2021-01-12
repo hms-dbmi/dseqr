@@ -2,7 +2,7 @@
 #'
 #' Clusters with an average prediction scores below \code{min.score} retain their original labels.
 #'
-#' @param ref_preds data.frame generated in \code{\link{labelTransferForm}} on event \code{submit_transfer}
+#' @param ref_preds data.frame generated in \code{labelTransferForm} on event \code{submit_transfer}
 #' @param ref_name Name of reference analysis that labels are transfered from.
 #' @param dataset_name Name of analysis that labels are transfered to.
 #' @param sc_dir Directory containing folders with analyses for \code{ref_name} and \code{dataset_name}.
@@ -695,7 +695,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
 #' @param is_include Boolean - are cells that match \code{subset_metrics} included or excluded?
 #' @param progress optional Shiny \code{Progress} object.
 #'
-#' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}} \code{\link{run_liger}}
+#' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}}
 #'
 #' @return NULL
 #'
@@ -707,7 +707,7 @@ integrate_saved_scseqs <- function(
   integration_name,
   exclude_clusters,
   exclude_cells = NULL,
-  integration_type = c('harmony', 'liger', 'fastMNN'),
+  integration_type = c('harmony', 'fastMNN'),
   subset_metrics = NULL,
   is_include = FALSE,
   founder = integration_name,

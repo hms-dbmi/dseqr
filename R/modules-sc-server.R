@@ -1857,7 +1857,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
         tt$ambient <- row.names(tt) %in% ambient
 
         # add ambient-excluded adjusted pvals
-        tt$adj.P.Val.Amb[!tt$ambient] <- methods::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
+        tt$adj.P.Val.Amb[!tt$ambient] <- stats::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
         if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
 
         tts[[cluster]] <- tt

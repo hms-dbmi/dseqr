@@ -188,7 +188,7 @@ integrationFormInput <- function(id) {
           label = 'Clusters to subset on:',
           actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected clusters'),
           options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
-        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'liger', 'fastMNN'), justified = TRUE, selected = 'harmony'),
+        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'fastMNN'), justified = TRUE, selected = 'harmony'),
         shinypanel::textInputWithButtons(
           ns('integration_name'),
           container_id = ns('name-container'),

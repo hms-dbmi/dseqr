@@ -1,5 +1,8 @@
 #' UI for navbar
+#'
+#' @param tabs Character vector of tab names to display
 #' @param active the active tab name
+#' @return shiny.tag with html for navbar
 #'
 #' @export
 navbarUI <- function(tabs, active) {
@@ -30,11 +33,10 @@ navbarUI <- function(tabs, active) {
                                        a(href = paste0('#', id_from_tab(tab)), `data-toggle` = 'tab', `data-value` = tab, `aria-expanded` = ifelse(is.active, 'true', 'false'), tab)
                                )
                              }),
-                             # TODO: uncomment once repo is public
                              # github linkout section
-                             # li(class = 'navbar-right',
-                             #    a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
-                             # ),
+                             li(class = 'navbar-right',
+                                a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
+                             ),
                              # docs section
                              tags$li(class = 'navbar-right',
                                      a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')

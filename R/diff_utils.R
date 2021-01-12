@@ -44,8 +44,8 @@ format_scaling <- function(scaling, adj, group, exprs) {
 get_mds <- function(exprs, adj, group) {
 
   # get_dist acts on rows
-  exprs <- t(exprs[methods::complete.cases(exprs), ])
-  adj <- t(adj[methods::complete.cases(adj), ])
+  exprs <- t(exprs[stats::complete.cases(exprs), ])
+  adj <- t(adj[stats::complete.cases(adj), ])
 
   dist <- get_dist(exprs, method = 'spearman')
   dist_adj <- get_dist(adj, method = 'spearman')
