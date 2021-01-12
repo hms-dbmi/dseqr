@@ -17,7 +17,8 @@
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
 #'
 #' @import rintrojs
-#' @import shinyjs shiny
+#' @import shiny
+#' @importFrom shinyjs toggle toggleClass toggleState html addClass removeClass
 #' @import org.Hs.eg.db org.Mm.eg.db
 #'
 #' @return Runs drugseqr app

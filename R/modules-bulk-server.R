@@ -1,4 +1,15 @@
-#' Logic Bulk Data page
+#' Logic for Bulk Data Tab
+#'
+#' to be called with \link[shiny]{callModule}
+#'
+#' @param input,output,session standard shiny module boilerplate
+#' @param data_dir path to folder with application name
+#' @param sc_dir sub folder of \code{data_dir} where single-cell data is stored
+#' @param bulk_dir sub folder of \code{data_dir} where bulk data is stored
+#' @inheritParams run_drugseqr
+#'
+#' @return list with reactive \code{new_dataset} that is triggered with a new
+#'   bulk dataset is added.
 #'
 #' @export
 bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
@@ -106,6 +117,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 #' Logic for Bulk Data MDS data
 #'
 #' @keywords internal
+#' @noRd
 bulkMDS <- function(input, output, session, explore_eset) {
 
   group <- reactive({
@@ -142,6 +154,7 @@ bulkMDS <- function(input, output, session, explore_eset) {
 #' Logic for Bulk Data MDS plotly
 #'
 #' @keywords internal
+#' @noRd
 bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, numsv, mds, group_colors, adjusted) {
 
   # MDS plot
@@ -186,6 +199,7 @@ bulkMDSplotly <- function(input, output, session, explore_eset, dataset_name, nu
 #' Logic for Bulk Data gene plotly
 #'
 #' @keywords internal
+#' @noRd
 bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_name) {
 
   boxplotly_args <- reactive({
@@ -238,6 +252,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
 #' Logic for Bulk Data cell type deconvolution plotly
 #'
 #' @keywords internal
+#' @noRd
 bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
 
   boxplotly_args <- reactive({
@@ -288,6 +303,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #' Logic for Bulk Data form
 #'
 #' @keywords internal
+#' @noRd
 bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, pdata, indices_dir) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
@@ -355,6 +371,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #' Logic for selected dataset part of bulkFrom
 #'
 #' @keywords internal
+#' @noRd
 bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
 
   # get directory with fastqs
@@ -499,6 +516,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 #' Logic for dataset quantification part of bulkForm
 #'
 #' @keywords internal
+#' @noRd
 bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir, indices_dir) {
   quant_inputs <- c('end_type', 'pair', 'rep', 'reset', 'run_quant')
 
@@ -612,6 +630,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 #' Logic for end type selection is bulkFormQuant
 #'
 #' @keywords internal
+#' @noRd
 bulkEndType <- function(input, output, session, fastq_dir) {
 
 
@@ -652,6 +671,7 @@ bulkEndType <- function(input, output, session, fastq_dir) {
 #' Logic for differential expression analysis part of bulkForm
 #'
 #' @keywords internal
+#' @noRd
 bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r) {
 
 
@@ -734,6 +754,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 #' Logic for deconvolution form
 #'
 #' @keywords internal
+#' @noRd
 dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
@@ -890,6 +911,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 #' Logic for dataset quantification table
 #'
 #' @keywords internal
+#' @noRd
 bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 
   # things user will update and return
@@ -1074,6 +1096,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
 #' Logic for differential expression analysis table
 #'
 #' @keywords internal
+#' @noRd
 bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
   # things user will update and return
@@ -1204,6 +1227,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 #' Logic for downloading and uploading bulk annotation
 #'
 #' @keywords internal
+#' @noRd
 bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
 
@@ -1270,6 +1294,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 #' Logic for bulk group analyses for Bulk, Drugs, and Pathways tabs
 #'
 #' @keywords internal
+#' @noRd
 bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
   input_ids <- c('download', 'contrast_groups')
@@ -1524,6 +1549,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' Logic to setup explore_eset for Bulk Data plots
 #'
 #' @keywords internal
+#' @noRd
 exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
   vsd_path <- reactive(file.path(dataset_dir(), 'vsd.rds'))

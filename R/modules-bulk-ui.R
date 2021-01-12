@@ -1,5 +1,9 @@
 #' UI for Bulk Data page
 #'
+#' @inheritParams scPageUI
+#'
+#' @return shiny.tag with html for bulk data tab
+#'
 #' @export
 bulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
@@ -39,6 +43,7 @@ bulkPageUI <- function(id, tab, active) {
 #' UI for Bulk Data annotation upload/download
 #'
 #' @keywords internal
+#' @noRd
 bulkAnnotInput <- function(id) {
   ns <- NS(id)
   tagList(
@@ -65,6 +70,7 @@ bulkAnnotInput <- function(id) {
 #' Plotly MDS output
 #'
 #' @keywords internal
+#' @noRd
 bulkPlotlyUI <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotlyUI(ns('plotly'))
@@ -73,6 +79,7 @@ bulkPlotlyUI <- function(id) {
 #' Input form for Bulk Data page
 #'
 #' @keywords internal
+#' @noRd
 bulkFormInput <- function(id) {
   ns <- NS(id)
 
@@ -93,6 +100,7 @@ bulkFormInput <- function(id) {
 #' Dataset selection input for bulkFormInput
 #'
 #' @keywords internal
+#' @noRd
 bulkDatasetInput <- function(id) {
   ns <- NS(id)
 
@@ -118,6 +126,7 @@ bulkDatasetInput <- function(id) {
 #' Dataset quantification inputs for bulkFormInput
 #'
 #' @keywords internal
+#' @noRd
 bulkFormQuantInput <- function(id) {
   ns <- NS(id)
 
@@ -143,6 +152,7 @@ bulkFormQuantInput <- function(id) {
 #' Differential expression analysis inputs for bulkFormInput
 #'
 #' @keywords internal
+#' @noRd
 bulkFormAnalInput <- function(id) {
   ns <- NS(id)
 
@@ -160,6 +170,7 @@ bulkFormAnalInput <- function(id) {
 #' Button with sliders for adjusting number of surrogate variables
 #'
 #' @keywords internal
+#' @noRd
 svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 
   dropdownButtonMod(
@@ -177,6 +188,7 @@ svaButton <- function(inputId, sliderId, max_svs = 0, prev_svs = 0) {
 #' Tables for datasets page
 #'
 #' @keywords internal
+#' @noRd
 bulkTable <- function(id) {
   ns <- NS(id)
   withTags({
@@ -190,6 +202,7 @@ bulkTable <- function(id) {
 #' Input form for single-cell deconvolution
 #'
 #' @keywords internal
+#' @noRd
 dtangleFormInput <- function(id) {
   ns <- NS(id)
 
@@ -211,6 +224,7 @@ dtangleFormInput <- function(id) {
 #' Bulk Differential expression analysis input
 #'
 #' @keywords internal
+#' @noRd
 bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:') {
   ns <- NS(id)
 

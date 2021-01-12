@@ -6,6 +6,16 @@
 \usage{
 drugsPageUI(id, tab, active)
 }
+\arguments{
+\item{id}{Identification string that is names-paced using \link[shiny]{NS}.}
+
+\item{tab}{Name to appear on tab}
+
+\item{active}{Name of current active \code{tab}}
+}
+\value{
+shiny.tag with html for drugs tab
+}
 \description{
 UI for Drugs page
 }

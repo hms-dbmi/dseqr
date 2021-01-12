@@ -1,5 +1,11 @@
 #' UI for Single Cell Exploration page
 #'
+#' @param id Identification string that is names-paced using \link[shiny]{NS}.
+#' @param tab Name to appear on tab
+#' @param active Name of current active \code{tab}
+#'
+#' @return shiny.tag with html for single-cell tab
+#'
 #' @export
 scPageUI <- function(id, tab, active) {
   ns <- NS(id)
@@ -56,6 +62,7 @@ scPageUI <- function(id, tab, active) {
 #' Input form for Single Cell Exploration page
 #'
 #' @keywords internal
+#' @noRd
 scFormInput <- function(id) {
   ns <- NS(id)
   withTags({
@@ -93,6 +100,7 @@ scFormInput <- function(id) {
 #' Input form to control/test/all groups for integrated datasets
 #'
 #' @keywords internal
+#' @noRd
 comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
@@ -104,6 +112,7 @@ comparisonTypeToggle <- function(id) {
 #' Input for selecting datasets to show original labels for
 #'
 #' @keywords internal
+#' @noRd
 selectedAnnotDatasetInput <- function(id) {
   ns <- NS(id)
   selectizeInput(ns('integration_anals'), 'Show original labels for:', multiple = TRUE, choices = '', width = '100%', options = list(maxItems = 2))
@@ -112,6 +121,7 @@ selectedAnnotDatasetInput <- function(id) {
 #' Input form/associated buttons for selecting single cell dataset
 #'
 #' @keywords internal
+#' @noRd
 scSelectedDatasetInput <- function(id) {
   ns <- NS(id)
 
@@ -142,9 +152,10 @@ scSelectedDatasetInput <- function(id) {
 }
 
 
-#' Input form for transfering labels between single cell datasets
+#' Input form for transferring labels between single cell datasets
 #'
 #' @keywords internal
+#' @noRd
 labelTransferFormInput <- function(id) {
   ns <- NS(id)
   withTags({
@@ -163,6 +174,7 @@ labelTransferFormInput <- function(id) {
 #' Input form for integrating single cell datasets
 #'
 #' @keywords internal
+#' @noRd
 integrationFormInput <- function(id) {
   ns <- NS(id)
 
@@ -198,6 +210,7 @@ integrationFormInput <- function(id) {
 #' Input form for subsetting single cell datasets
 #'
 #' @keywords internal
+#' @noRd
 subsetFormInput <- function(id) {
 
   ns <- NS(id)
@@ -231,6 +244,7 @@ subsetFormInput <- function(id) {
 #' Input form and buttons to select a cluster or contrast and rename a cluster
 #'
 #' @keywords internal
+#' @noRd
 clusterComparisonInput <- function(id) {
   ns <- NS(id)
 
@@ -270,6 +284,7 @@ clusterComparisonInput <- function(id) {
 #' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
 #'
 #' @keywords internal
+#' @noRd
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
   btn1 <- btn2 <- btn3 <- NULL
@@ -311,6 +326,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' Output plot of single cell clusters
 #'
 #' @keywords internal
+#' @noRd
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotUI(ns('cluster_plot'))
@@ -320,6 +336,7 @@ scClusterPlotOutput <- function(id) {
 #' Output plot of single cell markers
 #'
 #' @keywords internal
+#' @noRd
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotUI(ns('marker_plot'))
@@ -328,6 +345,7 @@ scMarkerPlotOutput <- function(id) {
 #' Output plot of biogps data for a gene
 #'
 #' @keywords internal
+#' @noRd
 scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '423px')
@@ -336,6 +354,7 @@ scBioGpsPlotOutput <- function(id) {
 #' Output plot/plotly for samples comparison with integrated datasets
 #'
 #' @keywords internal
+#' @noRd
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
   tagList(
@@ -347,6 +366,7 @@ scSampleMarkerPlotOutput <- function(id) {
 #' Output Ridgeline plot
 #'
 #' @keywords internal
+#' @noRd
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotUI(ns('ridge_plot'), height = 'auto')
@@ -356,6 +376,7 @@ scRidgePlotOutput <- function(id) {
 #' Output plotly for labels comparison with integrated datasets
 #'
 #' @keywords internal
+#' @noRd
 scLabelsPlotOutput <- function(id) {
   ns <- NS(id)
   plotly::plotlyOutput(ns('labels_plot'))
@@ -365,8 +386,8 @@ scLabelsPlotOutput <- function(id) {
 #'
 #' Used in Single Cell and Drugs tab
 #'
-#'
 #' @keywords internal
+#' @noRd
 scSampleComparisonInput <- function(id, with_dl = FALSE) {
   ns <- NS(id)
 

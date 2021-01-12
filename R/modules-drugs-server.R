@@ -1,4 +1,11 @@
-#' Logic for Drugs page
+#' Logic for Drugs Tab
+#'
+#' @inheritParams bulkPage
+#' @inheritParams run_drugseqr
+#' @param new_bulk reactive triggers when a new bulk dataset is added
+#'
+#' @return Called with \link[shiny]{callModule} to generate logic for
+#'   single-cell tab.
 #'
 #' @export
 drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir, pert_signature_dir) {
@@ -37,6 +44,7 @@ drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir
 # Logic for form on drugs page
 #'
 #' @keywords internal
+#' @noRd
 drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
 
   new_custom <- reactiveVal()
@@ -122,6 +130,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 #' Logic for custom query form on Drugs page
 #'
 #' @keywords internal
+#' @noRd
 customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, data_dir) {
   input_ids <- c('custom_name', 'click_custom')
 
@@ -204,6 +213,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 #' Logic for selected drug study in drugsForm
 #'
 #' @keywords internal
+#' @noRd
 selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 
 
@@ -292,6 +302,7 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
 #' Logic for advanced options in drugsForm
 #'
 #' @keywords internal
+#' @noRd
 advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 
   # update choices for cell lines based on selected study
@@ -322,6 +333,7 @@ advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 #' Logic for showing pert selection for gene plot
 #'
 #' @keywords internal
+#' @noRd
 selectedPertSignature <- function(input, output, session, data_dir, query_res, query_type, pert_signature_dir) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
@@ -375,6 +387,7 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
 #'
 #' @keywords internal
 #' @importFrom magrittr "%>%"
+#' @noRd
 drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction, ntop = 1500) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
@@ -541,6 +554,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #'
 #' @keywords internal
 #' @importFrom magrittr "%>%"
+#' @noRd
 drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, pert_signature) {
 
 
@@ -582,143 +596,11 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
   )
 }
 
-#' Generate plotly of dprimes values for Drugs tab.
-#'
-#' Also used for pseudobulk single-cell datasets.
-#'
-#' @param path_df result of \link{get_path_df}.
-#'
-#' @return plotly
-#'
-#' @keywords internal
-plot_dprimes <- function(path_df, drugs = TRUE) {
-
-
-  # hovertemplate tooltips miss-behaves when single row
-  # fix is direct substitution
-  if (nrow(path_df) == 1) {
-    sd <- path_df$sd
-    fdr <- path_df$fdr
-    pval <- path_df$pval
-    text <- path_df$Gene
-    dprime <- path_df$Dprime
-    logfc <- path_df$logfc
-    ambient <- path_df$ambient
-    direction <- path_df$direction
-    description <- path_df$description
-
-  } else {
-    sd <- '%{customdata.sd:.2f}'
-    fdr <- '%{customdata.fdr}'
-    pval <- '%{customdata.pval}'
-    text <- '%{text}'
-    dprime <- '%{x:.2f}'
-    logfc <- '%{customdata.logfc:.2f}'
-    ambient <- '%{customdata.ambient}'
-    direction <- '%{customdata.direction}'
-    description <- '%{customdata.description}'
-  }
-
-  if (drugs) {
-    fontsize = 12
-    pergene = 25
-    title <- 'Standardized Effect Size for Top Query Genes'
-    hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
-      '<extra></extra>')
-
-  } else {
-    fontsize = 14
-    pergene = 35
-    title <- 'Standardized Pseudobulk Effect Size for Each Cluster'
-    hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: ', text, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">logFC</span>: ', logfc, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: ', ambient,
-      '<extra></extra>')
-  }
-
-  xrange <- c(min(floor(c(path_df$Dprime - path_df$sd, path_df$dprime_sum)), -1),
-              max(ceiling(c(path_df$Dprime + path_df$sd, path_df$dprime_sum)),  1))
-
-
-  # 30 pixels width per gene in pathway
-  ngenes <- length(unique(path_df$Gene))
-  plot_height <- max(400, ngenes*pergene + 125)
-  customdata <- apply(path_df, 1, as.list)
-
-  (pl <- plotly::plot_ly(data = path_df,
-                         y = ~Gene,
-                         x = ~Dprime,
-                         text = ~Gene,
-                         customdata = customdata,
-                         type = 'scatter',
-                         mode = 'markers',
-                         height = plot_height,
-                         marker = list(size = 6, color = path_df$color, opacity = path_df$opacity),
-                         error_x = ~list(array = sd, color = path_df$color, thickness = 0.5, width = 0, opacity = path_df$opacity),
-                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
-                         hovertemplate = hovertemplate
-  ) %>%
-      plotly::config(displayModeBar = 'hover',
-                     displaylogo = FALSE,
-                     modeBarButtonsToRemove = c('lasso2d',
-                                                'select2d',
-                                                'toggleSpikelines',
-                                                'hoverClosestCartesian',
-                                                'hoverCompareCartesian'),
-                     toImageButtonOptions = list(format = "png", filename = 'blah')) %>%
-      plotly::layout(hoverdistance = -1,
-                     hovermode = 'y',
-                     margin = list(t = 65, r = 20, l = 0, pad = 1),
-                     title = list(text = title, y = 1, x = 0),
-                     xaxis = list(fixedrange = TRUE,
-                                  range = xrange,
-                                  rangemode = "tozero",
-                                  side = 'top',
-                                  title = '',
-                                  tickfont = list(size = fontsize)),
-                     yaxis = list(fixedrange = TRUE,
-                                  title = '',
-                                  range = c(ngenes, -1),
-                                  tickmode = 'array',
-                                  tickvals = 0:ngenes,
-                                  ticktext = ~Link,
-                                  tickfont = list(size = fontsize)),
-                     autosize = TRUE))
-
-
-  # add arrow to show drug effect
-  if ('dprime_sum' %in% colnames(path_df))
-    pl <- pl %>%
-    plotly::add_annotations(x = ~dprime_sum,
-                            y = ~Gene,
-                            xref = "x", yref = "y",
-                            axref = "x", ayref = "y",
-                            text = "",
-                            showarrow = TRUE,
-                            arrowcolor = ~arrow_color,
-                            arrowwidth = 1,
-                            ay = ~Gene,
-                            ax = ~Dprime)
-
-  return(pl)
-}
-
-
 
 #' Logic for selected dataset/analysis in Drugs tab
 #'
 #' @keywords internal
+#' @noRd
 selectedAnal <- function(input, output, session, data_dir, choices, new_custom, pert_query_dir = NULL) {
   options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'))
 

@@ -1,7 +1,10 @@
 #' UI for docs page (add new sections here)
 #'
-#' @export
+#' @inheritParams scPageUI
 #'
+#' @return shiny.tag with html for docs tab
+#'
+#' @export
 docsPageUI <- function(id, tab, active) {
 
   # Single Cell section ----
@@ -259,6 +262,7 @@ docsPageUI <- function(id, tab, active) {
 #' A primary section in the Docs page
 #'
 #' @keywords internal
+#' @noRd
 docsSection <- function(id, name, content) {
 
   withTags({
@@ -276,6 +280,7 @@ docsSection <- function(id, name, content) {
 #' A subsections of a docsSection
 #'
 #' @keywords internal
+#' @noRd
 docsSubsection <- function(id, name, content) {
   withTags({
     tagList(
@@ -292,6 +297,7 @@ docsSubsection <- function(id, name, content) {
 #' Navigation on right side of Docs page
 #'
 #' @keywords internal
+#' @noRd
 docsSideNav <- function(section_info) {
 
   section_id_names <- section_info$section_id_names
@@ -332,6 +338,7 @@ docsSideNav <- function(section_info) {
 #' Extracts info needed to construct docsSideNav
 #'
 #' @keywords internal
+#' @noRd
 extract_section_info <- function(docsSections) {
   section_id_names <- lapply(docsSections, function(docsSection) {
 

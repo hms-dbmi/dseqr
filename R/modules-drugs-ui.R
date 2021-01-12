@@ -1,5 +1,9 @@
 #' UI for Drugs page
 #'
+#' @inheritParams scPageUI
+#'
+#' @return shiny.tag with html for drugs tab
+#'
 #' @export
 drugsPageUI <- function(id, tab, active) {
   ns <- NS(id)

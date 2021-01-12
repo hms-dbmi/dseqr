@@ -6,6 +6,16 @@
 \usage{
 bulkPageUI(id, tab, active)
 }
+\arguments{
+\item{id}{Identification string that is names-paced using \link[shiny]{NS}.}
+
+\item{tab}{Name to appear on tab}
+
+\item{active}{Name of current active \code{tab}}
+}
+\value{
+shiny.tag with html for bulk data tab
+}
 \description{
 UI for Bulk Data page
 }

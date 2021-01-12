@@ -621,3 +621,136 @@ calcx <- function(cor, range = c(-1, 1), width = 180, pad = 0.1) {
   (cor - range[1])/diff(range) * width
 }
 
+
+#' Generate plotly of dprimes values for Drugs tab.
+#'
+#' Also used for pseudobulk single-cell datasets.
+#'
+#' @param path_df result of \link{get_path_df}.
+#'
+#' @return plotly
+#'
+#' @keywords internal
+plot_dprimes <- function(path_df, drugs = TRUE) {
+
+
+  # hovertemplate tooltips miss-behaves when single row
+  # fix is direct substitution
+  if (nrow(path_df) == 1) {
+    sd <- path_df$sd
+    fdr <- path_df$fdr
+    pval <- path_df$pval
+    text <- path_df$Gene
+    dprime <- path_df$Dprime
+    logfc <- path_df$logfc
+    ambient <- path_df$ambient
+    direction <- path_df$direction
+    description <- path_df$description
+
+  } else {
+    sd <- '%{customdata.sd:.2f}'
+    fdr <- '%{customdata.fdr}'
+    pval <- '%{customdata.pval}'
+    text <- '%{text}'
+    dprime <- '%{x:.2f}'
+    logfc <- '%{customdata.logfc:.2f}'
+    ambient <- '%{customdata.ambient}'
+    direction <- '%{customdata.direction}'
+    description <- '%{customdata.description}'
+  }
+
+  if (drugs) {
+    fontsize = 12
+    pergene = 25
+    title <- 'Standardized Effect Size for Top Query Genes'
+    hovertemplate = paste0(
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
+      '<extra></extra>')
+
+  } else {
+    fontsize = 14
+    pergene = 35
+    title <- 'Standardized Pseudobulk Effect Size for Each Cluster'
+    hovertemplate = paste0(
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: ', text, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">logFC</span>: ', logfc, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval, '<br>',
+      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: ', ambient,
+      '<extra></extra>')
+  }
+
+  xrange <- c(min(floor(c(path_df$Dprime - path_df$sd, path_df$dprime_sum)), -1),
+              max(ceiling(c(path_df$Dprime + path_df$sd, path_df$dprime_sum)),  1))
+
+
+  # 30 pixels width per gene in pathway
+  ngenes <- length(unique(path_df$Gene))
+  plot_height <- max(400, ngenes*pergene + 125)
+  customdata <- apply(path_df, 1, as.list)
+
+  (pl <- plotly::plot_ly(data = path_df,
+                         y = ~Gene,
+                         x = ~Dprime,
+                         text = ~Gene,
+                         customdata = customdata,
+                         type = 'scatter',
+                         mode = 'markers',
+                         height = plot_height,
+                         marker = list(size = 6, color = path_df$color, opacity = path_df$opacity),
+                         error_x = ~list(array = sd, color = path_df$color, thickness = 0.5, width = 0, opacity = path_df$opacity),
+                         hoverlabel = list(bgcolor = '#000000', align = 'left'),
+                         hovertemplate = hovertemplate
+  ) %>%
+      plotly::config(displayModeBar = 'hover',
+                     displaylogo = FALSE,
+                     modeBarButtonsToRemove = c('lasso2d',
+                                                'select2d',
+                                                'toggleSpikelines',
+                                                'hoverClosestCartesian',
+                                                'hoverCompareCartesian'),
+                     toImageButtonOptions = list(format = "png", filename = 'blah')) %>%
+      plotly::layout(hoverdistance = -1,
+                     hovermode = 'y',
+                     margin = list(t = 65, r = 20, l = 0, pad = 1),
+                     title = list(text = title, y = 1, x = 0),
+                     xaxis = list(fixedrange = TRUE,
+                                  range = xrange,
+                                  rangemode = "tozero",
+                                  side = 'top',
+                                  title = '',
+                                  tickfont = list(size = fontsize)),
+                     yaxis = list(fixedrange = TRUE,
+                                  title = '',
+                                  range = c(ngenes, -1),
+                                  tickmode = 'array',
+                                  tickvals = 0:ngenes,
+                                  ticktext = ~Link,
+                                  tickfont = list(size = fontsize)),
+                     autosize = TRUE))
+
+
+  # add arrow to show drug effect
+  if ('dprime_sum' %in% colnames(path_df))
+    pl <- pl %>%
+    plotly::add_annotations(x = ~dprime_sum,
+                            y = ~Gene,
+                            xref = "x", yref = "y",
+                            axref = "x", ayref = "y",
+                            text = "",
+                            showarrow = TRUE,
+                            arrowcolor = ~arrow_color,
+                            arrowwidth = 1,
+                            ay = ~Gene,
+                            ax = ~Dprime)
+
+  return(pl)
+}
+

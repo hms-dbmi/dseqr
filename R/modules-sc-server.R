@@ -1,6 +1,11 @@
-#' Logic for Single Cell Exploration page
+#' Logic for Single Cell Tab
 #'
+#' @inheritParams bulkPage
 #' @export
+#'
+#' @return Called with \link[shiny]{callModule} to generate logic for
+#'   single-cell tab.
+#'
 scPage <- function(input, output, session, sc_dir, indices_dir) {
 
   # the analysis and options
@@ -76,6 +81,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
 #' Logic for form on Single Cell Exploration page
 #'
 #' @keywords internal
+#' @noRd
 scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # updates if new integrated or subset dataset
@@ -257,6 +263,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 #' Logic for selected dataset part of scForm
 #'
 #' @keywords internal
+#' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
@@ -470,6 +477,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 #' Logic for selecting cluster to plot label origin for integrated dataset
 #'
 #' @keywords internal
+#' @noRd
 scLabelsComparison <- function(input, output, session, cluster_choices) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -487,6 +495,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 #' Logic for labels plot for integrated dataset
 #'
 #' @keywords internal
+#' @noRd
 scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
 
   output$labels_plot <- plotly::renderPlotly({
@@ -509,6 +518,7 @@ scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq
 #'
 #'
 #' @keywords internal
+#' @noRd
 scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) {
 
   res <- reactive({
@@ -561,6 +571,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #' Logic for label transfer between datasets
 #'
 #' @keywords internal
+#' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq, species) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
 
@@ -795,6 +806,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 #' Logic for subsetting a datatset
 #'
 #' @keywords internal
+#' @noRd
 subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices, is_integrated) {
   type <- name <- NULL
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -932,6 +944,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 #' Logic for integration form toggled by showIntegration
 #'
 #' @keywords internal
+#' @noRd
 integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, selected_dataset) {
   type <- name <- NULL
   excludeOptions <- list(render = I('{option: excludeOptions, item: excludeOptions}'))
@@ -1155,6 +1168,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 #' Logic for comparison type toggle for integrated datasets
 #'
 #' @keywords internal
+#' @noRd
 comparisonType <- function(input, output, session, scseq, is_integrated) {
 
   # always show clusters if not integrated
@@ -1169,6 +1183,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #' Logic for cluster comparison input
 #'
 #' @keywords internal
+#' @noRd
 clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_path, ref_preds) {
 
 
@@ -1337,6 +1352,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 #' Logic for selected gene to show plots for
 #'
 #' @keywords internal
+#' @noRd
 selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is_integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
@@ -1536,6 +1552,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 #' Logic for cluster plots
 #'
 #' @keywords internal
+#' @noRd
 scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name) {
 
 
@@ -1578,6 +1595,7 @@ scClusterPlot <- function(input, output, session, scseq, selected_cluster, datas
 #' Logic for marker feature plots
 #'
 #' @keywords internal
+#' @noRd
 scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, custom_metrics = function()NULL) {
 
 
@@ -1651,6 +1669,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 #' Logic for BioGPS plot
 #'
 #' @keywords internal
+#' @noRd
 scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   SYMBOL <- NULL
 
@@ -1669,6 +1688,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #' Logic for Ridge plot for clusters
 #'
 #' @keywords internal
+#' @noRd
 scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq) {
 
   height <- reactive({
@@ -1707,6 +1727,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #' Logic for single cell cluster analyses for Single Cell, Drugs, and Pathways tabs
 #'
 #' @keywords internal
+#' @noRd
 scSampleComparison <- function(input, output, session, dataset_dir, dataset_name, is_integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')

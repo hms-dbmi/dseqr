@@ -2,10 +2,25 @@
 % Please edit documentation in R/modules-sc-server.R
 \name{scPage}
 \alias{scPage}
-\title{Logic for Single Cell Exploration page}
+\title{Logic for Single Cell Tab}
 \usage{
 scPage(input, output, session, sc_dir, indices_dir)
 }
+\arguments{
+\item{input}{standard shiny module boilerplate}
+
+\item{output}{standard shiny module boilerplate}
+
+\item{session}{standard shiny module boilerplate}
+
+\item{sc_dir}{sub folder of \code{data_dir} where single-cell data is stored}
+
+\item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+}
+\value{
+Called with \link[shiny]{callModule} to generate logic for
+  single-cell tab.
+}
 \description{
-Logic for Single Cell Exploration page
+Logic for Single Cell Tab
 }

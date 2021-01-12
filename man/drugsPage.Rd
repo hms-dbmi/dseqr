@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-drugs-server.R
 \name{drugsPage}
 \alias{drugsPage}
-\title{Logic for Drugs page}
+\title{Logic for Drugs Tab}
 \usage{
 drugsPage(
   input,
@@ -14,6 +14,25 @@ drugsPage(
   pert_signature_dir
 )
 }
+\arguments{
+\item{input}{standard shiny module boilerplate}
+
+\item{output}{standard shiny module boilerplate}
+
+\item{session}{standard shiny module boilerplate}
+
+\item{new_bulk}{reactive triggers when a new bulk dataset is added}
+
+\item{data_dir}{path to folder with application name}
+
+\item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
+
+\item{pert_signature_dir}{Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.}
+}
+\value{
+Called with \link[shiny]{callModule} to generate logic for
+  single-cell tab.
+}
 \description{
-Logic for Drugs page
+Logic for Drugs Tab
 }
