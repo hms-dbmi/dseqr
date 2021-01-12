@@ -1,5 +1,11 @@
 .Rproj.user
 .Rhistory
+.Rprofile
+.dockerignore
+.renvignore
+renv.lock
+renv/*
+Dockerfile
 
 data-raw/drug_annot/repurposing_*.txt
 data-raw/biogps/biogps.rds
