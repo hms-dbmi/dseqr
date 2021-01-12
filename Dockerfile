@@ -19,7 +19,7 @@ wget && rm -rf /var/lib/apt/lists/*
 
   # install drugseqr dependencies from renv.lock file
   RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-R -e "remotes::install_github('rstudio/renv@0.12.0')"
+R -e "remotes::install_github('rstudio/renv@0.12.5')"
 
 
 COPY ./renv.lock .
