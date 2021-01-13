@@ -328,6 +328,8 @@ get_sc_dataset_choices <- function(sc_dir) {
   # get previously selected
   if (length(individual)) {
     prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+    if (!prev %in% label) prev <- individual[1]
+
     prev_type <- type[label == prev]
     founder <- get_founder(sc_dir, prev)
     if (prev_type == founder)

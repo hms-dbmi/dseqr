@@ -259,6 +259,21 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   ))
 }
 
+get_exclude_dirs <- function(sc_dir) {
+  dirs <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+  exclude <- c()
+  for (dir in dirs) {
+    full_dir <- file.path(sc_dir, dir)
+    files <- list.files(full_dir)
+    if (!any(grepl('fastq.gz$|.mtx$|.h5$', files))) {
+      exclude <- c(exclude, dir)
+    }
+  }
+
+  exclude <- c(exclude, 'integrated.rds', 'prev_dataset.rds')
+  return(exclude)
+}
+
 
 #' Logic for selected dataset part of scForm
 #'
@@ -268,9 +283,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
-  # get directory with fastqs
+  # get directory with fastqs/h5 files
   roots <- c('single-cell' = sc_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, restrictions = get_exclude_dirs(sc_dir))
+
 
   dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
 
@@ -337,12 +353,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     datasets <- datasets()
     if (!isTruthy(dataset_name)) return(FALSE)
 
+    # handle just created but new name still selected
+    new_dataset <- isolate(new_dataset())
+    if (!is.null(new_dataset) && dataset_name == new_dataset) return(FALSE)
+
     !dataset_name %in% datasets$value
   })
 
   # open shinyFiles selector if creating
   observe({
     req(is.create())
+
     shinyjs::click('new_dataset_dir')
   })
 
@@ -370,7 +391,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                       'high_doublet_score')
 
   # run single-cell quantification
-  load_raw <- eventReactive(input$confirm_quant, {
+  quants <- reactiveValues()
+  observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
     # none, all, all and none: can't combine
@@ -389,7 +411,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     if (metrics == 'all and none') {
       opts <- list(
-        list(dataset_name = paste0(dataset_name, '_QC0')),
+        list(dataset_name = paste0(dataset_name, '_QC0'),
+             metrics = NULL,
+             founder = paste0(dataset_name, '_QC0')),
         list(dataset_name = paste0(dataset_name, '_QC1'),
              metrics = metric_choices,
              founder = paste0(dataset_name, '_QC0')))
@@ -397,13 +421,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
       prev <- paste0(dataset_name, '_QC1')
     } else {
-      opts <- list(list(dataset_name = dataset_name, metrics = metrics))
+
+      opts <- list(
+        list(dataset_name = dataset_name,
+             metrics = metrics,
+             founder = dataset_name))
       prev <- dataset_name
     }
 
     ret = list(dataset_name = dataset_name, prev = prev)
 
-    res <- callr::r_bg(
+    quants[[dataset_name]] <- callr::r_bg(
       func = run_load_raw_scseq,
       package = 'drugseqr',
       args = list(
@@ -415,26 +443,40 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       )
     )
 
-    showNotification("Quantifying in background.", duration = 4)
+    showNotification(HTML(
+      paste0("<span style='color: #333;'><b>Quantifying in background.</b>",
+             "<br/> Will notify on completion.</span>")),
+      duration = 10, type = 'message')
+
+    new_dataset(dataset_name)
     enableAll(dataset_inputs)
-    return(res)
   })
 
   observe({
     invalidateLater(5000, session)
 
-    if (load_raw()$is_alive()) {
-      res <- NULL
+    quants <- reactiveValuesToList(quants)
+    if (!length(quants)) return(NULL)
 
-    } else {
-      res <- load_raw()$get_result()
-      new_dataset(res$dataset_name)
-      saveRDS(res$prev, prev_path)
 
-      showNotification("Quantifying in background.", type = 'message')
+    for (i in seq_along(quants)) {
+      quant <- quants[[i]]
 
-      # TODO show success message
+      if (!quant$is_alive()) {
+        browser()
+        res <- quant$get_result()
+        saveRDS(res$prev, prev_path)
+
+        showNotification(HTML(
+          paste0("<span style='color: #333;'><b>",
+                 stringr::str_trunc(res$dataset_name, 30),"</b>",
+                 "</br>is ready.</span>")),
+          duration = NULL, type = 'message')
+
+        quants[[i]] <- NULL
+      }
     }
+
   })
 
   # modal to confirm adding single-cell dataset

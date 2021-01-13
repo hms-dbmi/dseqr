@@ -237,3 +237,12 @@ input[type=text] {
     color: #fff;
     border-color: transparent;
 }
+
+/* TODO: fix in shinypanel.css */
+.sF-textChoice > .btn {
+    min-height: inherit;
+}
+
+.sF-breadcrumps {
+    width: calc(100% - 350px);
+}
