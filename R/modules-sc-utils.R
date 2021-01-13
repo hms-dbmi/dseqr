@@ -316,6 +316,7 @@ get_sc_dataset_choices <- function(sc_dir) {
                                                             .nofile = 'Individual',
                                                             .nullfile = 'Individual'), USE.NAMES = FALSE)
 
+
   # exclude founder name from option label
   sub <- ind_type != 'Individual'
   ind_opt <- individual
@@ -886,6 +887,11 @@ subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, excl
     process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = 1, founder = founder)
     save_scseq_args(args, dataset_name, sc_dir)
   }
+
+  return(list(
+    from_dataset = from_dataset,
+    dataset_name = dataset_name,
+    is_integrated = is_integrated))
 }
 
 
