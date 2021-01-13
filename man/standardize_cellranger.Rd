@@ -12,3 +12,4 @@ standardize_cellranger(data_dir)
 \description{
 Rename CellRanger files for loading by Read10X
 }
+\keyword{internal}

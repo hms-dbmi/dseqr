@@ -15,3 +15,4 @@ check_is_cellranger(data_dir)
 \description{
 Determine if the selected folder has CellRanger files
 }
+\keyword{internal}

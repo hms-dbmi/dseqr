@@ -314,7 +314,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     scseq@metadata$species
   })
 
-  # available single-cell datasets
   datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
@@ -371,7 +370,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                       'high_doublet_score')
 
   # run single-cell quantification
-  observeEvent(input$confirm_quant, {
+  load_raw <- eventReactive(input$confirm_quant, {
 
     metrics <- input$qc_metrics
     # none, all, all and none: can't combine
@@ -384,28 +383,58 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     removeModal()
     disableAll(dataset_inputs)
 
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = 9)
-    on.exit(progress$close())
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
 
     if (metrics == 'all and none') {
-      load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
-      load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices, founder = paste0(dataset_name, '_QC0'))
+      opts <- list(
+        list(dataset_name = paste0(dataset_name, '_QC0')),
+        list(dataset_name = paste0(dataset_name, '_QC1'),
+             metrics = metric_choices,
+             founder = paste0(dataset_name, '_QC0')))
+
 
       prev <- paste0(dataset_name, '_QC1')
-
     } else {
-      load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
+      opts <- list(list(dataset_name = dataset_name, metrics = metrics))
       prev <- dataset_name
     }
 
-    saveRDS(prev, prev_path)
+    ret = list(dataset_name = dataset_name, prev = prev)
 
+    res <- callr::r_bg(
+      func = run_load_raw_scseq,
+      package = 'drugseqr',
+      args = list(
+        opts = opts,
+        ret = ret,
+        fastq_dir = fastq_dir,
+        sc_dir = sc_dir,
+        indices_dir = indices_dir
+      )
+    )
+
+    showNotification("Quantifying in background.", duration = 4)
     enableAll(dataset_inputs)
-    new_dataset(dataset_name)
+    return(res)
+  })
+
+  observe({
+    invalidateLater(5000, session)
+
+    if (load_raw()$is_alive()) {
+      res <- NULL
+
+    } else {
+      res <- load_raw()$get_result()
+      new_dataset(res$dataset_name)
+      saveRDS(res$prev, prev_path)
+
+      showNotification("Quantifying in background.", type = 'message')
+
+      # TODO show success message
+    }
   })
 
   # modal to confirm adding single-cell dataset
@@ -471,6 +500,25 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+#' Convenience utility to run load_raw_scseq in background
+
+#' @keywords internal
+#' @noRd
+run_load_raw_scseq <- function(opts, ret, fastq_dir, sc_dir, indices_dir) {
+
+  for (opt in opts) {
+    load_raw_scseq(opt$dataset_name,
+                   fastq_dir,
+                   sc_dir,
+                   indices_dir,
+                   metrics = opt$metrics,
+                   founder = opt$founder)
+
+  }
+
+  return(ret)
 }
 
 
