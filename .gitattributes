@@ -1,6 +1,0 @@
-.Rprofile merge=ours
-.dockerignore merge=ours
-.renvignore merge=ours
-renv.lock merge=ours
-renv/* merge=ours
-Dockerfile merge=ours
