@@ -120,7 +120,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     names(qc) <- sapply(metrics, class)
 
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent', qc)]
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor', qc)]
   })
 
 
@@ -259,6 +259,21 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   ))
 }
 
+get_exclude_dirs <- function(sc_dir) {
+  dirs <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+  exclude <- c()
+  for (dir in dirs) {
+    full_dir <- file.path(sc_dir, dir)
+    files <- list.files(full_dir)
+    if (!any(grepl('fastq.gz$|.mtx$|.h5$', files))) {
+      exclude <- c(exclude, dir)
+    }
+  }
+
+  exclude <- c(exclude, 'integrated.rds', 'prev_dataset.rds')
+  return(exclude)
+}
+
 
 #' Logic for selected dataset part of scForm
 #'
@@ -268,9 +283,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
-  # get directory with fastqs
+  # get directory with fastqs/h5 files
   roots <- c('single-cell' = sc_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, restrictions = get_exclude_dirs(sc_dir))
+
 
   dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
 
@@ -314,7 +330,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     scseq@metadata$species
   })
 
-  # available single-cell datasets
   datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
@@ -338,12 +353,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     datasets <- datasets()
     if (!isTruthy(dataset_name)) return(FALSE)
 
+    # handle just created but new name still selected
+    new_dataset <- isolate(new_dataset())
+    if (!is.null(new_dataset) && dataset_name == new_dataset) return(FALSE)
+
     !dataset_name %in% datasets$value
   })
 
   # open shinyFiles selector if creating
   observe({
     req(is.create())
+
     shinyjs::click('new_dataset_dir')
   })
 
@@ -371,6 +391,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                       'high_doublet_score')
 
   # run single-cell quantification
+  quants <- reactiveValues()
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
@@ -384,28 +405,82 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     removeModal()
     disableAll(dataset_inputs)
 
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = 9)
-    on.exit(progress$close())
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
 
     if (metrics == 'all and none') {
-      load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, progress, metrics = NULL)
-      load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, progress, metrics = metric_choices, founder = paste0(dataset_name, '_QC0'))
+      opts <- list(
+        list(dataset_name = paste0(dataset_name, '_QC0'),
+             metrics = NULL,
+             founder = dataset_name),
+        list(dataset_name = paste0(dataset_name, '_QC1'),
+             metrics = metric_choices,
+             founder = dataset_name))
+
 
       prev <- paste0(dataset_name, '_QC1')
-
     } else {
-      load_raw_scseq(dataset_name, fastq_dir, sc_dir, indices_dir, progress, metrics = metrics)
+
+      opts <- list(
+        list(dataset_name = dataset_name,
+             metrics = metrics,
+             founder = dataset_name))
       prev <- dataset_name
     }
 
-    saveRDS(prev, prev_path)
+    ret = list(dataset_name = dataset_name, prev = prev)
 
-    enableAll(dataset_inputs)
+    quants[[dataset_name]] <- callr::r_bg(
+      func = run_load_raw_scseq,
+      package = 'drugseqr',
+      args = list(
+        opts = opts,
+        ret = ret,
+        fastq_dir = fastq_dir,
+        sc_dir = sc_dir,
+        indices_dir = indices_dir
+      )
+    )
+
+    showNotification(HTML(
+      paste0("<span style='color: #333;'><b>Quantifying in background.</b>",
+             "<br/> Will notify on completion.</span>")),
+      duration = 10, type = 'message')
+
     new_dataset(dataset_name)
+    enableAll(dataset_inputs)
+  })
+
+  observe({
+    invalidateLater(5000, session)
+
+    qnames <- names(quants)
+    if (!length(qnames)) return(NULL)
+
+    todel <- c()
+    for (qname in qnames) {
+      quant <- quants[[qname]]
+      if (is.null(quant)) return(NULL)
+
+      if (!quant$is_alive()) {
+        res <- quant$get_result()
+        saveRDS(res$prev, prev_path)
+
+        showNotification(HTML(
+          paste0("<span style='color: #333;'><b>",
+                 stringr::str_trunc(res$dataset_name, 30),"</b>",
+                 "</br>is ready.</span>")),
+          duration = NULL, type = 'message')
+
+        new_dataset(res$dataset_name)
+
+        todel <- c(todel, qname)
+      }
+
+    }
+    for (qname in todel) quants[[qname]] <- NULL
+
   })
 
   # modal to confirm adding single-cell dataset
@@ -471,6 +546,25 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+#' Convenience utility to run load_raw_scseq in background
+
+#' @keywords internal
+#' @noRd
+run_load_raw_scseq <- function(opts, ret, fastq_dir, sc_dir, indices_dir) {
+
+  for (opt in opts) {
+    load_raw_scseq(opt$dataset_name,
+                   fastq_dir,
+                   sc_dir,
+                   indices_dir,
+                   metrics = opt$metrics,
+                   founder = opt$founder)
+
+  }
+
+  return(ret)
 }
 
 
@@ -864,6 +958,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
 
   # run integration
+  subsets <- reactiveValues()
   observeEvent(input$submit_subset, {
 
     subset <- input$subset_clusters
@@ -895,37 +990,74 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     # clear error and disable button
     disableAll(subset_inputs)
 
-    # Create a Progress object
-    on.exit(progress$close())
-    progress <- Progress$new(session, min=0, max = 9)
 
-    progress$set(message = "Subsetting dataset", value = 0)
+    subsets[[dataset_name]] <- callr::r_bg(
+      func = subset_saved_scseq,
+      package = 'drugseqr',
+      args = list(
+        sc_dir = sc_dir,
+        founder = founder,
+        from_dataset = from_dataset,
+        dataset_name = dataset_name,
+        exclude_clusters = exclude_clusters,
+        exclude_cells = exclude_cells,
+        subset_metrics = subset_metrics,
+        is_include = is_include,
+        is_integrated = is_integrated
+      )
+    )
 
-    subset_saved_scseq(sc_dir = sc_dir,
-                       founder = founder,
-                       from_dataset = from_dataset,
-                       dataset_name = dataset_name,
-                       exclude_clusters = exclude_clusters,
-                       exclude_cells = exclude_cells,
-                       subset_metrics = subset_metrics,
-                       is_include = is_include,
-                       is_integrated = is_integrated,
-                       progress = progress)
 
-    # need append integration type if integrated
-    if (is_integrated) {
-      args <- jsonlite::read_json(file.path(sc_dir, from_dataset, 'args.json'), simplifyVector = TRUE)
-      dataset_name <- paste(dataset_name, args$integration_type, sep = '_')
-    }
+    showNotification(HTML(
+      paste0("<span style='color: #333;'><b>Subsetting in background.</b>",
+             "<br/> Will notify on completion.</span>")),
+      duration = 10, type = 'message')
 
-    # save as previously selected
-    new_dataset(dataset_name)
-    saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
 
-    # re-enable, clear inputs, and trigger update of available datasets
+    # re-enable, clear inputs
     updateTextInput(session, 'subset_name', value = '')
     enableAll(subset_inputs)
   })
+
+
+  observe({
+    invalidateLater(5000, session)
+
+    snames <- names(subsets)
+    if (!length(snames)) return(NULL)
+
+    todel <- c()
+    for (sname in snames) {
+      subi <- subsets[[sname]]
+      if (is.null(subi)) return(NULL)
+
+      if (!subi$is_alive()) {
+        res <- subi$get_result()
+        dataset_name <- res$dataset_name
+
+        if (res$is_integrated) {
+          args <- jsonlite::read_json(file.path(sc_dir, res$from_dataset, 'args.json'), simplifyVector = TRUE)
+          dataset_name <- paste(dataset_name, args$integration_type, sep = '_')
+        }
+
+        # save as previously selected
+        saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
+
+        showNotification(HTML(
+          paste0("<span style='color: #333;'><b>",
+                 stringr::str_trunc(res$dataset_name, 30),"</b>",
+                 "</br>is ready.</span>")),
+          duration = NULL, type = 'message')
+
+        new_dataset(res$dataset_name)
+
+        todel <- c(todel, sname)
+      }
+    }
+    for (sname in todel) subsets[[sname]] <- NULL
+  })
+
+
 
   # update exclude clusters
   observe({
@@ -940,6 +1072,28 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   return(new_dataset)
 }
 
+
+run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
+                                       integration_types, exclude_clusters, pairs) {
+
+  for (i in seq_along(integration_types)) {
+
+    # run integration
+    integrate_saved_scseqs(sc_dir,
+                           test = test,
+                           ctrl = ctrl,
+                           integration_name = integration_name,
+                           integration_type = integration_types[i],
+                           exclude_clusters = exclude_clusters,
+                           pairs = pairs)
+  }
+
+  return(list(
+    integration_name = integration_name,
+    integration_type = integration_types[1],
+
+  ))
+}
 
 #' Logic for integration form toggled by showIntegration
 #'
@@ -1096,6 +1250,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   })
 
   # run integration
+  integs <- reactiveValues()
   observeEvent(input$submit_integration, {
 
     subset <- exclude_clusters <- input$subset_clusters
@@ -1119,36 +1274,26 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       removeClass('name-container', 'has-error')
       disableAll(integration_inputs)
 
-      # Create a Progress object
-      on.exit(progress$close())
-      ntype <- length(integration_types)
-      progress <- Progress$new(session, min=0, max = 9*ntype)
+      integs[[integration_name]] <- callr::r_bg(
+        func = run_integrate_saved_scseqs,
+        package = 'drugseqr',
+        args = list(
+          sc_dir = sc_dir,
+          test = test,
+          ctrl = ctrl,
+          integration_name = integration_name,
+          integration_types = integration_types,
+          exclude_clusters = exclude_clusters,
+          pairs = pairs
+        )
+      )
 
-      for (i in seq_along(integration_types)) {
-        vali <- (i-1)*9
-        progress$set(message = paste(integration_types[i], 'integration:'), detail = '', value = vali)
-
-        # run integration
-        integrate_saved_scseqs(sc_dir,
-                               test = test,
-                               ctrl = ctrl,
-                               integration_name = integration_name,
-                               integration_type = integration_types[i],
-                               exclude_clusters = exclude_clusters,
-                               pairs = pairs,
-                               progress = progress,
-                               value = vali)
-      }
-
-
-      dataset_name <- paste(integration_name, integration_types[1], sep = '_')
-      new_dataset(dataset_name)
-      saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
+      showNotification(HTML(
+        paste0("<span style='color: #333;'><b>Integrating in background.</b>",
+               "<br/> Will notify on completion.</span>")),
+        duration = 10, type = 'message')
 
       # re-enable, clear inputs, and trigger update of available datasets
-      ctrl(NULL)
-      test(NULL)
-      pairs(NULL)
       updateTextInput(session, 'integration_name', value = '')
       enableAll(integration_inputs)
 
@@ -1158,6 +1303,45 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       html('error_msg', html = error_msg)
       addClass('name-container', class = 'has-error')
     }
+
+  })
+
+  observe({
+    invalidateLater(5000, session)
+
+    inames <- names(integs)
+    if (!length(inames)) return(NULL)
+
+    todel <- c()
+    for (iname in inames) {
+      integ <- integs[[iname]]
+      if(is.null(integ)) return(NULL)
+
+      if (!integ$is_alive()) {
+        res <- integ$get_result()
+
+        dataset_name <- paste(res$integration_name, res$integration_type, sep = '_')
+        saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
+
+        saveRDS(res$prev, prev_path)
+
+        showNotification(HTML(
+          paste0("<span style='color: #333;'><b>",
+                 stringr::str_trunc(res$integration_name, 30),"</b>",
+                 "</br>is ready.</span>")),
+          duration = NULL, type = 'message')
+
+        new_dataset(res$integration_name)
+
+        todel <- c(todel, iname)
+      }
+
+    }
+    for (iname in todel) integs[[iname]] <- NULL
+
+
+
+
 
   })
 

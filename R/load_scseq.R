@@ -33,7 +33,6 @@ load_raw_scseq <- function(dataset_name,
 
   # standardize cellranger files
   is.cellranger <- check_is_cellranger(fastq_dir)
-  if (is.cellranger) standardize_cellranger(fastq_dir)
 
   progress$set(message = "Quantifying files", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
@@ -321,7 +320,7 @@ load_cellranger_counts <- function(data_dir) {
 process_cellranger_counts <- function(counts, species) {
   gene_id <- gene_name <- NULL
 
-  if (!grepl('sapiens|musculus')) stop('Species not supported')
+  if (!grepl('sapiens|musculus', species)) stop('Species not supported')
   tx2gene <- drugseqr.data::load_tx2gene(species)
 
   counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
@@ -609,7 +608,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param data_dir path to directory to check.
 #'
 #' @return \code{TRUE} if CellRanger files detected, otherwise \code{FALSE}.
-#' @export
+#' @keywords internal
 check_is_cellranger <- function(data_dir) {
 
   # cellranger file names
@@ -618,7 +617,15 @@ check_is_cellranger <- function(data_dir) {
   genes.file <- grep('features.tsv|genes.tsv', files, value = TRUE)
   barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
 
-  if (length(mtx.file) & length(genes.file) & length(barcodes.file)) return(TRUE)
+  # h5 file
+  h5.file <- grepl('.h5', files, fixed = TRUE)
+
+  if (length(mtx.file) & length(genes.file) & length(barcodes.file)) {
+    standardize_cellranger(data_dir)
+    return(TRUE)
+  }
+
+  if (h5.file) return(TRUE)
   return(FALSE)
 }
 
@@ -627,7 +634,7 @@ check_is_cellranger <- function(data_dir) {
 #' @param data_dir Path to folder with CellRanger files.
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
 standardize_cellranger <- function(data_dir) {
 
   # cellranger file names

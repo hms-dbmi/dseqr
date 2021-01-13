@@ -34,7 +34,7 @@ navbarUI <- function(tabs, active) {
                            }),
                            # github linkout section
                            tags$li(class = 'navbar-right',
-                                   a(href = 'https://github.com/hms-dbmi/drugseqr', icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
+                                   a(href = 'https://github.com/hms-dbmi/drugseqr', target="_blank", icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
                            ),
                            # docs section
                            tags$li(class = 'navbar-right',

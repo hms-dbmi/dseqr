@@ -1,7 +1,7 @@
 Package: drugseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq data from Fastq to Pathways
-Version: 0.2.27
+Version: 0.2.29
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
@@ -28,6 +28,7 @@ Imports:
     batchelor (>= 1.3.9),
     crossmeta,
     cowplot,
+    callr,
     dplyr (>= 0.8.3),
     DT (>= 0.11),
     DropletUtils(>= 1.6.1),
