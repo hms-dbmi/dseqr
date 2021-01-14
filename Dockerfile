@@ -17,9 +17,9 @@ git \
 wget && rm -rf /var/lib/apt/lists/*
 
 
-  # install drugseqr dependencies from renv.lock file
-  RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-R -e "remotes::install_github('rstudio/renv@0.12.5')"
+# install drugseqr dependencies from renv.lock file
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
+    R -e "remotes::install_github('rstudio/renv@0.12.5')"
 
 
 COPY ./renv.lock .
@@ -44,4 +44,4 @@ conda install -c bioconda bustools=0.39.3 -y
 RUN R -e "drugseqr.data::dl_drug_es()"
 
 # install drugseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.2.29', ref='renv', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.2.29', dependencies = FALSE, upgrade = FALSE)"
