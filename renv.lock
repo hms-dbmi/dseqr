@@ -685,8 +685,8 @@
       "RemoteRepo": "drugseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "ca255b000b48984842ea391f7399adc8325b0eee",
-      "Hash": "44d1a001d46fd1ff9d70a667d6fec1a2"
+      "RemoteSha": "5e7d629ce5b00bd007adbe6eef8f9e798c5a0bc2",
+      "Hash": "33b3d2d0e206fc81c8d95e6c33d8d867"
     },
     "dtangle": {
       "Package": "dtangle",
