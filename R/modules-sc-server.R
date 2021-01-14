@@ -461,7 +461,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     todel <- c()
     for (qname in qnames) {
       quant <- quants[[qname]]
-      if (is.null(quant)) return(NULL)
+      if (is.null(quant)) next
 
       if (!quant$is_alive()) {
         res <- quant$get_result()
@@ -1029,7 +1029,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     todel <- c()
     for (sname in snames) {
       subi <- subsets[[sname]]
-      if (is.null(subi)) return(NULL)
+      if (is.null(subi)) next
 
       if (!subi$is_alive()) {
         res <- subi$get_result()
@@ -1315,7 +1315,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     todel <- c()
     for (iname in inames) {
       integ <- integs[[iname]]
-      if(is.null(integ)) return(NULL)
+      if(is.null(integ)) next
 
       if (!integ$is_alive()) {
         res <- integ$get_result()
