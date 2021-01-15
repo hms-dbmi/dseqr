@@ -34,15 +34,15 @@ load_raw_scseq <- function(dataset_name,
   # standardize cellranger files
   is.cellranger <- check_is_cellranger(fastq_dir)
 
-  progress$set(message = "Quantifying files", value = value + 1)
+  progress$set(message = "quantifying files", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
 
-  progress$set(message = "Loading", value + 2)
+  progress$set(message = "loading", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
   scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
   gc()
 
-  progress$set(message = "Running QC", value = value + 3)
+  progress$set(message = "running QC", value = value + 3)
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq)
   gc()
@@ -74,25 +74,25 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progr
     })
   }
 
-  progress$set(message = "Clustering", detail = '', value = value + 1)
+  progress$set(message = "clustering", detail = '', value = value + 1)
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq)
   scseq <- add_scseq_clusters(scseq)
   gc()
 
 
-  progress$set(message = "Reducing dimensions", value = value + 2)
+  progress$set(message = "reducing", value = value + 2)
   scseq <- run_tsne(scseq)
   gc()
 
-  progress$set(message = "Getting markers", value = value + 3)
+  progress$set(message = "cluster markers", value = value + 3)
   tests <- pairwise_wilcox(scseq)
   markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-  progress$set(message = "Saving", value = value + 4)
+  progress$set(message = "saving", value = value + 4)
   anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers, founder = founder)
 
   save_scseq_data(anal, dataset_name, sc_dir)
@@ -100,7 +100,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progr
   # don't save raw counts for loom (saved as non-sparse)
   SummarizedExperiment::assay(scseq, 'counts') <- NULL; gc()
 
-  progress$set(message = "Saving loom", value = value + 5)
+  progress$set(message = "saving loom", value = value + 5)
   save_scle(scseq, file.path(sc_dir, dataset_name))
   progress$set(value = value + 7)
 }

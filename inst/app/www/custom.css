@@ -238,7 +238,7 @@ input[type=text] {
     border-color: transparent;
 }
 
-/* TODO: fix in shinypanel.css */
+/*shinyFiles TODO: fix in shinypanel.css */
 .sF-textChoice > .btn {
     min-height: inherit;
 }
@@ -246,3 +246,14 @@ input[type=text] {
 .sF-breadcrumps {
     width: calc(100% - 350px);
 }
+
+
+/*button focus */
+.btn {
+    outline: 0px;
+}
+
+.sF-breadcrumps {
+    width: calc(100% - 350px);
+}
+

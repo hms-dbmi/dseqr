@@ -392,6 +392,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # run single-cell quantification
   quants <- reactiveValues()
+  pquants <- reactiveValues()
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
@@ -419,34 +420,29 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
              founder = dataset_name))
 
 
-      prev <- paste0(dataset_name, '_QC1')
     } else {
 
       opts <- list(
         list(dataset_name = dataset_name,
              metrics = metrics,
              founder = dataset_name))
-      prev <- dataset_name
     }
-
-    ret = list(dataset_name = dataset_name, prev = prev)
 
     quants[[dataset_name]] <- callr::r_bg(
       func = run_load_raw_scseq,
       package = 'drugseqr',
       args = list(
         opts = opts,
-        ret = ret,
         fastq_dir = fastq_dir,
         sc_dir = sc_dir,
         indices_dir = indices_dir
       )
     )
 
-    showNotification(HTML(
-      paste0("<span style='color: #333;'><b>Quantifying in background.</b>",
-             "<br/> Will notify on completion.</span>")),
-      duration = 10, type = 'message')
+    progress <- Progress$new(max=10*length(opts))
+    msg <- paste(stringr::str_trunc(dataset_name, 35), "import:")
+    progress$set(message = msg, value = 0)
+    pquants[[dataset_name]] <- progress
 
     new_dataset(dataset_name)
     enableAll(dataset_inputs)
@@ -454,32 +450,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observe({
     invalidateLater(5000, session)
-
-    qnames <- names(quants)
-    if (!length(qnames)) return(NULL)
-
-    todel <- c()
-    for (qname in qnames) {
-      quant <- quants[[qname]]
-      if (is.null(quant)) next
-
-      if (!quant$is_alive()) {
-        res <- quant$get_result()
-        saveRDS(res$prev, prev_path)
-
-        showNotification(HTML(
-          paste0("<span style='color: #333;'><b>",
-                 stringr::str_trunc(res$dataset_name, 30),"</b>",
-                 "</br>is ready.</span>")),
-          duration = NULL, type = 'message')
-
-        new_dataset(res$dataset_name)
-
-        todel <- c(todel, qname)
-      }
-
-    }
-    for (qname in todel) quants[[qname]] <- NULL
+    handle_sc_progress(quants, pquants, new_dataset)
 
   })
 
@@ -504,7 +475,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices =  rbind(NA, datasets()), server = TRUE, options = options)
+    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
   })
 
   # show/hide integration/label-transfer forms
@@ -552,7 +523,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 #' @keywords internal
 #' @noRd
-run_load_raw_scseq <- function(opts, ret, fastq_dir, sc_dir, indices_dir) {
+run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
 
   for (opt in opts) {
     load_raw_scseq(opt$dataset_name,
@@ -564,7 +535,6 @@ run_load_raw_scseq <- function(opts, ret, fastq_dir, sc_dir, indices_dir) {
 
   }
 
-  return(ret)
 }
 
 
@@ -959,6 +929,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
   # run integration
   subsets <- reactiveValues()
+  psubsets <- reactiveValues()
+
   observeEvent(input$submit_subset, {
 
     subset <- input$subset_clusters
@@ -1007,11 +979,10 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       )
     )
 
-
-    showNotification(HTML(
-      paste0("<span style='color: #333;'><b>Subsetting in background.</b>",
-             "<br/> Will notify on completion.</span>")),
-      duration = 10, type = 'message')
+    progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
+    msg <- paste(stringr::str_trunc(dataset_name, 35), "subset:")
+    progress$set(message = msg, value = 0)
+    psubsets[[dataset_name]] <- progress
 
 
     # re-enable, clear inputs
@@ -1022,39 +993,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
   observe({
     invalidateLater(5000, session)
-
-    snames <- names(subsets)
-    if (!length(snames)) return(NULL)
-
-    todel <- c()
-    for (sname in snames) {
-      subi <- subsets[[sname]]
-      if (is.null(subi)) next
-
-      if (!subi$is_alive()) {
-        res <- subi$get_result()
-        dataset_name <- res$dataset_name
-
-        if (res$is_integrated) {
-          args <- jsonlite::read_json(file.path(sc_dir, res$from_dataset, 'args.json'), simplifyVector = TRUE)
-          dataset_name <- paste(dataset_name, args$integration_type, sep = '_')
-        }
-
-        # save as previously selected
-        saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
-
-        showNotification(HTML(
-          paste0("<span style='color: #333;'><b>",
-                 stringr::str_trunc(res$dataset_name, 30),"</b>",
-                 "</br>is ready.</span>")),
-          duration = NULL, type = 'message')
-
-        new_dataset(res$dataset_name)
-
-        todel <- c(todel, sname)
-      }
-    }
-    for (sname in todel) subsets[[sname]] <- NULL
+    handle_sc_progress(subsets, psubsets, new_dataset)
   })
 
 
@@ -1088,11 +1027,6 @@ run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
                            pairs = pairs)
   }
 
-  return(list(
-    integration_name = integration_name,
-    integration_type = integration_types[1],
-
-  ))
 }
 
 #' Logic for integration form toggled by showIntegration
@@ -1250,6 +1184,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   })
 
   # run integration
+  pintegs <- reactiveValues()
   integs <- reactiveValues()
   observeEvent(input$submit_integration, {
 
@@ -1288,13 +1223,12 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
         )
       )
 
-      showNotification(HTML(
-        paste0("<span style='color: #333;'><b>Integrating in background.</b>",
-               "<br/> Will notify on completion.</span>")),
-        duration = 10, type = 'message')
+      progress <- Progress$new(max=8*length(integration_types))
+      msg <- paste(stringr::str_trunc(integration_name, 35), "integration:")
+      progress$set(message = msg, value = 0)
+      pintegs[[integration_name]] <- progress
 
-      # re-enable, clear inputs, and trigger update of available datasets
-      updateTextInput(session, 'integration_name', value = '')
+      # re-enable
       enableAll(integration_inputs)
 
     } else {
@@ -1306,47 +1240,54 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   })
 
+  # progress monitoring of integration
   observe({
     invalidateLater(5000, session)
-
-    inames <- names(integs)
-    if (!length(inames)) return(NULL)
-
-    todel <- c()
-    for (iname in inames) {
-      integ <- integs[[iname]]
-      if(is.null(integ)) next
-
-      if (!integ$is_alive()) {
-        res <- integ$get_result()
-
-        dataset_name <- paste(res$integration_name, res$integration_type, sep = '_')
-        saveRDS(dataset_name, file.path(sc_dir, 'prev_dataset.rds'))
-
-        saveRDS(res$prev, prev_path)
-
-        showNotification(HTML(
-          paste0("<span style='color: #333;'><b>",
-                 stringr::str_trunc(res$integration_name, 30),"</b>",
-                 "</br>is ready.</span>")),
-          duration = NULL, type = 'message')
-
-        new_dataset(res$integration_name)
-
-        todel <- c(todel, iname)
-      }
-
-    }
-    for (iname in todel) integs[[iname]] <- NULL
-
-
-
-
-
+    handle_sc_progress(integs, pintegs, new_dataset)
   })
 
   return(new_dataset)
 }
+
+#' Update Progress from Background Processes
+#'
+#' @param bgs \code{reactivevalues} of \link[callr]{r_bg}
+#' @param progs \code{reactivevalues} of \link[shiny]{Progress}
+#' @param new_dataset \code{reactive} that triggers update of available datasets.
+#'
+#' @return NULL
+#' @keywords internal
+#'
+handle_sc_progress <- function(bgs, progs, new_dataset) {
+  bg_names <- names(bgs)
+  if (!length(bg_names)) return(NULL)
+
+  todel <- c()
+  for (name in bg_names) {
+    bg <- bgs[[name]]
+    progress <- progs[[name]]
+    if(is.null(bg)) next
+
+    msgs <- bg$read_output_lines()
+
+    if (length(msgs)) {
+      progress$set(value = progress$getValue() + length(msgs),
+                   detail = gsub('^\\d+ +', '', tail(msgs, 1)))
+    }
+
+    if (!bg$is_alive()) {
+      res <- bg$get_result()
+      progress$close()
+      new_dataset(name)
+      todel <- c(todel, name)
+    }
+  }
+  for (name in todel) {
+    bgs[[name]] <- NULL
+    progs[[name]] <- NULL
+  }
+}
+
 
 
 #' Logic for comparison type toggle for integrated datasets
