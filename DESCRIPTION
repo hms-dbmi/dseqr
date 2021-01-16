@@ -1,6 +1,6 @@
 Package: drugseqr
 Type: Package
-Title: GUI to Explore Single-Cell and Bulk RNA-Seq data from Fastq to Pathways
+Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
 Version: 0.2.32
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
