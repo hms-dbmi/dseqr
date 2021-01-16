@@ -4,21 +4,14 @@
 \alias{handle_sc_progress}
 \title{Update Progress from Background Processes}
 \usage{
-handle_sc_progress(bgs, progs, new_dataset, selected_dataset)
+handle_sc_progress(bgs, progs, new_dataset)
 }
 \arguments{
 \item{bgs}{\code{reactivevalues} of \link[callr]{r_bg}}
 
 \item{progs}{\code{reactivevalues} of \link[shiny]{Progress}}
 
-\item{new_dataset}{\code{reactive} that triggers update of available datasets.
-\code{'---selected_dataset'} get's appended to name of \code{bgs} as they
-complete so that the available datasets can be updated without changing
-the currently selected dataset.}
-
-\item{selected_dataset}{\code{reactive} with name of currently selected dataset.}
-
-\item{sc_dir}{Path to single-cell directory.}
+\item{new_dataset}{\code{reactive} that triggers update of available datasets.}
 }
 \description{
 Update Progress from Background Processes

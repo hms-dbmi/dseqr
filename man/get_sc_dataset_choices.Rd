@@ -4,7 +4,7 @@
 \alias{get_sc_dataset_choices}
 \title{Get data.frame of single-cell dataset choices}
 \usage{
-get_sc_dataset_choices(sc_dir, new_dataset = NULL)
+get_sc_dataset_choices(sc_dir)
 }
 \arguments{
 \item{sc_dir}{Directory containing single-cell datasets}
