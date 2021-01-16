@@ -281,7 +281,7 @@ get_exclude_dirs <- function(sc_dir) {
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
-  options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'))
+  options <- list(create = TRUE, placeholder = 'Type name to add new single-cell dataset', render = I('{option: scDatasetOptions, item: scDatasetItem}'))
 
   # get directory with fastqs/h5 files
   roots <- c('single-cell' = sc_dir)
@@ -290,11 +290,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
 
-  dataset_name <- reactive({
+  dataset_name <- reactiveVal()
+  observe({
     if (!dataset_exists()) return(NULL)
     ds <- datasets()
-    ds$name[ds$value == input$selected_dataset]
+    ds <- ds$name[ds$value == input$selected_dataset]
+
+    prev <- isolate(dataset_name())
+    if(is.null(prev) || ds != prev)
+      dataset_name(ds)
   })
+
 
 
   # get's used for saving annotation to disc
@@ -332,8 +338,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   datasets <- reactive({
     # reactive to new single cell datasets
-    new_dataset()
-    get_sc_dataset_choices(sc_dir)
+    new <- new_dataset()
+    datasets <- get_sc_dataset_choices(sc_dir)
+    move_new(new, datasets)
   })
 
 
@@ -440,7 +447,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     )
 
     progress <- Progress$new(max=10*length(opts))
-    msg <- paste(stringr::str_trunc(dataset_name, 35), "import:")
+    msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
     progress$set(message = msg, value = 0)
     pquants[[dataset_name]] <- progress
 
@@ -473,9 +480,31 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     )
   }
 
+  datasets_to_list <- function(datasets) {
+    res <- datasets$value
+    names(res) <- datasets$optionLabel
+    types <- datasets$type
+    res <- lapply(unique(types), function(type) res[types==type])
+    names(res) <- unique(types)
+    return(res)
+
+  }
+
+  move_new <- function(new, datasets) {
+    if(is.null(new)) return(datasets)
+    is.new <- datasets$name == new
+    new.ds <- datasets[is.new, ]
+    old.ds <- datasets[!is.new, ]
+    datasets <- rbind(old.ds, new.ds)
+    datasets$value <- seq_along(datasets$value)
+    return(datasets)
+  }
+
 
   observe({
-    updateSelectizeInput(session, 'selected_dataset', choices = rbind(NA, datasets()), server = TRUE, options = options)
+    datasets <- datasets()
+    datasets <- datasets_to_list(datasets)
+    updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = c('', datasets), options = options)
   })
 
   # show/hide integration/label-transfer forms
@@ -980,7 +1009,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     )
 
     progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
-    msg <- paste(stringr::str_trunc(dataset_name, 35), "subset:")
+    msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
     progress$set(message = msg, value = 0)
     psubsets[[dataset_name]] <- progress
 
@@ -1224,7 +1253,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       )
 
       progress <- Progress$new(max=8*length(integration_types))
-      msg <- paste(stringr::str_trunc(integration_name, 35), "integration:")
+      msg <- paste(stringr::str_trunc(integration_name, 33), "integration:")
       progress$set(message = msg, value = 0)
       pintegs[[integration_name]] <- progress
 
@@ -1353,17 +1382,31 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     else annot(readRDS(annot_path()))
   })
 
-  # set to first cluster if switch to showing contrasts
-  observeEvent(input$show_contrasts, {
-    if (show_contrasts()) {
-      selected_cluster(NULL)
-    } else {
-      selected_cluster(test_cluster())
-    }
+
+  observe({
+    sel <- input$selected_cluster
+    prev <- selected_cluster()
+    test <- isolate(test_cluster())
+
+    no.prev <- !isTruthy(prev)
+    is.new <- isTruthy(sel) && sel != prev
+    is.flip <- !show_contrasts() & grepl('-vs-', sel)
+
+    if ((no.prev || is.new) & !is.flip)
+      selected_cluster(sel)
+
   })
 
-  observeEvent(input$selected_cluster, {
-    selected_cluster(input$selected_cluster)
+  observeEvent(input$show_contrasts, {
+    if (!show_contrasts()) {
+      test <- test_cluster()
+      prev <- selected_cluster()
+
+      if (prev != test) {
+
+        selected_cluster(test)
+      }
+    }
   })
 
   # reset if switch dataset
@@ -1418,10 +1461,17 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
   # update UI for contrast/cluster choices
   observeEvent(choices(), {
+    choices <- choices()
+    selected <- NULL
+
+    if (!show_contrasts()) {
+      choices <- rbind(NA, choices)
+      selected <- isolate(selected_cluster())
+    }
 
     updateSelectizeInput(session, 'selected_cluster',
-                         choices = rbind(NA, choices()),
-                         selected = isolate(selected_cluster()),
+                         choices = choices,
+                         selected = selected,
                          options = contrast_options, server = TRUE)
   })
 
@@ -1461,8 +1511,15 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
   observe({
     sel <- selected_cluster()
-    if (!isTruthy(sel)) selected_markers(NULL)
-    else selected_markers(markers()[[sel]])
+
+    if (isTruthy(sel)) {
+      new <- markers()[[sel]]
+      if (!isTruthy(new)) return(NULL)
+
+      prev <- isolate(selected_markers())
+      if (is.null(prev) || !identical(row.names(new), row.names(prev)))
+        selected_markers(new)
+    }
   })
 
 
@@ -2173,4 +2230,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

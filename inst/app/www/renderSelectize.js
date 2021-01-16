@@ -292,26 +292,36 @@ function bulkContrastItem(item, escape) {
 
 function scDatasetOptions(item, escape) {
 
-  var label = typeof item.optionLabel == 'undefined' ? item.value : item.optionLabel;
-  var title = typeof item.name == 'undefined' ? item.value : item.name;
+  var opt = item.optgroup;
+  opt = typeof opt == 'undefined' ? '' : opt;
+  opt = opt == 'Previous Session' ? '' : opt + '_';
 
-  var clustEl = "<div title='" + title + "'>" +
-                  escape(label) +
+  var full_name = opt + item.label;
+  var trunc_name = truncate(item.label, 35);
+
+  var clustEl = "<div title='" + full_name + "'>" +
+                  escape(trunc_name) +
                 "</div>";
 
   return clustEl;
 }
 
-
+function truncate(str, n){
+  return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+};
 
 function scDatasetItem(item, escape) {
 
+  var opt = item.optgroup;
+  opt = typeof opt == 'undefined' ? '' : opt;
+  opt = opt == 'Previous Session' ? '' : opt + '_';
 
-  var label = typeof item.itemLabel == 'undefined' ? item.value : item.itemLabel;
-  var title = typeof item.name == 'undefined' ? item.value : item.name;
+  var full_name = opt + item.label;
+  var trunc_name = truncate(full_name, 35);
 
-  var clustEl = "<div title='" + title + "'>" +
-                  escape(label) +
+
+  var clustEl = "<div title='" + full_name + "'>" +
+                  escape(trunc_name) +
                 "</div>";
 
   return clustEl;

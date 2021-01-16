@@ -141,8 +141,7 @@ scSelectedDatasetInput <- function(id) {
             ns('show_integration'), '',
             icon = icon('object-ungroup', 'far fa-fw'),
             title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate dataset(s)'
-          ),
-          options = list(placeholder = 'Type name to add new single-cell dataset', optgroupField = 'type', create = TRUE)
+          )
         )
     ),
 
@@ -404,4 +403,3 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
-
