@@ -326,3 +326,16 @@ function scDatasetItem(item, escape) {
 
   return clustEl;
 }
+
+function scDatasetItemDF(item, escape) {
+
+
+  var label = typeof item.itemLabel == 'undefined' ? item.value : item.itemLabel;
+  var title = typeof item.name == 'undefined' ? item.value : item.name;
+
+  var clustEl = "<div title='" + title + "'>" +
+                  escape(label) +
+                "</div>";
+
+  return clustEl;
+}

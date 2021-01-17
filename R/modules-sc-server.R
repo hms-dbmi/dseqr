@@ -667,6 +667,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq, species) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
+  options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
@@ -702,7 +703,12 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(preds, datasets, species)
 
     choices <- get_label_transfer_choices(datasets, dataset_name, preds, species)
-    updateSelectizeInput(session, 'ref_name', choices = choices, server = TRUE, selected = isolate(new_preds()), options = list(render = I('{option: transferLabelOption, item: scDatasetItem}')))
+    updateSelectizeInput(session,
+                         'ref_name',
+                         choices = choices,
+                         server = TRUE,
+                         selected = isolate(new_preds()),
+                         options = options)
   })
 
 
@@ -741,7 +747,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
     # get arguments for SingleR
     tab <- NULL
-    senv <- loadNamespace('SingleR')
+    senv <- loadNamespace('celldex')
     updateProgress(1/n)
 
     if (ref_name %in% ls(senv)) {
