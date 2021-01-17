@@ -44,4 +44,4 @@ conda install -c bioconda bustools=0.39.3 -y
 RUN R -e "drugseqr.data::dl_drug_es()"
 
 # install drugseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.2.33', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/drugseqr@0.2.34', dependencies = FALSE, upgrade = FALSE)"
