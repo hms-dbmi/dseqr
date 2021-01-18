@@ -18,8 +18,8 @@ navbarUI <- function(tabs, active) {
                    ),
                    span(class = 'navbar-brand', title = 'drugseqr',
                         span(class = 'brand-icons',
-                             tags$i(class = 'glyphicon glyphicon-leaf'),
-                             'drugseqr'
+                             tags$img(src="favicon.png"),
+                             span('seqr')
                         )
                    )
                ),
