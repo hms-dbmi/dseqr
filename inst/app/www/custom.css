@@ -261,7 +261,7 @@ input[type=text] {
 
 /*disable tooltips on mobile*/
 @media only screen
-and (min-device-width : 768px)
+and (min-device-width : 319px)
 and (max-device-width : 1024px) {
     .tooltip {
         display: none !important;
