@@ -33,11 +33,11 @@ navbarUI <- function(tabs, active) {
                              )
                            }),
                            # github linkout section
-                           tags$li(class = 'navbar-right',
+                           tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
                                    a(href = 'https://github.com/hms-dbmi/drugseqr', target="_blank", icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
                            ),
                            # docs section
-                           tags$li(class = 'navbar-right',
+                           tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
                                    a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
                            )
                    )
