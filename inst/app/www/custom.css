@@ -84,14 +84,15 @@
 
 .brand-icons {
     background-color: white;
-    padding: 5px 12px;
+    padding: 5px 12px 5px 0px;
     cursor: default;
-    color: cornflowerblue;
+    color: #333;
 }
 
-.brand-icons i {
-    color: cornflowerblue;
-    font-size: 14px;
+.brand-icons img {
+    width: 24px;
+    height: 24px;
+    margin-top: -3px;
 }
 
 
