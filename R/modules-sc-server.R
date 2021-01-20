@@ -281,7 +281,10 @@ get_exclude_dirs <- function(sc_dir) {
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
-  options <- list(create = TRUE, placeholder = 'Type name to add new single-cell dataset', render = I('{option: scDatasetOptions, item: scDatasetItem}'))
+  options <- list(create = TRUE,
+                  placeholder = 'Type name to add new single-cell dataset',
+                  render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+                  searchField = c('optgroup', 'label'))
 
   # get directory with fastqs/h5 files
   roots <- c('single-cell' = sc_dir)
@@ -1327,6 +1330,11 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
     if(is.null(bg)) next
 
     msgs <- bg$read_output_lines()
+
+    # for some reason this un-stalls bg process for integration
+    # also nice to see things printed to stderr
+    errs <- bg$read_output_lines()
+    print(errs)
 
     if (length(msgs)) {
       progress$set(value = progress$getValue() + length(msgs),
