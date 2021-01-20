@@ -916,7 +916,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   subset_inputs <- c('subset_name',
                      'submit_subset',
                      'subset_clusters',
-                     'toggle_exclude')
+                     'toggle_exclude',
+                     'click_up')
 
   # show/hide integration forms
   observe({
@@ -973,6 +974,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     metric_choices <- metric_choices()
     is_include <- is_include()
     is_integrated <- is_integrated()
+    hvgs <- hvgs()
 
     exclude_clusters <- intersect(cluster_choices$value, subset)
     subset_metrics <- intersect(metric_choices$value, subset)
@@ -997,7 +999,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     # clear error and disable button
     disableAll(subset_inputs)
 
-
     subsets[[dataset_name]] <- callr::r_bg(
       func = subset_saved_scseq,
       package = 'drugseqr',
@@ -1010,7 +1011,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
         exclude_cells = exclude_cells,
         subset_metrics = subset_metrics,
         is_include = is_include,
-        is_integrated = is_integrated
+        is_integrated = is_integrated,
+        hvgs = hvgs
       )
     )
 
@@ -1031,6 +1033,27 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     handle_sc_progress(subsets, psubsets, new_dataset)
   })
 
+  # upload custom HVGs
+  hvgs <- reactiveVal()
+  observeEvent(input$click_up, {
+    hvgs(NULL)
+    shinyjs::click('up_hvgs')
+  })
+
+  observe({
+    infile <- input$up_hvgs
+    req(infile)
+
+    # make sure HVGs in scseq
+    up_hvgs <- readLines(infile$datapath)
+    genes <- isolate(row.names(scseq()))
+
+    if (sum(up_hvgs %in% genes))
+      hvgs(readLines(infile$datapath))
+  })
+
+  # make upload green when have data
+  observe(toggleClass(id = "click_up", 'btn-success', condition = isTruthy(hvgs())))
 
 
   # update exclude clusters
@@ -2236,3 +2259,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, dataset_name
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+

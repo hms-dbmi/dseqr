@@ -715,6 +715,7 @@ integrate_saved_scseqs <- function(
   is_include = FALSE,
   founder = integration_name,
   pairs = NULL,
+  hvgs = NULL,
   progress = NULL,
   value = 0) {
 
@@ -755,7 +756,7 @@ integrate_saved_scseqs <- function(
   else if (species == 'Mus musculus') release <- '98'
 
   progress$set(value+2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs)
+  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs, hvgs = hvgs)
   combined$project <- dataset_name
 
   # retain original QC metrics
@@ -845,7 +846,17 @@ integrate_saved_scseqs <- function(
 #'
 #' @keywords internal
 #'
-subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, exclude_clusters, exclude_cells, subset_metrics, is_integrated, is_include, progress = NULL) {
+subset_saved_scseq <- function(sc_dir,
+                               founder,
+                               from_dataset,
+                               dataset_name,
+                               exclude_clusters,
+                               exclude_cells,
+                               subset_metrics,
+                               is_integrated,
+                               is_include,
+                               progress = NULL,
+                               hvgs = NULL) {
   # for save_scseq_args
   args <- c(as.list(environment()))
   args$progress <- args$sc_dir <- NULL
@@ -879,12 +890,13 @@ subset_saved_scseq <- function(sc_dir, founder, from_dataset, dataset_name, excl
                            is_include = is_include,
                            founder = founder,
                            pairs = args$pairs,
+                           hvgs = hvgs,
                            progress = progress,
                            value = 1)
 
   } else {
     scseq <- load_scseq_subsets(from_dataset, sc_dir, exclude_clusters, subset_metrics, is_include, ident=from_dataset)[[1]]
-    process_raw_scseq(scseq, dataset_name, sc_dir, progress = progress, value = 1, founder = founder)
+    process_raw_scseq(scseq, dataset_name, sc_dir, hvgs = hvgs, progress = progress, value = 1, founder = founder)
     save_scseq_args(args, dataset_name, sc_dir)
   }
 }
