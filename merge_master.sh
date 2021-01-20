@@ -4,6 +4,7 @@ git reset HEAD .gitignore
 git reset HEAD .dockerignore
 git reset HEAD .renvignore
 git reset HEAD Dockerfile
+git reset HEAD merge_master.sh
 git reset HEAD renv/.gitignore
 git reset HEAD renv/activate.R
 git reset HEAD renv/settings.dcf

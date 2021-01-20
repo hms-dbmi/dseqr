@@ -66,7 +66,7 @@ load_raw_scseq <- function(dataset_name,
 #'
 #' @return NULL
 #' @export
-process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progress = NULL, value = 0) {
+process_raw_scseq <- function(scseq, dataset_name, sc_dir, hvgs = NULL, founder = NULL, progress = NULL, value = 0) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -76,7 +76,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, founder = NULL, progr
 
   progress$set(message = "clustering", detail = '', value = value + 1)
   scseq <- normalize_scseq(scseq)
-  scseq <- add_hvgs(scseq)
+  scseq <- add_hvgs(scseq, hvgs = hvgs)
   scseq <- add_scseq_clusters(scseq)
   gc()
 
@@ -719,12 +719,16 @@ normalize_scseq <- function(scseq) {
 #' @param sce \code{SingleCellExperiment} object
 #'
 #' @export
-add_hvgs <- function(sce) {
+add_hvgs <- function(sce, hvgs = NULL) {
 
-  dec <- scran::modelGeneVar(sce)
-  hvg <- row.names(sce) %in% scran::getTopHVGs(dec, prop=0.1)
+  if (is.null(hvgs)) {
+    dec <- scran::modelGeneVar(sce)
+    hvg <- row.names(sce) %in% scran::getTopHVGs(dec, prop=0.1)
+  } else {
+    hvg <- row.names(sce) %in% hvgs
+  }
+
   SummarizedExperiment::rowData(sce)$hvg <- hvg
-
   return(sce)
 }
 
@@ -984,7 +988,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL, hvgs = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -1001,7 +1005,8 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NUL
 
   # feature selection
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
-  hvgs <- decs$bio > 0
+  if (!is.null(hvgs)) hvgs <- hvgs %in% universe
+  else hvgs <- decs$bio > 0
 
   # integration
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)

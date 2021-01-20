@@ -226,14 +226,14 @@ subsetFormInput <- function(id) {
           ns('subset_name'),
           container_id = ns('name-container'),
           label = 'Name for subset dataset:',
+          actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering'),
           actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
           help_id = ns('error_msg'),
-          placeholder = 'eg: QC2 (appended to founder dataset name)'),
+          placeholder = 'eg: QC2 (appended to founder name)'),
 
         div(style = 'display: none',
-            fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-        ),
-        downloadLink(ns('dl_samples'), '')
+            fileInput(ns('up_hvgs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+        )
     )
   })
 
@@ -403,3 +403,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+
