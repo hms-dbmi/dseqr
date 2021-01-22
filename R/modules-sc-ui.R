@@ -291,10 +291,12 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
   amb_btn    <- actionButton(ns('exclude_ambient'), label = NULL, icon = icon('ban', 'fa-fw'), title = 'Toggle excluding ambient genes')
   ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
+  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot',  `parent-style`='display: none;')
 
   if (sample_comparison) {
     btn1 <- gene_btn
-    btn2 <- amb_btn
+    btn2 <- dprimes_btn
+    btn3 <- amb_btn
   } else {
     btn1 <- ridge_btn
     btn2 <- gene_btn

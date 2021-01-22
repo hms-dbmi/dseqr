@@ -251,7 +251,7 @@ input[type=text] {
 
 /*button focus */
 .btn {
-    outline: 0px;
+    outline: 0px !important;
 }
 
 .sF-breadcrumps {

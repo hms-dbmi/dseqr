@@ -116,7 +116,6 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
     path_signs <- sign(path_df$Dprime)
     pert_signs  <- sign(pert_signature)
     path_df$arrow_color <- ifelse(pert_signs == path_signs, '#f64f5a', '#1863e6')
-
   }
 
   return(path_df)

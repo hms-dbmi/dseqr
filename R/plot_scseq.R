@@ -42,6 +42,19 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
   return(pl)
 }
 
+update_cluster_plot <- function(plot, annot, hl) {
+  plot$layers[[2]]$data$cluster <- annot
+  cols <- rep('black', length(annot))
+
+  if (!is.null(hl)) {
+    cols <- rep('#5f5f5f', length(annot))
+    cols[hl] <- 'black'
+  }
+  plot$layers[[2]]$aes_params$colour <- cols
+
+  return(plot)
+}
+
 #' Shorted cluster labels when there are lots of clusters
 #'
 #' @param labels Character vector of labels
@@ -85,9 +98,9 @@ plot_tsne_feature <- function(scseq,
                               feature,
                               cols = c('lightgray', 'blue'),
                               reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
-                              title = paste0('Expression by Cell: ', feature)) {
+                              title = paste0('Expression by Cell: ', feature),
+                              pt.size = min(6000/ncol(scseq), 2)) {
 
-  pt.size <- min(6000/ncol(scseq), 2)
 
   if (reverse_scale) cols <- rev(cols)
 
@@ -202,24 +215,28 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
 #' @return \code{plot} formatted for drugseqr app
 #'
 #' @keywords internal
-plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
+plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = c('lightgray', 'blue')) {
 
-  plot <- plot_tsne_feature(scseq, gene)
-  gene <- make.names(gene)
+  if (is.null(plot)) plot <- plot_tsne_feature(scseq, feature)
 
-  # the min and max gene expression value
-  lims <- range(plot$data[[gene]])
+  is.group <- scseq$orig.ident == group
+  ncells <- sum(is.group)
+  feature <- make.names(feature)
+  plot$layers[[1]]$aes_params$size <-  min(6000/(ncells), 2)
+
+  # the min and max feature expression value
+  lims <- range(plot$data[[feature]])
 
   # show selected group only
-  sel.cells <- colnames(scseq)[scseq$orig.ident == group]
+  sel.cells <- colnames(scseq)[is.group]
   plot$data <- plot$data[row.names(plot$data) %in% sel.cells, ]
 
   # add selected group as title
-  plot <- plot + ggplot2::ggtitle(toupper(group)) +
-    ggplot2::theme(plot.title = ggplot2::element_text(color = 'black'))
+  fname <- ifelse(group == 'test', 'Test', 'Control')
+  plot <- plot + ggplot2::ggtitle(paste("Expression in", fname, 'Samples:', feature))
 
   # use the same scale for each sample so that comparable
-  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low ="lightgray", high = "blue", limits = lims))
+  suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low = cols[1], high = cols[2], limits = lims))
 
   # remove control plot labels and legend
   if (group == 'ctrl')
@@ -229,8 +246,40 @@ plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
   return(plot)
 }
 
+update_feature_plot <- function(plot, feature_data, feature) {
+  prev <- tail(colnames(plot$data), 1)
+  feature <- make.names(feature)
+  plot$data[[prev]] <- NULL
+  plot$data[[feature]] <- feature_data[row.names(plot$data)]
 
-#' Plot single-cell ridgeline plots
+  # update mapping to new gene
+  plot$layers[[1]]$mapping$colour <- rlang::quo_set_expr(
+    plot$layers[[1]]$mapping$colour, rlang::ensym(feature))
+
+  plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
+  return(plot)
+}
+
+
+downsample_group <- function(scseq, group) {
+  ncells <- tibble::tibble(cluster=scseq$cluster, group=scseq$orig.ident, cell = colnames(scseq))
+
+  keep <- ncells %>%
+    dplyr::group_by(group, cluster) %>%
+    dplyr::add_count() %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(cluster) %>%
+    dplyr::mutate(nmin = min(n)) %>%
+    dplyr::group_by(group, cluster) %>%
+    dplyr::group_modify(~dplyr::sample_n(.x, nmin)) %>%
+    dplyr::pull(cell)
+
+  return(scseq[, keep])
+
+}
+
+
+#' Get data for single-cell ridgeline plots
 #'
 #' @param feature Feature name to generate ridge plot for. Either a row or \code{colData} of \code{scseq}.
 #' @param scseq \code{SingleCellExperiment}.
@@ -241,70 +290,153 @@ plot_tsne_feature_sample <- function(gene, scseq, group = 'test') {
 #' @param decreasing if \code{TRUE}, ridgelines with smaller mean values of \code{feature} will show up on top.
 #'  Used to show features where smaller values indicate potential QC issues.
 #'
-#' @return ggplot object
+#' @return list used by \link{plot_ridge}
 #'
 #' @keywords internal
-plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with.height = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE) {
   n <- NULL
 
-  if (is.null(selected_cluster)) selected_cluster <- ''
+  if (isTruthy(selected_cluster)) {
+    # for one vs one comparisons
+    selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
 
-  # for one vs one comparisons
-  selected_cluster <- strsplit(selected_cluster, '-vs-')[[1]]
+    # get color for selected cluster
+    seli <- as.numeric(selected_cluster)
 
-  # get color for selected cluster
+  } else {
+    selected_cluster <- ''
+    seli <- 0
+  }
+
   clus_levs <- levels(scseq$cluster)
-  seli <- as.numeric(selected_cluster)
-  sel <- clus_levs[seli]
-  nsel <- length(sel)
 
-  colors <- get_palette(clus_levs)
+  # specific args if selecting 'All Clusters'
+  maxi <- length(clus_levs)+1
+  if (seli > maxi) {
+    # invalid 'flip' state
+    return(NULL)
+
+  } else if (seli == maxi) {
+    sel <- c(clus_levs, 'All Clusters')
+    nsel <- 1
+
+  } else {
+    sel <- clus_levs[seli]
+    nsel <- length(sel)
+  }
+
+  colors <- get_palette(clus_levs, with_all=with_all)
   color  <- colors[seli]
-  colors_dark <- get_palette(clus_levs, dark = TRUE)
+  colors_dark <- get_palette(clus_levs, dark=TRUE, with_all=with_all)
   color_dark  <- colors_dark[seli]
+
 
   # either highlight test group or selected cluster
   if (by.sample) {
-    if (!isTruthy(selected_cluster)) scseq <- scseq[row.names(scseq) != feature, ]
     scseq <- scseq[, scseq$cluster %in% sel]
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident
-    title <- paste('Expression by Sample:', feature, 'in', sel)
+    title <- paste('Expression by Sample:', feature, 'in')
 
   } else {
-    y <- scseq$cluster
-
-    is.char <- suppressWarnings(is.na(as.numeric(clus_levs)))
-    if (any(is.char)) {
-      clus_levs <- paste0(seq_along(clus_levs), ': ', clus_levs)
-      levels(y) <- clus_levs
-      sel <- clus_levs[seli]
-    }
-
-    hl <- as.character(y)
-    hl[!hl %in% sel] <- 'out'
-    hl <- factor(hl, levels = c(sel, 'out'))
+    hl <- as.integer(scseq$cluster)
+    y <- factor(hl)
+    hl[!hl %in% seli] <- 'out'
+    hl <- factor(hl, levels = c(seli, 'out'))
     title <- paste('Expression by Cluster:', feature)
   }
 
 
-  if (feature %in% row.names(scseq))
+  if (feature %in% row.names(scseq)) {
     x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
-  else
-    x <- scseq[[feature]]
 
-  # errors if boolean/factor/NULL
-  if (is.null(x) || !is.numeric(x)) {
-    pl <- NULL
-    if (with.height) pl <- list(plot = plot, height = 453)
-    return(pl)
+  } else {
+    x <- scseq[[feature]]
   }
 
   m <- tapply(x, y, mean)
-  y <- factor(y, levels = levels(y)[order(m, decreasing = decreasing)])
+  clus_ord <- order(m, decreasing = decreasing)
+  y <- factor(y, levels = levels(y)[clus_ord])
   df <- data.frame(x, hl, y) %>%
     dplyr::add_count(y) %>%
     dplyr::filter(n > 2)
+
+  ncells <- tapply(df$x, as.character(df$y), length)
+  ncells <- ncells[levels(df$y)]
+
+  # down sample to reduce plot size
+  df <- df %>%
+    dplyr::group_by(y) %>%
+    dplyr::mutate(nsamp = min(n, 2000)) %>%
+    dplyr::sample_n(nsamp)
+
+  res <- list(
+    df = df,
+    nsel = nsel,
+    seli = seli,
+    color = color,
+    color_dark = color_dark,
+    ncells = ncells,
+    clus_ord = clus_ord,
+    clus_levs = clus_levs,
+    title = title,
+    by.sample = by.sample
+  )
+
+  return(res)
+}
+
+format_ridge_annot <- function(annot) {
+
+  is.char <- suppressWarnings(is.na(as.numeric(annot)))
+  if (any(is.char)) {
+    annot <- paste0(seq_along(annot), ': ', annot)
+  }
+  return(annot)
+}
+
+#' Plot single-cell ridgeline plots
+#'
+#' @inheritParams get_ridge_data
+#' @param ridge_data result of \link{get_ridge_data}. Used for caching.
+#'   if provided, only \code{with.height} is evaluated.
+#'
+#' @return ggplot object
+#'
+#' @keywords internal
+plot_ridge <- function(feature = NULL,
+                       scseq = NULL,
+                       selected_cluster = NULL,
+                       by.sample = FALSE,
+                       with_all = FALSE,
+                       with.height = FALSE,
+                       ridge_data = NULL,
+                       decreasing = feature %in% c('ribo_percent',
+                                                   'log10_sum',
+                                                   'log10_detected')) {
+
+  if (is.null(ridge_data)) {
+    ridge_data <- get_ridge_data(
+      feature, scseq, selected_cluster, by.sample, decreasing, with_all)
+  }
+
+  list2env(ridge_data, environment())
+
+  if (by.sample) {
+    title <- paste(title, c(clus_levs, 'All Clusters')[seli])
+  } else {
+    annot <- format_ridge_annot(clus_levs)
+    levels(df$y) <- annot[clus_ord]
+    if (seli) levels(df$hl) <- c(annot[seli], 'out')
+  }
+
+
+  # errors if boolean/factor/NULL
+  if (is.null(df$x) || !is.numeric(df$x)) {
+    pl <- NULL
+    if (with.height) pl <- list(plot = pl, height = 453)
+    return(pl)
+  }
 
   pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
     ggplot2::scale_fill_manual(values = c(color, 'gray')) +
@@ -330,9 +462,7 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
                    axis.title.y = ggplot2::element_blank()
     )
 
-  ncells <- tapply(df$x, as.character(df$y), length)
-  ncells <- ncells[levels(df$y)]
-  xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
+  xlim <- max(df$x)+0.5
 
 
 
@@ -349,6 +479,14 @@ plot_ridge <- function(feature, scseq, selected_cluster, by.sample = FALSE, with
 
   if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
   return(pl)
+}
+
+get_ridge_title <- function(annot, sel, feature) {
+  seli <- as.numeric(sel)
+  clus <- ifelse(seli == length(annot)+1, 'All Clusters', annot[seli])
+
+  title <- paste('Expression by Sample:', feature, 'in', clus)
+  return(title)
 }
 
 
@@ -375,21 +513,35 @@ plot_scseq_dprimes <- function(gene, annot, selected_cluster, tts, exclude_ambie
   clusters <- as.numeric(row.names(tt))
 
   # highlight clusters where this gene is significant
-  row.names(tt) <- row.names(path_df) <- path_df$Gene <- annot[clusters]
+  row.names(tt) <- row.names(path_df) <- path_df$Gene <- c(annot, 'All Clusters')[clusters]
 
   path_df$ambient <- tt$ambient
   link <- as.character(path_df$Gene)
+  is.num <-  suppressWarnings(!is.na(as.numeric(link)))
+  add.num <- !is.num & link != 'All Clusters'
+
   path_df$Link <- paste0('<span style="color: dimgray">', link, '</span>')
   path_df$Link[seli] <- gsub('dimgray', 'black', path_df$Link[seli])
+  path_df$Link[add.num] <- paste0(path_df$Link[add.num], ' [', seq_along(link)[add.num], ']')
   path_df$color <- ifelse(tt$adj.P.Val < 0.05, 'black', 'gray')
 
   if (exclude_ambient) path_df$color[path_df$ambient] <- 'gray'
 
   # plot trips up if numbered clusters
-  is.number <-  suppressWarnings(!is.na(as.numeric(link)))
-  path_df$Gene[is.number] <- paste('Cluster', link[is.number])
+  path_df$Gene[is.num] <- paste('Cluster', link[is.num])
 
   path_df <- path_df[order(abs(tt$dprime), decreasing = TRUE), ]
+
+  # move 'All Clusters' to top for single-cell dprimes plot
+  clusts <- row.names(path_df)
+  if ('All Clusters' %in% clusts) {
+    path_df <- rbind(path_df['All Clusters', ],
+                     path_df[setdiff(clusts, 'All Clusters'), ])
+
+    path_df$logfc[1] <- 'n/a'
+    path_df$ambient[1] <- 'n/a'
+  }
+
   plot_dprimes(path_df, drugs = FALSE)
 }
 
@@ -443,18 +595,19 @@ plot_biogps <- function(gene) {
 #' @return Character vector with colour codes of \code{length(levs)}.
 #'
 #' @keywords internal
-get_palette <- function(levs, dark = FALSE) {
+get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
+  if (with_all) levs <- c(levs, 'All Clusters')
 
   # palettes from scater
   tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C",
                  "#98DF8A", "#D62728", "#FF9896", "#9467BD", "#C5B0D5",
-                 "#8C564B", "#C49C94", "#E377C2", "#F7B6D2", "#7F7F7F",
-                 "#C7C7C7", "#BCBD22", "#DBDB8D", "#17BECF", "#9EDAE5")
+                 "#8C564B", "#C49C94", "#E377C2", "#F7B6D2",
+                 "#17BECF", "#9EDAE5")
 
   tableau20_dark <- c("#004771", "#4075A5", "#984802", "#A06705", "#036003",
                       "#33870E", "#821919", "#CF1701", "#5B3979", "#7D5E91",
-                      "#55342D", "#7B574F", "#A22283", "#CE308A", "#4B4B4B",
-                      "#727272", "#6D6D01", "#7F7F07", "#056F79", "#028491")
+                      "#55342D", "#7B574F", "#A22283", "#CE308A",
+                      "#056F79", "#028491")
 
   tableau10medium <- c("#729ECE", "#FF9E4A", "#67BF5C", "#ED665D",
                        "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
@@ -473,7 +626,7 @@ get_palette <- function(levs, dark = FALSE) {
     pal <- if(dark) tableau10medium_dark else tableau10medium
     values <- utils::head(pal, nlevs)
 
-  } else if (nlevs <= 20) {
+  } else if (nlevs <= 16) {
     pal <- if(dark) tableau20_dark else tableau20
     values <- utils::head(pal, nlevs)
 
