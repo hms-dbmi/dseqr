@@ -462,7 +462,7 @@ plot_ridge <- function(feature = NULL,
                    axis.title.y = ggplot2::element_blank()
     )
 
-  xlim <- max(df$x)+0.5
+  xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 
 
 
