@@ -238,7 +238,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
   testColor <- get_palette(clusters)
 
   inds <- seq_along(clusters)
-  not.inds <- clusters != inds
+  not.inds <- clusters != inds & clusters != 'All Clusters'
   clusters[not.inds] <- paste0(inds[not.inds], ': ', clusters[not.inds])
 
 
@@ -253,7 +253,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
   cluster_stats <- get_cluster_stats(sample_comparison = sample_comparison, ...)
 
   if (sample_comparison) {
-    # non-formatted for item/hover
+    # non-formatted stats for item/hover
     choices$ntest <- cluster_stats$ntest
     choices$nctrl <- cluster_stats$nctrl
     choices$nsig  <- cluster_stats$nsig
@@ -266,11 +266,16 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
     choices$nsigf  <- html_space(cluster_stats$nsig)
     choices$nbigf  <- html_space(cluster_stats$nbig)
 
+    choices <- rbind(tail(choices, 1), head(choices, nrow(choices)-1))
+
   } else {
+    # cluster stats has 1 too many for cluster comparison (for 'All Clusters')
+    idx <- seq_len(nrow(choices))
+
     # show the cell numbers/percentages
-    choices$ncells <- cluster_stats$ncells
-    choices$pcells <- html_space(round(cluster_stats$pcells))
-    choices$ncellsf <- html_space(cluster_stats$ncells)
+    choices$ncells <- cluster_stats$ncells[idx]
+    choices$pcells <- html_space(round(cluster_stats$pcells[idx]))
+    choices$ncellsf <- html_space(cluster_stats$ncells[idx])
   }
 
   return(choices)
@@ -524,7 +529,7 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
 
   if (is.null(scseq)) scseq <- load_scseq(dataset_dir)
 
-  ncells <- tabulate(scseq$cluster)
+  ncells <- c(tabulate(scseq$cluster), ncol(scseq))
   pcells <- ncells / sum(ncells) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
@@ -533,8 +538,8 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
     # number of total test and ctrl cells (shown)
     nbins <- length(levels(scseq$cluster))
     is.test <- scseq$orig.ident == 'test'
-    stats$ntest <- tabulate(scseq$cluster[is.test], nbins = nbins)
-    stats$nctrl <- tabulate(scseq$cluster[!is.test], nbins = nbins)
+    stats$ntest <- c(tabulate(scseq$cluster[is.test], nbins = nbins), sum(is.test))
+    stats$nctrl <- c(tabulate(scseq$cluster[!is.test], nbins = nbins), sum(!is.test))
 
     # number of test and ctrl cells in each sample (title)
     test <- unique(scseq$batch[is.test])
@@ -542,6 +547,7 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
 
     neach <- tapply(scseq$cluster, list(scseq$batch, scseq$cluster), length)
     neach[is.na(neach)] <- 0
+    neach <- cbind(neach, apply(neach, 1, sum))
 
     stats$ntest_each <- apply(neach[test,, drop = FALSE], 2, paste, collapse = '-')
     stats$nctrl_each <- apply(neach[ctrl,, drop = FALSE], 2, paste, collapse = '-')
@@ -559,8 +565,8 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
 
   # show number of non-ambient with logFC > 1
   if (sample_comparison) {
-    nbig <- rep(0, nbins)
-    names(nbig) <- seq_len(nbins)
+    nbig <- rep(0, nbins+1)
+    names(nbig) <- seq_along(nbig)
 
     test_clusters <- names(top_tables)
     nbig[test_clusters] <- sapply(top_tables, function(tt) {sum(abs(tt$logFC) > 1 & !tt$ambient)})

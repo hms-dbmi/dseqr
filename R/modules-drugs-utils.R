@@ -692,9 +692,13 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
 
   # 30 pixels width per gene in pathway
-  ngenes <- length(unique(path_df$Gene))
+  genes <- unique(path_df$Gene)
+  genes <- as.character(genes)
+  ngenes <- length(genes)
   plot_height <- max(400, ngenes*pergene + 125)
   customdata <- apply(path_df, 1, as.list)
+
+  left <- max(nchar(genes)+5)*7
 
   (pl <- plotly::plot_ly(data = path_df,
                          y = ~Gene,
@@ -719,8 +723,8 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
                      toImageButtonOptions = list(format = "png", filename = 'blah')) %>%
       plotly::layout(hoverdistance = -1,
                      hovermode = 'y',
-                     margin = list(t = 65, r = 20, l = 0, pad = 1),
-                     title = list(text = title, y = 1, x = 0),
+                     margin = list(t = 80, r = 80, l = left, pad = 0, autoexpand = FALSE),
+                     title = list(text = title, y = .95, x = 0),
                      xaxis = list(fixedrange = TRUE,
                                   range = xrange,
                                   rangemode = "tozero",

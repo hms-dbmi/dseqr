@@ -466,7 +466,8 @@ is_invertible <- function(pdata) {
 #'
 #' Used to avoid code reuse for single-cell and bulk
 #'
-#' @param ebfit Result of \code{\link[crossmeta]{fit_ebayes}}
+#' @param de Result of \code{\link[crossmeta]{fit_ebayes}} or
+#'   \code{link[crossmeta]{get_top_table}}
 #' @param go_path Path to save camerPR Gene Ontology result
 #' @param kegg_path Path to save cameraPR KEGG result
 #' @param goana_path Path to save goana Gene Ontology result
@@ -475,7 +476,19 @@ is_invertible <- function(pdata) {
 #' @return List with GO and KEGG results
 #'
 #' @keywords internal
-get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, species = 'Hs', min.genes = 4) {
+get_path_res <- function(de, go_path, kegg_path, goana_path, kegga_path, species = 'Hs', min.genes = 4) {
+
+  is.marray <- is(de, 'MArrayLM')
+  if (is.marray) {
+    statistic <- de$t[, 1]
+    names(statistic) <- de$genes$ENTREZID
+    universe <- NULL
+
+  } else {
+    statistic <- de$t
+    names(statistic) <- de$ENTREZID
+    universe <- unique(de$ENTREZID)
+  }
 
   gslist.go <- get_gslist(species)
   gslist.kegg <- get_gslist(species, type = 'kegg')
@@ -483,8 +496,6 @@ get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, spec
   gs.names.go <- get_gs.names(gslist.go, species = species)
   gs.names.kegg <- get_gs.names(gslist.kegg, type = 'kegg', species = species)
 
-  statistic <- ebfit$t[, 1]
-  names(statistic) <- ebfit$genes$ENTREZID
 
   # get cameraPR GO result
   go <- limma::cameraPR(statistic, index = gslist.go)
@@ -502,18 +513,48 @@ get_path_res <- function(ebfit, go_path, kegg_path, goana_path, kegga_path, spec
   saveRDS(kg, kegg_path)
 
   # get goana and kegga results
-  order_or <- function(r) order(pmin(r$P.Up, r$P.Down))
-
-  goana_res <- limma::goana(ebfit, geneid = 'ENTREZID', species = species)
-  goana_res <- goana_res[order_or(goana_res), ]
-
-  kegga_res <- limma::kegga(ebfit, geneid = 'ENTREZID', species = species)
-  kegga_res <- kegga_res[order_or(kegga_res), ]
+  goana_res <- run_path_anal(de, 'goana', species = species, universe = universe)
+  kegga_res <- run_path_anal(de, 'kegga', species = species, universe = universe)
 
   saveRDS(goana_res, goana_path)
   saveRDS(kegga_res, kegga_path)
 
   return(list(go = go, kg = kg, goana = goana_res, kegga = kegga_res))
+}
+
+run_path_anal <- function(de, type, species, universe, cutoff = 0.05) {
+  order_or <- function(r) order(pmin(r$P.Up, r$P.Down))
+  func <- ifelse(type == 'goana', limma::goana, limma::kegga)
+  is.ebfit <- is(de, 'MArrayLM')
+
+  if (is.ebfit) {
+    path_res <- func(de, geneid = 'ENTREZID', species = species)
+
+  } else {
+    # short circuit if no DE
+    is.sig <- de$adj.P.Val < cutoff
+    if (!sum(is.sig)) {
+      message('No DE genes')
+      return(data.frame())
+    }
+
+    # colnames for kegga or goana
+    cols <- c('Term', 'Ont', 'N')
+    if (type == 'kegga') cols <- c('Pathway', 'N')
+
+    # run func for up and down regulated genes
+    de_up <- de$ENTREZID[is.sig & de$t > 0]
+    de_dn <- de$ENTREZID[is.sig & de$t < 0]
+    up <- func(de_up, species = species, universe = universe)
+    dn <- func(de_dn, species = species, universe = universe)
+
+    path_res <- data.frame(
+      Up = up$DE, Down = dn$DE, P.Up = up$P.DE, P.Down = dn$P.DE)
+
+    path_res <- cbind(up[, cols], path_res)
+  }
+
+  path_res[order_or(path_res), ]
 }
 
 
