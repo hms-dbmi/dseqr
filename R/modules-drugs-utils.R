@@ -700,7 +700,7 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
   left <- max(nchar(genes)+5)*7
 
-  yi <- ifelse(drugs, 0.99, 0.95)
+  yi <- ifelse(drugs, 0.999, 0.95)
 
   (pl <- plotly::plot_ly(data = path_df,
                          y = ~Gene,
