@@ -12,7 +12,7 @@
 plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, ...) {
 
   levs <- levels(scseq$cluster)
-  if (is.null(cols)) cols <- get_palette(levs)
+  if (is.null(cols)) cols <- get_palette(levs, with_all = TRUE)
 
   # dynamic label/point size
   pt.size <- min(6000/ncol(scseq), 2)
@@ -43,6 +43,9 @@ plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, 
 }
 
 update_cluster_plot <- function(plot, annot, hl) {
+  annot <- format_ridge_annot(annot)
+  if (nrow(plot$layers[[2]]$data) != length(annot)) return(NULL)
+
   plot$layers[[2]]$data$cluster <- annot
   cols <- rep('black', length(annot))
 
@@ -312,11 +315,11 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 
   # specific args if selecting 'All Clusters'
   maxi <- length(clus_levs)+1
-  if (seli > maxi) {
+  if (seli[1] > maxi) {
     # invalid 'flip' state
     return(NULL)
 
-  } else if (seli == maxi) {
+  } else if (seli[1] == maxi) {
     sel <- c(clus_levs, 'All Clusters')
     nsel <- 1
 
@@ -427,7 +430,7 @@ plot_ridge <- function(feature = NULL,
   } else {
     annot <- format_ridge_annot(clus_levs)
     levels(df$y) <- annot[clus_ord]
-    if (seli) levels(df$hl) <- c(annot[seli], 'out')
+    if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
   }
 
 
@@ -461,6 +464,7 @@ plot_ridge <- function(feature = NULL,
                    axis.title.x = ggplot2::element_blank(),
                    axis.title.y = ggplot2::element_blank()
     )
+
 
   xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
 

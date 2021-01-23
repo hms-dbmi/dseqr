@@ -233,9 +233,10 @@ get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
 #' @return data.frame with columns for rendering selectizeInput cluster choices
 #'
 #' @keywords internal
-get_cluster_choices <- function(clusters, sample_comparison = FALSE, ...) {
+get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = FALSE, ...) {
 
-  testColor <- get_palette(clusters)
+  testColor <- get_palette(clusters, with_all=with_all)
+  testColor <- testColor[seq_along(clusters)]
 
   inds <- seq_along(clusters)
   not.inds <- clusters != inds & clusters != 'All Clusters'
