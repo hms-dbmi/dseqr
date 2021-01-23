@@ -700,6 +700,8 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
   left <- max(nchar(genes)+5)*7
 
+  yi <- ifelse(drugs, 0.99, 0.95)
+
   (pl <- plotly::plot_ly(data = path_df,
                          y = ~Gene,
                          x = ~Dprime,
@@ -724,7 +726,7 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
       plotly::layout(hoverdistance = -1,
                      hovermode = 'y',
                      margin = list(t = 80, r = 80, l = left, pad = 0, autoexpand = FALSE),
-                     title = list(text = title, y = .95, x = 0),
+                     title = list(text = title, y = yi, x = 0),
                      xaxis = list(fixedrange = TRUE,
                                   range = xrange,
                                   rangemode = "tozero",
