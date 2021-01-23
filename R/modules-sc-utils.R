@@ -595,7 +595,8 @@ get_contrast_choices <- function(clusters, test) {
   ctrl_names <- clusters[clusters != test_name]
   ctrls <- setdiff(seq_along(clusters), test)
 
-  colours <- get_palette(clusters)
+  colours <- get_palette(clusters, with_all = TRUE)
+  colours <- colours[seq_along(clusters)]
   names(colours) <- clusters
 
   contrast_choices <- data.frame(test = test,
