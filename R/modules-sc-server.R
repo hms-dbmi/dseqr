@@ -2005,7 +2005,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
       rdat$clus_levs <- annot()
 
     } else {
-      rdat <- get_ridge_data(gene, scseq(), cluster)
+      rdat <- get_ridge_data(gene, scseq(), cluster, with_all = TRUE)
       saveRDS(rdat, dat_path)
     }
 
