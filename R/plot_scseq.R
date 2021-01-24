@@ -258,13 +258,13 @@ plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = 
 
 update_feature_plot <- function(plot, feature_data, feature) {
   prev <- tail(colnames(plot$data), 1)
-  feature <- make.names(feature)
+  col <- make.names(feature)
   plot$data[[prev]] <- NULL
-  plot$data[[feature]] <- feature_data[row.names(plot$data)]
+  plot$data[[col]] <- feature_data[row.names(plot$data)]
 
   # update mapping to new gene
   plot$layers[[1]]$mapping$colour <- rlang::quo_set_expr(
-    plot$layers[[1]]$mapping$colour, rlang::ensym(feature))
+    plot$layers[[1]]$mapping$colour, rlang::ensym(col))
 
   plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
   return(plot)
@@ -637,9 +637,12 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
     values <- utils::head(pal, nlevs)
 
   } else {
+    values <- grDevices::colors()
+    values <- values[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
+                          values,
+                          invert = TRUE)]
     set.seed(0)
-    values <- randomcoloR::distinctColorPalette(nlevs)
-
+    values <- sample(values, nlevs)
   }
   return(values)
 }
