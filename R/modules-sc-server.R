@@ -2023,6 +2023,10 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     gene <- gene_d()
     cluster <- clus_d()
     if (!isTruthy(gene)) return(NULL)
+    scseq <- scseq()
+    is.gene <- gene %in% row.names(scseq)
+    is.num <- is.gene || is.numeric(scseq@colData[[gene]])
+    if (!is.num) return(NULL)
 
     dat_path <- file.path(plots_dir(), paste(gene, cluster, 'cluster_ridgedat.rds', sep='-'))
 
