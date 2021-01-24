@@ -57,7 +57,8 @@
 #' @seealso \code{\link{FeaturePlot}}
 #'
 DimPlot <- function(
-  object,
+  object = NULL,
+  data = NULL,
   dims = c(1,2),
   cells = NULL,
   cols = NULL,
@@ -86,12 +87,19 @@ DimPlot <- function(
     stop("'dims' must be a two-length vector")
   }
 
-  cells <- cells %||% colnames(x = object)
-  data <- SingleCellExperiment::reducedDim(object, reduction)
-  data <- as.data.frame(x = data)
-  dims <- paste0(reduction, dims)
   group.by <- group.by %||% 'cluster'
-  groups <- SummarizedExperiment::colData(object)[cells, group.by]
+  dims <- paste0(reduction, dims)
+
+  if (is.null(data)) {
+    cells <- cells %||% colnames(x = object)
+    data <- SingleCellExperiment::reducedDim(object, reduction)
+    data <- as.data.frame(x = data)
+    groups <- SummarizedExperiment::colData(object)[cells, group.by]
+  } else {
+    cells <- row.names(data)
+    groups <- data[cells, group.by]
+    data <- data[, grep(reduction, colnames(data), value = TRUE)]
+  }
 
   # show group number
   levs <- levels(groups)

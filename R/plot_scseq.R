@@ -9,22 +9,29 @@
 #'
 #' @return \code{ggplot}
 #' @keywords internal
-plot_tsne_cluster <- function(scseq, legend = FALSE, cols = NULL, title = NULL, ...) {
-
-  levs <- levels(scseq$cluster)
-  if (is.null(cols)) cols <- get_palette(levs, with_all = TRUE)
+plot_tsne_cluster <- function(scseq = NULL, plot_data = NULL, legend = FALSE, cols = NULL, title = NULL, ...) {
 
   # dynamic label/point size
-  pt.size <- min(6000/ncol(scseq), 2)
-  nc <- length(levs)
-  # shorten labels
-  if (nc > 30)
-    levels(scseq$cluster) <- shorten_cluster_labels(levs)
+  if (!is.null(scseq)) {
+    levs <- levels(scseq$cluster)
+    pt.size <- min(6000/ncol(scseq), 2)
+    nc <- length(levs)
+    if (nc > 30) levels(scseq$cluster) <- shorten_cluster_labels(levs)
+
+  } else {
+    levs <- levels(plot_data$cluster)
+    pt.size <- min(6000/nrow(plot_data), 2)
+    nc <- length(levs)
+    if (nc > 30) levels(plot_data$cluster) <- shorten_cluster_labels(levs)
+  }
+
+  if (is.null(cols))
+    cols <- get_palette(levs, with_all = TRUE)
 
   num <- suppressWarnings(!anyNA(as.numeric(levs)))
   label.size <- if(num) 6 else if (nc>30) 5.2 else if(nc > 17) 5.5 else 6
 
-  pl <- DimPlot(scseq, reduction = 'TSNE', cols = cols, pt.size = pt.size, label.size = label.size, ...) +
+  pl <- DimPlot(scseq, plot_data, reduction = 'TSNE', cols = cols, pt.size = pt.size, label.size = label.size, ...) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +
@@ -224,11 +231,11 @@ plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = 
 
   is.group <- scseq$orig.ident == group
   ncells <- sum(is.group)
-  feature <- make.names(feature)
+  col <- make.names(feature)
   plot$layers[[1]]$aes_params$size <-  min(6000/(ncells), 2)
 
   # the min and max feature expression value
-  lims <- range(plot$data[[feature]])
+  lims <- range(plot$data[[col]])
 
   # show selected group only
   sel.cells <- colnames(scseq)[is.group]
@@ -441,6 +448,9 @@ plot_ridge <- function(feature = NULL,
     return(pl)
   }
 
+  maxx <- max(df$x)
+  xlim <- maxx+maxx*0.0522
+
   pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
     ggplot2::scale_fill_manual(values = c(color, 'gray')) +
     ggplot2::scale_alpha_manual(values = c(rep(0.4, nsel), 0.25)) +
@@ -463,23 +473,15 @@ plot_ridge <- function(feature = NULL,
                    axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
                    axis.title.x = ggplot2::element_blank(),
                    axis.title.y = ggplot2::element_blank()
-    )
+    ) + ggplot2::annotate('text',
+                         label=paste(ncells, 'cells'),
+                         x=rep(xlim, length(ncells)),
+                         y=seq_along(ncells),
+                         vjust = -0.3,
+                         hjust = 'right',
+                         size = 5)
 
 
-  xlim <- ggplot2::ggplot_build(pl)$layout$panel_scales_x[[1]]$range$range[2]
-
-
-
-  for (i in seq_along(ncells)) {
-    pl <- pl + ggplot2::annotation_custom(
-      grob = grid::textGrob(label = paste(ncells[i], 'cells'), vjust = -0.3, just = 'right',
-                            gp = grid::gpar(fontsize = 14, col = '#333333')),
-      ymax = i,
-      ymin = i,
-      xmax = xlim,
-      xmin = xlim
-    )
-  }
 
   if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
   return(pl)

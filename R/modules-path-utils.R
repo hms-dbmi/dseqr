@@ -272,6 +272,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
 #'
 #' @keywords internal
 supress.genes <- function(markers, supress) {
+  if (is.null(supress)) return(markers)
   other <- setdiff(row.names(markers), supress)
   markers[c(other, supress),, drop = FALSE]
 }

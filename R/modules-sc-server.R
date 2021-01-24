@@ -16,6 +16,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
   # cluster plot in top right
   callModule(scClusterPlot, 'cluster_plot',
              scseq = scForm$scseq,
+             annot = scForm$annot,
              selected_cluster = scForm$selected_cluster,
              dataset_name = scForm$dataset_name,
              cluster_plot = scForm$cluster_plot)
@@ -39,6 +40,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              selected_gene = scForm$clusters_gene,
              selected_cluster = scForm$clusters_cluster,
              scseq = scForm$scseq,
+             annot = scForm$annot,
              plots_dir =scForm$plots_dir)
 
 
@@ -96,6 +98,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
                           sc_dir = sc_dir,
+                          plots_dir = plots_dir,
                           new_dataset = new_dataset,
                           indices_dir = indices_dir)
 
@@ -103,9 +106,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
 
   # update scseq with annotation changes and custom metrics
+  annot <- reactive(scClusterComparison$annot())
   scseq <- reactive({
     scseq <- scDataset$scseq()
-    annot <- scClusterComparison$annot()
+    annot <- annot()
     metrics <- scClusterGene$saved_metrics()
 
     if (!isTruthy(annot) | !isTruthy(scseq)) return(NULL)
@@ -172,6 +176,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # directory for caching plots in
   plots_dir <- reactive({
+    req(dataset_dir())
     dir <- file.path(dataset_dir(), 'plots')
     if (!dir.exists(dir)) dir.create(dir)
     return(dir)
@@ -197,6 +202,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
+                                   scseq = scseq,
+                                   annot = annot,
                                    dataset_dir = dataset_dir,
                                    plots_dir = plots_dir,
                                    feature_plot = scDataset$feature_plot_samples,
@@ -204,7 +211,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                    sc_dir = sc_dir,
                                    is_integrated = scDataset$is_integrated,
                                    show_dprimes = scSampleGene$show_dprimes,
-                                   input_scseq = scseq,
                                    comparison_type = comparisonType,
                                    exclude_ambient = scSampleGene$exclude_ambient)
 
@@ -273,7 +279,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     species = scDataset$species,
     plots_dir = plots_dir,
     feature_plot_clusters = scDataset$feature_plot_clusters,
-    cluster_plot = scDataset$cluster_plot
+    cluster_plot = scDataset$cluster_plot,
+    annot = annot
   ))
 }
 
@@ -297,7 +304,7 @@ get_exclude_dirs <- function(sc_dir) {
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dataset, indices_dir) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
   options <- list(create = TRUE,
                   placeholder = 'Type name to add new single-cell dataset',
@@ -340,23 +347,51 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # create feature and cluster plot for future updating
+  feature_plot_path <- reactive(file.path(plots_dir(), 'feature_plot.rds'))
+
   feature_plot_clusters <- reactive({
-    scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    plot_tsne_feature(scseq, row.names(scseq)[1])
+    plot_path <- feature_plot_path()
+    plot <- readRDS.safe(plot_path)
+
+    if (is.null(plot)) {
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+      plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
+      saveRDS(plot, plot_path)
+    }
+    return(plot)
   })
 
   # this is ugly but avoids error from clusters/samples updating same plot
   feature_plot_samples <- reactive({
-    scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    plot_tsne_feature(scseq, row.names(scseq)[1])
+    plot_path <- feature_plot_path()
+    plot <- readRDS.safe(plot_path)
+
+    if (is.null(plot)) {
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+      plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
+      saveRDS(plot, plot_path)
+    }
+    return(plot)
   })
 
+  cluster_data_path <- reactive(file.path(plots_dir(), 'cluster_data.rds'))
   cluster_plot <- reactive({
-    scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    plot_tsne_cluster(scseq)
+    data_path <- cluster_data_path()
+    plot_data <- readRDS.safe(data_path)
+
+    if (!is.null(plot_data)) {
+      plot <- plot_tsne_cluster(plot_data = plot_data)
+
+    } else {
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+      plot <- plot_tsne_cluster(scseq)
+      saveRDS(plot$data, data_path)
+    }
+
+    return(plot)
   })
 
 
@@ -1457,7 +1492,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     else annot(readRDS(annot_path()))
   })
 
-  sel_d <- reactive(input$selected_cluster) %>% debounce(200)
+  sel_d <- reactive(input$selected_cluster) %>% debounce(20)
+
   observe({
     sel <- sel_d()
     prev <- isolate(selected_cluster())
@@ -1469,7 +1505,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     if ((no.prev || is.new) & !is.flip) {
       selected_cluster(sel)
     }
-
   })
 
   observeEvent(input$show_contrasts, {
@@ -1586,7 +1621,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
 
   observe({
-    sel <- debounce(selected_cluster, 100)
+    sel <- debounce(selected_cluster, 20)
     sel <- sel()
 
     if (!is.null(sel)) {
@@ -1750,7 +1785,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
   species <- reactive(scseq()@metadata$species)
 
-
+  tx2gene <- reactive(drugseqr.data::load_tx2gene(species()))
   # update marker genes based on cluster selection
   gene_choices <- reactive({
 
@@ -1769,9 +1804,13 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
     }
 
     if (is.null(markers) || is.null(scseq())) return(NULL)
-    get_gene_choices(markers, qc_metrics = qc_metrics, qc_first = qc_first, species = species())
+    get_gene_choices(markers,
+                     qc_metrics = qc_metrics,
+                     qc_first = qc_first,
+                     species = species(),
+                     tx2gene = tx2gene())
 
-  }) %>% debounce(200)
+  }) %>% debounce(50)
 
   # click genecards
   observeEvent(input$genecards, {
@@ -1792,14 +1831,12 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 
 
   # update choices
-  observe({
+  observeEvent(gene_choices(), {
     choices <- gene_choices()
     if(is.null(choices)) return(NULL)
-    selected <- isolate(selected_gene())
 
     updateSelectizeInput(session, 'selected_gene',
                          choices = rbind(NA, choices, fill = TRUE),
-                         selected = selected,
                          server = TRUE,
                          options = gene_options)
   })
@@ -1822,19 +1859,13 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, selected_cluster, dataset_name, cluster_plot) {
+scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster, dataset_name, cluster_plot) {
 
 
   filename <- function() {
     paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
   }
 
-
-  annot <- reactive({
-    scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    levels(scseq$cluster)
-  })
 
   plot <- reactive({
     plot <- cluster_plot()
@@ -1974,7 +2005,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #'
 #' @keywords internal
 #' @noRd
-scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq, plots_dir) {
+scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir) {
 
   height <- reactive({
     scseq <- scseq()
@@ -1983,38 +2014,38 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     return(height)
   })
 
-  annot <- reactive({
-    scseq <- scseq()
-    req(scseq)
-    levels(scseq$cluster)
-  })
 
-  gene_d <- selected_gene %>% debounce(200)
-  clus_d <- selected_cluster %>% debounce(200)
+  gene_d <- selected_gene %>% debounce(20)
+  clus_d <- selected_cluster %>% debounce(20)
 
   ridge_data <- reactive({
     gene <- gene_d()
-    scseq <- scseq()
     cluster <- clus_d()
-    req(gene, scseq)
+    if (!isTruthy(gene)) return(NULL)
 
     dat_path <- file.path(plots_dir(), paste(gene, cluster, 'cluster_ridgedat.rds', sep='-'))
 
     if (file.exists(dat_path)) {
+      annot <- annot()
+      if (is.null(annot)) return(NULL)
       rdat <- readRDS(dat_path)
       rdat$clus_levs <- annot()
 
     } else {
-      rdat <- get_ridge_data(gene, scseq(), cluster, with_all = TRUE)
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+      rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE)
       saveRDS(rdat, dat_path)
     }
 
     return(rdat)
-  })
+  }) %>% debounce(20)
 
   plot <- reactive({
-    plot_ridge(ridge_data = ridge_data())
-  }) %>% debounce(200)
+    ridge_data <- ridge_data()
+    if (is.null(ridge_data)) return(NULL)
+    plot_ridge(ridge_data = ridge_data)
+  }) %>% debounce(20)
 
   content <- function(file){
     d <- ridge_data()$df[, c('x', 'y')]
@@ -2037,25 +2068,10 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, show_dprimes = function()TRUE, is_integrated = function()TRUE, input_scseq = function()NULL, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
+scSampleComparison <- function(input, output, session, scseq, annot, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')
 
-
-  # use input scseq/annot if available
-  scseq <- reactive({
-    scseq <- input_scseq()
-    if (is.null(scseq)) scseq <- load_scseq(dataset_dir())
-    return(scseq)
-  })
-
-
-  annot <- reactive({
-    req(is_sc())
-    annot <- levels(input_scseq()$cluster)
-    if (is.null(annot)) annot <- readRDS.safe(file.path(dataset_dir(), 'annot.rds'))
-    return(annot)
-  })
 
   has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
   species <- reactive(readRDS.safe(file.path(dataset_dir(), 'species.rds')))
@@ -2063,12 +2079,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
 
   # update cluster choices in UI
   cluster_choices <- reactive({
-    req(is_integrated())
+    annot <- annot()
+    integrated <- is_integrated()
     dataset_dir <- dataset_dir()
-    if (is.null(dataset_dir)) return(NULL)
+
+    if (!isTruthyAll(annot, integrated, dataset_dir)) return(NULL)
 
 
-    get_cluster_choices(clusters = c(annot(), 'All Clusters'),
+    get_cluster_choices(clusters = c(annot, 'All Clusters'),
                         sample_comparison = TRUE,
                         dataset_dir = dataset_dir,
                         use_disk = TRUE,
@@ -2192,7 +2210,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
       plot <- plot_ridge(ridge_data = ridge_data, with.height = TRUE)
       return(plot)
     }
-  }) %>% debounce(200)
+  }) %>% debounce(20)
 
   dataset_ambient <- reactive(readRDS.safe(file.path(dataset_dir(), 'ambient.rds')))
 
@@ -2452,4 +2470,5 @@ get_feature_data <- function(plots_dir, scseq, feature) {
   names(fdat) <- colnames(scseq)
   return(fdat)
 }
+
 
