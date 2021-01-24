@@ -2079,12 +2079,12 @@ scSampleComparison <- function(input, output, session, scseq, annot, dataset_dir
 
   # update cluster choices in UI
   cluster_choices <- reactive({
-    annot <- annot()
     integrated <- is_integrated()
     dataset_dir <- dataset_dir()
 
-    if (!isTruthyAll(annot, integrated, dataset_dir)) return(NULL)
-
+    if (!isTruthyAll(dataset_dir, integrated)) return(NULL)
+    annot <- annot()
+    if(is.null(annot)) return(NULL)
 
     get_cluster_choices(clusters = c(annot, 'All Clusters'),
                         sample_comparison = TRUE,
@@ -2470,5 +2470,4 @@ get_feature_data <- function(plots_dir, scseq, feature) {
   names(fdat) <- colnames(scseq)
   return(fdat)
 }
-
 
