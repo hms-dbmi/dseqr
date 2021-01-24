@@ -2024,6 +2024,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     cluster <- clus_d()
     if (!isTruthy(gene)) return(NULL)
     scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
     is.gene <- gene %in% row.names(scseq)
     is.num <- is.gene || is.numeric(scseq@colData[[gene]])
     if (!is.num) return(NULL)

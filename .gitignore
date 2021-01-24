@@ -14,3 +14,4 @@ data-raw/drug_gene_queries/pert_names*\.rds
 # personal files
 sync-aws.sh
 run_sjia.R
+filter.txt
