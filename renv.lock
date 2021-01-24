@@ -271,6 +271,13 @@
       "Repository": "CRAN",
       "Hash": "b203113193e70978a696b2809525649d"
     },
+    "RApiSerialize": {
+      "Package": "RApiSerialize",
+      "Version": "0.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c5a68b4db79cfe8502878b3ed2b59853"
+    },
     "RColorBrewer": {
       "Package": "RColorBrewer",
       "Version": "1.1-2",
@@ -312,6 +319,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "ce584c040a9cfa786ffb41f938f5ed19"
+    },
+    "RcppParallel": {
+      "Package": "RcppParallel",
+      "Version": "5.0.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "551d50addb18c7b99637aa377a25afc8"
     },
     "RcppProgress": {
       "Package": "RcppProgress",
@@ -697,8 +711,8 @@
       "RemoteRepo": "drugseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "5e7d629ce5b00bd007adbe6eef8f9e798c5a0bc2",
-      "Hash": "33b3d2d0e206fc81c8d95e6c33d8d867"
+      "RemoteSha": "a0572b1e2aa6ce85872675f7c77fa5e6b0cd5c2d",
+      "Hash": "e975c275cfebfa4b91812753405a8de1"
     },
     "dtangle": {
       "Package": "dtangle",
@@ -1233,6 +1247,13 @@
       "Repository": "CRAN",
       "Hash": "97def703420c8ab10d8f0e6c72101e02"
     },
+    "qs": {
+      "Package": "qs",
+      "Version": "0.23.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f1b1a696d95b1fab9103e8133b877920"
+    },
     "randomcoloR": {
       "Package": "randomcoloR",
       "Version": "1.1.0.1",
@@ -1461,6 +1482,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "53c27113461e8abbe2dc7125e22b2a39"
+    },
+    "stringfish": {
+      "Package": "stringfish",
+      "Version": "0.14.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "068640b1efcfae4c7e2f5556149624eb"
     },
     "stringi": {
       "Package": "stringi",
