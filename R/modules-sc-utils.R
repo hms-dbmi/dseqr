@@ -651,7 +651,12 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' @return data.frame of all genes, with markers on top and cell percent columns
 #'
 #' @keywords internal
-get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first = FALSE, species = 'Homo sapiens') {
+get_gene_choices <- function(markers,
+                             qc_metrics = NULL,
+                             type = NULL,
+                             qc_first = FALSE,
+                             species = 'Homo sapiens',
+                             tx2gene = NULL) {
   markers <- row.names(markers)
 
   qc_type <- ifelse(names(qc_metrics) == 'numeric', 'QC Score', 'Boolean Features')
@@ -669,7 +674,7 @@ get_gene_choices <- function(markers, qc_metrics = NULL, type = NULL, qc_first =
   if (!grepl('sapiens|musculus', species))
     stop('Only Homo sapiens and Mus musculus supported')
 
-  tx2gene <- drugseqr.data::load_tx2gene(species)
+  if (is.null(tx2gene)) tx2gene <- drugseqr.data::load_tx2gene(species)
 
   idx <- match(choices, tx2gene$gene_name)
   desc <- tx2gene$description[idx]
@@ -1174,9 +1179,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 #' @keywords internal
 load_drug_es <- function() {
 
-  cmap  <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
-  l1000_drugs  <- drugseqr.data::load_drug_es('l1000_drugs_es.rds')
-  l1000_genes  <- drugseqr.data::load_drug_es('l1000_genes_es.rds')
+  cmap  <- drugseqr.data::load_drug_es('cmap_es_ind.qs')
+  l1000_drugs  <- drugseqr.data::load_drug_es('l1000_drugs_es.qs')
+  l1000_genes  <- drugseqr.data::load_drug_es('l1000_genes_es.qs')
 
   return(list(
     cmap = cmap,
