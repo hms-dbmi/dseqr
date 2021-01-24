@@ -107,6 +107,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # update scseq with annotation changes and custom metrics
   annot <- reactive(scClusterComparison$annot())
+
   scseq <- reactive({
     scseq <- scDataset$scseq()
     annot <- annot()
@@ -202,8 +203,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # the selected clusters/gene for sample comparison
   scSampleComparison <- callModule(scSampleComparison, 'sample',
-                                   scseq = scseq,
-                                   annot = annot,
+                                   input_scseq = scseq,
+                                   input_annot = annot,
                                    dataset_dir = dataset_dir,
                                    plots_dir = plots_dir,
                                    feature_plot = scDataset$feature_plot_samples,
@@ -2068,9 +2069,22 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparison <- function(input, output, session, scseq, annot, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
+scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('download', 'selected_cluster')
+
+  # need for drugs tab
+  scseq <- reactive({
+    scseq <- input_scseq()
+    if (!is.null(scseq)) return(scseq)
+    load_scseq(dataset_dir())
+  })
+
+  annot <- reactive({
+    annot <- input_annot()
+    if (!is.null(annot)) return(annot)
+    readRDS(file.path(dataset_dir(), 'annot.rds'))
+  })
 
 
   has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
