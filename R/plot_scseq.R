@@ -637,12 +637,21 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
     values <- utils::head(pal, nlevs)
 
   } else {
-    values <- grDevices::colors()
-    values <- values[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
-                          values,
+    pal <- grDevices::colors(distinct = TRUE)
+    pal <- pal[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
+                    pal,
                           invert = TRUE)]
     set.seed(0)
-    values <- sample(values, nlevs)
+    pal <- sample(pal, nlevs)
+    values <- col2hex(pal, dark)
   }
   return(values)
+}
+
+col2hex <- function(cname, dark) {
+  colMat <- grDevices::col2rgb(cname)
+  if (dark) colMat <- colMat/1.4
+  grDevices::rgb(red = colMat[1, ]/255,
+                 green = colMat[2, ]/255,
+                 blue = colMat[3, ]/255)
 }
