@@ -92,8 +92,20 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, hvgs = NULL, founder 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
+
+  # used for label transfer
+  scseq_sample <- downsample_clusters(combined)
+
   progress$set(message = "saving", value = value + 4)
-  anal <- list(scseq = scseq, markers = markers, tests = tests, annot = names(markers), top_markers = top_markers, founder = founder)
+
+
+  anal <- list(scseq = scseq,
+               scseq_sample = scseq_sample,
+               markers = markers,
+               tests = tests,
+               annot = names(markers),
+               top_markers = top_markers,
+               founder = founder)
 
   save_scseq_data(anal, dataset_name, sc_dir)
 

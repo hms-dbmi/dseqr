@@ -789,6 +789,11 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   })
 
 
+  query <- reactive({
+    query_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq_sample')
+    readRDS(query_path)
+  })
+
   # submit annotation transfer
   observeEvent(input$ref_name, {
 
@@ -801,7 +806,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     req(!ref_name %in% names(preds))
     req(show_label_transfer())
 
-    query <- scseq()
+    query <- query()
     req(query)
 
     disableAll(label_transfer_inputs)
@@ -833,7 +838,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
       genes <- 'de'
 
     } else {
-      ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
+      ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq_sample')
       ref_date <- file.info(ref_path)$ctime
       ref <- readRDS(ref_path)
 
@@ -906,6 +911,10 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
     preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
 
+    # append reset labels
+    scseq <- scseq()
+    preds$reset <- seq_along(levels(scseq$cluster))
+
     ref_preds(preds[[ref_name]])
   })
 
@@ -932,7 +941,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     }
 
     return(annot)
-  })
+  }) %>% debounce(50)
 
   # overwrite annotation
   transferModal <- function() {
