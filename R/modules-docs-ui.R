@@ -60,8 +60,8 @@ docsPageUI <- function(id, tab, active) {
         content = tagList(
           HTML("
              <p>Integrating single cell samples allows for cross-sample differential expression analyses, differential abundance analyses, pathway analyses, and drug queries.
-             To integrate single cell samples, click the dataset integation toggle and fill in the inputs. Available integration types include <a href='https://github.com/immunogenomics/harmony'>harmony</a>, <a href='https://macoskolab.github.io/liger/'>liger</a>,
-             and <a href='https://osca.bioconductor.org/integrating-datasets.html#performing-mnn-correction'>fastMNN</a>. You can select all three in order to compare results.</p>
+             To integrate single cell samples, click the dataset integation toggle and fill in the inputs. Available integration types include <a href='https://github.com/immunogenomics/harmony'>harmony</a>
+             and <a href='https://osca.bioconductor.org/integrating-datasets.html#performing-mnn-correction'>fastMNN</a>. You can select both in order to compare results.</p>
              <p>Integrated datasets with at least three samples will use the same <code>limma</code> pipeline used for bulk analyses with <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions'>pseudobulk</a> expression profiles.
              Aggregative methods <a href='https://www.biorxiv.org/content/biorxiv/early/2019/07/26/713412.full.pdf'>outperform</a> methods that treat each cell as an independant replicate.</p>
 
@@ -98,7 +98,7 @@ docsPageUI <- function(id, tab, active) {
                by the authors of the <a href='https://osca.bioconductor.org/multi-sample-comparisons.html#ambient-problems'>osca</a> handbook.</p>
                <p>We additionally only call a gene as ambient if the sample it is in would change the direction of differential expression. For example,
                if a gene is up-regulated in test samples and called as ambient in one or more control samples, then it won't be excluded. The high background
-               expression in the control samples results in a smaller difference in expression but does will not change the direction of change.</p>")
+               expression in the control samples results in a smaller difference in expression but does not change the direction of change.</p>")
         )
       )
     ))

@@ -54,7 +54,7 @@ validate_preds <- function(preds, sc_dir) {
   dated <- sapply(ref_names, function(ref_name) {
     if (ref_name %in% ls(senv)) return(FALSE)
 
-    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq')
+    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq_sample')
     ref_date <- file.info(ref_path)$ctime
     ref_date <- as.character(ref_date)
     res_date <- names(preds[[ref_name]])[1]
@@ -136,7 +136,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
 #' @keywords internal
 get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
 
-  # determine if is subset
+  # omit previous and current
   is.recent <- anal_options$type == 'Previous Session'
   is.sel <- anal_options$name == selected_anal
   type   <- utils::tail(anal_options$type[is.sel], 1)
@@ -346,7 +346,6 @@ get_sc_dataset_choices <- function(sc_dir) {
     label <- c(prev, label)
     opt <- c(prev, opt)
   }
-
 
   choices <- data.frame(value = seq_along(label),
                         name = label,
@@ -814,8 +813,12 @@ integrate_saved_scseqs <- function(
 
   lm_fit <- run_limma_scseq(obj)
 
+  # used for label transfer
+  scseq_sample <- downsample_clusters(combined)
+
   progress$set(value+7, detail = 'saving')
   scseq_data <- list(scseq = combined,
+                     scseq_sample = scseq_sample,
                      species = species,
                      summed = summed,
                      markers = markers,

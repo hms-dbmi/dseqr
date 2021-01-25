@@ -271,8 +271,18 @@ update_feature_plot <- function(plot, feature_data, feature) {
 }
 
 
-downsample_group <- function(scseq, group) {
-  ncells <- tibble::tibble(cluster=scseq$cluster, group=scseq$orig.ident, cell = colnames(scseq))
+#' Downsample cells within each cluster across a group
+#'
+#' Used for sample comparison plots to show equal number of test and control
+#' cells for each cluster
+#'
+#' @param scseq SingleCellExperiment
+#'
+#' @return \code{scseq} with equal number
+#' @keywords internal
+#'
+downsample_group <- function(scseq, group = 'orig.ident') {
+  ncells <- tibble::tibble(cluster=scseq$cluster, group=scseq[[group]], cell = colnames(scseq))
 
   keep <- ncells %>%
     dplyr::group_by(group, cluster) %>%
@@ -286,6 +296,30 @@ downsample_group <- function(scseq, group) {
 
   return(scseq[, keep])
 
+}
+
+#' Downsample SingleCellExperiment clusters
+#'
+#' Gets a maximum number of cells in each cluster. Used for generate mini
+#' datasets for faster label transfer.
+#'
+#' @param scseq SingleCellExperiment
+#' @param max.cells maximum number of cells in each \code{scseq$cluster}
+#'
+#' @return scseq
+#' @keywords internal
+#'
+downsample_clusters <- function(scseq, max.cells = 200) {
+  cells <- data.frame(id = colnames(scseq),
+                      cluster = scseq$cluster)
+
+  set.seed(0)
+  keep <- cells %>%
+    dplyr::group_by(cluster) %>%
+    dplyr::sample_n(min(max.cells, dplyr::n())) %>%
+    dplyr::pull(id)
+
+  scseq[, keep]
 }
 
 
