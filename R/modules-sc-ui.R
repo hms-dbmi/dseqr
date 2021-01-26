@@ -163,7 +163,7 @@ labelTransferFormInput <- function(id) {
           ns('ref_name'), 'Transfer labels from:',
           actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
           options = list(optgroupField = 'type',
-                         render = I('{option: transferLabelOption}'))
+                         render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
         )
     )
   })

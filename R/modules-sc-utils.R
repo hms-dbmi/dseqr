@@ -351,7 +351,6 @@ get_sc_dataset_choices <- function(sc_dir) {
                         name = label,
                         label = label,
                         type = type,
-                        itemLabel = stringr::str_trunc(label, 35),
                         optionLabel = opt,
                         stringsAsFactors = FALSE)
 

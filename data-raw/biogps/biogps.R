@@ -26,7 +26,7 @@ expr <- atlas[, -c('SYMBOL', 'ENTREZID', 'PROBE')]
 fdat <- AnnotatedDataFrame(atlas[, .(SYMBOL, ENTREZID, PROBE)])
 eset <- ExpressionSet(as.matrix(expr), featureData = fdat)
 
-max_iqr <- which_max_iqr(eset, 'SYMBOL')
+max_iqr <- crossmeta:::which_max_iqr(eset, 'SYMBOL')
 atlas <- atlas[max_iqr,  -'PROBE']
 
 # used SYMBOL for key column
