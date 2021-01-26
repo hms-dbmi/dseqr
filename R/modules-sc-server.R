@@ -1499,7 +1499,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   observe({
     ref_preds <- ref_preds()
     annot_path <- annot_path()
-    req(annot_path)
+    if (!isTruthy(annot_path)) annot(NULL)
     if (!is.null(ref_preds)) annot(ref_preds)
     else annot(readRDS(annot_path))
   })
@@ -2116,13 +2116,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     annot <- annot()
     if(is.null(annot)) return(NULL)
 
-    get_cluster_choices(clusters = c(annot, 'All Clusters'),
+
+    tryCatch(get_cluster_choices(clusters = c(annot, 'All Clusters'),
                         sample_comparison = TRUE,
                         dataset_dir = dataset_dir,
                         use_disk = TRUE,
                         top_tables = top_tables(),
-                        has_replicates = has_replicates())
-  })
+                        has_replicates = has_replicates()),
+             error = function(e) return(NULL))
+  }) %>% debounce(20)
 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
