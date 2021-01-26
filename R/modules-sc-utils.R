@@ -151,7 +151,6 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
   choices <- data.frame(
     label = c('Reset Labels', external, anal_options$name),
     value = c('reset', gsub(' ', '', external), anal_options$name),
-    itemLabel = c('Reset Labels', external, anal_options$itemLabel),
     optionLabel = c('Reset Labels', external, anal_options$optionLabel),
     type = factor(c(type, 'External Reference', anal_options$type), ordered = TRUE),
     stringsAsFactors = FALSE
