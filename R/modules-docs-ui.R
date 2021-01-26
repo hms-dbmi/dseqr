@@ -29,7 +29,10 @@ docsPageUI <- function(id, tab, active) {
         name = 'Feature selection and clustering',
         content = tagList(
           HTML("
-        <p>Highly variable genes are taken as those within the top 10% of biological variance.</p>
+        <p>Highly variable genes are taken as those within the top 10% of biological variance. A custom set of genes can also be specified
+        when subsetting by clicking the <span class='bs-docs-btn'><i class='fa fa-upload fa-fw'></i></span> button. The uploaded file
+        should have one HGNC symbol per line. The rationale and approach for doing so is described
+        <a href='http://bioconductor.org/books/release/OSCA/feature-selection.html#apriori-hvgs'>here</a>.</p>
         <p><code>igraph::cluster_walktrap</code> is used for datasets with less than 10,000 cells. For larger datasets, <code>igraph::cluster_louvain</code> is used for speed.
         <a href='https://osca.bioconductor.org/dimensionality-reduction.html#based-on-population-structure'>getClusteredPCs</a> is used to pick the number of principle components to use for clustering. This is quite slow but generally provides satisfactory clustering.
         </p>")
