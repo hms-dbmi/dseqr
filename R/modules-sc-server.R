@@ -1048,6 +1048,18 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
   })
 
+  # allow subset if have name and either clusters or hvgs
+  allow_subset <- reactive({
+    have.name <- isTruthy(subset_name())
+    have.clus <- isTruthy(input$subset_clusters)
+    have.hvgs <- isTruthy(hvgs())
+    have.name && (have.clus | have.hvgs)
+  })
+
+  observe(toggleState(id = "submit_subset", condition = allow_subset()))
+
+
+
 
   # run integration
   subsets <- reactiveValues()
