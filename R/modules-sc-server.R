@@ -2118,11 +2118,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
 
 
     tryCatch(get_cluster_choices(clusters = c(annot, 'All Clusters'),
-                        sample_comparison = TRUE,
-                        dataset_dir = dataset_dir,
-                        use_disk = TRUE,
-                        top_tables = top_tables(),
-                        has_replicates = has_replicates()),
+                                 sample_comparison = TRUE,
+                                 dataset_dir = dataset_dir,
+                                 use_disk = TRUE,
+                                 top_tables = top_tables(),
+                                 has_replicates = has_replicates()),
              error = function(e) return(NULL))
   }) %>% debounce(20)
 
