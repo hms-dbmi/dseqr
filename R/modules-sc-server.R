@@ -1498,8 +1498,10 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 
   observe({
     ref_preds <- ref_preds()
+    annot_path <- annot_path()
+    req(annot_path)
     if (!is.null(ref_preds)) annot(ref_preds)
-    else annot(readRDS(annot_path()))
+    else annot(readRDS(annot_path))
   })
 
   sel_d <- reactive(input$selected_cluster) %>% debounce(20)

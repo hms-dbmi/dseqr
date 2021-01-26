@@ -256,19 +256,37 @@ plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = 
   return(plot)
 }
 
-update_feature_plot <- function(plot, feature_data, feature) {
+update_feature_plot <- function(plot,
+                                feature_data,
+                                feature,
+                                reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+
   prev <- tail(colnames(plot$data), 1)
   col <- make.names(feature)
   plot$data[[prev]] <- NULL
   plot$data[[col]] <- feature_data[row.names(plot$data)]
 
+  # order by expression
+  ord <- order(plot$data[[col]], decreasing = reverse_scale)
+  plot$data <- plot$data[ord, ]
+
   # update mapping to new gene
   plot$layers[[1]]$mapping$colour <- rlang::quo_set_expr(
     plot$layers[[1]]$mapping$colour, rlang::ensym(col))
 
+  if (reverse_scale) suppressMessages(
+    plot <- plot +
+      ggplot2::scale_color_gradientn(
+        colors = c('blue', 'lightgray'),
+        guide = "colorbar"
+      ))
+
   plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
   return(plot)
+
 }
+
+
 
 
 #' Downsample cells within each cluster across a group
@@ -508,12 +526,12 @@ plot_ridge <- function(feature = NULL,
                    axis.title.x = ggplot2::element_blank(),
                    axis.title.y = ggplot2::element_blank()
     ) + ggplot2::annotate('text',
-                         label=paste(ncells, 'cells'),
-                         x=rep(xlim, length(ncells)),
-                         y=seq_along(ncells),
-                         vjust = -0.3,
-                         hjust = 'right',
-                         size = 5)
+                          label=paste(ncells, 'cells'),
+                          x=rep(xlim, length(ncells)),
+                          y=seq_along(ncells),
+                          vjust = -0.3,
+                          hjust = 'right',
+                          size = 5)
 
 
 
@@ -674,7 +692,7 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
     pal <- grDevices::colors(distinct = TRUE)
     pal <- pal[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
                     pal,
-                          invert = TRUE)]
+                    invert = TRUE)]
     set.seed(0)
     pal <- sample(pal, nlevs)
     values <- col2hex(pal, dark)
