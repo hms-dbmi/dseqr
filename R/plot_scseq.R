@@ -256,6 +256,20 @@ plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = 
   return(plot)
 }
 
+#' Update Feature Plot
+#'
+#' Used to change feature with fast re-plot
+#'
+#' @param plot ggplot2 object
+#' @param feature_data Named numeric vector of feature values. Names are cell
+#'   names and must be a subset of \code{row.names(plot$data)}
+#' @param feature Name of feature
+#' @param reverse_scale Should low values be emphasized? Used for features where
+#'  low values indicate possible quality issues.
+#'
+#' @return ggplot2 object
+#' @keywords internal
+#'
 update_feature_plot <- function(plot,
                                 feature_data,
                                 feature,
@@ -284,6 +298,36 @@ update_feature_plot <- function(plot,
   plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
   return(plot)
 
+}
+
+
+
+#' Get Data to Update Feature Plot
+#'
+#' If feature data previously saved, then it is loaded. Otherwise, feature
+#' data is saved for subsequent calls.
+#'
+#' @param plots_dir Path to directory where feature data is saved
+#' @param scseq SingleCellExperiment
+#' @param feature Name of feature to get
+#'
+#' @return Named numeric vector of feature values. Names are cell names.
+#' @keywords internal
+#'
+get_feature_data <- function(plots_dir, scseq, feature) {
+  # cache/get data for new feature
+  dat_path <- file.path(plots_dir, paste0(feature, '_data.rds'))
+  if (file.exists(dat_path)) {
+    fdat <- readRDS(dat_path)
+
+  } else {
+    is.gene <- feature %in% row.names(scseq)
+    if (is.gene) fdat <- SingleCellExperiment::logcounts(scseq)[feature, ]
+    else fdat <- scseq[[feature]]
+    saveRDS(fdat, dat_path)
+  }
+  names(fdat) <- colnames(scseq)
+  return(fdat)
 }
 
 
@@ -398,6 +442,8 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
     scseq <- scseq[, scseq$cluster %in% sel]
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident
+
+    # cluster name get's appended by plot_ridge
     title <- paste('Expression by Sample:', feature, 'in')
 
   } else {
@@ -448,6 +494,17 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
   return(res)
 }
 
+#' Add cluster numbers to annotation
+#'
+#' Adds cluster number to non-numeric cluster names.
+#' E.g. if \code{annot = c('Monocytes', '2')} then
+#' \code{annot = c('1: Monocytes', '2')} is returned
+#'
+#' @param annot Character vector of cluster names
+#'
+#' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
+#' @keywords internal
+#'
 format_ridge_annot <- function(annot) {
 
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
@@ -537,14 +594,6 @@ plot_ridge <- function(feature = NULL,
 
   if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
   return(pl)
-}
-
-get_ridge_title <- function(annot, sel, feature) {
-  seli <- as.numeric(sel)
-  clus <- ifelse(seli == length(annot)+1, 'All Clusters', annot[seli])
-
-  title <- paste('Expression by Sample:', feature, 'in', clus)
-  return(title)
 }
 
 

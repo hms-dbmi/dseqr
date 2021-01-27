@@ -5,7 +5,7 @@
 \title{Get and save pathway results for ebfit object}
 \usage{
 get_path_res(
-  ebfit,
+  de,
   go_path,
   kegg_path,
   goana_path,
@@ -15,7 +15,8 @@ get_path_res(
 )
 }
 \arguments{
-\item{ebfit}{Result of \code{\link[crossmeta]{fit_ebayes}}}
+\item{de}{Result of \code{\link[crossmeta]{fit_ebayes}} or
+\code{link[crossmeta]{get_top_table}}}
 
 \item{go_path}{Path to save camerPR Gene Ontology result}
 

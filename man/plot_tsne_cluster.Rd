@@ -4,7 +4,14 @@
 \alias{plot_tsne_cluster}
 \title{Plot TSNE coloured by cluster}
 \usage{
-plot_tsne_cluster(scseq, legend = FALSE, cols = NULL, title = NULL, ...)
+plot_tsne_cluster(
+  scseq = NULL,
+  plot_data = NULL,
+  legend = FALSE,
+  cols = NULL,
+  title = NULL,
+  ...
+)
 }
 \arguments{
 \item{scseq}{SingleCellExperiment}

@@ -4,7 +4,13 @@
 \alias{plot_tsne_feature_sample}
 \title{Format gene plots for sample comparison for drugseqr app}
 \usage{
-plot_tsne_feature_sample(gene, scseq, group = "test")
+plot_tsne_feature_sample(
+  feature,
+  scseq,
+  group,
+  plot = NULL,
+  cols = c("lightgray", "blue")
+)
 }
 \arguments{
 \item{scseq}{\code{SingleCellExperiment} object.}

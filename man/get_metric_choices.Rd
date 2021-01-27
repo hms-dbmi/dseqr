@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{get_metric_choices}
 \alias{get_metric_choices}
-\title{Get choices data.frame for custom metrics}
+\title{Get choices data.frame for custom metrics (for subsetting)}
 \usage{
 get_metric_choices(scseq)
 }
@@ -13,6 +13,6 @@ get_metric_choices(scseq)
 data.frame
 }
 \description{
-Get choices data.frame for custom metrics
+Get choices data.frame for custom metrics (for subsetting)
 }
 \keyword{internal}

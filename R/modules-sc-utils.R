@@ -356,8 +356,75 @@ get_sc_dataset_choices <- function(sc_dir) {
   return(choices)
 }
 
+#' Convert single-cell datasets data.frame to list
+#'
+#' Used to allow client side updates of single-cell dataset choices. This
+#' is needed to prevent de-selection of current dataset after subset, intgration,
+#' and loading.
+#'
+#' @param datasets data.frame of datasets from \link{get_sc_dataset_choices}
+#'
+#' @return list
+#' @keywords internal
+#'
+datasets_to_list <- function(datasets) {
+  res <- datasets$value
+  names(res) <- datasets$optionLabel
+  types <- datasets$type
+  res <- lapply(unique(types), function(type) res[types==type])
+  names(res) <- unique(types)
+  return(res)
 
-#' Get choices data.frame for custom metrics
+}
+
+#' Move new dataset to end of datasets data.frame
+#'
+#' Used to prevent de-selection after integration/subset/loading
+#'
+#' @param new Name of new dataset
+#' @param datasets data.frame of datasets from \link{get_sc_dataset_choices}
+#'
+#' @return \code{datasets} with \code{new} moved to end
+#' @keywords internal
+#'
+move_new <- function(new, datasets) {
+  if(is.null(new)) return(datasets)
+  is.new <- datasets$name == new
+  new.ds <- datasets[is.new, ]
+  old.ds <- datasets[!is.new, ]
+  datasets <- rbind(old.ds, new.ds)
+  datasets$value <- seq_along(datasets$value)
+  return(datasets)
+}
+
+
+#' Get single-cell directories without fastq or cellranger files
+#'
+#' Used so that all directories shown for new single-cell dataset contain
+#' raw files.
+#'
+#' @param sc_dir Path to single-cell data directory
+#'
+#' @return Character vector of directories/files to hide
+#' @keywords internal
+#'
+get_exclude_dirs <- function(sc_dir) {
+  dirs <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+  exclude <- c()
+  for (dir in dirs) {
+    full_dir <- file.path(sc_dir, dir)
+    files <- list.files(full_dir)
+    if (!any(grepl('fastq.gz$|.mtx$|.h5$', files))) {
+      exclude <- c(exclude, dir)
+    }
+  }
+
+  exclude <- c(exclude, 'integrated.rds', 'prev_dataset.rds')
+  return(exclude)
+}
+
+
+#' Get choices data.frame for custom metrics (for subsetting)
 #'
 #' @param scseq \code{SingleCellExperiment}
 #'
@@ -368,6 +435,11 @@ get_metric_choices <- function(scseq) {
   metrics <- scseq@colData
   names <- colnames(metrics)
   names <- names[sapply(metrics, is.logical)]
+
+  # exclude samples and group
+  exclude <- c('is_ctrl', 'is_test', unique(metrics$batch))
+  names <- setdiff(names, exclude)
+
   if (!length(names)) return(NULL)
 
   levels <- c(TRUE, FALSE)
@@ -528,7 +600,7 @@ get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NUL
   if (is.null(scseq)) scseq <- load_scseq(dataset_dir)
 
   ncells <- c(tabulate(scseq$cluster), ncol(scseq))
-  pcells <- ncells / sum(ncells) * 100
+  pcells <- ncells / ncol(scseq) * 100
   stats <- list(ncells = ncells, pcells = pcells)
 
   if (sample_comparison) {
@@ -710,7 +782,7 @@ get_gene_choices <- function(markers,
 #'
 #' @seealso \code{\link{run_fastmnn}} \code{\link{run_harmony}}
 #'
-#' @return NULL
+#' @return TRUE is successful, otherwise FALSE
 #'
 #' @keywords internal
 integrate_saved_scseqs <- function(
@@ -747,12 +819,36 @@ integrate_saved_scseqs <- function(
   if (isTRUE(getOption('shiny.testmode'))) {
     scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
     save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = TRUE)
-    return(NULL)
+    return(TRUE)
   }
 
   progress$set(value+1, detail = 'loading')
-  test_scseqs <- load_scseq_subsets(test, sc_dir, exclude_clusters, subset_metrics, is_include, 'test', exclude_cells = exclude_cells)
-  ctrl_scseqs <- load_scseq_subsets(ctrl, sc_dir, exclude_clusters, subset_metrics, is_include, 'ctrl', exclude_cells = exclude_cells)
+  test_scseqs <- load_scseq_subsets(test,
+                                    sc_dir,
+                                    exclude_clusters,
+                                    subset_metrics,
+                                    is_include, 'test',
+                                    exclude_cells = exclude_cells)
+
+  if (!length(test_scseqs)) {
+    progress$set(value+1, detail = 'error: no test cells')
+    Sys.sleep(3)
+    return(FALSE)
+  }
+
+  ctrl_scseqs <- load_scseq_subsets(ctrl,
+                                    sc_dir,
+                                    exclude_clusters,
+                                    subset_metrics,
+                                    is_include,
+                                    'ctrl',
+                                    exclude_cells = exclude_cells)
+
+  if (!length(ctrl_scseqs)) {
+    progress$set(value+1, detail = 'error: no control cells')
+    Sys.sleep(3)
+    return(FALSE)
+  }
 
   # preserve identity of original samples and integrate
   scseqs <- c(test_scseqs, ctrl_scseqs)
@@ -841,7 +937,37 @@ integrate_saved_scseqs <- function(
   progress$set(value+8, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, dataset_name))
 
-  return(NULL)
+  return(TRUE)
+}
+
+
+#' Integration Utility Function for Background Process
+#'
+#' Used as background process via \link{callr::r_bg}
+#'
+#' @inheritParams integrate_saved_scseqs
+#' @param integration_types Character vector of integration types to run.
+#'
+#' @return TRUE is successful, otherwise FALSE
+#' @keywords internal
+#'
+run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
+                                       integration_types, exclude_clusters, pairs) {
+
+  for (i in seq_along(integration_types)) {
+
+    # run integration
+    res <- integrate_saved_scseqs(sc_dir,
+                                  test = test,
+                                  ctrl = ctrl,
+                                  integration_name = integration_name,
+                                  integration_type = integration_types[i],
+                                  exclude_clusters = exclude_clusters,
+                                  pairs = pairs)
+    # shortcircuit if error
+    if (!res) return(FALSE)
+  }
+  return(TRUE)
 }
 
 
@@ -856,7 +982,7 @@ integrate_saved_scseqs <- function(
 #' @param subset_metrics Character vector of metrics for excluding cells.
 #' @param progress Optional shiny progress object.
 #'
-#' @return NULL
+#' @return TRUE is successful, otherwise FALSE
 #'
 #' @keywords internal
 #'
@@ -893,25 +1019,47 @@ subset_saved_scseq <- function(sc_dir,
 
     subset_metrics <- c(subset_metrics, args$subset_metrics)
 
-    integrate_saved_scseqs(sc_dir,
-                           test = args$test,
-                           ctrl = args$ctrl,
-                           integration_name = dataset_name,
-                           integration_type = args$integration_type,
-                           exclude_clusters = args$exclude_clusters,
-                           exclude_cells = exclude_cells,
-                           subset_metrics = subset_metrics,
-                           is_include = is_include,
-                           founder = founder,
-                           pairs = args$pairs,
-                           hvgs = hvgs,
-                           progress = progress,
-                           value = 1)
+    res <- integrate_saved_scseqs(sc_dir,
+                                  test = args$test,
+                                  ctrl = args$ctrl,
+                                  integration_name = dataset_name,
+                                  integration_type = args$integration_type,
+                                  exclude_clusters = args$exclude_clusters,
+                                  exclude_cells = exclude_cells,
+                                  subset_metrics = subset_metrics,
+                                  is_include = is_include,
+                                  founder = founder,
+                                  pairs = args$pairs,
+                                  hvgs = hvgs,
+                                  progress = progress,
+                                  value = 1)
+
+    return(res)
 
   } else {
-    scseq <- load_scseq_subsets(from_dataset, sc_dir, exclude_clusters, subset_metrics, is_include, ident=from_dataset)[[1]]
-    process_raw_scseq(scseq, dataset_name, sc_dir, hvgs = hvgs, progress = progress, value = 1, founder = founder)
+    scseq <- load_scseq_subsets(from_dataset,
+                                sc_dir,
+                                exclude_clusters,
+                                subset_metrics,
+                                is_include,
+                                ident=from_dataset)
+
+    if (!length(scseq)) {
+      progress$set(1, detail = "error: no cells")
+      Sys.sleep(3)
+      return(FALSE)
+    }
+
+    process_raw_scseq(scseq[[1]],
+                      dataset_name,
+                      sc_dir,
+                      hvgs = hvgs,
+                      progress = progress,
+                      value = 1,
+                      founder = founder)
+
     save_scseq_args(args, dataset_name, sc_dir)
+    return(TRUE)
   }
 }
 
@@ -1119,6 +1267,31 @@ validate_integration <- function(test, ctrl, pairs) {
   return(msg)
 }
 
+validate_subset <- function(from_dataset, subset_name, subset_clusters, is_include, hvgs) {
+  msg <- NULL
+
+  have.dataset <- isTruthy(from_dataset)
+  have.name <- isTruthy(subset_name)
+  all.excluded <- is_include & !isTruthy(subset_clusters)
+  all.included <- !isTruthy(subset_clusters) & !is_include
+  no.hvgs <- !isTruthy(hvgs)
+
+  if (!have.dataset) {
+    msg <- 'No dataset selected'
+
+  } else if (!have.name) {
+    msg <- 'No name given'
+
+  } else if (all.excluded) {
+    msg <- 'All excluded'
+
+  } else if (all.included & no.hvgs) {
+    msg <- 'All included without custom genes'
+  }
+
+  return(msg)
+}
+
 
 #' Get path to saved scseq part
 #'
@@ -1303,6 +1476,54 @@ get_tsne_coords <- function(plot_data) {
     dplyr::group_by(ident) %>%
     dplyr::summarise(TSNE_1 = stats::median(TSNE_1),
                      TSNE_2 = stats::median(TSNE_2))
+}
+
+
+#' Update Progress from Background Processes
+#'
+#' @param bgs \code{reactivevalues} of \link[callr]{r_bg}
+#' @param progs \code{reactivevalues} of \link[shiny]{Progress}
+#' @param new_dataset \code{reactive} that triggers update of available datasets.
+#'
+#' @return NULL
+#' @keywords internal
+#'
+handle_sc_progress <- function(bgs, progs, new_dataset) {
+  bg_names <- names(bgs)
+  if (!length(bg_names)) return(NULL)
+
+  todel <- c()
+  for (name in bg_names) {
+    bg <- bgs[[name]]
+    progress <- progs[[name]]
+    if(is.null(bg)) next
+
+    msgs <- bg$read_output_lines()
+    if (length(msgs)) print(msgs)
+
+    # for some reason this un-stalls bg process for integration
+    # also nice to see things printed to stderr
+    errs <- bg$read_error_lines()
+    if (length(errs)) print(errs)
+
+    if (length(msgs)) {
+      last <- tail(msgs, 1)
+      progress$set(value = progress$getValue() + length(msgs),
+                   detail = gsub('^\\d+ +', '', last))
+
+    }
+
+    if (!bg$is_alive()) {
+      res <- bg$get_result()
+      progress$close()
+      if (res) new_dataset(name)
+      todel <- c(todel, name)
+    }
+  }
+  for (name in todel) {
+    bgs[[name]] <- NULL
+    progs[[name]] <- NULL
+  }
 }
 
 

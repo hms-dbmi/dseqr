@@ -9,7 +9,8 @@ plot_tsne_feature(
   feature,
   cols = c("lightgray", "blue"),
   reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
-  title = paste0("Expression by Cell: ", feature)
+  title = paste0("Expression by Cell: ", feature),
+  pt.size = min(6000/ncol(scseq), 2)
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 are darker)?}
 
 \item{title}{Title to add to plot.}
+
+\item{pt.size}{Adjust point size for plotting}
 }
 \value{
 \code{ggplot}

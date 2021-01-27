@@ -8,6 +8,7 @@ process_raw_scseq(
   scseq,
   dataset_name,
   sc_dir,
+  hvgs = NULL,
   founder = NULL,
   progress = NULL,
   value = 0
