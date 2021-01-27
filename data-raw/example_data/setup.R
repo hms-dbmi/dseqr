@@ -67,5 +67,5 @@ drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signatu
 
 
 # sync to s3 after integration, labeling, etc (whatever want pre-done for app)
-# tar cvzf example_data.tar.gz --exclude='*.fastq.gz' --exclude='kallisto*/*' --exclude '*/barcodes.tsv' --exclude '*/matrix.mtx' --exclude '*/genes.tsv' --directory=/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/patient_data example
+# tar cvzf example_data.tar.gz --exclude='*.fastq.gz' --exclude='kallisto*/*' --exclude '*/barcodes.tsv' --exclude '*/matrix.mtx' --exclude '*/genes.tsv' --directory=/home/alex/patient_data example
 # aws s3 cp example_data.tar.gz s3://drugseqr/example_data.tar.gz
