@@ -9,7 +9,8 @@ get_gene_choices(
   qc_metrics = NULL,
   type = NULL,
   qc_first = FALSE,
-  species = "Homo sapiens"
+  species = "Homo sapiens",
+  tx2gene = NULL
 )
 }
 \arguments{

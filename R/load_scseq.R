@@ -55,6 +55,27 @@ load_raw_scseq <- function(dataset_name,
   process_raw_scseq(scseq, dataset_name, sc_dir, founder, progress = progress, value = value + 3)
 }
 
+
+#' Convenience utility to run load_raw_scseq in background
+
+#' @keywords internal
+#' @noRd
+run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
+
+  for (opt in opts) {
+    load_raw_scseq(opt$dataset_name,
+                   fastq_dir,
+                   sc_dir,
+                   indices_dir,
+                   metrics = opt$metrics,
+                   founder = opt$founder)
+
+  }
+
+  return(TRUE)
+}
+
+
 #' Process Count Data for App
 #'
 #' @param scseq \code{SingleCellExperiment}

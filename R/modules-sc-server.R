@@ -285,21 +285,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   ))
 }
 
-get_exclude_dirs <- function(sc_dir) {
-  dirs <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
-  exclude <- c()
-  for (dir in dirs) {
-    full_dir <- file.path(sc_dir, dir)
-    files <- list.files(full_dir)
-    if (!any(grepl('fastq.gz$|.mtx$|.h5$', files))) {
-      exclude <- c(exclude, dir)
-    }
-  }
-
-  exclude <- c(exclude, 'integrated.rds', 'prev_dataset.rds')
-  return(exclude)
-}
-
 
 #' Logic for selected dataset part of scForm
 #'
@@ -605,43 +590,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   ))
 }
 
-datasets_to_list <- function(datasets) {
-  res <- datasets$value
-  names(res) <- datasets$optionLabel
-  types <- datasets$type
-  res <- lapply(unique(types), function(type) res[types==type])
-  names(res) <- unique(types)
-  return(res)
 
-}
-
-move_new <- function(new, datasets) {
-  if(is.null(new)) return(datasets)
-  is.new <- datasets$name == new
-  new.ds <- datasets[is.new, ]
-  old.ds <- datasets[!is.new, ]
-  datasets <- rbind(old.ds, new.ds)
-  datasets$value <- seq_along(datasets$value)
-  return(datasets)
-}
-
-#' Convenience utility to run load_raw_scseq in background
-
-#' @keywords internal
-#' @noRd
-run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
-
-  for (opt in opts) {
-    load_raw_scseq(opt$dataset_name,
-                   fastq_dir,
-                   sc_dir,
-                   indices_dir,
-                   metrics = opt$metrics,
-                   founder = opt$founder)
-
-  }
-
-}
 
 
 #' Logic for selecting cluster to plot label origin for integrated dataset
@@ -1048,18 +997,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
   })
 
-  # allow subset if have name and either clusters or hvgs
-  allow_subset <- reactive({
-    have.name <- isTruthy(subset_name())
-    have.clus <- isTruthy(input$subset_clusters)
-    have.hvgs <- isTruthy(hvgs())
-    have.name && (have.clus | have.hvgs)
-  })
-
-  observe(toggleState(id = "submit_subset", condition = allow_subset()))
-
-
-
 
   # run integration
   subsets <- reactiveValues()
@@ -1067,62 +1004,69 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
   observeEvent(input$submit_subset, {
 
-    subset <- input$subset_clusters
+    subset_clusters <- input$subset_clusters
+    subset_name <- input$subset_name
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
     is_include <- is_include()
-    is_integrated <- is_integrated()
+    from_dataset <- selected_dataset()
     hvgs <- hvgs()
 
-    exclude_clusters <- intersect(cluster_choices$value, subset)
-    subset_metrics <- intersect(metric_choices$value, subset)
+    error_msg <- validate_subset(from_dataset, subset_name, subset_clusters, is_include, hvgs)
 
-    if (is_include && length(exclude_clusters)) {
-      exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
-    }
+    if (is.null(error_msg)) {
+      removeClass('name-container', 'has-error')
 
-    # need exclude by cell name if integrated
-    exclude_cells <- NULL
-    if (is_integrated && length(exclude_clusters)) {
-      scseq <- scseq()
-      exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
-      exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
-    }
+      exclude_clusters <- intersect(cluster_choices$value, subset_clusters)
+      subset_metrics <- intersect(metric_choices$value, subset_clusters)
 
-    from_dataset <- selected_dataset()
-    founder <- get_founder(sc_dir, from_dataset)
-    subset_name <- input$subset_name
-    dataset_name <- paste(founder, subset_name, sep = '_')
+      if (is_include && length(exclude_clusters)) {
+        exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
+      }
 
-    # clear error and disable button
-    disableAll(subset_inputs)
+      # need exclude by cell name if integrated
+      exclude_cells <- NULL
+      is_integrated <- is_integrated()
+      if (is_integrated && length(exclude_clusters)) {
+        scseq <- scseq()
+        exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
+        exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
+      }
 
-    subsets[[dataset_name]] <- callr::r_bg(
-      func = subset_saved_scseq,
-      package = 'drugseqr',
-      args = list(
-        sc_dir = sc_dir,
-        founder = founder,
-        from_dataset = from_dataset,
-        dataset_name = dataset_name,
-        exclude_clusters = exclude_clusters,
-        exclude_cells = exclude_cells,
-        subset_metrics = subset_metrics,
-        is_include = is_include,
-        is_integrated = is_integrated,
-        hvgs = hvgs
+      founder <- get_founder(sc_dir, from_dataset)
+      dataset_name <- paste(founder, subset_name, sep = '_')
+
+      subsets[[dataset_name]] <- callr::r_bg(
+        func = subset_saved_scseq,
+        package = 'drugseqr',
+        args = list(
+          sc_dir = sc_dir,
+          founder = founder,
+          from_dataset = from_dataset,
+          dataset_name = dataset_name,
+          exclude_clusters = exclude_clusters,
+          exclude_cells = exclude_cells,
+          subset_metrics = subset_metrics,
+          is_include = is_include,
+          is_integrated = is_integrated,
+          hvgs = hvgs
+        )
       )
-    )
 
-    progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
-    msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
-    progress$set(message = msg, value = 0)
-    psubsets[[dataset_name]] <- progress
+      progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
+      msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
+      progress$set(message = msg, value = 0)
+      psubsets[[dataset_name]] <- progress
 
 
-    # re-enable, clear inputs
-    updateTextInput(session, 'subset_name', value = '')
-    enableAll(subset_inputs)
+      # clear inputs
+      updateTextInput(session, 'subset_name', value = '')
+
+    } else {
+      # show error message
+      html('error_msg', html = error_msg)
+      addClass('name-container', class = 'has-error')
+    }
   })
 
 
@@ -1168,22 +1112,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 }
 
 
-run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
-                                       integration_types, exclude_clusters, pairs) {
-
-  for (i in seq_along(integration_types)) {
-
-    # run integration
-    integrate_saved_scseqs(sc_dir,
-                           test = test,
-                           ctrl = ctrl,
-                           integration_name = integration_name,
-                           integration_type = integration_types[i],
-                           exclude_clusters = exclude_clusters,
-                           pairs = pairs)
-  }
-
-}
 
 #' Logic for integration form toggled by showIntegration
 #'
@@ -1363,7 +1291,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     if (is.null(error_msg)) {
       # clear error and disable button
       removeClass('name-container', 'has-error')
-      disableAll(integration_inputs)
 
       integs[[integration_name]] <- callr::r_bg(
         func = run_integrate_saved_scseqs,
@@ -1384,9 +1311,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       progress$set(message = msg, value = 0)
       pintegs[[integration_name]] <- progress
 
-      # re-enable
-      enableAll(integration_inputs)
-
     } else {
       # show error message
       pairs(NULL)
@@ -1404,51 +1328,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   return(new_dataset)
 }
-
-#' Update Progress from Background Processes
-#'
-#' @param bgs \code{reactivevalues} of \link[callr]{r_bg}
-#' @param progs \code{reactivevalues} of \link[shiny]{Progress}
-#' @param new_dataset \code{reactive} that triggers update of available datasets.
-#'
-#' @return NULL
-#' @keywords internal
-#'
-handle_sc_progress <- function(bgs, progs, new_dataset) {
-  bg_names <- names(bgs)
-  if (!length(bg_names)) return(NULL)
-
-  todel <- c()
-  for (name in bg_names) {
-    bg <- bgs[[name]]
-    progress <- progs[[name]]
-    if(is.null(bg)) next
-
-    msgs <- bg$read_output_lines()
-
-    # for some reason this un-stalls bg process for integration
-    # also nice to see things printed to stderr
-    errs <- bg$read_output_lines()
-    print(errs)
-
-    if (length(msgs)) {
-      progress$set(value = progress$getValue() + length(msgs),
-                   detail = gsub('^\\d+ +', '', tail(msgs, 1)))
-    }
-
-    if (!bg$is_alive()) {
-      res <- bg$get_result()
-      progress$close()
-      new_dataset(name)
-      todel <- c(todel, name)
-    }
-  }
-  for (name in todel) {
-    bgs[[name]] <- NULL
-    progs[[name]] <- NULL
-  }
-}
-
 
 
 #' Logic for comparison type toggle for integrated datasets
@@ -1512,7 +1391,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
     ref_preds <- ref_preds()
     annot_path <- annot_path()
     if (!isTruthy(annot_path)) annot(NULL)
-    if (!is.null(ref_preds)) annot(ref_preds)
+    else if (!is.null(ref_preds)) annot(ref_preds)
     else annot(readRDS(annot_path))
   })
 
@@ -2242,7 +2121,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
       dat_path <- file.path(plots_dir(), paste(gene,  sel, 'sample_ridgedat.rds', sep='-'))
       if (file.exists(dat_path)) {
         ridge_data <- readRDS(dat_path)
-        ridge_data$title <- get_ridge_title(annot(), sel, gene)
+        ridge_data$clus_levs <- annot()
 
 
       } else {
@@ -2499,19 +2378,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   ))
 }
 
-get_feature_data <- function(plots_dir, scseq, feature) {
-  # cache/get data for new feature
-  dat_path <- file.path(plots_dir, paste0(feature, '_data.rds'))
-  if (file.exists(dat_path)) {
-    fdat <- readRDS(dat_path)
-
-  } else {
-    is.gene <- feature %in% row.names(scseq)
-    if (is.gene) fdat <- SingleCellExperiment::logcounts(scseq)[feature, ]
-    else fdat <- scseq[[feature]]
-    saveRDS(fdat, dat_path)
-  }
-  names(fdat) <- colnames(scseq)
-  return(fdat)
-}
 

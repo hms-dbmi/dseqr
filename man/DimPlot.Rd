@@ -8,7 +8,8 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(
-  object,
+  object = NULL,
+  data = NULL,
   dims = c(1, 2),
   cells = NULL,
   cols = NULL,

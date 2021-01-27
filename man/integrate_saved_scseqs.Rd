@@ -16,6 +16,7 @@ integrate_saved_scseqs(
   is_include = FALSE,
   founder = integration_name,
   pairs = NULL,
+  hvgs = NULL,
   progress = NULL,
   value = 0
 )
@@ -40,6 +41,9 @@ integrate_saved_scseqs(
 \item{is_include}{Boolean - are cells that match \code{subset_metrics} included or excluded?}
 
 \item{progress}{optional Shiny \code{Progress} object.}
+}
+\value{
+TRUE is successful, otherwise FALSE
 }
 \description{
 Performs integration and saves as a new analysis.

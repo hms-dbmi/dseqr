@@ -4,7 +4,7 @@
 \alias{add_hvgs}
 \title{Get top highly variable genes for subsequent dimensionality reduction}
 \usage{
-add_hvgs(sce)
+add_hvgs(sce, hvgs = NULL)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment} object}

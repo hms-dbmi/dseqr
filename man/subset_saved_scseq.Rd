@@ -14,7 +14,8 @@ subset_saved_scseq(
   subset_metrics,
   is_integrated,
   is_include,
-  progress = NULL
+  progress = NULL,
+  hvgs = NULL
 )
 }
 \arguments{
@@ -33,6 +34,9 @@ subset_saved_scseq(
 \item{subset_metrics}{Character vector of metrics for excluding cells.}
 
 \item{progress}{Optional shiny progress object.}
+}
+\value{
+TRUE is successful, otherwise FALSE
 }
 \description{
 Subset previously saved SingleCellExperiment
