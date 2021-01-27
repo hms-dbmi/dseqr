@@ -213,26 +213,22 @@ load_scseq <- function(dataset_dir) {
   scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
                     error = function(e) {
                       unlink(scle_path)
-                      return(NULL)
+                      return(readRDS(scseq_path))
                     })
 
-  if (!is.null(scseq)) {
-    # fixes for SCLE
-    colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-    scseq$cluster <- factor(as.numeric(scseq$cluster))
+  # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
+  colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
+  scseq$cluster <- factor(as.numeric(as.character(scseq$cluster)))
 
-    is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
-    if (is.integrated) {
-      scseq$orig.ident <- factor(scseq$orig.ident, levels = c('test', 'ctrl'))
-      scseq$orig.cluster <- factor(as.numeric(scseq$orig.cluster))
-    }
-
-  } else {
-    scseq <- readRDS(scseq_path)
+  is.integrated <- all(scseq$orig.ident %in% c('test', 'ctrl'))
+  if (is.integrated) {
+    scseq$orig.ident <- factor(as.character(scseq$orig.ident), levels = c('test', 'ctrl'))
+    scseq$orig.cluster <- factor(as.numeric(as.character(scseq$orig.cluster)))
   }
 
   return(scseq)
 }
+
 
 #' Save SingleCellExperiment as loom file
 #'
