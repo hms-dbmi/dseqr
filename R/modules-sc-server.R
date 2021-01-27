@@ -1990,7 +1990,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   annot <- reactive({
     annot <- input_annot()
     if (!is.null(annot)) return(annot)
-    readRDS(file.path(dataset_dir(), 'annot.rds'))
+
+    annot_path <- file.path(dataset_dir(), 'annot.rds')
+    if (!file.exists(annot_path)) return(NULL)
+    readRDS(annot_path)
   })
 
 
@@ -2377,5 +2380,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
-
