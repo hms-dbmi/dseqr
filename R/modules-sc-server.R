@@ -1984,7 +1984,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   scseq <- reactive({
     scseq <- input_scseq()
     if (!is.null(scseq)) return(scseq)
-    load_scseq(dataset_dir())
+
+    dataset_dir <- dataset_dir()
+    if (!isTruthy(dataset_dir)) return(NULL)
+
+    load_scseq(dataset_dir)
   })
 
   annot <- reactive({
@@ -2183,9 +2187,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     }
     return(tts)
   })
-
-
-
 
 
   # top table for selected cluster only
