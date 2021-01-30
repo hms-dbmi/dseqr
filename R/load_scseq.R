@@ -220,7 +220,8 @@ load_scseq <- function(dataset_dir) {
   colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
   scseq$cluster <- factor(as.numeric(as.character(scseq$cluster)))
 
-  is.integrated <- all(scseq$orig.ident %in% c('test', 'ctrl'))
+  is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
+
   if (is.integrated) {
     scseq$orig.ident <- factor(as.character(scseq$orig.ident), levels = c('test', 'ctrl'))
     scseq$orig.cluster <- factor(as.numeric(as.character(scseq$orig.cluster)))
