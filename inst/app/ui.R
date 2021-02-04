@@ -1,6 +1,6 @@
 tabs <- getShinyOption('tabs')
 data_dir <- getShinyOption('data_dir')
-with_logout <- grepl('/srv/drugseqr', data_dir)
+with_logout <- grepl('^/srv/drugseqr', data_dir)
 active <- tabs[1]
 
 
