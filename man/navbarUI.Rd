@@ -4,12 +4,15 @@
 \alias{navbarUI}
 \title{UI for navbar}
 \usage{
-navbarUI(tabs, active)
+navbarUI(tabs, active, with_logout = FALSE)
 }
 \arguments{
 \item{tabs}{Character vector of tab names to display}
 
 \item{active}{the active tab name}
+
+\item{with_logout}{include logout link? \code{TRUE}
+if \code{data_dir} is '/srv/drugseqr' otherwise \code{FALSE}}
 }
 \value{
 shiny.tag with html for navbar
