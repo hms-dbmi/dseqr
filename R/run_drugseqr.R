@@ -15,8 +15,6 @@
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
 #' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
-#' @param logout_url url for logout link in navbar. Used to shinyproxy server. if \code{NULL}
-#'  (default), no logout button is shown in the navbar.
 #'
 #' @import rintrojs
 #' @import shiny
@@ -47,19 +45,17 @@ run_drugseqr <- function(app_name,
                          test = FALSE,
                          test_data = FALSE,
                          host = '0.0.0.0',
-                         port = 3838,
-                         logout_url = NULL) {
+                         port = 3838) {
 
   data_dir <- file.path(data_dir, app_name)
   if (!dir.exists(data_dir)) dir.create(data_dir)
 
   # pass arguments to app through options then run
   shinyOptions(data_dir = normalizePath(data_dir),
-               pert_query_dir = normalizePath(pert_query_dir),
-               pert_signature_dir = normalizePath(pert_signature_dir),
-               indices_dir = normalizePath(indices_dir),
-               logout_url = logout_url,
-               tabs = tabs)
+                      pert_query_dir = normalizePath(pert_query_dir),
+                      pert_signature_dir = normalizePath(pert_signature_dir),
+                      indices_dir = normalizePath(indices_dir),
+                      tabs = tabs)
 
 
   if (test) {
