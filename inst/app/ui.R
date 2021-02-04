@@ -1,6 +1,5 @@
 tabs <- getShinyOption('tabs')
-data_dir <- getShinyOption('data_dir')
-with_logout <- grepl('^/srv/drugseqr', data_dir)
+logout_url <- getShinyOption('logout_url')
 active <- tabs[1]
 
 
@@ -17,7 +16,7 @@ bootstrapPage(
   includeCSS(path = 'www/bs-docs.css'),
   includeCSS(path = 'www/drugs.css'),
   includeCSS(path = 'www/pathways.css'),
-  navbarUI(tabs, active, with_logout),
+  navbarUI(tabs, active, logout_url),
   fluidPage(
     tags$div(class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
              # rintrojs stuff
