@@ -19,6 +19,8 @@ bootstrapPage(
   includeCSS(path = 'www/pathways.css'),
   navbarUI(tabs, active, with_logout),
   fluidPage(
+    tags$head(HTML("<title>drugseqr</title>"),
+              tags$link(rel = "icon", type = "image/png", href = "/favicon.png")),
     tags$div(class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
              # rintrojs stuff
              span(id = 'start_tour', class='action-button shiny-bound-input btn-intro-icon btn-intro', icon('info', 'fa-fw fa-w-6')),
