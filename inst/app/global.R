@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(shinyjs)
   library(shinyWidgets)
   library(dplyr)
+  library(LoomExperiment)
   # Seurat fails to load during cell-type deconvolution
 })
 
