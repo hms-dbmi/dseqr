@@ -1,14 +1,9 @@
 # things loaded in here are loaded once (even if multiple users)
 
 suppressPackageStartupMessages({
-  library(drugseqr)
   library(shiny)
-  library(shinyBS)
   library(shinyjs)
-  library(shinyWidgets)
-  library(dplyr)
-  library(LoomExperiment)
-  # Seurat fails to load during cell-type deconvolution
+  library(rlang)
 })
 
 
