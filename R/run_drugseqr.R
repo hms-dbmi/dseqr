@@ -52,20 +52,12 @@ run_drugseqr <- function(app_name,
   if (!dir.exists(data_dir)) dir.create(data_dir)
 
   # pass arguments to app through options then run
-<<<<<<< HEAD
-  shiny::shinyOptions(data_dir = normalizePath(data_dir),
-                      pert_query_dir = normalizePath(pert_query_dir),
-                      pert_signature_dir = normalizePath(pert_signature_dir),
-                      indices_dir = normalizePath(indices_dir),
-                      tabs = tabs)
-=======
   shinyOptions(data_dir = normalizePath(data_dir),
                pert_query_dir = normalizePath(pert_query_dir),
                pert_signature_dir = normalizePath(pert_signature_dir),
                indices_dir = normalizePath(indices_dir),
                tabs = tabs,
                logout_url = logout_url)
->>>>>>> master
 
 
   if (test) {
