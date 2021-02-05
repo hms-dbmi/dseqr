@@ -48,11 +48,11 @@ run_drugseqr <- function(app_name,
                          port = 3838,
                          logout_url = NULL) {
 
-  data_dir <- file.path(data_dir, app_name)
-  if (!dir.exists(data_dir)) dir.create(data_dir)
+  user_dir <- file.path(data_dir, app_name)
+  if (!dir.exists(user_dir)) init_drugseqr(app_name, data_dir)
 
   # pass arguments to app through options then run
-  shinyOptions(data_dir = normalizePath(data_dir),
+  shinyOptions(data_dir = normalizePath(user_dir),
                pert_query_dir = normalizePath(pert_query_dir),
                pert_signature_dir = normalizePath(pert_signature_dir),
                indices_dir = normalizePath(indices_dir),
@@ -61,7 +61,7 @@ run_drugseqr <- function(app_name,
 
 
   if (test) {
-    # run test and return
+    # TODO: run test and return
     # shinytest::recordTest(app_dir, seed = 0)
     return(NULL)
 
@@ -74,7 +74,7 @@ run_drugseqr <- function(app_name,
   }
 
   # auto-reload if update app files
-  options(shiny.autoreload = TRUE)
+  if (is.null(logout_url)) options(shiny.autoreload = TRUE)
   runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 
@@ -97,19 +97,19 @@ run_drugseqr <- function(app_name,
 #'
 init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
 
-  data_dir <- file.path(data_dir, app_name)
-  dir.create(data_dir, recursive = TRUE)
-  dir.create(file.path(data_dir, 'bulk'))
-  dir.create(file.path(data_dir, 'single-cell'))
-  dir.create(file.path(data_dir, 'custom_queries'))
+  user_dir <- file.path(data_dir, app_name)
+  dir.create(user_dir, recursive = TRUE)
+  dir.create(file.path(user_dir, 'bulk'))
+  dir.create(file.path(user_dir, 'single-cell'))
+  dir.create(file.path(user_dir, 'custom_queries'))
 
   anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
   colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
-  saveRDS(anals, file.path(data_dir, 'bulk', 'anals.rds'))
+  saveRDS(anals, file.path(user_dir, 'bulk', 'anals.rds'))
 
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")
-  saveRDS(datasets, file.path(data_dir, 'bulk', 'datasets.rds'))
+  saveRDS(datasets, file.path(user_dir, 'bulk', 'datasets.rds'))
 
-  saveRDS(NULL, file.path(data_dir, 'single-cell', 'integrated.rds'))
+  saveRDS(NULL, file.path(user_dir, 'single-cell', 'integrated.rds'))
 }
