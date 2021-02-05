@@ -73,6 +73,8 @@ run_drugseqr <- function(app_name,
     options(shiny.testmode = FALSE)
   }
 
+  options(shiny.maxRequestSize=1024*1024^2)
+
   # auto-reload if update app files
   if (is.null(logout_url)) options(shiny.autoreload = TRUE)
   runApp(app_dir, launch.browser = TRUE, host = host, port = port)

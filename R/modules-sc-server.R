@@ -426,16 +426,54 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     !dataset_name %in% datasets$value
   })
 
+  uploadModal <- function() {
+    modalDialog(
+      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.mtx', '.txt')),
+      actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
+      title = 'Upload or Select Existing?',
+      size = 's',
+      footer = NULL,
+      easyClose = TRUE
+    )
+  }
+
   # open shinyFiles selector if creating
   observe({
     req(is.create())
+    showModal(uploadModal())
+  })
 
+
+  # move uploaded to destination
+  observeEvent(input$up_raw, {
+    df <- input$up_raw
+    sel <- input$selected_dataset
+    req(df, sel)
+
+    dataset_dir <- file.path(sc_dir, input$selected_dataset)
+    unlink(dataset_dir, recursive = TRUE)
+    dir.create(dataset_dir)
+
+    for (i in 1:nrow(df)) {
+      dpath <- df$datapath[i]
+      fpath <- file.path(dataset_dir, df$name)
+      file.copy(from = dpath, to = fpath)
+    }
+
+    removeModal()
+    Sys.sleep(0.5)
+    new_dataset_dir(dataset_dir)
+  })
+
+  observeEvent(input$click_existing, {
+    removeModal()
+    Sys.sleep(0.5)
     shinyjs::click('new_dataset_dir')
   })
 
   # get path to dir with new dataset files
-  new_dataset_dir <- reactive({
-
+  new_dataset_dir <- reactiveVal()
+  observe({
     new_dataset_dir <- input$new_dataset_dir
 
     # need selected subfolder
@@ -443,7 +481,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     req(!methods::is(new_dataset_dir, 'integer'))
 
     dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
-    as.character(dir)
+    new_dataset_dir(as.character(dir))
+  })
+
+  observeEvent(input$selected_dataset, {
+    new_dataset_dir(NULL)
   })
 
   # ask for confirmation after folder selection
@@ -2381,3 +2423,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+
