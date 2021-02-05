@@ -15,7 +15,8 @@ run_drugseqr(
   test = FALSE,
   test_data = FALSE,
   host = "0.0.0.0",
-  port = 3838
+  port = 3838,
+  logout_url = NULL
 )
 }
 \arguments{

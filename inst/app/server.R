@@ -1,23 +1,4 @@
-
-# loading packages is slow so show spinner
-load_packages <- function() {
-  suppressPackageStartupMessages({
-    require(drugseqr)
-    require(shinyBS)
-    require(shinyWidgets)
-    require(dplyr)
-    require(rlang)
-    require(LoomExperiment)
-  })
-
-  toggle("loading_page", anim = TRUE, animType = "fade")
-  toggle("main_page", anim = FALSE, animType = "fade")
-}
-
-
-
 server <- function(input, output, session) {
-  load_packages()
 
   # get arguments from calling function
   # defaults for testing
