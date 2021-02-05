@@ -1,7 +1,6 @@
 
 # loading packages is slow so show spinner
 load_packages <- function() {
-  start <- Sys.time()
   suppressPackageStartupMessages({
     require(drugseqr)
     require(shinyBS)
