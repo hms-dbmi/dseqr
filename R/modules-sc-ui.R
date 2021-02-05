@@ -129,7 +129,7 @@ scSelectedDatasetInput <- function(id) {
     div(id = 'sc-intro-dataset',
         shinypanel::selectizeInputWithButtons(
           inputId = ns('selected_dataset'),
-          label = 'Select a single-cell dataset:',
+          label = 'Select or upload a single-cell dataset:',
           actionButton(
             ns('show_label_transfer'), '',
             icon = icon('tag', 'fa-fw'),
@@ -405,4 +405,5 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
     label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
 }
+
 
