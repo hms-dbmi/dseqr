@@ -2,17 +2,17 @@
 #'
 #' @param tabs Character vector of tab names to display
 #' @param active the active tab name
-#' @param with_logout include logout link? \code{TRUE}
-#'   if \code{data_dir} is '/srv/drugseqr' otherwise \code{FALSE}
+#' @param logout_url url to logout from. NULL results in no Logout link
 #' @return shiny.tag with html for navbar
 #'
 #' @export
-navbarUI <- function(tabs, active, with_logout = FALSE) {
+navbarUI <- function(tabs, active, logout_url = NULL) {
 
   logout_li <- NULL
-  if (with_logout) {
+  if (!is.null(logout_url)) {
+    # target _top break out of iframe
     logout_li <- tags$li(class = 'navbar-right', `data-toggle`="collapse",
-      `data-target`=".navbar-collapse.in", a(href = '/logout', 'Logout')
+      `data-target`=".navbar-collapse.in", a(target="_top", href = logout_url, 'Logout')
     )
 
   }
