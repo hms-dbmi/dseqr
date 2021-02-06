@@ -115,7 +115,7 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, hvgs = NULL, founder 
 
 
   # used for label transfer
-  scseq_sample <- downsample_clusters(combined)
+  scseq_sample <- downsample_clusters(scseq)
 
   progress$set(message = "saving", value = value + 4)
 
