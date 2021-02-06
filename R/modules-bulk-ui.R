@@ -114,7 +114,7 @@ bulkDatasetInput <- function(id) {
           actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
           hide_btns = TRUE
         ),
-        shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder fastq.gz files'),
+        shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with fastq.gz files'),
         div(class = 'hidden-forms',
             dtangleFormInput(ns('dtangle'))
         )

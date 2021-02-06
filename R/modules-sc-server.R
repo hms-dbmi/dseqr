@@ -428,7 +428,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
 
   uploadModal <- function() {
     modalDialog(
-      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.mtx', '.txt')),
+      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.tsv')),
       actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
       title = 'Upload or Select Existing?',
       size = 's',

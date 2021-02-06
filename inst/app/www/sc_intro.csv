@@ -1,5 +1,5 @@
 element,scrollTo,position,intro
-#sc-intro-dataset,,right,"Select a dataset to explore for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
+#sc-intro-dataset,,right,"To preprocess a new dataset, type a new name and either upload cellranger files (.h5 or matrix.mtx, genes.tsv, and barcodes.tsv) or select folder with previously uploaded files. </br></br>Select a dataset to explore for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
 #sc-form-dataset-show_label_transfer,,auto,Toggles inputs for transferring labels from another dataset to the selected dataset.
 #sc-form-dataset-show_integration,,bottom,"<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
 #sc-cluster_plot-cluster_plot-plot_container,,,TSNE plot of clusters and associated labels.
