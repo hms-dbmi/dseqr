@@ -52,7 +52,7 @@ load_raw_scseq <- function(dataset_name,
 
   scseq <- run_scseq_qc(scseq, metrics)
 
-  process_raw_scseq(scseq, dataset_name, sc_dir, founder, progress = progress, value = value + 3)
+  process_raw_scseq(scseq, dataset_name, sc_dir, founder=founder, progress = progress, value = value + 3)
 }
 
 

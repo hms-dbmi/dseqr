@@ -79,11 +79,5 @@ server <- function(input, output, session) {
                           pert_query_dir = pert_query_dir,
                           pert_signature_dir = pert_signature_dir)
 
-  autoInvalidate <- reactiveTimer(10000)
-  observe({
-    autoInvalidate()
-    cat(".")
-  })
-
 
 }
