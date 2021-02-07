@@ -203,11 +203,9 @@ function queryGenesOption(item, escape) {
 function transferLabelOption(item, escape) {
   var predsMarkup = item.preds ? "<div class ='circle-swatch pull-right'></div>" : "<div></div>";
 
-  trunc_name = truncate(item.optionLabel, 35);
-
   var res = "<div title='" + item.label + "' style='columns: 2;'>" +
               "<div style='margin-right: -80px'>" +
-                  escape(trunc_name) +
+                  escape(item.optionLabel) +
               "</div>" +
               predsMarkup +
             "</div>";
@@ -299,18 +297,14 @@ function scDatasetOptions(item, escape) {
   opt = (opt == 'Previous Session' || opt == 'Integrated') ? '' : opt + '_';
 
   var full_name = opt + item.label;
-  var trunc_name = truncate(item.label, 35);
 
   var clustEl = "<div title='" + full_name + "'>" +
-                  escape(trunc_name) +
+                  escape(item.label) +
                 "</div>";
 
   return clustEl;
 }
 
-function truncate(str, n){
-  return (str.length > n) ? str.substr(0, n-1) + '...' : str;
-};
 
 function scDatasetItem(item, escape) {
 
@@ -319,11 +313,9 @@ function scDatasetItem(item, escape) {
   opt = (opt == 'Previous Session' || opt == 'Integrated' || opt == '') ? '' : opt + '_';
 
   var full_name = opt + item.label;
-  var trunc_name = truncate(full_name, 34);
-
 
   var clustEl = "<div title='" + full_name + "'>" +
-                  escape(trunc_name) +
+                  escape(full_name) +
                 "</div>";
 
   return clustEl;
@@ -334,9 +326,8 @@ function scDatasetItemDF(item, escape) {
 
   var label = item.label;
 
-  var trunc_name = truncate(label, 40);
   var clustEl = "<div title='" + label + "'>" +
-                  escape(trunc_name) +
+                  escape(label) +
                 "</div>";
 
   return clustEl;

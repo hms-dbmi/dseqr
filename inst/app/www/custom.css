@@ -268,3 +268,17 @@ and (max-device-width : 1024px) {
     }
  }
 
+
+.selectize-input > *{
+    margin-right: 20px;
+}
+
+
+.selectize-input > *,
+.selectize-dropdown .optgroup-header,
+.selectize-dropdown [data-selectable] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    white-space: nowrap;
+}
