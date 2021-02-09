@@ -269,6 +269,7 @@ and (max-device-width : 1024px) {
  }
 
 
+/*ellipses for long selectize input*/
 .selectize-input > *{
     margin-right: 20px;
 }
@@ -281,4 +282,9 @@ and (max-device-width : 1024px) {
     text-overflow: ellipsis;
     display: block;
     white-space: nowrap;
+}
+
+/*multi needs inline block to get choices on same line*/
+.selectize-control.multi .selectize-input > div {
+    display: inline-block !important;
 }
