@@ -777,7 +777,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
     # use saved anals as options
-    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
     individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
     # exclude individual without scseq (e.g. folder with fastq.gz files only)

@@ -291,12 +291,9 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
 #' @keywords internal
 get_sc_dataset_choices <- function(sc_dir) {
 
-  # make sure integrated rds exists
-  int_path <- file.path(sc_dir, 'integrated.rds')
-  if (!file.exists(int_path)) saveRDS(NULL, int_path)
 
   # exclude missing from integrated (e.g. manual delete)
-  integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+  integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
   has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
   integrated <- integrated[has.scseq]
 
