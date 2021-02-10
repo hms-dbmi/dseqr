@@ -112,6 +112,4 @@ init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")
   saveRDS(datasets, file.path(user_dir, 'bulk', 'datasets.rds'))
-
-  saveRDS(NULL, file.path(user_dir, 'single-cell', 'integrated.rds'))
 }

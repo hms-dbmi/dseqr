@@ -385,7 +385,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   is_integrated <- reactive({
     dataset_name <- dataset_name()
     req(dataset_name)
-    integrated <- readRDS(file.path(sc_dir, 'integrated.rds'))
+    integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
     return(dataset_name %in% integrated)
   })
 
