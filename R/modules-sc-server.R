@@ -6,7 +6,7 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir) {
+scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
@@ -19,7 +19,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir) {
              annot = scForm$annot,
              selected_cluster = scForm$selected_cluster,
              dataset_name = scForm$dataset_name,
-             cluster_plot = scForm$cluster_plot)
+             cluster_plot = scForm$cluster_plot,
+             is_mobile = is_mobile)
 
   # cluster comparison plots ---
 
@@ -1804,12 +1805,12 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster, dataset_name, cluster_plot) {
-
+scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster, dataset_name, cluster_plot, is_mobile) {
 
   filename <- function() {
     paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
   }
+
 
 
   plot <- reactive({
@@ -1822,6 +1823,11 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
     cluster <- strsplit(cluster, '-vs-')[[1]]
     annot <- annot()
     nclus <- length(annot)
+
+    if (is_mobile()) {
+      annot <- as.character(seq_along(annot))
+    }
+
 
     if (isTruthy(cluster) && nclus >= as.numeric(cluster))
       hl <- as.numeric(cluster)
