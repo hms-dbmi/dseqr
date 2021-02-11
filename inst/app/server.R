@@ -60,6 +60,12 @@ server <- function(input, output, session) {
 
   })
 
+  observe({
+    cat(input$is_mobile)
+  })
+
+  is_mobile <- reactive(input$is_mobile)
+
 
 
   bulkPage <- callModule(bulkPage, 'bulk',
@@ -70,7 +76,8 @@ server <- function(input, output, session) {
 
   scPage <- callModule(scPage, 'sc',
                        sc_dir = sc_dir,
-                       indices_dir = indices_dir)
+                       indices_dir = indices_dir,
+                       is_mobile = is_mobile)
 
   # TODO: get new_dataset from bulkPage and scPage
   drugsPage <- callModule(drugsPage, 'drug',

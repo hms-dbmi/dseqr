@@ -10,6 +10,7 @@ bootstrapPage(
   # scrollspy for docs tab
   extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}", functions = 'init'),
   includeScript(path = 'www/renderSelectize.js'),
+  includeScript(path = 'www/isMobile.js'),
   includeScript(path = 'www/toggleClinicalTitle.js'),
   includeScript(path = 'www/contextMenu.js'),
   includeScript(path = 'www/anchor-polyfill.js'),
