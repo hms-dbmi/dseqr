@@ -45,6 +45,3 @@ RUN R -e "dseqr.data::dl_drug_es()"
 
 # install dseqr last as will have to redo often
 RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.6.8', dependencies = FALSE, upgrade = FALSE)"
-
-# allows sourcing runner directly so that don't have to attach dseqr
-COPY ./R/run_dseqr.R  run.R
