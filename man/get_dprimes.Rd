@@ -20,7 +20,7 @@ These are used to query against drug effect size matrices.
 # generate fake previous result
 top_table <- data.frame(dprimes=rnorm(5), row.names = paste0('gene', 1:5))
 
-dprimes <- drugseqr:::get_dprimes(top_table)
+dprimes <- dseqr:::get_dprimes(top_table)
 
 }
 \keyword{internal}

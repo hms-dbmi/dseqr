@@ -4,7 +4,7 @@
 \alias{scPage}
 \title{Logic for Single Cell Tab}
 \usage{
-scPage(input, output, session, sc_dir, indices_dir)
+scPage(input, output, session, sc_dir, indices_dir, is_mobile)
 }
 \arguments{
 \item{input}{standard shiny module boilerplate}

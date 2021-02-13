@@ -1,8 +1,8 @@
 # get unique compound ids for 2-get_views.sh
-setwd("~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view")
+setwd("~/Documents/Batcave/zaklab/dseqr/data-raw/drug_annot/pug_view")
 
-cmap_pdata <- readRDS(system.file('extdata', 'CMAP02_pdata.rds', package = 'drugseqr'))
-l1000_pdata <- readRDS(system.file('extdata', 'L1000_pdata.rds', package = 'drugseqr'))
+cmap_pdata <- readRDS(system.file('extdata', 'CMAP02_pdata.rds', package = 'dseqr'))
+l1000_pdata <- readRDS(system.file('extdata', 'L1000_pdata.rds', package = 'dseqr'))
 
 cids <- c(cmap_pdata$`Pubchem CID`, l1000_pdata$`Pubchem CID`)
 names(cids) <- c(cmap_pdata$title, l1000_pdata$title)

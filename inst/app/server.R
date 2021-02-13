@@ -7,13 +7,13 @@ server <- function(input, output, session) {
   data_dir <- getShinyOption('data_dir', 'tests/data/test/example')
 
   # path where pert queries will be stored
-  pert_query_dir <- getShinyOption('pert_query_dir', '/srv/drugseqr/pert_query_dir')
+  pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
 
   # path where pert signatures will be stored
-  pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/drugseqr/pert_signature_dir')
+  pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/dseqr/pert_signature_dir')
 
   # path where kallisto index is downloaded and stored
-  indices_dir <- getShinyOption('indices_dir', '/srv/drugseqr/indices')
+  indices_dir <- getShinyOption('indices_dir', '/srv/dseqr/indices')
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
   if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
@@ -60,13 +60,8 @@ server <- function(input, output, session) {
 
   })
 
-  observe({
-    cat(input$is_mobile)
-  })
 
   is_mobile <- reactive(input$is_mobile)
-
-
 
   bulkPage <- callModule(bulkPage, 'bulk',
                          data_dir = data_dir,

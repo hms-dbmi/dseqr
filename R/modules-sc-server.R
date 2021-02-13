@@ -539,7 +539,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
 
     quants[[dataset_name]] <- callr::r_bg(
       func = run_load_raw_scseq,
-      package = 'drugseqr',
+      package = 'dseqr',
       args = list(
         opts = opts,
         fastq_dir = fastq_dir,
@@ -1081,7 +1081,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
       subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
-        package = 'drugseqr',
+        package = 'dseqr',
         args = list(
           sc_dir = sc_dir,
           founder = founder,
@@ -1337,7 +1337,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
       integs[[integration_name]] <- callr::r_bg(
         func = run_integrate_saved_scseqs,
-        package = 'drugseqr',
+        package = 'dseqr',
         args = list(
           sc_dir = sc_dir,
           test = test,
@@ -1731,7 +1731,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
   species <- reactive(scseq()@metadata$species)
 
-  tx2gene <- reactive(drugseqr.data::load_tx2gene(species()))
+  tx2gene <- reactive(dseqr.data::load_tx2gene(species()))
   # update marker genes based on cluster selection
   gene_choices <- reactive({
 

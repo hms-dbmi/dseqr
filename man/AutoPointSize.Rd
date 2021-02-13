@@ -17,7 +17,7 @@ It happens to look good
 }
 \examples{
 df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
-drugseqr:::AutoPointSize(data = df)
+dseqr:::AutoPointSize(data = df)
 
 }
 \keyword{internal}

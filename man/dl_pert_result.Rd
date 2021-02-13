@@ -15,7 +15,7 @@ Download CMAP02/L1000 pert query result from S3
 \examples{
 data_dir <- tempdir()
 res_path <- file.path(data_dir, 'cmap_res_BRD-K45319408_PC3_5um_24h.rds')
-drugseqr:::dl_pert_result(res_path)
+dseqr:::dl_pert_result(res_path)
 
 }
 \keyword{internal}

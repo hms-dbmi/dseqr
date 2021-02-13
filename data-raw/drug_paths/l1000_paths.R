@@ -2,13 +2,13 @@
 library(Biobase)
 library(crossmeta)
 
-data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_paths'
+data_dir <- '/home/alex/Documents/Batcave/zaklab/dseqr/data-raw/drug_paths'
 ebfit_dir <- '/run/media/alex/My Passport/Batcave/GEO/l1000/level1/6-limma/ebayes'
 
 ebfits <- list.files(ebfit_dir)
 
-l1000_genes <- colnames(readRDS("~/Documents/Batcave/zaklab/drugseqr.data/inst/extdata/l1000_genes_es.rds"))
-l1000_drugs <- colnames(readRDS("~/Documents/Batcave/zaklab/drugseqr.data/inst/extdata/l1000_drugs_es.rds"))
+l1000_genes <- colnames(readRDS("~/Documents/Batcave/zaklab/dseqr.data/inst/extdata/l1000_genes_es.rds"))
+l1000_drugs <- colnames(readRDS("~/Documents/Batcave/zaklab/dseqr.data/inst/extdata/l1000_drugs_es.rds"))
 
 # get map from l1000_es colname to ebfit filename
 l1000_drug_ebfits <- paste0(l1000_drugs, '.rds')
@@ -33,11 +33,11 @@ map <- map[!duplicated(map$PROBE), ]
 
 # things that need for each pathway analysis
 species <- 'Hs'
-gslist.go <- drugseqr:::get_gslist(species)
-gslist.kegg <- drugseqr:::get_gslist(species, type = 'kegg')
+gslist.go <- dseqr:::get_gslist(species)
+gslist.kegg <- dseqr:::get_gslist(species, type = 'kegg')
 
-gs.names.go <- drugseqr:::get_gs.names(gslist.go, species = species)
-gs.names.kegg <- drugseqr:::get_gs.names(gslist.kegg, type = 'kegg', species = species)
+gs.names.go <- dseqr:::get_gs.names(gslist.go, species = species)
+gs.names.kegg <- dseqr:::get_gs.names(gslist.kegg, type = 'kegg', species = species)
 
 
 # pathway analysis for each coefficient in ebfit
@@ -62,11 +62,11 @@ get_drug_paths <- function(ebfit_path, map, gslist.go, gslist.kegg, gs.names.go,
   if (has.sig) {
     goana_res <- limma::goana(ebfit, geneid = 'ENTREZID', species = species)
     goana_res <- goana_res[order_or_filt(goana_res), ]
-    goana_res <- drugseqr:::add_path_genes(goana_res, gslist.go, ebfit)
+    goana_res <- dseqr:::add_path_genes(goana_res, gslist.go, ebfit)
 
     kegga_res <- limma::kegga(ebfit, geneid = 'ENTREZID', species = species)
     kegga_res <- kegga_res[order_or_filt(kegga_res), ]
-    kegga_res <- drugseqr:::add_path_genes(kegga_res, gslist.kegg, ebfit)
+    kegga_res <- dseqr:::add_path_genes(kegga_res, gslist.kegg, ebfit)
 
   } else {
     goana_res <- NULL

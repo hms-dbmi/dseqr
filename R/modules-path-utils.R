@@ -31,11 +31,11 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FAL
 #' @examples
 #' data_dir <- tempdir()
 #' sig_path <- file.path(data_dir, '0317956-0000_PC3_1e-06M_6h.rds')
-#' drugseqr:::dl_pert_signature(sig_path, pert_type = 'cmap')
+#' dseqr:::dl_pert_signature(sig_path, pert_type = 'cmap')
 #'
 dl_pert_signature <- function(sig_path, pert_type) {
   # name of the file being requested
-  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/drug_es_dir/', pert_type, '/', basename(sig_path))
+  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/dseqr/drug_es_dir/', pert_type, '/', basename(sig_path))
   dl_url <- utils::URLencode(dl_url)
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
 
@@ -53,7 +53,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
 construct_path_df <- function(top_table) {
   Gene <- NULL
 
-  tx2gene <- drugseqr.data::load_tx2gene()
+  tx2gene <- dseqr.data::load_tx2gene()
 
   data.frame(
     Gene = row.names(top_table),
@@ -225,7 +225,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   clusters <- y$samples$cluster
 
-  annot <- drugseqr.data::get_ensdb_package(species, release)
+  annot <- dseqr.data::get_ensdb_package(species, release)
   fdata <- rkal::setup_fdata(species, release)
 
   esets <- list()
@@ -288,7 +288,7 @@ supress.genes <- function(markers, supress) {
 fit_lm_scseq <- function(scseq) {
   SYMBOL_9606 <- ENTREZID <- NULL
 
-  hs <- readRDS(system.file('extdata', 'hs.rds', package = 'drugseqr.data'))
+  hs <- readRDS(system.file('extdata', 'hs.rds', package = 'dseqr.data'))
   data.table::setkey(hs, SYMBOL_9606)
 
   # one fit per cluster
@@ -318,7 +318,7 @@ fit_lm_scseq <- function(scseq) {
       fit$genes <- hs[rn, list(ENTREZID)]
 
     } else if (species == 'Mus musculus') {
-      tx2gene_mouse <- drugseqr.data::load_tx2gene(species)
+      tx2gene_mouse <- dseqr.data::load_tx2gene(species)
       tx <- tx2gene_mouse
       tx$ENTREZID <- as.character(tx$entrezid)
       ind <- match(rn, tx2gene_mouse$gene_name)
@@ -371,7 +371,7 @@ decide_ambient <- function(ambient, top_table, cluster_markers) {
 #'
 #' @return gslist
 #' @keywords internal
-get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/drugseqr/gs_dir') {
+get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir') {
   PathwayID <- GeneID <- SYMBOL <- NULL
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
@@ -462,7 +462,7 @@ get_kegg_species <- function(species) {
 #' @return Description of \code{gslist} gene sets
 #' @keywords internal
 #'
-get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/drugseqr/gs_dir') {
+get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dseqr/gs_dir') {
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 
   fname <- paste('gs.names', type, species, 'rds', sep = '.')

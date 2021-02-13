@@ -1,4 +1,4 @@
 library(testthat)
-library(drugseqr)
+library(dseqr)
 
-test_check("drugseqr")
+test_check("dseqr")

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_scseq.R
 \name{plot_tsne_feature_sample}
 \alias{plot_tsne_feature_sample}
-\title{Format gene plots for sample comparison for drugseqr app}
+\title{Format gene plots for sample comparison for dseqr app}
 \usage{
 plot_tsne_feature_sample(
   feature,
@@ -18,9 +18,9 @@ plot_tsne_feature_sample(
 \item{group}{Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}}
 }
 \value{
-\code{plot} formatted for drugseqr app
+\code{plot} formatted for dseqr app
 }
 \description{
-Format gene plots for sample comparison for drugseqr app
+Format gene plots for sample comparison for dseqr app
 }
 \keyword{internal}

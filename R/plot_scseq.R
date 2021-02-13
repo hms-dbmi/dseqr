@@ -74,7 +74,7 @@ update_cluster_plot <- function(plot, annot, hl) {
 #' @keywords internal
 #' @examples
 #' labels <- c('Non-Classic Mono', 'B-cell', 'B-cell_1', 'B-cell_12')
-#' drugseqr:::shorten_cluster_labels(labels)
+#' dseqr:::shorten_cluster_labels(labels)
 #'
 shorten_cluster_labels <- function(labels) {
 
@@ -217,12 +217,12 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
   return(pl)
 }
 
-#' Format gene plots for sample comparison for drugseqr app
+#' Format gene plots for sample comparison for dseqr app
 #'
 #' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
 #' @param scseq \code{SingleCellExperiment} object.
 #'
-#' @return \code{plot} formatted for drugseqr app
+#' @return \code{plot} formatted for dseqr app
 #'
 #' @keywords internal
 plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = c('lightgray', 'blue')) {
@@ -705,16 +705,16 @@ plot_biogps <- function(gene) {
 get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
   if (with_all) levs <- c(levs, 'All Clusters')
 
-  # palettes from scater
-  tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C",
-                 "#98DF8A", "#D62728", "#FF9896", "#9467BD", "#C5B0D5",
+  # modified palettes from scater
+  tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C", "#66CDAA",
+                 "#98DF8A", "#D62728", "#FF4040", "#FF9896", "#9467BD", "#C5B0D5",
                  "#8C564B", "#C49C94", "#E377C2", "#F7B6D2",
-                 "#17BECF", "#9EDAE5")
+                 "#17BECF", "#9EDAE5", "#CDCC5D", "#FFFACD")
 
-  tableau20_dark <- c("#004771", "#4075A5", "#984802", "#A06705", "#036003",
-                      "#33870E", "#821919", "#CF1701", "#5B3979", "#7D5E91",
+  tableau20_dark <- c("#004771", "#4075A5", "#984802", "#A06705", "#036003", "#499279",
+                      "#33870E", "#821919", "#B62E2E", "#CF1701", "#5B3979", "#7D5E91",
                       "#55342D", "#7B574F", "#A22283", "#CE308A",
-                      "#056F79", "#028491")
+                      "#056F79", "#028491", "#777600", "#B6B392")
 
   tableau10medium <- c("#729ECE", "#FF9E4A", "#67BF5C", "#ED665D",
                        "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
@@ -725,24 +725,24 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
                             "#777600", "#097984")
 
 
+  set.seed(0)
   nlevs <- length(levs)
   if (nlevs == 2) {
     values <- c("#729ECE", "#FF9E4A")
 
   } else if (nlevs <= 10) {
     pal <- if(dark) tableau10medium_dark else tableau10medium
-    values <- utils::head(pal, nlevs)
+    values <- sample(pal, nlevs)
 
-  } else if (nlevs <= 16) {
+  } else if (nlevs <= 20) {
     pal <- if(dark) tableau20_dark else tableau20
-    values <- utils::head(pal, nlevs)
+    values <- sample(pal, nlevs)
 
   } else {
     pal <- grDevices::colors(distinct = TRUE)
     pal <- pal[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
                     pal,
                     invert = TRUE)]
-    set.seed(0)
     pal <- sample(pal, nlevs)
     values <- col2hex(pal, dark)
   }

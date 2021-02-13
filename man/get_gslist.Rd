@@ -4,7 +4,7 @@
 \alias{get_gslist}
 \title{Get gslist for pathway analysis}
 \usage{
-get_gslist(species = "Hs", type = "go", gs_dir = "/srv/drugseqr/gs_dir")
+get_gslist(species = "Hs", type = "go", gs_dir = "/srv/dseqr/gs_dir")
 }
 \arguments{
 \item{species}{Species identifier}

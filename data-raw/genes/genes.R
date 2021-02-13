@@ -1,4 +1,4 @@
-data_dir <- system.file('extdata', package = 'drugseqr.data')
+data_dir <- system.file('extdata', package = 'dseqr.data')
 
 l1000_es <- readRDS(file.path(data_dir, 'l1000_genes_es.rds'))
 cmap_es <- readRDS(file.path(data_dir, 'cmap_es_ind.rds'))

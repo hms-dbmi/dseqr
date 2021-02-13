@@ -1,7 +1,7 @@
-#' Covert from crossmeta to drugseqr formats
+#' Covert from crossmeta to dseqr formats
 #'
 #' Convert a microarray ExpressionSet saved with 'crossmeta' into a format
-#' for direct usage in 'drugseqr'.
+#' for direct usage in 'dseqr'.
 #'
 #' @param data_dir directory that contains \code{gse_name} folder
 #' @param gse_name Name of GSE accession dataset, must be folder in data_dir

@@ -1,26 +1,26 @@
-# drugseqr
+# dseqr
 
-drugseqr (*drug-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, cell-type deconvolution, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
+dseqr (*drug-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, cell-type deconvolution, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
 
 ## Local installation and setup
 
 ```R
 # install
 install.packages('remotes')
-remotes::install_github('hms-dbmi/drugseqr')
+remotes::install_github('hms-dbmi/dseqr')
 
 # initialize and run new app
-library(drugseqr)
+library(dseqr)
 app_name <- 'example'
 data_dir <- 'path/to/app_dir'
-init_drugseqr(app_name, data_dir)
-run_drugseqr(app_name, data_dir)
+init_dseqr(app_name, data_dir)
+run_dseqr(app_name, data_dir)
 ```
 
 see below for details on adding single-cell/bulk datasets. Both require building a `kallisto` index for quantification. To do so run:
 
 ```R
-rkal::build_kallisto_index('/srv/drugseqr/indices')
+rkal::build_kallisto_index('/srv/dseqr/indices')
 ```
 
 
@@ -30,7 +30,7 @@ Add single cell fastq.gz or cell ranger format (`matrix.mtx`, `barcodes.tsv`, an
 
 ```bash
 # directory to store single cell sample data in
-# for EC2 instance: cd /srv/drugseqr/example/single-cell
+# for EC2 instance: cd /srv/dseqr/example/single-cell
 cd path/to/app_dir/example/single-cell
 
 mkdir GSM2560249_pbmc_ifnb_full & cd "$_"
@@ -49,7 +49,7 @@ Run the app as before, create a new single-cell dataset, and select the folder w
 wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
 
 # directory to store single cell sample data in 
-# for EC2 instance: cd /srv/drugseqr/example/single-cell
+# for EC2 instance: cd /srv/dseqr/example/single-cell
 cd path/to/app_dir/example/single-cell
 mkdir GSM3304014_lung_healthy & cd "$_"
 
@@ -71,7 +71,7 @@ Adding bulk RNA-seq datasets is similar to adding single-cell datasets. [GEOfast
 remotes::install_github('alexvpickering/GEOfastq')
 
 # download bulk fastqs to appropriate directory for example app
-# for EC2 instance: /srv/drugseqr/example/bulk
+# for EC2 instance: /srv/dseqr/example/bulk
 gse_name <- 'GSE35296'
 gse_dir <- file.path('path/to/app_dir/example/bulk', gse_name)
 
@@ -91,7 +91,7 @@ GEOfastq::get_fastqs(srp_meta[1:4, ], gse_dir)
 remotes::install_github('alexvpickering/crossmeta')
 
 # download microarray data to appropriate directory for example app
-# for EC2 instance: /srv/drugseqr/example/bulk
+# for EC2 instance: /srv/dseqr/example/bulk
 data_dir <- 'path/to/app_dir/example/bulk'
 gse_name <- 'GSE17400'
 crossmeta::get_raw(gse_name, data_dir)
@@ -99,17 +99,17 @@ crossmeta::get_raw(gse_name, data_dir)
 # load/annotate/save microarray data
 eset <- crossmeta::load_raw(gse_name, data_dir)
 
-# covert saved format for drugseqr
-drugseqr::from_crossmeta(gse_name, data_dir)
+# covert saved format for dseqr
+dseqr::from_crossmeta(gse_name, data_dir)
 ```
 
-When you start up `drugseqr`, the added microarray dataset will be available.
+When you start up `dseqr`, the added microarray dataset will be available.
 
 ## EC2 installation and setup
 
-The following instructions set up an Amazon EC2 spot instance to host and share the `drugseqr` web app.
+The following instructions set up an Amazon EC2 spot instance to host and share the `dseqr` web app.
 
-Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD on and Ubuntu 18.04 AMI. I prefer to host a local copy of `drugseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
+Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD on and Ubuntu 18.04 AMI. I prefer to host a local copy of `dseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
 
 Make sure that port 8080 is open to all inbound traffic so that the web app can be accessed.
 
@@ -119,35 +119,35 @@ The basic setup is going to be a docker container running ShinyProxy which will 
 
 ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
 
-Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image. To do so, follow these [instructions](https://github.com/hms-dbmi/drugseqr.sp).
+Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image. To do so, follow these [instructions](https://github.com/hms-dbmi/dseqr.sp).
 
-The `drugseqr` app won't work yet. To get it working, download the `drugseqr` image, load it, and initialize the example app:
+The `dseqr` app won't work yet. To get it working, download the `dseqr` image, load it, and initialize the example app:
 
 ```bash
-# pull drugseqr docker image
-docker pull alexvpickering/drugseqr
+# pull dseqr docker image
+docker pull alexvpickering/dseqr
 
 # we mount host:container volume in order to persist example app files/folders that are created inside the container
 sudo docker run --rm \
-  -v /srv/drugseqr:/srv/drugseqr \
-  alexvpickering/drugseqr R -e "drugseqr::init_drugseqr('example')"
+  -v /srv/dseqr:/srv/dseqr \
+  alexvpickering/dseqr R -e "dseqr::init_dseqr('example')"
 ```
 
 Then download example data and sync with previously initialized app:
 
 ```bash
-wget https://drugseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
+wget https://dseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
 tar -xzvf example_data.tar.gz
 rm example_data.tar.gz
-sudo rsync -av example/ /srv/drugseqr/example/
+sudo rsync -av example/ /srv/dseqr/example/
 ```
 
 Build `kallisto` index (optional - if will quantify bulk/sc fastq files on the server):
 
 ```bash
 sudo docker run --rm \
-  -v /srv/drugseqr:/srv/drugseqr \
-  alexvpickering/drugseqr R -e "rkal::build_kallisto_index('/srv/drugseqr')"
+  -v /srv/dseqr:/srv/dseqr \
+  alexvpickering/dseqr R -e "rkal::build_kallisto_index('/srv/dseqr')"
 ```
 
 ### Run the app
@@ -155,7 +155,7 @@ sudo docker run --rm \
 Run a ShinyProxy container in detached mode `-d` and set the policy to always [restart](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy):
 
 ```bash
-sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 8080:8080 drugseqr.sp
+sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 8080:8080 dseqr.sp
 ```
 
 You should now be able to navigate your browser to  [EC2 Public DNS]:8080/app/example where EC2 Public DNS can be found in the EC2 instance description.
@@ -165,5 +165,5 @@ You should now be able to navigate your browser to  [EC2 Public DNS]:8080/app/ex
 One way to this is is with `rsync`. For example:
 
 ```bash
-rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" ~/path/to/local/example/ ubuntu@[EC2 Public DNS]:/srv/drugseqr/example/
+rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" ~/path/to/local/example/ ubuntu@[EC2 Public DNS]:/srv/dseqr/example/
 ```

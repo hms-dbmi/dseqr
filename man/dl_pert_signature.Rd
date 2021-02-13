@@ -17,7 +17,7 @@ Download CMAP02/L1000 pert signature from S3
 \examples{
 data_dir <- tempdir()
 sig_path <- file.path(data_dir, '0317956-0000_PC3_1e-06M_6h.rds')
-drugseqr:::dl_pert_signature(sig_path, pert_type = 'cmap')
+dseqr:::dl_pert_signature(sig_path, pert_type = 'cmap')
 
 }
 \keyword{internal}

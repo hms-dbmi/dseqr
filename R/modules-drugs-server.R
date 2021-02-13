@@ -1,7 +1,7 @@
 #' Logic for Drugs Tab
 #'
 #' @inheritParams bulkPage
-#' @inheritParams run_drugseqr
+#' @inheritParams run_dseqr
 #' @param new_bulk reactive triggers when a new bulk dataset is added
 #'
 #' @return Called with \link[shiny]{callModule} to generate logic for

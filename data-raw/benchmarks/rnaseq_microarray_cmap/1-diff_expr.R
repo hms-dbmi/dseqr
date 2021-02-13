@@ -10,7 +10,7 @@
 
 
 library(crossmeta)
-library(drugseqr)
+library(dseqr)
 library(Biobase)
 
 
@@ -68,7 +68,7 @@ species <- unique(srp_meta$organism)
 # get_fastqs(gse_name, srp_meta, '/mnt/shared')
 
 # setup the pairs
-indices_dir <- '~/Documents/Batcave/zaklab/drugseqr.data/inst/indices'
+indices_dir <- '~/Documents/Batcave/zaklab/dseqr.data/inst/indices'
 fastqs <- list.files(data_dir, '.fastq.gz')
 pdata <- tibble::tibble('File Name' = fastqs)
 pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
@@ -81,7 +81,7 @@ pdata$Pair <- rep(seq_len(nrow(pdata)/2), each = 2)
 # load quants (run for both kallisto and salmon)
 # type <- 'salmon'
 type <- 'kallisto'
-eset <- drugseqr::load_seq(data_dir, type = type, species = species)
+eset <- dseqr::load_seq(data_dir, type = type, species = species)
 
 # merge with srp_meta
 srr_names <- stringr::str_extract(colnames(eset), 'SRR\\d+')

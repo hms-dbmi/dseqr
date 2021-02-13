@@ -10,8 +10,8 @@ pub_pre <- 'https://pubchem.ncbi.nlm.nih.gov/compound/'
 sidder_img <- 'http://sideeffects.embl.de/media/images/EMBL_Logo.png'
 sidder_pre <- 'http://sideeffects.embl.de/drugs/'
 
-with_linkouts <- drugseqr:::add_linkout(query_res, 'Pubchem CID', pub_img, pub_pre, '/', title = 'Pubchem')
-with_linkouts <- drugseqr:::add_linkout(with_linkouts, 'SIDER', sidder_img, sidder_pre)
+with_linkouts <- dseqr:::add_linkout(query_res, 'Pubchem CID', pub_img, pub_pre, '/', title = 'Pubchem')
+with_linkouts <- dseqr:::add_linkout(with_linkouts, 'SIDER', sidder_img, sidder_pre)
 
 
 test_that("add_linkout skips NA entries", {
@@ -27,7 +27,7 @@ test_that("add_linkout adds title with 'Go to' prepended", {
 })
 
 test_that("add_linkout uses column name as default title", {
-  default_title <- drugseqr:::add_linkout(query_res,
+  default_title <- dseqr:::add_linkout(query_res,
                                           'Pubchem CID',
                                           'https://pubchem.ncbi.nlm.nih.gov/pcfe/favicon/favicon.ico',
                                           'https://pubchem.ncbi.nlm.nih.gov/compound/',
@@ -37,7 +37,7 @@ test_that("add_linkout uses column name as default title", {
 })
 
 test_that("merge_linkouts can merge non-NA linkouts from multiple columns", {
-  with_external <- drugseqr:::merge_linkouts(with_linkouts, c('Pubchem CID', 'SIDER'))
+  with_external <- dseqr:::merge_linkouts(with_linkouts, c('Pubchem CID', 'SIDER'))
 
   # second entry only has Pubchem
   expect_equal(with_external$`External Links`[2], with_linkouts$`Pubchem CID`[2])

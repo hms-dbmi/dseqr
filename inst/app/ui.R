@@ -18,8 +18,8 @@ bootstrapPage(
   includeCSS(path = 'www/bs-docs.css'),
   includeCSS(path = 'www/drugs.css'),
   includeCSS(path = 'www/pathways.css'),
-  tags$head(HTML("<title>drugseqr</title>"),
-            tags$link(rel = "icon", type = "image/png", href = "https://raw.githubusercontent.com/hms-dbmi/drugseqr.sp/master/favicon.png")),
+  tags$head(HTML("<title>dseqr</title>"),
+            tags$link(rel = "icon", type = "image/png", href = "https://raw.githubusercontent.com/hms-dbmi/dseqr.sp/master/favicon.png")),
   navbarUI(tabs, active, logout_url),
   fluidPage(
     tags$div(
