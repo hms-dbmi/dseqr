@@ -1,5 +1,5 @@
-library(drugseqr)
-setwd("~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view")
+library(dseqr)
+setwd("~/Documents/Batcave/zaklab/dseqr/data-raw/drug_annot/pug_view")
 
 cids <- readRDS('cids.rds')
 

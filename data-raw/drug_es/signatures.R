@@ -1,13 +1,13 @@
 # saves all CMAP02 and L1000 signatures as individual files for quick loading in Pathways tab
-library(drugseqr)
+library(dseqr)
 # load data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'dseqr.data', mustWork = TRUE)
 cmap_es <- readRDS(cmap_path)
 
-l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'dseqr.data', mustWork = TRUE)
 l1000_genes <- readRDS(l1000_genes_path)
 
-l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'dseqr.data', mustWork = TRUE)
 l1000_drugs <- readRDS(l1000_drugs_path)
 
 # save each signature seperately
@@ -38,4 +38,4 @@ save_signatures(l1000_genes, 'data-raw/drug_es/signatures/l1000_genes')
 save_signatures(l1000_drugs, 'data-raw/drug_es/signatures/l1000_drugs')
 
 # sync to s3
-# aws s3 sync ~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_es/signatures s3://drugseqr/drug_es_dir
+# aws s3 sync ~/Documents/Batcave/zaklab/dseqr/data-raw/drug_es/signatures s3://dseqr/drug_es_dir

@@ -50,7 +50,7 @@ p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
 p
 
 # Use theme_pubr()
-p + drugseqr:::theme_pubr()
+p + dseqr:::theme_pubr()
 
 
 }

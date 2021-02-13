@@ -1,5 +1,5 @@
 #create example app
-drugseqr::init_drugseqr(app_name = 'example', data_dir = 'data-raw/patient_data')
+dseqr::init_dseqr(app_name = 'example', data_dir = 'data-raw/patient_data')
 
 # data for example app was downloaded into example app folder:
 
@@ -33,7 +33,7 @@ for (i in seq_along(gsms)) {
 }
 
 # load single-cell datasets
-indices_dir <- '/srv/drugseqr/indices'
+indices_dir <- '/srv/dseqr/indices'
 sc_dir <- 'data-raw/patient_data/example/single-cell'
 dataset_names <- list.dirs(sc_dir, recursive = FALSE, full.names = FALSE)
 
@@ -50,7 +50,7 @@ for (i in seq_along(dataset_names)) {
 
   # exclude QC0 for size
   # load_raw_scseq(paste0(dataset_name, '_QC0'), fastq_dir, sc_dir, indices_dir, recount = FALSE, metrics = NULL, founder = dataset_name)
-  drugseqr::load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, recount = FALSE, founder = dataset_name)
+  dseqr::load_raw_scseq(paste0(dataset_name, '_QC1'), fastq_dir, sc_dir, indices_dir, recount = FALSE, founder = dataset_name)
 }
 
 
@@ -61,11 +61,11 @@ app_dir <- 'inst/app'
 data_dir <- 'data-raw/patient_data'
 pert_query_dir <- 'data-raw/drug_gene_queries/data'
 pert_signature_dir <- 'data-raw/drug_es/signatures'
-indices_dir <- '/srv/drugseqr/indices'
+indices_dir <- '/srv/dseqr/indices'
 
-drugseqr::run_drugseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)
+dseqr::run_dseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)
 
 
 # sync to s3 after integration, labeling, etc (whatever want pre-done for app)
 # tar cvzf example_data.tar.gz --exclude='*.fastq.gz' --exclude='kallisto*/*' --exclude '*/barcodes.tsv' --exclude '*/matrix.mtx' --exclude '*/genes.tsv' --directory=/home/alex/patient_data example
-# aws s3 cp example_data.tar.gz s3://drugseqr/example_data.tar.gz
+# aws s3 cp example_data.tar.gz s3://dseqr/example_data.tar.gz

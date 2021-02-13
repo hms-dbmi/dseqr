@@ -1,4 +1,4 @@
-library(drugseqr)
+library(dseqr)
 
 cmap_annot <- get_drugs_table('CMAP02')
 l1000_annot <- get_drugs_table('L1000')

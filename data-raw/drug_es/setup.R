@@ -1,6 +1,6 @@
 # this script sets up CMAP02_pdata.rds and L1000_pdata.rds
 # which are used to match Pubchem CIDS to signatures
-# TODO: migrate cmap_es_ind.rds and l1000_es.rds to drugseqr.data
+# TODO: migrate cmap_es_ind.rds and l1000_es.rds to dseqr.data
 
 library(Biobase)
 data_dir <- file.path('inst', 'extdata')
@@ -130,7 +130,7 @@ l1000_genes_pdata <- l1000_pdata[is.genetic, -2]
 l1000_drugs_pdata <- l1000_pdata[!is.genetic, ]
 
 # save pdata and overwrite existing l1000_es data with fixed names
-# ALSO UPDATE S3 DATA for l1000_es in drugseqr BUCKET IF ANYTHING CHANGES
+# ALSO UPDATE S3 DATA for l1000_es in dseqr BUCKET IF ANYTHING CHANGES
 saveRDS(l1000_genes_es, file.path(data_dir, 'l1000_genes_es.rds'))
 saveRDS(l1000_drugs_es, file.path(data_dir, 'l1000_drugs_es.rds'))
 saveRDS(l1000_genes_pdata, file.path(data_dir, 'L1000_genes_pdata.rds'))

@@ -1,17 +1,17 @@
-library(drugseqr)
+library(dseqr)
 library(data.table)
 library(rlang)
 
 # drug by genetic pert searches
 
 # load data
-# cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+# cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'dseqr.data', mustWork = TRUE)
 # cmap_es <- readRDS(cmap_path)
 
-l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_genes_path <- system.file('extdata', 'l1000_genes_es.rds', package = 'dseqr.data', mustWork = TRUE)
 l1000_genes <- readRDS(l1000_genes_path)
 
-l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_drugs_path <- system.file('extdata', 'l1000_drugs_es.rds', package = 'dseqr.data', mustWork = TRUE)
 l1000_drugs <- readRDS(l1000_drugs_path)
 
 # cmap_compounds <- gsub('^([^_]+)_.+?$', '\\1', colnames(cmap_es))
@@ -49,7 +49,7 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 
     # get query results
     query_genes <- query_es[, i]
-    res <- drugseqr::query_drugs(query_genes, drug_es)
+    res <- dseqr::query_drugs(query_genes, drug_es)
 
     # not feasible to save everything
     # save vector of top results
@@ -57,7 +57,7 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
                                         Correlation = res, key = 'Compound')
 
     # always run with is_genetic TRUE so that can show most similar absolute results for pert queries
-    top_cors <- drugseqr::get_top_cors(res_table, is_genetic = TRUE)
+    top_cors <- dseqr::get_top_cors(res_table, is_genetic = TRUE)
     res <- res[res_table$Compound %in% top_cors$Compound]
 
     saveRDS(res, query_path)
@@ -80,4 +80,4 @@ run_pert_queries <- function(drug_es, query_es, prefix, compounds) {
 
 
 # sync to s3
-# aws s3 sync ~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_gene_queries/data s3://drugseqr/pert_query_dir
+# aws s3 sync ~/Documents/Batcave/zaklab/dseqr/data-raw/drug_gene_queries/data s3://dseqr/pert_query_dir

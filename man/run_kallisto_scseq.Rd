@@ -24,7 +24,7 @@ run_kallisto_scseq(
 
 \item{release}{ensembl release. Default is \code{94} (latest in release for
 AnnotationHub - needs to match with
-\code{\link[drugseqr.data]{build_ensdb}}).}
+\code{\link[dseqr.data]{build_ensdb}}).}
 
 \item{recount}{Overwrite previous quantification?}
 }

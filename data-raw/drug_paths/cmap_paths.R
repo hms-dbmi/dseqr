@@ -2,11 +2,11 @@
 library(Biobase)
 library(crossmeta)
 
-data_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_paths'
-ebfit_dir <- '/home/alex/Documents/Batcave/zaklab/drugseqr/data-raw/drug_paths/tmp'
+data_dir <- '/home/alex/Documents/Batcave/zaklab/dseqr/data-raw/drug_paths'
+ebfit_dir <- '/home/alex/Documents/Batcave/zaklab/dseqr/data-raw/drug_paths/tmp'
 
 # make sure names are identical
-cmap_es_names <- colnames(readRDS("~/Documents/Batcave/zaklab/drugseqr.data/inst/extdata/cmap_es_ind.rds"))
+cmap_es_names <- colnames(readRDS("~/Documents/Batcave/zaklab/dseqr.data/inst/extdata/cmap_es_ind.rds"))
 
 # split up fit result for pathway analysis -----
 # one time setup
@@ -47,11 +47,11 @@ map <- map[!duplicated(map$PROBE), ]
 
 # things that need for each pathway analysis
 species <- 'Hs'
-gslist.go <- drugseqr:::get_gslist(species)
-gslist.kegg <- drugseqr:::get_gslist(species, type = 'kegg')
+gslist.go <- dseqr:::get_gslist(species)
+gslist.kegg <- dseqr:::get_gslist(species, type = 'kegg')
 
-gs.names.go <- drugseqr:::get_gs.names(gslist.go, species = species)
-gs.names.kegg <- drugseqr:::get_gs.names(gslist.kegg, type = 'kegg', species = species)
+gs.names.go <- dseqr:::get_gs.names(gslist.go, species = species)
+gs.names.kegg <- dseqr:::get_gs.names(gslist.kegg, type = 'kegg', species = species)
 
 
 # pathway analysis for each coefficient in ebfit
@@ -77,11 +77,11 @@ get_drug_paths <- function(ebfit_path, map, gslist.go, gslist.kegg, gs.names.go,
   if (has.sig) {
     goana_res <- limma::goana(ebfit, geneid = 'ENTREZID', species = species)
     goana_res <- goana_res[order_or_filt(goana_res), ]
-    goana_res <- drugseqr:::add_path_genes(goana_res, gslist.go, ebfit)
+    goana_res <- dseqr:::add_path_genes(goana_res, gslist.go, ebfit)
 
     kegga_res <- limma::kegga(ebfit, geneid = 'ENTREZID', species = species)
     kegga_res <- kegga_res[order_or_filt(kegga_res), ]
-    kegga_res <- drugseqr:::add_path_genes(kegga_res, gslist.kegg, ebfit)
+    kegga_res <- dseqr:::add_path_genes(kegga_res, gslist.kegg, ebfit)
 
   } else {
     goana_res <- NULL

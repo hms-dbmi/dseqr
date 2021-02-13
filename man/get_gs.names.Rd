@@ -4,12 +4,7 @@
 \alias{get_gs.names}
 \title{Get names of gene set}
 \usage{
-get_gs.names(
-  gslist,
-  type = "go",
-  species = "Hs",
-  gs_dir = "/srv/drugseqr/gs_dir"
-)
+get_gs.names(gslist, type = "go", species = "Hs", gs_dir = "/srv/dseqr/gs_dir")
 }
 \arguments{
 \item{gslist}{result of \code{\link{get_gslist}}}

@@ -31,7 +31,7 @@
 #' p
 #'
 #' # Use theme_pubr()
-#' p + drugseqr:::theme_pubr()
+#' p + dseqr:::theme_pubr()
 #'
 #'
 theme_pubr <- function(base_size = 12, base_family = "",

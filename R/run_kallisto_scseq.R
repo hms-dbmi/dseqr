@@ -83,7 +83,7 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
   } else {
 
     # location of map from transcript names to gene names
-    extdata <- system.file('extdata', package = 'drugseqr', mustWork = TRUE)
+    extdata <- system.file('extdata', package = 'dseqr', mustWork = TRUE)
     tgzip_path <- file.path(extdata, 'txp2hgnc.zip')
     tgmap_path <- file.path(extdata, 'txp2hgnc.tsv')
 

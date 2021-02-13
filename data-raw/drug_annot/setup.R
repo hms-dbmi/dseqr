@@ -1,7 +1,7 @@
 library(data.table)
 library(dplyr)
 library(tidyr)
-library(drugseqr)
+library(dseqr)
 
 pkgconfig::set_config("dplyr::na_matches" = "never")
 

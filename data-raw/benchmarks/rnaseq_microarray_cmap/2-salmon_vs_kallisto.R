@@ -1,10 +1,10 @@
-library(drugseqr)
+library(dseqr)
 
 gse_name <- 'GSE55347'
 data_dir <- file.path('/mnt/shared', gse_name)
 
 # load CMAP02 data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'dseqr.data', mustWork = TRUE)
 cmap_es <- readRDS(cmap_path)
 
 # load differential expression results

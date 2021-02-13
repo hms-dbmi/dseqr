@@ -740,7 +740,7 @@ get_gene_choices <- function(markers,
   if (!grepl('sapiens|musculus', species))
     stop('Only Homo sapiens and Mus musculus supported')
 
-  if (is.null(tx2gene)) tx2gene <- drugseqr.data::load_tx2gene(species)
+  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
 
   idx <- match(choices, tx2gene$gene_name)
   desc <- tx2gene$description[idx]
@@ -1350,9 +1350,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 #' @keywords internal
 load_drug_es <- function() {
 
-  cmap  <- drugseqr.data::load_drug_es('cmap_es_ind.qs')
-  l1000_drugs  <- drugseqr.data::load_drug_es('l1000_drugs_es.qs')
-  l1000_genes  <- drugseqr.data::load_drug_es('l1000_genes_es.qs')
+  cmap  <- dseqr.data::load_drug_es('cmap_es_ind.qs')
+  l1000_drugs  <- dseqr.data::load_drug_es('l1000_drugs_es.qs')
+  l1000_genes  <- dseqr.data::load_drug_es('l1000_genes_es.qs')
 
   return(list(
     cmap = cmap,
@@ -1391,7 +1391,7 @@ collapse_sorted <- function(x, collapse = ',') {
 #' E <- 2
 #' test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 #'
-#' drugseqr:::get_nearest_row(truth, test)
+#' dseqr:::get_nearest_row(truth, test)
 #' #[1] 4 3
 get_nearest_row <- function(truth, test) {
   diffs   <- truth[rep(1:nrow(truth), nrow(test)),] -test[rep(1:nrow(test), each=nrow(truth)),]

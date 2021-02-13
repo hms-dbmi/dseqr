@@ -1,8 +1,8 @@
-# saves all CMAP02 and L1000 adjusted pvalues as individual files for quick loading for drugseqr::heatplot
-library(drugseqr)
+# saves all CMAP02 and L1000 adjusted pvalues as individual files for quick loading for dseqr::heatplot
+library(dseqr)
 # load data
-l1000_pvals_path <- system.file('extdata', 'l1000_pval.adj.rds', package = 'drugseqr.data', mustWork = TRUE)
-cmap_pvals_path <- system.file('extdata', 'cmap_pval.adj_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+l1000_pvals_path <- system.file('extdata', 'l1000_pval.adj.rds', package = 'dseqr.data', mustWork = TRUE)
+cmap_pvals_path <- system.file('extdata', 'cmap_pval.adj_ind.rds', package = 'dseqr.data', mustWork = TRUE)
 l1000_pvals <- readRDS(l1000_pvals_path)
 cmap_pvals <- readRDS(cmap_pvals_path)
 
@@ -40,4 +40,4 @@ save_signatures(l1000_drugs_pvals, 'data-raw/drug_es/pvals/l1000_drugs')
 save_signatures(cmap_pvals, 'data-raw/drug_es/pvals/cmap')
 
 # sync to s3
-# aws s3 sync ~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_es/pvals s3://drugseqr/drug_pvals_dir
+# aws s3 sync ~/Documents/Batcave/zaklab/dseqr/data-raw/drug_es/pvals s3://dseqr/drug_pvals_dir

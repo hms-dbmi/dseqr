@@ -26,7 +26,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                                span(class = 'icon-bar'),
                                span(class = 'icon-bar')
                    ),
-                   span(class = 'navbar-brand', title = 'drugseqr',
+                   span(class = 'navbar-brand', title = 'dseqr',
                         span(class = 'brand-icons',
                              tags$img(src="favicon.png"),
                              span('seqr')
@@ -44,7 +44,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                            }),
                            # github linkout section
                            tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
-                                   a(href = 'https://github.com/hms-dbmi/drugseqr', target="_blank", icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
+                                   a(href = 'https://github.com/hms-dbmi/dseqr', target="_blank", icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
                            ),
                            # docs section
                            tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
@@ -74,7 +74,7 @@ tabPane <- function(tab, active, ...) {
 
 #' Convert tab name to formated id
 #'
-#' used by navbarUI and *PageUI for drugseqr app
+#' used by navbarUI and *PageUI for dseqr app
 #'
 #' @param tab The name of the tab (e.g. \code{'Single Cell'})
 #'

@@ -1,8 +1,8 @@
-#' Run drugseqr app
+#' Run dseqr app
 #'
-#' Run drugseqr application to explore single-cell and bulk RNA-seq datasets.
+#' Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 #'
-#' @inheritParams init_drugseqr
+#' @inheritParams init_dseqr
 #' @inheritParams shiny::runApp
 #' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
 #'  Ignored if \code{test_data} is \code{TRUE}.
@@ -21,7 +21,7 @@
 #' @importFrom shinyjs toggle toggleClass toggleState html addClass removeClass hidden runjs
 #' @import org.Hs.eg.db org.Mm.eg.db
 #'
-#' @return Runs drugseqr app
+#' @return Runs dseqr app
 #' @export
 #'
 #' @examples
@@ -29,15 +29,15 @@
 #' # create directory structure for new datasets
 #' data_dir <- tempdir()
 #' app_name <- 'example'
-#' init_drugseqr(app_name, data_dir)
+#' init_dseqr(app_name, data_dir)
 #'
 #'
 #' # run app
-#' # run_drugseqr(app_name, data_dir)
+#' # run_dseqr(app_name, data_dir)
 #'
-run_drugseqr <- function(app_name,
-                         data_dir = '/srv/drugseqr',
-                         app_dir = system.file('app', package = 'drugseqr', mustWork = TRUE),
+run_dseqr <- function(app_name,
+                         data_dir = '/srv/dseqr',
+                         app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
                          pert_query_dir = file.path(data_dir, 'pert_query_dir'),
                          pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
                          indices_dir = file.path(data_dir, 'indices'),
@@ -49,7 +49,7 @@ run_drugseqr <- function(app_name,
                          logout_url = NULL) {
 
   user_dir <- file.path(data_dir, app_name)
-  if (!dir.exists(user_dir)) init_drugseqr(app_name, data_dir)
+  if (!dir.exists(user_dir)) init_dseqr(app_name, data_dir)
 
   # pass arguments to app through options then run
   shinyOptions(data_dir = normalizePath(user_dir),
@@ -81,13 +81,13 @@ run_drugseqr <- function(app_name,
 }
 
 
-#' Initialize drugseqr folders/files for a new app
+#' Initialize dseqr folders/files for a new app
 #'
-#' Creates necessary folders/files for a new drugseqr app inside of /srv/shiny-server/drugseqr.
+#' Creates necessary folders/files for a new dseqr app inside of /srv/shiny-server/dseqr.
 #'
-#' @param app_name Name for new drugseqr app.
+#' @param app_name Name for new dseqr app.
 #' @param data_dir Path to put \code{app_name} directory where app will be
-#' initialized. Default is \code{'/srv/drugseqr'} (for hosting app on server).
+#' initialized. Default is \code{'/srv/dseqr'} (for hosting app on server).
 #'
 #' @return NULL
 #' @export
@@ -95,9 +95,9 @@ run_drugseqr <- function(app_name,
 #' @examples
 #'
 #' data_dir <- tempdir()
-#' init_drugseqr('example', data_dir)
+#' init_dseqr('example', data_dir)
 #'
-init_drugseqr <- function(app_name, data_dir = '/srv/drugseqr') {
+init_dseqr <- function(app_name, data_dir = '/srv/dseqr') {
 
   user_dir <- file.path(data_dir, app_name)
   dir.create(user_dir, recursive = TRUE)

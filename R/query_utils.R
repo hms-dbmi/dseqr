@@ -11,7 +11,7 @@
 #' # generate fake previous result
 #' top_table <- data.frame(dprimes=rnorm(5), row.names = paste0('gene', 1:5))
 #'
-#' dprimes <- drugseqr:::get_dprimes(top_table)
+#' dprimes <- dseqr:::get_dprimes(top_table)
 #'
 get_dprimes <- function(top_table) {
   dprimes <- top_table$dprime
@@ -40,14 +40,14 @@ get_dprimes <- function(top_table) {
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_es <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
+#' cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.rds')
 #'
 #' # use first cmap_es signature as query
 #' dprimes <- cmap_es[1:100, 1]
 #' names(dprimes) <- row.names(cmap_es)[1:100]
 #'
 #' # get correlations between query and drug signatures
-#' res <- drugseqr:::query_drugs(dprimes, cmap_es)
+#' res <- dseqr:::query_drugs(dprimes, cmap_es)
 #'
 query_drugs <- function(query_genes, drug_es, ngenes = 200) {
 

@@ -10,6 +10,6 @@ id_from_tab(tab)
 \item{tab}{The name of the tab (e.g. \code{'Single Cell'})}
 }
 \description{
-used by navbarUI and *PageUI for drugseqr app
+used by navbarUI and *PageUI for dseqr app
 }
 \keyword{internal}

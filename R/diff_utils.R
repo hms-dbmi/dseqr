@@ -158,7 +158,7 @@ sammon <- function(d, y = stats::cmdscale(d, k), k = 2, niter = 100, trace = TRU
 #' @keywords internal
 #' @examples
 #' data(USArrests)
-#' res.dist <- drugseqr:::get_dist(USArrests, stand = TRUE, method = "pearson")
+#' res.dist <- dseqr:::get_dist(USArrests, stand = TRUE, method = "pearson")
 
 get_dist <- function(x, method = "euclidean",  stand = FALSE, ...){
 

@@ -1,13 +1,13 @@
-library(drugseqr)
+library(dseqr)
 
 # load RNA-Seq results
 seq_name <- 'GSE55347'
 mic_name <- 'GSE47875'
 seq_dir <- file.path('/mnt/shared', seq_name)
-mic_dir <- file.path('~/Documents/Batcave/zaklab/drugseqr/data-raw/benchmarks/rnaseq_microarray_cmap', mic_name)
+mic_dir <- file.path('~/Documents/Batcave/zaklab/dseqr/data-raw/benchmarks/rnaseq_microarray_cmap', mic_name)
 
 # load CMAP02 data
-cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'drugseqr.data', mustWork = TRUE)
+cmap_path <- system.file('extdata', 'cmap_es_ind.rds', package = 'dseqr.data', mustWork = TRUE)
 cmap_es <- readRDS(cmap_path)
 
 # load differential expression results

@@ -43,10 +43,10 @@ web app for performance reasons.
 \examples{
 
 # generate fake result
-annot <-  drugseqr:::get_drugs_table('L1000_drugs')
+annot <-  dseqr:::get_drugs_table('L1000_drugs')
 query_res <- rnorm(nrow(annot), 0, 0.25)
 names(query_res) <- annot$title
-formatted <- drugseqr:::format_query_res(query_res, 'L1000 Drugs', sort_by = 'min_cor')
+formatted <- dseqr:::format_query_res(query_res, 'L1000 Drugs', sort_by = 'min_cor')
 
 }
 \keyword{internal}

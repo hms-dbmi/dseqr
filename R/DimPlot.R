@@ -393,6 +393,8 @@ LabelClusters <- function(
     color[label.highlight] <- 'black'
   }
 
+  browser()
+
   geom.use <- ifelse(test = repel, yes = ggrepel::geom_text_repel, no = ggplot2::geom_text)
   plot <- plot + geom.use(
     data = labels.loc,
@@ -446,7 +448,7 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
 #'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
-#' drugseqr:::AutoPointSize(data = df)
+#' dseqr:::AutoPointSize(data = df)
 #'
 AutoPointSize <- function(data) {
   return(min(1583 / nrow(x = data), 1))
@@ -521,7 +523,7 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-#' p + drugseqr:::NoLegend()
+#' p + dseqr:::NoLegend()
 #'
 NoLegend <- function(...) {
   no.legend.theme <- ggplot2::theme(

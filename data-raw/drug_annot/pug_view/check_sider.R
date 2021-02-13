@@ -1,4 +1,4 @@
-setwd("~/Documents/Batcave/zaklab/drugseqr/data-raw/drug_annot/pug_view")
+setwd("~/Documents/Batcave/zaklab/dseqr/data-raw/drug_annot/pug_view")
 
 check_sider <- function(cid) {
   url <- paste0('http://sideeffects.embl.de/drugs/', cid, '/')

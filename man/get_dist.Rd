@@ -37,7 +37,7 @@ Clustering methods classify data samples into groups of similar
 }
 \examples{
 data(USArrests)
-res.dist <- drugseqr:::get_dist(USArrests, stand = TRUE, method = "pearson")
+res.dist <- dseqr:::get_dist(USArrests, stand = TRUE, method = "pearson")
 }
 \seealso{
 \code{\link[stats]{dist}}

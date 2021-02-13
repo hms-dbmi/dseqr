@@ -6,7 +6,7 @@
 #' @param progress Optional shiny \code{Progress} object. Default will print progress.
 #' @param value Integer indicating step of pipeline.
 #' @param founder Name of dataset that \code{dataset_name} originates from.
-#' @inheritParams run_drugseqr
+#' @inheritParams run_dseqr
 #' @inheritParams run_kallisto_scseq
 #'
 #' @return NULL
@@ -351,7 +351,7 @@ process_cellranger_counts <- function(counts, species) {
   gene_id <- gene_name <- NULL
 
   if (!grepl('sapiens|musculus', species)) stop('Species not supported')
-  tx2gene <- drugseqr.data::load_tx2gene(species)
+  tx2gene <- dseqr.data::load_tx2gene(species)
 
   counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
 
@@ -385,8 +385,8 @@ process_cellranger_counts <- function(counts, species) {
 #'
 get_species <- function(counts) {
 
-  tx2gene <- drugseqr.data::load_tx2gene('Homo sapiens')
-  tx2gene_mouse <- drugseqr.data::load_tx2gene('Mus musculus')
+  tx2gene <- dseqr.data::load_tx2gene('Homo sapiens')
+  tx2gene_mouse <- dseqr.data::load_tx2gene('Mus musculus')
 
   nhuman <- sum(row.names(counts) %in% tx2gene$gene_id)
   nmouse <- sum(row.names(counts) %in% tx2gene_mouse$gene_id)
@@ -693,12 +693,12 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens') {
 
   # load mito and ribo genes
   if (species == 'Homo sapiens') {
-    rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'drugseqr', mustWork = TRUE))
-    mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'drugseqr', mustWork = TRUE))
+    rrna <- readLines(system.file('extdata', 'rrna.csv', package = 'dseqr', mustWork = TRUE))
+    mrna <- readLines(system.file('extdata', 'mrna.csv', package = 'dseqr', mustWork = TRUE))
 
   } else if (species == 'Mus musculus') {
-    rrna <- readLines(system.file('extdata', 'rrna_mouse.csv', package = 'drugseqr', mustWork = TRUE))
-    mrna <- readLines(system.file('extdata', 'mrna_mouse.csv', package = 'drugseqr', mustWork = TRUE))
+    rrna <- readLines(system.file('extdata', 'rrna_mouse.csv', package = 'dseqr', mustWork = TRUE))
+    mrna <- readLines(system.file('extdata', 'mrna_mouse.csv', package = 'dseqr', mustWork = TRUE))
 
   } else {
     stop("Only 'Homo sapiens' and 'Mus musculus' supported")

@@ -6,7 +6,7 @@
 #' @param data_dir path to folder with application name
 #' @param sc_dir sub folder of \code{data_dir} where single-cell data is stored
 #' @param bulk_dir sub folder of \code{data_dir} where bulk data is stored
-#' @inheritParams run_drugseqr
+#' @inheritParams run_dseqr
 #'
 #' @return list with reactive \code{new_dataset} that is triggered with a new
 #'   bulk dataset is added.

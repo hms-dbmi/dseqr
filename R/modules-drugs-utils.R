@@ -33,7 +33,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$set(message = "Querying drugs", value = 1)
   on.exit(progress$close())
 
-  cmap_es  <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
+  cmap_es  <- dseqr.data::load_drug_es('cmap_es_ind.rds')
   progress$inc(1)
 
   # get correlations between query and drug signatures
@@ -49,11 +49,11 @@ run_custom_query <- function(query_genes, res_paths, session) {
 
   if (run.l1000) {
 
-    l1000_drugs_es <- drugseqr.data::load_drug_es('l1000_drugs_es.rds')
+    l1000_drugs_es <- dseqr.data::load_drug_es('l1000_drugs_es.rds')
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
     rm(l1000_drugs_es)
 
-    l1000_genes_es <- drugseqr.data::load_drug_es('l1000_genes_es.rds')
+    l1000_genes_es <- dseqr.data::load_drug_es('l1000_genes_es.rds')
     res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
     rm(l1000_genes_es)
 
@@ -205,12 +205,12 @@ load_custom_results <- function(res_paths, is_pert) {
 #' @examples
 #' data_dir <- tempdir()
 #' res_path <- file.path(data_dir, 'cmap_res_BRD-K45319408_PC3_5um_24h.rds')
-#' drugseqr:::dl_pert_result(res_path)
+#' dseqr:::dl_pert_result(res_path)
 #'
 dl_pert_result <- function(res_path) {
   # name of the file being requested
   if (file.exists(res_path)) return(NULL)
-  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/drugseqr/pert_query_dir/', basename(res_path))
+  dl_url <- paste0('https://s3.us-east-2.amazonaws.com/dseqr/pert_query_dir/', basename(res_path))
   dl_url <- utils::URLencode(dl_url)
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
   utils::download.file(dl_url, res_path)

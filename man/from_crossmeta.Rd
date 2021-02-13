@@ -2,7 +2,7 @@
 % Please edit documentation in R/from_crossmeta.R
 \name{from_crossmeta}
 \alias{from_crossmeta}
-\title{Covert from crossmeta to drugseqr formats}
+\title{Covert from crossmeta to dseqr formats}
 \usage{
 from_crossmeta(gse_name, data_dir)
 }
@@ -13,7 +13,7 @@ from_crossmeta(gse_name, data_dir)
 }
 \description{
 Convert a microarray ExpressionSet saved with 'crossmeta' into a format
-for direct usage in 'drugseqr'.
+for direct usage in 'dseqr'.
 }
 \examples{
 library(Biobase)

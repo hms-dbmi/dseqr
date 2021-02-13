@@ -27,14 +27,14 @@ respectively, mimic and reverse the query signature. Values range from +1 to -1.
 \examples{
 
 # load CMAP02 data
-cmap_es <- drugseqr.data::load_drug_es('cmap_es_ind.rds')
+cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.rds')
 
 # use first cmap_es signature as query
 dprimes <- cmap_es[1:100, 1]
 names(dprimes) <- row.names(cmap_es)[1:100]
 
 # get correlations between query and drug signatures
-res <- drugseqr:::query_drugs(dprimes, cmap_es)
+res <- dseqr:::query_drugs(dprimes, cmap_es)
 
 }
 \keyword{internal}

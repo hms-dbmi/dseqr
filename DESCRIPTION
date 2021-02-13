@@ -1,7 +1,7 @@
-Package: drugseqr
+Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.6.7
+Version: 0.6.8
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
@@ -36,7 +36,7 @@ Imports:
     doParallel (>= 1.0.15),
     data.table (>= 1.12.8),
     dtangle (>= 2.0.9),
-    drugseqr.data,
+    dseqr.data,
     edgeR (>= 3.28.0),
     fs,
     ggplot2 (>= 3.2.1),
@@ -86,7 +86,7 @@ Suggests:
 Depends: 
     R (>= 4.0)
 Remotes: 
-    hms-dbmi/drugseqr.data,
+    hms-dbmi/dseqr.data,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
     immunogenomics/harmony
