@@ -358,13 +358,6 @@
       "Source": "Bioconductor",
       "Hash": "7d5b0ec921f85730aafe82f0f94f76c0"
     },
-    "Rtsne": {
-      "Package": "Rtsne",
-      "Version": "0.15",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "f153432c4ca15b937ccfaa40f167c892"
-    },
     "S4Vectors": {
       "Package": "S4Vectors",
       "Version": "0.28.1",
@@ -395,13 +388,6 @@
       "Version": "1.20.0",
       "Source": "Bioconductor",
       "Hash": "2da24c5f66521d18cff602d324834b20"
-    },
-    "V8": {
-      "Package": "V8",
-      "Version": "3.4.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "8c5e8c58ff4fc8dfc67e24985005159b"
     },
     "XML": {
       "Package": "XML",
@@ -566,13 +552,6 @@
       "Repository": "CRAN",
       "Hash": "ebaa97ac99cc2daf04e77eecc7b781d7"
     },
-    "cluster": {
-      "Package": "cluster",
-      "Version": "2.1.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "db63a44aab5aadcb6bf2f129751d129a"
-    },
     "codetools": {
       "Package": "codetools",
       "Version": "0.2-18",
@@ -622,15 +601,15 @@
     },
     "crossmeta": {
       "Package": "crossmeta",
-      "Version": "1.17.12",
+      "Version": "1.17.14",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "c24e60ccb15195e5b31722ce73374a43984432ae",
-      "Hash": "5387b08356218ff2ab342095128107a4"
+      "RemoteSha": "297e526c1cf79019b50db42efc935d74fd637fbf",
+      "Hash": "83f731c77278d8f515d831a3b243ad78"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -702,17 +681,17 @@
       "Repository": "CRAN",
       "Hash": "cc0d03e8383d407e9568855f8efbc07d"
     },
-    "drugseqr.data": {
-      "Package": "drugseqr.data",
-      "Version": "0.99.0",
+    "dseqr.data": {
+      "Package": "dseqr.data",
+      "Version": "0.99.1",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "drugseqr.data",
+      "RemoteRepo": "dseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "a0572b1e2aa6ce85872675f7c77fa5e6b0cd5c2d",
-      "Hash": "e975c275cfebfa4b91812753405a8de1"
+      "RemoteSha": "0002c2d14026ae7a18aa265ae400ca036aa58911",
+      "Hash": "b97f6c19884569d16ff964879913bb8c"
     },
     "dtangle": {
       "Package": "dtangle",
@@ -1254,13 +1233,6 @@
       "Repository": "CRAN",
       "Hash": "f1b1a696d95b1fab9103e8133b877920"
     },
-    "randomcoloR": {
-      "Package": "randomcoloR",
-      "Version": "1.1.0.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "dd08bb0be91b93194fa944b68b3bccb0"
-    },
     "rappdirs": {
       "Package": "rappdirs",
       "Version": "0.3.1",
@@ -1331,15 +1303,15 @@
     },
     "rkal": {
       "Package": "rkal",
-      "Version": "0.99.0",
+      "Version": "0.99.1",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "rkal",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "f8587d0d8d9489e8ca3f70eaa762b38a78e34278",
-      "Hash": "26481dd9639cdd5db6e52a0c84ff3a47"
+      "RemoteSha": "c4ee89cfc9ef24ff5ce5e90828320def1cc6e65f",
+      "Hash": "d5acb607591f618eb9b4ea1bd28a9f38"
     },
     "rlang": {
       "Package": "rlang",
