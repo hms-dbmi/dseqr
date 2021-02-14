@@ -1,6 +1,6 @@
 # dseqr
 
-dseqr (*drug-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, cell-type deconvolution, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
+dseqr (*d-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, cell-type deconvolution, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
 
 ## Local installation and setup
 
