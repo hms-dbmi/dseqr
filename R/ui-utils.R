@@ -10,7 +10,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
 
   logout_li <- NULL
   if (!is.null(logout_url)) {
-    # target _top break out of iframe
+    # target _top break out of iframe for ShinyProxy
     logout_li <- tags$li(class = 'navbar-right', `data-toggle`="collapse",
                          `data-target`=".navbar-collapse.in", a(target="_top", href = logout_url, 'Logout')
     )
@@ -27,7 +27,8 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                                span(class = 'icon-bar')
                    ),
                    span(class = 'navbar-brand', title = 'dseqr',
-                        span(class = 'brand-icons',
+                        tags$a(class = 'brand-icons',
+                               href="/",
                              tags$img(src="favicon.png"),
                              span('seqr')
                         )
@@ -48,7 +49,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                            ),
                            # docs section
                            tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
-                                   a(href = paste0('#', id_from_tab('Docs')), `data-toggle` = 'tab', `data-value` = 'Docs', `aria-expanded` = 'false', 'Docs')
+                                   a(href = "https://docs.dseqr.com", `target` = '_blank', 'Docs')
                            ),
                            # logout section
                            logout_li

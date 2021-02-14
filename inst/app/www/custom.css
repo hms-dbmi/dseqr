@@ -87,6 +87,7 @@
     padding: 5px 12px 5px 0px;
     cursor: default;
     color: #333;
+    text-decoration: none !important;
 }
 
 .brand-icons img {
