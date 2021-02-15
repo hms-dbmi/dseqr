@@ -121,9 +121,9 @@
     },
     "DelayedArray": {
       "Package": "DelayedArray",
-      "Version": "0.16.0",
+      "Version": "0.16.1",
       "Source": "Bioconductor",
-      "Hash": "8cc0daa5091ce9b0eab0cce97c013d82"
+      "Hash": "98a62a8040f67b43dad034e58f288d51"
     },
     "DelayedMatrixStats": {
       "Package": "DelayedMatrixStats",
@@ -602,14 +602,8 @@
     "crossmeta": {
       "Package": "crossmeta",
       "Version": "1.17.14",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "crossmeta",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "297e526c1cf79019b50db42efc935d74fd637fbf",
-      "Hash": "83f731c77278d8f515d831a3b243ad78"
+      "Source": "Bioconductor",
+      "Hash": "94c5f4824b591b5499b51a6a7450ab02"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -683,15 +677,9 @@
     },
     "dseqr.data": {
       "Package": "dseqr.data",
-      "Version": "0.99.1",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "dseqr.data",
-      "RemoteUsername": "hms-dbmi",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "0002c2d14026ae7a18aa265ae400ca036aa58911",
-      "Hash": "b97f6c19884569d16ff964879913bb8c"
+      "Version": "0.99.0",
+      "Source": "Bioconductor",
+      "Hash": "3e40e66ab1fae2085a0556a8a33cdc10"
     },
     "dtangle": {
       "Package": "dtangle",
@@ -1303,15 +1291,15 @@
     },
     "rkal": {
       "Package": "rkal",
-      "Version": "0.99.1",
+      "Version": "0.99.2",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "rkal",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "c4ee89cfc9ef24ff5ce5e90828320def1cc6e65f",
-      "Hash": "d5acb607591f618eb9b4ea1bd28a9f38"
+      "RemoteSha": "aeecddd9a3867611da65fcbe5ea9048090bae22c",
+      "Hash": "9a877a8c919332d15dce09b30498ea95"
     },
     "rlang": {
       "Package": "rlang",
