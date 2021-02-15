@@ -43,5 +43,9 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_drug_es()"
 
+# build kallisto index
+RUN R -e "rkal::build_kallisto_index('/srv/dseqr/indices')"
+
 # install dseqr last as will have to redo often
 RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.6.9', dependencies = FALSE, upgrade = FALSE)"
+
