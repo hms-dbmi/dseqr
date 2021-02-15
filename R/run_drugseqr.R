@@ -73,7 +73,8 @@ run_dseqr <- function(app_name,
     options(shiny.testmode = FALSE)
   }
 
-  options(shiny.maxRequestSize=1024*1024^2)
+  # allow up to 30GB uploads
+  options(shiny.maxRequestSize=30*1024*1024^2)
 
   # auto-reload if update app files
   if (is.null(logout_url)) options(shiny.autoreload = TRUE)

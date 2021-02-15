@@ -407,11 +407,72 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 5), datasets()), server = TRUE)
   })
 
-  # open selector if creating
+
+
+  uploadModal <- function() {
+    modalDialog(
+      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.rds', '.fastq.gz'), multiple = TRUE, ),
+      actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
+      title = 'Upload or Select Existing?',
+      size = 's',
+      easyClose = FALSE,
+    )
+  }
+
+  # open modal if creating
   observe({
     req(is.create())
+    showModal(uploadModal())
+  })
+
+  # move uploaded to destination
+  observeEvent(input$up_raw, {
+    df <- input$up_raw
+    sel <- input$dataset_name
+    req(df, sel)
+
+    dataset_dir <- file.path(bulk_dir, input$dataset_name)
+    dir.create(dataset_dir, showWarnings = FALSE)
+
+    for (i in 1:nrow(df)) {
+      dpath <- df$datapath[i]
+      fpath <- file.path(dataset_dir, df$name)
+      file.copy(from = dpath, to = fpath, overwrite = TRUE)
+      unlink(dpath)
+    }
+
+    removeModal()
+    Sys.sleep(0.5)
+    new_dataset_dir(dataset_dir)
+  })
+
+  observeEvent(input$click_existing, {
+    removeModal()
+    Sys.sleep(0.5)
     shinyjs::click('new_dataset_dir')
   })
+
+  # get path to dir with new dataset files
+  new_dataset_dir <- reactiveVal()
+  observe({
+    new_dataset_dir <- input$new_dataset_dir
+
+    # need selected subfolder
+    # will be integer on create
+    req(!methods::is(new_dataset_dir, 'integer'))
+
+    dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
+    new_dataset_dir(as.character(dir))
+  })
+
+  observeEvent(input$dataset_name, {
+    new_dataset_dir(NULL)
+  })
+
+  # ask for confirmation after folder selection
+  observeEvent(new_dataset_dir(), shinyjs::click('new_dataset_dir'))
+
+
 
   # directory with fastq files for quantificant
   fastq_dir <- reactive({

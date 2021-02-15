@@ -393,8 +393,6 @@ LabelClusters <- function(
     color[label.highlight] <- 'black'
   }
 
-  browser()
-
   geom.use <- ifelse(test = repel, yes = ggrepel::geom_text_repel, no = ggplot2::geom_text)
   plot <- plot + geom.use(
     data = labels.loc,
