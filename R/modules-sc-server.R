@@ -429,12 +429,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
 
   uploadModal <- function() {
     modalDialog(
-      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.tsv')),
+      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.tsv', '.fastq.gz'), multiple = TRUE),
       actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
       title = 'Upload or Select Existing?',
       size = 's',
-      footer = NULL,
-      easyClose = TRUE
+      easyClose = FALSE,
     )
   }
 
@@ -452,13 +451,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     req(df, sel)
 
     dataset_dir <- file.path(sc_dir, input$selected_dataset)
-    unlink(dataset_dir, recursive = TRUE)
-    dir.create(dataset_dir)
+    dir.create(dataset_dir, showWarnings = FALSE)
 
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
       fpath <- file.path(dataset_dir, df$name)
-      file.copy(from = dpath, to = fpath)
+      file.copy(from = dpath, to = fpath, overwrite = TRUE)
+      unlink(dpath)
     }
 
     removeModal()
