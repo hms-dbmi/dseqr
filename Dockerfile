@@ -47,5 +47,5 @@ RUN R -e "dseqr.data::dl_drug_es()"
 RUN R -e "rkal::build_kallisto_index('/srv/dseqr/indices')"
 
 # install dseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.6.9', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.6.10', dependencies = FALSE, upgrade = FALSE)"
 
