@@ -127,9 +127,9 @@
     },
     "DelayedMatrixStats": {
       "Package": "DelayedMatrixStats",
-      "Version": "1.12.2",
+      "Version": "1.12.3",
       "Source": "Bioconductor",
-      "Hash": "230e879420712830db7e0c055188dd68"
+      "Hash": "1a9c016231c53483de05bec235ff8bfd"
     },
     "DropletUtils": {
       "Package": "DropletUtils",
@@ -622,7 +622,7 @@
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "Hash": "94c5f4824b591b5499b51a6a7450ab02"
+      "Hash": "3765fe351dffd8eb23fe174e0e3b1464"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -703,7 +703,7 @@
       "RemoteRepo": "dseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "Hash": "3e40e66ab1fae2085a0556a8a33cdc10"
+      "Hash": "2b22bd505815483b5ce7a3fc3680fc2a"
     },
     "dtangle": {
       "Package": "dtangle",
