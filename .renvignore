@@ -1,2 +1,4 @@
-/data-raw/*
-/tests/
+data-raw/
+tests/
+example_data.tar.gz
+.git/
