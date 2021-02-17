@@ -414,7 +414,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     datasets <- datasets()
     req(datasets)
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c('', datasets), options = options)
+    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = datasets, options = options)
   })
 
 
