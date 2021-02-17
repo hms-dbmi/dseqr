@@ -368,7 +368,7 @@ datasets_to_list <- function(datasets) {
   res <- datasets$value
   names(res) <- datasets$optionLabel
   types <- datasets$type
-  res <- lapply(unique(types), function(type) res[types==type])
+  res <- lapply(unique(types), function(type) c('', res[types==type]))
   names(res) <- unique(types)
   return(res)
 
