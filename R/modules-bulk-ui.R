@@ -230,14 +230,17 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   options <- list(maxItems = 2, placeholder = 'Select test then control group')
   if (with_dl) {
-    input <- tags$div(id = 'bulk-intro-comparison',
-                      shinypanel::selectizeInputWithButtons(
-                        ns('contrast_groups'),
-                        label,
-                        downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
-                        options = options,
-                        container_id = ns('run_anal_container')
-                      )
+    input <- tags$div(
+      id = 'bulk-intro-comparison',
+      shinypanel::selectizeInputWithButtons(
+        ns('contrast_groups'),
+        label,
+        actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
+        options = options,
+        container_id = ns('run_anal_container')
+      ),
+      downloadLink(ns('download'), '')
+
     )
 
   } else {

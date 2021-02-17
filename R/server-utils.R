@@ -25,6 +25,7 @@ readRDS.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
 #' @keywords internal
 disableAll <- function(ids){
   for (id in ids) shinyjs::disable(id)
+  shinyjs::runjs("$(\".tooltip\").tooltip(\"hide\");")
 }
 
 
