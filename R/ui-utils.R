@@ -49,7 +49,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                            ),
                            # docs section
                            tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
-                                   a(href = "https://docs.dseqr.com", `target` = '_blank', 'Docs')
+                                   a(href = "https://docs.dseqr.com/docs/general/usability/", `target` = '_blank', 'Docs')
                            ),
                            # logout section
                            logout_li
