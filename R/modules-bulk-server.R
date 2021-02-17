@@ -1423,7 +1423,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 #' @noRd
 bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-  input_ids <- c('download', 'contrast_groups')
+  input_ids <- c('click_dl', 'contrast_groups')
 
 
   # group levels used for selecting test and control groups
@@ -1660,6 +1660,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     },
     content = data_fun
   )
+
+  # download can timeout so get objects before clicking
+  observeEvent(input$click_dl, {
+    tt <- top_table()
+    pres <- path_res()
+    shinyjs::click("download")
+  })
 
   return(list(
     name = anal_name,

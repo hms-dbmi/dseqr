@@ -2035,7 +2035,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #' @noRd
 scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('download', 'selected_cluster')
+  input_ids <- c('click_dl', 'selected_cluster')
 
   # need for drugs tab
   scseq <- reactive({
@@ -2418,6 +2418,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     },
     content = data_fun
   )
+
+  # download can timeout so get objects before clicking
+  observeEvent(input$click_dl, {
+    tt <- top_table()
+    pres <- path_res()
+    shinyjs::click("download")
+  })
+
+  observe(toggleState('click_dl', condition = isTruthy(input$selected_cluster)))
 
   selected_cluster <- reactiveVal()
   observe(selected_cluster(input$selected_cluster))

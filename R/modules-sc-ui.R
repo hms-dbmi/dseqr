@@ -394,15 +394,19 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
 
   dl_btn <- NULL
   if (with_dl)
-    dl_btn <- downloadButton(ns('download'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
+    dl_btn <- actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
-  shinypanel::selectizeInputWithButtons(
-    inputId = ns('selected_cluster'),
-    label = 'Compare samples for:',
-    dl_btn,
-    #TODO: implement logic for multi-cluster differential expression
-    options = list(multiple = FALSE),
-    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
+    tags$div(
+    downloadLink(ns('download'), ''),
+    shinypanel::selectizeInputWithButtons(
+      inputId = ns('selected_cluster'),
+      label = 'Compare samples for:',
+      dl_btn,
+      #TODO: implement logic for multi-cluster differential expression
+      options = list(multiple = FALSE),
+      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
+
+    )
 
 }
 
