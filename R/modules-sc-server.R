@@ -428,14 +428,25 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   })
 
   uploadModal <- function() {
+    label <- "Click upload or drag files:"
+    label_title <- "Accepts 10X *.fastq.gz or Cell Ranger files (*.h5 or matrix.mtx, barcodes.tsv, and genes.tsv)"
+    label <- tags$span(label,
+                       title = label_title,
+                       span(class = "hover-info",
+                            icon("info", "fa-fw")))
+
     modalDialog(
-      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.h5', '.tsv', '.fastq.gz'), multiple = TRUE),
-      actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
+      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.h5', '.tsv', '.fastq.gz'), multiple = TRUE),
       title = 'Upload or Select Existing?',
       size = 's',
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton(session$ns("click_existing"), "Select Existing", class = 'pull-left btn-warning')
+      ),
       easyClose = FALSE,
     )
   }
+
 
   # open shinyFiles selector if creating
   observe({
@@ -456,18 +467,17 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
       fpath <- file.path(dataset_dir, df$name)
-      file.copy(from = dpath, to = fpath, overwrite = TRUE)
-      unlink(dpath)
+      file.move(dpath, fpath)
     }
 
     removeModal()
-    Sys.sleep(0.5)
+    Sys.sleep(1)
     new_dataset_dir(dataset_dir)
   })
 
   observeEvent(input$click_existing, {
     removeModal()
-    Sys.sleep(0.5)
+    Sys.sleep(1)
     shinyjs::click('new_dataset_dir')
   })
 

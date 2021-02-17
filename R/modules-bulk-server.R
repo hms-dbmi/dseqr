@@ -16,7 +16,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
   msg_quant <- reactiveVal()
 
-  eset <- reactive(readRDS(file.path(bulkForm$dataset_dir(), 'eset.rds')))
+  eset <- reactive(readRDS.safe(file.path(bulkForm$dataset_dir(), 'eset.rds')))
 
 
   explore_eset <- exploreEset(eset = eset,
@@ -374,6 +374,8 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #' @noRd
 bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
 
+  options <- list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type')
+
   # get directory with fastqs
   roots <- c('bulk' = bulk_dir)
   shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
@@ -395,7 +397,13 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
   is.create <- reactive({
     dataset_name <- input$dataset_name
     datasets <- datasets()
+
     req(dataset_name)
+    if (!isTruthy(dataset_name)) return(FALSE)
+
+    # handle just created but new name still selected
+    new_dataset <- isolate(new_dataset())
+    if (!is.null(new_dataset) && dataset_name == new_dataset) return(FALSE)
 
     !dataset_name %in% datasets$dataset_name
   })
@@ -403,18 +411,30 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
   dataset_exists <- reactive(isTruthy(input$dataset_name) & !is.create())
 
   observe({
-    req(datasets())
-    updateSelectizeInput(session, 'dataset_name', choices = rbind(rep(NA, 5), datasets()), server = TRUE)
+    datasets <- datasets()
+    req(datasets)
+    datasets <- datasets_to_list(datasets)
+    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c('', datasets), options = options)
   })
 
 
 
   uploadModal <- function() {
+    label <- "Click upload or drag files:"
+    label_title <- "Accepts *.fastq.gz or eset.rds"
+    label <- tags$span(label,
+                       title = label_title,
+                       span(class = "hover-info",
+                            icon("info", "fa-fw")))
+
     modalDialog(
-      fileInput(session$ns('up_raw'), label=NULL, buttonLabel = 'Upload', accept = c('.rds', '.fastq.gz'), multiple = TRUE, ),
-      actionButton(session$ns("click_existing"), tags$span(class='', 'Select Existing'), class='btn-default btn-block '),
+      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.rds', '.fastq.gz'), multiple = TRUE),
       title = 'Upload or Select Existing?',
       size = 's',
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton(session$ns("click_existing"), "Select Existing", class = 'pull-left btn-warning')
+      ),
       easyClose = FALSE,
     )
   }
@@ -437,48 +457,31 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
       fpath <- file.path(dataset_dir, df$name)
-      file.copy(from = dpath, to = fpath, overwrite = TRUE)
-      unlink(dpath)
+      file.move(from = dpath, to = fpath)
     }
 
     removeModal()
-    Sys.sleep(0.5)
-    new_dataset_dir(dataset_dir)
+    Sys.sleep(1)
+    is.fastq <- grepl('fastq.gz', df$name)
+
+    if (is.fastq) fastq_dir(dataset_dir)
+    else new_dataset(sel)
+
   })
 
   observeEvent(input$click_existing, {
     removeModal()
-    Sys.sleep(0.5)
+    Sys.sleep(1)
     shinyjs::click('new_dataset_dir')
   })
 
-  # get path to dir with new dataset files
-  new_dataset_dir <- reactiveVal()
-  observe({
-    new_dataset_dir <- input$new_dataset_dir
-
-    # need selected subfolder
-    # will be integer on create
-    req(!methods::is(new_dataset_dir, 'integer'))
-
-    dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
-    new_dataset_dir(as.character(dir))
-  })
-
-  observeEvent(input$dataset_name, {
-    new_dataset_dir(NULL)
-  })
-
-  # ask for confirmation after folder selection
-  observeEvent(new_dataset_dir(), shinyjs::click('new_dataset_dir'))
-
-
 
   # directory with fastq files for quantificant
-  fastq_dir <- reactive({
+  fastq_dir <- reactiveVal()
+  observe({
     req(!methods::is(input$new_dataset_dir, 'integer'))
     dir <- shinyFiles::parseDirPath(roots, input$new_dataset_dir)
-    as.character(dir)
+    fastq_dir(as.character(dir))
   })
 
   # directory to existing dataset for exploration
@@ -627,6 +630,8 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
   new_dataset <- reactiveVal()
 
   # run quantification upon confirmation
+  quants <- reactiveValues()
+  pquants <- reactiveValues()
   observeEvent(input$confirm, {
     removeModal()
 
@@ -646,35 +651,32 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
     dataset_name <- dataset_name()
     fastq_dir <- fastq_dir()
 
+
+    ##
+    quants[[dataset_name]] <- callr::r_bg(
+      func = run_kallisto_bulk_bg,
+      package = 'dseqr',
+      args = list(
+        indices_dir = indices_dir,
+        data_dir = fastq_dir,
+        quant_meta = pdata,
+        paired = paired
+      )
+    )
+
     # Create a Progress object
-    progress <- Progress$new(session, min=0, max = nrow(pdata)+1)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
+    progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
+    progress$set(message = "Quantifying files", value = 1)
+    pquants[[dataset_name]] <- progress
 
-    # Create a callback function to update progress.
-    progress$set(message = "Quantifying files", value = 0)
-    updateProgress <- function(amount = NULL, detail = NULL) {
-      progress$inc(amount = amount, detail = detail)
-    }
-
-    # quantification
-    rkal::run_kallisto_bulk(
-      indices_dir = indices_dir,
-      data_dir = fastq_dir,
-      quant_meta = pdata,
-      paired = paired,
-      updateProgress = updateProgress)
-
-    # generate eset and save
-    progress$set(message = 'Annotating dataset')
-    eset <- rkal::load_seq(fastq_dir)
-
-    # trigger to update rest of app
-    new_dataset(dataset_name)
-
-    # re-enable inputs
     enableAll(quant_inputs)
-    progress$inc(1)
+
+    # progress$set(message = 'Annotating dataset')
+  })
+
+  observe({
+    invalidateLater(5000, session)
+    handle_bulk_progress(quants, pquants, new_dataset)
   })
 
   return(list(
@@ -686,6 +688,69 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
       rep = rep
     )
   ))
+}
+
+handle_bulk_progress <- function(bgs, progs, new_dataset) {
+
+  bg_names <- names(bgs)
+  if (!length(bg_names)) return(NULL)
+
+  todel <- c()
+  for (name in bg_names) {
+    bg <- bgs[[name]]
+    progress <- progs[[name]]
+    if(is.null(bg)) next
+
+    msgs <- bg$read_output_lines()
+    if (length(msgs)) print(msgs)
+
+    # for some reason this un-stalls bg process for integration
+    # also nice to see things printed to stderr
+    errs <- bg$read_error_lines()
+    if (length(errs)) print(errs)
+
+    started <- any(grepl('pseudoaligned', errs))
+    if (started) {
+      progress$set(value = progress$getValue() + 1)
+    }
+
+    # for "Annotating dataset"
+    if (length(msgs)) {
+      progress$set(value = progress$getValue() + 1, message = msgs)
+    }
+
+    if (!bg$is_alive()) {
+      res <- bg$get_result()
+      progress$close()
+      if (res) new_dataset(name)
+      todel <- c(todel, name)
+    }
+  }
+  for (name in todel) {
+    bgs[[name]] <- NULL
+    progs[[name]] <- NULL
+  }
+}
+
+file.move <- function(from, to) {
+  if (file.exists(to)) unlink(to)
+  tryCatch(
+    file.rename(from, to),
+    warning = function(w) {
+      if (grepl('Invalid cross-device link', w$message)) {
+        file.copy(from, to)
+        unlink(from)
+      }
+    })
+}
+
+run_kallisto_bulk_bg <- function(indices_dir, data_dir, quant_meta, paired) {
+
+  rkal::run_kallisto_bulk(indices_dir, data_dir, quant_meta, paired)
+  cat('Annotating dataset')
+  eset <- rkal::load_seq(data_dir)
+
+  return(TRUE)
 }
 
 #' Logic for end type selection is bulkFormQuant
@@ -1622,6 +1687,8 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     # pdata and eset lose sync when switch datasets
     eset <- eset()
     pdata <- explore_pdata()
+    in.sync <- identical(colnames(eset), row.names(pdata))
+    req(in.sync)
 
     # need that pdata_explore has more than two groups
     keep <- row.names(pdata)[!is.na(pdata$Group)]
