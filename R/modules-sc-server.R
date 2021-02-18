@@ -559,7 +559,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
     progress$set(message = msg, value = 0)
     pquants[[dataset_name]] <- progress
-    new_dataset(paste0(dataset_name, '_reset'))
+
+    # trigger reset without is.create
+    new <- new_dataset()
+    if (is.null(new)) new_dataset(FALSE)
+    else new_dataset(NULL)
   })
 
   observe({
