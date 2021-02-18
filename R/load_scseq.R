@@ -803,7 +803,7 @@ get_npc_choices <- function(sce, type = 'PCA') {
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
   pcs <- pcs[, utils::head(seq_len(ncol(pcs)), 50)]
 
-  choices <- scran::getClusteredPCs(pcs, FUN = FUN)
+  choices <- scran::getClusteredPCs(pcs, FUN = FUN, by=2)
   names(choices$clusters) <- choices$n.pcs
 
   npcs <- S4Vectors::metadata(choices)$chosen

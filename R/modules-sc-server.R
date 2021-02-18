@@ -522,8 +522,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     if (metrics == 'all') metrics <- metric_choices
 
     removeModal()
-    disableAll(dataset_inputs)
-
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
@@ -561,9 +559,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
     progress$set(message = msg, value = 0)
     pquants[[dataset_name]] <- progress
-
-    new_dataset(dataset_name)
-    enableAll(dataset_inputs)
   })
 
   observe({
