@@ -671,7 +671,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
     enableAll(quant_inputs)
 
-    # progress$set(message = 'Annotating dataset')
+    new_dataset(paste0(dataset_name, '_reset'))
   })
 
   observe({
