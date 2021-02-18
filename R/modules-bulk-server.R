@@ -671,7 +671,10 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
     enableAll(quant_inputs)
 
-    new_dataset(paste0(dataset_name, '_reset'))
+    # trigger reset without is.create
+    new <- new_dataset()
+    if (is.null(new)) new_dataset(FALSE)
+    else new_dataset(NULL)
   })
 
   observe({
