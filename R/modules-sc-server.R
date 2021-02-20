@@ -420,10 +420,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     datasets <- datasets()
     if (!isTruthy(dataset_name)) return(FALSE)
 
-    # handle just created but new name still selected
-    new_dataset <- isolate(new_dataset())
-    if (!is.null(new_dataset) && dataset_name == new_dataset) return(FALSE)
-
     !dataset_name %in% datasets$value
   })
 
@@ -511,6 +507,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   # run single-cell quantification
   quants <- reactiveValues()
   pquants <- reactiveValues()
+  deselect_dataset <- reactiveVal(1)
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
@@ -560,11 +557,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     progress$set(message = msg, value = 0)
     pquants[[dataset_name]] <- progress
 
-    # trigger reset without is.create
-    new <- new_dataset()
-    if (is.null(new)) new_dataset(FALSE)
-    else new_dataset(NULL)
+    deselect_dataset(deselect_dataset()+1)
   })
+
 
   observe({
     invalidateLater(5000, session)
@@ -595,7 +590,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   observe({
     datasets <- datasets()
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = c('', datasets), options = options)
+    updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = datasets, options = options)
+  })
+
+  observeEvent(deselect_dataset(), {
+    req(deselect_dataset())
+    datasets <- datasets()
+    datasets <- datasets_to_list(datasets)
+    updateSelectizeInput(session, 'selected_dataset', choices = datasets, options = options)
   })
 
   # show/hide integration/label-transfer forms
