@@ -311,6 +311,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
                         new_dataset = quant$new_dataset,
+                        deselect_dataset = quant$deselect_dataset,
                         explore_eset = explore_eset)
 
 
@@ -372,7 +373,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #'
 #' @keywords internal
 #' @noRd
-bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset) {
+bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset, deselect_dataset) {
 
   options <- list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type')
 
@@ -401,10 +402,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     req(dataset_name)
     if (!isTruthy(dataset_name)) return(FALSE)
 
-    # handle just created but new name still selected
-    new_dataset <- isolate(new_dataset())
-    if (!is.null(new_dataset) && dataset_name == new_dataset) return(FALSE)
-
     !dataset_name %in% datasets$dataset_name
   })
 
@@ -416,6 +413,15 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     datasets <- datasets_to_list(datasets)
     updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = datasets, options = options)
   })
+
+  observeEvent(deselect_dataset(), {
+    req(deselect_dataset())
+    datasets <- datasets()
+    req(datasets)
+    datasets <- datasets_to_list(datasets)
+    updateSelectizeInput(session, 'dataset_name', choices = datasets, options = options)
+  })
+
 
 
 
@@ -456,7 +462,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
-      fpath <- file.path(dataset_dir, df$name[i])
+      fpath <- file.path(dataset_dir, df$name)
       file.move(from = dpath, to = fpath)
     }
 
@@ -628,6 +634,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
   })
 
   new_dataset <- reactiveVal()
+  deselect_dataset <- reactiveVal(0)
 
   # run quantification upon confirmation
   quants <- reactiveValues()
@@ -671,10 +678,9 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
     enableAll(quant_inputs)
 
-    # trigger reset without is.create
-    new <- new_dataset()
-    if (is.null(new)) new_dataset(FALSE)
-    else new_dataset(NULL)
+    # trigger deselection and reset fastq_dir
+    deselect_dataset(deselect_dataset()+1)
+    fastq_dir(NULL)
   })
 
   observe({
@@ -684,6 +690,7 @@ bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata
 
   return(list(
     new_dataset = new_dataset,
+    deselect_dataset = deselect_dataset,
     paired = paired,
     labels = list(
       reset = reset,
