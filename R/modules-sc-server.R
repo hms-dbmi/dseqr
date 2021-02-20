@@ -537,7 +537,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
       opts <- list(
         list(dataset_name = dataset_name,
              metrics = metrics,
-             founder = dataset_name))
+             founder = NULL))
     }
 
     quants[[dataset_name]] <- callr::r_bg(
