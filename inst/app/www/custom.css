@@ -259,6 +259,11 @@ input[type=text] {
     width: calc(100% - 350px);
 }
 
+/* stop progress from blocking */
+.sF-modalContainer {
+    z-index: 99999;
+}
+
 
 /*disable tooltips on mobile*/
 @media only screen

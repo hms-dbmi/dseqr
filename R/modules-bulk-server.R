@@ -462,13 +462,13 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
-      fpath <- file.path(dataset_dir, df$name)
+      fpath <- file.path(dataset_dir, df$name[i])
       file.move(from = dpath, to = fpath)
     }
 
     removeModal()
     Sys.sleep(1)
-    is.fastq <- grepl('fastq.gz', df$name)
+    is.fastq <- grepl('fastq.gz', df$name[1])
 
     if (is.fastq) fastq_dir(dataset_dir)
     else new_dataset(sel)
