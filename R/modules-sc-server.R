@@ -466,7 +466,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
 
     for (i in 1:nrow(df)) {
       dpath <- df$datapath[i]
-      fpath <- file.path(dataset_dir, df$name)
+      fpath <- file.path(dataset_dir, df$name[i])
       file.move(dpath, fpath)
     }
 
