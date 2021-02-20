@@ -507,7 +507,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   # run single-cell quantification
   quants <- reactiveValues()
   pquants <- reactiveValues()
-  deselect_dataset <- reactiveVal(1)
+  deselect_dataset <- reactiveVal(0)
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics
@@ -515,7 +515,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
 
     if (!isTruthy(metrics)) metrics <- 'none'
-    if (metrics == 'none') metrics <- NULL
     if (metrics == 'all') metrics <- metric_choices
 
     removeModal()
@@ -534,7 +533,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
 
 
     } else {
-
+      if (metrics == 'none') metrics <- NULL
       opts <- list(
         list(dataset_name = dataset_name,
              metrics = metrics,
