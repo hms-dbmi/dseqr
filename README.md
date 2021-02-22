@@ -1,5 +1,5 @@
 ## Dseqr
-#### **End-to-end RNA-seq Analysis**
+#### **End-to-End RNA-seq Analysis**
 
 Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq analyses from fastq → pathways → drug candidates.
 
