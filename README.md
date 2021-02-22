@@ -1,8 +1,11 @@
-# dseqr
+## Dseqr
+#### **End-to-end RNA-seq Analysis**
 
-dseqr (*d-seek-R*) is an end-to-end (`fastq.gz` --> pathways, differential expression, cell-type deconvolution, and Connectivity Mapping) web app for bulk and 10X single-cell RNA-Seq datasets.
+Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq analyses from fastq → pathways → drug candidates.
 
-## Local installation and setup
+[Read the Docs and Deploy →](https://docs.dseqr.com)
+
+### Local setup
 
 ```R
 # install
@@ -17,153 +20,21 @@ init_dseqr(app_name, data_dir)
 run_dseqr(app_name, data_dir)
 ```
 
-see below for details on adding single-cell/bulk datasets. Both require building a `kallisto` index for quantification. To do so run:
+If using fastq.gz files, build a `kallisto` index for quantification. To do so run:
 
 ```R
 rkal::build_kallisto_index('/srv/dseqr/indices')
 ```
 
-
-## Adding single-cell datasets
-
-Add single cell fastq.gz or cell ranger format (`matrix.mtx`, `barcodes.tsv`, and `genes.tsv`) files to a directory inside `path/to/app_dir/example/single-cell`. For example, download files from files from [GSE96583](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE96583):
+### Prefer docker?
 
 ```bash
-# directory to store single cell sample data in
-# for EC2 instance: cd /srv/dseqr/example/single-cell
-cd path/to/app_dir/example/single-cell
-
-mkdir GSM2560249_pbmc_ifnb_full & cd "$_"
-
-# get cell ranger files
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5F2%2E2%2Emtx%2Egz
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2560nnn/GSM2560249/suppl/GSM2560249%5Fbarcodes%2Etsv%2Egz
-wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE96nnn/GSE96583/suppl/GSE96583%5Fbatch2%2Egenes%2Etsv%2Egz
-
-```
-
-Run the app as before, create a new single-cell dataset, and select the folder with the downloaded cellranger files. Single cell 10X `fastq.gz` files can be added similarly. For example, using [bamtofastq](https://support.10xgenomics.com/docs/bamtofastq) to convert from 10XBAMs back to `fastq.gz`:
-
-```bash
-# download bamtofastq into directory on the path
-wget http://cf.10xgenomics.com/misc/bamtofastq -O ~/bin
-
-# directory to store single cell sample data in 
-# for EC2 instance: cd /srv/dseqr/example/single-cell
-cd path/to/app_dir/example/single-cell
-mkdir GSM3304014_lung_healthy & cd "$_"
-
-# download 10XBAM
-wget https://sra-pub-src-1.s3.amazonaws.com/SRR7586091/P4_Normal_possorted_genome_bam.bam.1
-
-# convert to fastq
-bamtofastq P4_Normal_possorted_genome_bam.bam.1 ./fastqs
-```
-
-Run the app again, create a new single-cell dataset, and select the folder with the converted fastq files.
-
-## Adding bulk RNA-seq datasets
-
-Adding bulk RNA-seq datasets is similar to adding single-cell datasets. [GEOfastq](https://github.com/alexvpickering/GEOfastq) has a couple of utilities that make adding public bulk RNA-Seq datasets particularly easy. For example, install `GEOfastq` then:
-
-```R
-# install GEOfastq
-remotes::install_github('alexvpickering/GEOfastq')
-
-# download bulk fastqs to appropriate directory for example app
-# for EC2 instance: /srv/dseqr/example/bulk
-gse_name <- 'GSE35296'
-gse_dir <- file.path('path/to/app_dir/example/bulk', gse_name)
-
-# first four samples for demonstration
-gse_text <- GEOfastq::crawl_gse(gse_name)
-gsm_names <- GEOfastq::extract_gsms(gse_text)
-srp_meta <- GEOfastq::crawl_gsms(gsm_names)
-GEOfastq::get_fastqs(srp_meta[1:4, ], gse_dir)
-```
-
-## Adding bulk microarray datasets
-
-[crossmeta](https://github.com/alexvpickering/crossmeta) has a couple of utilities that make adding public bulk microarray datasets particularly easy. For example, install `crossmeta` then:
-
-```R
-# install crossmeta
-remotes::install_github('alexvpickering/crossmeta')
-
-# download microarray data to appropriate directory for example app
-# for EC2 instance: /srv/dseqr/example/bulk
-data_dir <- 'path/to/app_dir/example/bulk'
-gse_name <- 'GSE17400'
-crossmeta::get_raw(gse_name, data_dir)
-
-# load/annotate/save microarray data
-eset <- crossmeta::load_raw(gse_name, data_dir)
-
-# covert saved format for dseqr
-dseqr::from_crossmeta(gse_name, data_dir)
-```
-
-When you start up `dseqr`, the added microarray dataset will be available.
-
-## EC2 installation and setup
-
-The following instructions set up an Amazon EC2 spot instance to host and share the `dseqr` web app.
-
-Launch an instance with sufficient resources to meet your requirements. For example, I will launch a r5.large spot instance with a 50GiB SSD on and Ubuntu 18.04 AMI. I prefer to host a local copy of `dseqr` to run all quantification and then transfer the saved data to the server. If you plan to upload raw RNA-Seq data to the server and run quantification there, you will likely need more resources.
-
-Make sure that port 8080 is open to all inbound traffic so that the web app can be accessed.
-
-### Setup the server
-
-The basic setup is going to be a docker container running ShinyProxy which will orchestrate starting docker containers running the app.
-
-ssh into your instance and follow instructions to [install docker](https://docs.docker.com/install/). You likely also want to [configure](https://docs.docker.com/install/linux/linux-postinstall/#configure-docker-to-start-on-boot) docker to start on boot.
-
-Next, create a docker network that ShinyProxy will use to communicate with the Shiny containers and build the ShinyProxy image. To do so, follow these [instructions](https://github.com/hms-dbmi/dseqr.sp).
-
-The `dseqr` app won't work yet. To get it working, download the `dseqr` image, load it, and initialize the example app:
-
-```bash
-# pull dseqr docker image
 docker pull alexvpickering/dseqr
-
-# we mount host:container volume in order to persist example app files/folders that are created inside the container
-sudo docker run --rm \
-  -v /srv/dseqr:/srv/dseqr \
-  alexvpickering/dseqr R -e "dseqr::init_dseqr('example')"
 ```
 
-Then download example data and sync with previously initialized app:
+`💡 Docker image contains pre-built kallisto index.`
 
-```bash
-wget https://dseqr.s3.us-east-2.amazonaws.com/example_data.tar.gz
-tar -xzvf example_data.tar.gz
-rm example_data.tar.gz
-sudo rsync -av example/ /srv/dseqr/example/
-```
 
-Build `kallisto` index (optional - if will quantify bulk/sc fastq files on the server):
+### Host it
 
-```bash
-sudo docker run --rm \
-  -v /srv/dseqr:/srv/dseqr \
-  alexvpickering/dseqr R -e "rkal::build_kallisto_index('/srv/dseqr')"
-```
-
-### Run the app
-
-Run a ShinyProxy container in detached mode `-d` and set the policy to always [restart](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy):
-
-```bash
-sudo docker run -d --restart always -v /var/run/docker.sock:/var/run/docker.sock --net sp-example-net -p 8080:8080 dseqr.sp
-```
-
-You should now be able to navigate your browser to  [EC2 Public DNS]:8080/app/example where EC2 Public DNS can be found in the EC2 instance description.
-
-### Sync local data with server
-
-One way to this is is with `rsync`. For example:
-
-```bash
-rsync -av --progress -e "ssh -i /path/to/mykeypair.pem" ~/path/to/local/example/ ubuntu@[EC2 Public DNS]:/srv/dseqr/example/
-```
+To spin up your own AWS infrastructure to host `dseqr`, see [dseqr.aws →](https://github.com/hms-dbmi/dseqr.aws)
