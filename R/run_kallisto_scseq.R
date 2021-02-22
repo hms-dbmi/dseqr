@@ -5,11 +5,12 @@
 #' @param bus_args Character vector of arguments to bustools.
 #' @inheritParams rkal::build_kallisto_index
 #' @param recount Overwrite previous quantification?
+#' @param threads Number of threads to use. Default is 1.
 #'
 #' @return NULL
 #' @keywords internal
 #'
-run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE) {
+run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE, threads = 1) {
 
   out_dir <- file.path(data_dir, 'bus_output')
   if (dir.exists(out_dir) & !recount) return(NULL)
@@ -43,7 +44,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
                 bus_args,
                 file.path(data_dir, fqs))
 
-  run_kallisto_scseq_commands(bus_args, whitepath, out_dir)
+  run_kallisto_scseq_commands(bus_args, whitepath, out_dir, threads = threads)
   return(NULL)
 }
 
@@ -56,7 +57,7 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
 #'
 #' @return stdout from kallisto inspect if \code{inspection = TRUE}, otherwise \code{NULL}.
 #' @keywords internal
-run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection = FALSE) {
+run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection = FALSE, threads = 1) {
 
 
   system2('kallisto', args = bus_args)
@@ -75,7 +76,8 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
                '-w', whitepath,
                '-p', file.path(out_dir, 'output.bus'),
                '| bustools sort -T', tmp_dir,
-               '-t 4 -p - | bustools inspect -w', whitepath,
+               '-t', threads,
+               '-p - | bustools inspect -w', whitepath,
                '-p -'),
       stdout = TRUE)
     return(out)
@@ -94,7 +96,8 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
                      '-w', whitepath,
                      '-p', file.path(out_dir, 'output.bus'),
                      '| bustools sort -T', tmp_dir,
-                     '-t 4 -p - | bustools count -o', gct_dir,
+                     '-t', threads,
+                     '-p - | bustools count -o', gct_dir,
                      '-g', tgmap_path,
                      '-e', file.path(out_dir, 'matrix.ec'),
                      '-t', file.path(out_dir, 'transcripts.txt'),
@@ -116,10 +119,11 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
 #' @param bus_args Additional arguments to kallisto bus.
 #' @param fqs Vector of fastq file names.
 #' @param techs 10x chemistries to check. Passed to kallisto -x argument.
+#' @param threads Number of threads to use. Default is 1.
 #'
 #' @return one of \code{techs} corresponding to chemistry with most reads that agree with whitelist.
 #' @keywords internal
-detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fqs, techs = c('10xv2', '10xv3')) {
+detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fqs, techs = c('10xv2', '10xv3'), threads = 1) {
 
   # run quanitification on first 10000 reads
   out_dir <- file.path(data_dir, 'tmp_output')
@@ -142,7 +146,12 @@ detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fq
                    bus_args,
                    fqn)
 
-    out <- run_kallisto_scseq_commands(bus_argsi, whitepath, out_dir, inspection = TRUE)
+    out <- run_kallisto_scseq_commands(bus_argsi,
+                                       whitepath,
+                                       out_dir,
+                                       inspection=TRUE,
+                                       threads=threads)
+
     nread <- gsub('^.+? whitelist: (\\d+) .+?$', '\\1', out[16])
     nreads <- c(nreads, as.numeric(nread))
     unlink(out_dir, recursive = TRUE)
