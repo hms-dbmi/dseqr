@@ -10,7 +10,8 @@ run_kallisto_scseq(
   bus_args = "-t 4",
   species = "homo_sapiens",
   release = "94",
-  recount = TRUE
+  recount = TRUE,
+  threads = 1
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ AnnotationHub - needs to match with
 \code{\link[dseqr.data]{build_ensdb}}).}
 
 \item{recount}{Overwrite previous quantification?}
+
+\item{threads}{Number of threads to use. Default is 1.}
 }
 \description{
 Run kallisto/bustools for quantifying 10X scRNA-seq data

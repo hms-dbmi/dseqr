@@ -10,7 +10,8 @@ detect_10x_chemistry(
   data_dir,
   bus_args,
   fqs,
-  techs = c("10xv2", "10xv3")
+  techs = c("10xv2", "10xv3"),
+  threads = 1
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ detect_10x_chemistry(
 \item{fqs}{Vector of fastq file names.}
 
 \item{techs}{10x chemistries to check. Passed to kallisto -x argument.}
+
+\item{threads}{Number of threads to use. Default is 1.}
 }
 \value{
 one of \code{techs} corresponding to chemistry with most reads that agree with whitelist.

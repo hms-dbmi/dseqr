@@ -4,7 +4,13 @@
 \alias{run_kallisto_scseq_commands}
 \title{Runs kallisto scseq commands}
 \usage{
-run_kallisto_scseq_commands(bus_args, whitepath, out_dir, inspection = FALSE)
+run_kallisto_scseq_commands(
+  bus_args,
+  whitepath,
+  out_dir,
+  inspection = FALSE,
+  threads = 1
+)
 }
 \arguments{
 \item{bus_args}{arguments to \code{system2} for kallisto bus}
