@@ -3,7 +3,7 @@
 
 Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq analyses from fastq → pathways → drug candidates.
 
-[Read the Docs and Deploy →](https://docs.dseqr.com)
+💡 [Read the Docs and Deploy →](https://docs.dseqr.com)
 
 ### Local setup
 
@@ -32,7 +32,7 @@ rkal::build_kallisto_index('/srv/dseqr/indices')
 docker pull alexvpickering/dseqr
 ```
 
-`💡 Docker image contains pre-built kallisto index.`
+The docker image contains pre-built kallisto index.
 
 
 ### Host it
