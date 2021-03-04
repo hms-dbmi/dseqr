@@ -509,7 +509,7 @@ format_ridge_annot <- function(annot) {
 
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
   if (any(is.char)) {
-    annot <- paste0(seq_along(annot), ': ', annot)
+    annot[is.char] <- paste0(seq_along(annot)[is.char], ': ', annot[is.char])
   }
   return(annot)
 }
