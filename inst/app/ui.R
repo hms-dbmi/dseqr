@@ -1,4 +1,4 @@
-tabs <- getShinyOption('tabs')
+tabs <- getShinyOption('tabs', c('Single Cell', 'Bulk Data', 'Drugs'))
 data_dir <- getShinyOption('data_dir')
 logout_url <- getShinyOption('logout_url')
 active <- tabs[1]

@@ -62,12 +62,9 @@ run_dseqr <- function(app_name,
 
   if (test) {
     # TODO: run test and return
-    # shinytest::recordTest(app_dir, seed = 0)
-    return(NULL)
-
-  } else if (test_data) {
-    # use test data (faster)
+    shinytest::recordTest(app_dir, seed = 0, loadTimeout = 100000)
     options(shiny.testmode = TRUE)
+    return(NULL)
 
   } else {
     options(shiny.testmode = FALSE)

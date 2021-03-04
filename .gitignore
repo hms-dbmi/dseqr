@@ -17,3 +17,6 @@ run_sjia.R
 filter.txt
 user_data.sh
 example_data.tar.gz
+
+# shinytest data
+inst/app/tests/*

@@ -25,7 +25,7 @@ server <- function(input, output, session) {
     data_dir <- 'tests/data/test/example'
     static_dir <- 'tests/data/static/example'
     unlink(data_dir, recursive = TRUE)
-    dir.create(data_dir)
+    dir.create(data_dir, recursive = TRUE)
     file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
   }
 
