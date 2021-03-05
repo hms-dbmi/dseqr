@@ -73,8 +73,12 @@ run_dseqr <- function(app_name,
   # allow up to 30GB uploads
   options(shiny.maxRequestSize=30*1024*1024^2)
 
+  # for moving EFS files out of IA
+  is_aws <- !is.null(logout_url)
+  if (is_aws) Sys.setenv('EFS_LIFECYCLE'=7)
+
   # auto-reload if update app files
-  if (is.null(logout_url)) options(shiny.autoreload = TRUE)
+  if (!is_aws) options(shiny.autoreload = TRUE)
   runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 

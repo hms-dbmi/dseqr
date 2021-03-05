@@ -209,6 +209,9 @@ load_scseq <- function(dataset_dir) {
   scle_path <- file.path(dataset_dir, 'scle.loom')
   scseq_path <- file.path(dataset_dir, 'scseq.rds')
 
+  transition_efs(scle_path)
+
+
   # load loom if available (faster and less memory)
   scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
                     error = function(e) {
@@ -228,6 +231,37 @@ load_scseq <- function(dataset_dir) {
   }
 
   return(scseq)
+}
+
+#' Utility to move files on EFS from IA to SA
+#'
+#' If time since last access time is greater than \code{Sys.getenv('EFS_LIFECYCLE')},
+#' \code{fpath} to copied in order to move it out of EFS infrequent access.
+#' Ignored if EFS_LIFECYCLE not set.
+#'
+#' @param fpath Path of file
+#'
+#' @return NULL
+#'
+transition_efs <- function(fpath) {
+
+  # get efs lifecycle from ENV
+  efs_diff <- Sys.getenv('EFS_LIFECYCLE')
+  efs_diff <- as.difftime(as.numeric(efs_diff), units='days')
+  if (is.na(efs_diff)) return(NULL)
+
+  message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
+
+  # time since last read
+  read_diff <- Sys.time() - file.info(fpath)$atime
+  if (read_diff < efs_diff) return(NULL)
+
+  # move out of IA by copying
+  message('moving: ', fpath, ' to standard access.')
+  tmp <- file.path(dirname(fpath), 'tmp.loom')
+  file.copy(fpath, tmp)
+  unlink(fpath)
+  file.move(tmp, fpath)
 }
 
 
