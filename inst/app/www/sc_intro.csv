@@ -1,15 +1,15 @@
-element,scrollTo,position,intro
-#sc-intro-dataset,,right,"To preprocess a new dataset, type a new name and either upload cellranger files (.h5 or matrix.mtx, genes.tsv, and barcodes.tsv) or select folder with previously uploaded files. </br></br>Select a dataset to explore for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
-#sc-form-dataset-show_label_transfer,,auto,Toggles inputs for transferring labels from another dataset to the selected dataset.
-#sc-form-dataset-show_integration,,bottom,"<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
-#sc-cluster_plot-cluster_plot-plot_container,,,TSNE plot of clusters and associated labels.
-#sc-intro-cluster,,top,Select a cluster to sort genes by.</br> Select nothing to show QC features first.</br></br>A selected cluster is compared to each other cluster and then a meta-analysis is performed for each gene to order marker genes.
-#sc-form-cluster-show_rename,,top,Click here to rename the selected cluster.
-#sc-form-cluster-show_contrasts,,top,Click here to sort genes by comparing the selected cluster to one other cluster.</br></br> This is usefull for distinguishing closely related clusters.
-#sc-intro-feature,,right,"Select a gene or QC feature to plot for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
-#sc-marker_plot_cluster-marker_plot-plot_container,,,TSNE plot for the selected feature.
-#sc-ridge_container,tooltip,top,Ridgeline plot shows distribution of selected feature in each cluster.
-#sc-form-gene_clusters-show_custom_metric,,,"Click to plot complex metrics. For example:</br></br>
+"element","scrollTo","position","intro"
+"#sc-intro-dataset",,"right","To upload a new dataset, type a new name and click <i>add</i>. Supported uploads: </br></br> 1) <b>Cell Ranger:</b></br>- .h5 or </br>- matrix.mtx, genes.tsv, and barcodes.tsv</br></br>2) <b>10X 3':</b></br>- fastq.gz files</br></br> You can also select previously uploaded files. </br></br>Select a dataset to explore for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
+"#sc-form-dataset-show_label_transfer",,"auto","Toggles inputs for transferring labels from another dataset to the selected dataset."
+"#sc-form-dataset-show_integration",,"bottom","<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
+"#sc-cluster_plot-cluster_plot-plot_container",,,"TSNE plot of clusters and associated labels."
+"#sc-intro-cluster",,"top","Select a cluster to sort genes by.</br> Select nothing to show QC features first.</br></br>A selected cluster is compared to each other cluster and then a meta-analysis is performed for each gene to order marker genes."
+"#sc-form-cluster-show_rename",,"top","Click here to rename the selected cluster."
+"#sc-form-cluster-show_contrasts",,"top","Click here to sort genes by comparing the selected cluster to one other cluster.</br></br> This is usefull for distinguishing closely related clusters."
+"#sc-intro-feature",,"right","Select a gene or QC feature to plot for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
+"#sc-marker_plot_cluster-marker_plot-plot_container",,,"TSNE plot for the selected feature."
+"#sc-ridge_container","tooltip","top","Ridgeline plot shows distribution of selected feature in each cluster."
+"#sc-form-gene_clusters-show_custom_metric",,,"Click to plot complex metrics. For example:</br></br>
 <code>FTL*(cluster==1)</code> shows FTL expression in cluster 1.</br></br>
 <code>FTL*is_ctrl</code> or <code>FTL*is_test</code> shows FTL expression in control or test samples for integrated datasets.</br></br>
 <code>doublet_score>3|mito_percent>15</code> shows cells that meet this criteria.</br></br>
