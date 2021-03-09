@@ -43,9 +43,6 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_drug_es()"
 
-# build kallisto index
-RUN R -e "rkal::build_kallisto_index('/srv/dseqr/indices')"
-
 # set tmp directory on EFS (for file uploads)
 ENV TMP_DIR=/srv/dseqr/tmp
 
@@ -53,5 +50,5 @@ RUN mkdir $TMP_DIR && \
 echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
 # install dseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.8.1', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.8.2', dependencies = FALSE, upgrade = FALSE)"
 
