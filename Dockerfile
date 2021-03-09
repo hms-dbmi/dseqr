@@ -46,7 +46,7 @@ RUN R -e "dseqr.data::dl_drug_es()"
 # set tmp directory on EFS (for file uploads)
 ENV TMP_DIR=/srv/dseqr/tmp
 
-RUN mkdir $TMP_DIR && \
+RUN mkdir -p $TMP_DIR && \
 echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
 # install dseqr last as will have to redo often
