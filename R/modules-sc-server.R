@@ -1955,7 +1955,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
     species <- species()
     gene <- selected_gene()
     if (!length(gene)) return(NULL)
-    if (identical(species, 'Mus musculus')) gene <- toupper(gene)
+    if (species == 'Mus musculus') gene <- toupper(gene)
     if (!gene %in% biogps[, SYMBOL]) return(NULL)
 
     plot_biogps(gene)
