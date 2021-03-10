@@ -250,13 +250,13 @@ transition_efs <- function(fpath) {
   efs_diff <- as.difftime(as.numeric(efs_diff), units='days')
   if (is.na(efs_diff)) return(NULL)
 
-  message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
 
   # time since last read
   read_diff <- Sys.time() - file.info(fpath)$atime
   if (read_diff < efs_diff) return(NULL)
 
   # move out of IA by copying
+  message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
   message('moving: ', fpath, ' to standard access.')
   tmp <- file.path(dirname(fpath), 'tmp.loom')
   file.copy(fpath, tmp)
@@ -822,29 +822,21 @@ run_tsne <- function(sce, dimred = 'PCA') {
 #' @return result of \code{scran::getClusteredPCs}
 #' @keywords internal
 #'
-get_npc_choices <- function(sce, type = 'PCA') {
+get_npc_choices <- function(sce, type = 'PCA', npcs = 30) {
 
   # walktrap very slow if too many cells
-  cluster_fun <- ifelse(ncol(sce) > 10000,
-                        igraph::cluster_louvain,
-                        igraph::cluster_walktrap)
+  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
+  pcs <- pcs[, utils::head(seq_len(ncol(pcs)), npcs)]
+  g <- scran::buildSNNGraph(pcs, transposed = TRUE)
 
-  FUN <- function(x, ...) {
-    g <- scran::buildSNNGraph(x, ..., transposed = TRUE)
-    cluster_fun(g)$membership
+  if (ncol(sce) > 5000) {
+      cluster <- igraph::cluster_leiden(g, 'modularity', resolution_parameter = 1.4)$membership
+
+  } else {
+    cluster <- igraph::cluster_walktrap(g)$membership
   }
 
-  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
-  pcs <- pcs[, utils::head(seq_len(ncol(pcs)), 50)]
-
-  choices <- scran::getClusteredPCs(pcs, FUN = FUN, by=2)
-  names(choices$clusters) <- choices$n.pcs
-
-  npcs <- S4Vectors::metadata(choices)$chosen
-  cluster <- factor(choices$clusters[[as.character(npcs)]])
-
-
-  return(list(npcs = npcs, cluster = cluster))
+  return(list(npcs = npcs, cluster = factor(cluster)))
 }
 
 #' Cluster SingleCellExperiment
