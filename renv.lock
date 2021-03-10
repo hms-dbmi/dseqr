@@ -946,10 +946,15 @@
     },
     "igraph": {
       "Package": "igraph",
-      "Version": "1.2.6",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "7b1f856410253d56ea67ad808f7cdff6"
+      "Version": "1.2.6.9112",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "rigraph",
+      "RemoteUsername": "igraph",
+      "RemoteRef": "master",
+      "RemoteSha": "47f29e055fcc038d1d01af375295029f562969f3",
+      "Hash": "00342c64f180563f21fa5339835c139c"
     },
     "interactiveDisplayBase": {
       "Package": "interactiveDisplayBase",
