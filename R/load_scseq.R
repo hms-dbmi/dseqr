@@ -812,6 +812,9 @@ run_tsne <- function(sce, dimred = 'PCA') {
 }
 
 
+
+
+
 #' Get number of clusters different number of PCs
 #'
 #' Used to pick number of PCs to retain
@@ -822,7 +825,36 @@ run_tsne <- function(sce, dimred = 'PCA') {
 #' @return result of \code{scran::getClusteredPCs}
 #' @keywords internal
 #'
-get_npc_choices <- function(sce, type = 'PCA', npcs = 30) {
+get_npc_choices <- function(sce, type = 'PCA') {
+
+  # walktrap very slow if too many cells
+  cluster_fun <- ifelse(ncol(sce) > 10000,
+                        igraph::cluster_louvain,
+                        igraph::cluster_walktrap)
+
+  FUN <- function(x, ...) {
+    g <- scran::buildSNNGraph(x, ..., transposed = TRUE)
+    cluster_fun(g)$membership
+  }
+
+  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
+  pcs <- pcs[, utils::head(seq_len(ncol(pcs)), 50)]
+
+  choices <- scran::getClusteredPCs(pcs, FUN = FUN, by=2)
+  names(choices$clusters) <- choices$n.pcs
+
+  npcs <- S4Vectors::metadata(choices)$chosen
+  cluster <- factor(choices$clusters[[as.character(npcs)]])
+
+
+  return(list(npcs = npcs, cluster = cluster))
+}
+
+get_npc_choices_new <- function(sce, type = 'PCA') {
+
+  # https://hbctraining.github.io/scRNA-seq/lessons/sc_exercises_clustering_analysis.html
+  # see above for choosing number of PCs
+  npcs <- 30
 
   # walktrap very slow if too many cells
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
@@ -830,7 +862,7 @@ get_npc_choices <- function(sce, type = 'PCA', npcs = 30) {
   g <- scran::buildSNNGraph(pcs, transposed = TRUE)
 
   if (ncol(sce) > 5000) {
-      cluster <- igraph::cluster_leiden(g, 'modularity', resolution_parameter = 1.4)$membership
+    cluster <- igraph::cluster_leiden(g, 'modularity', resolution_parameter = 1.4)$membership
 
   } else {
     cluster <- igraph::cluster_walktrap(g)$membership
