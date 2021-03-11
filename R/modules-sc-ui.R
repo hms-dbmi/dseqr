@@ -159,6 +159,8 @@ labelTransferFormInput <- function(id) {
   ns <- NS(id)
   withTags({
     div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
+        sliderInput(
+          ns('resoln'), 'Cluster resolution:', min=0, value=1, max=4.8, step = 0.2, width = '100%'),
         shinypanel::selectizeInputWithButtons(
           ns('ref_name'), 'Transfer labels from:',
           actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),

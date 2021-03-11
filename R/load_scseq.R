@@ -850,25 +850,29 @@ get_npc_choices <- function(sce, type = 'PCA') {
   return(list(npcs = npcs, cluster = cluster))
 }
 
-get_npc_choices_new <- function(sce, type = 'PCA') {
 
-  # https://hbctraining.github.io/scRNA-seq/lessons/sc_exercises_clustering_analysis.html
-  # see above for choosing number of PCs
-  npcs <- 30
+get_snn_graph <- function(sce, npcs = 30) {
+  types <- SingleCellExperiment::reducedDimNames(sce)
+  type <- ifelse('corrected' %in% types, 'corrected', 'PCA')
 
   # walktrap very slow if too many cells
   pcs <- SingleCellExperiment::reducedDim(sce, type = type)
   pcs <- pcs[, utils::head(seq_len(ncol(pcs)), npcs)]
   g <- scran::buildSNNGraph(pcs, transposed = TRUE)
+  return(g)
+}
 
-  if (ncol(sce) > 5000) {
-    cluster <- igraph::cluster_leiden(g, 'modularity', resolution_parameter = 1.4)$membership
+get_clusters <- function(snn_graph, type = c('leiden', 'walktrap'), resolution = 1) {
+  resolution <- as.numeric(resolution)
 
-  } else {
-    cluster <- igraph::cluster_walktrap(g)$membership
+  if (type[1] == 'leiden') {
+    cluster <- igraph::cluster_leiden(snn_graph, 'modularity', resolution_parameter = resolution)$membership
+
+  } else if (type[1] == 'walktrap') {
+    cluster <- igraph::cluster_walktrap(snn_graph)$membership
   }
 
-  return(list(npcs = npcs, cluster = factor(cluster)))
+  return(factor(cluster))
 }
 
 #' Cluster SingleCellExperiment
