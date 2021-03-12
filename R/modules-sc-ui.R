@@ -71,6 +71,7 @@ scFormInput <- function(id) {
         scSelectedDatasetInput(ns('dataset')),
         div(class = 'hidden-forms',
             labelTransferFormInput(ns('transfer')),
+            resolutionFormInput(ns('resolution')),
             integrationFormInput(ns('integration')),
             subsetFormInput(ns('subset'))
         ),
@@ -133,14 +134,14 @@ scSelectedDatasetInput <- function(id) {
           actionButton(
             ns('show_label_transfer'), '',
             icon = icon('cog', 'fa-fw'),
-            title = 'Toggle cluster resolution and label transfer',
+            title = 'Toggle <b>once</b> for label transfer and <b>twice</b> for cluster resolution',
             class = 'squashed-btn',
             `parent-style`='display: none;'
           ),
           actionButton(
             ns('show_integration'), '',
             icon = icon('object-ungroup', 'far fa-fw'),
-            title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate dataset(s)'
+            title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate datasets'
           )
         )
     ),
@@ -159,14 +160,27 @@ labelTransferFormInput <- function(id) {
   ns <- NS(id)
   withTags({
     div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
-        sliderInput(
-          ns('resoln'), 'Cluster resolution:', min=0, value=1, max=3, step = 0.2, width = '100%'),
         shinypanel::selectizeInputWithButtons(
           ns('ref_name'), 'Transfer labels from:',
           actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
           options = list(optgroupField = 'type',
                          render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
         )
+    )
+  })
+}
+
+#' Input form for transferring labels between single cell datasets
+#'
+#' @keywords internal
+#' @noRd
+resolutionFormInput <- function(id) {
+  ns <- NS(id)
+  withTags({
+    div(id = ns('resolution-form'), class = 'hidden-form', style = 'display: none;',
+        sliderInput(
+          ns('resoln'), 'Cluster resolution:', min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
+        justifiedButtonGroup(actionButton(ns('apply_update'), label = 'Apply Update'), label = '')
     )
   })
 }
@@ -398,7 +412,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   if (with_dl)
     dl_btn <- actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
-    tags$div(
+  tags$div(
     downloadLink(ns('download'), ''),
     shinypanel::selectizeInputWithButtons(
       inputId = ns('selected_cluster'),
@@ -408,8 +422,7 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
       options = list(multiple = FALSE),
       label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
-    )
+  )
 
 }
-
 
