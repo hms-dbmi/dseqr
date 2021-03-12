@@ -1034,7 +1034,8 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     file.path(sc_dir, dataset_name)
   })
 
-  # stuff for changing resolution
+  # clusters after change resolution
+  resoln <- reactive(input$resoln)
   clusters_path <- reactive(file.path(dataset_dir(), 'clusters.rds'))
   snn_path <- reactive(file.path(dataset_dir(), 'snn_graph.qs'))
 
@@ -1054,7 +1055,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   })
 
   clusters <- reactive({
-    resoln <- as.character(input$resoln)
+    resoln <- as.character(resoln())
     clusters_path <- clusters_path()
     clusters <- readRDS.safe(clusters_path, .nofile = list())
 
@@ -1070,12 +1071,41 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     return(clusters[[resoln]])
   })
 
+  resoln_dir <- reactive(file.path(dataset_dir(), paste0('snn', resoln())))
+  resoln_applied <- reactive(dir.exists(resoln_dir()))
+
+  observe({
+    toggleClass('apply_update', 'btn-primary', condition = !resoln_applied())
+    toggleClass('apply_update', 'disabled', condition = resoln_applied())
+    })
+
+  observeEvent(input$apply_update, {
+    browser()
+    dataset_name <- dataset_name()
+    resoln <- resoln()
+
+    # need non-loom version
+    scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
+    scseq <- readRDS(scseq_path)
+
+    # add new clusters
+    clusters <- clusters()
+    scseq$cluster <- clusters[[resoln]]
+
+    progress <- Progress$new(session, min = 0, max = 4)
+    progress$set(message = "Applying update:", value = 1)
+    on.exit(progress$close())
+
+    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value = 1)
+  })
+
+
 
 
   return(list(
     pred_annot = pred_annot,
     clusters = clusters,
-    resoln = reactive(input$resoln)
+    resoln = resoln
     )
   )
 }

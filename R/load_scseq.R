@@ -20,6 +20,9 @@ load_raw_scseq <- function(dataset_name,
                            recount = FALSE,
                            value = 0,
                            founder = dataset_name,
+                           npcs = 30,
+                           cluster_alg = 'leiden',
+                           resoln = resoln,
                            metrics = c('low_lib_size',
                                        'low_n_features',
                                        'high_subsets_mito_percent',
@@ -52,7 +55,15 @@ load_raw_scseq <- function(dataset_name,
 
   scseq <- run_scseq_qc(scseq, metrics)
 
-  process_raw_scseq(scseq, dataset_name, sc_dir, founder=founder, progress = progress, value = value + 3)
+  process_raw_scseq(scseq,
+                    dataset_name,
+                    sc_dir,
+                    cluster_alg = cluster_alg,
+                    npcs = npcs,
+                    resoln = resoln,
+                    founder = founder,
+                    progress = progress,
+                    value = value + 3)
 }
 
 
@@ -87,7 +98,16 @@ run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
 #'
 #' @return NULL
 #' @export
-process_raw_scseq <- function(scseq, dataset_name, sc_dir, hvgs = NULL, founder = NULL, progress = NULL, value = 0) {
+process_raw_scseq <- function(scseq,
+                              dataset_name,
+                              sc_dir,
+                              cluster_alg = 'leiden',
+                              npcs = 30,
+                              resoln = 1,
+                              hvgs = NULL,
+                              founder = NULL,
+                              progress = NULL,
+                              value = 0) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -95,46 +115,31 @@ process_raw_scseq <- function(scseq, dataset_name, sc_dir, hvgs = NULL, founder 
     })
   }
 
-  progress$set(message = "clustering", detail = '', value = value + 1)
+  scseq@meta.data$npcs <- npcs
+  progress$set(message = "reducing", value = value + 1)
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
-  scseq <- add_scseq_clusters(scseq)
-  gc()
-
-
-  progress$set(message = "reducing", value = value + 2)
+  scseq <- run_pca(scseq)
   scseq <- run_tsne(scseq)
   gc()
 
-  progress$set(message = "cluster markers", value = value + 3)
-  tests <- pairwise_wilcox(scseq)
-  markers <- get_scseq_markers(tests)
 
-  # top markers for SingleR
-  top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
+  progress$set(message = "clustering", detail = '', value = value + 2)
+  snn_graph <- get_snn_graph(scseq, npcs)
+  gc()
 
-
-  # used for label transfer
-  scseq_sample <- downsample_clusters(scseq)
-
-  progress$set(message = "saving", value = value + 4)
-
-
-  anal <- list(scseq = scseq,
-               scseq_sample = scseq_sample,
-               markers = markers,
-               tests = tests,
-               annot = names(markers),
-               top_markers = top_markers,
-               founder = founder)
-
+  # save independent of resolution
+  anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder)
   save_scseq_data(anal, dataset_name, sc_dir)
 
-  # don't save raw counts for loom (saved as non-sparse)
-  SummarizedExperiment::assay(scseq, 'counts') <- NULL; gc()
-
-  progress$set(message = "saving loom", value = value + 5)
+  progress$set(message = "saving loom", value = value + 3)
   save_scle(scseq, file.path(sc_dir, dataset_name))
+
+  # run what depends on resolution
+  clusters <- get_clusters(snn_graph, cluster_alg, resoln)
+  scseq$cluster <- clusters
+
+  run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value + 3)
   progress$set(value = value + 7)
 }
 
@@ -276,7 +281,11 @@ transition_efs <- function(fpath) {
 #' @keywords internal
 #'
 save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
+  # don't save raw counts for loom (saved in non-sparse format)
+  SummarizedExperiment::assay(combined, 'counts') <- NULL
+
   scle_path <- file.path(dataset_dir, 'scle.loom')
+
 
   if (!file.exists(scle_path) | overwrite) {
     unlink(scle_path)
@@ -881,7 +890,7 @@ get_clusters <- function(snn_graph, type = c('leiden', 'walktrap'), resolution =
 #'
 #' @return \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
 #' @export
-add_scseq_clusters <- function(sce) {
+run_pca <- function(sce) {
 
   # run PCA on HVGs
   rdata <- SummarizedExperiment::rowData(sce)
@@ -889,13 +898,6 @@ add_scseq_clusters <- function(sce) {
 
   set.seed(100)
   sce <- scater::runPCA(sce, subset_row = subset_row)
-
-  # pick number of PCs
-  choices <- get_npc_choices(sce)
-  sce@metadata$npcs <- choices$npcs
-
-  # add clusters
-  sce$cluster <- choices$cluster
   return(sce)
 }
 

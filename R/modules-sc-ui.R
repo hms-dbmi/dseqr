@@ -132,8 +132,8 @@ scSelectedDatasetInput <- function(id) {
           label = 'Select or upload a single-cell dataset:',
           actionButton(
             ns('show_label_transfer'), '',
-            icon = icon('tag', 'fa-fw'),
-            title = 'Toggle label transfer',
+            icon = icon('cog', 'fa-fw'),
+            title = 'Toggle cluster resolution and label transfer',
             class = 'squashed-btn',
             `parent-style`='display: none;'
           ),

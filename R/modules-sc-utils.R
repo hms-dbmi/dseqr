@@ -795,6 +795,9 @@ integrate_saved_scseqs <- function(
   founder = integration_name,
   pairs = NULL,
   hvgs = NULL,
+  npcs = 30,
+  cluster_alg = 'leiden',
+  resoln = '1',
   progress = NULL,
   value = 0) {
 
@@ -815,7 +818,7 @@ integrate_saved_scseqs <- function(
   # save dummy data if testing shiny
   if (isTRUE(getOption('shiny.testmode'))) {
     scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
-    save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = TRUE)
+    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
     return(TRUE)
   }
 
@@ -855,9 +858,6 @@ integrate_saved_scseqs <- function(
   species <- unique(sapply(scseqs, function(x) x@metadata$species))
   if(length(species) > 1) stop('Multi-species integration not supported.')
 
-  if (species == 'Homo sapiens') release <- '94'
-  else if (species == 'Mus musculus') release <- '98'
-
   progress$set(value+2, detail = 'integrating')
   combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs, hvgs = hvgs)
   combined$project <- dataset_name
@@ -867,75 +867,117 @@ integrate_saved_scseqs <- function(
 
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
-  # add clusters
-  progress$set(value+3, detail = 'clustering')
-  choices <- get_npc_choices(combined, type = 'corrected')
-
-  combined@metadata$species <- species
-  combined@metadata$npcs <- choices$npcs
-  combined$cluster <- choices$cluster
-
   # TSNE on corrected reducedDim
-  progress$set(value+4, detail = 'reducing')
+  progress$set(value+3, detail = 'reducing')
+  combined@metadata$npcs <- npcs
   combined <- run_tsne(combined, dimred = 'corrected')
 
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
 
-  progress$set(value+5, detail = 'cluster markers')
-  tests <- pairwise_wilcox(combined, block = combined$batch, groups = combined$cluster)
+  # get graph
+  combined@metadata$species <- species
+  snn_graph <- get_snn_graph(combined, npcs = npcs)
+
+  # save what is stable with resolution change
+  progress$set(value+4, detail = 'saving loom')
+  scseq_data <- list(scseq = combined,
+                     species = species,
+                     ambient = ambient,
+                     pairs = pairs,
+                     snn_graph = snn_graph,
+                     has_replicates = has_replicates,
+                     founder = founder)
+
+  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+  save_scle(combined, file.path(sc_dir, dataset_name))
+
+  # run things that can change with resolution change
+  clusters <- get_clusters(snn_graph, cluster_alg, resoln)
+  combined$cluster <- clusters
+
+  run_post_cluster(combined, dataset_name, sc_dir, resoln, progress, value+4)
+  return(TRUE)
+}
+
+#' Post-Cluster Processing of SingleCellExperiment
+#'
+#' @param scseq SingleCellExperiment
+#' @param resoln resolution parameter
+#' @param integrated is \code{scseq} integrated?
+#' @param progress progress
+#' @param value value
+#'
+#' @return NULL
+#'
+run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0) {
+
+  integrated <- 'corrected' %in% SingleCellExperiment::reducedDimNames(scseq)
+  species <- scseq@metadata$species
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+
+  progress$set(value, detail = 'cluster markers')
+  tests <- pairwise_wilcox(scseq, block = scseq$batch)
   markers <- get_scseq_markers(tests)
 
   # top markers for SingleR
   top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
-  # generate pseudo-bulk so that can exclude counts (large)
-  summed <- scater::aggregateAcrossCells(combined,
-                                         id = S4Vectors::DataFrame(
-                                           cluster = combined$cluster,
-                                           batch = combined$batch))
-
-
-  progress$set(value+6, detail = 'comparing groups')
-  obj <- combined
-  pbulk_esets <- NULL
-  has_replicates <- length(unique(combined$batch)) > 2
-  if (has_replicates) pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
-
-  lm_fit <- run_limma_scseq(obj)
-
   # used for label transfer
-  scseq_sample <- downsample_clusters(combined)
+  scseq_sample <- downsample_clusters(scseq)
 
-  progress$set(value+7, detail = 'saving')
-  scseq_data <- list(scseq = combined,
-                     scseq_sample = scseq_sample,
-                     species = species,
-                     summed = summed,
-                     markers = markers,
-                     ambient = ambient,
-                     tests = tests,
-                     pairs = pairs,
-                     top_markers = top_markers,
-                     has_replicates = has_replicates,
-                     founder = founder,
+  anal <- list(scseq_sample = scseq_sample,
+               markers = markers,
+               tests = tests,
+               annot = names(markers),
+               top_markers = top_markers)
+
+
+  if (integrated) {
+
+    progress$set(value+1, detail = 'pseudobulking')
+    summed <- scater::aggregateAcrossCells(
+      scseq,
+      id = S4Vectors::DataFrame(
+        cluster = scseq$cluster,
+        batch = scseq$batch))
+
+    obj <- scseq
+    pbulk_esets <- NULL
+    has_replicates <- length(unique(scseq$batch)) > 2
+
+    if (has_replicates) {
+      pairs_path <- scseq_part_path(sc_dir, dataset_name, 'pairs')
+      pairs <- readRDS.safe(pairs_path)
+
+      if (species == 'Homo sapiens') release <- '94'
+      else if (species == 'Mus musculus') release <- '98'
+
+      pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
+    }
+
+    progress$set(value+2, detail = 'fitting')
+    lm_fit <- run_limma_scseq(obj)
+    anal_int <- list(summed = summed,
                      lm_fit_0svs = lm_fit,
-                     pbulk_esets = pbulk_esets,
-                     annot = names(markers))
+                     pbulk_esets = pbulk_esets)
 
-  save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = TRUE)
-  save_scseq_args(args, dataset_name, sc_dir)
-  rm(scseq_data, summed, markers, ambient, tests, pairs, top_markers, lm_fit, pbulk_esets); gc()
+    anal <- c(anal, anal_int)
+  }
 
+  # save in subdirectory e.g. snn0.8
+  progress$set(value+3, detail = 'saving')
+  dataset_subname <- file.path(dataset_name, paste0('snn', resoln))
+  save_scseq_data(scseq_data, dataset_subname, sc_dir)
 
-  # don't save raw counts for loom (saved in non-sparse format)
-  SummarizedExperiment::assay(combined, 'counts') <- NULL; gc()
-
-  progress$set(value+8, detail = 'saving loom')
-  save_scle(combined, file.path(sc_dir, dataset_name))
-
-  return(TRUE)
 }
+
 
 
 #' Integration Utility Function for Background Process
@@ -1196,14 +1238,14 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
 #' @param dataset_name The analysis name.
 #' @param sc_dir Path to directory with single-cell datasets.
-#' @param integrated is the analysis integration. Default is \code{FALSE}
+#' @param add_integrated Add analysis to integrated.rds file? Default is \code{FALSE}
 #'
 #' @return NULL
 #' @keywords internal
-save_scseq_data <- function(scseq_data, dataset_name, sc_dir, integrated = FALSE) {
+save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = FALSE) {
   dataset_dir <- file.path(sc_dir, dataset_name)
 
-  if (integrated) {
+  if (add_integrated) {
     # add to integrated if new
     int_path <- file.path(sc_dir, 'integrated.rds')
     int_options <- c(readRDS(int_path), dataset_name)
