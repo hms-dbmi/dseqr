@@ -942,7 +942,14 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   include_choices <- reactive({
     clusters <- annot()
     dataset_dir <- file.path(sc_dir, input$dtangle_dataset)
-    get_cluster_choices(clusters, dataset_dir = dataset_dir)
+
+    # get path to resolution subdir being used
+    resoln_path <- file.path(dataset_dir, 'resoln.rds')
+    resoln <- readRDS(resoln_path)
+
+    dataset_subdir <- file.path(dataset_dir, paste0('snn', resoln))
+
+    get_cluster_choices(clusters, dataset_subdir = dataset_subdir)
   })
 
   observe({

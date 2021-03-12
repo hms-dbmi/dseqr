@@ -13,6 +13,9 @@ load_raw_scseq(
   recount = FALSE,
   value = 0,
   founder = dataset_name,
+  npcs = 30,
+  cluster_alg = "leiden",
+  resoln = resoln,
   metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
     "low_subsets_ribo_percent", "high_doublet_score")
 )

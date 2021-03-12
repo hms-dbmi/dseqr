@@ -53,8 +53,9 @@ validate_preds <- function(preds, sc_dir) {
 
   dated <- sapply(ref_names, function(ref_name) {
     if (ref_name %in% ls(senv)) return(FALSE)
+    resoln_name <- get_resoln_name(sc_dir, ref_name)
 
-    ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq_sample')
+    ref_path <- scseq_part_path(sc_dir, resoln_name, 'scseq_sample')
     ref_date <- file.info(ref_path)$ctime
     ref_date <- as.character(ref_date)
     res_date <- names(preds[[ref_name]])[1]
@@ -577,7 +578,7 @@ html_space <- function(x, justify = 'right') {
 
 #' Get/Save cluster stats for single-cell related selectizeInputs
 #'
-#' @param dataset_dir Directory with single cell dataset.
+#' @param resoln_dir Sub directory with single cell dataset info specific to resolution.
 #' @param scseq \code{SingleCellExperiment} object to get/save stats for.
 #'   if \code{NULL} (Default), will be loaded.
 #' @param top_tables List of \code{limma::topTable} results used by
@@ -589,12 +590,15 @@ html_space <- function(x, justify = 'right') {
 #' @inheritParams get_cluster_choices
 #'
 #' @return List with cluster stats
-get_cluster_stats <- function(dataset_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
+get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
 
-  stats_path <- file.path(dataset_dir, 'cluster_stats.rds')
+  stats_path <- file.path(resoln_dir, 'cluster_stats.rds')
   if (file.exists(stats_path) && use_disk) return(readRDS(stats_path))
 
-  if (is.null(scseq)) scseq <- load_scseq(dataset_dir)
+  if (is.null(scseq)) {
+    dataset_dir <- dirname(resoln_dir)
+    scseq <- load_scseq(dataset_dir)
+  }
 
   ncells <- c(tabulate(scseq$cluster), ncol(scseq))
   pcells <- ncells / ncol(scseq) * 100
@@ -921,7 +925,6 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
     })
   }
 
-
   progress$set(value, detail = 'cluster markers')
   tests <- pairwise_wilcox(scseq, block = scseq$batch)
   markers <- get_scseq_markers(tests)
@@ -938,10 +941,9 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
                annot = names(markers),
                top_markers = top_markers)
 
-
   if (integrated) {
 
-    progress$set(value+1, detail = 'pseudobulking')
+    progress$set(value+1, detail = 'pseudobulk')
     summed <- scater::aggregateAcrossCells(
       scseq,
       id = S4Vectors::DataFrame(
@@ -962,7 +964,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
       pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
     }
 
-    progress$set(value+2, detail = 'fitting')
+    progress$set(value+2, detail = 'linear fits')
     lm_fit <- run_limma_scseq(obj)
     anal_int <- list(summed = summed,
                      lm_fit_0svs = lm_fit,
@@ -974,7 +976,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   # save in subdirectory e.g. snn0.8
   progress$set(value+3, detail = 'saving')
   dataset_subname <- file.path(dataset_name, paste0('snn', resoln))
-  save_scseq_data(scseq_data, dataset_subname, sc_dir)
+  save_scseq_data(anal, dataset_subname, sc_dir)
 
 }
 
@@ -1565,4 +1567,11 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
   }
 }
 
+
+get_subname <- function(sc_dir, dataset_name) {
+  resoln_path <- scseq_part_path(sc_dir, dataset_name, 'resoln')
+  resoln <- readRDS(resoln_path)
+
+  file.path(dataset_name, paste0('snn', resoln))
+}
 

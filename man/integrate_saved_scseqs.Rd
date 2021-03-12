@@ -17,6 +17,9 @@ integrate_saved_scseqs(
   founder = integration_name,
   pairs = NULL,
   hvgs = NULL,
+  npcs = 30,
+  cluster_alg = "leiden",
+  resoln = "1",
   progress = NULL,
   value = 0
 )

@@ -4,7 +4,7 @@
 \alias{save_scseq_data}
 \title{Save Single Cell RNA-seq data for app}
 \usage{
-save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = FALSE)
+save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = FALSE)
 }
 \arguments{
 \item{scseq_data}{Named list with \code{scseq}, \code{markers}, and/or \code{annot}}
@@ -13,7 +13,7 @@ save_scseq_data(scseq_data, dataset_name, sc_dir, integrated = FALSE)
 
 \item{sc_dir}{Path to directory with single-cell datasets.}
 
-\item{integrated}{is the analysis integration. Default is \code{FALSE}}
+\item{add_integrated}{Add analysis to integrated.rds file? Default is \code{FALSE}}
 }
 \description{
 Save Single Cell RNA-seq data for app
