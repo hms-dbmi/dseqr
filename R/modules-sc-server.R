@@ -256,8 +256,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
   # the selected cluster/gene for cluster comparison
   scClusterComparison <- callModule(clusterComparison, 'cluster',
+                                    sc_dir = sc_dir,
                                     dataset_dir = dataset_dir,
+                                    dataset_name = scDataset$dataset_name,
                                     resoln_dir = resoln_dir,
+                                    resoln = resoln,
+                                    applied = scResolution$applied,
                                     scseq = scseq,
                                     annot_path = annot_path,
                                     annot = annot,
@@ -1076,22 +1080,22 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, show_resolution, scseq, snn_graph, annot_path) {
   resolution_inputs <- c('resoln', 'apply_update')
 
-  resoln <- reactiveVal(1)
+  prev_resoln <- reactiveVal()
+  resoln_path <- reactiveVal()
+  resoln <- reactiveVal()
+
   observe(resoln(input$resoln))
 
-  resoln_path <- reactive({
-    req(dataset_dir())
-    file.path(dataset_dir(), 'resoln.rds')
-  })
+  observeEvent(dataset_dir(),  {
+    dataset_dir <- dataset_dir()
+    req(dataset_dir)
 
-  # get prev resoln (default 1)
-  prev_resoln <- reactiveVal(1)
-  observe(prev_resoln(readRDS.safe(resoln_path(), 1)))
-  observe(resoln(prev_resoln()))
-
-
-  # initialize slider resolution
-  observe(updateSliderInput(session, 'resoln', value=prev_resoln()))
+    fpath <- file.path(dataset_dir(), 'resoln.rds')
+    resoln_path(fpath)
+    init <- readRDS.safe(fpath, 1)
+    resoln(init)
+    updateSliderInput(session, 'resoln', value=init)
+  }, priority = 1)
 
   resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
 
@@ -1130,11 +1134,12 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (applied()) {
       resoln <- resoln()
       prev_resoln(resoln)
+      saveRDS(TRUE, applied_path())
       saveRDS(resoln, resoln_path())
     }
   })
 
-  same_resoln <- reactive(prev_resoln() == resoln())
+  same_resoln <- reactive(!is.null(prev_resoln()) && prev_resoln() == resoln())
   allow_update <- reactive(!applied() | !same_resoln())
 
   observe({
@@ -1146,14 +1151,14 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     resoln <- resoln()
     disableAll(resolution_inputs)
     progress <- Progress$new(session, min = 0, max = 4)
-    progress$set(message = "Updating:", detail = 'loading data', value = 1)
+    progress$set(message = "Applying resolution update:", detail = 'loading', value = 1)
     on.exit(progress$close())
 
     dataset_name <- dataset_name()
 
     # need non-loom version
-    scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
-    scseq <- readRDS(scseq_path)
+    scseq_path <- file.path(sc_dir, dataset_name, 'scseq.qs')
+    scseq <- load_scseq_qs(scseq_path)
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters()
@@ -1161,7 +1166,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # mark as previously applied and re-enable
     applied(TRUE)
-    saveRDS(TRUE, applied_path())
     enableAll(resolution_inputs)
   })
 
@@ -1169,7 +1173,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   return(list(
     clusters = clusters,
     resoln = resoln,
-    resoln_name = resoln_name
+    resoln_name = resoln_name,
+    applied = applied
   ))
 
 }
@@ -1599,8 +1604,8 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #'
 #' @keywords internal
 #' @noRd
-clusterComparison <- function(input, output, session, dataset_dir, resoln_dir, scseq, annot_path, annot, ref_preds, clusters) {
-
+clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, applied, scseq, annot_path, annot, ref_preds, clusters) {
+  cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   selected_cluster <- reactiveVal()
@@ -1765,6 +1770,22 @@ clusterComparison <- function(input, output, session, dataset_dir, resoln_dir, s
 
     } else {
       markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.rds'))
+      if (!file.exists(markers_path)) {
+
+        disableAll(cluster_inputs)
+        progress <- Progress$new(session, min = 0, max = 4)
+        on.exit(progress$close())
+        progress$set(message = "Applying resolution update:", detail = 'loading', value = 1)
+
+        scseq_path <- file.path(dataset_dir(), 'scseq.qs')
+        scseq <- load_scseq_qs(scseq_path)
+
+        scseq$cluster <- clusters()
+
+        run_post_cluster(scseq, dataset_name(), sc_dir, resoln(), progress, value = 1)
+        applied(TRUE)
+        enableAll(cluster_inputs)
+      }
       markers[[sel]] <- readRDS(markers_path)
     }
 
@@ -1792,6 +1813,8 @@ clusterComparison <- function(input, output, session, dataset_dir, resoln_dir, s
     selected_cluster = selected_cluster
   ))
 }
+
+
 
 
 #' Logic for selected gene to show plots for

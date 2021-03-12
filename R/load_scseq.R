@@ -212,16 +212,15 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 #' @keywords internal
 load_scseq <- function(dataset_dir) {
   scle_path <- file.path(dataset_dir, 'scle.loom')
-  scseq_path <- file.path(dataset_dir, 'scseq.rds')
+  scseq_path <- file.path(dataset_dir, 'scseq.qs')
 
   transition_efs(scle_path)
-
 
   # load loom if available (faster and less memory)
   scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
                     error = function(e) {
                       unlink(scle_path)
-                      return(readRDS(scseq_path))
+                      return(load_scseq_qs(scseq_path))
                     })
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)

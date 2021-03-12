@@ -147,7 +147,7 @@ load_scseq_datasets <- function(data_dir) {
 
   if (file.exists(int_path)) {
     integrated <- readRDS.safe(int_path)
-    has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
+    has.scseq <- check_has_scseq(integrated, sc_dir)
     integrated <- integrated[has.scseq]
 
     for(ds in integrated) datasets[nrow(datasets) + 1, ] <- c(ds, file.path('single-cell', ds), ds, NA, 'Single Cell')

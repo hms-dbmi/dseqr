@@ -917,7 +917,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
     # exclude individual without scseq (e.g. folder with fastq.gz files only)
-    has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+    has.scseq <- check_has_scseq(individual, sc_dir)
     individual <- individual[unlist(has.scseq)]
     return(individual)
   })

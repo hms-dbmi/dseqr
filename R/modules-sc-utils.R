@@ -282,6 +282,13 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
   return(choices)
 }
 
+check_has_scseq <- function(dataset_names, sc_dir) {
+  sapply(dataset_names, function(dataset_name) {
+    fnames <- list.files(file.path(sc_dir, dataset_name))
+    any(fnames %in% c('scseq.rds', 'scseq.qs'))
+  })
+}
+
 
 #' Get data.frame of single-cell dataset choices
 #'
@@ -295,7 +302,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   # exclude missing from integrated (e.g. manual delete)
   integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
-  has.scseq <- sapply(integrated, function(int) any(list.files(file.path(sc_dir, int)) == 'scseq.rds'))
+  has.scseq <- check_has_scseq(integrated, sc_dir)
   integrated <- integrated[has.scseq]
 
   int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
@@ -311,7 +318,7 @@ get_sc_dataset_choices <- function(sc_dir) {
   individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
 
   # exclude individual without scseq (e.g. folder with fastq.gz files only)
-  has.scseq <- sapply(individual, function(ind) any(list.files(file.path(sc_dir, ind)) == 'scseq.rds'))
+  has.scseq <- check_has_scseq(individual, sc_dir)
   individual <- individual[unlist(has.scseq)]
 
   # founder for subsets as type
@@ -926,7 +933,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
     })
   }
 
-  progress$set(value, detail = 'cluster markers')
+  progress$set(value, detail = 'getting markers')
   tests <- pairwise_wilcox(scseq, block = scseq$batch)
   markers <- get_scseq_markers(tests)
 
@@ -944,7 +951,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
   if (integrated) {
 
-    progress$set(value+1, detail = 'pseudobulk')
+    progress$set(value+1, detail = 'pseudobulking')
     summed <- scater::aggregateAcrossCells(
       scseq,
       id = S4Vectors::DataFrame(
@@ -965,7 +972,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
       pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
     }
 
-    progress$set(value+2, detail = 'linear fits')
+    progress$set(value+2, detail = 'fitting models')
     lm_fit <- run_limma_scseq(obj)
     anal_int <- list(summed = summed,
                      lm_fit_0svs = lm_fit,
@@ -1189,7 +1196,8 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 
   # load each scseq and exclude based on metrics
   for (dataset_name in dataset_names) {
-    scseq <- readRDS(scseq_part_path(sc_dir, dataset_name, 'scseq'))
+    scseq_path <- file.path(sc_dir, dataset_name, 'scseq.qs')
+    scseq <- load_scseq_qs(scseq_path)
     # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
 
@@ -1260,33 +1268,49 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 
   dir.create(dataset_dir)
   for (type in names(scseq_data)) {
+    item <- scseq_data[[type]]
 
-    if (type == 'markers') {
+    if(type == 'scseq') {
+      # save as .qs for fast loading
+      qs::qsave(item, file.path(sc_dir, dataset_name, 'scseq.qs'))
+
+    } else if (type == 'markers') {
       # save marker data.frames individually for fast loading
 
-      markers <- scseq_data[[type]]
-      for (i in names(markers))
-        saveRDS(markers[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
+      for (i in names(item))
+        saveRDS(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
 
     } else if (type == 'tests') {
       # save pairwise test statistics for fast single group comparisons
 
-      tests <- scseq_data[[type]]
       tests_dir <- file.path(dataset_name, 'tests')
       dir.create(file.path(sc_dir, tests_dir))
 
-      saveRDS(tests$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
+      saveRDS(item$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
 
-      for (i in seq_along(tests$statistics))
-        saveRDS(tests$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
+      for (i in seq_along(item$statistics))
+        saveRDS(item$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
 
     } else {
-      saveRDS(scseq_data[[type]], scseq_part_path(sc_dir, dataset_name, type))
+      saveRDS(item, scseq_part_path(sc_dir, dataset_name, type))
     }
 
   }
 
   return(NULL)
+}
+
+load_scseq_qs <- function(scseq_path) {
+  if (file.exists(scseq_path)) {
+    scseq <- qs::qread(scseq_path)
+  } else {
+    rds_path <- gsub('qs$', 'rds', scseq_path)
+    scseq <- readRDS(rds_path)
+    qs::qsave(scseq, scseq_path)
+    unlink(rds_path)
+  }
+
+  return(scseq)
 }
 
 #' Validate dataset selection for integration
