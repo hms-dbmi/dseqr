@@ -238,6 +238,12 @@ load_scseq <- function(dataset_dir) {
   return(scseq)
 }
 
+attach_clusters <- function(scseq, resoln_dir) {
+  clusters_path <- file.path(resoln_dir, 'clusters.rds')
+  scseq$cluster <- readRDS(clusters_path)
+  return(scseq)
+}
+
 #' Utility to move files on EFS from IA to SA
 #'
 #' If time since last access time is greater than \code{Sys.getenv('EFS_LIFECYCLE')},
