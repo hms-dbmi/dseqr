@@ -5,7 +5,7 @@
 \title{Get/Save cluster stats for single-cell related selectizeInputs}
 \usage{
 get_cluster_stats(
-  dataset_subdir = NULL,
+  resoln_dir = NULL,
   scseq = NULL,
   top_tables = NULL,
   has_replicates = FALSE,
@@ -14,7 +14,7 @@ get_cluster_stats(
 )
 }
 \arguments{
-\item{dataset_subdir}{Directory with single cell dataset.}
+\item{resoln_dir}{Sub directory with single cell dataset info specific to resolution.}
 
 \item{scseq}{\code{SingleCellExperiment} object to get/save stats for.
 if \code{NULL} (Default), will be loaded.}

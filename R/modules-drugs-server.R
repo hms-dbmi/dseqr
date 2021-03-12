@@ -1,3 +1,5 @@
+
+
 #' Logic for Drugs Tab
 #'
 #' @inheritParams bulkPage
@@ -703,9 +705,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   # Single cell analysis
   # ---
+  resoln_dir <- reactive({
+    dataset_dir <- dataset_dir()
+    req(dataset_dir)
+    file.path(dataset_dir, load_resoln(dataset_dir))
+  })
   scSampleComparison <- callModule(scSampleComparison, 'sc',
                                    is_sc = is_sc,
-                                   dataset_dir = dataset_dir)
+                                   dataset_dir = dataset_dir,
+                                   resoln_dir = resoln_dir)
 
 
   # results for selected type (bulk, sc, custom, pert)

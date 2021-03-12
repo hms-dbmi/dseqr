@@ -96,21 +96,54 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   observe(new_dataset(scIntegration()))
   observe(new_dataset(scSubset()))
 
-  # the dataset and options
-  scDataset <- callModule(scSelectedDataset, 'dataset',
-                          sc_dir = sc_dir,
-                          plots_dir = plots_dir,
-                          new_dataset = new_dataset,
-                          indices_dir = indices_dir)
+  # directory with cluster resolution independent stuff
+  dataset_dir <- reactive({
+    dataset <- scDataset$dataset_name()
+    if (is.null(dataset)) return(NULL)
+    file.path(sc_dir, dataset)
+  })
+
+  # directory with cluster resolution dependent stuff
+  resoln_dir <- reactive({
+    dataset_dir <- dataset_dir()
+    resoln <- resoln()
+    req(dataset_dir, resoln)
+    resoln_dir <- file.path(dataset_dir, paste0('snn', resoln))
+    if (!dir.exists(resoln_dir)) dir.create(resoln_dir)
+    return(resoln_dir)
+  })
+
+  # directory for caching plots in
+  plots_dir <- reactive({
+    req(resoln_dir())
+    dir <- file.path(resoln_dir(), 'plots')
+    if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+    return(dir)
+  })
+
+  annot <- reactiveVal()
+  annot_path <- reactive(file.path(resoln_dir(), 'annot.rds'))
+  observe(annot(readRDS(annot_path())))
 
   observe(toggle('form_container', condition = scDataset$dataset_exists()))
 
+  # update scseq with cluster changes (from resolution)
+  scseq_clusts <- reactive({
+    scseq <- scDataset$scseq()
+    clusters <- scResolution$clusters()
+    resoln <-  resoln()
+    plots_dir <- plots_dir()
+
+    if (!is.null(clusters)) scseq$cluster <- clusters
+
+    return(scseq)
+  })
 
   # update scseq with annotation changes and custom metrics
-  annot <- reactive(scClusterComparison$annot())
+  resoln <- reactive(scResolution$resoln())
 
   scseq <- reactive({
-    scseq <- scDataset$scseq()
+    scseq <- scseq_clusts()
     annot <- annot()
     metrics <- scClusterGene$saved_metrics()
 
@@ -132,105 +165,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
     qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor', qc)]
   })
-
-
-  #TODO move label transfer and integration into dataset
-
-  # label transfer between datasets
-  scLabelTransfer <- callModule(labelTransferForm, 'transfer',
-                                sc_dir = sc_dir,
-                                datasets = scDataset$datasets,
-                                show_label_transfer = scDataset$show_label_transfer,
-                                dataset_name = scDataset$dataset_name,
-                                scseq = scseq,
-                                species = scDataset$species)
-
-  # dataset integration
-  scIntegration <- callModule(integrationForm, 'integration',
-                              sc_dir = sc_dir,
-                              datasets = scDataset$datasets,
-                              selected_dataset = scDataset$dataset_name,
-                              show_integration = scDataset$show_integration)
-
-  # dataset subset
-  scSubset <- callModule(subsetForm, 'subset',
-                         sc_dir = sc_dir,
-                         scseq = scseq,
-                         datasets = scDataset$datasets,
-                         selected_dataset = scDataset$dataset_name,
-                         dataset_dir = dataset_dir,
-                         show_subset = scDataset$show_subset,
-                         is_integrated = scDataset$is_integrated)
-
-
-  # comparison type
-  comparisonType <- callModule(comparisonType, 'comparison',
-                               scseq = scseq,
-                               is_integrated = scDataset$is_integrated)
-
-
-  # the selected cluster/gene for cluster comparison
-  dataset_dir <- reactive({
-    dataset <- scDataset$dataset_name()
-    if (is.null(dataset)) return(NULL)
-    file.path(sc_dir, dataset)
-  })
-
-  # directory for caching plots in
-  plots_dir <- reactive({
-    req(dataset_dir())
-    dir <- file.path(dataset_dir(), 'plots')
-    if (!dir.exists(dir)) dir.create(dir)
-    return(dir)
-  })
-
-  scClusterComparison <- callModule(clusterComparison, 'cluster',
-                                    dataset_dir = dataset_dir,
-                                    scseq = scseq,
-                                    annot_path = scDataset$annot_path,
-                                    ref_preds = scLabelTransfer)
-
-  scClusterGene <- callModule(selectedGene, 'gene_clusters',
-                              scseq = scDataset$scseq,
-                              dataset_name = scDataset$dataset_name,
-                              dataset_dir = dataset_dir,
-                              is_integrated = scDataset$is_integrated,
-                              selected_markers = scClusterComparison$selected_markers,
-                              selected_cluster = scClusterComparison$selected_cluster,
-                              qc_metrics = qc_metrics,
-                              type = 'clusters')
-
-
-
-  # the selected clusters/gene for sample comparison
-  scSampleComparison <- callModule(scSampleComparison, 'sample',
-                                   input_scseq = scseq,
-                                   input_annot = annot,
-                                   dataset_dir = dataset_dir,
-                                   plots_dir = plots_dir,
-                                   feature_plot = scDataset$feature_plot_samples,
-                                   dataset_name = scDataset$dataset_name,
-                                   sc_dir = sc_dir,
-                                   is_integrated = scDataset$is_integrated,
-                                   show_dprimes = scSampleGene$show_dprimes,
-                                   comparison_type = comparisonType,
-                                   exclude_ambient = scSampleGene$exclude_ambient)
-
-  scSampleGene <- callModule(selectedGene, 'gene_samples',
-                             scseq = scDataset$scseq,
-                             dataset_name = scDataset$dataset_name,
-                             dataset_dir = dataset_dir,
-                             is_integrated = scDataset$is_integrated,
-                             selected_markers = scSampleComparison$top_table,
-                             selected_cluster = scSampleComparison$selected_cluster,
-                             type = 'samples',
-                             ambient = scSampleComparison$ambient)
-
-
-
-  scLabelsComparison <- callModule(scLabelsComparison, 'labels',
-                                   cluster_choices = scSampleComparison$cluster_choices)
-
 
   # show the toggle if dataset is integrated
   observe({
@@ -262,6 +196,120 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   })
 
 
+  # the dataset and options
+  scDataset <- callModule(scSelectedDataset, 'dataset',
+                          sc_dir = sc_dir,
+                          new_dataset = new_dataset,
+                          indices_dir = indices_dir)
+
+  scClusterPlots <- clusterPlots(plots_dir, scseq = scseq_clusts)
+
+
+  # label transfer between datasets
+  scLabelTransfer <- callModule(labelTransferForm, 'transfer',
+                                sc_dir = sc_dir,
+                                dataset_dir = dataset_dir,
+                                resoln_dir = resoln_dir,
+                                resoln_name = scResolution$resoln_name,
+                                annot_path = annot_path,
+                                datasets = scDataset$datasets,
+                                show_label_transfer = scDataset$show_label_transfer,
+                                dataset_name = scDataset$dataset_name,
+                                scseq = scDataset$scseq,
+                                species = scDataset$species,
+                                clusters = scResolution$clusters)
+
+  # adjust resolution of dataset
+  scResolution <- callModule(resolutionForm, 'resolution',
+                             sc_dir = sc_dir,
+                             resoln_dir = resoln_dir,
+                             dataset_dir = dataset_dir,
+                             dataset_name = scDataset$dataset_name,
+                             show_resolution = scDataset$show_resolution,
+                             scseq = scDataset$scseq,
+                             snn_graph = scDataset$snn_graph,
+                             annot_path = annot_path)
+
+  # dataset integration
+  scIntegration <- callModule(integrationForm, 'integration',
+                              sc_dir = sc_dir,
+                              datasets = scDataset$datasets,
+                              selected_dataset = scDataset$dataset_name,
+                              show_integration = scDataset$show_integration)
+
+  # dataset subset
+  scSubset <- callModule(subsetForm, 'subset',
+                         sc_dir = sc_dir,
+                         scseq = scseq,
+                         datasets = scDataset$datasets,
+                         selected_dataset = scDataset$dataset_name,
+                         show_subset = scDataset$show_subset,
+                         is_integrated = scDataset$is_integrated)
+
+
+  # comparison type
+  comparisonType <- callModule(comparisonType, 'comparison',
+                               scseq = scseq,
+                               is_integrated = scDataset$is_integrated)
+
+
+
+  # the selected cluster/gene for cluster comparison
+  scClusterComparison <- callModule(clusterComparison, 'cluster',
+                                    dataset_dir = dataset_dir,
+                                    resoln_dir = resoln_dir,
+                                    scseq = scseq,
+                                    annot_path = annot_path,
+                                    annot = annot,
+                                    ref_preds = scLabelTransfer$pred_annot,
+                                    clusters = scResolution$clusters)
+
+  scClusterGene <- callModule(selectedGene, 'gene_clusters',
+                              scseq = scDataset$scseq,
+                              dataset_name = scDataset$dataset_name,
+                              resoln_name = scResolution$resoln_name,
+                              resoln_dir = resoln_dir,
+                              is_integrated = scDataset$is_integrated,
+                              selected_markers = scClusterComparison$selected_markers,
+                              selected_cluster = scClusterComparison$selected_cluster,
+                              qc_metrics = qc_metrics,
+                              type = 'clusters')
+
+
+
+  # the selected clusters/gene for sample comparison
+  scSampleComparison <- callModule(scSampleComparison, 'sample',
+                                   input_scseq = scseq,
+                                   input_annot = annot,
+                                   dataset_dir = dataset_dir,
+                                   resoln_dir = resoln_dir,
+                                   plots_dir = plots_dir,
+                                   feature_plot = scClusterPlots$feature_plot_samples,
+                                   dataset_name = scDataset$dataset_name,
+                                   sc_dir = sc_dir,
+                                   is_integrated = scDataset$is_integrated,
+                                   show_dprimes = scSampleGene$show_dprimes,
+                                   comparison_type = comparisonType,
+                                   exclude_ambient = scSampleGene$exclude_ambient)
+
+  scSampleGene <- callModule(selectedGene, 'gene_samples',
+                             scseq = scDataset$scseq,
+                             dataset_name = scDataset$dataset_name,
+                             resoln_name = scResolution$resoln_name,
+                             resoln_dir = resoln_dir,
+                             is_integrated = scDataset$is_integrated,
+                             selected_markers = scSampleComparison$top_table,
+                             selected_cluster = scSampleComparison$selected_cluster,
+                             type = 'samples',
+                             ambient = scSampleComparison$ambient)
+
+
+
+  scLabelsComparison <- callModule(scLabelsComparison, 'labels',
+                                   cluster_choices = scSampleComparison$cluster_choices)
+
+
+
   return(list(
     scseq = scseq,
     samples_gene = scSampleGene$selected_gene,
@@ -280,58 +328,14 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
     dataset_name = scDataset$dataset_name,
     species = scDataset$species,
     plots_dir = plots_dir,
-    feature_plot_clusters = scDataset$feature_plot_clusters,
-    cluster_plot = scDataset$cluster_plot,
+    feature_plot_clusters = scClusterPlots$feature_plot_clusters,
+    cluster_plot = scClusterPlots$cluster_plot,
     annot = annot
   ))
 }
 
+clusterPlots <- function(plots_dir, scseq) {
 
-#' Logic for selected dataset part of scForm
-#'
-#' @keywords internal
-#' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dataset, indices_dir) {
-  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
-  options <- list(create = TRUE,
-                  placeholder = 'Type name to add new single-cell dataset',
-                  render = I('{option: scDatasetOptions, item: scDatasetItem}'),
-                  searchField = c('optgroup', 'label'))
-
-  # get directory with fastqs/h5 files
-  roots <- c('single-cell' = sc_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, restrictions = get_exclude_dirs(sc_dir))
-
-
-  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
-
-  dataset_name <- reactive({
-    if (!dataset_exists()) return(NULL)
-    ds <- datasets()
-    ds <- ds$name[ds$value == input$selected_dataset]
-  })
-
-
-
-  # get's used for saving annotation to disc
-  annot_path <- reactive({
-    scseq_part_path(sc_dir, dataset_name(), 'annot')
-  })
-
-  # load annotation for clusters
-  annot <- reactive(readRDS(annot_path()))
-
-  # load scseq
-  scseq <- reactive({
-    if (!isTruthy(dataset_name())) return(NULL)
-    disableAll(dataset_inputs)
-
-    dataset_dir <- file.path(sc_dir, dataset_name())
-    scseq <- load_scseq(dataset_dir)
-
-    enableAll(dataset_inputs)
-    return(scseq)
-  })
 
   # create feature and cluster plot for future updating
   feature_plot_path <- reactive(file.path(plots_dir(), 'feature_plot.rds'))
@@ -381,7 +385,71 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     return(plot)
   })
 
+  return(list(
+    cluster_plot = cluster_plot,
+    feature_plot_samples = feature_plot_samples,
+    feature_plot_clusters = feature_plot_clusters
+  ))
+}
 
+
+
+#' Logic for selected dataset part of scForm
+#'
+#' @keywords internal
+#' @noRd
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
+  options <- list(create = TRUE,
+                  placeholder = 'Type name to add new single-cell dataset',
+                  render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+                  searchField = c('optgroup', 'label'))
+
+  # get directory with fastqs/h5 files
+  roots <- c('single-cell' = sc_dir)
+  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, restrictions = get_exclude_dirs(sc_dir))
+
+
+  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
+
+  dataset_name <- reactive({
+    if (!dataset_exists()) return(NULL)
+    ds <- datasets()
+    ds <- ds$name[ds$value == input$selected_dataset]
+  })
+
+  dataset_dir <- reactive(file.path(sc_dir, dataset_name()))
+  snn_path <- reactive(file.path(dataset_dir(), 'snn_graph.qs'))
+
+  # load scseq
+  scseq <- reactive({
+    if (!isTruthy(dataset_name())) return(NULL)
+    disableAll(dataset_inputs)
+    scseq <- load_scseq(dataset_dir())
+
+    enableAll(dataset_inputs)
+    return(scseq)
+  })
+
+  # load snn graph
+  snn_graph <- reactive({
+    snn_path <- snn_path()
+
+    if (file.exists(snn_path)) {
+      snn_graph <- qs::qread(snn_path)
+
+    } else {
+      disableAll(dataset_inputs)
+      scseq <- scseq()
+      if (!isTruthy(scseq)) return(NULL)
+
+      snn_graph <- get_snn_graph(scseq)
+      qs::qsave(snn_graph, snn_path)
+      enableAll(dataset_inputs)
+    }
+
+    return(snn_graph)
+  })
 
   is_integrated <- reactive({
     dataset_name <- dataset_name()
@@ -602,13 +670,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   # show/hide integration/label-transfer forms
   show_integration <- reactive(input$show_integration %% 3 == 2)
   show_subset <- reactive(input$show_integration %% 3 == 1)
-  show_label_transfer <- reactive(input$show_label_transfer %% 2 != 0)
+  show_resolution <- reactive(input$show_label_transfer %% 3 == 2)
+  show_label_transfer <- reactive(input$show_label_transfer %% 3 == 1)
 
   observe(toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer()))
 
-  # distinguish between 1/2 toggles for integration vs subset
+  # distinguish between 1/2 toggles for integration vs subset and resolution vs transfer
   observe({
     toggleClass(id = "show_integration", 'btn-primary', condition = show_integration() | show_subset())
+    toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_resolution() | show_label_transfer())
   })
 
   observe({
@@ -616,6 +686,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
     if (show_integration()) icon <- icon('object-group', 'far fa-fw')
 
     updateActionButton(session, 'show_integration', icon = icon)
+  })
+
+  observe({
+    icon <- icon('tag', 'fa-fw')
+    if (show_resolution()) icon <- icon('sliders-h', 'far fa-fw')
+
+    updateActionButton(session, 'show_label_transfer', icon = icon)
   })
 
 
@@ -628,18 +705,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, plots_dir, new_dat
   return(list(
     dataset_name = dataset_name,
     scseq = scseq,
-    annot = annot,
-    annot_path = annot_path,
+    snn_graph = snn_graph,
     datasets = datasets,
     show_integration = show_integration,
     show_subset = show_subset,
     show_label_transfer = show_label_transfer,
+    show_resolution = show_resolution,
     is_integrated = is_integrated,
     dataset_exists = dataset_exists,
-    species = species,
-    feature_plot_clusters = feature_plot_clusters,
-    feature_plot_samples = feature_plot_samples,
-    cluster_plot = cluster_plot
+    species = species
   ))
 }
 
@@ -744,13 +818,16 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #'
 #' @keywords internal
 #' @noRd
-labelTransferForm <- function(input, output, session, sc_dir, datasets, show_label_transfer, dataset_name, scseq, species) {
-  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name')
+labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, show_label_transfer, dataset_name, scseq, species, clusters) {
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln', 'apply_update')
   options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
   new_annot <- reactiveVal()
+
+  preds_path <- reactive(file.path(resoln_dir(), 'preds.rds'))
+
 
   # show/hide label transfer forms
   observe({
@@ -760,17 +837,15 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   # saved label transfer predictions
   preds <- reactive({
     new_preds()
-    query_name <- dataset_name()
-    req(query_name)
 
     # load previously saved reference preds
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds_path <- preds_path()
     preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
     preds <- validate_preds(preds, sc_dir)
     return(preds)
   })
 
-  observeEvent(dataset_name(), new_preds(NULL))
+  observeEvent(resoln_name(), new_preds(NULL))
 
   # update annotation transfer choices
   observe({
@@ -793,7 +868,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
 
   query <- reactive({
-    query_path <- scseq_part_path(sc_dir, dataset_name(), 'scseq_sample')
+    query_path <- scseq_part_path(sc_dir, resoln_name(), 'scseq_sample')
     readRDS(query_path)
   })
 
@@ -840,8 +915,10 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
       labels <- ref$label.main
       genes <- 'de'
 
+
     } else {
-      ref_path <- scseq_part_path(sc_dir, ref_name, 'scseq_sample')
+      ref_subname <- get_resoln_name(sc_dir, ref_name)
+      ref_path <- scseq_part_path(sc_dir, ref_subname, 'scseq_sample')
       ref_date <- file.info(ref_path)$ctime
       ref <- readRDS(ref_path)
 
@@ -859,11 +936,11 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
         tab <- table(assigned = ref_cluster, cluster = query_cluster)
 
       } else {
-        markers_path <- scseq_part_path(sc_dir, ref_name, 'top_markers')
+        markers_path <- scseq_part_path(sc_dir, ref_subname, 'top_markers')
         genes <- readRDS(markers_path)
 
         # use aggregated reference for speed
-        ref_path <- scseq_part_path(sc_dir, ref_name, 'aggr_ref')
+        ref_path <- scseq_part_path(sc_dir, ref_subname, 'aggr_ref')
         if (file.exists(ref_path)) {
           ref <- readRDS(ref_path)
 
@@ -893,7 +970,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     # keep track of date that reference was used so that can invalidate if overwritten
     if (exists('ref_date')) names(pred) <- ref_date
 
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds_path <- preds_path()
     preds[[ref_name]] <- pred
     saveRDS(preds, preds_path)
 
@@ -906,7 +983,7 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
   # show transfered labels immediately upon selection if have
   observe({
-    query_name <- dataset_name()
+    query_name <- resoln_name()
     ref_name <- input$ref_name
     req(query_name)
 
@@ -915,8 +992,8 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
 
     # append reset labels
-    scseq <- scseq()
-    preds$reset <- seq_along(levels(scseq$cluster))
+    clusters <- clusters()
+    preds$reset <- levels(clusters)
 
     ref_preds(preds[[ref_name]])
   })
@@ -928,19 +1005,19 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
     new_annot()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    dataset_name <- dataset_name()
-    req(dataset_name)
+    resoln_name <- resoln_name()
+    req(resoln_name)
 
     # show saved annot if nothing selected or label transfer not open
     if (is.null(ref_preds)) {
       annot <- NULL
 
     } else if (!isTruthy(ref_name) | !show_label_transfer()) {
-      annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
+      annot_path <- annot_path()
       annot <- readRDS(annot_path)
 
     } else {
-      annot <- get_pred_annot(ref_preds, ref_name, dataset_name, sc_dir)
+      annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
     }
 
     return(annot)
@@ -964,23 +1041,24 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
   observeEvent(input$overwrite_annot, {
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    dataset_name <- dataset_name()
+    resoln_name <- resoln_name()
 
-    req(dataset_name)
+    req(resoln_name)
 
     showModal(transferModal())
   })
+
 
   observeEvent(input$confirm_overwrite, {
     removeModal()
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
-    dataset_name <- dataset_name()
+    resoln_name <- resoln_name()
 
-    req(dataset_name)
+    req(resoln_name)
 
-    pred_annot <- get_pred_annot(ref_preds, ref_name, dataset_name, sc_dir)
-    annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
+    pred_annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
+    annot_path <- annot_path()
     saveRDS(pred_annot, annot_path)
 
     new_annot(pred_annot)
@@ -988,14 +1066,131 @@ labelTransferForm <- function(input, output, session, sc_dir, datasets, show_lab
 
 
 
-  return(pred_annot)
+
+  return(list(
+    pred_annot = pred_annot
+  ))
+}
+
+
+resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, show_resolution, scseq, snn_graph, annot_path) {
+  resolution_inputs <- c('resoln', 'apply_update')
+
+  resoln <- reactiveVal(1)
+  observe(resoln(input$resoln))
+
+  resoln_path <- reactive({
+    req(dataset_dir())
+    file.path(dataset_dir(), 'resoln.rds')
+  })
+
+  # get prev resoln (default 1)
+  prev_resoln <- reactiveVal(1)
+  observe(prev_resoln(readRDS.safe(resoln_path(), 1)))
+  observe(resoln(prev_resoln()))
+
+
+  # initialize slider resolution
+  observe(updateSliderInput(session, 'resoln', value=prev_resoln()))
+
+  resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
+
+  # show/hide label transfer forms
+  observe({
+    toggle(id = "resolution-form", anim = TRUE, condition = show_resolution())
+  })
+
+  # clusters after change resolution
+  clusters_path <- reactive(file.path(resoln_dir(), 'clusters.rds'))
+
+  clusters <- reactive({
+    resoln <- resoln()
+    resoln <- as.character(resoln)
+    clusters_path <- clusters_path()
+    clusters <- readRDS.safe(clusters_path)
+
+    if (!is.null(clusters)) return(clusters)
+
+    g <- snn_graph()
+    if (is.null(g)) return(NULL)
+
+    clusters <- get_clusters(g, resolution = resoln)
+    saveRDS(clusters, clusters_path)
+    saveRDS(levels(clusters), annot_path())
+
+    return(clusters)
+  })
+
+  applied <- reactiveVal(FALSE)
+  applied_path <- reactive(file.path(resoln_dir(), 'applied.rds'))
+  observe(applied(file.exists(applied_path())))
+
+  observe({
+    # update saved and prev resoln
+    if (applied()) {
+      resoln <- resoln()
+      prev_resoln(resoln)
+      saveRDS(resoln, resoln_path())
+    }
+  })
+
+  same_resoln <- reactive(prev_resoln() == resoln())
+  allow_update <- reactive(!applied() | !same_resoln())
+
+  observe({
+    toggleClass('apply_update', 'btn-primary', condition = allow_update())
+    toggleClass('apply_update', 'disabled', condition = !allow_update())
+  })
+
+  observeEvent(input$apply_update, {
+    resoln <- resoln()
+    disableAll(resolution_inputs)
+    progress <- Progress$new(session, min = 0, max = 4)
+    progress$set(message = "Updating:", detail = 'loading data', value = 1)
+    on.exit(progress$close())
+
+    dataset_name <- dataset_name()
+
+    # need non-loom version
+    scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
+    scseq <- readRDS(scseq_path)
+
+    # add new clusters and run post clustering steps
+    scseq$cluster <- clusters()
+    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value = 1)
+
+    # mark as previously applied and re-enable
+    applied(TRUE)
+    saveRDS(TRUE, applied_path())
+    enableAll(resolution_inputs)
+  })
+
+
+  return(list(
+    clusters = clusters,
+    resoln = resoln,
+    resoln_name = resoln_name
+  ))
+
+}
+
+get_resoln_name <- function(sc_dir, dataset_name) {
+  dataset_dir <- file.path(sc_dir, dataset_name)
+  resoln <- load_resoln(dataset_dir)
+
+  file.path(dataset_name, resoln)
+}
+
+load_resoln <- function(dataset_dir) {
+  resoln_path <- file.path(dataset_dir, 'resoln.rds')
+  paste0('snn', readRDS(resoln_path))
 }
 
 #' Logic for subsetting a datatset
 #'
 #' @keywords internal
 #' @noRd
-subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, dataset_dir, cluster_choices, is_integrated) {
+subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
   type <- name <- NULL
   contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
@@ -1384,6 +1579,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 }
 
 
+
 #' Logic for comparison type toggle for integrated datasets
 #'
 #' @keywords internal
@@ -1403,7 +1599,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #'
 #' @keywords internal
 #' @noRd
-clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_path, ref_preds) {
+clusterComparison <- function(input, output, session, dataset_dir, resoln_dir, scseq, annot_path, annot, ref_preds, clusters) {
 
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -1411,7 +1607,6 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   markers <- reactiveVal(list())
 
   # things that return for plotting
-  annot <- reactiveVal(NULL)
   selected_markers <- reactiveVal(NULL)
 
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
@@ -1477,8 +1672,8 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   })
 
 
-  # reset if switch dataset
-  observeEvent(dataset_dir(), {
+  # reset if switch dataset or resolution
+  observeEvent(resoln_dir(), {
     markers(list())
     selected_cluster(NULL)
     annot(NULL)
@@ -1557,19 +1752,19 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
   # get/load markers if don't have
   observeEvent(input$selected_cluster, {
     sel <- input$selected_cluster
-    dataset_dir <- dataset_dir()
+    resoln_dir <- resoln_dir()
     markers <- markers()
-    req(sel, dataset_dir)
+    req(sel, resoln_dir)
 
     if (sel %in% names(markers)) return(NULL)
 
 
     if (show_contrasts()) {
-      con_markers <- get_contrast_markers(sel, dataset_dir)
+      con_markers <- get_contrast_markers(sel, resoln_dir)
       markers <- c(markers, con_markers)
 
     } else {
-      markers_path <- file.path(dataset_dir, paste0('markers_', sel, '.rds'))
+      markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.rds'))
       markers[[sel]] <- readRDS(markers_path)
     }
 
@@ -1603,7 +1798,7 @@ clusterComparison <- function(input, output, session, dataset_dir, scseq, annot_
 #'
 #' @keywords internal
 #' @noRd
-selectedGene <- function(input, output, session, dataset_name, dataset_dir, scseq, is_integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, scseq, is_integrated, selected_markers, selected_cluster, type, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneChoice, item: geneChoice}'))
 
   selected_gene <- reactiveVal(NULL)
@@ -1698,7 +1893,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   # for saving custom metric for future sessions
-  metrics_path <- reactive(file.path(dataset_dir(), 'saved_metrics.rds'))
+  metrics_path <- reactive(file.path(resoln_dir(), 'saved_metrics.rds'))
   observe(saved_metrics(readRDS.safe(metrics_path())))
 
   observeEvent(input$save_custom_metric, {
@@ -1784,7 +1979,7 @@ selectedGene <- function(input, output, session, dataset_name, dataset_dir, scse
   })
 
   # reset custom metric if dataset changes
-  observeEvent(dataset_name(), custom_metrics(NULL))
+  observeEvent(resoln_name(), custom_metrics(NULL))
 
 
   # update choices
@@ -1823,7 +2018,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
   }
 
 
-
   plot <- reactive({
     plot <- cluster_plot()
     annot <- annot()
@@ -1832,7 +2026,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
     hl <- NULL
     cluster <- selected_cluster()
     cluster <- strsplit(cluster, '-vs-')[[1]]
-    annot <- annot()
     nclus <- length(annot)
 
     if (is_mobile()) {
@@ -2035,7 +2228,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
+scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl', 'selected_cluster')
 
@@ -2047,14 +2240,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     dataset_dir <- dataset_dir()
     if (!isTruthy(dataset_dir)) return(NULL)
 
-    load_scseq(dataset_dir)
+    scseq <- load_scseq(dataset_dir)
+    attach_clusters(scseq, resoln_dir())
   })
 
   annot <- reactive({
     annot <- input_annot()
     if (!is.null(annot)) return(annot)
 
-    annot_path <- file.path(dataset_dir(), 'annot.rds')
+    annot_path <- file.path(resoln_dir(), 'annot.rds')
     if (!file.exists(annot_path)) return(NULL)
     readRDS(annot_path)
   })
@@ -2067,20 +2261,24 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   # update cluster choices in UI
   cluster_choices <- reactive({
     integrated <- is_integrated()
-    dataset_dir <- dataset_dir()
+    resoln_dir <- resoln_dir()
 
-    if (!isTruthyAll(dataset_dir, integrated)) return(NULL)
-    annot <- annot()
+    if (!isTruthyAll(resoln_dir, integrated)) return(NULL)
+    # need to be in sync (don't take from elsewhere)
+    annot_path  <- file.path(resoln_dir, 'annot.rds')
+    annot <- readRDS.safe(annot_path)
+
     if(is.null(annot)) return(NULL)
 
-
-    tryCatch(get_cluster_choices(clusters = c(annot, 'All Clusters'),
-                                 sample_comparison = TRUE,
-                                 dataset_dir = dataset_dir,
-                                 use_disk = TRUE,
-                                 top_tables = top_tables(),
-                                 has_replicates = has_replicates()),
-             error = function(e) return(NULL))
+    tryCatch({
+      get_cluster_choices(clusters = c(annot, 'All Clusters'),
+                          sample_comparison = TRUE,
+                          resoln_dir = resoln_dir,
+                          use_disk = TRUE,
+                          top_tables = top_tables(),
+                          has_replicates = has_replicates())
+    },
+    error = function(e) return(NULL))
   }) %>% debounce(20)
 
   observe({
@@ -2092,17 +2290,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
 
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
-  drug_paths <- reactive(get_drug_paths(dataset_dir(), clusters_str()))
-  go_path <- reactive(file.path(dataset_dir(), paste0('go_', clusters_str(), '.rds')))
-  kegg_path <- reactive(file.path(dataset_dir(), paste0('kegg_', clusters_str(), '.rds')))
-  goana_path <- reactive(file.path(dataset_dir(), paste0('goana_', clusters_str(), '.rds')))
-  kegga_path <- reactive(file.path(dataset_dir(), paste0('kegga_', clusters_str(), '.rds')))
-  top_tables_paths <- reactive(file.path(dataset_dir(), 'top_tables.rds'))
+  drug_paths <- reactive(get_drug_paths(resoln_dir(), clusters_str()))
+  go_path <- reactive(file.path(resoln_dir(), paste0('go_', clusters_str(), '.rds')))
+  kegg_path <- reactive(file.path(resoln_dir(), paste0('kegg_', clusters_str(), '.rds')))
+  goana_path <- reactive(file.path(resoln_dir(), paste0('goana_', clusters_str(), '.rds')))
+  kegga_path <- reactive(file.path(resoln_dir(), paste0('kegga_', clusters_str(), '.rds')))
+  top_tables_paths <- reactive(file.path(resoln_dir(), 'top_tables.rds'))
 
 
   # require cluster markers and fit result
-  lm_fit <- reactive(readRDS.safe(file.path(dataset_dir(), 'lm_fit_0svs.rds')))
-  cluster_markers <- reactive(readRDS.safe(file.path(dataset_dir(), paste0('markers_', clusters_str(), '.rds'))))
+  lm_fit <- reactive(readRDS.safe(file.path(resoln_dir(), 'lm_fit_0svs.rds')))
+  cluster_markers <- reactive(readRDS.safe(file.path(resoln_dir(), paste0('markers_', clusters_str(), '.rds'))))
 
   # plot functions for left
   sel <- reactive(input$selected_cluster)
@@ -2191,7 +2389,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
 
 
       } else {
-        ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE)
+        try(ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE))
         if (is.null(ridge_data)) return(default)
         saveRDS(ridge_data, dat_path)
       }
@@ -2206,9 +2404,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   # differential expression top tables for all clusters
   top_tables <- reactive({
 
-    dataset_dir <- dataset_dir()
-    if (is.null(dataset_dir)) return(NULL)
-    tts_path <- file.path(dataset_dir, 'top_tables.rds')
+    resoln_dir <- resoln_dir()
+    if (is.null(resoln_dir)) return(NULL)
+    tts_path <- file.path(resoln_dir, 'top_tables.rds')
 
     if (file.exists(tts_path)) {
       tts <- readRDS(tts_path)
@@ -2223,7 +2421,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
 
         cluster <- names(fit)[i]
         tt <- crossmeta::get_top_table(fit[[cluster]])
-        markers <- get_cluster_markers(cluster, dataset_dir)
+        markers <- get_cluster_markers(cluster, resoln_dir)
         ambient <- decide_ambient(dataset_ambient, tt, markers)
         tt$ambient <- row.names(tt) %in% ambient
 
@@ -2235,14 +2433,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
       }
 
       # add 'All Clusters' result
-      annot <-  readRDS(scseq_part_path(sc_dir, dataset_name(), 'annot'))
+      annot <-  annot()
       all <- as.character(length(annot)+1)
       es <- run_esmeta(tts)
       enids <- extract_enids(tts)
       cols <- colnames(tts[[1]])
       tts[[all]] <- es_to_tt(es, enids, cols)
 
-      saveRDS(tts, file.path(dataset_dir(), 'top_tables.rds'))
+      saveRDS(tts, file.path(resoln_dir(), 'top_tables.rds'))
     }
     return(tts)
   })
@@ -2266,7 +2464,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
   # drug query results
   drug_queries <- reactive({
     dpaths <- drug_paths()
-    saved_drugs <- any(grepl('^cmap_res_', list.files(dataset_dir())))
+    saved_drugs <- any(grepl('^cmap_res_', list.files(resoln_dir())))
 
     if (!isTruthy(input$selected_cluster)) {
       res <- NULL
@@ -2292,7 +2490,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
         cluster <- names(tts)[i]
         tt <- tts[[cluster]]
         ambient <- row.names(tt)[tt$ambient]
-        paths <- get_drug_paths(dataset_dir(), cluster)
+        paths <- get_drug_paths(resoln_dir(), cluster)
         run_drug_queries(tt, paths, es, ambient, species)
       }
 
@@ -2367,21 +2565,22 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     toggleState('download', condition = isTruthy(top_table()))
   })
 
-  annot_clusters <- reactive({
-    clusts <- input$selected_cluster
-    clusts <- as.numeric(clusts)
-    req(clusts)
+  clust <- reactive({
+    clust <- input$selected_cluster
+    clust <- as.numeric(clust)
+    req(clust)
 
-    annot <- gsub(' ', '-', annot())
-    clusts <- paste0(annot[sort(clusts)], collapse = '_')
-    return(clusts)
+    annot <- gsub(' ', '-', c(annot(), 'all'))
+    clust <- paste0(annot[clust], collapse = '_')
+    return(clust)
   })
 
   # name for  downloading
   dl_fname <- reactive({
     date <- paste0(Sys.Date(), '.zip')
-    clusts <- annot_clusters()
-    paste('single-cell', dataset_name(), clusts, date , sep='_')
+    clust <- clust()
+    snn <- basename(resoln_dir())
+    paste('single-cell', dataset_name(), clust, snn, date , sep='_')
   })
 
   data_fun <- function(file) {
@@ -2443,10 +2642,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, plots_dir, f
     drug_queries = drug_queries,
     path_res = path_res,
     selected_cluster = selected_cluster,
-    annot_clusters = annot_clusters,
     pfun_left = pfun_left,
     pfun_right = pfun_right,
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

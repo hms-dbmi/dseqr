@@ -4,7 +4,13 @@
 \alias{save_scseq_data}
 \title{Save Single Cell RNA-seq data for app}
 \usage{
-save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = FALSE)
+save_scseq_data(
+  scseq_data,
+  dataset_name,
+  sc_dir,
+  add_integrated = FALSE,
+  overwrite = TRUE
+)
 }
 \arguments{
 \item{scseq_data}{Named list with \code{scseq}, \code{markers}, and/or \code{annot}}
