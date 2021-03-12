@@ -179,7 +179,7 @@ resolutionFormInput <- function(id) {
   withTags({
     div(id = ns('resolution-form'), class = 'hidden-form', style = 'display: none;',
         sliderInput(
-          ns('resoln'), 'Cluster resolution:', min=0, value=1, max=3, step = 0.1, width = '100%'),
+          ns('resoln'), 'Cluster resolution:', min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
         justifiedButtonGroup(actionButton(ns('apply_update'), label = 'Apply Update'), label = '')
     )
   })

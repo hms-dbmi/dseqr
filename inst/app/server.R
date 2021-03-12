@@ -970,7 +970,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     # keep track of date that reference was used so that can invalidate if overwritten
     if (exists('ref_date')) names(pred) <- ref_date
 
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
+    preds_path <- preds_path()
     preds[[ref_name]] <- pred
     saveRDS(preds, preds_path)
 
@@ -1086,7 +1086,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   # get prev resoln (default 1)
-  prev_resoln <- reactive(readRDS.safe(resoln_path(), 1))
+  prev_resoln <- reactiveVal(1)
+  observe(prev_resoln(readRDS.safe(resoln_path(), 1)))
   observe(resoln(prev_resoln()))
 
 
@@ -1105,7 +1106,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   clusters <- reactive({
     resoln <- resoln()
-
     resoln <- as.character(resoln)
     clusters_path <- clusters_path()
     clusters <- readRDS.safe(clusters_path)
@@ -1127,34 +1127,42 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   observe(applied(file.exists(applied_path())))
 
   observe({
-    toggleClass('apply_update', 'btn-primary', condition = !applied())
-    toggleClass('apply_update', 'disabled', condition = applied())
+    # update saved and prev resoln
+    if (applied()) {
+      resoln <- resoln()
+      prev_resoln(resoln)
+      saveRDS(resoln, resoln_path())
+    }
+  })
+
+  same_resoln <- reactive(prev_resoln() == resoln())
+  allow_update <- reactive(!applied() | !same_resoln())
+
+  observe({
+    toggleClass('apply_update', 'btn-primary', condition = allow_update())
+    toggleClass('apply_update', 'disabled', condition = !allow_update())
   })
 
   observeEvent(input$apply_update, {
+    resoln <- resoln()
     disableAll(resolution_inputs)
-
     progress <- Progress$new(session, min = 0, max = 4)
-    progress$set(message = "Updating:", value = 1)
+    progress$set(message = "Updating:", detail = 'loading data', value = 1)
     on.exit(progress$close())
 
     dataset_name <- dataset_name()
-    resoln <- resoln()
 
     # need non-loom version
     scseq_path <- scseq_part_path(sc_dir, dataset_name, 'scseq')
     scseq <- readRDS(scseq_path)
 
-    # add new clusters
+    # add new clusters and run post clustering steps
     scseq$cluster <- clusters()
-
     run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value = 1)
+
+    # mark as previously applied and re-enable
     applied(TRUE)
     saveRDS(TRUE, applied_path())
-
-    # update saved resoln
-    saveRDS(resoln, resoln_path())
-
     enableAll(resolution_inputs)
   })
 
