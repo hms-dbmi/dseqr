@@ -976,7 +976,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   # save in subdirectory e.g. snn0.8
   progress$set(value+3, detail = 'saving')
   dataset_subname <- file.path(dataset_name, paste0('snn', resoln))
-  save_scseq_data(anal, dataset_subname, sc_dir)
+  save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
 
 }
 
@@ -1244,7 +1244,7 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 #'
 #' @return NULL
 #' @keywords internal
-save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = FALSE) {
+save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = FALSE, overwrite = TRUE) {
   dataset_dir <- file.path(sc_dir, dataset_name)
 
   if (add_integrated) {
@@ -1255,7 +1255,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   }
 
   # remove all previous data in case overwriting
-  unlink(dataset_dir, recursive = TRUE)
+  if (overwrite) unlink(dataset_dir, recursive = TRUE)
 
   dir.create(dataset_dir)
   for (type in names(scseq_data)) {
