@@ -294,7 +294,7 @@ function scDatasetOptions(item, escape) {
 
   var opt = item.optgroup;
   opt = typeof opt == 'undefined' ? '' : opt;
-  opt = (opt == 'Previous Session' || opt == 'Integrated') ? '' : opt + '_';
+  opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
 
   var full_name = opt + item.label;
 
@@ -310,7 +310,7 @@ function scDatasetItem(item, escape) {
 
   var opt = item.optgroup;
   opt = typeof opt == 'undefined' ? '' : opt;
-  opt = (opt == 'Previous Session' || opt == 'Integrated' || opt == '') ? '' : opt + '_';
+  opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual' || opt == '') ? '' : opt + '_';
 
   var full_name = opt + item.label;
 
