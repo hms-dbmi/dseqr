@@ -22,7 +22,7 @@ load_raw_scseq <- function(dataset_name,
                            founder = dataset_name,
                            npcs = 30,
                            cluster_alg = 'leiden',
-                           resoln = resoln,
+                           resoln = 1,
                            metrics = c('low_lib_size',
                                        'low_n_features',
                                        'high_subsets_mito_percent',
@@ -115,7 +115,7 @@ process_raw_scseq <- function(scseq,
     })
   }
 
-  scseq@meta.data$npcs <- npcs
+  scseq@metadata$npcs <- npcs
   progress$set(message = "reducing", value = value + 1)
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
@@ -136,8 +136,7 @@ process_raw_scseq <- function(scseq,
   save_scle(scseq, file.path(sc_dir, dataset_name))
 
   # run what depends on resolution
-  clusters <- get_clusters(snn_graph, cluster_alg, resoln)
-  scseq$cluster <- clusters
+  scseq$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
 
   run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value + 3)
   progress$set(value = value + 7)
@@ -287,7 +286,7 @@ transition_efs <- function(fpath) {
 #'
 save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
   # don't save raw counts for loom (saved in non-sparse format)
-  SummarizedExperiment::assay(combined, 'counts') <- NULL
+  SummarizedExperiment::assay(scseq, 'counts') <- NULL
 
   scle_path <- file.path(dataset_dir, 'scle.loom')
 

@@ -898,7 +898,6 @@ integrate_saved_scseqs <- function(
                      ambient = ambient,
                      pairs = pairs,
                      snn_graph = snn_graph,
-                     has_replicates = has_replicates,
                      founder = founder)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
@@ -945,6 +944,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
   anal <- list(scseq_sample = scseq_sample,
                markers = markers,
+               clusters = scseq$cluster,
                tests = tests,
                annot = names(markers),
                top_markers = top_markers)
@@ -976,7 +976,8 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
     lm_fit <- run_limma_scseq(obj)
     anal_int <- list(summed = summed,
                      lm_fit_0svs = lm_fit,
-                     pbulk_esets = pbulk_esets)
+                     pbulk_esets = pbulk_esets,
+                     has_replicates = has_replicates)
 
     anal <- c(anal, anal_int)
   }
