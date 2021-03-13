@@ -1157,8 +1157,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     dataset_name <- dataset_name()
 
     # need non-loom version
-    scseq_path <- file.path(sc_dir, dataset_name, 'scseq.qs')
-    scseq <- load_scseq_qs(scseq_path)
+    scseq <- load_scseq_qs(dataset_dir())
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters()
@@ -1777,9 +1776,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
         on.exit(progress$close())
         progress$set(message = "Applying resolution update:", detail = 'loading', value = 1)
 
-        scseq_path <- file.path(dataset_dir(), 'scseq.qs')
-        scseq <- load_scseq_qs(scseq_path)
-
+        scseq <- load_scseq_qs(dataset_dir())
         scseq$cluster <- clusters()
 
         run_post_cluster(scseq, dataset_name(), sc_dir, resoln(), progress, value = 1)
@@ -2670,3 +2667,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+

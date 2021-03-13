@@ -123,13 +123,12 @@ process_raw_scseq <- function(scseq,
   scseq <- run_tsne(scseq)
   gc()
 
-
   progress$set(message = "clustering", detail = '', value = value + 2)
   snn_graph <- get_snn_graph(scseq, npcs)
   gc()
 
   # save independent of resolution
-  anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder)
+  anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln)
   save_scseq_data(anal, dataset_name, sc_dir)
 
   progress$set(message = "saving loom", value = value + 3)
@@ -211,7 +210,8 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 #' @keywords internal
 load_scseq <- function(dataset_dir) {
   scle_path <- file.path(dataset_dir, 'scle.loom')
-  scseq_path <- file.path(dataset_dir, 'scseq.qs')
+  resoln_name <- load_resoln(dataset_dir)
+  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.rds')
 
   transition_efs(scle_path)
 
@@ -219,12 +219,12 @@ load_scseq <- function(dataset_dir) {
   scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
                     error = function(e) {
                       unlink(scle_path)
-                      return(load_scseq_qs(scseq_path))
+                      return(load_scseq_qs(dataset_dir))
                     })
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
   colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-  scseq$cluster <- factor(as.numeric(as.character(scseq$cluster)))
+  scseq$cluster <- readRDS(clusters_path)
 
   is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
 

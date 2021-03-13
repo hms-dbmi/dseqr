@@ -809,7 +809,7 @@ integrate_saved_scseqs <- function(
   hvgs = NULL,
   npcs = 30,
   cluster_alg = 'leiden',
-  resoln = '1',
+  resoln = 1,
   progress = NULL,
   value = 0) {
 
@@ -898,14 +898,14 @@ integrate_saved_scseqs <- function(
                      ambient = ambient,
                      pairs = pairs,
                      snn_graph = snn_graph,
-                     founder = founder)
+                     founder = founder,
+                     resoln = resoln)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
   save_scle(combined, file.path(sc_dir, dataset_name))
 
   # run things that can change with resolution change
-  clusters <- get_clusters(snn_graph, cluster_alg, resoln)
-  combined$cluster <- clusters
+  combined$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
 
   run_post_cluster(combined, dataset_name, sc_dir, resoln, progress, value+4)
   return(TRUE)
@@ -947,7 +947,8 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
                clusters = scseq$cluster,
                tests = tests,
                annot = names(markers),
-               top_markers = top_markers)
+               top_markers = top_markers,
+               applied = TRUE)
 
   if (integrated) {
 
@@ -1197,8 +1198,8 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 
   # load each scseq and exclude based on metrics
   for (dataset_name in dataset_names) {
-    scseq_path <- file.path(sc_dir, dataset_name, 'scseq.qs')
-    scseq <- load_scseq_qs(scseq_path)
+    dataset_dir <- file.path(sc_dir, dataset_name)
+    scseq <- load_scseq_qs(dataset_dir)
     # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
 
@@ -1267,7 +1268,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   # remove all previous data in case overwriting
   if (overwrite) unlink(dataset_dir, recursive = TRUE)
 
-  dir.create(dataset_dir)
+  dir.create(dataset_dir, showWarnings = FALSE)
   for (type in names(scseq_data)) {
     item <- scseq_data[[type]]
 
@@ -1301,7 +1302,11 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   return(NULL)
 }
 
-load_scseq_qs <- function(scseq_path) {
+load_scseq_qs <- function(dataset_dir) {
+  scseq_path <- file.path(dataset_dir, 'scseq.qs')
+  resoln_name <- load_resoln(dataset_dir)
+  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.rds')
+
   if (file.exists(scseq_path)) {
     scseq <- qs::qread(scseq_path)
   } else {
@@ -1311,6 +1316,7 @@ load_scseq_qs <- function(scseq_path) {
     unlink(rds_path)
   }
 
+  scseq$cluster <- readRDS(clusters_path)
   return(scseq)
 }
 
