@@ -731,9 +731,9 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
       drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) qs::qread(x))
 
     } else if (is_pert()) {
-      drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name))
+      drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name), ftype = '.rds')
       sapply(drug_paths, dl_pert_result)
-      drug_queries <- lapply(drug_paths, qs::qread)
+      drug_queries <- lapply(drug_paths, readRDS)
 
     } else {
       drug_queries <- NULL
@@ -812,3 +812,4 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   ))
 
 }
+

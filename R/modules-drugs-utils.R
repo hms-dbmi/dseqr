@@ -6,8 +6,8 @@
 #' @return List with file paths to drug query results
 #'
 #' @keywords internal
-get_drug_paths <- function(data_dir, suffix) {
-  suffix <- paste0(suffix, '.qs')
+get_drug_paths <- function(data_dir, suffix, ftype = '.qs') {
+  suffix <- paste0(suffix, ftype)
   list(
     cmap = file.path(data_dir, paste0('cmap_res_', suffix)),
     l1000_drugs = file.path(data_dir, paste0('l1000_drugs_res_', suffix)),

@@ -2611,22 +2611,22 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     toggleState('download', condition = isTruthy(top_table()))
   })
 
-  clust <- reactive({
-    clust <- input$selected_cluster
-    clust <- as.numeric(clust)
-    req(clust)
+  annot_clusters <- reactive({
+    clusts <- input$selected_cluster
+    clusts <- as.numeric(clusts)
+    req(clusts)
 
-    annot <- gsub(' ', '-', c(annot(), 'all'))
-    clust <- paste0(annot[clust], collapse = '_')
-    return(clust)
+    annot <- gsub(' ', '-', annot())
+    clusts <- paste0(c(annot, 'all')[sort(clusts)], collapse = '_')
+    return(clusts)
   })
 
   # name for  downloading
   dl_fname <- reactive({
     date <- paste0(Sys.Date(), '.zip')
-    clust <- clust()
+    clusts <- annot_clusters()
     snn <- basename(resoln_dir())
-    paste('single-cell', dataset_name(), clust, snn, date , sep='_')
+    paste('single-cell', dataset_name(), clusts, snn, date , sep='_')
   })
 
   data_fun <- function(file) {
@@ -2688,6 +2688,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     drug_queries = drug_queries,
     path_res = path_res,
     selected_cluster = selected_cluster,
+    annot_clusters = annot_clusters,
     pfun_left = pfun_left,
     pfun_right = pfun_right,
     pfun_right_bottom = pfun_right_bottom
