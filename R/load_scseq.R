@@ -224,7 +224,7 @@ load_scseq <- function(dataset_dir) {
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
   colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-  scseq$cluster <- readRDS(clusters_path)
+  scseq$cluster <- readRDS.safe(clusters_path, scseq$cluster)
 
   is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
 

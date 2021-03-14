@@ -1316,7 +1316,7 @@ load_scseq_qs <- function(dataset_dir) {
     unlink(rds_path)
   }
 
-  scseq$cluster <- readRDS(clusters_path)
+  scseq$cluster <- readRDS.safe(clusters_path, scseq$cluster)
   return(scseq)
 }
 

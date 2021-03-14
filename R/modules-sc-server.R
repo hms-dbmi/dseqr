@@ -1187,7 +1187,7 @@ get_resoln_name <- function(sc_dir, dataset_name) {
 
 load_resoln <- function(dataset_dir) {
   resoln_path <- file.path(dataset_dir, 'resoln.rds')
-  paste0('snn', readRDS(resoln_path))
+  paste0('snn', readRDS.safe(resoln_path, 1))
 }
 
 #' Logic for subsetting a datatset
