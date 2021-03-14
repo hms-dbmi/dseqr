@@ -1083,7 +1083,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   resoln_path <- reactiveVal()
   resoln <- reactiveVal()
 
-  observe(resoln(input$resoln))
+  observeEvent(input$resoln, {resoln(input$resoln)}, ignoreInit = TRUE)
 
   observeEvent(dataset_dir(),  {
     dataset_dir <- dataset_dir()
@@ -1163,7 +1163,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters()
-    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value = 1)
+    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, 1, reset_annot = FALSE)
 
     # mark as previously applied and re-enable
     applied(TRUE)
@@ -2312,6 +2312,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     # need to be in sync (don't take from elsewhere)
     annot_path  <- file.path(resoln_dir, 'annot.qs')
     annot <- qread.safe(annot_path)
+
+    browser()
 
     if(is.null(annot)) return(NULL)
 

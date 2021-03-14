@@ -921,7 +921,7 @@ integrate_saved_scseqs <- function(
 #'
 #' @return NULL
 #'
-run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0) {
+run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0, reset_annot = TRUE) {
 
   integrated <- 'corrected' %in% SingleCellExperiment::reducedDimNames(scseq)
   species <- scseq@metadata$species
@@ -942,13 +942,15 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   # used for label transfer
   scseq_sample <- downsample_clusters(scseq)
 
+
   anal <- list(scseq_sample = scseq_sample,
                markers = markers,
                clusters = scseq$cluster,
                tests = tests,
-               annot = names(markers),
                top_markers = top_markers,
                applied = TRUE)
+
+  if (reset_annot) anal$annot <- names(markers)
 
   if (integrated) {
 
