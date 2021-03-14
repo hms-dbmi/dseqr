@@ -595,7 +595,7 @@ check_bulk_changed <- function(prev, pdata) {
   return(changed)
 }
 
-add_vsd <- function(eset, vsd_path, rna_seq = TRUE, pbulk = FALSE) {
+add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE, pbulk = FALSE) {
 
   # for cases where manually added (e.g. nanostring dataset)
   els <- Biobase::assayDataElementNames(eset)
@@ -605,7 +605,7 @@ add_vsd <- function(eset, vsd_path, rna_seq = TRUE, pbulk = FALSE) {
     # for microarray use exprs
     vsd <- Biobase::assayDataElement(eset, 'exprs')
 
-  } else if (file.exists(vsd_path)) {
+  } else if (!is.null(vsd_path) && file.exists(vsd_path)) {
     vsd <- qs::qread(vsd_path)
 
   } else if (pbulk) {
@@ -619,7 +619,6 @@ add_vsd <- function(eset, vsd_path, rna_seq = TRUE, pbulk = FALSE) {
                     })
 
     vsd <- SummarizedExperiment::assay(vsd)
-    qs::qsave(vsd, vsd_path)
 
   } else {
     vsd <- crossmeta::get_vsd(eset)

@@ -254,7 +254,7 @@ construct_pbulk_esets <- function(summed, pairs = NULL, species = 'Homo sapiens'
     eset$group <- eset$orig.ident
 
     # add vst transformed values
-    eset <- crossmeta::add_vsd(eset, pbulk = TRUE)
+    eset <- add_vsd(eset, pbulk = TRUE)
     esets[[clust]] <- eset
   }
 
