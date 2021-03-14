@@ -706,15 +706,15 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
   if (with_all) levs <- c(levs, 'All Clusters')
 
   # modified palettes from scater
-  tableau20 <- c("#1F77B4", "#AEC7E8", "#FF7F0E", "#FFBB78", "#2CA02C", "#66CDAA",
-                 "#98DF8A", "#D62728", "#FF4040", "#FF9896", "#9467BD", "#C5B0D5",
+  tableau20 <- c("#1F77B4", "#FF7F0E", "#FFD8B1", "#FFBB78", "#2CA02C", "#66CDAA",
+                 "#98DF8A", "#D62728", "#FF9896", "#9467BD", "#C5B0D5",
                  "#8C564B", "#C49C94", "#E377C2", "#F7B6D2",
-                 "#17BECF", "#9EDAE5", "#CDCC5D", "#FFFACD")
+                 "#17BECF", "#9EDAE5", "#CDCC5D", "#FFFACD", "#000000")
 
-  tableau20_dark <- c("#004771", "#4075A5", "#984802", "#A06705", "#036003", "#499279",
-                      "#33870E", "#821919", "#B62E2E", "#CF1701", "#5B3979", "#7D5E91",
+  tableau20_dark <- c("#004771", "#B69A7E", "#984802", "#A06705", "#036003", "#499279",
+                      "#33870E", "#821919", "#CF1701", "#5B3979", "#7D5E91",
                       "#55342D", "#7B574F", "#A22283", "#CE308A",
-                      "#056F79", "#028491", "#777600", "#B6B392")
+                      "#056F79", "#028491", "#777600", "#B6B392", "#FFFFFF")
 
   tableau10medium <- c("#729ECE", "#FF9E4A", "#67BF5C", "#ED665D",
                        "#AD8BC9", "#A8786E", "#ED97CA", "#A2A2A2",
