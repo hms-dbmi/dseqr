@@ -116,7 +116,7 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) 
   # total width of plot
   nx <- length(unique(df$x))
   ng <- length(unique(df$name))
-  plot_width <- (ng+2)*25*nx
+  plot_width <- max(923, (ng+2)*25*nx)
 
 
   df %>%
@@ -251,15 +251,15 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 #'
 #' @keywords internal
 load_bulk_anals <- function(data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
+  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
 
   if (file.exists(anals_path)) {
-    anals <- readRDS(anals_path)
+    anals <- qs::qread(anals_path)
 
   } else {
     anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
     colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
-    saveRDS(anals, anals_path)
+    qs::qsave(anals, anals_path)
   }
 
   anals$label <- anals$anal_name
@@ -279,12 +279,12 @@ load_bulk_anals <- function(data_dir) {
 #'
 #' @keywords internal
 save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
-  anals <- readRDS(anals_path)
+  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
+  anals <- qs::qread(anals_path)
 
   anals[nrow(anals)+1, ] <- c(dataset_name, dataset_dir, anal_name)
   anals <- anals[!duplicated(anals), ]
-  saveRDS(anals, anals_path)
+  qs::qsave(anals, anals_path)
 }
 
 #' Remove analysis info from anals dataframe
@@ -297,11 +297,11 @@ save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
 #'
 #' @keywords internal
 remove_bulk_anals <- function(dataset_name, data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.rds')
-  anals <- readRDS(anals_path)
+  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
+  anals <- qs::qread(anals_path)
   is.ds <- anals$dataset_name %in% dataset_name
   anals <- anals[!is.ds, ]
-  saveRDS(anals, anals_path)
+  qs::qsave(anals, anals_path)
 }
 
 #' Load previous bulk datasets dataframe
@@ -311,13 +311,13 @@ remove_bulk_anals <- function(dataset_name, data_dir) {
 #'
 #' @keywords internal
 load_bulk_datasets <-function(data_dir) {
-  datasets_path <- file.path(data_dir, 'bulk', 'datasets.rds')
+  datasets_path <- file.path(data_dir, 'bulk', 'datasets.qs')
 
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")
 
   dataset_names <- list.dirs(file.path(data_dir, 'bulk'), full.names = FALSE, recursive = FALSE)
-  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.rds'))
+  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
   dataset_names <- dataset_names[has.eset]
 
   datasets <- data.frame(dataset_name = dataset_names,
@@ -337,20 +337,20 @@ load_bulk_datasets <-function(data_dir) {
 #'
 #'
 #' @keywords internal
-remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.rds$',
-                                                        '^iqr_keep_\\d+svs.rds$',
-                                                        '^vsd.rds$',
-                                                        '^svobj.rds$',
-                                                        '^numsv.rds$',
-                                                        '^lm_fit_\\d+svs.rds$',
-                                                        'cmap_res_.+_\\d+svs.rds$',
-                                                        'go_.+_\\d+svs.rds$',
-                                                        'goana_.+_\\d+svs.rds$',
-                                                        'kegg_.+_\\d+svs.rds$',
-                                                        'kegga_.+_\\d+svs.rds$',
-                                                        'l1000_drugs_res_.+_\\d+svs.rds$',
-                                                        'l1000_genes_res_.+_\\d+svs.rds$',
-                                                        'diff_expr_symbol_.+_\\d+svs.rds$'), exclude = NULL) {
+remove_dataset_files <- function(data_dir, patterns = c('^adjusted_\\d+svs.qs$',
+                                                        '^iqr_keep_\\d+svs.qs$',
+                                                        '^vsd.qs$',
+                                                        '^svobj.qs$',
+                                                        '^numsv.qs$',
+                                                        '^lm_fit_\\d+svs.qs$',
+                                                        'cmap_res_.+_\\d+svs.qs$',
+                                                        'go_.+_\\d+svs.qs$',
+                                                        'goana_.+_\\d+svs.qs$',
+                                                        'kegg_.+_\\d+svs.qs$',
+                                                        'kegga_.+_\\d+svs.qs$',
+                                                        'l1000_drugs_res_.+_\\d+svs.qs$',
+                                                        'l1000_genes_res_.+_\\d+svs.qs$',
+                                                        'diff_expr_symbol_.+_\\d+svs.qs$'), exclude = NULL) {
 
   #TODO: preface everything with hash based on group names so that don't have to delete
 
@@ -509,15 +509,15 @@ get_path_res <- function(de, go_path, kegg_path, goana_path, kegga_path, species
   kg <- kg[kg$NGenes >= min.genes, ]
   kg$FDR <- stats::p.adjust(kg$PValue, 'BH')
 
-  saveRDS(go, go_path)
-  saveRDS(kg, kegg_path)
+  qs::qsave(go, go_path)
+  qs::qsave(kg, kegg_path)
 
   # get goana and kegga results
   goana_res <- run_path_anal(de, 'goana', species = species, universe = universe)
   kegga_res <- run_path_anal(de, 'kegga', species = species, universe = universe)
 
-  saveRDS(goana_res, goana_path)
-  saveRDS(kegga_res, kegga_path)
+  qs::qsave(goana_res, goana_path)
+  qs::qsave(kegga_res, kegga_path)
 
   return(list(go = go, kg = kg, goana = goana_res, kegga = kegga_res))
 }
@@ -593,4 +593,71 @@ check_bulk_changed <- function(prev, pdata) {
 
 
   return(changed)
+}
+
+add_vsd <- function(eset, vsd_path, rna_seq = TRUE, pbulk = FALSE) {
+
+  # for cases where manually added (e.g. nanostring dataset)
+  els <- Biobase::assayDataElementNames(eset)
+  if ('vsd' %in% els) return(eset)
+
+  if (!rna_seq) {
+    # for microarray use exprs
+    vsd <- Biobase::assayDataElement(eset, 'exprs')
+
+  } else if (file.exists(vsd_path)) {
+    vsd <- qs::qread(vsd_path)
+
+  } else if (pbulk) {
+    pdata <- Biobase::pData(eset)
+    dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
+    dds <- DESeq2::estimateSizeFactors(dds)
+    vsd <- tryCatch(DESeq2::rlog(dds, blind = FALSE),
+                    warning = function(e) {
+                      if (grepl('varianceStabilizingTransformation', e$message))
+                        DESeq2::varianceStabilizingTransformation(dds, blind = FALSE)
+                    })
+
+    vsd <- SummarizedExperiment::assay(vsd)
+    qs::qsave(vsd, vsd_path)
+
+  } else {
+    vsd <- crossmeta::get_vsd(eset)
+    vsd <- SummarizedExperiment::assay(vsd)
+    qs::qsave(vsd, vsd_path)
+  }
+
+  Biobase::assayDataElement(eset, 'vsd') <- vsd
+  return(eset)
+}
+
+add_adjusted <- function(eset, adj_path, svobj = list(sv = NULL), numsv = 0) {
+
+  if (file.exists(adj_path)) {
+    Biobase::assayDataElement(eset, 'adjusted') <- qs::qread(adj_path)
+
+  } else {
+    eset <- crossmeta::add_adjusted(eset, svobj, numsv)
+    adj <- Biobase::assayDataElement(eset, 'adjusted')
+    qs::qsave(adj, adj_path)
+  }
+
+  return(eset)
+}
+
+iqr_replicates <- function(eset, keep_path, annot = "SYMBOL", rm.dup = FALSE) {
+
+  if (file.exists(keep_path)) {
+    keep <- qs::qread(keep_path)
+    eset <- eset[keep, ]
+    Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
+
+  } else {
+    Biobase::fData(eset)$iqr_rows <- 1:nrow(eset)
+    eset <- crossmeta::iqr_replicates(eset, annot, rm.dup)
+    keep <- Biobase::fData(eset)$iqr_rows
+    qs::qsave(keep, keep_path)
+  }
+
+  return(eset)
 }

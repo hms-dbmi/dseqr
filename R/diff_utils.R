@@ -10,9 +10,9 @@
 save_lmfit <- function(lm_fit, dataset_dir, numsv = 0, anal_suffix = '') {
 
   if (nchar(anal_suffix)) anal_suffix <- paste0(anal_suffix, '_')
-  fit_name <- paste0('lm_fit_', anal_suffix, paste0(numsv, 'svs.rds'))
+  fit_name <- paste0('lm_fit_', anal_suffix, paste0(numsv, 'svs.qs'))
   fit_path <- file.path(dataset_dir, fit_name)
-  saveRDS(lm_fit, fit_path)
+  qs::qsave(lm_fit, fit_path)
 }
 
 

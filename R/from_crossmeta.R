@@ -43,5 +43,5 @@ from_crossmeta <- function(gse_name, data_dir) {
   dataset_dir <- file.path(data_dir, gse_name)
   eset_path <- list.files(dataset_dir, '^.+?_eset.rds', full.names = TRUE)
   eset <- readRDS(eset_path)[[1]]
-  saveRDS(eset, file.path(dataset_dir, 'eset.rds'))
+  qs::qsave(eset, file.path(dataset_dir, 'eset.qs'))
 }

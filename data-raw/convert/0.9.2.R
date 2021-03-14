@@ -4,7 +4,7 @@
 library(SingleCellExperiment)
 
 # fill in path to app data
-app_dir <- "/home/alex/patient_data/example"
+app_dir <- ""
 
 
 sc_dir <- file.path(app_dir, 'single-cell')

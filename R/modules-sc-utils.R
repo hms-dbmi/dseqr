@@ -15,7 +15,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
   # load query annotation
   query_annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
-  query_annot <- readRDS(query_annot_path)
+  query_annot <- qs::qread(query_annot_path)
 
   senv <- loadNamespace('SingleR')
 
@@ -28,7 +28,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
   } else {
     ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
-    ref_annot <- readRDS(ref_annot_path)
+    ref_annot <- qs::qread(ref_annot_path)
     ref_annot <- gsub('_\\d+$', '', ref_annot)
 
     ref_preds <- ref_annot[as.numeric(ref_preds)]
@@ -205,7 +205,7 @@ get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
   annot_paths <- scseq_part_path(data_dir, dataset_names, 'annot')
   marker_paths <- scseq_part_path(data_dir, dataset_names, 'markers')
 
-  annots <- lapply(annot_paths, readRDS)
+  annots <- lapply(annot_paths, qs::qread)
   clusters <- lapply(annots, function(x) seq(0, length(x)-1))
 
   exclude_choices <- lapply(seq_along(dataset_names), function(i) {
@@ -285,7 +285,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
 check_has_scseq <- function(dataset_names, sc_dir) {
   sapply(dataset_names, function(dataset_name) {
     fnames <- list.files(file.path(sc_dir, dataset_name))
-    any(fnames %in% c('scseq.rds', 'scseq.qs'))
+    any(fnames %in% c('scseq.qs', 'scseq.qs'))
   })
 }
 
@@ -301,11 +301,11 @@ get_sc_dataset_choices <- function(sc_dir) {
 
 
   # exclude missing from integrated (e.g. manual delete)
-  integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
+  integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
   has.scseq <- check_has_scseq(integrated, sc_dir)
   integrated <- integrated[has.scseq]
 
-  int_type <- lapply(integrated, function(int) readRDS.safe(file.path(sc_dir, int, 'founder.rds'),
+  int_type <- lapply(integrated, function(int) qread.safe(file.path(sc_dir, int, 'founder.qs'),
                                                             .nofile = 'Integrated',
                                                             .nullfile = 'Integrated'))
   int_type <- unlist(int_type)
@@ -315,14 +315,14 @@ get_sc_dataset_choices <- function(sc_dir) {
   int_opt <- integrated
   int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
 
-  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.qs'))
 
   # exclude individual without scseq (e.g. folder with fastq.gz files only)
   has.scseq <- check_has_scseq(individual, sc_dir)
   individual <- individual[unlist(has.scseq)]
 
   # founder for subsets as type
-  ind_type <- sapply(individual, function(ind) readRDS.safe(file.path(sc_dir, ind, 'founder.rds'),
+  ind_type <- sapply(individual, function(ind) qread.safe(file.path(sc_dir, ind, 'founder.qs'),
                                                             .nofile = 'Individual',
                                                             .nullfile = 'Individual'), USE.NAMES = FALSE)
 
@@ -338,7 +338,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   # get previously selected
   if (length(individual)) {
-    prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'), .nullfile = individual[1])
+    prev <- qread.safe(file.path(sc_dir, 'prev_dataset.qs'), .nullfile = individual[1])
     if (!prev %in% label) prev <- individual[1]
 
     prev_type <- type[label == prev]
@@ -424,7 +424,7 @@ get_exclude_dirs <- function(sc_dir) {
     }
   }
 
-  exclude <- c(exclude, 'integrated.rds', 'prev_dataset.rds')
+  exclude <- c(exclude, 'integrated.qs', 'prev_dataset.qs')
   return(exclude)
 }
 
@@ -599,8 +599,8 @@ html_space <- function(x, justify = 'right') {
 #' @return List with cluster stats
 get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
 
-  stats_path <- file.path(resoln_dir, 'cluster_stats.rds')
-  if (file.exists(stats_path) && use_disk) return(readRDS(stats_path))
+  stats_path <- file.path(resoln_dir, 'cluster_stats.qs')
+  if (file.exists(stats_path) && use_disk) return(qs::qread(stats_path))
 
   if (is.null(scseq)) {
     dataset_dir <- dirname(resoln_dir)
@@ -652,7 +652,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
     stats$nbig <- nbig
   }
 
-  if (use_disk) saveRDS(stats, stats_path)
+  if (use_disk) qs::qsave(stats, stats_path)
   return(stats)
 }
 
@@ -703,15 +703,15 @@ get_contrast_choices <- function(clusters, test) {
 get_contrast_markers <- function(con, dataset_dir) {
   con <- strsplit(con, '-vs-')[[1]]
   tests_dir <- file.path(dataset_dir, 'tests')
-  pairs_path <- file.path(tests_dir, 'pairs.rds')
-  pairs <- readRDS(pairs_path)
+  pairs_path <- file.path(tests_dir, 'pairs.qs')
+  pairs <- qs::qread(pairs_path)
 
   keep <- apply(pairs, 1, function(row) all(con %in% row))
   keep <- which(keep)
 
-  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.rds'))
+  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.qs'))
   tests <- list(pairs = pairs[keep, ],
-                statistics = lapply(stat_paths, readRDS))
+                statistics = lapply(stat_paths, qs::qread))
 
   # returns both directions
   con_markers <- get_scseq_markers(tests)
@@ -965,7 +965,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
     if (has_replicates) {
       pairs_path <- scseq_part_path(sc_dir, dataset_name, 'pairs')
-      pairs <- readRDS.safe(pairs_path)
+      pairs <- qread.safe(pairs_path)
 
       if (species == 'Homo sapiens') release <- '94'
       else if (species == 'Mus musculus') release <- '98'
@@ -1128,8 +1128,8 @@ subset_saved_scseq <- function(sc_dir,
 get_founder <- function(sc_dir, dataset_name) {
 
   # check for founder of parent
-  fpath <- file.path(sc_dir, dataset_name, 'founder.rds')
-  founder <- readRDS(fpath)
+  fpath <- file.path(sc_dir, dataset_name, 'founder.qs')
+  founder <- qs::qread(fpath)
   if (is.null(founder)) founder <- dataset_name
   return(founder)
 }
@@ -1251,7 +1251,7 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
 #' @param dataset_name The analysis name.
 #' @param sc_dir Path to directory with single-cell datasets.
-#' @param add_integrated Add analysis to integrated.rds file? Default is \code{FALSE}
+#' @param add_integrated Add analysis to integrated.qs file? Default is \code{FALSE}
 #'
 #' @return NULL
 #' @keywords internal
@@ -1260,9 +1260,9 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 
   if (add_integrated) {
     # add to integrated if new
-    int_path <- file.path(sc_dir, 'integrated.rds')
-    int_options <- c(readRDS(int_path), dataset_name)
-    saveRDS(unique(int_options), int_path)
+    int_path <- file.path(sc_dir, 'integrated.qs')
+    int_options <- c(qs::qread(int_path), dataset_name)
+    qs::qsave(unique(int_options), int_path)
   }
 
   # remove all previous data in case overwriting
@@ -1272,15 +1272,11 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   for (type in names(scseq_data)) {
     item <- scseq_data[[type]]
 
-    if(type == 'scseq') {
-      # save as .qs for fast loading
-      qs::qsave(item, file.path(sc_dir, dataset_name, 'scseq.qs'))
-
-    } else if (type == 'markers') {
+    if (type == 'markers') {
       # save marker data.frames individually for fast loading
 
       for (i in names(item))
-        saveRDS(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
+        qs::qsave(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
 
     } else if (type == 'tests') {
       # save pairwise test statistics for fast single group comparisons
@@ -1288,13 +1284,13 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
       tests_dir <- file.path(dataset_name, 'tests')
       dir.create(file.path(sc_dir, tests_dir))
 
-      saveRDS(item$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
+      qs::qsave(item$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
 
       for (i in seq_along(item$statistics))
-        saveRDS(item$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
+        qs::qsave(item$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
 
     } else {
-      saveRDS(item, scseq_part_path(sc_dir, dataset_name, type))
+      qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type))
     }
 
   }
@@ -1305,18 +1301,10 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 load_scseq_qs <- function(dataset_dir) {
   scseq_path <- file.path(dataset_dir, 'scseq.qs')
   resoln_name <- load_resoln(dataset_dir)
-  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.rds')
+  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.qs')
 
-  if (file.exists(scseq_path)) {
-    scseq <- qs::qread(scseq_path)
-  } else {
-    rds_path <- gsub('qs$', 'rds', scseq_path)
-    scseq <- readRDS(rds_path)
-    qs::qsave(scseq, scseq_path)
-    unlink(rds_path)
-  }
-
-  scseq$cluster <- readRDS.safe(clusters_path, scseq$cluster)
+  scseq <- qs::qread(scseq_path)
+  scseq$cluster <- qread.safe(clusters_path, scseq$cluster)
   return(scseq)
 }
 
@@ -1376,7 +1364,7 @@ validate_subset <- function(from_dataset, subset_name, subset_clusters, is_inclu
 #'
 #' @keywords internal
 scseq_part_path <- function(data_dir, dataset_name, part) {
-  fname <- paste0(part, '.rds')
+  fname <- paste0(part, '.qs')
   file.path(data_dir, dataset_name, fname)
 }
 
@@ -1412,9 +1400,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
     l1000_genes = query_drugs(dprimes, es$l1000_genes, ngenes = ngenes)
   )
 
-  saveRDS(res$cmap, drug_paths$cmap)
-  saveRDS(res$l1000_drugs, drug_paths$l1000_drugs)
-  saveRDS(res$l1000_genes, drug_paths$l1000_genes)
+  qs::qsave(res$cmap, drug_paths$cmap)
+  qs::qsave(res$l1000_drugs, drug_paths$l1000_drugs)
+  qs::qsave(res$l1000_genes, drug_paths$l1000_genes)
 
   return(res)
 }
@@ -1602,7 +1590,7 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
 
 get_subname <- function(sc_dir, dataset_name) {
   resoln_path <- scseq_part_path(sc_dir, dataset_name, 'resoln')
-  resoln <- readRDS(resoln_path)
+  resoln <- qs::qread(resoln_path)
 
   file.path(dataset_name, paste0('snn', resoln))
 }

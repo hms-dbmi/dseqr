@@ -162,8 +162,8 @@ plot_cluster_labels <- function(scseq, clust, sc_dir) {
 
   for (i in seq_along(batches)) {
     batch <- batches[i]
-    annot_path <- file.path(sc_dir, batch, 'annot.rds')
-    annot <- readRDS(annot_path)
+    annot_path <- file.path(sc_dir, batch, 'annot.qs')
+    annot <- qs::qread(annot_path)
     names(annot) <- paste(batch, seq_along(annot), sep='_')
     annots <- c(annots, annot)
   }
@@ -316,15 +316,15 @@ update_feature_plot <- function(plot,
 #'
 get_feature_data <- function(plots_dir, scseq, feature) {
   # cache/get data for new feature
-  dat_path <- file.path(plots_dir, paste0(feature, '_data.rds'))
+  dat_path <- file.path(plots_dir, paste0(feature, '_data.qs'))
   if (file.exists(dat_path)) {
-    fdat <- readRDS(dat_path)
+    fdat <- qs::qread(dat_path)
 
   } else {
     is.gene <- feature %in% row.names(scseq)
     if (is.gene) fdat <- SingleCellExperiment::logcounts(scseq)[feature, ]
     else fdat <- scseq[[feature]]
-    saveRDS(fdat, dat_path)
+    qs::qsave(fdat, dat_path)
   }
   names(fdat) <- colnames(scseq)
   return(fdat)

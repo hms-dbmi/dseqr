@@ -27,7 +27,7 @@ respectively, mimic and reverse the query signature. Values range from +1 to -1.
 \examples{
 
 # load CMAP02 data
-cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.rds')
+cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.qs')
 
 # use first cmap_es signature as query
 dprimes <- cmap_es[1:100, 1]

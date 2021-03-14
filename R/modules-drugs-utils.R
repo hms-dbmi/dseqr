@@ -7,7 +7,7 @@
 #'
 #' @keywords internal
 get_drug_paths <- function(data_dir, suffix) {
-  suffix <- paste0(suffix, '.rds')
+  suffix <- paste0(suffix, '.qs')
   list(
     cmap = file.path(data_dir, paste0('cmap_res_', suffix)),
     l1000_drugs = file.path(data_dir, paste0('l1000_drugs_res_', suffix)),
@@ -33,15 +33,15 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$set(message = "Querying drugs", value = 1)
   on.exit(progress$close())
 
-  cmap_es  <- dseqr.data::load_drug_es('cmap_es_ind.rds')
+  cmap_es  <- dseqr.data::load_drug_es('cmap_es_ind.qs')
   progress$inc(1)
 
   # get correlations between query and drug signatures
   res$cmap <- query_budger(query_genes, cmap_es)
   rm(cmap_es)
 
-  saveRDS(res$cmap, res_paths$cmap)
-  saveRDS(query_genes, res_paths$query_genes)
+  qs::qsave(res$cmap, res_paths$cmap)
+  qs::qsave(query_genes, res_paths$query_genes)
 
   # don't run l1000 if no genes from it selected
   run.l1000 <- any(unlist(query_genes) %in% genes$common)
@@ -49,16 +49,16 @@ run_custom_query <- function(query_genes, res_paths, session) {
 
   if (run.l1000) {
 
-    l1000_drugs_es <- dseqr.data::load_drug_es('l1000_drugs_es.rds')
+    l1000_drugs_es <- dseqr.data::load_drug_es('l1000_drugs_es.qs')
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
     rm(l1000_drugs_es)
 
-    l1000_genes_es <- dseqr.data::load_drug_es('l1000_genes_es.rds')
+    l1000_genes_es <- dseqr.data::load_drug_es('l1000_genes_es.qs')
     res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
     rm(l1000_genes_es)
 
-    saveRDS(res$l1000_drugs, res_paths$l1000_drugs)
-    saveRDS(res$l1000_genes, res_paths$l1000_genes)
+    qs::qsave(res$l1000_drugs, res_paths$l1000_drugs)
+    qs::qsave(res$l1000_genes, res_paths$l1000_genes)
     progress$inc(1)
   }
 
@@ -228,8 +228,8 @@ load_custom_anals <- function(data_dir) {
 
   anals <- NULL
   if (dir.exists(custom_dir)) {
-    custom_names <- list.files(custom_dir, pattern = '^cmap_res_.+?.rds')
-    custom_names <- gsub('^cmap_res_(.+?).rds$', '\\1', custom_names)
+    custom_names <- list.files(custom_dir, pattern = '^cmap_res_.+?.qs')
+    custom_names <- gsub('^cmap_res_(.+?).qs$', '\\1', custom_names)
 
 
     anals <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)

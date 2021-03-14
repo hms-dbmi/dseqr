@@ -40,7 +40,7 @@ get_dprimes <- function(top_table) {
 #' @examples
 #'
 #' # load CMAP02 data
-#' cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.rds')
+#' cmap_es <- dseqr.data::load_drug_es('cmap_es_ind.qs')
 #'
 #' # use first cmap_es signature as query
 #' dprimes <- cmap_es[1:100, 1]

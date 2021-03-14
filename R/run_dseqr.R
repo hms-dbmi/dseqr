@@ -109,9 +109,9 @@ init_dseqr <- function(app_name, data_dir = '/srv/dseqr') {
 
   anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
   colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
-  saveRDS(anals, file.path(user_dir, 'bulk', 'anals.rds'))
+  qs::qsave(anals, file.path(user_dir, 'bulk', 'anals.qs'))
 
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")
-  saveRDS(datasets, file.path(user_dir, 'bulk', 'datasets.rds'))
+  qs::qsave(datasets, file.path(user_dir, 'bulk', 'datasets.qs'))
 }

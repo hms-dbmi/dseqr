@@ -1,17 +1,17 @@
-#' Read RDS file safely
+#' Read qs file safely
 #'
-#' @inheritParams base::readRDS
+#' @inheritParams qs::qread
 #' @param .nofile return value when file doesn't exist
 #' @param .nullfile return value when file value is \code{NULL}
 #'
-#' @inherit base::readRDS return
+#' @inherit qs::qread return
 #'
 #' @keywords internal
 #'
-readRDS.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
+qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
   res <- .nofile
   if (isTruthy(file) && file.exists(file))
-    res <- readRDS(file)
+    res <- qs::qread(file)
 
   if (is.null(res)) return(.nullfile)
   return(res)

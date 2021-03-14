@@ -6,11 +6,11 @@
 \usage{
 remove_dataset_files(
   data_dir,
-  patterns = c("^adjusted_\\\\d+svs.rds$", "^iqr_keep_\\\\d+svs.rds$", "^vsd.rds$",
-    "^svobj.rds$", "^numsv.rds$", "^lm_fit_\\\\d+svs.rds$", "cmap_res_.+_\\\\d+svs.rds$",
-    "go_.+_\\\\d+svs.rds$", "goana_.+_\\\\d+svs.rds$", "kegg_.+_\\\\d+svs.rds$",
-    "kegga_.+_\\\\d+svs.rds$", "l1000_drugs_res_.+_\\\\d+svs.rds$",
-    "l1000_genes_res_.+_\\\\d+svs.rds$", "diff_expr_symbol_.+_\\\\d+svs.rds$"),
+  patterns = c("^adjusted_\\\\d+svs.qs$", "^iqr_keep_\\\\d+svs.qs$", "^vsd.qs$",
+    "^svobj.qs$", "^numsv.qs$", "^lm_fit_\\\\d+svs.qs$", "cmap_res_.+_\\\\d+svs.qs$",
+    "go_.+_\\\\d+svs.qs$", "goana_.+_\\\\d+svs.qs$", "kegg_.+_\\\\d+svs.qs$",
+    "kegga_.+_\\\\d+svs.qs$", "l1000_drugs_res_.+_\\\\d+svs.qs$",
+    "l1000_genes_res_.+_\\\\d+svs.qs$", "diff_expr_symbol_.+_\\\\d+svs.qs$"),
   exclude = NULL
 )
 }

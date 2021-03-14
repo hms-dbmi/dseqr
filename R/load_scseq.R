@@ -201,9 +201,9 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 
 #' Load SingleCellExperiment
 #'
-#' Loads scle.loom if exists otherwise scseq.rds
+#' Loads scle.loom if exists otherwise scseq.qs
 #'
-#' @param dataset_dir Directory with scle.loom or scseq.rds
+#' @param dataset_dir Directory with scle.loom or scseq.qs
 #'
 #' @return \code{SingleCellExperiment} or \code{SingleCellLoomExperiment}
 #' @export
@@ -211,7 +211,7 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 load_scseq <- function(dataset_dir) {
   scle_path <- file.path(dataset_dir, 'scle.loom')
   resoln_name <- load_resoln(dataset_dir)
-  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.rds')
+  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.qs')
 
   transition_efs(scle_path)
 
@@ -224,7 +224,7 @@ load_scseq <- function(dataset_dir) {
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
   colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-  scseq$cluster <- readRDS.safe(clusters_path, scseq$cluster)
+  scseq$cluster <- qread.safe(clusters_path, scseq$cluster)
 
   is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
 
@@ -237,8 +237,8 @@ load_scseq <- function(dataset_dir) {
 }
 
 attach_clusters <- function(scseq, resoln_dir) {
-  clusters_path <- file.path(resoln_dir, 'clusters.rds')
-  scseq$cluster <- readRDS(clusters_path)
+  clusters_path <- file.path(resoln_dir, 'clusters.qs')
+  scseq$cluster <- qs::qread(clusters_path)
   return(scseq)
 }
 
@@ -818,6 +818,7 @@ add_hvgs <- function(sce, hvgs = NULL) {
 #' @return \code{sce} with \code{'TSNE'} \code{reducedDim}
 #' @export
 run_tsne <- function(sce, dimred = 'PCA') {
+  # consider replacing with runUMAP min_dist=0.5 (faster but similar)
   set.seed(1100101001)
   sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
   colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')

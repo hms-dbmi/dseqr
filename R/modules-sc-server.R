@@ -122,8 +122,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   })
 
   annot <- reactiveVal()
-  annot_path <- reactive(file.path(resoln_dir(), 'annot.rds'))
-  observe(annot(readRDS(annot_path())))
+  annot_path <- reactive(file.path(resoln_dir(), 'annot.qs'))
+  observe(annot(qs::qread(annot_path())))
 
   observe(toggle('form_container', condition = scDataset$dataset_exists()))
 
@@ -342,17 +342,17 @@ clusterPlots <- function(plots_dir, scseq) {
 
 
   # create feature and cluster plot for future updating
-  feature_plot_path <- reactive(file.path(plots_dir(), 'feature_plot.rds'))
+  feature_plot_path <- reactive(file.path(plots_dir(), 'feature_plot.qs'))
 
   feature_plot_clusters <- reactive({
     plot_path <- feature_plot_path()
-    plot <- readRDS.safe(plot_path)
+    plot <- qread.safe(plot_path)
 
     if (is.null(plot)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
       plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
-      saveRDS(plot, plot_path)
+      qs::qsave(plot, plot_path)
     }
     return(plot)
   })
@@ -360,21 +360,21 @@ clusterPlots <- function(plots_dir, scseq) {
   # this is ugly but avoids error from clusters/samples updating same plot
   feature_plot_samples <- reactive({
     plot_path <- feature_plot_path()
-    plot <- readRDS.safe(plot_path)
+    plot <- qread.safe(plot_path)
 
     if (is.null(plot)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
       plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
-      saveRDS(plot, plot_path)
+      qs::qsave(plot, plot_path)
     }
     return(plot)
   })
 
-  cluster_data_path <- reactive(file.path(plots_dir(), 'cluster_data.rds'))
+  cluster_data_path <- reactive(file.path(plots_dir(), 'cluster_data.qs'))
   cluster_plot <- reactive({
     data_path <- cluster_data_path()
-    plot_data <- readRDS.safe(data_path)
+    plot_data <- qread.safe(data_path)
 
     if (!is.null(plot_data)) {
       plot <- plot_tsne_cluster(plot_data = plot_data)
@@ -383,7 +383,7 @@ clusterPlots <- function(plots_dir, scseq) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
       plot <- plot_tsne_cluster(scseq)
-      saveRDS(plot$data, data_path)
+      qs::qsave(plot$data, data_path)
     }
 
     return(plot)
@@ -458,7 +458,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   is_integrated <- reactive({
     dataset_name <- dataset_name()
     req(dataset_name)
-    integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
+    integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
     return(dataset_name %in% integrated)
   })
 
@@ -477,12 +477,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # update previously selected dataset on-file if changes
-  prev_path <- file.path(sc_dir, 'prev_dataset.rds')
+  prev_path <- file.path(sc_dir, 'prev_dataset.qs')
 
   observe({
     sel <- dataset_name()
     req(sel)
-    saveRDS(sel, prev_path)
+    qs::qsave(sel, prev_path)
   })
 
 
@@ -830,7 +830,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
   new_preds <- reactiveVal()
   new_annot <- reactiveVal()
 
-  preds_path <- reactive(file.path(resoln_dir(), 'preds.rds'))
+  preds_path <- reactive(file.path(resoln_dir(), 'preds.qs'))
 
 
   # show/hide label transfer forms
@@ -844,7 +844,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
     # load previously saved reference preds
     preds_path <- preds_path()
-    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+    preds <- if (file.exists(preds_path)) qs::qread(preds_path) else list()
     preds <- validate_preds(preds, sc_dir)
     return(preds)
   })
@@ -873,7 +873,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
   query <- reactive({
     query_path <- scseq_part_path(sc_dir, resoln_name(), 'scseq_sample')
-    readRDS(query_path)
+    qs::qread(query_path)
   })
 
   # submit annotation transfer
@@ -924,11 +924,11 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
       ref_subname <- get_resoln_name(sc_dir, ref_name)
       ref_path <- scseq_part_path(sc_dir, ref_subname, 'scseq_sample')
       ref_date <- file.info(ref_path)$ctime
-      ref <- readRDS(ref_path)
+      ref <- qs::qread(ref_path)
 
       # check if ref and query have the same founder
-      rfound <- readRDS(scseq_part_path(sc_dir, ref_name, 'founder'))
-      qfound <- readRDS(scseq_part_path(sc_dir, query_name, 'founder'))
+      rfound <- qs::qread(scseq_part_path(sc_dir, ref_name, 'founder'))
+      qfound <- qs::qread(scseq_part_path(sc_dir, query_name, 'founder'))
 
       # use common cells to transfer labels if so
       cells <- intersect(colnames(ref), colnames(query))
@@ -941,17 +941,17 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
       } else {
         markers_path <- scseq_part_path(sc_dir, ref_subname, 'top_markers')
-        genes <- readRDS(markers_path)
+        genes <- qs::qread(markers_path)
 
         # use aggregated reference for speed
         ref_path <- scseq_part_path(sc_dir, ref_subname, 'aggr_ref')
         if (file.exists(ref_path)) {
-          ref <- readRDS(ref_path)
+          ref <- qs::qread(ref_path)
 
         } else {
           set.seed(100)
           ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
-          saveRDS(ref, ref_path)
+          qs::qsave(ref, ref_path)
         }
 
         # need until SingleR #77 fixed
@@ -976,7 +976,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
     preds_path <- preds_path()
     preds[[ref_name]] <- pred
-    saveRDS(preds, preds_path)
+    qs::qsave(preds, preds_path)
 
     new_preds(ref_name)
     ref_preds(preds[[ref_name]])
@@ -993,7 +993,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
     # load previously saved reference preds
     preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds <- if (file.exists(preds_path)) readRDS(preds_path) else list()
+    preds <- if (file.exists(preds_path)) qs::qread(preds_path) else list()
 
     # append reset labels
     clusters <- clusters()
@@ -1018,7 +1018,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
     } else if (!isTruthy(ref_name) | !show_label_transfer()) {
       annot_path <- annot_path()
-      annot <- readRDS(annot_path)
+      annot <- qs::qread(annot_path)
 
     } else {
       annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
@@ -1063,7 +1063,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
     pred_annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
     annot_path <- annot_path()
-    saveRDS(pred_annot, annot_path)
+    qs::qsave(pred_annot, annot_path)
 
     new_annot(pred_annot)
   })
@@ -1090,9 +1090,9 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     dataset_dir <- dataset_dir()
     req(dataset_dir)
 
-    fpath <- file.path(dataset_dir(), 'resoln.rds')
+    fpath <- file.path(dataset_dir(), 'resoln.qs')
     resoln_path(fpath)
-    init <- readRDS.safe(fpath, 1)
+    init <- qread.safe(fpath, 1)
     resoln(init)
     updateSliderInput(session, 'resoln', value=init)
   }, priority = 1)
@@ -1105,13 +1105,13 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   # clusters after change resolution
-  clusters_path <- reactive(file.path(resoln_dir(), 'clusters.rds'))
+  clusters_path <- reactive(file.path(resoln_dir(), 'clusters.qs'))
 
   clusters <- reactive({
     resoln <- resoln()
     resoln <- as.character(resoln)
     clusters_path <- clusters_path()
-    clusters <- readRDS.safe(clusters_path)
+    clusters <- qread.safe(clusters_path)
 
     if (!is.null(clusters)) return(clusters)
 
@@ -1119,17 +1119,17 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (is.null(g)) return(NULL)
 
     clusters <- get_clusters(g, resolution = resoln)
-    saveRDS(clusters, clusters_path)
+    qs::qsave(clusters, clusters_path)
 
     # transfer annotation from prev clusters to new
-    saveRDS(levels(clusters), annot_path())
+    qs::qsave(levels(clusters), annot_path())
     transfer_prev_annot(resoln, prev_resoln(), dataset_name(), sc_dir)
 
     return(clusters)
   })
 
   applied <- reactiveVal(FALSE)
-  applied_path <- reactive(file.path(resoln_dir(), 'applied.rds'))
+  applied_path <- reactive(file.path(resoln_dir(), 'applied.qs'))
   observe(applied(file.exists(applied_path())))
 
   observe({
@@ -1137,8 +1137,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (applied()) {
       resoln <- resoln()
       prev_resoln(resoln)
-      saveRDS(TRUE, applied_path())
-      saveRDS(resoln, resoln_path())
+      qs::qsave(TRUE, applied_path())
+      qs::qsave(resoln, resoln_path())
     }
   })
 
@@ -1185,11 +1185,11 @@ transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 
   # ref clusters are from previous resolution
   ref_subdir <- file.path(dataset_name, paste0('snn', prev_resoln))
-  ref_cluster <- readRDS(file.path(sc_dir, ref_subdir, 'clusters.rds'))
+  ref_cluster <- qs::qread(file.path(sc_dir, ref_subdir, 'clusters.qs'))
 
   # query clusters are new resolution
   query_subdir <- file.path(dataset_name, paste0('snn', resoln))
-  query_cluster <- readRDS(file.path(sc_dir, query_subdir, 'clusters.rds'))
+  query_cluster <- qs::qread(file.path(sc_dir, query_subdir, 'clusters.qs'))
 
   # transfer labels
   tab <- table(assigned = ref_cluster, cluster = query_cluster)
@@ -1201,7 +1201,7 @@ transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
   suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
   annot[is.num] <- annot_nums[is.num]
 
-  saveRDS(annot, file.path(sc_dir, query_subdir, 'annot.rds'))
+  qs::qsave(annot, file.path(sc_dir, query_subdir, 'annot.qs'))
 }
 
 get_resoln_name <- function(sc_dir, dataset_name) {
@@ -1212,8 +1212,8 @@ get_resoln_name <- function(sc_dir, dataset_name) {
 }
 
 load_resoln <- function(dataset_dir) {
-  resoln_path <- file.path(dataset_dir, 'resoln.rds')
-  paste0('snn', readRDS.safe(resoln_path, 1))
+  resoln_path <- file.path(dataset_dir, 'resoln.qs')
+  paste0('snn', qread.safe(resoln_path, 1))
 }
 
 #' Logic for subsetting a datatset
@@ -1417,8 +1417,8 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   integration_choices <- reactive({
     ds <- datasets()
     if (!nrow(ds)) return(NULL)
-    int  <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
-    prev <- readRDS.safe(file.path(sc_dir, 'prev_dataset.rds'))
+    int  <- qread.safe(file.path(sc_dir, 'integrated.qs'))
+    prev <- qread.safe(file.path(sc_dir, 'prev_dataset.qs'))
     ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
 
     choices <- ds %>%
@@ -1671,7 +1671,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     annot_path <- annot_path()
     if (!isTruthy(annot_path)) annot(NULL)
     else if (!is.null(ref_preds)) annot(ref_preds)
-    else annot(readRDS(annot_path))
+    else annot(qs::qread(annot_path))
   })
 
   sel_d <- reactive(input$selected_cluster) %>% debounce(20)
@@ -1740,12 +1740,12 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
     # use currently save annot as reference
     ref_preds <- ref_preds()
-    mod_annot <- readRDS(annot_path())
+    mod_annot <- qs::qread(annot_path())
     mod_annot[sel_idx] <- ref_preds[sel_idx] <- input$new_cluster_name
     mod_annot <- make.unique(mod_annot, '_')
 
     # save on disc
-    saveRDS(mod_annot, annot_path())
+    qs::qsave(mod_annot, annot_path())
 
     # update annot and set selected cluster to new name
     annot(mod_annot)
@@ -1794,7 +1794,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
       markers <- c(markers, con_markers)
 
     } else {
-      markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.rds'))
+      markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
       if (!file.exists(markers_path)) {
 
         disableAll(cluster_inputs)
@@ -1809,7 +1809,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
         applied(TRUE)
         enableAll(cluster_inputs)
       }
-      markers[[sel]] <- readRDS(markers_path)
+      markers[[sel]] <- qs::qread(markers_path)
     }
 
     markers(markers)
@@ -1939,8 +1939,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
   # for saving custom metric for future sessions
-  metrics_path <- reactive(file.path(resoln_dir(), 'saved_metrics.rds'))
-  observe(saved_metrics(readRDS.safe(metrics_path())))
+  metrics_path <- reactive(file.path(resoln_dir(), 'saved_metrics.qs'))
+  observe(saved_metrics(qread.safe(metrics_path())))
 
   observeEvent(input$save_custom_metric, {
     metric <- input$custom_metric
@@ -1959,7 +1959,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
       if (!is.null(prev)) res <- cbind(prev, res)
     }
 
-    saveRDS(res, metrics_path())
+    qs::qsave(res, metrics_path())
     saved_metrics(res)
     updateTextInput(session, 'custom_metric', value = '')
   })
@@ -2229,19 +2229,19 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     is.num <- is.gene || is.numeric(scseq@colData[[gene]])
     if (!is.num) return(NULL)
 
-    dat_path <- file.path(plots_dir(), paste(gene, cluster, 'cluster_ridgedat.rds', sep='-'))
+    dat_path <- file.path(plots_dir(), paste(gene, cluster, 'cluster_ridgedat.qs', sep='-'))
 
     if (file.exists(dat_path)) {
       annot <- annot()
       if (is.null(annot)) return(NULL)
-      rdat <- readRDS(dat_path)
+      rdat <- qs::qread(dat_path)
       rdat$clus_levs <- annot()
 
     } else {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
       rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE)
-      saveRDS(rdat, dat_path)
+      qs::qsave(rdat, dat_path)
     }
 
     return(rdat)
@@ -2294,14 +2294,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     annot <- input_annot()
     if (!is.null(annot)) return(annot)
 
-    annot_path <- file.path(resoln_dir(), 'annot.rds')
+    annot_path <- file.path(resoln_dir(), 'annot.qs')
     if (!file.exists(annot_path)) return(NULL)
-    readRDS(annot_path)
+    qs::qread(annot_path)
   })
 
 
-  has_replicates <- reactive(readRDS.safe(file.path(dataset_dir(), 'has_replicates.rds')))
-  species <- reactive(readRDS.safe(file.path(dataset_dir(), 'species.rds')))
+  has_replicates <- reactive(qread.safe(file.path(dataset_dir(), 'has_replicates.qs')))
+  species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
 
   # update cluster choices in UI
@@ -2311,8 +2311,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
     if (!isTruthyAll(resoln_dir, integrated)) return(NULL)
     # need to be in sync (don't take from elsewhere)
-    annot_path  <- file.path(resoln_dir, 'annot.rds')
-    annot <- readRDS.safe(annot_path)
+    annot_path  <- file.path(resoln_dir, 'annot.qs')
+    annot <- qread.safe(annot_path)
 
     if(is.null(annot)) return(NULL)
 
@@ -2337,16 +2337,16 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
   drug_paths <- reactive(get_drug_paths(resoln_dir(), clusters_str()))
-  go_path <- reactive(file.path(resoln_dir(), paste0('go_', clusters_str(), '.rds')))
-  kegg_path <- reactive(file.path(resoln_dir(), paste0('kegg_', clusters_str(), '.rds')))
-  goana_path <- reactive(file.path(resoln_dir(), paste0('goana_', clusters_str(), '.rds')))
-  kegga_path <- reactive(file.path(resoln_dir(), paste0('kegga_', clusters_str(), '.rds')))
-  top_tables_paths <- reactive(file.path(resoln_dir(), 'top_tables.rds'))
+  go_path <- reactive(file.path(resoln_dir(), paste0('go_', clusters_str(), '.qs')))
+  kegg_path <- reactive(file.path(resoln_dir(), paste0('kegg_', clusters_str(), '.qs')))
+  goana_path <- reactive(file.path(resoln_dir(), paste0('goana_', clusters_str(), '.qs')))
+  kegga_path <- reactive(file.path(resoln_dir(), paste0('kegga_', clusters_str(), '.qs')))
+  top_tables_paths <- reactive(file.path(resoln_dir(), 'top_tables.qs'))
 
 
   # require cluster markers and fit result
-  lm_fit <- reactive(readRDS.safe(file.path(resoln_dir(), 'lm_fit_0svs.rds')))
-  cluster_markers <- reactive(readRDS.safe(file.path(resoln_dir(), paste0('markers_', clusters_str(), '.rds'))))
+  lm_fit <- reactive(qread.safe(file.path(resoln_dir(), 'lm_fit_0svs.qs')))
+  cluster_markers <- reactive(qread.safe(file.path(resoln_dir(), paste0('markers_', clusters_str(), '.qs'))))
 
   # plot functions for left
   sel <- reactive(input$selected_cluster)
@@ -2366,15 +2366,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
         sel <- sel()
         amb <- exclude_ambient()
         annot_hash <- digest::digest(c(annot, amb), 'crc32')
-        pname <- paste(gene, sel, annot_hash, 'dprimes.rds', sep='-')
+        pname <- paste(gene, sel, annot_hash, 'dprimes.qs', sep='-')
         plot_path <- file.path(plots_dir(), pname)
 
         if (file.exists(plot_path)) {
-          pfun <- readRDS(plot_path)
+          pfun <- qs::qread(plot_path)
 
         } else {
           pfun <- plot_scseq_dprimes(gene, annot, sel, top_tables(), amb)
-          saveRDS(pfun, plot_path)
+          qs::qsave(pfun, plot_path)
         }
 
       } else {
@@ -2428,16 +2428,16 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
       if(!isTruthyAll(sel, scseq, gene, is_integrated)) return(default)
 
-      dat_path <- file.path(plots_dir(), paste(gene,  sel, 'sample_ridgedat.rds', sep='-'))
+      dat_path <- file.path(plots_dir(), paste(gene,  sel, 'sample_ridgedat.qs', sep='-'))
       if (file.exists(dat_path)) {
-        ridge_data <- readRDS(dat_path)
+        ridge_data <- qs::qread(dat_path)
         ridge_data$clus_levs <- annot()
 
 
       } else {
         try(ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE))
         if (is.null(ridge_data)) return(default)
-        saveRDS(ridge_data, dat_path)
+        qs::qsave(ridge_data, dat_path)
       }
 
       plot <- plot_ridge(ridge_data = ridge_data, with.height = TRUE)
@@ -2445,17 +2445,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     }
   }) %>% debounce(20)
 
-  dataset_ambient <- reactive(readRDS.safe(file.path(dataset_dir(), 'ambient.rds')))
+  dataset_ambient <- reactive(qread.safe(file.path(dataset_dir(), 'ambient.qs')))
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
 
     resoln_dir <- resoln_dir()
     if (is.null(resoln_dir)) return(NULL)
-    tts_path <- file.path(resoln_dir, 'top_tables.rds')
+    tts_path <- file.path(resoln_dir, 'top_tables.qs')
 
     if (file.exists(tts_path)) {
-      tts <- readRDS(tts_path)
+      tts <- qs::qread(tts_path)
 
     } else {
       fit <- lm_fit()
@@ -2486,7 +2486,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       cols <- colnames(tts[[1]])
       tts[[all]] <- es_to_tt(es, enids, cols)
 
-      saveRDS(tts, file.path(resoln_dir(), 'top_tables.rds'))
+      qs::qsave(tts, file.path(resoln_dir(), 'top_tables.qs'))
     }
     return(tts)
   })
@@ -2517,7 +2517,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
     } else if (saved_drugs) {
       if (!file.exists(dpaths$cmap)) res <- NULL
-      else res <- lapply(dpaths, readRDS)
+      else res <- lapply(dpaths, qs::qread)
 
     } else {
       # run for all single-cluster comparisons (slowest part is loading es)
@@ -2543,7 +2543,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       progress$inc(1)
       enableAll(input_ids)
       if (!file.exists(dpaths$cmap)) res <- NULL
-      else res <- lapply(dpaths, readRDS)
+      else res <- lapply(dpaths, qs::qread)
 
     }
     return(res)
@@ -2559,10 +2559,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     kegga_path <- kegga_path()
 
     if (file.exists(kegga_path)) {
-      res <- list(go = readRDS(go_path),
-                  kg = readRDS(kegg_path),
-                  kegga = readRDS(kegga_path),
-                  goana = readRDS(goana_path))
+      res <- list(go = qs::qread(go_path),
+                  kg = qs::qread(kegg_path),
+                  kegga = qs::qread(kegga_path),
+                  goana = qs::qread(goana_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -2600,7 +2600,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     return(res)
   })
 
-  pairs <- reactive(readRDS.safe(file.path(dataset_dir(), 'pairs.rds')))
+  pairs <- reactive(qread.safe(file.path(dataset_dir(), 'pairs.qs')))
 
   abundances <- reactive(diff_abundance(scseq(), annot(), pairs()))
 

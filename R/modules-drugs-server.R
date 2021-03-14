@@ -148,7 +148,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
     if (!dir.exists(custom_dir)) dir.create(custom_dir)
 
     res_paths <- get_drug_paths(custom_dir, custom_name)
-    res_paths$query_genes <- file.path(custom_dir, paste0('query_genes_', custom_name, '.rds'))
+    res_paths$query_genes <- file.path(custom_dir, paste0('query_genes_', custom_name, '.qs'))
     return(res_paths)
   })
 
@@ -201,7 +201,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
         run_drug_queries(top_table, res_paths, es, ngenes = nrow(top_table))
         progress$inc(1)
 
-        saveRDS(top_table, res_paths$query_genes)
+        qs::qsave(top_table, res_paths$query_genes)
         new_custom(input$custom_name)
         enableAll(input_ids)
       }
@@ -676,15 +676,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   # Bulk analysis
   # ---
-  eset  <- reactive(readRDS(file.path(dataset_dir(), 'eset.rds')))
-  pdata <- reactive(readRDS(file.path(dataset_dir(), 'pdata_explore.rds')))
-  svobj <- reactive(readRDS(file.path(dataset_dir(), 'svobj.rds')))
+  eset  <- reactive(qs::qread(file.path(dataset_dir(), 'eset.qs')))
+  pdata <- reactive(qs::qread(file.path(dataset_dir(), 'pdata_explore.qs')))
+  svobj <- reactive(qs::qread(file.path(dataset_dir(), 'svobj.qs')))
 
-  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.rds'))
+  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.qs'))
   numsv <- reactive({
     numsv_path <- numsv_path()
-    if (!file.exists(numsv_path)) saveRDS(0, numsv_path)
-    readRDS(numsv_path)
+    if (!file.exists(numsv_path)) qs::qsave(0, numsv_path)
+    qs::qread(numsv_path)
   })
 
   bulk_eset <- exploreEset(eset = eset,
@@ -728,12 +728,12 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
     } else if (is_custom()) {
       custom_dir <- file.path(data_dir, 'custom_queries')
       drug_paths <- get_drug_paths(custom_dir, sel_name)
-      drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) readRDS(x))
+      drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) qs::qread(x))
 
     } else if (is_pert()) {
       drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name))
       sapply(drug_paths, dl_pert_result)
-      drug_queries <- lapply(drug_paths, readRDS)
+      drug_queries <- lapply(drug_paths, qs::qread)
 
     } else {
       drug_queries <- NULL
@@ -750,8 +750,8 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
       top_table <- bulkAnal$top_table()
 
     } else if (is_custom()) {
-      fname <- paste0('query_genes_', sel_name(), '.rds')
-      top_table <- readRDS(file.path(data_dir, 'custom_queries', fname))
+      fname <- paste0('query_genes_', sel_name(), '.qs')
+      top_table <- qs::qread(file.path(data_dir, 'custom_queries', fname))
 
     } else {
       top_table <- NULL

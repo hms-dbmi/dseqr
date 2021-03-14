@@ -7,12 +7,12 @@
 load_scseq(dataset_dir)
 }
 \arguments{
-\item{dataset_dir}{Directory with scle.loom or scseq.rds}
+\item{dataset_dir}{Directory with scle.loom or scseq.qs}
 }
 \value{
 \code{SingleCellExperiment} or \code{SingleCellLoomExperiment}
 }
 \description{
-Loads scle.loom if exists otherwise scseq.rds
+Loads scle.loom if exists otherwise scseq.qs
 }
 \keyword{internal}

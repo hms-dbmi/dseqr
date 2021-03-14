@@ -140,13 +140,13 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 #' @keywords internal
 load_scseq_datasets <- function(data_dir) {
   sc_dir <- file.path(data_dir, 'single-cell')
-  int_path <- file.path(sc_dir, 'integrated.rds')
+  int_path <- file.path(sc_dir, 'integrated.qs')
 
   datasets <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type")
 
   if (file.exists(int_path)) {
-    integrated <- readRDS.safe(int_path)
+    integrated <- qread.safe(int_path)
     has.scseq <- check_has_scseq(integrated, sc_dir)
     integrated <- integrated[has.scseq]
 
@@ -196,11 +196,11 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 
   # get cluster markers
   clusters_name <- collapse_sorted(selected_clusters)
-  fname <- paste0("markers_", clusters_name, '.rds')
+  fname <- paste0("markers_", clusters_name, '.qs')
   fpath <- file.path(dataset_dir, fname)
 
   if (file.exists(fpath)) {
-    cluster_markers <- readRDS(fpath)
+    cluster_markers <- qs::qread(fpath)
 
   }
 
@@ -376,11 +376,11 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir'
 
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 
-  fname <- paste('gslist', type, species, 'rds', sep = '.')
+  fname <- paste('gslist', type, species, 'qs', sep = '.')
   gslist_path <- file.path(gs_dir, fname)
 
   if (file.exists(gslist_path)) {
-    gslist <- readRDS(gslist_path)
+    gslist <- qs::qread(gslist_path)
 
   } else if (type == 'go') {
     orgPkg <- paste0("org.",species,".eg.db")
@@ -409,7 +409,7 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir'
     EG.GO$SYMBOL <- AnnotationDbi::mapIds(get(orgPkg), EG.GO$gene_id, column = 'SYMBOL', keytype = 'ENTREZID')
     gslist <- split(EG.GO, EG.GO$go_id)
     gslist <- lapply(gslist, function(df) {tmp <- df$gene_id; names(tmp) <- df$SYMBOL; tmp})
-    saveRDS(gslist, gslist_path)
+    qs::qsave(gslist, gslist_path)
 
   } else if (type == 'kegg') {
 
@@ -430,7 +430,7 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir'
     gslist <- lapply(seq_along(gslist), function(i) {tmp <- gslist[[i]]; names(tmp) <- symbols[[i]]; tmp})
 
     names(gslist) <- gkl$PathwayID
-    saveRDS(gslist, gslist_path)
+    qs::qsave(gslist, gslist_path)
 
   }
 
@@ -465,18 +465,18 @@ get_kegg_species <- function(species) {
 get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dseqr/gs_dir') {
   if (!dir.exists(gs_dir)) dir.create(gs_dir)
 
-  fname <- paste('gs.names', type, species, 'rds', sep = '.')
+  fname <- paste('gs.names', type, species, 'qs', sep = '.')
   gs.names_path <- file.path(gs_dir, fname)
 
   if (file.exists(gs.names_path)) {
-    gs.names <- readRDS(gs.names_path)
+    gs.names <- qs::qread(gs.names_path)
 
   } else if (type == 'go') {
     GOID <- names(gslist)
     TERM <- suppressMessages(AnnotationDbi::select(GO.db::GO.db,keys=GOID,columns="TERM"))
     gs.names <- TERM$TERM
     names(gs.names) <- TERM$GOID
-    saveRDS(gs.names, gs.names_path)
+    qs::qsave(gs.names, gs.names_path)
 
   } else if (type == 'kegg') {
     kegg_species <- get_kegg_species(species)
@@ -484,7 +484,7 @@ get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dse
     row.names(gs.names) <- gs.names$PathwayID
     gs.names <- gs.names[names(gslist), 'Description']
     names(gs.names) <- names(gslist)
-    saveRDS(gs.names, gs.names_path)
+    qs::qsave(gs.names, gs.names_path)
 
   }
 

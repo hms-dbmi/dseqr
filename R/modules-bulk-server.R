@@ -16,7 +16,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
   msg_quant <- reactiveVal()
 
-  eset <- reactive(readRDS.safe(file.path(bulkForm$dataset_dir(), 'eset.rds')))
+  eset <- reactive(qread.safe(file.path(bulkForm$dataset_dir(), 'eset.qs')))
 
 
   explore_eset <- exploreEset(eset = eset,
@@ -427,14 +427,14 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   uploadModal <- function() {
     label <- "Click upload or drag files:"
-    label_title <- "Accepts *.fastq.gz or eset.rds"
+    label_title <- "Accepts *.fastq.gz or eset.qs"
     label <- tags$span(label,
                        title = label_title,
                        span(class = "hover-info",
                             icon("info", "fa-fw")))
 
     modalDialog(
-      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.rds', '.fastq.gz'), multiple = TRUE),
+      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.qs', '.fastq.gz'), multiple = TRUE),
       title = 'Upload or Select Existing?',
       size = 's',
       footer = tagList(
@@ -500,8 +500,8 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     file.path(data_dir, dir)
   })
 
-  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.rds'))
-  svobj_path <- reactive(file.path(dataset_dir(), 'svobj.rds'))
+  numsv_path <- reactive(file.path(dataset_dir(), 'numsv.qs'))
+  svobj_path <- reactive(file.path(dataset_dir(), 'svobj.qs'))
 
   # initialize svobj
   svobj_r <- reactiveVal()
@@ -511,7 +511,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     svobj_path <- svobj_path()
 
     if (file.exists(svobj_path)) {
-      svobj <- readRDS(svobj_path)
+      svobj <- qs::qread(svobj_path)
     }
 
     svobj_r(svobj)
@@ -529,8 +529,8 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
 
     numsv_path <- numsv_path()
-    if (file.exists(numsv_path)) numsv <- readRDS(numsv_path)
-    else saveRDS(0, numsv_path)
+    if (file.exists(numsv_path)) numsv <- qs::qread(numsv_path)
+    else qs::qsave(0, numsv_path)
 
     maxsv_r(maxsv)
     numsv_r(numsv)
@@ -543,7 +543,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   observeEvent(input$selected_nsv, {
     numsv_r(input$selected_nsv)
-    saveRDS(input$selected_nsv, numsv_path())
+    qs::qsave(input$selected_nsv, numsv_path())
   }, ignoreInit = TRUE)
 
 
@@ -818,12 +818,12 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     pdata <- Biobase::pData(eset)
     req(eset)
 
-    prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.rds')
-    pdata_path <- file.path(dataset_dir(), 'pdata_explore.rds')
+    prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.qs')
+    pdata_path <- file.path(dataset_dir(), 'pdata_explore.qs')
 
     if (file.exists(prev_path)) {
-      prev <- readRDS(prev_path)
-      saved <- readRDS(pdata_path)
+      prev <- qs::qread(prev_path)
+      saved <- qs::qread(pdata_path)
       changed <- check_bulk_changed(prev, saved)
       req(changed)
     }
@@ -847,7 +847,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
 
     # update saved svobj
-    saveRDS(svobj, file.path(dataset_dir(), 'svobj.rds'))
+    qs::qsave(svobj, file.path(dataset_dir(), 'svobj.qs'))
 
     svobj_r(svobj)
     numsv_r(NULL)
@@ -909,12 +909,12 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     new_dataset()
 
     # make sure integrated rds exists
-    int_path <- file.path(sc_dir, 'integrated.rds')
-    if (!file.exists(int_path)) saveRDS(NULL, int_path)
+    int_path <- file.path(sc_dir, 'integrated.qs')
+    if (!file.exists(int_path)) qs::qsave(NULL, int_path)
 
     # use saved anals as options
-    integrated <- readRDS.safe(file.path(sc_dir, 'integrated.rds'))
-    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.rds'))
+    integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
+    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.qs'))
 
     # exclude individual without scseq (e.g. folder with fastq.gz files only)
     has.scseq <- check_has_scseq(individual, sc_dir)
@@ -931,25 +931,23 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     updateSelectizeInput(session, 'dtangle_dataset', choices = c('', ref_anals))
   })
 
-  annot <- reactive({
+  # get path to resolution subdir being used
+  dtangle_subdir <- reactive({
     anal_name <- input$dtangle_dataset
     req(anal_name)
-    annot_path <- scseq_part_path(sc_dir, anal_name, 'annot')
-    readRDS(annot_path)
+
+    dataset_dir <- file.path(sc_dir, anal_name)
+    resoln_path <- file.path(dataset_dir, 'resoln.qs')
+    resoln <- qs::qread(resoln_path)
+    file.path(dataset_dir, paste0('snn', resoln))
   })
+
+  annot <- reactive(qs::qread(file.path(dtangle_subdir(), 'annot.qs')))
 
   # update exclude cluster choices
   include_choices <- reactive({
     clusters <- annot()
-    dataset_dir <- file.path(sc_dir, input$dtangle_dataset)
-
-    # get path to resolution subdir being used
-    resoln_path <- file.path(dataset_dir, 'resoln.rds')
-    resoln <- readRDS(resoln_path)
-
-    dataset_subdir <- file.path(dataset_dir, paste0('snn', resoln))
-
-    get_cluster_choices(clusters, dataset_subdir = dataset_subdir)
+    get_cluster_choices(clusters, resoln_dir = dtangle_subdir())
   })
 
   observe({
@@ -1073,7 +1071,7 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     fastq_dir <- fastq_dir()
     req(fastq_dir)
 
-    pdata_path <- file.path(fastq_dir, 'pdata.rds')
+    pdata_path <- file.path(fastq_dir, 'pdata.qs')
 
     # initial creation of saved pdata
     if (!file.exists(pdata_path)) {
@@ -1082,10 +1080,10 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
       if (!length(fastqs)) fastqs <- NA
       pdata <- tibble::tibble('File Name' = fastqs)
       pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
-      saveRDS(pdata, pdata_path)
+      qs::qsave(pdata, pdata_path)
     }
 
-    pdata <- readRDS(pdata_path)
+    pdata <- qs::qread(pdata_path)
     pairs_r(pdata$Pair)
     reps_r(pdata$Replicate)
 
@@ -1128,8 +1126,8 @@ bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
     pdata <- returned_pdata()
     req(pdata)
 
-    pdata_path <- file.path(isolate(fastq_dir()), 'pdata.rds')
-    saveRDS(pdata, pdata_path)
+    pdata_path <- file.path(isolate(fastq_dir()), 'pdata.qs')
+    qs::qsave(pdata, pdata_path)
   })
 
 
@@ -1244,7 +1242,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 
   # things user will update and return
   pdata_r <- reactiveVal()
-  pdata_path <- reactive(file.path(dataset_dir(), 'pdata_explore.rds'))
+  pdata_path <- reactive(file.path(dataset_dir(), 'pdata_explore.qs'))
 
   eset_pdata <- reactive({
     eset <- eset()
@@ -1264,7 +1262,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 
 
     if (file.exists(pdata_path)) {
-      prev <- readRDS(pdata_path)
+      prev <- qs::qread(pdata_path)
       changed <- check_bulk_changed(prev, up)
 
       if (changed) {
@@ -1275,7 +1273,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
     }
 
     pdata_r(up)
-    saveRDS(up, pdata_path)
+    qs::qsave(up, pdata_path)
   })
 
 
@@ -1287,7 +1285,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, d
 
     # load pdata from previous if available
     if (file.exists(pdata_path)) {
-      pdata <- readRDS(pdata_path)
+      pdata <- qs::qread(pdata_path)
 
       # TODO remove
       # need for legacy purposes
@@ -1477,7 +1475,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   lmfit_path <- reactive({
     req(is_bulk())
-    lmfit_file <- paste0('lm_fit_', numsv_str(), '.rds')
+    lmfit_file <- paste0('lm_fit_', numsv_str(), '.qs')
     file.path(dataset_dir(), lmfit_file)
   })
 
@@ -1487,22 +1485,22 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   go_path <- reactive({
-    fname <- paste0('go_', anal_name(), '_', numsv_str(), '.rds')
+    fname <- paste0('go_', anal_name(), '_', numsv_str(), '.qs')
     file.path(dataset_dir(), fname)
   })
 
   goana_path <- reactive({
-    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.rds')
+    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.qs')
     file.path(dataset_dir(), fname)
   })
 
   kegg_path <- reactive({
-    fname <- paste0('kegg_', anal_name(), '_', numsv_str(), '.rds')
+    fname <- paste0('kegg_', anal_name(), '_', numsv_str(), '.qs')
     file.path(dataset_dir(), fname)
   })
 
   kegga_path <- reactive({
-    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.rds')
+    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.qs')
     file.path(dataset_dir(), fname)
   })
 
@@ -1513,7 +1511,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   lm_fit <- reactive({
 
     if (file.exists(lmfit_path())) {
-      lm_fit <- readRDS(lmfit_path())
+      lm_fit <- qs::qread(lmfit_path())
 
     } else {
 
@@ -1559,7 +1557,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
     } else if (saved_drugs()) {
       paths <- drug_paths()
-      res <- lapply(paths, readRDS)
+      res <- lapply(paths, qs::qread)
 
     } else {
       tt <- top_table()
@@ -1601,10 +1599,10 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
     if (file.exists(kegga_path)) {
       res <- list(
-        go = readRDS(go_path),
-        kg = readRDS(kegg_path),
-        goana = readRDS(goana_path),
-        kegga = readRDS(kegga_path))
+        go = qs::qread(go_path),
+        kg = qs::qread(kegg_path),
+        goana = qs::qread(goana_path),
+        kegga = qs::qread(kegga_path))
 
     } else {
       lm_fit <- lm_fit()
@@ -1702,9 +1700,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 #' @noRd
 exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
-  vsd_path <- reactive(file.path(dataset_dir(), 'vsd.rds'))
-  adj_path <- reactive(file.path(dataset_dir(), paste0('adjusted_', numsv(), 'svs.rds')))
-  keep_path <- reactive(file.path(dataset_dir(), paste0('iqr_keep_', numsv(), 'svs.rds')))
+  vsd_path <- reactive(file.path(dataset_dir(), 'vsd.qs'))
+  adj_path <- reactive(file.path(dataset_dir(), paste0('adjusted_', numsv(), 'svs.qs')))
+  keep_path <- reactive(file.path(dataset_dir(), paste0('iqr_keep_', numsv(), 'svs.qs')))
 
 
   norm_eset <- reactive({
@@ -1736,9 +1734,10 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     if (rna_seq) eset <- rkal::filter_genes(eset)
 
     # rlog normalize
-    eset <- crossmeta::add_vsd(eset, rna_seq = rna_seq, vsd_path = vsd_path())
+    eset <- add_vsd(eset, vsd_path(), rna_seq)
     return(eset)
   })
+
 
 
   # explore_eset used for all plots
@@ -1755,14 +1754,13 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
       req(identical(row.names(svobj$sv), colnames(eset)))
     }
 
-    eset <- crossmeta::add_adjusted(eset, svobj, numsv, adj_path = adj_path())
+    eset <- add_adjusted(eset, adj_path(), svobj, numsv)
 
     # use SYMBOL as annotation
     # keep unique symbol based on row IQRs
-    eset <- crossmeta::iqr_replicates(eset, keep_path = keep_path())
+    eset <- iqr_replicates(eset, keep_path())
 
     return(eset)
   })
   return(explore_eset)
 }
-

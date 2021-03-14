@@ -622,14 +622,15 @@
     },
     "crossmeta": {
       "Package": "crossmeta",
-      "Version": "1.17.14",
+      "Version": "1.17.15",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "Hash": "3765fe351dffd8eb23fe174e0e3b1464"
+      "RemoteSha": "119d13c9990aef33cdcfecc26361844ac7ce089f",
+      "Hash": "0119e99f4d0ad944d9260fe1774ee7e2"
     },
     "crosstalk": {
       "Package": "crosstalk",
