@@ -1,11 +1,10 @@
 # this script moves everything to leiden clustering
 # it is necessary to transition data created prior to version 0.9.2
 # it uses dseqr version 0.9.2
-
 library(SingleCellExperiment)
 
 # fill in path to app data
-app_dir <- ""
+app_dir <- "/home/alex/patient_data/example"
 
 
 sc_dir <- file.path(app_dir, 'single-cell')

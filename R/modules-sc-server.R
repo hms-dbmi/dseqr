@@ -1120,7 +1120,10 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     clusters <- get_clusters(g, resolution = resoln)
     saveRDS(clusters, clusters_path)
+
+    # transfer annotation from prev clusters to new
     saveRDS(levels(clusters), annot_path())
+    transfer_prev_annot(resoln, prev_resoln(), dataset_name(), sc_dir)
 
     return(clusters)
   })
@@ -1176,6 +1179,29 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     applied = applied
   ))
 
+}
+
+transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
+
+  # ref clusters are from previous resolution
+  ref_subdir <- file.path(dataset_name, paste0('snn', prev_resoln))
+  ref_cluster <- readRDS(file.path(sc_dir, ref_subdir, 'clusters.rds'))
+
+  # query clusters are new resolution
+  query_subdir <- file.path(dataset_name, paste0('snn', resoln))
+  query_cluster <- readRDS(file.path(sc_dir, query_subdir, 'clusters.rds'))
+
+  # transfer labels
+  tab <- table(assigned = ref_cluster, cluster = query_cluster)
+  pred <- row.names(tab)[apply(tab, 2, which.max)]
+  annot <- get_pred_annot(pred, ref_subdir, query_subdir, sc_dir)
+  annot_nums <- as.character(seq_along(annot))
+
+  # keep ordered nums where prediction is numeric
+  suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
+  annot[is.num] <- annot_nums[is.num]
+
+  saveRDS(annot, file.path(sc_dir, query_subdir, 'annot.rds'))
 }
 
 get_resoln_name <- function(sc_dir, dataset_name) {
