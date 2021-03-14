@@ -208,10 +208,8 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 #' @return \code{SingleCellExperiment} or \code{SingleCellLoomExperiment}
 #' @export
 #' @keywords internal
-load_scseq <- function(dataset_dir) {
+load_scseq <- function(dataset_dir, default_clusters = TRUE) {
   scle_path <- file.path(dataset_dir, 'scle.loom')
-  resoln_name <- load_resoln(dataset_dir)
-  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.qs')
 
   transition_efs(scle_path)
 
@@ -224,17 +222,22 @@ load_scseq <- function(dataset_dir) {
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
   colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
-  scseq$cluster <- qread.safe(clusters_path, scseq$cluster)
 
   is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
-
   if (is.integrated) {
     scseq$orig.ident <- factor(as.character(scseq$orig.ident), levels = c('test', 'ctrl'))
     scseq$orig.cluster <- factor(as.numeric(as.character(scseq$orig.cluster)))
   }
 
+  if (default_clusters) {
+    resoln_dir <- file.path(dataset_dir, load_resoln(dataset_dir))
+    scseq <- attach_clusters(scseq, resoln_dir)
+  }
+
   return(scseq)
 }
+
+attach
 
 attach_clusters <- function(scseq, resoln_dir) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')

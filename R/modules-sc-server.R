@@ -430,7 +430,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (!isTruthy(dataset_name())) return(NULL)
     disableAll(dataset_inputs)
     scseq <- load_scseq(dataset_dir())
-
     enableAll(dataset_inputs)
     return(scseq)
   })
@@ -2286,7 +2285,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     dataset_dir <- dataset_dir()
     if (!isTruthy(dataset_dir)) return(NULL)
 
-    scseq <- load_scseq(dataset_dir)
+    scseq <- load_scseq(dataset_dir, default_clusters = FALSE)
     attach_clusters(scseq, resoln_dir())
   })
 

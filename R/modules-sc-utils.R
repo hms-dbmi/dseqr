@@ -604,7 +604,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
 
   if (is.null(scseq)) {
     dataset_dir <- dirname(resoln_dir)
-    scseq <- load_scseq(dataset_dir)
+    scseq <- load_scseq(dataset_dir, default_clusters = FALSE)
     scseq <- attach_clusters(scseq, resoln_dir)
   }
 
