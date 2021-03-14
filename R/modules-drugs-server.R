@@ -419,7 +419,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
   # add annotations to query result
   query_table_annot <- reactive({
     query_res <- query_res()
-    req(query_res)
+    if (is.null(query_res)) return(NULL)
 
     drug_annot <- drug_annot()
     req(drug_annot)
@@ -434,8 +434,10 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 
   # subset to selected cells, summarize by compound, and add html
   query_table_summarised <- reactive({
+    query_table_annot <- query_table_annot()
+    if (is.null(query_table_annot)) return(NULL)
 
-    summarise_query_table(query_table_annot(),
+    summarise_query_table(query_table_annot,
                           is_genetic = is_genetic(),
                           cells = cells(),
                           sort_abs = sort_abs(),
@@ -448,13 +450,25 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
   # ---
 
   # subset by min signatures
-  query_table_nsig <- reactive(filter_nsig(query_table_summarised(), min_signatures()))
+  query_table_nsig <- reactive({
+    query_table_summarised <- query_table_summarised()
+    if (is.null(query_table_summarised)) return(NULL)
+
+    filter_nsig(query_table_summarised, min_signatures())
+  })
 
   # subset by clinical phase
-  query_table_clin <- reactive(filter_clinical(query_table_nsig(), show_clinical()))
+  query_table_clin <- reactive({
+    query_table_nsig <- query_table_nsig()
+    if (is.null(query_table_nsig)) return(NULL)
+
+    filter_clinical(query_table_nsig, show_clinical())
+  })
 
   # final sorting/filtering
   query_table_final <- reactive({
+    query_table_clin <- query_table_clin()
+    if (is.null(query_table_clin)) return(NULL)
 
     sort_query_table_clin(query_table_clin(),
                           sort_by=sort_by(),
@@ -812,4 +826,3 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   ))
 
 }
-
