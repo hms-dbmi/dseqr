@@ -4,7 +4,7 @@
 \alias{load_scseq}
 \title{Load SingleCellExperiment}
 \usage{
-load_scseq(dataset_dir)
+load_scseq(dataset_dir, default_clusters = TRUE)
 }
 \arguments{
 \item{dataset_dir}{Directory with scle.loom or scseq.qs}

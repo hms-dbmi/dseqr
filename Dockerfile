@@ -50,5 +50,5 @@ RUN mkdir -p $TMP_DIR && \
 echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
 # install dseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.9.2', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.10.0', dependencies = FALSE, upgrade = FALSE)"
 

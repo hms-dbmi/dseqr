@@ -4,7 +4,7 @@
 \alias{get_drug_paths}
 \title{Get file paths to drug query results}
 \usage{
-get_drug_paths(data_dir, suffix)
+get_drug_paths(data_dir, suffix, ftype = ".qs")
 }
 \arguments{
 \item{data_dir}{Folder with drug query results}

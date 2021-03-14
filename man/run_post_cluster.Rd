@@ -10,7 +10,8 @@ run_post_cluster(
   sc_dir,
   resoln,
   progress = NULL,
-  value = 0
+  value = 0,
+  reset_annot = TRUE
 )
 }
 \arguments{

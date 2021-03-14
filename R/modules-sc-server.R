@@ -2313,8 +2313,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     annot_path  <- file.path(resoln_dir, 'annot.qs')
     annot <- qread.safe(annot_path)
 
-    browser()
-
     if(is.null(annot)) return(NULL)
 
     tryCatch({
