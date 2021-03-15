@@ -2,7 +2,7 @@
 # it is necessary to transition data created prior to version 0.10.0
 
 # fill in path to app data
-app_dir <- "/home/alex/patient_data/sjia"
+app_dir <- ""
 
 # get all .rds files
 rds_files <- list.files(app_dir, '.rds$', full.names = TRUE, recursive = TRUE)

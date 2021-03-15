@@ -984,12 +984,16 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     # react to new annotation
     new_annot()
     ref_name <- input$ref_name
+
     ref_preds <- ref_preds()
-    resoln_name <- resoln_name()
     req(resoln_name)
+    resoln_name <- resoln_name()
 
     # show saved annot if nothing selected or label transfer not open
-    if (is.null(ref_preds)) {
+    if (ref_name == 'reset') {
+      return(ref_preds)
+
+    } else if (is.null(ref_preds)) {
       annot <- NULL
 
     } else if (!isTruthy(ref_name) | !show_label_transfer()) {
@@ -997,7 +1001,8 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
       annot <- qs::qread(annot_path)
 
     } else {
-      annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
+      ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
+      annot <- get_pred_annot(ref_preds, ref_resoln_name, resoln_name, sc_dir)
     }
 
     return(annot)
