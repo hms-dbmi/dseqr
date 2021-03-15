@@ -287,7 +287,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                    is_integrated = scDataset$is_integrated,
                                    show_dprimes = scSampleGene$show_dprimes,
                                    comparison_type = comparisonType,
-                                   exclude_ambient = scSampleGene$exclude_ambient)
+                                   exclude_ambient = scSampleGene$exclude_ambient,
+                                   applied = scResolution$applied)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              scseq = scDataset$scseq,
@@ -2220,7 +2221,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples') {
+scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl', 'selected_cluster')
 
@@ -2252,6 +2253,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
   # update cluster choices in UI
   cluster_choices <- reactive({
+    applied()
+
     integrated <- is_integrated()
     resoln_dir <- resoln_dir()
 
