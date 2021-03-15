@@ -2246,7 +2246,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   })
 
 
-  has_replicates <- reactive(qread.safe(file.path(dataset_dir(), 'has_replicates.qs')))
+  has_replicates <- reactive(qread.safe(file.path(resoln_dir(), 'has_replicates.qs')))
   species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
 
@@ -2260,7 +2260,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     annot_path  <- file.path(resoln_dir, 'annot.qs')
     annot <- qread.safe(annot_path)
 
-    if(is.null(annot)) return(NULL)
+    if (is.null(annot)) return(NULL)
+
+    # resolution must be applied
+    applied <- file.exists(file.path(resoln_dir, 'applied.qs'))
+    if (!applied) return(NULL)
 
     tryCatch({
       get_cluster_choices(clusters = c(annot, 'All Clusters'),
@@ -2640,4 +2644,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
