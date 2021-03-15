@@ -2266,6 +2266,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     applied <- file.exists(file.path(resoln_dir, 'applied.qs'))
     if (!applied) return(NULL)
 
+
     tryCatch({
       get_cluster_choices(clusters = c(annot, 'All Clusters'),
                           sample_comparison = TRUE,
@@ -2429,14 +2430,14 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       }
 
       # add 'All Clusters' result
-      annot <-  annot()
+      annot <-  qs::qread(file.path(resoln_dir, 'annot.rds'))
       all <- as.character(length(annot)+1)
       es <- run_esmeta(tts)
       enids <- extract_enids(tts)
       cols <- colnames(tts[[1]])
       tts[[all]] <- es_to_tt(es, enids, cols)
 
-      qs::qsave(tts, file.path(resoln_dir(), 'top_tables.qs'))
+      qs::qsave(tts, file.path(resoln_dir, 'top_tables.qs'))
     }
     return(tts)
   })

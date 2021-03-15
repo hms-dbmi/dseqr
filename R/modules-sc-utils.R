@@ -644,8 +644,8 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
 
   # show number of non-ambient with logFC > 1
   if (sample_comparison) {
-    nbig <- rep(0, nbins+1)
-    names(nbig) <- seq_along(nbig)
+    nbig <- rep(0, nbins)
+    names(nbig) <- seq_len(nbins)
 
     test_clusters <- names(top_tables)
     nbig[test_clusters] <- sapply(top_tables, function(tt) {sum(abs(tt$logFC) > 1 & !tt$ambient)})
