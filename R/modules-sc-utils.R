@@ -1202,8 +1202,14 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
   for (dataset_name in dataset_names) {
     dataset_dir <- file.path(sc_dir, dataset_name)
     scseq <- load_scseq_qs(dataset_dir)
+
+    # set orig.resoln to track resolution of origin datasets
+    resoln_name <- load_resoln(dataset_dir)
+    scseq$orig.resoln <- resoln_name
+
     # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
+    scseq
 
     if (length(subset_metrics)) {
       cdata <- scseq@colData
@@ -1300,13 +1306,22 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   return(NULL)
 }
 
+#' Load SingleCellExperiment from qs file
+#'
+#' Also attaches clusters from last applied leiden resolution and stores resolution.
+#'
+#' @param dataset_dir Path to folder with scseq.qs file
+#'
+#' @return SingleCellExperiment
+#' @keywords internal
+#'
 load_scseq_qs <- function(dataset_dir) {
   scseq_path <- file.path(dataset_dir, 'scseq.qs')
   resoln_name <- load_resoln(dataset_dir)
-  clusters_path <- file.path(dataset_dir, resoln_name, 'clusters.qs')
 
   scseq <- qs::qread(scseq_path)
-  scseq$cluster <- qread.safe(clusters_path, scseq$cluster)
+  scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
+
   return(scseq)
 }
 
@@ -1465,69 +1480,6 @@ get_nearest_row <- function(truth, test) {
   max.col(-matrix(eucdiff(diffs), nrow=nrow(test), byrow=TRUE), "first")
 }
 
-#' Get plot to compare original labels for integrated single cell dataset.
-#'
-#' @param anal Name of original analysis in \code{scseq$project} to plot.
-#' @param scseq Integrated \code{SingleCellExperiment} object.
-#' @param annot Character vector of original labels for \code{anal}.
-#' @param plot \code{ggplot} object from integrated \code{scseq}.
-#'
-#' @return \code{ggplot} object showing cells in \code{anal} with original labels but coordinates from \code{plot}
-#'  of integrated \code{scseq}.
-#'
-#' @keywords internal
-#'
-get_label_plot <- function(anal, scseq, annot, plot) {
-  ident <- NULL
-
-  # current colors used in plot with associated cluster
-  cols <- get_palette(levels(scseq$cluster))
-  names(cols) <- levels(scseq$cluster)
-
-
-  # median coordinates for clusters for integrated dataset
-  plot_data <- plot$data
-  int_coords <- get_tsne_coords(plot_data)
-
-  # use same limits as integrated
-  xlims <- range(plot_data$TSNE_1)
-  ylims <- range(plot_data$TSNE_2)
-
-  # median coordinates for clusters for individual dataset
-  in_anal <- scseq$batch %in% anal
-  scseq <- scseq[, in_anal]
-  plot_data <- plot_data[colnames(scseq), ]
-  plot_data$ident <- scseq$orig.cluster
-  anal_coords <- get_tsne_coords(plot_data)
-
-  # closest match for each anal cluster
-  match <- get_nearest_row(int_coords[ ,-1], anal_coords[, -1])
-  anal_coords <- anal_coords %>%
-    dplyr::mutate(match = int_coords$ident[match]) %>%
-    dplyr::arrange(as.numeric(ident))
-
-  # change identity to previous labels
-  cl <- scseq$orig.cluster
-  lv <- as.character(sort(unique(as.numeric(cl))))
-  names(annot) <- seq_along(annot)
-
-  scseq$cluster <- factor(cl, levels = lv)
-  levels(scseq$cluster) <- annot[lv]
-
-  # expand to best match
-  anal_coords$cols <- cols[anal_coords$match]
-
-  # replace any duplicates
-  is.dup <- which(duplicated(anal_coords$cols))
-  if (length(is.dup)) {
-    new_cols <- setdiff(get_palette(lv), anal_coords$cols)
-    anal_coords[is.dup, 'cols'] <- new_cols[seq_along(is.dup)]
-  }
-
-  plot_tsne_cluster(scseq, cols=anal_coords$cols) +
-    ggplot2::xlim(xlims) +
-    ggplot2::ylim(ylims)
-}
 
 #' Get median x-y coordinates for clusters in TSNE plot data
 #'
@@ -1590,10 +1542,66 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
 }
 
 
-get_subname <- function(sc_dir, dataset_name) {
-  resoln_path <- scseq_part_path(sc_dir, dataset_name, 'resoln')
-  resoln <- qs::qread(resoln_path)
+#' Transfer annotation when change resolution
+#'
+#' @param resoln new resolution
+#' @param prev_resoln previous resolution
+#' @param dataset_name name of single-cell dataset
+#' @param sc_dir directory with folder named \code{dataset_name}
+#'
+#' @return saves new annotation in resolution subdirectory
+#' @keywords internal
+#'
+transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 
-  file.path(dataset_name, paste0('snn', resoln))
+  # ref clusters are from previous resolution
+  ref_subdir <- file.path(dataset_name, paste0('snn', prev_resoln))
+  ref_cluster <- qs::qread(file.path(sc_dir, ref_subdir, 'clusters.qs'))
+
+  # query clusters are new resolution
+  query_subdir <- file.path(dataset_name, paste0('snn', resoln))
+  query_cluster <- qs::qread(file.path(sc_dir, query_subdir, 'clusters.qs'))
+
+  # transfer labels
+  tab <- table(assigned = ref_cluster, cluster = query_cluster)
+  pred <- row.names(tab)[apply(tab, 2, which.max)]
+  annot <- get_pred_annot(pred, ref_subdir, query_subdir, sc_dir)
+  annot_nums <- as.character(seq_along(annot))
+
+  # keep ordered nums where prediction is numeric
+  suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
+  annot[is.num] <- annot_nums[is.num]
+
+  qs::qsave(annot, file.path(sc_dir, query_subdir, 'annot.qs'))
 }
 
+#' Get the applied resolution dataset name
+#'
+#' e.g. PBMCS_1/snn1
+#'
+#' @param sc_dir directory with \code{dataset_name} folder
+#' @param dataset_name name of single-cell dataset
+#'
+#' @return the resolution dataset name based on the last applied resolution
+#' @keywords internal
+#'
+get_resoln_name <- function(sc_dir, dataset_name) {
+  dataset_dir <- file.path(sc_dir, dataset_name)
+  resoln <- load_resoln(dataset_dir)
+
+  file.path(dataset_name, resoln)
+}
+
+#' Load the applied resolution name
+#'
+#' e.g. snn1
+#'
+#' @param dataset_dir directory corresponding to single-cell dataset
+#'
+#' @return the last applied resolution name (e.g. \code{'snn1'})
+#' @keywords internal
+#'
+load_resoln <- function(dataset_dir) {
+  resoln_path <- file.path(dataset_dir, 'resoln.qs')
+  paste0('snn', qread.safe(resoln_path, 1))
+}

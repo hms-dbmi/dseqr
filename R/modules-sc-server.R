@@ -62,17 +62,10 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
 
 
-  # label comparison plot ---
-  callModule(scLabelsPlot, 'labels_plot_cluster',
-             selected_cluster = scForm$labels_cluster,
-             scseq = scForm$scseq,
-             sc_dir = sc_dir)
-
 
   observe({
     toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
     toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
-    toggle(id = "labels_comparison_row", condition = scForm$comparison_type() == 'labels')
   })
 
 
@@ -741,24 +734,7 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
   ))
 }
 
-#' Logic for labels plot for integrated dataset
-#'
-#' @keywords internal
-#' @noRd
-scLabelsPlot <- function(input, output, session, sc_dir, selected_cluster, scseq) {
 
-  output$labels_plot <- plotly::renderPlotly({
-    scseq <- scseq()
-    if (is.null(scseq) | is.null(scseq$batch)) return(NULL)
-
-    cluster <- as.numeric(selected_cluster())
-    cluster <- levels(scseq$cluster)[cluster]
-    if (is.na(cluster)) return(NULL)
-
-    plot_cluster_labels(scseq, cluster, sc_dir)
-  })
-
-}
 
 
 #' Logic for single-cell sample comparison plots
@@ -1076,6 +1052,10 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 }
 
 
+#' Logic for leiden resolution slider
+#'
+#' @keywords internal
+#' @noRd
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, show_resolution, scseq, snn_graph, annot_path) {
   resolution_inputs <- c('resoln', 'apply_update')
 
@@ -1180,40 +1160,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
 }
 
-transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 
-  # ref clusters are from previous resolution
-  ref_subdir <- file.path(dataset_name, paste0('snn', prev_resoln))
-  ref_cluster <- qs::qread(file.path(sc_dir, ref_subdir, 'clusters.qs'))
-
-  # query clusters are new resolution
-  query_subdir <- file.path(dataset_name, paste0('snn', resoln))
-  query_cluster <- qs::qread(file.path(sc_dir, query_subdir, 'clusters.qs'))
-
-  # transfer labels
-  tab <- table(assigned = ref_cluster, cluster = query_cluster)
-  pred <- row.names(tab)[apply(tab, 2, which.max)]
-  annot <- get_pred_annot(pred, ref_subdir, query_subdir, sc_dir)
-  annot_nums <- as.character(seq_along(annot))
-
-  # keep ordered nums where prediction is numeric
-  suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
-  annot[is.num] <- annot_nums[is.num]
-
-  qs::qsave(annot, file.path(sc_dir, query_subdir, 'annot.qs'))
-}
-
-get_resoln_name <- function(sc_dir, dataset_name) {
-  dataset_dir <- file.path(sc_dir, dataset_name)
-  resoln <- load_resoln(dataset_dir)
-
-  file.path(dataset_name, resoln)
-}
-
-load_resoln <- function(dataset_dir) {
-  resoln_path <- file.path(dataset_dir, 'resoln.qs')
-  paste0('snn', qread.safe(resoln_path, 1))
-}
 
 #' Logic for subsetting a datatset
 #'

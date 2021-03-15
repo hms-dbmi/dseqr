@@ -237,7 +237,6 @@ load_scseq <- function(dataset_dir, default_clusters = TRUE) {
   return(scseq)
 }
 
-attach
 
 attach_clusters <- function(scseq, resoln_dir) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
@@ -1125,7 +1124,7 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NUL
 
   cor.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
   cor.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
-
+  cor.out$orig.resoln <- unlist(lapply(scseqs, `[[`, 'orig.resoln'), use.names = FALSE)
 
   rm(combined); gc()
 

@@ -46,11 +46,6 @@ scPageUI <- function(id, tab, active) {
                     br(),
                     scSampleMarkerPlotOutput(ns('right_bottom'))
                 )
-            ),
-            div(class = 'row', id = ns('labels_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-7",
-                    scLabelsPlotOutput(ns('labels_plot_cluster'))
-                )
             )
         )
     )
@@ -88,9 +83,6 @@ scFormInput <- function(id) {
             div(id = ns('sample_comparison_inputs'), style = 'display: none',
                 scSampleComparisonInput(ns('sample'), with_dl = TRUE),
                 selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
-            ),
-            div(id = ns('labels_comparison_inputs'), style = 'display: none;',
-                scSampleComparisonInput(ns('labels'))
             )
         )
     )
@@ -106,18 +98,10 @@ comparisonTypeToggle <- function(id) {
   ns <- NS(id)
 
   shinyWidgets::radioGroupButtons(ns('comparison_type'), "Perform comparisons between:",
-                                  choices = c('clusters', 'samples', 'labels'),
+                                  choices = c('clusters', 'samples'),
                                   selected = 'clusters', justified = TRUE)
 }
 
-#' Input for selecting datasets to show original labels for
-#'
-#' @keywords internal
-#' @noRd
-selectedAnnotDatasetInput <- function(id) {
-  ns <- NS(id)
-  selectizeInput(ns('integration_anals'), 'Show original labels for:', multiple = TRUE, choices = '', width = '100%', options = list(maxItems = 2))
-}
 
 #' Input form/associated buttons for selecting single cell dataset
 #'
@@ -170,7 +154,7 @@ labelTransferFormInput <- function(id) {
   })
 }
 
-#' Input form for transferring labels between single cell datasets
+#' Input form for specifying leiden resolution parameter
 #'
 #' @keywords internal
 #' @noRd
@@ -390,14 +374,6 @@ scRidgePlotOutput <- function(id) {
   # plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
-#' Output plotly for labels comparison with integrated datasets
-#'
-#' @keywords internal
-#' @noRd
-scLabelsPlotOutput <- function(id) {
-  ns <- NS(id)
-  plotly::plotlyOutput(ns('labels_plot'))
-}
 
 #' Input for Single Cell analysis
 #'
