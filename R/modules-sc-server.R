@@ -986,14 +986,13 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     ref_name <- input$ref_name
 
     ref_preds <- ref_preds()
-    req(resoln_name)
-    resoln_name <- resoln_name()
+    query_resoln_name <- resoln_name()
+    req(query_resoln_name)
+
+    ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
 
     # show saved annot if nothing selected or label transfer not open
-    if (ref_name == 'reset') {
-      return(ref_preds)
-
-    } else if (is.null(ref_preds)) {
+    if (is.null(ref_preds)) {
       annot <- NULL
 
     } else if (!isTruthy(ref_name) | !show_label_transfer()) {
@@ -1001,8 +1000,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
       annot <- qs::qread(annot_path)
 
     } else {
-      ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
-      annot <- get_pred_annot(ref_preds, ref_resoln_name, resoln_name, sc_dir)
+      annot <- get_pred_annot(ref_preds, ref_resoln_name, query_resoln_name, sc_dir)
     }
 
     return(annot)
@@ -1037,12 +1035,13 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
   observeEvent(input$confirm_overwrite, {
     removeModal()
     ref_name <- input$ref_name
+    ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
     ref_preds <- ref_preds()
-    resoln_name <- resoln_name()
+    query_resoln_name <- resoln_name()
 
-    req(resoln_name)
+    req(query_resoln_name)
 
-    pred_annot <- get_pred_annot(ref_preds, ref_name, resoln_name, sc_dir)
+    pred_annot <- get_pred_annot(ref_preds, ref_resoln_name, query_resoln_name, sc_dir)
     annot_path <- annot_path()
     qs::qsave(pred_annot, annot_path)
 
@@ -1255,19 +1254,24 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
         exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
       }
 
-      # need exclude by cell name if integrated
+      founder <- get_founder(sc_dir, from_dataset)
+      dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
+
       exclude_cells <- NULL
       is_integrated <- is_integrated()
       if (is_integrated && length(exclude_clusters)) {
+        # need exclude by cell name if integrated
         scseq <- scseq()
         exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
         exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
+
+        # also need to append integration type to name
+        args <- load_args(sc_dir, from_dataset)
+        subsets_name <- paste(subsets_name, args$integration_type, sep = '_')
       }
 
-      founder <- get_founder(sc_dir, from_dataset)
-      dataset_name <- paste(founder, subset_name, sep = '_')
 
-      subsets[[dataset_name]] <- callr::r_bg(
+      subsets[[subsets_name]] <- callr::r_bg(
         func = subset_saved_scseq,
         package = 'dseqr',
         args = list(
@@ -1287,7 +1291,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
       msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
       progress$set(message = msg, value = 0)
-      psubsets[[dataset_name]] <- progress
+      psubsets[[subsets_name]] <- progress
 
 
       # clear inputs
@@ -2652,3 +2656,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+
+
+

@@ -12,11 +12,6 @@
 #' @keywords internal
 get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
-
-  # load query annotation
-  query_annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
-  query_annot <- qs::qread(query_annot_path)
-
   senv <- loadNamespace('SingleR')
 
   if (ref_name %in% ls(senv)) {
@@ -24,6 +19,9 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
   } else if (ref_name == 'reset') {
     # reset annotation
+    # load query annotation
+    query_annot_path <- scseq_part_path(sc_dir, dataset_name, 'annot')
+    query_annot <- qs::qread(query_annot_path)
     pred_annot <- as.character(seq_along(query_annot))
 
   } else {
@@ -1065,7 +1063,7 @@ subset_saved_scseq <- function(sc_dir,
 
 
   if (is_integrated) {
-    args <- jsonlite::read_json(file.path(sc_dir, from_dataset, 'args.json'), simplifyVector = TRUE)
+    args <- load_args(sc_dir, from_dataset)
 
     is_include <- c(rep(is_include, length(subset_metrics)),
                     rep(args$is_include, length(args$subset_metrics)))
@@ -1114,6 +1112,10 @@ subset_saved_scseq <- function(sc_dir,
     save_scseq_args(args, dataset_name, sc_dir)
     return(TRUE)
   }
+}
+
+load_args <- function(sc_dir, dataset_name) {
+  jsonlite::read_json(file.path(sc_dir, dataset_name, 'args.json'), simplifyVector = TRUE)
 }
 
 
@@ -1555,24 +1557,24 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
 transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 
   # ref clusters are from previous resolution
-  ref_subdir <- file.path(dataset_name, paste0('snn', prev_resoln))
-  ref_cluster <- qs::qread(file.path(sc_dir, ref_subdir, 'clusters.qs'))
+  ref_resoln_name <- file.path(dataset_name, paste0('snn', prev_resoln))
+  ref_cluster <- qs::qread(file.path(sc_dir, ref_resoln_name, 'clusters.qs'))
 
   # query clusters are new resolution
-  query_subdir <- file.path(dataset_name, paste0('snn', resoln))
-  query_cluster <- qs::qread(file.path(sc_dir, query_subdir, 'clusters.qs'))
+  query_resoln_name <- file.path(dataset_name, paste0('snn', resoln))
+  query_cluster <- qs::qread(file.path(sc_dir, query_resoln_name, 'clusters.qs'))
 
   # transfer labels
   tab <- table(assigned = ref_cluster, cluster = query_cluster)
   pred <- row.names(tab)[apply(tab, 2, which.max)]
-  annot <- get_pred_annot(pred, ref_subdir, query_subdir, sc_dir)
+  annot <- get_pred_annot(pred, ref_resoln_name, query_resoln_name, sc_dir)
   annot_nums <- as.character(seq_along(annot))
 
   # keep ordered nums where prediction is numeric
   suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
   annot[is.num] <- annot_nums[is.num]
 
-  qs::qsave(annot, file.path(sc_dir, query_subdir, 'annot.qs'))
+  qs::qsave(annot, file.path(sc_dir, query_resoln_name, 'annot.qs'))
 }
 
 #' Get the applied resolution dataset name
@@ -1587,8 +1589,11 @@ transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 #'
 get_resoln_name <- function(sc_dir, dataset_name) {
   dataset_dir <- file.path(sc_dir, dataset_name)
-  resoln <- load_resoln(dataset_dir)
 
+  # so that don't add '/snn1' to e.g. 'reset' and 'BlueprintEncodeData'
+  if (!dir.exists(dataset_dir)) return(dataset_name)
+
+  resoln <- load_resoln(dataset_dir)
   file.path(dataset_name, resoln)
 }
 
