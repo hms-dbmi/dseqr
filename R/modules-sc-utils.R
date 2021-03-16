@@ -200,11 +200,14 @@ get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
   if (is.null(dataset_names)) return(NULL)
 
   # load markers and annotation for each
-  annot_paths <- scseq_part_path(data_dir, dataset_names, 'annot')
-  marker_paths <- scseq_part_path(data_dir, dataset_names, 'markers')
+  resolns <- load_resoln(file.path(data_dir, dataset_names))
+  resoln_names <- file.path(dataset_names, resolns)
+
+  annot_paths <- scseq_part_path(data_dir, resoln_names, 'annot')
+  marker_paths <- scseq_part_path(data_dir, resoln_names, 'markers')
 
   annots <- lapply(annot_paths, qs::qread)
-  clusters <- lapply(annots, function(x) seq(0, length(x)-1))
+  clusters <- lapply(annots, seq_along)
 
   exclude_choices <- lapply(seq_along(dataset_names), function(i) {
     data.frame(
@@ -392,7 +395,7 @@ datasets_to_list <- function(datasets) {
 #'
 move_new <- function(new, datasets) {
   if(is.null(new)) return(datasets)
-  is.new <- datasets$name == new
+  is.new <- datasets$name %in% c(new, paste0(new, c('_harmony', '_fastMNN')))
   new.ds <- datasets[is.new, ]
   old.ds <- datasets[!is.new, ]
   datasets <- rbind(old.ds, new.ds)
@@ -1608,5 +1611,5 @@ get_resoln_name <- function(sc_dir, dataset_name) {
 #'
 load_resoln <- function(dataset_dir) {
   resoln_path <- file.path(dataset_dir, 'resoln.qs')
-  paste0('snn', qread.safe(resoln_path, 1))
+  paste0('snn', sapply(resoln_path, qread.safe, .nofile = 1))
 }

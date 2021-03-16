@@ -1257,21 +1257,17 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       founder <- get_founder(sc_dir, from_dataset)
       dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
 
+      # need exclude by cell name if integrated
       exclude_cells <- NULL
       is_integrated <- is_integrated()
       if (is_integrated && length(exclude_clusters)) {
-        # need exclude by cell name if integrated
         scseq <- scseq()
         exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
         exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
-
-        # also need to append integration type to name
-        args <- load_args(sc_dir, from_dataset)
-        subsets_name <- paste(subsets_name, args$integration_type, sep = '_')
       }
 
 
-      subsets[[subsets_name]] <- callr::r_bg(
+      subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
         package = 'dseqr',
         args = list(
@@ -1291,7 +1287,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
       msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
       progress$set(message = msg, value = 0)
-      psubsets[[subsets_name]] <- progress
+      psubsets[[dataset_name]] <- progress
 
 
       # clear inputs
@@ -2656,6 +2652,5 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
 
 
