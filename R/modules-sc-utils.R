@@ -307,8 +307,8 @@ get_sc_dataset_choices <- function(sc_dir) {
   integrated <- integrated[has.scseq]
 
   int_type <- lapply(integrated, function(int) qread.safe(file.path(sc_dir, int, 'founder.qs'),
-                                                            .nofile = 'Integrated',
-                                                            .nullfile = 'Integrated'))
+                                                          .nofile = 'Integrated',
+                                                          .nullfile = 'Integrated'))
   int_type <- unlist(int_type)
 
   sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
@@ -324,8 +324,8 @@ get_sc_dataset_choices <- function(sc_dir) {
 
   # founder for subsets as type
   ind_type <- sapply(individual, function(ind) qread.safe(file.path(sc_dir, ind, 'founder.qs'),
-                                                            .nofile = 'Individual',
-                                                            .nullfile = 'Individual'), USE.NAMES = FALSE)
+                                                          .nofile = 'Individual',
+                                                          .nullfile = 'Individual'), USE.NAMES = FALSE)
 
 
   # exclude founder name from option label
@@ -381,26 +381,6 @@ datasets_to_list <- function(datasets) {
   names(res) <- unique(types)
   return(res)
 
-}
-
-#' Move new dataset to end of datasets data.frame
-#'
-#' Used to prevent de-selection after integration/subset/loading
-#'
-#' @param new Name of new dataset
-#' @param datasets data.frame of datasets from \link{get_sc_dataset_choices}
-#'
-#' @return \code{datasets} with \code{new} moved to end
-#' @keywords internal
-#'
-move_new <- function(new, datasets) {
-  if(is.null(new)) return(datasets)
-  is.new <- datasets$name %in% c(new, paste0(new, c('_harmony', '_fastMNN')))
-  new.ds <- datasets[is.new, ]
-  old.ds <- datasets[!is.new, ]
-  datasets <- rbind(old.ds, new.ds)
-  datasets$value <- seq_along(datasets$value)
-  return(datasets)
 }
 
 
@@ -909,7 +889,8 @@ integrate_saved_scseqs <- function(
   combined$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
 
   run_post_cluster(combined, dataset_name, sc_dir, resoln, progress, value+4)
-  return(TRUE)
+
+  save_scseq_args(args, dataset_name, sc_dir)
 }
 
 #' Post-Cluster Processing of SingleCellExperiment
@@ -1051,27 +1032,22 @@ subset_saved_scseq <- function(sc_dir,
                                is_include,
                                progress = NULL,
                                hvgs = NULL) {
-  # for save_scseq_args
-  args <- c(as.list(environment()))
-  args$progress <- args$sc_dir <- NULL
-  args$date <- Sys.time()
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
     })
   }
-
   progress$set(1, detail = 'loading')
 
+  is_include <- rep(is_include, length(subset_metrics))
 
   if (is_integrated) {
     args <- load_args(sc_dir, from_dataset)
 
-    is_include <- c(rep(is_include, length(subset_metrics)),
-                    rep(args$is_include, length(args$subset_metrics)))
-
-    subset_metrics <- c(subset_metrics, args$subset_metrics)
+    args$is_include <- c(is_include, args$is_include)
+    args$subset_metrics <- c(subset_metrics, args$subset_metrics)
+    args$exclude_cells <- c(exclude_cells, args$exclude_cells)
 
     res <- integrate_saved_scseqs(sc_dir,
                                   test = args$test,
@@ -1079,18 +1055,23 @@ subset_saved_scseq <- function(sc_dir,
                                   integration_name = dataset_name,
                                   integration_type = args$integration_type,
                                   exclude_clusters = args$exclude_clusters,
-                                  exclude_cells = exclude_cells,
-                                  subset_metrics = subset_metrics,
-                                  is_include = is_include,
+                                  exclude_cells =  args$exclude_cells,
+                                  subset_metrics = args$subset_metrics,
+                                  is_include = args$is_include,
                                   founder = founder,
                                   pairs = args$pairs,
                                   hvgs = hvgs,
                                   progress = progress,
                                   value = 1)
-
     return(res)
 
   } else {
+
+    # for save_scseq_args
+    args <- c(as.list(environment()))
+    args$progress <- args$sc_dir <- NULL
+    args$date <- Sys.time()
+
     scseq <- load_scseq_subsets(from_dataset,
                                 sc_dir,
                                 exclude_clusters,
@@ -1223,9 +1204,6 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
       if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
 
       exclude <- cdata[, subset_metrics, drop = FALSE]
-
-      if (length(is_include) == 1)
-        is_include <- rep(is_include, length(subset_metrics))
 
       for (i in seq_len(ncol(exclude)))
         if (is_include[i]) exclude[,i] <- !exclude[,i]

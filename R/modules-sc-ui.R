@@ -164,7 +164,9 @@ resolutionFormInput <- function(id) {
     div(id = ns('resolution-form'), class = 'hidden-form', style = 'display: none;',
         sliderInput(
           ns('resoln'), 'Cluster resolution:', min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
-        justifiedButtonGroup(actionButton(ns('apply_update'), label = 'Apply Resolution Update'), label = '')
+        justifiedButtonGroup(
+          actionButton(ns('reset_resoln'), label = 'Reset'),
+          actionButton(ns('apply_update'), label = 'Apply'), label = '')
     )
   })
 }
@@ -396,8 +398,10 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
       dl_btn,
       #TODO: implement logic for multi-cluster differential expression
       options = list(multiple = FALSE),
-      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if reps:</b> #p<0.05 <b>else:</b> #logFC>1]')
+      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]')
 
   )
 
 }
+
+

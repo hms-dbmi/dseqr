@@ -461,12 +461,19 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     scseq@metadata$species
   })
 
+  prev_datasets <- reactiveVal()
   datasets <- reactive({
     # reactive to new single cell datasets
-    new <- new_dataset()
+    new_dataset()
     datasets <- get_sc_dataset_choices(sc_dir)
-    move_new(new, datasets)
+    prev <- isolate(prev_datasets())
+    curr <- isolate(input$selected_dataset)
+
+    datasets <- keep_curr_selected(datasets, prev, curr)
+    prev_datasets(datasets)
+    return(datasets)
   })
+
 
 
   # update previously selected dataset on-file if changes
@@ -735,6 +742,36 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
   ))
 }
 
+#' Take currently selected row and keep it in the same position
+#'
+#' Used to stop dataset change when adding new datasets
+#'
+#' @param datasets current data.frame of single-cell datasets
+#' @param prev previous data.frame of single-cell datasets
+#' @param curr name of currently selected row from \code{prev}
+#'
+#' @return \code{datasets} with \code{curr} at same row as it is in \code{prev}
+#'
+keep_curr_selected <- function(datasets, prev, curr) {
+
+  if (!isTruthy(prev) || !isTruthy(curr)) return(datasets)
+
+  # get currently selected row
+  curr <- as.numeric(curr)
+  curr_text <- do.call(paste0, prev[curr, ])
+
+  # position in new datasets
+  new_posn <- which(curr_text == do.call(paste0, datasets))
+
+  # move so that row at new_posn is at curr
+  idx <- seq_len(nrow(datasets))
+  idx_new <- replace(idx, c(curr, new_posn), c(new_posn, curr))
+  datasets <- datasets[idx_new, ]
+  datasets$value <- idx
+  return(datasets)
+
+}
+
 
 
 
@@ -799,7 +836,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #' @keywords internal
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, show_label_transfer, dataset_name, scseq, species, clusters) {
-  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln', 'apply_update')
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln', 'apply_update', 'reset_resoln')
   options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
 
   ref_preds <- reactiveVal()
@@ -1130,8 +1167,19 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   allow_update <- reactive(!applied() | !same_resoln())
 
   observe({
-    toggleClass('apply_update', 'btn-primary', condition = allow_update())
-    toggleClass('apply_update', 'disabled', condition = !allow_update())
+    toggleClass('apply_update', 'btn-warning', condition = allow_update())
+    toggleState('apply_update', condition = allow_update())
+    toggleState('reset_resoln', condition = allow_update())
+  })
+
+  observeEvent(input$reset_resoln, {
+    updateSliderInput(session, 'resoln', value = prev_resoln())
+  })
+
+  observeEvent(show_resolution(), {
+    show <- show_resolution()
+    if (show) resoln(input$resoln)
+    else resoln(prev_resoln())
   })
 
   observeEvent(input$apply_update, {
@@ -1258,6 +1306,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
 
       # need exclude by cell name if integrated
+      # because current clusters don't correspond to original clusters
       exclude_cells <- NULL
       is_integrated <- is_integrated()
       if (is_integrated && length(exclude_clusters)) {
@@ -2652,5 +2701,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
 
