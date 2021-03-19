@@ -123,6 +123,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
   # update scseq with cluster changes (from resolution)
   scseq_clusts <- reactive({
     scseq <- scDataset$scseq()
+    if (is.null(scseq)) return(NULL)
+
     clusters <- scResolution$clusters()
     resoln <-  resoln()
     plots_dir <- plots_dir()
@@ -199,6 +201,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
 
 
   # label transfer between datasets
+  # show/hide label transfer forms
+  observe({
+    toggle(id = "label-resolution-form", anim = TRUE, condition = scDataset$show_label_resoln())
+  })
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
                                 dataset_dir = dataset_dir,
@@ -206,11 +212,11 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                 resoln_name = scResolution$resoln_name,
                                 annot_path = annot_path,
                                 datasets = scDataset$datasets,
-                                show_label_transfer = scDataset$show_label_transfer,
                                 dataset_name = scDataset$dataset_name,
                                 scseq = scDataset$scseq,
                                 species = scDataset$species,
-                                clusters = scResolution$clusters)
+                                clusters = scResolution$clusters,
+                                show_label_resoln = scDataset$show_label_resoln)
 
   # adjust resolution of dataset
   scResolution <- callModule(resolutionForm, 'resolution',
@@ -218,10 +224,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                              resoln_dir = resoln_dir,
                              dataset_dir = dataset_dir,
                              dataset_name = scDataset$dataset_name,
-                             show_resolution = scDataset$show_resolution,
                              scseq = scDataset$scseq,
                              snn_graph = scDataset$snn_graph,
-                             annot_path = annot_path)
+                             annot_path = annot_path,
+                             show_label_resoln = scDataset$show_label_resoln)
 
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
@@ -254,7 +260,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                     dataset_name = scDataset$dataset_name,
                                     resoln_dir = resoln_dir,
                                     resoln = resoln,
-                                    applied = scResolution$applied,
                                     scseq = scseq,
                                     annot_path = annot_path,
                                     annot = annot,
@@ -262,7 +267,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                     clusters = scResolution$clusters)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
-                              scseq = scDataset$scseq,
+                              scseq = scseq_clusts,
                               dataset_name = scDataset$dataset_name,
                               resoln_name = scResolution$resoln_name,
                               resoln_dir = resoln_dir,
@@ -397,7 +402,7 @@ clusterPlots <- function(plots_dir, scseq) {
 #' @keywords internal
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
-  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_transfer')
+  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
   options <- list(create = TRUE,
                   placeholder = 'Type name to add new single-cell dataset',
                   render = I('{option: scDatasetOptions, item: scDatasetItem}'),
@@ -674,16 +679,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # show/hide integration/label-transfer forms
   show_integration <- reactive(input$show_integration %% 3 == 2)
   show_subset <- reactive(input$show_integration %% 3 == 1)
-  show_resolution <- reactive(input$show_label_transfer %% 3 == 2)
-  show_label_transfer <- reactive(input$show_label_transfer %% 3 == 1)
-
-  observe(toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_label_transfer()))
-
-  # distinguish between 1/2 toggles for integration vs subset and resolution vs transfer
-  observe({
-    toggleClass(id = "show_integration", 'btn-primary', condition = show_integration() | show_subset())
-    toggleClass(id = "show_label_transfer", 'btn-primary', condition = show_resolution() | show_label_transfer())
-  })
+  show_label_resoln <- reactive(input$show_label_resoln %% 2 == 1)
 
   observe({
     icon <- icon('object-ungroup', 'far fa-fw')
@@ -692,17 +688,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     updateActionButton(session, 'show_integration', icon = icon)
   })
 
-  observe({
-    icon <- icon('tag', 'fa-fw')
-    if (show_resolution()) icon <- icon('sliders-h', 'far fa-fw')
-
-    updateActionButton(session, 'show_label_transfer', icon = icon)
-  })
-
-
   # hide integration/label-transfer buttons no dataset
   observe({
-    toggle('show_label_transfer-parent', condition = dataset_exists())
+    toggle('show_label_resoln-parent', condition = dataset_exists())
   })
 
 
@@ -713,8 +701,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     datasets = datasets,
     show_integration = show_integration,
     show_subset = show_subset,
-    show_label_transfer = show_label_transfer,
-    show_resolution = show_resolution,
+    show_label_resoln = show_label_resoln,
     is_integrated = is_integrated,
     dataset_exists = dataset_exists,
     species = species
@@ -835,7 +822,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) 
 #'
 #' @keywords internal
 #' @noRd
-labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, show_label_transfer, dataset_name, scseq, species, clusters) {
+labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln', 'apply_update', 'reset_resoln')
   options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
 
@@ -845,11 +832,6 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
   preds_path <- reactive(file.path(resoln_dir(), 'preds.qs'))
 
-
-  # show/hide label transfer forms
-  observe({
-    toggle(id = "label-transfer-form", anim = TRUE, condition = show_label_transfer())
-  })
 
   # saved label transfer predictions
   preds <- reactive({
@@ -899,7 +881,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     req(ref_name != 'reset')
     req(query_name, ref_name, preds)
     req(!ref_name %in% names(preds))
-    req(show_label_transfer())
+    req(show_label_resoln())
 
     query <- query()
     req(query)
@@ -1032,7 +1014,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     if (is.null(ref_preds)) {
       annot <- NULL
 
-    } else if (!isTruthy(ref_name) | !show_label_transfer()) {
+    } else if (!isTruthy(ref_name) | !show_label_resoln()) {
       annot_path <- annot_path()
       annot <- qs::qread(annot_path)
 
@@ -1098,12 +1080,24 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 #'
 #' @keywords internal
 #' @noRd
-resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, show_resolution, scseq, snn_graph, annot_path) {
+resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, snn_graph, annot_path, show_label_resoln) {
   resolution_inputs <- c('resoln', 'apply_update')
 
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()
   resoln <- reactiveVal()
+
+  observeEvent(show_label_resoln(), {
+    if (!show_label_resoln()) resoln(prev_resoln())
+    else (resoln(input$resoln))
+  })
+
+  # updateSliderInput removes focus preventing keyboard interaction
+  observe({
+    clusters <- clusters()
+    nclus <- length(levels(clusters))
+    shinyjs::html("nclus", nclus)
+  })
 
   observeEvent(input$resoln, {resoln(input$resoln)}, ignoreInit = TRUE)
 
@@ -1119,11 +1113,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   }, priority = 1)
 
   resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
-
-  # show/hide label transfer forms
-  observe({
-    toggle(id = "resolution-form", anim = TRUE, condition = show_resolution())
-  })
 
   # clusters after change resolution
   clusters_path <- reactive(file.path(resoln_dir(), 'clusters.qs'))
@@ -1176,11 +1165,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     updateSliderInput(session, 'resoln', value = prev_resoln())
   })
 
-  observeEvent(show_resolution(), {
-    show <- show_resolution()
-    if (show) resoln(input$resoln)
-    else resoln(prev_resoln())
-  })
 
   observeEvent(input$apply_update, {
     resoln <- resoln()
@@ -1630,7 +1614,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #'
 #' @keywords internal
 #' @noRd
-clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, applied, scseq, annot_path, annot, ref_preds, clusters) {
+clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot_path, annot, ref_preds, clusters) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -1797,24 +1781,25 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     } else {
       markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
       if (!file.exists(markers_path)) {
-
-        disableAll(cluster_inputs)
-        progress <- Progress$new(session, min = 0, max = 4)
-        on.exit(progress$close())
-        progress$set(message = "Applying resolution update:", detail = 'loading', value = 1)
-
-        scseq <- load_scseq_qs(dataset_dir())
-        scseq$cluster <- clusters()
-
-        run_post_cluster(scseq, dataset_name(), sc_dir, resoln(), progress, value = 1)
-        applied(TRUE)
-        enableAll(cluster_inputs)
+        showModal(warnApplyModal())
+        return(NULL)
       }
       markers[[sel]] <- qs::qread(markers_path)
     }
 
     markers(markers)
   })
+
+  warnApplyModal <- function() {
+    modalDialog(
+      'Either apply or reset cluster resolution to sort marker genes by cluster.',
+      title = 'Apply or Reset',
+      size = 's',
+      easyClose = TRUE
+    )
+  }
+
+
 
 
   observe({
@@ -1863,7 +1848,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # toggle for ridgeline
   gene_selected <- reactive({
-    sel <- selected_gene()
+    sel <- input$selected_gene
     scseq <- scseq()
     if (!isTruthyAll(sel, scseq)) return(FALSE)
     sel %in% row.names(scseq)
@@ -2701,4 +2686,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

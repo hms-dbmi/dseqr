@@ -65,8 +65,11 @@ scFormInput <- function(id) {
 
         scSelectedDatasetInput(ns('dataset')),
         div(class = 'hidden-forms',
-            labelTransferFormInput(ns('transfer')),
-            resolutionFormInput(ns('resolution')),
+            div(id = ns('label-resolution-form'), class = 'hidden-form', style = 'display: none;',
+                labelTransferFormInput(ns('transfer')),
+                hr(),
+                resolutionFormInput(ns('resolution'))
+            ),
             integrationFormInput(ns('integration')),
             subsetFormInput(ns('subset'))
         ),
@@ -116,9 +119,9 @@ scSelectedDatasetInput <- function(id) {
           inputId = ns('selected_dataset'),
           label = 'Select or upload a single-cell dataset:',
           actionButton(
-            ns('show_label_transfer'), '',
+            ns('show_label_resoln'), '',
             icon = icon('cog', 'fa-fw'),
-            title = 'Toggle <b>once</b> for label transfer and <b>twice</b> for cluster resolution',
+            title = 'Toggle for label transfer and cluster resolution',
             class = 'squashed-btn',
             `parent-style`='display: none;'
           ),
@@ -143,14 +146,13 @@ scSelectedDatasetInput <- function(id) {
 labelTransferFormInput <- function(id) {
   ns <- NS(id)
   withTags({
-    div(id = ns('label-transfer-form'), class = 'hidden-form', style = 'display: none;',
-        shinypanel::selectizeInputWithButtons(
-          ns('ref_name'), 'Transfer labels from:',
-          actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
-          options = list(optgroupField = 'type',
-                         render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
-        )
+    shinypanel::selectizeInputWithButtons(
+      ns('ref_name'), 'Transfer labels from:',
+      actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
+      options = list(optgroupField = 'type',
+                     render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
     )
+
   })
 }
 
@@ -161,12 +163,14 @@ labelTransferFormInput <- function(id) {
 resolutionFormInput <- function(id) {
   ns <- NS(id)
   withTags({
-    div(id = ns('resolution-form'), class = 'hidden-form', style = 'display: none;',
-        sliderInput(
-          ns('resoln'), 'Cluster resolution:', min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
-        justifiedButtonGroup(
-          actionButton(ns('reset_resoln'), label = 'Reset'),
-          actionButton(ns('apply_update'), label = 'Apply'), label = '')
+    div(
+      sliderInput(
+        ns('resoln'),
+        label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
+        min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
+      justifiedButtonGroup(
+        actionButton(ns('reset_resoln'), label = 'Reset'),
+        actionButton(ns('apply_update'), label = 'Apply'), label = '')
     )
   })
 }
@@ -403,5 +407,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
-
 
