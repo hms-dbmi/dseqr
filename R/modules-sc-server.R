@@ -1119,7 +1119,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   clusters <- reactive({
     resoln <- resoln()
-    resoln <- as.character(resoln)
     clusters_path <- clusters_path()
     clusters <- qread.safe(clusters_path)
 
@@ -1128,12 +1127,16 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     g <- snn_graph()
     if (is.null(g)) return(NULL)
 
+    # stop resolution calc when change to dataset with different resolution
+    prev_resoln <- prev_resoln()
+    if (prev_resoln == resoln) return(NULL)
+
     clusters <- get_clusters(g, resolution = resoln)
     qs::qsave(clusters, clusters_path)
 
     # transfer annotation from prev clusters to new
     qs::qsave(levels(clusters), annot_path())
-    transfer_prev_annot(resoln, prev_resoln(), dataset_name(), sc_dir)
+    transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
 
     return(clusters)
   })
@@ -1142,13 +1145,11 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   applied_path <- reactive(file.path(resoln_dir(), 'applied.qs'))
   observe(applied(file.exists(applied_path())))
 
+  # update saved and prev resoln if applied
   observe({
-    # update saved and prev resoln
     if (applied()) {
       resoln <- resoln()
       prev_resoln(resoln)
-      qs::qsave(TRUE, applied_path())
-      qs::qsave(resoln, resoln_path())
     }
   })
 
@@ -1184,6 +1185,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # mark as previously applied and re-enable
     applied(TRUE)
+    qs::qsave(TRUE, applied_path())
+    qs::qsave(resoln, resoln_path())
     enableAll(resolution_inputs)
   })
 
