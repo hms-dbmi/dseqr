@@ -890,8 +890,9 @@ integrate_saved_scseqs <- function(
   combined$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
 
   run_post_cluster(combined, dataset_name, sc_dir, resoln, progress, value+4)
-
   save_scseq_args(args, dataset_name, sc_dir)
+
+  return(TRUE)
 }
 
 #' Post-Cluster Processing of SingleCellExperiment
@@ -1000,7 +1001,8 @@ run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
                                   integration_type = integration_types[i],
                                   exclude_clusters = exclude_clusters,
                                   pairs = pairs)
-    # shortcircuit if error
+
+    # stop subsequent integration types if error
     if (!res) return(FALSE)
   }
   return(TRUE)
@@ -1045,10 +1047,13 @@ subset_saved_scseq <- function(sc_dir,
 
   if (is_integrated) {
 
+    # add to previous subsets
     args <- load_args(sc_dir, from_dataset)
-    args$is_include <- c(is_include, args$is_include)
-    args$subset_metrics <- c(subset_metrics, args$subset_metrics)
-    args$exclude_cells <- c(exclude_cells, args$exclude_cells)
+    args$is_include <- c(args$is_include, is_include)
+    args$subset_metrics <- c(args$subset_metrics, subset_metrics)
+
+    for (ds in names(args$exclude_cells))
+      args$exclude_cells[[ds]] <- c(args$exclude_cells[[ds]], exclude_cells[[ds]])
 
     res <- integrate_saved_scseqs(sc_dir,
                                   test = args$test,

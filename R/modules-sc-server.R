@@ -868,6 +868,8 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 
   query <- reactive({
     query_path <- scseq_part_path(sc_dir, resoln_name(), 'scseq_sample')
+    if (!file.exists(query_path)) return(NULL)
+
     qs::qread(query_path)
   })
 
@@ -884,7 +886,11 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     req(show_label_resoln())
 
     query <- query()
-    req(query)
+    if (!isTruthy(query)) {
+      showModal(warnApplyModal('transfer'))
+      updateSelectizeInput(session, 'ref_name', selected = NULL)
+      return(NULL)
+    }
 
     disableAll(label_transfer_inputs)
 
@@ -1781,7 +1787,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     } else {
       markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
       if (!file.exists(markers_path)) {
-        showModal(warnApplyModal())
+        showModal(warnApplyModal('markers'))
         return(NULL)
       }
       markers[[sel]] <- qs::qread(markers_path)
@@ -1789,17 +1795,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
     markers(markers)
   })
-
-  warnApplyModal <- function() {
-    modalDialog(
-      'Either apply or reset cluster resolution to sort marker genes by cluster.',
-      title = 'Apply or Reset',
-      size = 's',
-      easyClose = TRUE
-    )
-  }
-
-
 
 
   observe({
@@ -1821,6 +1816,22 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     selected_markers = selected_markers,
     selected_cluster = selected_cluster
   ))
+}
+
+
+warnApplyModal <- function(type = c('markers', 'transfer', 'select')) {
+  text <- switch(
+    type[1],
+    markers = 'Either apply or reset cluster resolution to sort marker genes by cluster.',
+    transfer = 'Either apply or reset cluster resolution to transfer labels.'
+  )
+
+  modalDialog(
+    text,
+    title = 'Apply or Reset',
+    size = 's',
+    easyClose = TRUE
+  )
 }
 
 
