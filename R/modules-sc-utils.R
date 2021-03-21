@@ -784,7 +784,7 @@ integrate_saved_scseqs <- function(
   exclude_cells = NULL,
   integration_type = c('harmony', 'fastMNN'),
   subset_metrics = NULL,
-  is_include = FALSE,
+  is_include = NULL,
   founder = integration_name,
   pairs = NULL,
   hvgs = NULL,
@@ -820,7 +820,8 @@ integrate_saved_scseqs <- function(
                                     sc_dir,
                                     exclude_clusters,
                                     subset_metrics,
-                                    is_include, 'test',
+                                    is_include,
+                                    'test',
                                     exclude_cells = exclude_cells)
 
   if (!length(test_scseqs)) {
@@ -1043,8 +1044,8 @@ subset_saved_scseq <- function(sc_dir,
   is_include <- rep(is_include, length(subset_metrics))
 
   if (is_integrated) {
-    args <- load_args(sc_dir, from_dataset)
 
+    args <- load_args(sc_dir, from_dataset)
     args$is_include <- c(is_include, args$is_include)
     args$subset_metrics <- c(subset_metrics, args$subset_metrics)
     args$exclude_cells <- c(exclude_cells, args$exclude_cells)
@@ -1177,7 +1178,7 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = FALSE, ident = 'test', exclude_cells = NULL) {
+load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = NULL, ident = 'test', exclude_cells = NULL) {
 
   exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
@@ -1195,7 +1196,6 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
 
     # set orig.ident to ctrl/test (integration) or original dataset name (subset)
     scseq$orig.ident <- factor(ident)
-    scseq
 
     if (length(subset_metrics)) {
       cdata <- scseq@colData
@@ -1212,7 +1212,8 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
       scseq <- scseq[, !exclude]
       gc()
 
-      # remove subset_metrics hardcoded in scseq (no/all cells will meet them by definition)
+      # remove subset_metrics hardcoded in scseq
+      # no/all cells will meet them by definition
       scseq@colData <- scseq@colData[, !colnames(scseq@colData) %in% subset_metrics, drop = FALSE]
     }
 
@@ -1225,8 +1226,13 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
     }
 
     # remove excluded cells
-    if (!is.null(exclude_cells)) {
-      scseq <- scseq[, !colnames(scseq) %in% exclude_cells]
+    cells <- exclude_cells[[dataset_name]]
+    if (!is.null(cells)) {
+      exclude <- colnames(scseq) %in% cells
+      scseq <- scseq[, !exclude]
+
+      if (sum(exclude) != length(cells))
+        warning("Exclude cells didn't match perfectly.")
     }
 
     # require that have cells left
@@ -1234,6 +1240,21 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
   }
 
   return(scseqs)
+}
+
+get_exclude_cells <- function(scseq, exclude_clusters) {
+  # subset scseq to excluded cells
+  exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
+  is.exclude <- as.numeric(scseq$cluster) %in% exclude_num
+  scseq <- scseq[, is.exclude]
+
+  # remove de-dup postfix from integration
+  cells <- gsub('[.]\\d+$', '', colnames(scseq))
+
+  # group excluded by dataset name
+  exclude <- split(cells, scseq$batch)
+
+  return(exclude)
 }
 
 

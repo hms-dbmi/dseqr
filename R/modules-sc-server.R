@@ -1275,6 +1275,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     metric_choices <- metric_choices()
     is_include <- is_include()
     from_dataset <- selected_dataset()
+    is_integrated <- is_integrated()
     hvgs <- hvgs()
 
     error_msg <- validate_subset(from_dataset, subset_name, subset_clusters, is_include, hvgs)
@@ -1294,14 +1295,10 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
       # need exclude by cell name if integrated
       # because current clusters don't correspond to original clusters
-      exclude_cells <- NULL
-      is_integrated <- is_integrated()
-      if (is_integrated && length(exclude_clusters)) {
-        scseq <- scseq()
-        exclude_num <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
-        exclude_cells <- colnames(scseq)[as.numeric(scseq@colData$cluster) %in% exclude_num]
-      }
 
+      exclude_cells <- NULL
+      if (is_integrated && length(exclude_clusters))
+        exclude_cells <- get_exclude_cells(scseq(), exclude_clusters)
 
       subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
@@ -2689,3 +2686,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+
