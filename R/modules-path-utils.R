@@ -55,18 +55,28 @@ construct_path_df <- function(top_table) {
 
   tx2gene <- dseqr.data::load_tx2gene()
 
-  data.frame(
+  df <- data.frame(
     Gene = row.names(top_table),
     Dprime = signif(top_table$dprime, digits = 3),
-    logfc = signif(top_table$logFC, digits = 3),
-    sd = signif(sqrt(top_table$vardprime), digits = 3),
-    pval = format.pval(top_table$P.Value, eps = 0.005, digits = 2),
-    fdr = format.pval(top_table$adj.P.Val, eps = 0.005, digits = 2),
-    description = tx2gene$description[match(row.names(top_table), tx2gene$gene_name)],
-    Link = paste0("<a class='xaxis-tooltip' href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=", row.names(top_table), "'>", row.names(top_table), "</a>"),
-    stringsAsFactors = FALSE
-  ) %>%
-    dplyr::mutate(Gene = factor(Gene, levels = Gene))
+    stringsAsFactors = FALSE)
+
+  # split up assignment because custom query signatures may not have all
+  df$logfc <- safe.fun(signif, top_table$logFC, digits = 3)
+  df$sd <- safe.fun(signif, safe.fun(sqrt, top_table$vardprime), digits = 3)
+  df$pval <- safe.fun(format.pval, top_table$P.Value, eps = 0.005, digits = 2)
+  df$fdr <- safe.fun(format.pval, top_table$adj.P.Val, eps = 0.005, digits = 2)
+  df$description <- tx2gene$description[match(row.names(top_table), tx2gene$gene_name)]
+  df$Link <- paste0("<a class='xaxis-tooltip' ",
+                   "href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=",
+                   row.names(top_table), "'>", row.names(top_table), "</a>")
+
+  dplyr::mutate(df, Gene = factor(Gene, levels = Gene))
+}
+
+safe.fun <- function(fun, x, ...) {
+  if (!length(x)) return(NULL)
+  fun(x, ...)
+
 }
 
 
@@ -89,7 +99,7 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 
   # single cell ambient genes excluded from query
   is.ambient <- row.names(top_table) %in% ambient
-  top_table <- top_table[!is.ambient, ]
+  top_table <- top_table[!is.ambient,, drop=FALSE]
 
   path_df <- construct_path_df(top_table)
   path_df$color <- 'black'

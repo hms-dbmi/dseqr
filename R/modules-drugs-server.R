@@ -585,7 +585,6 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 
   # the gene plot
   pl <- reactive({
-
     top_table <- top_table()
     ambient <- ambient()
     path_id <- path_id()

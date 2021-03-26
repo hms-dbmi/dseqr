@@ -129,15 +129,8 @@ validate_up_custom <- function(top_table, custom_name) {
   dpcol <- match.arg(c('dprime', 'logFC', tt_cols[1]), tt_cols, several.ok = TRUE)[1]
   es <- top_table[[dpcol]]
 
-  es.abs <- max(abs(es))
   if (is.character(es)) {
     msg <- 'Second column: numeric logFC or dprime values'
-
-  } else if (es.abs > 1000) {
-    msg <- 'Second column: values too large'
-
-  } else if (es.abs <= 1) {
-    msg <- 'Second column: values too small'
   }
 
   return(msg)
@@ -165,9 +158,9 @@ format_up_custom <- function(top_table) {
   tt_cols <- colnames(top_table)
   dpcol <- match.arg(c('dprime', 'logFC', tt_cols[1]), tt_cols, several.ok = TRUE)[1]
   top_table$dprime <- top_table[[dpcol]]
+
   return(top_table)
 }
-
 
 
 #' Load results of previous custom query
@@ -687,8 +680,14 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
       '<extra></extra>')
   }
 
-  xrange <- c(min(floor(c(path_df$Dprime - path_df$sd, path_df$dprime_sum)), -1),
-              max(ceiling(c(path_df$Dprime + path_df$sd, path_df$dprime_sum)),  1))
+  sds <- path_df$sds
+  dprimes <- path_df$Dprime
+
+  # possible with custom queries
+  if (is.null(sds)) sds <- max(abs(dprimes))*.10
+
+  xrange <- c(min(floor(c(dprimes - sds, path_df$dprime_sum)), -1),
+              max(ceiling(c(dprimes + sds, path_df$dprime_sum)),  1))
 
 
   # 30 pixels width per gene in pathway
