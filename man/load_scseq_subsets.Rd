@@ -9,7 +9,7 @@ load_scseq_subsets(
   sc_dir,
   exclude_clusters,
   subset_metrics = NULL,
-  is_include = FALSE,
+  is_include = NULL,
   ident = "test",
   exclude_cells = NULL
 )

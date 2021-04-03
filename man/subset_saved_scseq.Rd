@@ -15,7 +15,8 @@ subset_saved_scseq(
   is_integrated,
   is_include,
   progress = NULL,
-  hvgs = NULL
+  hvgs = NULL,
+  azimuth_ref = NULL
 )
 }
 \arguments{

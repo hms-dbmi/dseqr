@@ -788,6 +788,7 @@ integrate_saved_scseqs <- function(
   founder = integration_name,
   pairs = NULL,
   hvgs = NULL,
+  azimuth_ref = NULL,
   npcs = 30,
   cluster_alg = 'leiden',
   resoln = 1,
@@ -853,7 +854,7 @@ integrate_saved_scseqs <- function(
   if(length(species) > 1) stop('Multi-species integration not supported.')
 
   progress$set(value+2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs, hvgs = hvgs)
+  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs, hvgs = hvgs, azimuth_ref = azimuth_ref)
   combined$project <- dataset_name
 
   # retain original QC metrics
@@ -861,35 +862,53 @@ integrate_saved_scseqs <- function(
 
   rm(scseqs, test_scseqs, ctrl_scseqs); gc()
 
-  # TSNE on corrected reducedDim
-  progress$set(value+3, detail = 'reducing')
-  combined@metadata$npcs <- npcs
-  combined <- run_tsne(combined, dimred = 'corrected')
-
   # add ambient outlier info
   combined <- add_integrated_ambient(combined, ambient)
 
-  # get graph
   combined@metadata$species <- species
-  snn_graph <- get_snn_graph(combined, npcs = npcs)
+  combined@metadata$npcs <- npcs
 
   # save what is stable with resolution change
-  progress$set(value+4, detail = 'saving loom')
   scseq_data <- list(scseq = combined,
                      species = species,
                      ambient = ambient,
                      pairs = pairs,
-                     snn_graph = snn_graph,
                      founder = founder,
                      resoln = resoln)
 
-  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+  is_azimuth <- integration_type == 'Azimuth'
+  if (is_azimuth) {
+    resoln <- switch(azimuth_ref, 'human_pbmc' = 2)
+    scseq_data$resoln <- resoln
+    scseq_data$azimuth_ref <- azimuth_ref
+
+    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+    save_azimuth_clusters(combined@colData, dataset_name, sc_dir)
+
+  } else {
+    # TSNE on corrected reducedDim
+    progress$set(value+3, detail = 'reducing')
+    combined <- run_tsne(combined, dimred = 'corrected')
+
+    # get graph
+    scseq_data$snn_graph <- get_snn_graph(combined, npcs = npcs)
+    combined$cluster <- get_clusters(scseq_data$snn_graph, cluster_alg, resoln)
+
+    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+  }
+
+  progress$set(value+4, detail = 'saving loom')
   save_scle(combined, file.path(sc_dir, dataset_name))
 
   # run things that can change with resolution change
-  combined$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
+  run_post_cluster(combined,
+                   dataset_name,
+                   sc_dir,
+                   resoln,
+                   progress,
+                   value+4,
+                   reset_annot = !is_azimuth)
 
-  run_post_cluster(combined, dataset_name, sc_dir, resoln, progress, value+4)
   save_scseq_args(args, dataset_name, sc_dir)
 
   return(TRUE)
@@ -989,18 +1008,23 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 #' @keywords internal
 #'
 run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
-                                       integration_types, exclude_clusters, pairs) {
+                                       integration_types, exclude_clusters, pairs, azimuth_ref) {
 
   for (i in seq_along(integration_types)) {
+    type <- integration_types[i]
+    ref <- NULL
+    if (type == 'Azimuth') ref <- azimuth_ref
 
     # run integration
     res <- integrate_saved_scseqs(sc_dir,
                                   test = test,
                                   ctrl = ctrl,
                                   integration_name = integration_name,
-                                  integration_type = integration_types[i],
+                                  integration_type = type,
                                   exclude_clusters = exclude_clusters,
-                                  pairs = pairs)
+                                  pairs = pairs,
+                                  azimuth_ref = ref,
+                                  value = i*8-8)
 
     # stop subsequent integration types if error
     if (!res) return(FALSE)
@@ -1034,7 +1058,8 @@ subset_saved_scseq <- function(sc_dir,
                                is_integrated,
                                is_include,
                                progress = NULL,
-                               hvgs = NULL) {
+                               hvgs = NULL,
+                               azimuth_ref = NULL) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -1067,6 +1092,7 @@ subset_saved_scseq <- function(sc_dir,
                                   founder = founder,
                                   pairs = args$pairs,
                                   hvgs = hvgs,
+                                  azimuth_ref = azimuth_ref,
                                   progress = progress,
                                   value = 1)
     return(res)
@@ -1097,7 +1123,8 @@ subset_saved_scseq <- function(sc_dir,
                       hvgs = hvgs,
                       progress = progress,
                       value = 1,
-                      founder = founder)
+                      founder = founder,
+                      azimuth_ref = azimuth_ref)
 
     save_scseq_args(args, dataset_name, sc_dir)
     return(TRUE)
@@ -1440,9 +1467,9 @@ run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species 
 #' @keywords internal
 load_drug_es <- function() {
 
-  cmap  <- dseqr.data::load_drug_es('cmap_es_ind.qs')
-  l1000_drugs  <- dseqr.data::load_drug_es('l1000_drugs_es.qs')
-  l1000_genes  <- dseqr.data::load_drug_es('l1000_genes_es.qs')
+  cmap  <- dseqr.data::load_data('cmap_es_ind.qs')
+  l1000_drugs  <- dseqr.data::load_data('l1000_drugs_es.qs')
+  l1000_genes  <- dseqr.data::load_data('l1000_genes_es.qs')
 
   return(list(
     cmap = cmap,

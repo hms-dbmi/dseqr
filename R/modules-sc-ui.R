@@ -27,8 +27,8 @@ scPageUI <- function(id, tab, active) {
                 div(class = "col-sm-12 col-lg-6 col-lg-push-6",
                     scMarkerPlotOutput(ns('marker_plot_cluster'))
                 ),
-                div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin beside-downloadable",
-                    div(id = ns('biogps_container'),
+                div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
+                    div(id = ns('biogps_container'), class="beside-downloadable",
                         scBioGpsPlotOutput(ns('biogps_plot'))
                     ),
                     div(style = 'display: none;', id = ns('ridge_container'),
@@ -164,10 +164,18 @@ resolutionFormInput <- function(id) {
   ns <- NS(id)
   withTags({
     div(
-      sliderInput(
-        ns('resoln'),
-        label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
-        min=0.1, value=1, max=3.1, step = 0.1, width = '100%'),
+      div(id=ns('resoln_container'),
+          sliderInput(
+            ns('resoln'),
+            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
+            min=0.1, value=1, max=3.1, step = 0.1, width = '100%')
+      ),
+      div(id = ns('resoln_azi_container'), style='display: none;',
+          sliderInput(
+            ns('resoln_azi'),
+            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')),
+            min=1, value=2, max=3, step = 1, width = '100%'),
+      ),
       justifiedButtonGroup(
         actionButton(ns('reset_resoln'), label = 'Reset'),
         actionButton(ns('apply_update'), label = 'Apply'), label = '')
@@ -193,7 +201,13 @@ integrationFormInput <- function(id) {
           label = 'Clusters to subset on:',
           actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected clusters'),
           options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
-        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'fastMNN'), justified = TRUE, selected = 'harmony'),
+        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'fastMNN', 'Azimuth'), justified = TRUE, selected = 'harmony'),
+        div(id=ns('azimuth_ref_container'), style='display: none;',
+            selectizeInput(
+              ns('azimuth_ref'),
+              HTML('Select Azimuth reference:'),
+              choices = c('', 'human_pbmc'), width = '100%')
+        ),
         shinypanel::textInputWithButtons(
           ns('integration_name'),
           container_id = ns('name-container'),
@@ -407,4 +421,3 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
-

@@ -11,7 +11,8 @@ run_integrate_saved_scseqs(
   integration_name,
   integration_types,
   exclude_clusters,
-  pairs
+  pairs,
+  azimuth_ref
 )
 }
 \arguments{

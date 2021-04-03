@@ -9,7 +9,8 @@
 #'
 #' @return \code{ggplot}
 #' @keywords internal
-plot_tsne_cluster <- function(scseq = NULL, plot_data = NULL, legend = FALSE, cols = NULL, title = NULL, ...) {
+plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, legend = FALSE, cols = NULL, title = NULL, ...) {
+
 
   # dynamic label/point size
   if (!is.null(scseq)) {
@@ -18,11 +19,16 @@ plot_tsne_cluster <- function(scseq = NULL, plot_data = NULL, legend = FALSE, co
     nc <- length(levs)
     if (nc > 30) levels(scseq$cluster) <- shorten_cluster_labels(levs)
 
+    reds <- SingleCellExperiment::reducedDimNames(scseq)
+    reds <- reds[reds %in% c('UMAP', 'TSNE')]
+    if (!reduction %in% reds) reduction <- reds[1]
+
   } else {
     levs <- levels(plot_data$cluster)
     pt.size <- min(6000/nrow(plot_data), 2)
     nc <- length(levs)
     if (nc > 30) levels(plot_data$cluster) <- shorten_cluster_labels(levs)
+    reduction <- gsub('1$', '', colnames(plot_data)[1])
   }
 
   if (is.null(cols))
@@ -31,10 +37,10 @@ plot_tsne_cluster <- function(scseq = NULL, plot_data = NULL, legend = FALSE, co
   num <- suppressWarnings(!anyNA(as.numeric(levs)))
   label.size <- if(num) 6 else if (nc>30) 5.2 else if(nc > 17) 5.5 else 6
 
-  pl <- DimPlot(scseq, plot_data, reduction = 'TSNE', cols = cols, pt.size = pt.size, label.size = label.size, ...) +
+  pl <- DimPlot(scseq, plot_data, reduction = reduction, cols = cols, pt.size = pt.size, label.size = label.size, ...) +
     theme_no_axis_vals() +
-    ggplot2::xlab('TSNE1') +
-    ggplot2::ylab('TSNE2') +
+    ggplot2::xlab(paste0(reduction, '1')) +
+    ggplot2::ylab(paste0(reduction, '2')) +
     theme_dimgray(with_nums = FALSE)
 
 
@@ -104,17 +110,22 @@ shorten_cluster_labels <- function(labels) {
 #'
 #' @return \code{ggplot}
 #' @keywords internal
-plot_tsne_feature <- function(scseq,
-                              feature,
-                              cols = c('lightgray', 'blue'),
-                              reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
-                              title = paste0('Expression by Cell: ', feature),
-                              pt.size = min(6000/ncol(scseq), 2)) {
+plot_feature <- function(scseq,
+                         feature,
+                         reduction = 'TSNE',
+                         cols = c('lightgray', 'blue'),
+                         reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
+                         title = paste0('Expression by Cell: ', feature),
+                         pt.size = min(6000/ncol(scseq), 2)) {
 
 
   if (reverse_scale) cols <- rev(cols)
 
-  FeaturePlot(scseq, feature, reduction = 'TSNE', pt.size = pt.size, order = TRUE, cols = cols) +
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  reds <- reds[reds %in% c('UMAP', 'TSNE')]
+  if (!reduction %in% reds) reduction <- reds[1]
+
+  FeaturePlot(scseq, feature, reduction = reduction, pt.size = pt.size, order = TRUE, cols = cols) +
     theme_no_axis_vals() +
     ggplot2::xlab('TSNE1') +
     ggplot2::ylab('TSNE2') +
@@ -137,9 +148,9 @@ plot_tsne_feature <- function(scseq,
 #' @return \code{plot} formatted for dseqr app
 #'
 #' @keywords internal
-plot_tsne_feature_sample <- function(feature, scseq, group, plot = NULL, cols = c('lightgray', 'blue')) {
+plot_feature_sample <- function(feature, scseq, group, reduction = 'TSNE', plot = NULL, cols = c('lightgray', 'blue')) {
 
-  if (is.null(plot)) plot <- plot_tsne_feature(scseq, feature)
+  if (is.null(plot)) plot <- plot_feature(scseq, feature, reduction)
 
   is.group <- scseq$orig.ident == group
   ncells <- sum(is.group)
@@ -378,8 +389,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
   clus_ord <- order(m, decreasing = decreasing)
   y <- factor(y, levels = levels(y)[clus_ord])
   df <- data.frame(x, hl, y) %>%
-    dplyr::add_count(y) %>%
-    dplyr::filter(n > 2)
+    dplyr::add_count(y)
 
   ncells <- tapply(df$x, as.character(df$y), length)
   ncells <- ncells[levels(df$y)]
@@ -387,7 +397,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
   # down sample to reduce plot size
   df <- df %>%
     dplyr::group_by(y) %>%
-    dplyr::mutate(nsamp = min(n, 2000)) %>%
+    dplyr::mutate(nsamp = min(n, 1000)) %>%
     dplyr::sample_n(nsamp)
 
   res <- list(
@@ -425,6 +435,73 @@ format_ridge_annot <- function(annot) {
   }
   return(annot)
 }
+
+VlnPlot <- function(feature = NULL,
+                    scseq = NULL,
+                    selected_cluster = NULL,
+                    by.sample = FALSE,
+                    with_all = FALSE,
+                    with.height = FALSE,
+                    ridge_data = NULL,
+                    is_mobile = FALSE,
+                    decreasing = feature %in% c('ribo_percent',
+                                                'log10_sum',
+                                                'log10_detected')) {
+
+  if (is.null(ridge_data)) {
+    ridge_data <- get_ridge_data(
+      feature, scseq, selected_cluster, by.sample, decreasing, with_all)
+  }
+
+  list2env(ridge_data, envir = environment())
+
+  if (by.sample) {
+    title <- paste(title, c(clus_levs, 'All Clusters')[seli])
+    if (is_mobile) df <- shorten_y(df)
+  } else {
+    annot <- format_ridge_annot(clus_levs)
+    levels(df$y) <- annot[clus_ord]
+    if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
+  }
+
+  # errors if boolean/factor/NULL
+  if (is.null(df$x) || !is.numeric(df$x)) {
+    pl <- NULL
+    if (with.height) pl <- list(plot = pl, height = 453)
+    return(pl)
+  }
+
+  data <- as.data.frame(df[,'x'])
+
+  pl <- SingleExIPlot(data,
+                      idents = df$y,
+                      hl = df$hl,
+                      pt.size = 0.001,
+                      title = title,
+                      color = color,
+                      color_dark = color_dark,
+                      nsel = nsel,
+                      ncells = ncells)
+
+
+  if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 38))
+  return(pl)
+
+}
+
+shorten_y <- function(df) {
+  short <- df %>%
+    group_by(y) %>%
+    dplyr::slice(1) %>%
+    group_by(hl) %>%
+    arrange(as.character(y)) %>%
+    mutate(new = paste0(toupper(hl), seq_along(hl)))
+
+  levels(df$y) <- short$new
+  return(df)
+}
+
+
 
 #' Plot single-cell ridgeline plots
 #'
@@ -472,35 +549,50 @@ plot_ridge <- function(feature = NULL,
   maxx <- max(df$x)
   xlim <- maxx+maxx*0.0522
 
-  pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
-    ggplot2::scale_fill_manual(values = c(color, 'gray')) +
-    ggplot2::scale_alpha_manual(values = c(rep(0.4, nsel), 0.25)) +
-    ggplot2::scale_color_manual(values = c(rep('black', nsel), 'gray')) +
-    ggridges::geom_density_ridges(ggplot2::aes(point_color = hl),
-                                  scale = 3, rel_min_height = 0.001, jittered_points = TRUE,
-                                  point_size = 1, point_shape = '.', point_alpha = 1, size = 0.2) +
-    ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color_dark, 'black')) +
-    ggridges::theme_ridges(center_axis_labels = TRUE) +
-    ggplot2::scale_x_continuous(expand = c(0, 0)) +
-    ggplot2::scale_y_discrete(expand = c(0, 0)) +
-    ggplot2::coord_cartesian(clip = "off") +
-    theme_dimgray() +
-    ggplot2::xlab('') +
-    ggplot2::ggtitle(title) +
-    ggplot2::theme(legend.position = 'none',
-                   plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
-                   plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
-                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
-                   axis.title.x = ggplot2::element_blank(),
-                   axis.title.y = ggplot2::element_blank()
-    ) + ggplot2::annotate('text',
-                          label=paste(ncells, 'cells'),
-                          x=rep(xlim, length(ncells)),
-                          y=seq_along(ncells),
-                          vjust = -0.3,
-                          hjust = 'right',
-                          size = 5)
+  # for 1/2 cell clusters
+  df2 <- df %>%
+    filter(n <= 2) %>%
+    mutate(fill = ifelse(hl=='out', 'gray', color))
+
+  line_hl <- 'black'
+  alpha_hl <- 0.4
+  if (!all(df2$hl == 'out')) {
+    color_dark <- 'black'
+    color <- line_hl <- 'gray'
+    alpha_hl <- 0.25
+  }
+
+  (pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
+      ggplot2::scale_fill_manual(values = c(color, 'gray')) +
+      ggplot2::scale_alpha_manual(values = c(rep(alpha_hl, nsel), 0.25)) +
+      ggplot2::scale_color_manual(values = c(rep(line_hl, nsel), 'gray')) +
+      ggridges::geom_density_ridges(ggplot2::aes(point_color = hl),
+                                    scale = 3, rel_min_height = 0.001, jittered_points = TRUE,
+                                    point_size = 1, point_shape = '.', point_alpha = 1, size = 0.2) +
+      ggplot2::geom_jitter(aes(x, as.numeric(y)+0.1), fill=df2$fill, data = df2, shape=21, width=0, height=0.1, inherit.aes = FALSE) +
+      ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color_dark, 'black')) +
+      ggridges::theme_ridges(center_axis_labels = TRUE) +
+      ggplot2::scale_x_continuous(expand = c(0, 0)) +
+      ggplot2::scale_y_discrete(expand = c(0, 0)) +
+      ggplot2::coord_cartesian(clip = "off") +
+      theme_dimgray() +
+      ggplot2::xlab('') +
+      ggplot2::ggtitle(title) +
+      ggplot2::xlim(NA, xlim) +
+      ggplot2::theme(legend.position = 'none',
+                     plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
+                     plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
+                     axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
+                     axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
+                     axis.title.x = ggplot2::element_blank(),
+                     axis.title.y = ggplot2::element_blank()
+      ) + ggplot2::annotate('text',
+                            label=paste(ncells, 'cells'),
+                            x=rep(xlim, length(ncells)),
+                            y=seq_along(ncells),
+                            vjust = -0.3,
+                            hjust = 'right',
+                            size = 5))
 
 
 

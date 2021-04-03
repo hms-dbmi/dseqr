@@ -8,7 +8,8 @@ integrate_scseqs(
   scseqs,
   type = c("harmony", "fastMNN"),
   pairs = NULL,
-  hvgs = NULL
+  hvgs = NULL,
+  azimuth_ref = NULL
 )
 }
 \arguments{

@@ -33,7 +33,7 @@ run_custom_query <- function(query_genes, res_paths, session) {
   progress$set(message = "Querying drugs", value = 1)
   on.exit(progress$close())
 
-  cmap_es  <- dseqr.data::load_drug_es('cmap_es_ind.qs')
+  cmap_es  <- dseqr.data::load_data('cmap_es_ind.qs')
   progress$inc(1)
 
   # get correlations between query and drug signatures
@@ -49,11 +49,11 @@ run_custom_query <- function(query_genes, res_paths, session) {
 
   if (run.l1000) {
 
-    l1000_drugs_es <- dseqr.data::load_drug_es('l1000_drugs_es.qs')
+    l1000_drugs_es <- dseqr.data::load_data('l1000_drugs_es.qs')
     res$l1000_drugs <- query_budger(query_genes, l1000_drugs_es)
     rm(l1000_drugs_es)
 
-    l1000_genes_es <- dseqr.data::load_drug_es('l1000_genes_es.qs')
+    l1000_genes_es <- dseqr.data::load_data('l1000_genes_es.qs')
     res$l1000_genes <- query_budger(query_genes, l1000_genes_es)
     rm(l1000_genes_es)
 

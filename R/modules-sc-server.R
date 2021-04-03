@@ -11,7 +11,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
   # the analysis and options
   scForm <- callModule(scForm, 'form',
                        sc_dir = sc_dir,
-                       indices_dir = indices_dir)
+                       indices_dir = indices_dir,
+                       is_mobile = is_mobile)
 
   # cluster plot in top right
   callModule(scClusterPlot, 'cluster_plot',
@@ -82,7 +83,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir) {
+scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
   # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
@@ -293,7 +294,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir) {
                                    show_dprimes = scSampleGene$show_dprimes,
                                    comparison_type = comparisonType,
                                    exclude_ambient = scSampleGene$exclude_ambient,
-                                   applied = scResolution$applied)
+                                   applied = scResolution$applied,
+                                   is_mobile = is_mobile)
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              scseq = scDataset$scseq,
@@ -350,7 +352,7 @@ clusterPlots <- function(plots_dir, scseq) {
     if (is.null(plot)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
-      plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
+      plot <- plot_feature(scseq, row.names(scseq)[1])
       qs::qsave(plot, plot_path)
     }
     return(plot)
@@ -364,7 +366,7 @@ clusterPlots <- function(plots_dir, scseq) {
     if (is.null(plot)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
-      plot <- plot_tsne_feature(scseq, row.names(scseq)[1])
+      plot <- plot_feature(scseq, row.names(scseq)[1])
       qs::qsave(plot, plot_path)
     }
     return(plot)
@@ -376,12 +378,12 @@ clusterPlots <- function(plots_dir, scseq) {
     plot_data <- qread.safe(data_path)
 
     if (!is.null(plot_data)) {
-      plot <- plot_tsne_cluster(plot_data = plot_data)
+      plot <- plot_cluster(plot_data = plot_data)
 
     } else {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
-      plot <- plot_tsne_cluster(scseq)
+      plot <- plot_cluster(scseq)
       qs::qsave(plot$data, data_path)
     }
 
@@ -572,7 +574,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # ask for confirmation after folder selection
-  observeEvent(new_dataset_dir(), showModal(quantModal()))
+  observeEvent(new_dataset_dir(), showModal(confirmModal(session)))
 
 
   metric_choices <- c('low_lib_size',
@@ -592,14 +594,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
 
     if (!isTruthy(metrics)) metrics <- 'none'
-    if (metrics == 'all') metrics <- metric_choices
+    if (metrics[1] == 'all') metrics <- metric_choices
 
     removeModal()
 
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
+    azimuth_ref <- input$azimuth_ref
 
-    if (metrics == 'all and none') {
+    if (metrics[1] == 'all and none') {
       opts <- list(
         list(dataset_name = paste0(dataset_name, '_QC0'),
              metrics = NULL,
@@ -610,7 +613,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
     } else {
-      if (metrics == 'none') metrics <- NULL
+      if (metrics[1] == 'none') metrics <- NULL
       opts <- list(
         list(dataset_name = dataset_name,
              metrics = metrics,
@@ -624,7 +627,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         opts = opts,
         fastq_dir = fastq_dir,
         sc_dir = sc_dir,
-        indices_dir = indices_dir
+        indices_dir = indices_dir,
+        azimuth_ref = azimuth_ref
       )
     )
 
@@ -642,25 +646,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     handle_sc_progress(quants, pquants, new_dataset)
 
   })
-
-  # modal to confirm adding single-cell dataset
-  quantModal <- function() {
-    UI <- selectizeInput(session$ns('qc_metrics'),
-                         'Select QC metrics:',
-                         choices = c('all and none', 'all', 'none', metric_choices),
-                         selected = 'all and none',
-                         multiple = TRUE)
-
-    modalDialog(
-      UI,
-      title = 'Create new single-cell dataset?',
-      size = 's',
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("confirm_quant"), "Quantify", class = 'pull-left btn-warning')
-      )
-    )
-  }
 
 
   observe({
@@ -706,6 +691,43 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+# modal to confirm adding single-cell dataset
+confirmModal <- function(session, type = c('quant', 'subset')) {
+  qc <- NULL
+
+  if (type[1] == 'quant') {
+    label <- 'Quantify'
+    id <- 'confirm_quant'
+    qc <- selectizeInput(
+      session$ns('qc_metrics'),
+      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
+      choices = c('all and none', 'all', 'none', metric_choices),
+      selected = 'all and none',
+      multiple = TRUE)
+
+  } else {
+    label <- paste(toupper(substr(type, 1, 1)), substr(type, 2, nchar(type)), sep="")
+    id <- paste0('confirm_', type)
+  }
+  azi <- selectizeInput(
+    session$ns('azimuth_ref'),
+    HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+    choices = c('', 'human_pbmc'),
+    options = list(placeholder = 'optional'))
+
+  UI <- div(qc, azi)
+
+  modalDialog(
+    UI,
+    title = 'Create new single-cell dataset?',
+    size = 's',
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(session$ns(id), label, class = 'pull-left btn-warning')
+    )
+  )
 }
 
 
@@ -769,7 +791,7 @@ keep_curr_selected <- function(datasets, prev, curr) {
 #'
 #' @keywords internal
 #' @noRd
-scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun) {
+scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, is_mobile) {
 
   res <- reactive({
     gene <- selected_gene()
@@ -1095,27 +1117,43 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   observeEvent(show_label_resoln(), {
     if (!show_label_resoln()) resoln(prev_resoln())
-    else (resoln(input$resoln))
+    else (resoln(input[[rname()]]))
   })
 
   # updateSliderInput removes focus preventing keyboard interaction
   observe({
     clusters <- clusters()
     nclus <- length(levels(clusters))
-    shinyjs::html("nclus", nclus)
+    type <- ifelse(is_azimuth(), 'nclus_azi', 'nclus')
+    shinyjs::html(type, nclus)
   })
 
-  observeEvent(input$resoln, {resoln(input$resoln)}, ignoreInit = TRUE)
+  observeEvent(input[[rname()]], {resoln(input[[rname()]])}, ignoreInit = TRUE)
+
+  rname <- reactiveVal('resoln')
+  is_azimuth <- reactiveVal(FALSE)
+
+  observe({
+    shinyjs::toggle('resoln_container', condition=!is_azimuth())
+    shinyjs::toggle('resoln_azi_container', condition=is_azimuth())
+  })
 
   observeEvent(dataset_dir(),  {
     dataset_dir <- dataset_dir()
     req(dataset_dir)
 
-    fpath <- file.path(dataset_dir(), 'resoln.qs')
-    resoln_path(fpath)
-    init <- qread.safe(fpath, 1)
+    # restrict resolutions if azimuth
+    apath <- file.path(dataset_dir(), 'azimuth_ref.qs')
+    axist <- file.exists(apath)
+    is_azimuth(axist)
+
+    rname(ifelse(axist, 'resoln_azi', 'resoln'))
+
+    rpath <- file.path(dataset_dir(), 'resoln.qs')
+    resoln_path(rpath)
+    init <- qread.safe(rpath, 1)
     resoln(init)
-    updateSliderInput(session, 'resoln', value=init)
+    updateSliderInput(session, rname(), value=init)
   }, priority = 1)
 
   resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
@@ -1156,6 +1194,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (applied()) {
       resoln <- resoln()
       prev_resoln(resoln)
+      qs::qsave(resoln, isolate(resoln_path()))
     }
   })
 
@@ -1169,7 +1208,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   observeEvent(input$reset_resoln, {
-    updateSliderInput(session, 'resoln', value = prev_resoln())
+    updateSliderInput(session, rname(), value = prev_resoln())
   })
 
 
@@ -1274,9 +1313,15 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
+    browser()
+    showModal(confirmModal(session, 'subset'))
+  })
+
+  observeEvent(input$confirm_subset, {
 
     subset_clusters <- input$subset_clusters
     subset_name <- input$subset_name
+    azimuth_ref <- input$azimuth_ref
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
     is_include <- is_include()
@@ -1319,7 +1364,8 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
           subset_metrics = subset_metrics,
           is_include = is_include,
           is_integrated = is_integrated,
-          hvgs = hvgs
+          hvgs = hvgs,
+          azimuth_ref = azimuth_ref
         )
       )
 
@@ -1540,6 +1586,13 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
   # run integration
   pintegs <- reactiveValues()
   integs <- reactiveValues()
+
+  use_azimuth <- reactive('Azimuth' %in% input$integration_types)
+
+  observe({
+    toggle('azimuth_ref_container', condition = use_azimuth())
+  })
+
   observeEvent(input$submit_integration, {
 
     subset <- exclude_clusters <- input$subset_clusters
@@ -1555,6 +1608,10 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
     integration_types <- input$integration_types
     integration_name <- input$integration_name
+    azimuth_ref <- input$azimuth_ref
+
+    if (!use_azimuth()) azimuth_ref <- NULL
+    else if (is.null(azimuth_ref)) error_msg <- 'Select Azimuth reference'
 
     error_msg <- validate_integration(test, ctrl, pairs)
 
@@ -1572,7 +1629,8 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
           integration_name = integration_name,
           integration_types = integration_types,
           exclude_clusters = exclude_clusters,
-          pairs = pairs
+          pairs = pairs,
+          azimuth_ref = azimuth_ref
         )
       )
 
@@ -2071,7 +2129,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
     cluster <- strsplit(cluster, '-vs-')[[1]]
     nclus <- length(annot)
 
-    if (is_mobile()) {
+    if (is_mobile() || length(annot) > 30) {
       annot <- as.character(seq_along(annot))
     }
 
@@ -2145,7 +2203,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
       pcells <- round(ncells / length(ft) * 100)
 
       title <- paste0(feature, ' (', format(ncells, big.mark=","), ' :: ', pcells, '%)')
-      pl <- plot_tsne_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title, cols =  c('lightgray', 'blue'))
+      pl <- plot_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title, cols =  c('lightgray', 'blue'))
     } else {
       pl <- NULL
     }
@@ -2208,7 +2266,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   height <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) height <- 453
-    else height <- length(levels(scseq$cluster))*50
+    else height <- length(levels(scseq$cluster))*38
     return(height)
   })
 
@@ -2247,7 +2305,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   plot <- reactive({
     ridge_data <- ridge_data()
     if (is.null(ridge_data)) return(NULL)
-    plot_ridge(ridge_data = ridge_data)
+    VlnPlot(ridge_data = ridge_data)
   }) %>% debounce(20)
 
   content <- function(file){
@@ -2271,7 +2329,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE) {
+scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE) {
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl', 'selected_cluster')
 
@@ -2389,7 +2447,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
         # update base feature plot
         plot <- feature_plot()
         plot <- update_feature_plot(plot, gene_data, gene)
-        plot <- plot_tsne_feature_sample(gene, scseq_samp(), 'test', plot=plot)
+        plot <- plot_feature_sample(gene, scseq_samp(), 'test', plot=plot)
         pfun <- list(plot = plot, height = 453)
       }
       return(pfun)
@@ -2414,7 +2472,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       plot <- feature_plot()
       plot <- update_feature_plot(plot, gene_data, gene)
       if (!show_dprimes() | !is_integrated()) {
-        plot <- plot_tsne_feature_sample(gene, scseq_samp(), 'ctrl', plot=plot)
+        plot <- plot_feature_sample(gene, scseq_samp(), 'ctrl', plot=plot)
       }
       pfun <- list(plot = plot, height = 453)
       return(pfun)
@@ -2443,7 +2501,8 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
         qs::qsave(ridge_data, dat_path)
       }
 
-      plot <- plot_ridge(ridge_data = ridge_data, with.height = TRUE)
+
+      plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
       return(plot)
     }
   }) %>% debounce(20)
@@ -2697,4 +2756,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

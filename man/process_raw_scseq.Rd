@@ -12,6 +12,7 @@ process_raw_scseq(
   npcs = 30,
   resoln = 1,
   hvgs = NULL,
+  azimuth_ref = NULL,
   founder = NULL,
   progress = NULL,
   value = 0

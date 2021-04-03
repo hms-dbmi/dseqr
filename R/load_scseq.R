@@ -23,6 +23,7 @@ load_raw_scseq <- function(dataset_name,
                            npcs = 30,
                            cluster_alg = 'leiden',
                            resoln = 1,
+                           azimuth_ref = NULL,
                            metrics = c('low_lib_size',
                                        'low_n_features',
                                        'high_subsets_mito_percent',
@@ -61,6 +62,7 @@ load_raw_scseq <- function(dataset_name,
                     cluster_alg = cluster_alg,
                     npcs = npcs,
                     resoln = resoln,
+                    azimuth_ref = azimuth_ref,
                     founder = founder,
                     progress = progress,
                     value = value + 3)
@@ -71,7 +73,7 @@ load_raw_scseq <- function(dataset_name,
 
 #' @keywords internal
 #' @noRd
-run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
+run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, azimuth_ref = NULL) {
 
   for (opt in opts) {
     load_raw_scseq(opt$dataset_name,
@@ -79,7 +81,8 @@ run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir) {
                    sc_dir,
                    indices_dir,
                    metrics = opt$metrics,
-                   founder = opt$founder)
+                   founder = opt$founder,
+                   azimuth_ref = azimuth_ref)
 
   }
 
@@ -105,6 +108,7 @@ process_raw_scseq <- function(scseq,
                               npcs = 30,
                               resoln = 1,
                               hvgs = NULL,
+                              azimuth_ref = NULL,
                               founder = NULL,
                               progress = NULL,
                               value = 0) {
@@ -115,30 +119,222 @@ process_raw_scseq <- function(scseq,
     })
   }
 
+
   scseq@metadata$npcs <- npcs
-  progress$set(message = "reducing", value = value + 1)
+  # TODO: can this be skipped when not subset?
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
-  scseq <- run_pca(scseq)
-  scseq <- run_tsne(scseq)
-  gc()
 
-  progress$set(message = "clustering", detail = '', value = value + 2)
-  snn_graph <- get_snn_graph(scseq, npcs)
-  gc()
+  is.azimuth <- !is.null(azimuth_ref)
+  if (!is.azimuth) {
+    progress$set(message = "reducing", value = value + 1)
+    scseq <- run_pca(scseq)
+    scseq <- run_tsne(scseq)
+    gc()
 
-  # save independent of resolution
-  anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln)
-  save_scseq_data(anal, dataset_name, sc_dir)
+    progress$set(message = "clustering", detail = '', value = value + 2)
+    snn_graph <- get_snn_graph(scseq, npcs)
+    scseq$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
+    gc()
+
+    # save independent of resolution
+    anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln)
+    save_scseq_data(anal, dataset_name, sc_dir)
+
+  } else {
+    progress$set(message = "running Azimuth", detail = '', value = value + 2)
+    azres <- run_azimuth(list(scseq), azimuth_ref)
+    scseq <- transfer_azimuth(azres, scseq)
+    rm(azres); gc()
+
+    # because e.g. default resoln is celltype.l2 for human pbmc
+    resoln <- switch(azimuth_ref, 'human_pbmc' = 2)
+
+    anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref)
+    save_scseq_data(anal, dataset_name, sc_dir)
+    save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
+  }
 
   progress$set(message = "saving loom", value = value + 3)
   save_scle(scseq, file.path(sc_dir, dataset_name))
 
   # run what depends on resolution
-  scseq$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
+  run_post_cluster(scseq,
+                   dataset_name,
+                   sc_dir,
+                   resoln,
+                   progress,
+                   value + 3,
+                   reset_annot = !is.azimuth)
 
-  run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, value + 3)
   progress$set(value = value + 7)
+}
+
+transfer_azimuth <- function(azres, scseq) {
+  # add new data back to scseq
+  projs <- lapply(azres, function(x) {
+    proj <- x@reductions$proj.umap@cell.embeddings
+    colnames(proj) <- gsub('_', '', colnames(proj))
+    return(proj)
+  })
+
+  proj <- do.call(rbind, projs)
+  type <- gsub('1$', '', colnames(proj)[1])
+  SingleCellExperiment::reducedDim(scseq, type) <- proj
+
+  get_meta <- function(l, m) unlist(lapply(l, function(x) x@meta.data[[m]]), use.names = FALSE)
+
+  scseq$mapping_score <- get_meta(azres, 'mapping.score')
+  scseq$cluster_l1_score <- get_meta(azres, 'predicted.celltype.l1.score')
+  scseq$cluster_l2_score <- get_meta(azres, 'predicted.celltype.l2.score')
+  scseq$cluster_l3_score <- get_meta(azres, 'predicted.celltype.l3.score')
+
+  scseq$cluster_l1 <- get_meta(azres, 'predicted.celltype.l1')
+  scseq$cluster_l2 <- get_meta(azres, 'predicted.celltype.l2')
+  scseq$cluster_l3 <- get_meta(azres, 'predicted.celltype.l3')
+
+  clus <- factor(scseq$cluster_l2)
+  scseq$cluster <- factor(as.numeric(clus))
+  return(scseq)
+}
+
+
+run_azimuth <- function(scseqs, azimuth_ref) {
+
+  reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
+
+  refdata <- lapply(c("celltype.l1", "celltype.l2", "celltype.l3"), function(x) {
+    reference$map[[x, drop = TRUE]]
+  })
+
+  names(refdata) <- c("celltype.l1", "celltype.l2", "celltype.l3")
+
+  refdata[["impADT"]] <- Seurat::GetAssayData(
+    object = reference$map[['ADT']],
+    slot = 'data'
+  )
+
+  queries <- list()
+  for (ds in names(scseqs)) {
+    cat('Working on', ds, '...\n')
+    scseq <- scseqs[[ds]]
+    counts <- SingleCellExperiment::counts(scseq)
+    query <- Seurat::CreateSeuratObject(counts = counts,
+                                        min.cells = 1, min.features = 1)
+
+    # Preprocess with SCTransform
+    query <- Seurat::SCTransform(
+      object = query,
+      assay = "RNA",
+      new.assay.name = "refAssay",
+      residual.features = rownames(reference$map),
+      reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
+      method = 'glmGamPoi',
+      ncells = 2000,
+      n_genes = 2000,
+      do.correct.umi = FALSE,
+      do.scale = FALSE,
+      do.center = TRUE
+    )
+
+    # Find anchors between query and reference
+    anchors <- Seurat::FindTransferAnchors(
+      reference = reference$map,
+      query = query,
+      k.filter = NA,
+      reference.neighbors = "refdr.annoy.neighbors",
+      reference.assay = "refAssay",
+      query.assay = "refAssay",
+      reference.reduction = "refDR",
+      normalization.method = "SCT",
+      features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
+      dims = 1:50,
+      n.trees = 20,
+      mapping.score.k = 100
+    )
+
+    # Transfer cell type labels and impute protein expression
+    #
+    # Transferred labels are in metadata columns named "predicted.*"
+    # The maximum prediction score is in a metadata column named "predicted.*.score"
+    # The prediction scores for each class are in an assay named "prediction.score.*"
+    # The imputed assay is named "impADT" if computed
+    query <- Seurat::TransferData(
+      reference = reference$map,
+      query = query,
+      dims = 1:50,
+      anchorset = anchors,
+      refdata = refdata,
+      n.trees = 20,
+      store.weights = TRUE
+    )
+
+    # Calculate the embeddings of the query data on the reference SPCA
+    query <- Seurat::IntegrateEmbeddings(
+      anchorset = anchors,
+      reference = reference$map,
+      query = query,
+      reductions = "pcaproject",
+      reuse.weights.matrix = TRUE
+    )
+
+    # Calculate the query neighbors in the reference
+    # with respect to the integrated embeddings
+    query[["query_ref.nn"]] <- Seurat::FindNeighbors(
+      object = Seurat::Embeddings(reference$map[["refDR"]]),
+      query = Seurat::Embeddings(query[["integrated_dr"]]),
+      return.neighbor = TRUE,
+      l2.norm = TRUE
+    )
+
+
+    # The reference used in the app is downsampled compared to the reference on which
+    # the UMAP model was computed. This step, using the helper function NNTransform,
+    # corrects the Neighbors to account for the downsampling.
+    query <- NNTransform(
+      object = query,
+      meta.data = reference$map[[]]
+    )
+
+    # Project the query to the reference UMAP.
+    query[["proj.umap"]] <- Seurat::RunUMAP(
+      object = query[["query_ref.nn"]],
+      reduction.model = reference$map[["refUMAP"]],
+      reduction.key = 'UMAP_'
+    )
+
+    # Calculate mapping score and add to metadata
+    query <- Seurat::AddMetaData(
+      object = query,
+      metadata = Seurat::MappingScore(anchors = anchors),
+      col.name = "mapping.score"
+    )
+
+
+    queries[[ds]] <- query
+  }
+
+  return(queries)
+}
+
+save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
+
+  # cluster columns
+  cols <- grep('^cluster_l\\d$', colnames(meta), value = TRUE)
+
+  # save annotation and clusters for each
+  for (i in seq_along(cols)) {
+    dataset_subname <- file.path(dataset_name, paste0('snn', i))
+    col <- cols[i]
+    clusters <- factor(meta[[col]])
+
+    scseq_data <- list(
+      annot = levels(clusters),
+      clusters = factor(as.numeric(clusters))
+    )
+
+    save_scseq_data(scseq_data, dataset_subname, sc_dir)
+  }
 }
 
 
@@ -221,7 +417,6 @@ load_scseq <- function(dataset_dir, default_clusters = TRUE) {
                     })
 
   # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
-  colnames(SingleCellExperiment::reducedDim(scseq, 'TSNE')) <- c('TSNE1', 'TSNE2')
 
   is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
   if (is.integrated) {
@@ -922,7 +1117,7 @@ add_doublet_score <- function(scseq) {
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
-  dbl.dens <- scran::doubletCells(scseq, subset.row=hvgs)
+  dbl.dens <- scDblFinder::computeDoubletDensity(scseq, subset.row=hvgs)
   scseq$doublet_score <- log10(dbl.dens+1)
 
   return(scseq)
@@ -1089,7 +1284,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL, hvgs = NULL) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL, hvgs = NULL, azimuth_ref = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -1120,6 +1315,17 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NUL
 
   } else if (type[1] == 'fastMNN') {
     cor.out <- run_fastmnn(logcounts, hvgs, scseqs)
+
+  } else if (type[1] == 'Azimuth') {
+    azres <- run_azimuth(scseqs, azimuth_ref)
+    cor.out <- transfer_azimuth(azres, combined)
+    rm(azres); gc()
+
+    # re-name merged to logcounts
+    SummarizedExperiment::assayNames(cor.out) <- 'logcounts'
+
+    # corrected is used to check if integrated
+    SingleCellExperiment::reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
   }
 
   cor.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
