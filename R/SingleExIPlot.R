@@ -1,22 +1,19 @@
-# Plot a single expression by identity on a plot
-#
-# @param type Make either a 'ridge' or 'violin' plot
-# @param data Data to plot
-# @param idents Idents to use
-# @param sort Sort identity classes (on the x-axis) by the average
-# expression of the attribute being potted
-# @param y.max Maximum Y value to plot
-# @param adjust Adjust parameter for geom_violin
-# @param cols Colors to use for plotting
-# @param log plot Y axis on log scale
-# @param seed.use Random seed to use. If NULL, don't set a seed
-#
-# @return A ggplot-based Expression-by-Identity plot
-#
-# @import ggplot2
-#' @importFrom stats rnorm
-#' @importFrom utils globalVariables
-#' @importFrom ggridges geom_density_ridges theme_ridges
+#' Plot a single expression by identity on a plot
+#'
+#' @param type Make either a 'ridge' or 'violin' plot
+#' @param data Data to plot
+#' @param idents Idents to use
+#' @param sort Sort identity classes (on the x-axis) by the average
+#' expression of the attribute being potted
+#' @param y.max Maximum Y value to plot
+#' @param adjust Adjust parameter for geom_violin
+#' @param cols Colors to use for plotting
+#' @param log plot Y axis on log scale
+#' @param seed.use Random seed to use. If NULL, don't set a seed
+#'
+#' @return A ggplot-based Expression-by-Identity plot
+#'
+#' @import ggplot2
 #' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
 #' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
@@ -63,10 +60,10 @@ SingleExIPlot <- function(
     )
   }
   if (log) {
-    noise <- rnorm(n = length(data[, feature])) / 200
+    noise <- stats::rnorm(n = length(data[, feature])) / 200
     data[, feature] <- data[, feature] + 1
   } else {
-    noise <- rnorm(n = length(data[, feature])) / 100000
+    noise <- stats::rnorm(n = length(data[, feature])) / 100000
   }
   if (all(data[, feature] == data[, feature][1])) {
     warning(paste0("All cells have the same value of ", feature, "."))

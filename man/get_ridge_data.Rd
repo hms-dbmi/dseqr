@@ -29,7 +29,7 @@ Used to show features where smaller values indicate potential QC issues.}
 \item{with.height}{Whether to return height of plot. See value for details.}
 }
 \value{
-list used by \link{plot_ridge}
+list used by \link{VlnPlot}
 }
 \description{
 Get data for single-cell ridgeline plots

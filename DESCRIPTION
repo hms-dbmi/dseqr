@@ -40,7 +40,6 @@ Imports:
     edgeR (>= 3.28.0),
     fs,
     ggplot2 (>= 3.2.1),
-    ggridges (>= 0.5.1),
     ggrepel,
     grid,
     GO.db (>= 3.10.0),

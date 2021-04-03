@@ -319,7 +319,7 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #' @param decreasing if \code{TRUE}, ridgelines with smaller mean values of \code{feature} will show up on top.
 #'  Used to show features where smaller values indicate potential QC issues.
 #'
-#' @return list used by \link{plot_ridge}
+#' @return list used by \link{VlnPlot}
 #'
 #' @keywords internal
 get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE) {
@@ -366,7 +366,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
     y <- factor(scseq$batch)
     hl <- scseq$orig.ident
 
-    # cluster name get's appended by plot_ridge
+    # cluster name get's appended by VlnPlot
     title <- paste('Expression by Sample:', feature, 'in')
 
   } else {
@@ -501,104 +501,6 @@ shorten_y <- function(df) {
   return(df)
 }
 
-
-
-#' Plot single-cell ridgeline plots
-#'
-#' @inheritParams get_ridge_data
-#' @param ridge_data result of \link{get_ridge_data}. Used for caching.
-#'   if provided, only \code{with.height} is evaluated.
-#'
-#' @return ggplot object
-#'
-#' @keywords internal
-plot_ridge <- function(feature = NULL,
-                       scseq = NULL,
-                       selected_cluster = NULL,
-                       by.sample = FALSE,
-                       with_all = FALSE,
-                       with.height = FALSE,
-                       ridge_data = NULL,
-                       decreasing = feature %in% c('ribo_percent',
-                                                   'log10_sum',
-                                                   'log10_detected')) {
-
-  if (is.null(ridge_data)) {
-    ridge_data <- get_ridge_data(
-      feature, scseq, selected_cluster, by.sample, decreasing, with_all)
-  }
-
-  list2env(ridge_data, environment())
-
-  if (by.sample) {
-    title <- paste(title, c(clus_levs, 'All Clusters')[seli])
-  } else {
-    annot <- format_ridge_annot(clus_levs)
-    levels(df$y) <- annot[clus_ord]
-    if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
-  }
-
-
-  # errors if boolean/factor/NULL
-  if (is.null(df$x) || !is.numeric(df$x)) {
-    pl <- NULL
-    if (with.height) pl <- list(plot = pl, height = 453)
-    return(pl)
-  }
-
-  maxx <- max(df$x)
-  xlim <- maxx+maxx*0.0522
-
-  # for 1/2 cell clusters
-  df2 <- df %>%
-    filter(n <= 2) %>%
-    mutate(fill = ifelse(hl=='out', 'gray', color))
-
-  line_hl <- 'black'
-  alpha_hl <- 0.4
-  if (!all(df2$hl == 'out')) {
-    color_dark <- 'black'
-    color <- line_hl <- 'gray'
-    alpha_hl <- 0.25
-  }
-
-  (pl <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y, fill = hl, alpha = hl, color = hl)) +
-      ggplot2::scale_fill_manual(values = c(color, 'gray')) +
-      ggplot2::scale_alpha_manual(values = c(rep(alpha_hl, nsel), 0.25)) +
-      ggplot2::scale_color_manual(values = c(rep(line_hl, nsel), 'gray')) +
-      ggridges::geom_density_ridges(ggplot2::aes(point_color = hl),
-                                    scale = 3, rel_min_height = 0.001, jittered_points = TRUE,
-                                    point_size = 1, point_shape = '.', point_alpha = 1, size = 0.2) +
-      ggplot2::geom_jitter(aes(x, as.numeric(y)+0.1), fill=df2$fill, data = df2, shape=21, width=0, height=0.1, inherit.aes = FALSE) +
-      ggplot2::scale_discrete_manual(aesthetics = "point_color", values = c(color_dark, 'black')) +
-      ggridges::theme_ridges(center_axis_labels = TRUE) +
-      ggplot2::scale_x_continuous(expand = c(0, 0)) +
-      ggplot2::scale_y_discrete(expand = c(0, 0)) +
-      ggplot2::coord_cartesian(clip = "off") +
-      theme_dimgray() +
-      ggplot2::xlab('') +
-      ggplot2::ggtitle(title) +
-      ggplot2::xlim(NA, xlim) +
-      ggplot2::theme(legend.position = 'none',
-                     plot.title.position = "plot", panel.grid.major.x = ggplot2::element_blank(),
-                     plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25) ),
-                     axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
-                     axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
-                     axis.title.x = ggplot2::element_blank(),
-                     axis.title.y = ggplot2::element_blank()
-      ) + ggplot2::annotate('text',
-                            label=paste(ncells, 'cells'),
-                            x=rep(xlim, length(ncells)),
-                            y=seq_along(ncells),
-                            vjust = -0.3,
-                            hjust = 'right',
-                            size = 5))
-
-
-
-  if (with.height) pl <- list(plot = pl, height = max(453, length(ncells) * 50))
-  return(pl)
-}
 
 
 #' Plot dprimes for integrated single-cell dataset with replicates.

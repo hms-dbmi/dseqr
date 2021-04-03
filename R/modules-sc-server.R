@@ -1313,7 +1313,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
-    browser()
     showModal(confirmModal(session, 'subset'))
   })
 
