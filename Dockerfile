@@ -19,7 +19,7 @@ wget && rm -rf /var/lib/apt/lists/*
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.12.5')"
+    R -e "remotes::install_github('rstudio/renv@0.13.2')"
 
 
 COPY ./renv.lock .
@@ -50,5 +50,5 @@ RUN mkdir -p $TMP_DIR && \
 echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
 # install dseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.11.0', dependencies = FALSE, upgrade = FALSE)"
+RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.11.1', dependencies = FALSE, upgrade = FALSE)"
 
