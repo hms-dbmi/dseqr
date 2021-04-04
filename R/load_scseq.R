@@ -143,7 +143,7 @@ process_raw_scseq <- function(scseq,
 
   } else {
     progress$set(message = "running Azimuth", detail = '', value = value + 2)
-    azres <- run_azimuth(list(scseq), azimuth_ref)
+    azres <- run_azimuth(list(one = scseq), azimuth_ref)
     scseq <- transfer_azimuth(azres, scseq)
     rm(azres); gc()
 
@@ -216,7 +216,6 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 
   queries <- list()
   for (ds in names(scseqs)) {
-    cat('Working on', ds, '...\n')
     scseq <- scseqs[[ds]]
     counts <- SingleCellExperiment::counts(scseq)
     query <- Seurat::CreateSeuratObject(counts = counts,
@@ -234,7 +233,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       n_genes = 2000,
       do.correct.umi = FALSE,
       do.scale = FALSE,
-      do.center = TRUE
+      do.center = TRUE,
+      verbose = FALSE
     )
 
     # Find anchors between query and reference
@@ -250,7 +250,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
       dims = 1:50,
       n.trees = 20,
-      mapping.score.k = 100
+      mapping.score.k = 100,
+      verbose = FALSE
     )
 
     # Transfer cell type labels and impute protein expression
@@ -266,7 +267,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       anchorset = anchors,
       refdata = refdata,
       n.trees = 20,
-      store.weights = TRUE
+      store.weights = TRUE,
+      verbose = FALSE
     )
 
     # Calculate the embeddings of the query data on the reference SPCA
@@ -275,7 +277,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       reference = reference$map,
       query = query,
       reductions = "pcaproject",
-      reuse.weights.matrix = TRUE
+      reuse.weights.matrix = TRUE,
+      verbose = FALSE
     )
 
     # Calculate the query neighbors in the reference
@@ -284,7 +287,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       object = Seurat::Embeddings(reference$map[["refDR"]]),
       query = Seurat::Embeddings(query[["integrated_dr"]]),
       return.neighbor = TRUE,
-      l2.norm = TRUE
+      l2.norm = TRUE,
+      verbose = FALSE
     )
 
 
@@ -300,7 +304,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
     query[["proj.umap"]] <- Seurat::RunUMAP(
       object = query[["query_ref.nn"]],
       reduction.model = reference$map[["refUMAP"]],
-      reduction.key = 'UMAP_'
+      reduction.key = 'UMAP_',
+      verbose = FALSE
     )
 
     # Calculate mapping score and add to metadata

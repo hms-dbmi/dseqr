@@ -328,10 +328,15 @@ get_sc_dataset_choices <- function(sc_dir) {
                                                           .nullfile = 'Individual'), USE.NAMES = FALSE)
 
 
+  # add founders that are currently individual
+  # from saving without QC0 QC1
+  self.founder <- individual %in% ind_type
+  ind_type[self.founder] <- individual[self.founder]
+
   # exclude founder name from option label
   sub <- ind_type != 'Individual'
   ind_opt <- individual
-  ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_'), '')
+  ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_?'), '')
 
   label <- c(integrated, individual)
   type <- c(int_type, ind_type)

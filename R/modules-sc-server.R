@@ -574,7 +574,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   # ask for confirmation after folder selection
-  observeEvent(new_dataset_dir(), showModal(confirmModal(session)))
+  observeEvent(new_dataset_dir(), showModal(confirmModal(session, 'quant', metric_choices)))
 
 
   metric_choices <- c('low_lib_size',
@@ -694,7 +694,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 }
 
 # modal to confirm adding single-cell dataset
-confirmModal <- function(session, type = c('quant', 'subset')) {
+confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL) {
   qc <- NULL
 
   if (type[1] == 'quant') {
@@ -1317,6 +1317,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   })
 
   observeEvent(input$confirm_subset, {
+    removeModal()
 
     subset_clusters <- input$subset_clusters
     subset_name <- input$subset_name
@@ -2755,3 +2756,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+
