@@ -2266,7 +2266,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   height <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) height <- 453
-    else height <- length(levels(scseq$cluster))*38
+    else height <- max(length(levels(scseq$cluster))*38, 420)
     return(height)
   })
 
