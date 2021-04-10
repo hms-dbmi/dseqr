@@ -713,8 +713,8 @@
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "119d13c9990aef33cdcfecc26361844ac7ce089f",
-      "Hash": "0119e99f4d0ad944d9260fe1774ee7e2"
+      "RemoteSha": "4866eb9719bf40e9d786b60a023d0778ead6f3da",
+      "Hash": "9c24eeed1b938db41d88dee8cb45ee64"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -1412,6 +1412,18 @@
       "Version": "1.52.1",
       "Source": "Bioconductor",
       "Hash": "d5c78cf1defde79ad72d44ac0e2276de"
+    },
+    "presto": {
+      "Package": "presto",
+      "Version": "1.0.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "presto",
+      "RemoteUsername": "immunogenomics",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "052085db9c88aa70a28d11cc58ebc807999bf0ad",
+      "Hash": "7d729f22a1df10ba897dc3a3c90d72a3"
     },
     "prettyunits": {
       "Package": "prettyunits",
