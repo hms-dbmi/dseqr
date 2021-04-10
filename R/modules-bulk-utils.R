@@ -609,16 +609,8 @@ add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE, pbulk = FALSE) {
     vsd <- qs::qread(vsd_path)
 
   } else if (pbulk) {
-    pdata <- Biobase::pData(eset)
-    dds <- DESeq2::DESeqDataSetFromMatrix(Biobase::exprs(eset), pdata, design = ~group)
-    dds <- DESeq2::estimateSizeFactors(dds)
-    vsd <- tryCatch(DESeq2::rlog(dds, blind = FALSE),
-                    warning = function(e) {
-                      if (grepl('varianceStabilizingTransformation', e$message))
-                        DESeq2::varianceStabilizingTransformation(dds, blind = FALSE)
-                    })
-
-    vsd <- SummarizedExperiment::assay(vsd)
+    dge <- edgeR::DGEList(Biobase::exprs(eset))
+    vsd <- edgeR::cpm(dge)
 
   } else {
     vsd <- crossmeta::get_vsd(eset)

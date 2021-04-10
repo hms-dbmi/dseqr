@@ -165,13 +165,13 @@ resolutionFormInput <- function(id) {
   withTags({
     div(
       div(id=ns('resoln_container'),
-          sliderInput(
+          numericInput(
             ns('resoln'),
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
-            min=0.1, value=1, max=3.1, step = 0.1, width = '100%')
+            min=0.1, value=1, max=5.1, step = 0.1, width = '100%')
       ),
       div(id = ns('resoln_azi_container'), style='display: none;',
-          sliderInput(
+          numericInput(
             ns('resoln_azi'),
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')),
             min=1, value=2, max=3, step = 1, width = '100%'),
@@ -278,10 +278,6 @@ clusterComparisonInput <- function(id) {
                   actionButton(ns('show_rename'), '',
                                icon = icon('tag', 'fa-fw'),
                                title = 'Toggle rename cluster'
-                  ),
-                  actionButton(ns('show_contrasts'), '',
-                               icon = icon('chevron-right', 'fa-fw'),
-                               title = 'Toggle single group comparisons'
                   )
                 )
             )

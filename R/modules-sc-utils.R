@@ -893,7 +893,7 @@ integrate_saved_scseqs <- function(
   } else {
     # TSNE on corrected reducedDim
     progress$set(value+3, detail = 'reducing')
-    combined <- run_tsne(combined, dimred = 'corrected')
+    combined <- run_reduction(combined, dimred = 'corrected')
 
     # get graph
     scseq_data$snn_graph <- get_snn_graph(combined, npcs = npcs)
@@ -941,11 +941,8 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   }
 
   progress$set(value, detail = 'getting markers')
-  tests <- pairwise_wilcox(scseq, block = scseq$batch)
-  markers <- get_scseq_markers(tests)
+  markers <- get_presto_markers(scseq)
 
-  # top markers for SingleR
-  top_markers <- scran::getTopMarkers(tests$statistics, tests$pairs)
 
   # used for label transfer
   scseq_sample <- downsample_clusters(scseq)
@@ -954,8 +951,6 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   anal <- list(scseq_sample = scseq_sample,
                markers = markers,
                clusters = scseq$cluster,
-               tests = tests,
-               top_markers = top_markers,
                applied = TRUE)
 
   if (reset_annot) anal$annot <- names(markers)
@@ -963,11 +958,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   if (integrated) {
 
     progress$set(value+1, detail = 'pseudobulking')
-    summed <- scater::aggregateAcrossCells(
-      scseq,
-      id = S4Vectors::DataFrame(
-        cluster = scseq$cluster,
-        batch = scseq$batch))
+    summed <- aggregate_across_cells(scseq)
 
     obj <- scseq
     pbulk_esets <- NULL
@@ -999,6 +990,35 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
 
 }
+
+aggregate_across_cells <- function(scseq) {
+  counts_mat <- SingleCellExperiment::counts(scseq)
+  batch <- scseq$batch
+  cluster <- scseq$cluster
+  orig.ident <- scseq$orig.ident
+  y <- paste(cluster, batch, sep='_')
+  levs <- unique(y)
+
+  agg <- t(presto::sumGroups(counts_mat, factor(y, levs), 1))
+  row.names(agg) <- row.names(counts_mat)
+  colnames(agg) <- levs
+
+  # setup colData
+  dup.y <- duplicated(y)
+  cdata <- S4Vectors::DataFrame(
+    cluster = cluster[!dup.y],
+    batch = batch[!dup.y],
+    orig.ident = orig.ident[!dup.y])
+
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = agg),
+    rowData = SingleCellExperiment::rowData(scseq),
+    colData = cdata
+  )
+
+  return(sce)
+}
+
 
 
 

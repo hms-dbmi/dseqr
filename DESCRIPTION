@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.11.3
+Version: 0.12.0
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
@@ -82,7 +82,8 @@ Imports:
     scater (>= 1.15.12),
     tibble (>= 2.1.3),
     utils,
-    digest
+    digest,
+    presto
 Suggests: 
     testthat,
 Depends: 
@@ -91,4 +92,5 @@ Remotes:
     hms-dbmi/dseqr.data,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
-    immunogenomics/harmony
+    immunogenomics/harmony,
+    immunogenomics/presto

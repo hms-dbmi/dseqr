@@ -13,11 +13,6 @@
 #'
 #' @return A ggplot-based Expression-by-Identity plot
 #'
-#' @import ggplot2
-#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
-#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
-#' @importFrom cowplot theme_cowplot
-#'
 SingleExIPlot <- function(
   data,
   idents,
@@ -174,7 +169,7 @@ SingleExIPlot <- function(
   # add n cells
   lim <- max(data$x)
   lim <- lim+lim*0.2
-  plot <- plot + ylim(c(NA, lim)) +
+  plot <- plot + ggplot2::ylim(c(NA, lim)) +
     ggplot2::annotate('text',
                       label=paste(ncells, 'cells'),
                       y=rep(lim, length(ncells)),

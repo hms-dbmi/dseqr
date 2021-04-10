@@ -142,7 +142,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
     scseq <- scseq_clusts()
     annot <- annot()
     metrics <- scClusterGene$saved_metrics()
-
     if (!isTruthy(annot) | !isTruthy(scseq)) return(NULL)
     if (!is.null(metrics)) try(scseq@colData <- cbind(scseq@colData, metrics), silent = TRUE)
     try(levels(scseq$cluster) <- annot, silent = TRUE)
@@ -426,6 +425,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_dir <- reactive(file.path(sc_dir, dataset_name()))
   snn_path <- reactive(file.path(dataset_dir(), 'snn_graph.qs'))
 
+
   # load scseq
   scseq <- reactive({
     if (!isTruthy(dataset_name())) return(NULL)
@@ -446,6 +446,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       disableAll(dataset_inputs)
       scseq <- scseq()
       if (!isTruthy(scseq)) return(NULL)
+      is.azi <- file.exists(file.path(dataset_dir(), 'azimuth_ref.qs'))
+      if (is.azi) return(NULL)
 
       snn_graph <- get_snn_graph(scseq)
       qs::qsave(snn_graph, snn_path)
@@ -1120,7 +1122,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     else (resoln(input[[rname()]]))
   })
 
-  # updateSliderInput removes focus preventing keyboard interaction
+  # updateNumericInput removes focus preventing keyboard interaction
   observe({
     clusters <- clusters()
     nclus <- length(levels(clusters))
@@ -1153,7 +1155,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     resoln_path(rpath)
     init <- qread.safe(rpath, 1)
     resoln(init)
-    updateSliderInput(session, rname(), value=init)
+    updateNumericInput(session, rname(), value=init)
   }, priority = 1)
 
   resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
@@ -1208,7 +1210,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   observeEvent(input$reset_resoln, {
-    updateSliderInput(session, rname(), value = prev_resoln())
+    updateNumericInput(session, rname(), value = prev_resoln())
   })
 
 
@@ -1679,7 +1681,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #' @keywords internal
 #' @noRd
 clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot_path, annot, ref_preds, clusters) {
-  cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
+  cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_rename')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   selected_cluster <- reactiveVal()
@@ -1688,14 +1690,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   # things that return for plotting
   selected_markers <- reactiveVal(NULL)
 
-  show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
   show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
-
-  test_cluster <- reactive({
-    test_cluster <- input$selected_cluster
-    req(test_cluster)
-    gsub('-vs-.+?$', '', test_cluster)
-  })
 
   # update data.frame for cluster/contrast choices
   choices <- reactive({
@@ -1703,15 +1698,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     req(clusters)
     req(scseq())
 
-    if (show_contrasts()) {
-      test <- isolate(test_cluster())
-      choices <- get_contrast_choices(clusters, test)
-
-    } else {
-      choices <- get_cluster_choices(clusters, with_all=TRUE, scseq = scseq())
-    }
-
-    return(choices)
+    get_cluster_choices(clusters, with_all=TRUE, scseq = scseq())
   })
 
 
@@ -1731,24 +1718,11 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
     no.prev <- is.null(prev)
     is.new <- !is.null(sel) && sel != prev
-    is.flip <- !show_contrasts() & grepl('-vs-', sel)
-
-    if ((no.prev || is.new) & !is.flip) {
+    if ((no.prev || is.new)) {
       selected_cluster(sel)
     }
   })
 
-  observeEvent(input$show_contrasts, {
-    if (!show_contrasts()) {
-      test <- test_cluster()
-      prev <- selected_cluster()
-
-      if (prev != test) {
-
-        selected_cluster(test)
-      }
-    }
-  })
 
 
   # reset if switch dataset or resolution
@@ -1767,15 +1741,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   })
 
 
-  # show/hide contrasts
-  observe({
-    # update icon on toggle
-    icon <- ifelse(show_contrasts(), 'chevron-down', 'chevron-right')
-
-    updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-    toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
-  })
-
 
   # modify/save annot if rename a cluster
   observeEvent(input$rename_cluster, {
@@ -1784,7 +1749,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     # update reactive annotation
     choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- gsub('-vs-\\d+$', '', sel_clust)
     sel_idx <- as.numeric(sel_idx)
 
     # use currently save annot as reference
@@ -1805,11 +1769,8 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   observeEvent(choices(), {
     choices <- choices()
     selected <- NULL
-
-    if (!show_contrasts()) {
-      choices <- rbind(NA, choices)
-      selected <- isolate(selected_cluster())
-    }
+    choices <- rbind(NA, choices)
+    selected <- isolate(selected_cluster())
 
     updateSelectizeInput(session, 'selected_cluster',
                          choices = choices,
@@ -1838,18 +1799,12 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     if (sel %in% names(markers)) return(NULL)
 
 
-    if (show_contrasts()) {
-      con_markers <- get_contrast_markers(sel, resoln_dir)
-      markers <- c(markers, con_markers)
-
-    } else {
-      markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
-      if (!file.exists(markers_path)) {
-        showModal(warnApplyModal('markers'))
-        return(NULL)
-      }
-      markers[[sel]] <- qs::qread(markers_path)
+    markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
+    if (!file.exists(markers_path)) {
+      showModal(warnApplyModal('markers'))
+      return(NULL)
     }
+    markers[[sel]] <- qs::qread(markers_path)
 
     markers(markers)
   })
@@ -2126,7 +2081,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 
     hl <- NULL
     cluster <- selected_cluster()
-    cluster <- strsplit(cluster, '-vs-')[[1]]
     nclus <- length(annot)
 
     if (is_mobile() || length(annot) > 30) {
@@ -2756,4 +2710,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-

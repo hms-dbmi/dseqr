@@ -129,7 +129,7 @@ process_raw_scseq <- function(scseq,
   if (!is.azimuth) {
     progress$set(message = "reducing", value = value + 1)
     scseq <- run_pca(scseq)
-    scseq <- run_tsne(scseq)
+    scseq <- run_reduction(scseq)
     gc()
 
     progress$set(message = "clustering", detail = '', value = value + 2)
@@ -1012,18 +1012,29 @@ add_hvgs <- function(sce, hvgs = NULL) {
 }
 
 
-#' Run TSNE
+#' Run TSNE or UMAP
 #'
 #' @param sce \code{SingleCellExperiment}
-#' @param dimred reducedDim to run TSNE on
+#' @param dimred reducedDim to run TSNE or UMAP on
 #'
-#' @return \code{sce} with \code{'TSNE'} \code{reducedDim}
+#' @return \code{sce} with \code{'TSNE'} or \code{'UMAP'} \code{reducedDim}
 #' @export
-run_tsne <- function(sce, dimred = 'PCA') {
-  # consider replacing with runUMAP min_dist=0.5 (faster but similar)
+run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA') {
+
+  if(type[1] == 'auto') {
+    ncells <- ncol(sce)
+    type <- ifelse(ncells > 5000, 'UMAP', 'TSNE')
+  }
+
   set.seed(1100101001)
-  sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
-  colnames(SingleCellExperiment::reducedDim(sce, 'TSNE')) <- c('TSNE1', 'TSNE2')
+  if (type[1] == 'TSNE') {
+    sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
+
+  } else if (type[1] == 'UMAP') {
+    sce <- scater::runUMAP(sce, dimred = dimred, n_dimred = sce@metadata$npcs, min_dist=0.3)
+
+  }
+  colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, 1:2)
   return(sce)
 }
 
@@ -1209,6 +1220,29 @@ get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', k
   markers <- lapply(markers, as.data.frame)
   ord <- order(as.numeric(names(markers)))
   markers[ord]
+}
+
+get_presto_markers <- function(scseq) {
+  markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts')
+  markers <- markers %>%
+    dplyr::filter(logFC > 0) %>%
+    dplyr::group_by(group) %>%
+    dplyr::arrange(pval -auc) %>%
+    dplyr::group_split() %>%
+    as.list()
+
+  res <- list()
+  for (df in markers) {
+    df <- as.data.frame(df)
+    row.names(df) <- df$feature
+    df$feature <- NULL
+    group <- as.character(df$group[1])
+    res[[group]] <- df
+  }
+
+  ord <- order(as.numeric(names(res)))
+  res <- res[ord]
+  return(res)
 }
 
 
