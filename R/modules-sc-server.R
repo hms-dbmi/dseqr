@@ -1749,7 +1749,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     # update reactive annotation
     choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- as.numeric(sel_idx)
+    sel_idx <- as.numeric(sel_clust)
 
     # use currently save annot as reference
     ref_preds <- ref_preds()
