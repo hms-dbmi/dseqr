@@ -265,9 +265,10 @@ function pertItem(item, escape) {
 
 function bulkContrastOptions(item, escape) {
 
+  var swatch = item.color ? "<div class='input-swatch' style='background-color:" + item.color + "'></div>" : "";
 
   var clustEl = "<div>" +
-                  "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                  swatch +
                   escape(item.name) +
                 "</div>";
 
@@ -279,8 +280,10 @@ function bulkContrastOptions(item, escape) {
 //styling for current item
 function bulkContrastItem(item, escape) {
 
+   var swatch = item.color ? "<div class='input-swatch' style='background-color:" + item.color + "'></div>" : "";
+
   var clustEl = "<div class='bulk-item'>" +
-                  "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
+                  swatch +
                   escape(item.name) +
                   "<div class='contrast'>vs</div>" +
                 "</div>";

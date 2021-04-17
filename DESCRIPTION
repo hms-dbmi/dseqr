@@ -91,6 +91,7 @@ Depends:
 Remotes: 
     hms-dbmi/dseqr.data,
     alexvpickering/rkal,
+    alexvpickering/shinypanel,
     alexvpickering/crossmeta,
     immunogenomics/harmony,
     immunogenomics/presto

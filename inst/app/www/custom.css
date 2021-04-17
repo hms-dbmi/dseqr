@@ -27,6 +27,11 @@
 }
 
 
+.dropdown-menu {
+    width: 100%;
+}
+
+
 /* for showing cluster colour in dropdown */
 .input-swatch {
     height: 10px;
@@ -275,22 +280,3 @@ and (max-device-width : 1024px) {
  }
 
 
-/*ellipses for long selectize input*/
-.selectize-input > *{
-    margin-right: 20px;
-}
-
-
-.selectize-input > *,
-.selectize-dropdown .optgroup-header,
-.selectize-dropdown [data-selectable] {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
-    white-space: nowrap;
-}
-
-/*multi needs inline block to get choices on same line*/
-.selectize-control.multi .selectize-input > div {
-    display: inline-block !important;
-}

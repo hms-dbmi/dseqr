@@ -782,10 +782,9 @@ get_gene_choices <- function(markers,
 #' @keywords internal
 integrate_saved_scseqs <- function(
   sc_dir,
-  test,
-  ctrl,
+  dataset_names,
   integration_name,
-  exclude_clusters,
+  exclude_clusters = NULL,
   exclude_cells = NULL,
   integration_type = c('harmony', 'fastMNN'),
   subset_metrics = NULL,
@@ -822,53 +821,34 @@ integrate_saved_scseqs <- function(
   }
 
   progress$set(value+1, detail = 'loading')
-  test_scseqs <- load_scseq_subsets(test,
-                                    sc_dir,
-                                    exclude_clusters,
-                                    subset_metrics,
-                                    is_include,
-                                    'test',
-                                    exclude_cells = exclude_cells)
+  scseqs <- load_scseq_subsets(dataset_names,
+                               sc_dir,
+                               exclude_clusters,
+                               subset_metrics,
+                               is_include,
+                               exclude_cells = exclude_cells)
 
-  if (!length(test_scseqs)) {
-    progress$set(value+1, detail = 'error: no test cells')
+  if (!length(scseqs)) {
+    progress$set(value+1, detail = 'error: no cells left')
     Sys.sleep(3)
     return(FALSE)
   }
-
-  ctrl_scseqs <- load_scseq_subsets(ctrl,
-                                    sc_dir,
-                                    exclude_clusters,
-                                    subset_metrics,
-                                    is_include,
-                                    'ctrl',
-                                    exclude_cells = exclude_cells)
-
-  if (!length(ctrl_scseqs)) {
-    progress$set(value+1, detail = 'error: no control cells')
-    Sys.sleep(3)
-    return(FALSE)
-  }
-
-  # preserve identity of original samples and integrate
-  scseqs <- c(test_scseqs, ctrl_scseqs)
-  ambient <- get_integrated_ambient(scseqs)
 
   # make sure all the same species
   species <- unique(sapply(scseqs, function(x) x@metadata$species))
   if(length(species) > 1) stop('Multi-species integration not supported.')
 
   progress$set(value+2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type, pairs = pairs, hvgs = hvgs, azimuth_ref = azimuth_ref)
+  combined <- integrate_scseqs(scseqs, type = integration_type, hvgs = hvgs, azimuth_ref = azimuth_ref)
   combined$project <- dataset_name
 
   # retain original QC metrics
   combined <- add_combined_metrics(combined, scseqs)
 
-  rm(scseqs, test_scseqs, ctrl_scseqs); gc()
+  rm(scseqs); gc()
 
   # add ambient outlier info
-  combined <- add_integrated_ambient(combined, ambient)
+  # combined <- add_integrated_ambient(combined, ambient)
 
   combined@metadata$species <- species
   combined@metadata$npcs <- npcs
@@ -876,7 +856,6 @@ integrate_saved_scseqs <- function(
   # save what is stable with resolution change
   scseq_data <- list(scseq = combined,
                      species = species,
-                     ambient = ambient,
                      pairs = pairs,
                      founder = founder,
                      resoln = resoln)
@@ -931,7 +910,6 @@ integrate_saved_scseqs <- function(
 #'
 run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0, reset_annot = TRUE) {
 
-  integrated <- 'corrected' %in% SingleCellExperiment::reducedDimNames(scseq)
   species <- scseq@metadata$species
 
   if (is.null(progress)) {
@@ -955,39 +933,40 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
   if (reset_annot) anal$annot <- names(markers)
 
-  if (integrated) {
 
+
+  # pseudobulk by sample if replicates
+  has_replicates <- length(unique(scseq$batch)) > 2
+
+  if (has_replicates) {
     progress$set(value+1, detail = 'pseudobulking')
     summed <- aggregate_across_cells(scseq)
 
-    obj <- scseq
-    pbulk_esets <- NULL
-    has_replicates <- length(unique(scseq$batch)) > 2
+    release <- switch(species,
+                      'Homo sapiens' = '94',
+                      'Mus musculus' = '98')
 
-    if (has_replicates) {
-      pairs_path <- scseq_part_path(sc_dir, dataset_name, 'pairs')
-      pairs <- qread.safe(pairs_path)
-
-      if (species == 'Homo sapiens') release <- '94'
-      else if (species == 'Mus musculus') release <- '98'
-
-      pbulk_esets <- obj <- construct_pbulk_esets(summed, pairs, species, release)
-    }
-
-    progress$set(value+2, detail = 'fitting models')
-    lm_fit <- run_limma_scseq(obj)
-    anal_int <- list(summed = summed,
-                     lm_fit_0svs = lm_fit,
-                     pbulk_esets = pbulk_esets,
-                     has_replicates = has_replicates)
-
-    anal <- c(anal, anal_int)
+    anal$pbulk_esets <- construct_pbulk_esets(summed, species, release)
   }
 
-  # save in subdirectory e.g. snn0.8
+  # save in subdirectory e.g. snn1
   progress$set(value+3, detail = 'saving')
   dataset_subname <- file.path(dataset_name, paste0('snn', resoln))
   save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
+
+}
+
+run_integrated_anals <- function(obj) {
+
+
+  progress$set(value+2, detail = 'fitting models')
+  lm_fit <- run_limma_scseq(obj)
+  anal_int <- list(summed = summed,
+                   lm_fit_0svs = lm_fit,
+                   pbulk_esets = pbulk_esets,
+                   has_replicates = has_replicates)
+
+  anal <- c(anal, anal_int)
 
 }
 
@@ -1032,8 +1011,11 @@ aggregate_across_cells <- function(scseq) {
 #' @return TRUE is successful, otherwise FALSE
 #' @keywords internal
 #'
-run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
-                                       integration_types, exclude_clusters, pairs, azimuth_ref) {
+run_integrate_saved_scseqs <- function( sc_dir,
+                                        dataset_names,
+                                        integration_name,
+                                        integration_types,
+                                        azimuth_ref) {
 
   for (i in seq_along(integration_types)) {
     type <- integration_types[i]
@@ -1042,12 +1024,9 @@ run_integrate_saved_scseqs <- function(sc_dir, test, ctrl, integration_name,
 
     # run integration
     res <- integrate_saved_scseqs(sc_dir,
-                                  test = test,
-                                  ctrl = ctrl,
+                                  dataset_names,
                                   integration_name = integration_name,
                                   integration_type = type,
-                                  exclude_clusters = exclude_clusters,
-                                  pairs = pairs,
                                   azimuth_ref = ref,
                                   value = i*8-8)
 
@@ -1235,7 +1214,7 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = NULL, ident = 'test', exclude_cells = NULL) {
+load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = NULL, exclude_cells = NULL) {
 
   exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
@@ -1251,8 +1230,8 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_m
     resoln_name <- load_resoln(dataset_dir)
     scseq$orig.resoln <- resoln_name
 
-    # set orig.ident to ctrl/test (integration) or original dataset name (subset)
-    scseq$orig.ident <- factor(ident)
+    # set orig.ident to original dataset name (subset)
+    scseq$orig.ident <- factor(dataset_name)
 
     if (length(subset_metrics)) {
       cdata <- scseq@colData
@@ -1388,19 +1367,19 @@ load_scseq_qs <- function(dataset_dir) {
 
 #' Validate dataset selection for integration
 #'
-#' @param test Character vector of test dataset names
-#' @param ctrl Character vector of control dataset names
 #'
 #' @return \code{NULL} if valid, otherwise an error message
 #'
 #' @keywords internal
-validate_integration <- function(test, ctrl, pairs) {
+validate_integration <- function(types, name, azimuth_ref) {
   msg <- NULL
 
-  if (!is.null(pairs)) {
-
-    if (!all(pairs$sample %in% c(test, ctrl)))
-      msg <- 'Samples missing from pairs csv'
+  if ('Azimuth' %in% types & azimuth_ref == '') {
+    msg <- 'Select azimuth reference'
+  } else if (is.null(types)) {
+    msg <- 'Select one or more integration types'
+  } else if (name == '') {
+    msg <- 'Enter name for integrated dataset'
   }
 
   return(msg)
