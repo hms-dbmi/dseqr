@@ -303,17 +303,15 @@ clusterComparisonInput <- function(id) {
 #' @noRd
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
-  btn1 <- btn2 <- btn3 <- NULL
-  gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;')
+  gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
-  amb_btn    <- actionButton(ns('exclude_ambient'), label = NULL, icon = icon('ban', 'fa-fw'), title = 'Toggle excluding ambient genes')
-  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
-  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot',  `parent-style`='display: none;')
+  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
+  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot')
 
   if (sample_comparison) {
     btn1 <- gene_btn
-    btn2 <- dprimes_btn
-    btn3 <- amb_btn
+    btn2 <- NULL
+    btn3 <- dprimes_btn
   } else {
     btn1 <- ridge_btn
     btn2 <- gene_btn
@@ -405,13 +403,13 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   if (with_dl)
     dl_btn <- actionButton(ns('click_dl_anal'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
+
   tags$div(
     shinypanel::selectizeInputWithButtons(
       inputId = ns('compare_groups'),
       label = 'Groups to compare:',
       actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
       actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
-      actionButton(ns('run_comparison'), label = NULL, icon = icon('plus', 'fa-fw'), title = 'Run comparison'),
       options = list(maxItems = 2, placeholder = 'Select test then control group'),
       container_id = ns('validate-up'),
       help_id = ns('error_msg')

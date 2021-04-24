@@ -79,6 +79,16 @@
     padding-top: 6px;
 }
 
+.ambience-swatch {
+    height: 8px;
+    width: 8px;
+    display: inline-block;
+    border-radius: 50%;
+    background-color: #f0ad4e;
+    margin-top: 6px;
+    padding-top: 6px;
+}
+
 .form-control {
     /* remove ugly box shadow from inputs */
     box-shadow: inset 0px 0px 0px 0px red;
@@ -208,6 +218,7 @@ td.dt-nopad span {
 
 .bulk-item {
     background-color: white !important;
+    margin-right: 0px !important;
 }
 
 input[type=text] {

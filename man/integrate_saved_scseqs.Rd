@@ -6,10 +6,9 @@
 \usage{
 integrate_saved_scseqs(
   sc_dir,
-  test,
-  ctrl,
+  dataset_names,
   integration_name,
-  exclude_clusters,
+  exclude_clusters = NULL,
   exclude_cells = NULL,
   integration_type = c("harmony", "fastMNN"),
   subset_metrics = NULL,
@@ -28,10 +27,6 @@ integrate_saved_scseqs(
 \arguments{
 \item{sc_dir}{Directory with saved single-cell datasets.}
 
-\item{test}{Character vector of test analysis names.}
-
-\item{ctrl}{Character vector of control analysis names.}
-
 \item{integration_name}{Name for new integrated analysis.}
 
 \item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
@@ -45,6 +40,10 @@ integrate_saved_scseqs(
 \item{is_include}{Boolean - are cells that match \code{subset_metrics} included or excluded?}
 
 \item{progress}{optional Shiny \code{Progress} object.}
+
+\item{test}{Character vector of test analysis names.}
+
+\item{ctrl}{Character vector of control analysis names.}
 }
 \value{
 TRUE is successful, otherwise FALSE

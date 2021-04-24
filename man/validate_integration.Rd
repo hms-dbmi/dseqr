@@ -4,12 +4,7 @@
 \alias{validate_integration}
 \title{Validate dataset selection for integration}
 \usage{
-validate_integration(test, ctrl, pairs)
-}
-\arguments{
-\item{test}{Character vector of test dataset names}
-
-\item{ctrl}{Character vector of control dataset names}
+validate_integration(types, name, azimuth_ref)
 }
 \value{
 \code{NULL} if valid, otherwise an error message

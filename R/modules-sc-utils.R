@@ -583,9 +583,12 @@ html_space <- function(x, justify = 'right') {
 #' @inheritParams get_cluster_choices
 #'
 #' @return List with cluster stats
-get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE) {
+get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE, contrast_dir = NULL) {
 
-  stats_path <- file.path(resoln_dir, 'cluster_stats.qs')
+  stats_dir <- resoln_dir
+  if (!is.null(contrast_dir)) stats_dir <- contrast_dir
+
+  stats_path <- file.path(stats_dir, 'cluster_stats.qs')
   if (file.exists(stats_path) && use_disk) return(qs::qread(stats_path))
 
   if (is.null(scseq)) {
@@ -717,43 +720,51 @@ get_contrast_markers <- function(con, dataset_dir) {
 #' @keywords internal
 get_gene_choices <- function(markers,
                              qc_metrics = NULL,
-                             type = NULL,
                              qc_first = FALSE,
                              species = 'Homo sapiens',
                              tx2gene = NULL) {
+
+
+  ambient <- markers$ambient
+  if (is.null(ambient)) ambient <- FALSE
   markers <- row.names(markers)
-
-  qc_type <- ifelse(names(qc_metrics) == 'numeric', 'QC Score', 'Boolean Features')
-  gene_type <- rep('Gene', length(markers))
-
-  if (qc_first) {
-    choices <- c(qc_metrics, markers)
-    type <- c(qc_type, gene_type)
-
-  } else {
-    choices <- c(markers, qc_metrics)
-    type <- c(gene_type, qc_type)
-  }
 
   if (!grepl('sapiens|musculus', species))
     stop('Only Homo sapiens and Mus musculus supported')
 
+  # add gene description
   if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
 
-  idx <- match(choices, tx2gene$gene_name)
+  idx <- match(markers, tx2gene$gene_name)
   desc <- tx2gene$description[idx]
-  desc[is.na(desc)] <- choices[is.na(desc)]
+  desc[is.na(desc)] <- markers[is.na(desc)]
 
-  choices <- data.table::data.table(label = choices,
-                                    value = choices,
-                                    description = desc,
-                                    type = type,
-                                    stringsAsFactors = FALSE)
+  # gene choices
+  choices <- data.table::data.table(
+    label = markers,
+    value = markers,
+    description = desc,
+    type = 'Gene',
+    ambient = ambient)
 
-  choices
+  # add qc choices
+  if (length(qc_metrics)) {
+    qc_type <- ifelse(names(qc_metrics) == 'numeric',
+                      'QC Score',
+                      'Boolean Features')
 
+    qc_choices <- data.table::data.table(
+      label = qc_metrics,
+      value = qc_metrics,
+      description = NA,
+      type = qc_type,
+      ambient = FALSE)
 
+    choices <- list(choices, qc_choices)
+    if (qc_first) choices <- choices[c(2,1)]
 
+    choices <- data.table::rbindlist(choices)
+  }
 
   return(choices)
 }
@@ -848,7 +859,7 @@ integrate_saved_scseqs <- function(
   rm(scseqs); gc()
 
   # add ambient outlier info
-  # combined <- add_integrated_ambient(combined, ambient)
+  combined <- add_combined_ambience(combined, ambient)
 
   combined@metadata$species <- species
   combined@metadata$npcs <- npcs
@@ -1190,15 +1201,27 @@ add_combined_metrics <- function(combined, scseqs) {
   metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
   for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
 
-  # add mixing (Control, Test, sample origin) related metrics
-  combined$is_test <- combined$orig.ident == 'test'
-  combined$is_ctrl <- !combined$is_test
-
+  # add sample origin metric
   samples <- unique(combined$batch)
-  if (length(samples > 2)) {
-    for (sample in samples)
-      combined[[sample]] <- combined$batch == sample
+  for (sample in samples)
+    combined[[sample]] <- combined$batch == sample
+
+  return(combined)
+}
+
+add_combined_ambience <- function(combined, scseqs) {
+  samples <- unique(combined$batch)
+  genes <- row.names(combined)
+
+  for (sample in samples) {
+    col <- paste0(sample, '_ambience')
+    sce <- scseqs[[sample]]
+    rdata <- SingleCellExperiment::rowData(sce[genes, ])
+    # legacy calculated pct_ambient from droplets < 10
+    scol <- ifelse('ambience' %in% colnames(rdata), 'ambience', 'pct_ambient')
+    SummarizedExperiment::rowData(combined)[[col]] <- rdata[[scol]]
   }
+
   return(combined)
 }
 
@@ -1214,7 +1237,7 @@ add_combined_metrics <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters, subset_metrics = NULL, is_include = NULL, exclude_cells = NULL) {
+load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters = NULL, subset_metrics = NULL, is_include = NULL, exclude_cells = NULL) {
 
   exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
   exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
@@ -1355,12 +1378,13 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #' @return SingleCellExperiment
 #' @keywords internal
 #'
-load_scseq_qs <- function(dataset_dir) {
+load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL) {
   scseq_path <- file.path(dataset_dir, 'scseq.qs')
   resoln_name <- load_resoln(dataset_dir)
 
   scseq <- qs::qread(scseq_path)
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
+  scseq <- attach_meta(scseq, dataset_dir, meta, groups)
 
   return(scseq)
 }

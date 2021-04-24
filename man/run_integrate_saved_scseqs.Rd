@@ -6,27 +6,18 @@
 \usage{
 run_integrate_saved_scseqs(
   sc_dir,
-  test,
-  ctrl,
+  dataset_names,
   integration_name,
   integration_types,
-  exclude_clusters,
-  pairs,
   azimuth_ref
 )
 }
 \arguments{
 \item{sc_dir}{Directory with saved single-cell datasets.}
 
-\item{test}{Character vector of test analysis names.}
-
-\item{ctrl}{Character vector of control analysis names.}
-
 \item{integration_name}{Name for new integrated analysis.}
 
 \item{integration_types}{Character vector of integration types to run.}
-
-\item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 }
 \value{
 TRUE is successful, otherwise FALSE

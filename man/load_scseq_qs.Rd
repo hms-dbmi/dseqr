@@ -4,7 +4,7 @@
 \alias{load_scseq_qs}
 \title{Load SingleCellExperiment from qs file}
 \usage{
-load_scseq_qs(dataset_dir)
+load_scseq_qs(dataset_dir, meta = NULL, groups = NULL)
 }
 \arguments{
 \item{dataset_dir}{Path to folder with scseq.qs file}

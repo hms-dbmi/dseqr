@@ -371,22 +371,20 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
     counts <- process_cellranger_counts(counts, species)
   }
 
-  # get ambient expression profile/determine outlier genes
+  # get ambience expression profile/determine outlier genes
   # if pre-filtered cellranger, can't determine outliers/empty droplets
   ncount <- Matrix::colSums(counts)
   if (min(ncount) > 10) {
-    pct_ambient <- rep(0, nrow(counts))
-    out_ambient <- rep(FALSE, nrow(counts))
+    ambience <- rep(0, nrow(counts))
     keep_cells <- seq_len(ncol(counts))
 
   } else {
-    pct_ambient <- get_pct_ambient(counts)
-    out_ambient <- get_outliers(pct_ambient)
+    ambience <- DropletUtils::estimateAmbience(counts, good.turing = FALSE, round = FALSE)
     keep_cells <- detect_cells(counts, species = species)
   }
 
-  # add ambient metadata for genes
-  rowData <- S4Vectors::DataFrame(pct_ambient, out_ambient)
+  # add ambience metadata for genes
+  rowData <- S4Vectors::DataFrame(ambience)
   colData <- S4Vectors::DataFrame(project = rep(project, length(keep_cells)))
 
   sce <- SingleCellExperiment::SingleCellExperiment(
@@ -399,6 +397,8 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
   sce@metadata$species <- species
   return(sce)
 }
+
+
 
 #' Load SingleCellExperiment
 #'
@@ -421,18 +421,13 @@ load_scseq <- function(dataset_dir, default_clusters = TRUE) {
                       return(load_scseq_qs(dataset_dir))
                     })
 
-  # workarounds for SCLE bugs (old: removed factors, new: incorrect order of levels)
-
-  is.integrated <- !is.null(scseq$orig.ident) && all(scseq$orig.ident %in% c('test', 'ctrl'))
-  if (is.integrated) {
-    scseq$orig.ident <- factor(as.character(scseq$orig.ident), levels = c('test', 'ctrl'))
-    scseq$orig.cluster <- factor(as.numeric(as.character(scseq$orig.cluster)))
-  }
 
   if (default_clusters) {
     resoln_dir <- file.path(dataset_dir, load_resoln(dataset_dir))
     scseq <- attach_clusters(scseq, resoln_dir)
   }
+
+  scseq <- attach_meta(scseq, dataset_dir)
 
   return(scseq)
 }
@@ -441,6 +436,30 @@ load_scseq <- function(dataset_dir, default_clusters = TRUE) {
 attach_clusters <- function(scseq, resoln_dir) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
   scseq$cluster <- qs::qread(clusters_path)
+  return(scseq)
+}
+
+attach_meta <- function(scseq, dataset_dir = NULL, meta = NULL, groups = NULL) {
+
+  if (is.null(meta)) {
+    meta_path <- file.path(dataset_dir, 'meta.qs')
+    meta <- qread.safe(meta_path)
+  }
+
+  if (is.null(groups)) {
+    group_path <- file.path(dataset_dir, 'prev_groups.qs')
+    groups <- qread.safe(group_path)
+  }
+
+  if (is.null(meta)) return(scseq)
+
+  meta <- meta[meta$group %in% groups, ]
+
+  groups <- ifelse(meta$group == groups[1], 'test', 'ctrl')
+  names(groups) <- row.names(meta)
+  groups <- unname(groups[scseq$batch])
+
+  scseq$orig.ident <- factor(groups, levels = c('test', 'ctrl'))
   return(scseq)
 }
 
@@ -509,42 +528,6 @@ save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
     LoomExperiment::export(scseq, scle_path)
   }
 }
-
-#' Determine ambient percent for each gene
-#'
-#' Looks at droplets with counts less than or equal to 10 calculates the total percent for each gene
-#'
-#' @param counts \code{dgTMatrix} of counts. Rows are genes, columns are droplets.
-#'
-#' @return Named numeric vector of percentages for each gene.
-#' @export
-#' @keywords internal
-get_pct_ambient <- function(counts) {
-
-  # get drops with less than 10 counts
-  ncount <- Matrix::colSums(counts)
-  ambient <- counts[, ncount <= 10]
-
-  # percentage of counts per gene
-  nambient <- Matrix::rowSums(ambient)
-  pct_ambient <- nambient / sum(nambient) * 100
-  return(pct_ambient)
-}
-
-#' Flag outliers
-#'
-#'
-#' @param x Named numeric vector
-#'
-#' @return Boolean vector with \code{length(x)} indicating if values of \code{x} are outliers (TRUE) or not (FALSE).
-#' @export
-#' @keywords internal
-get_outliers <- function(x) {
-  outliers <- graphics::boxplot(x, plot = FALSE)$out
-  is.outlier <- names(x) %in% names(outliers)
-  return(is.outlier)
-}
-
 
 
 #' Read kallisto/bustools market matrix and annotations
@@ -848,7 +831,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       p = indptr[],
       x = as.numeric(x = counts[]),
       dims = shp[],
-      giveCsparse = FALSE
+      repr = "T"
     )
     if (unique.features) {
       features <- make.unique(names = features)
@@ -1389,23 +1372,26 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NUL
 #'
 #' @return List with test and control ambient genes
 #' @keywords internal
-get_integrated_ambient <- function(scseqs) {
+get_ambience <- function(combined) {
 
-  # datasets that are test samples
-  is.test <- sapply(scseqs, function(x) levels(x$orig.ident) == 'test')
+  # ambient call for each gene in each cluster
+  ambience <- SummarizedExperiment::rowData(combined)
+  ambience <- ambience[, grepl('ambience$', colnames(ambience)), drop=FALSE]
+  ambience <- as.matrix(ambience)
+  return(ambience)
 
-  # genes that are ambient in at least one test sample
-  ambient.test <- lapply(scseqs[is.test], function(x) SingleCellExperiment::rowData(x))
-  ambient.test <- lapply(ambient.test, function(x) row.names(x)[x$out_ambient])
-  ambient.test <- unique(unlist(ambient.test))
-
-  # genes that are ambient in at least one ctrl sample
-  ambient.ctrl <- lapply(scseqs[!is.test], function(x) SingleCellExperiment::rowData(x))
-  ambient.ctrl <- lapply(ambient.ctrl, function(x) row.names(x)[x$out_ambient])
-  ambient.ctrl <- unique(unlist(ambient.ctrl))
-
-  return(list(test = ambient.test, ctrl = ambient.ctrl))
 }
+
+calc_cluster_ambience <- function(summed, ambience, clus) {
+  counts <- SingleCellExperiment::counts(summed)
+  counts <- counts[, summed$cluster == clus]
+  amb <- DropletUtils::maximumAmbience(counts, ambience, mode = 'proportion')
+  amb <- rowMeans(amb, na.rm=TRUE)
+  amb <- amb[!is.na(amb)]
+  amb <- names(amb)[amb > 0.1]
+  return(amb)
+}
+
 
 #' Mark ambient outliers in combined dataset
 #'

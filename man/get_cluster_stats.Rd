@@ -10,7 +10,8 @@ get_cluster_stats(
   top_tables = NULL,
   has_replicates = FALSE,
   use_disk = FALSE,
-  sample_comparison = FALSE
+  sample_comparison = FALSE,
+  contrast_dir = NULL
 )
 }
 \arguments{

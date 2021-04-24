@@ -267,22 +267,6 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', release = '9
   return(esets)
 }
 
-#' Move genes to bottom of markers data.frame
-#'
-#' Used to supress ambient outliers and positive genes for single-cell sample comparisons
-#'
-#' @param markers data.frame with genes as row names.
-#' @param supress Genes to move to bottom of \code{markers}.
-#'
-#' @return \code{markers} with genes in \code{supress} at bottom.
-#'
-#' @keywords internal
-supress.genes <- function(markers, supress) {
-  if (is.null(supress)) return(markers)
-  other <- setdiff(row.names(markers), supress)
-  markers[c(other, supress),, drop = FALSE]
-}
-
 
 #' Fit limma eBayes on single cell RNA-seq dataset
 #'
@@ -334,37 +318,6 @@ fit_lm_scseq <- function(scseq) {
     fits[[clust]] <- list(fit = fit, mod = mod)
   }
   return(fits)
-}
-
-#' Get ambient genes to exclude
-#'
-#' Excludes upregulated genes if they are ambient in the test group.
-#' Excludes downregulated genes if they are ambient in the control group.
-#'
-#' @param scseq \code{SingleCellExperiment} object.
-#'
-#' @return Character vector of HGNC symbols representing ambient genes to exclude
-#'
-#' @keywords internal
-decide_ambient <- function(ambient, top_table, cluster_markers) {
-
-  # exclude test ambient if up
-  # exclude ctrl ambient if down
-  # opposite would decrease extent of gene expression difference but not direction
-  pos.test <- top_table[ambient$test, 'logFC'] > 0
-  neg.ctrl <- top_table[ambient$ctrl, 'logFC'] < 0
-
-  test.exclude <- ambient$test[pos.test]
-  ctrl.exclude <- ambient$ctrl[neg.ctrl]
-
-  ambient <- c(test.exclude, ctrl.exclude)
-
-  # exclude top cluster markers from ambient
-  # asumes in-cell >> ambient for markers
-  keep <- cluster_markers$FDR < 0.05
-  ambient <- setdiff(ambient, row.names(cluster_markers)[keep])
-
-  return(ambient)
 }
 
 

@@ -7,7 +7,6 @@
 get_gene_choices(
   markers,
   qc_metrics = NULL,
-  type = NULL,
   qc_first = FALSE,
   species = "Homo sapiens",
   tx2gene = NULL

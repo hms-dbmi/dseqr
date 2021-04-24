@@ -18,7 +18,6 @@
 #'  Use 90 for vertical text.
 #' @param flip logical. If TRUE, grid lines are added to y axis instead of x
 #'  axis.
-#' @importFrom ggplot2 %+replace%
 #' @keywords internal
 #'
 #' @examples
@@ -43,31 +42,34 @@ theme_pubr <- function(base_size = 12, base_family = "",
   if(!is.numeric(legend)) legend <- match.arg(legend)
   if(x.text.angle > 5) xhjust <- 1 else xhjust <- NULL
 
-  if(border){
+  if (border) {
     panel.border <- ggplot2::element_rect(fill = NA, colour = "black", size = 0.7)
     axis.line <- ggplot2::element_blank()
-  }
-  else{
+  } else {
     panel.border <- ggplot2::element_blank()
     axis.line = ggplot2::element_line(colour = "black", size = 0.5)
   }
 
 
-  if(margin)
-    plot.margin <- ggplot2::margin(half_line, half_line, half_line,
-                          half_line)
-  else plot.margin <- unit(c(0.5,0.3,0.3,0.3),"mm")
+  if (margin) {
+    plot.margin <- ggplot2::margin(half_line, half_line, half_line,half_line)
+  } else {
+    plot.margin <- unit(c(0.5,0.3,0.3,0.3),"mm")
+  }
 
-  .theme <- ggplot2::theme_bw(base_size = base_size, base_family = base_family) %+replace%
-    theme(panel.border = panel.border,
+  .theme <- ggplot2::`%+replace%`(
+    ggplot2::theme_bw(base_size = base_size, base_family = base_family),
+    ggplot2::theme(panel.border = panel.border,
           panel.grid.major = ggplot2::element_blank(),
           panel.grid.minor = ggplot2::element_blank(),
-          axis.line = axis.line, axis.text = ggplot2::element_text(color = "black"),
+          axis.line = axis.line,
+          axis.text = ggplot2::element_text(color = "black"),
           legend.key = ggplot2::element_blank(),
           strip.background = ggplot2::element_rect(fill = "#F2F2F2", colour = "black", size = 0.7),
           plot.margin = plot.margin,
           legend.position = legend,
           complete = TRUE)
+  )
 
   if(x.text.angle!=0)
     .theme <- .theme + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = x.text.angle, hjust = xhjust))

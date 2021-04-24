@@ -102,9 +102,25 @@ function integationOption(item, escape) {
 }
 
 
-function geneChoice(item, escape) {
-  var res = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";
-  return res;
+function geneOption(item, escape) {
+
+  var circle =  item.ambient ? "<div class ='ambience-swatch pull-right'></div>" : "<div></div>" ;
+
+    var markup = "<div title = '" + item.description + "' style='columns: 2;'>" +
+      "<div>" +
+          escape(item.label) +
+      "</div>" +
+        circle
+    "</div>";
+
+  return markup;
+}
+
+function geneItem(item, escape) {
+
+  var gene = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";
+
+  return gene;
 }
 
 function cellOptions(item, escape) {
@@ -280,7 +296,7 @@ function bulkContrastOptions(item, escape) {
 //styling for current item
 function bulkContrastItem(item, escape) {
 
-   var swatch = item.color ? "<div class='input-swatch' style='background-color:" + item.color + "'></div>" : "";
+   var swatch = "<div class='input-swatch' style='background-color:" + item.color + "'></div>";
 
   var clustEl = "<div class='bulk-item'>" +
                   swatch +

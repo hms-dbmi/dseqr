@@ -4,12 +4,7 @@
 \alias{construct_pbulk_esets}
 \title{Run pseudo bulk limma fit}
 \usage{
-construct_pbulk_esets(
-  summed,
-  pairs = NULL,
-  species = "Homo sapiens",
-  release = "94"
-)
+construct_pbulk_esets(summed, species = "Homo sapiens", release = "94")
 }
 \arguments{
 \item{summed}{Pseudobulk \code{SingleCellExperiment}}
