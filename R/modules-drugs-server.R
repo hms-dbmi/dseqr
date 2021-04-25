@@ -723,8 +723,14 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
     req(dataset_dir)
     file.path(dataset_dir, load_resoln(dataset_dir))
   })
+
+
+  dataset_name <- reactive(sel()$dataset_name)
+
+
   scSampleComparison <- callModule(scSampleComparison, 'sc',
                                    is_sc = is_sc,
+                                   dataset_name = dataset_name,
                                    dataset_dir = dataset_dir,
                                    resoln_dir = resoln_dir)
 
@@ -825,3 +831,4 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   ))
 
 }
+

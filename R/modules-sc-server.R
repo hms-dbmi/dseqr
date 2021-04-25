@@ -2669,7 +2669,10 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   # drug query results
   drug_queries <- reactive({
     dpaths <- drug_paths()
-    saved_drugs <- any(grepl('^cmap_res_', list.files(contrast_dir())))
+    contrast_dir <- contrast_dir()
+    if (is.null(contrast_dir)) return(NULL)
+
+    saved_drugs <- any(grepl('^cmap_res_', list.files(contrast_dir)))
 
     if (!isTruthy(input$selected_cluster)) {
       res <- NULL
