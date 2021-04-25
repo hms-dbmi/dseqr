@@ -2173,6 +2173,10 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 #'
 #' @keywords internal
 #' @noRd
+#'
+#' IMPORTANT! USED IN DRUGS TAB:
+#' As a result changes here can lead to cryptic bugs in drugs tab.
+#'
 scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, input_scseq = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE) {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))

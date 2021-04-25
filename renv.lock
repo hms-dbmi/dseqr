@@ -1717,10 +1717,15 @@
     },
     "shinypanel": {
       "Package": "shinypanel",
-      "Version": "0.1.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "174e7dd6f5ef2778fa280e061a8443e2"
+      "Version": "0.1.5",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "shinypanel",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "df703923215b1d2cc004d257d862e8262cf2def3",
+      "Hash": "75724afbfafb0410f6c5d66275e98d4f"
     },
     "sitmo": {
       "Package": "sitmo",
