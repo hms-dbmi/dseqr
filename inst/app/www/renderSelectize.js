@@ -21,7 +21,10 @@ function contrastOptions(item, escape) {
 
   var swatchClass = item.testColor == '' ? '' : 'input-swatch';
 
-  var clustEl = "<div style='columns: 2;' title='" + title + "'>" +
+  // disable when no top_table
+  var disabled = item.disabled ? 'disabled-option': '';
+
+  var clustEl = "<div style='columns: 2;' title='" + title + "' class='" + disabled + "'>" +
                             "<div style='margin-right: -80px'>" +
                               "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
                               escape(item.name) +
@@ -61,9 +64,11 @@ function contrastItem(item, escape) {
 
   var swatchClass = item.testColor == '' ? '' : 'input-swatch';
 
+  // disable when no top_table
+  var disabled = item.disabled ? 'disabled-option': '';
 
   // styling if looking at cluster
-  var clustEl = "<div title='" + title + "'>" +
+  var clustEl = "<div title='" + title + "' class='" + disabled + "'>" +
                     "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
                      escape(item.name) +
                      info +

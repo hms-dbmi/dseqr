@@ -86,5 +86,36 @@ for (i in seq_along(dataset_dirs)) {
   qs::qsave(amb, ambient_path)
 }
 
+# remove deleted
 integrated <- integrated[-deleted]
+qs::qsave(integrated, file.path(sc_dir, 'integrated.qs'))
 
+# change to presto markers
+dataset_names <- list.files(sc_dir)
+dataset_names <- dataset_names[!grepl('.qs$', dataset_names)]
+
+for (dataset_name in dataset_names) {
+  cat('working on', dataset_name, '...\n')
+  dataset_dir <- file.path(sc_dir, dataset_name)
+  scseq_path <- file.path(dataset_dir, 'scseq.qs')
+  if (!file.exists(scseq_path)) next()
+
+  scseq <- qs::qread(scseq_path)
+
+  snn_names <- list.files(dataset_dir, '^snn\\d')
+
+  for (snn_name in snn_names) {
+    snn_dir <- file.path(dataset_dir, snn_name)
+    applied <- file.exists(file.path(snn_dir, 'applied.qs'))
+    if (!applied) next()
+
+    scseq <- dseqr:::attach_clusters(scseq, snn_dir)
+    markers <- dseqr:::get_presto_markers(scseq)
+    resoln_name <- file.path(dataset_name, snn_name)
+    dseqr:::save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)
+
+    # remove uneeded
+    unlink(file.path(snn_dir, 'tests'), recursive = TRUE)
+    unlink(file.path(snn_dir, 'top_markers.qs'))
+  }
+}

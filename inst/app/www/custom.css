@@ -290,4 +290,9 @@ and (max-device-width : 1024px) {
     }
  }
 
+/*disable option for selectize*/
+.disabled-option {
+    color: #aaa;
+    cursor: not-allowed !important;
+}
 

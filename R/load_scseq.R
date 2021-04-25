@@ -1161,50 +1161,6 @@ add_scseq_qcplot_metrics <- function(sce) {
 }
 
 
-
-
-#' Run pairwise wilcox tests between single cell clusters
-#'
-#' @param scseq \code{SingleCellExperiment} object.
-#' @inheritParams scran::pairwiseWilcox
-#'
-#' @return List of \code{data.frame}s, one for each cluster.
-#' @keywords internal
-pairwise_wilcox <- function(scseq, groups = scseq$cluster, direction = 'up', block = NULL, restrict = NULL) {
-
-  # dont get markers if no clusters
-  if (!exist_clusters(scseq)) return(NULL)
-  groups <- as.character(groups)
-
-  # only upregulated as more useful for positive id of cell type
-  wilcox_tests <- scran::pairwiseWilcox(SingleCellExperiment::logcounts(scseq),
-                                        groups = groups,
-                                        direction = direction,
-                                        block = block,
-                                        restrict = restrict)
-  return(wilcox_tests)
-}
-
-#' Combine pairwise wilcox tests between single-cell clusters
-#'
-#' @param tests Result of \code{pairwise_wilcox}
-#' @inheritParams scran::combineMarkers
-#'
-#' @return List of data.frames
-#' @keywords internal
-get_scseq_markers <- function(tests, pval.type = 'some', effect.field = 'AUC', keep = NULL) {
-  if (is.null(keep)) keep <- rep(TRUE, nrow(tests$pairs))
-
-  markers <- scran::combineMarkers(tests$statistics[keep],
-                                   tests$pairs[keep, ],
-                                   pval.type = pval.type,
-                                   effect.field = effect.field)
-
-  markers <- lapply(markers, as.data.frame)
-  ord <- order(as.numeric(names(markers)))
-  markers[ord]
-}
-
 get_presto_markers <- function(scseq) {
   markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts')
   markers <- markers %>%

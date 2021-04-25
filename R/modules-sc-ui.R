@@ -193,14 +193,17 @@ integrationFormInput <- function(id) {
 
   withTags({
     div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('test_integration'), 'Integration test datasets:', multiple = TRUE, choices = '', width = '100%'),
-        selectizeInput(ns('ctrl_integration'), 'Integration control datasets:', multiple = TRUE, choices = '', width = '100%'),
-        shinypanel::selectizeInputWithButtons(
-          ns('subset_clusters'),
-          container_id = ns('exclude-container'),
-          label = 'Clusters to subset on:',
-          actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected clusters'),
-          options = list(multiple = TRUE, optgroupField = 'anal', placeholder = 'select none to keep all clusters')),
+        shinyWidgets::pickerInput(
+          inputId = ns('integration_datasets'),
+          label = 'Select datasets to integrate:',
+          choices = '',
+          width = '100%',
+          options = shinyWidgets::pickerOptions(
+            `selected-text-format` = "count > 0",
+            actionsBox = TRUE,
+            liveSearch = TRUE,
+            size=14),
+          multiple = TRUE),
         shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'fastMNN', 'Azimuth'), justified = TRUE, selected = 'harmony'),
         div(id=ns('azimuth_ref_container'), style='display: none;',
             selectizeInput(
@@ -212,8 +215,6 @@ integrationFormInput <- function(id) {
           ns('integration_name'),
           container_id = ns('name-container'),
           label = 'Name for integrated dataset:',
-          actionButton(ns('click_dl'), '', icon = icon('download', 'fa-fw'), title = 'Download sample pairs csv to fill out'),
-          actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload filled in sample pairs csv'),
           actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
           help_id = ns('error_msg'),
           placeholder = 'Prepended to integration type(s)'),
@@ -302,17 +303,15 @@ clusterComparisonInput <- function(id) {
 #' @noRd
 selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
-  btn1 <- btn2 <- btn3 <- NULL
-  gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards', `parent-style`='display: none;')
+  gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
-  amb_btn    <- actionButton(ns('exclude_ambient'), label = NULL, icon = icon('ban', 'fa-fw'), title = 'Toggle excluding ambient genes')
-  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot',  `parent-style`='display: none;')
-  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot',  `parent-style`='display: none;')
+  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
+  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot')
 
   if (sample_comparison) {
     btn1 <- gene_btn
-    btn2 <- dprimes_btn
-    btn3 <- amb_btn
+    btn2 <- NULL
+    btn3 <- dprimes_btn
   } else {
     btn1 <- ridge_btn
     btn2 <- gene_btn
@@ -402,17 +401,34 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
 
   dl_btn <- NULL
   if (with_dl)
-    dl_btn <- actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
+    dl_btn <- actionButton(ns('click_dl_anal'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
+
 
   tags$div(
-    downloadLink(ns('download'), ''),
+    shinypanel::selectizeInputWithButtons(
+      inputId = ns('compare_groups'),
+      label = 'Groups to compare:',
+      actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
+      actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
+      options = list(maxItems = 2, placeholder = 'Select test then control group'),
+      container_id = ns('validate-up'),
+      help_id = ns('error_msg')
+    ),
     shinypanel::selectizeInputWithButtons(
       inputId = ns('selected_cluster'),
-      label = 'Compare samples for:',
+      label = 'Cluster for group comparison:',
       dl_btn,
       #TODO: implement logic for multi-cluster differential expression
       options = list(multiple = FALSE),
-      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]')
+      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
+    ),
+
+    # hidden dl/upload buttons
+    downloadLink(ns('dl_anal'), ''),
+    downloadLink(ns('dl_meta'), ''),
+    div(style = 'display: none',
+        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+    ),
 
   )
 
