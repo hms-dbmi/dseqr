@@ -41,7 +41,7 @@ run_scseq_qc <- function(sce, metrics = c('low_lib_size',
   reasons$low_subsets_ribo_percent <- scater::isOutlier(df$subsets_ribo_percent, type = 'lower')
 
   # remove high doublet score
-  reasons$high_doublet_score <- scater::isOutlier(df$doublet_score, type = 'higher')
+  reasons$high_doublet_score <- df$scDblFinder.class == 'doublet'
 
   # allow to see outliers for non-selected metrics/combination of all
   not_selected <- setdiff(colnames(reasons), c('discard', metrics))

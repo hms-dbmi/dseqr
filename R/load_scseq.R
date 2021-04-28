@@ -1116,8 +1116,8 @@ add_doublet_score <- function(scseq) {
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
-  dbl.dens <- scDblFinder::computeDoubletDensity(scseq, subset.row=hvgs)
-  scseq$doublet_score <- log10(dbl.dens+1)
+  scseq <- scDblFinder::scDblFinder(scseq, use.cxds=TRUE)
+  scseq$doublet_score <- scseq$scDblFinder.score
 
   return(scseq)
 }
