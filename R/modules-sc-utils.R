@@ -593,7 +593,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
 
   if (is.null(scseq)) {
     dataset_dir <- dirname(resoln_dir)
-    scseq <- load_scseq(dataset_dir, default_clusters = FALSE)
+    scseq <- load_scseq_qs(dataset_dir)
     scseq <- attach_clusters(scseq, resoln_dir)
   }
 
@@ -795,9 +795,9 @@ integrate_saved_scseqs <- function(
   sc_dir,
   dataset_names,
   integration_name,
+  integration_type = c('harmony', 'fastMNN', 'Azimuth'),
   exclude_clusters = NULL,
   exclude_cells = NULL,
-  integration_type = c('harmony', 'fastMNN'),
   subset_metrics = NULL,
   is_include = NULL,
   founder = integration_name,
@@ -856,17 +856,15 @@ integrate_saved_scseqs <- function(
   # retain original QC metrics
   combined <- add_combined_metrics(combined, scseqs)
 
-  rm(scseqs); gc()
-
   # add ambient outlier info
-  combined <- add_combined_ambience(combined, ambient)
+  combined <- add_combined_ambience(combined, scseqs)
+  rm(scseqs); gc()
 
   combined@metadata$species <- species
   combined@metadata$npcs <- npcs
 
   # save what is stable with resolution change
-  scseq_data <- list(scseq = combined,
-                     species = species,
+  scseq_data <- list(species = species,
                      pairs = pairs,
                      founder = founder,
                      resoln = resoln)
@@ -876,6 +874,7 @@ integrate_saved_scseqs <- function(
     resoln <- switch(azimuth_ref, 'human_pbmc' = 2)
     scseq_data$resoln <- resoln
     scseq_data$azimuth_ref <- azimuth_ref
+    scseq_data$scseq <- combined
 
     save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
     save_azimuth_clusters(combined@colData, dataset_name, sc_dir)
@@ -889,11 +888,9 @@ integrate_saved_scseqs <- function(
     scseq_data$snn_graph <- get_snn_graph(combined, npcs = npcs)
     combined$cluster <- get_clusters(scseq_data$snn_graph, cluster_alg, resoln)
 
+    scseq_data$scseq <- combined
     save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
   }
-
-  progress$set(value+4, detail = 'saving loom')
-  save_scle(combined, file.path(sc_dir, dataset_name))
 
   # run things that can change with resolution change
   run_post_cluster(combined,
@@ -929,22 +926,14 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
     })
   }
 
-  progress$set(value, detail = 'getting markers')
-  markers <- get_presto_markers(scseq)
-
-
   # used for label transfer
   scseq_sample <- downsample_clusters(scseq)
 
-
   anal <- list(scseq_sample = scseq_sample,
-               markers = markers,
                clusters = scseq$cluster,
                applied = TRUE)
 
-  if (reset_annot) anal$annot <- names(markers)
-
-
+  if (reset_annot) anal$annot <- levels(scseq$cluster)
 
   # pseudobulk by sample if replicates
   has_replicates <- length(unique(scseq$batch)) > 2
@@ -1092,12 +1081,14 @@ subset_saved_scseq <- function(sc_dir,
     args$is_include <- c(args$is_include, is_include)
     args$subset_metrics <- c(args$subset_metrics, subset_metrics)
 
-    for (ds in names(args$exclude_cells))
+    # possible to change integration type to Azimuth
+    if (!is.null(azimuth_ref)) args$integration_type <- 'Azimuth'
+
+    for (ds in args$dataset_names)
       args$exclude_cells[[ds]] <- c(args$exclude_cells[[ds]], exclude_cells[[ds]])
 
     res <- integrate_saved_scseqs(sc_dir,
-                                  test = args$test,
-                                  ctrl = args$ctrl,
+                                  dataset_names = args$dataset_names,
                                   integration_name = dataset_name,
                                   integration_type = args$integration_type,
                                   exclude_clusters = args$exclude_clusters,
@@ -1347,21 +1338,10 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
       # save marker data.frames individually for fast loading
 
       for (i in names(item))
-        qs::qsave(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)))
-
-    } else if (type == 'tests') {
-      # save pairwise test statistics for fast single group comparisons
-
-      tests_dir <- file.path(dataset_name, 'tests')
-      dir.create(file.path(sc_dir, tests_dir))
-
-      qs::qsave(item$pairs, scseq_part_path(sc_dir, tests_dir, 'pairs'))
-
-      for (i in seq_along(item$statistics))
-        qs::qsave(item$statistics[[i]], scseq_part_path(sc_dir, tests_dir, paste0('statistics_pair', i)))
+        qs::qsave(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)), preset = 'fast')
 
     } else {
-      qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type))
+      qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type), preset = 'fast')
     }
 
   }
@@ -1380,6 +1360,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #'
 load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL) {
   scseq_path <- file.path(dataset_dir, 'scseq.qs')
+  transition_efs(scseq_path)
   resoln_name <- load_resoln(dataset_dir)
 
   scseq <- qs::qread(scseq_path)

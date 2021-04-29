@@ -118,7 +118,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
   annot <- reactiveVal()
   annot_path <- reactive(file.path(resoln_dir(), 'annot.qs'))
-  observe(annot(qs::qread(annot_path())))
+
+  observe(annot(qread.safe(annot_path())))
 
   observe(toggle('form_container', condition = scDataset$dataset_exists()))
 
@@ -431,7 +432,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   scseq <- reactive({
     if (!isTruthy(dataset_name())) return(NULL)
     disableAll(dataset_inputs)
-    scseq <- load_scseq(dataset_dir())
+    scseq <- load_scseq_qs(dataset_dir())
     enableAll(dataset_inputs)
     return(scseq)
   })
@@ -604,6 +605,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     fastq_dir <- new_dataset_dir()
     dataset_name <- input$selected_dataset
     azimuth_ref <- input$azimuth_ref
+    if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
 
     if (metrics[1] == 'all and none') {
       opts <- list(
@@ -647,7 +649,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observe({
     invalidateLater(5000, session)
     handle_sc_progress(quants, pquants, new_dataset)
-
   })
 
 
@@ -1232,7 +1233,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters()
-    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, 1, reset_annot = FALSE)
+    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, 1)
 
     # mark as previously applied and re-enable
     applied(TRUE)
@@ -1327,13 +1328,15 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
     subset_clusters <- input$subset_clusters
     subset_name <- input$subset_name
-    azimuth_ref <- input$azimuth_ref
     cluster_choices <- cluster_choices()
     metric_choices <- metric_choices()
     is_include <- is_include()
     from_dataset <- selected_dataset()
     is_integrated <- is_integrated()
     hvgs <- hvgs()
+
+    azimuth_ref <- input$azimuth_ref
+    if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
 
     error_msg <- validate_subset(from_dataset, subset_name, subset_clusters, is_include, hvgs)
 
@@ -1697,12 +1700,18 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
 
     markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
-    if (!file.exists(markers_path)) {
-      showModal(warnApplyModal('markers'))
-      return(NULL)
-    }
-    markers[[sel]] <- qs::qread(markers_path)
 
+    if (!file.exists(markers_path)) {
+      scseq <- scseq()
+      dataset_name <- dataset_name()
+      levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
+      markers <- get_presto_markers(scseq)
+
+      resoln_name <- get_resoln_name(sc_dir, dataset_name)
+      save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)
+    }
+
+    markers[[sel]] <- qs::qread(markers_path)
     markers(markers)
   })
 
@@ -2214,7 +2223,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     dataset_dir <- dataset_dir()
     if (!isTruthy(dataset_dir)) return(NULL)
 
-    scseq <- load_scseq(dataset_dir, default_clusters = FALSE)
+    scseq <- load_scseq_qs(dataset_dir)
     attach_clusters(scseq, resoln_dir())
   })
 
@@ -2875,3 +2884,4 @@ validate_up_meta <- function(res, ref) {
 
   return(msg)
 }
+

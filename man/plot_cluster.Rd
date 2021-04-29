@@ -11,6 +11,8 @@ plot_cluster(
   legend = FALSE,
   cols = NULL,
   title = NULL,
+  title_color = "#333333",
+  title_hjust = 0,
   ...
 )
 }

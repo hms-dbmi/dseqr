@@ -6,7 +6,10 @@ integrated <- qs::qread(file.path(sc_dir, 'integrated.qs'))
 dataset_dirs <- file.path(sc_dir, integrated)
 deleted <- c()
 
+
+
 for (i in seq_along(dataset_dirs)) {
+  dataset_name <- integrated[i]
   dataset_dir <- dataset_dirs[i]
   cat('working on', integrated[i], '...\n')
   scseq_path <- file.path(dataset_dir, 'scseq.qs')
@@ -14,6 +17,14 @@ for (i in seq_along(dataset_dirs)) {
   if (!file.exists(scseq_path)) {
     deleted <- c(deleted, i)
     next()
+  }
+
+  # update test/ctrl from args json
+  args <- load_args(sc_dir, dataset_name)
+  if (is.null(args$dataset_names)) {
+    args$dataset_names <- c(args$test, args$ctrl)
+    args$test <- args$ctrl <- NULL
+    save_scseq_args(args, dataset_name, sc_dir)
   }
 
   combined <- qs::qread(scseq_path)
@@ -52,8 +63,7 @@ for (i in seq_along(dataset_dirs)) {
 
 
   # overwrite loom/qs objects
-  dseqr::save_scle(combined, dataset_dir, overwrite = TRUE)
-  qs::qsave(combined, scseq_path)
+  qs::qsave(combined, scseq_path, preset = 'fast')
 
   # remove unnecessary
   unlink(file.path(dataset_dir, c('ambient.qs', 'has_replicates.qs')))
@@ -91,6 +101,7 @@ integrated <- integrated[-deleted]
 qs::qsave(integrated, file.path(sc_dir, 'integrated.qs'))
 
 # change to presto markers
+# and replace looms with fast qs files
 dataset_names <- list.files(sc_dir)
 dataset_names <- dataset_names[!grepl('.qs$', dataset_names)]
 
@@ -101,6 +112,19 @@ for (dataset_name in dataset_names) {
   if (!file.exists(scseq_path)) next()
 
   scseq <- qs::qread(scseq_path)
+  qs::qsave(scseq, scseq_path, preset = 'fast')
+  unlink(file.path(dataset_dir, 'scle.loom'))
+}
+
+for (dataset_name in dataset_names) {
+  cat('working on', dataset_name, '...\n')
+  dataset_dir <- file.path(sc_dir, dataset_name)
+  scseq_path <- file.path(dataset_dir, 'scseq.qs')
+  if (!file.exists(scseq_path)) next()
+
+  scseq <- qs::qread(scseq_path)
+  qs::qsave(scseq, scseq_path, preset = 'fast')
+  unlink(file.path(dataset_dir, 'scle.loom'))
 
   snn_names <- list.files(dataset_dir, '^snn\\d')
 

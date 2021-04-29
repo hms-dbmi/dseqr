@@ -8,9 +8,9 @@ integrate_saved_scseqs(
   sc_dir,
   dataset_names,
   integration_name,
+  integration_type = c("harmony", "fastMNN", "Azimuth"),
   exclude_clusters = NULL,
   exclude_cells = NULL,
-  integration_type = c("harmony", "fastMNN"),
   subset_metrics = NULL,
   is_include = NULL,
   founder = integration_name,
@@ -29,11 +29,11 @@ integrate_saved_scseqs(
 
 \item{integration_name}{Name for new integrated analysis.}
 
+\item{integration_type}{Charactor vector of one or more integration types.}
+
 \item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
 \item{exclude_cells}{Character vector of cell names to exclude.}
-
-\item{integration_type}{Charactor vector of one or more integration types.}
 
 \item{subset_metrics}{Metrics to subset based on.}
 

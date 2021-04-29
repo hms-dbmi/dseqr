@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   library(shinyWidgets)
   library(dplyr)
   library(rlang)
-  library(LoomExperiment)
+  library(SingleCellExperiment)
 })
 
 

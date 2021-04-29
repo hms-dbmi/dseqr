@@ -296,3 +296,9 @@ and (max-device-width : 1024px) {
     cursor: not-allowed !important;
 }
 
+
+/*always show numeric input arrows*/
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+   opacity: 1;
+}

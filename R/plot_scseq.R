@@ -9,7 +9,7 @@
 #'
 #' @return \code{ggplot}
 #' @keywords internal
-plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, legend = FALSE, cols = NULL, title = NULL, ...) {
+plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, legend = FALSE, cols = NULL, title = NULL, title_color ='#333333', title_hjust = 0, ...) {
 
 
   # dynamic label/point size
@@ -27,7 +27,10 @@ plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, leg
     levs <- levels(plot_data$cluster)
     pt.size <- min(6000/nrow(plot_data), 2)
     nc <- length(levs)
-    if (nc > 30) levels(plot_data$cluster) <- shorten_cluster_labels(levs)
+    if (nc > 30) {
+      levels(plot_data$cluster) <- shorten_cluster_labels(levs)
+      add_warn <- TRUE
+    }
     reduction <- gsub('1$', '', colnames(plot_data)[1])
   }
 
@@ -44,13 +47,20 @@ plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, leg
     theme_dimgray(with_nums = FALSE)
 
 
+
   if (!legend)
     pl <- pl + ggplot2::theme(legend.position = 'none', text = ggplot2::element_text(color = 'dimgray'))
+
+  if (nc > 30) {
+    title <- 'Labels Omitted'
+    title_color <- 'lightgray'
+    title_hjust <- 1
+  }
 
   if (!is.null(title))
     pl <- pl + ggplot2::ggtitle(title) +
     ggplot2::theme(plot.title.position = "plot",
-                   plot.title = ggplot2::element_text(color = '#333333', hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 25)))
+                   plot.title = ggplot2::element_text(color = title_color, hjust = title_hjust, size = 16, face = 'plain', margin = ggplot2::margin(b = 15)))
 
   return(pl)
 }

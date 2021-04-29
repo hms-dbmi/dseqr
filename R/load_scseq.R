@@ -47,10 +47,6 @@ load_raw_scseq <- function(dataset_name,
   gc()
 
   progress$set(message = "running QC", value = value + 3)
-  scseq <- normalize_scseq(scseq)
-  scseq <- add_hvgs(scseq)
-  gc()
-
   scseq <- add_doublet_score(scseq)
   scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
 
@@ -119,9 +115,8 @@ process_raw_scseq <- function(scseq,
     })
   }
 
-
+  progress$set(message = "normalizing", value = value)
   scseq@metadata$npcs <- npcs
-  # TODO: can this be skipped when not subset?
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
 
@@ -155,17 +150,13 @@ process_raw_scseq <- function(scseq,
     save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
   }
 
-  progress$set(message = "saving loom", value = value + 3)
-  save_scle(scseq, file.path(sc_dir, dataset_name))
-
   # run what depends on resolution
   run_post_cluster(scseq,
                    dataset_name,
                    sc_dir,
                    resoln,
                    progress,
-                   value + 3,
-                   reset_annot = !is.azimuth)
+                   value + 3)
 
   progress$set(value = value + 7)
 }
@@ -400,39 +391,6 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 
 
 
-#' Load SingleCellExperiment
-#'
-#' Loads scle.loom if exists otherwise scseq.qs
-#'
-#' @param dataset_dir Directory with scle.loom or scseq.qs
-#'
-#' @return \code{SingleCellExperiment} or \code{SingleCellLoomExperiment}
-#' @export
-#' @keywords internal
-load_scseq <- function(dataset_dir, default_clusters = TRUE) {
-  scle_path <- file.path(dataset_dir, 'scle.loom')
-
-  transition_efs(scle_path)
-
-  # load loom if available (faster and less memory)
-  scseq <- tryCatch(LoomExperiment::import(scle_path, type = 'SingleCellLoomExperiment'),
-                    error = function(e) {
-                      unlink(scle_path)
-                      return(load_scseq_qs(dataset_dir))
-                    })
-
-
-  if (default_clusters) {
-    resoln_dir <- file.path(dataset_dir, load_resoln(dataset_dir))
-    scseq <- attach_clusters(scseq, resoln_dir)
-  }
-
-  scseq <- attach_meta(scseq, dataset_dir)
-
-  return(scseq)
-}
-
-
 attach_clusters <- function(scseq, resoln_dir) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
   scseq$cluster <- qs::qread(clusters_path)
@@ -494,40 +452,6 @@ transition_efs <- function(fpath) {
   file.move(tmp, fpath)
 }
 
-
-#' Save SingleCellExperiment as loom file
-#'
-#' @param scseq \code{SingleCellExperiment}
-#' @param dataset_dir Directory to save in
-#' @param overwrite Overwrite existing? Default is \code{TRUE}
-#'
-#' @return NULL
-#' @export
-#' @keywords internal
-#'
-save_scle <- function(scseq, dataset_dir, overwrite = TRUE) {
-  # don't save raw counts for loom (saved in non-sparse format)
-  SummarizedExperiment::assay(scseq, 'counts') <- NULL
-
-  scle_path <- file.path(dataset_dir, 'scle.loom')
-
-
-  if (!file.exists(scle_path) | overwrite) {
-    unlink(scle_path)
-
-    if ('corrected' %in% SingleCellExperiment::reducedDimNames(scseq)) {
-
-      SingleCellExperiment::reducedDim(scseq, 'corrected') <-
-        as.matrix(SingleCellExperiment::reducedDim(scseq, 'corrected'))
-    }
-
-    # these objects from fastMNN won't save
-    scseq@metadata <- scseq@metadata[!names(scseq@metadata) %in% c('cluster', 'merge.info')]
-
-    scseq <- LoomExperiment::SingleCellLoomExperiment(scseq)
-    LoomExperiment::export(scseq, scle_path)
-  }
-}
 
 
 #' Read kallisto/bustools market matrix and annotations
@@ -963,11 +887,8 @@ add_qc_genes <- function(sce, species) {
 #' @export
 normalize_scseq <- function(scseq) {
 
-  ncores <- min(parallel::detectCores(), 7)
-  doParallel::registerDoParallel(ncores)
-
   set.seed(100)
-  preclusters <- scran::quickCluster(scseq, BPPARAM = BiocParallel::DoparParam())
+  preclusters <- scran::quickCluster(scseq)
   scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
   scseq <- scater::logNormCounts(scseq)
 
@@ -984,14 +905,16 @@ normalize_scseq <- function(scseq) {
 add_hvgs <- function(sce, hvgs = NULL) {
 
   if (is.null(hvgs)) {
-    dec <- scran::modelGeneVar(sce)
-    hvg <- row.names(sce) %in% scran::getTopHVGs(dec, prop=0.1)
-  } else {
-    hvg <- row.names(sce) %in% hvgs
+    hvgs <- calc_hvgs(sce)
   }
 
-  SummarizedExperiment::rowData(sce)$hvg <- hvg
+  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
   return(sce)
+}
+
+calc_hvgs <- function(sce) {
+  dec <- scran::modelGeneVar(sce)
+  scran::getTopHVGs(dec, prop=0.1)
 }
 
 
@@ -1119,6 +1042,10 @@ add_doublet_score <- function(scseq) {
   scseq <- scDblFinder::scDblFinder(scseq, use.cxds=TRUE)
   scseq$doublet_score <- scseq$scDblFinder.score
 
+  # cleanup
+  cdata <- scseq@colData
+  scseq@colData <- cdata[, !grepl('^scDblFinder', colnames(cdata))]
+
   return(scseq)
 }
 
@@ -1161,8 +1088,18 @@ add_scseq_qcplot_metrics <- function(sce) {
 }
 
 
+#' Get cluster markers using presto
+#'
+#' @param scseq SingleCellExperiment object
+#'
+#' @return list of data.frames, one for each cluster
+#' @export
+#' @importFrom presto wilcoxauc
+#' @importFrom magrittr "%>%"
+#'
+#' @keywords internal
 get_presto_markers <- function(scseq) {
-  markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts')
+  markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts', verbose = TRUE)
   markers <- markers %>%
     dplyr::filter(logFC > 0) %>%
     dplyr::group_by(group) %>%
@@ -1262,7 +1199,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN'), pairs = NULL, hvgs = NULL, azimuth_ref = NULL) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), pairs = NULL, hvgs = NULL, azimuth_ref = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))

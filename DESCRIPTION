@@ -50,7 +50,6 @@ Imports:
     harmony (>= 1.0),
     igraph (>= 1.2.4.2),
     limma (>= 3.40.2),
-    LoomExperiment,
     org.Hs.eg.db (>= 3.10.0),
     org.Mm.eg.db (>= 3.10.0),
     magrittr (>= 1.5),
