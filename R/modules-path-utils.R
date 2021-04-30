@@ -226,7 +226,11 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens', release = '94') {
+construct_pbulk_esets <- function(summed, species = 'Homo sapiens') {
+
+  release <- switch(species,
+                    'Homo sapiens' = '94',
+                    'Mus musculus' = '98')
 
   y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
   clusters <- y$samples$cluster

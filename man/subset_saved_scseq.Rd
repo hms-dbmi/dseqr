@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{subset_saved_scseq}
 \alias{subset_saved_scseq}
-\title{Subset previously saved SingleCellExperiment}
+\title{Subset SingleCellExperiment}
 \usage{
 subset_saved_scseq(
   sc_dir,
@@ -10,10 +10,9 @@ subset_saved_scseq(
   from_dataset,
   dataset_name,
   exclude_clusters,
-  exclude_cells,
   subset_metrics,
   is_integrated,
-  is_include,
+  is_include = NULL,
   progress = NULL,
   hvgs = NULL,
   azimuth_ref = NULL
@@ -30,16 +29,16 @@ subset_saved_scseq(
 
 \item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
 
-\item{exclude_cells}{Character vector of cells to exclude. Used for integrated datasets to exclude clusters.}
-
 \item{subset_metrics}{Character vector of metrics for excluding cells.}
 
 \item{progress}{Optional shiny progress object.}
+
+\item{exclude_cells}{Character vector of cells to exclude. Used for integrated datasets to exclude clusters.}
 }
 \value{
 TRUE is successful, otherwise FALSE
 }
 \description{
-Subset previously saved SingleCellExperiment
+Subset SingleCellExperiment
 }
 \keyword{internal}

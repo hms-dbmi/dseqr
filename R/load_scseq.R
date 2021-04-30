@@ -394,6 +394,7 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
 attach_clusters <- function(scseq, resoln_dir) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
   scseq$cluster <- qs::qread(clusters_path)
+
   return(scseq)
 }
 
@@ -1110,8 +1111,6 @@ get_presto_markers <- function(scseq) {
   res <- list()
   for (df in markers) {
     df <- as.data.frame(df)
-    row.names(df) <- df$feature
-    df$feature <- NULL
     group <- as.character(df$group[1])
     res[[group]] <- df
   }

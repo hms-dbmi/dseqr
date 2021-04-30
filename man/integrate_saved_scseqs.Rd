@@ -6,8 +6,9 @@
 \usage{
 integrate_saved_scseqs(
   sc_dir,
-  dataset_names,
   integration_name,
+  dataset_names = NULL,
+  scseqs = NULL,
   integration_type = c("harmony", "fastMNN", "Azimuth"),
   exclude_clusters = NULL,
   exclude_cells = NULL,
@@ -31,7 +32,7 @@ integrate_saved_scseqs(
 
 \item{integration_type}{Charactor vector of one or more integration types.}
 
-\item{exclude_clusters}{Charactor vector of clusters for excluding cells.}
+\item{exclude_clusters}{Charactor vector of clusters for excluding cells. Only included to save to args.}
 
 \item{exclude_cells}{Character vector of cell names to exclude.}
 

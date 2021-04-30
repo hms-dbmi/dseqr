@@ -1,35 +1,36 @@
 
 
-/* no y-scrollbar */
+/* no y-scrollbar
 .dataTables_scrollBody {
-  overflow-y: hidden !important; 
+  overflow-y: hidden !important;
 }
+*/
 
 /* CORRELATION PLOTS */
 td.sim-cell {
-  min-width: 180px !important; 
-  padding: 0px !important; 
+  min-width: 180px !important;
+  padding: 0px !important;
   position: relative;
 }
 
 .simplot {
-  position: absolute; 
+  position: absolute;
   z-index: 1;
-   top: 0; 
-   left: 0; 
-   right: 0; 
+   top: 0;
+   left: 0;
+   right: 0;
    bottom: 0;
 }
 
 .simplot text.x {
-  fill: transparent; 
+  fill: transparent;
   font: 10px Arial, sans-serif;
   text-anchor: middle;
 }
 
 .simplot circle {
-  fill: transparent; 
-  stroke-width: 1.1px; 
+  fill: transparent;
+  stroke-width: 1.1px;
   stroke: rgba(0, 0, 0, 0.35);
 }
 
@@ -45,21 +46,21 @@ td.sim-cell {
 .cor-point:hover circle,
 .cor-point.clicked circle
  {
-  fill: red; 
+  fill: red;
   stroke: #443;
 }
 
 .simplot line.centerline {
-  stroke: rgb(221, 221, 221); 
-  shape-rendering: crispEdges; 
-  stroke-width: 1px; 
+  stroke: rgb(221, 221, 221);
+  shape-rendering: crispEdges;
+  stroke-width: 1px;
   stroke-dasharray: 3, 3;
 }
 
 .simplot.show-meanline line.meanline,
 .simplot:hover line.meanline {
   stroke-width: 1px;
-  stroke: dodgerblue; 
+  stroke: dodgerblue;
   shape-rendering: crispEdges;
 }
 
@@ -192,5 +193,5 @@ button.dt-button.buttons-collection {
 
 .modal-dialog.modal-lg .modal-body {
   /* 550px plot plus extras */
-  height: 760px; 
+  height: 760px;
 }

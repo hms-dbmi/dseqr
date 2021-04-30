@@ -174,11 +174,8 @@ resolutionFormInput <- function(id) {
           numericInput(
             ns('resoln_azi'),
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')),
-            min=1, value=2, max=3, step = 1, width = '100%'),
-      ),
-      justifiedButtonGroup(
-        actionButton(ns('reset_resoln'), label = 'Reset'),
-        actionButton(ns('apply_update'), label = 'Apply'), label = '')
+            min=1, value=2, max=3, step = 1, width = '100%')
+      )
     )
   })
 }
@@ -309,21 +306,21 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot')
 
   if (sample_comparison) {
-    btn1 <- gene_btn
-    btn2 <- NULL
-    btn3 <- dprimes_btn
+    btn1 <- NULL
+    btn2 <- dprimes_btn
   } else {
     btn1 <- ridge_btn
-    btn2 <- gene_btn
-    btn3 <-custom_btn
+    btn2 <- custom_btn
   }
 
   div(id = 'sc-intro-feature',
-      shinypanel::selectizeInputWithButtons(
-        inputId = ns('selected_gene'),
-        label = 'Feature to plot:',
-        btn1, btn2, btn3,
-        options = list(optgroupField = 'type')
+      div(style='height: 90px;',
+          shinypanel::textInputWithButtons(
+            inputId = ns('gene_search'),
+            label = 'Feature to plot:',
+            btn1, btn2,
+            placeholder = 'type regex to search'
+          )
       ),
       div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
           shinypanel::textAreaInputWithButtons(
@@ -333,8 +330,8 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
             actionButton(ns('save_custom_metric'), '',
                          icon = icon('plus', 'fa-fw'),
                          title = 'Save custom metric'))
-      )
-
+      ),
+      DT::dataTableOutput(ns('gene_table'), width='100%')
   )
 }
 
@@ -433,3 +430,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
+

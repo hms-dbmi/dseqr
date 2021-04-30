@@ -627,7 +627,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
     names(nsig) <- seq_len(nbins)
 
     test_clusters <- names(top_tables)
-    nsig[test_clusters] <- sapply(top_tables, function(tt) {sum(tt$adj.P.Val.Amb < 0.05 & !tt$ambient)})
+    nsig[test_clusters] <- sapply(top_tables, function(tt) {sum(tt$adj.P.Val < 0.05)})
     stats$nsig <- nsig
   }
 
@@ -637,7 +637,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
     names(nbig) <- seq_len(nbins)
 
     test_clusters <- names(top_tables)
-    nbig[test_clusters] <- sapply(top_tables, function(tt) {sum(abs(tt$logFC) > 1 & !tt$ambient)})
+    nbig[test_clusters] <- sapply(top_tables, function(tt) {sum(abs(tt$logFC) > 1)})
     stats$nbig <- nbig
   }
 
@@ -727,7 +727,14 @@ get_gene_choices <- function(markers,
 
   ambient <- markers$ambient
   if (is.null(ambient)) ambient <- FALSE
-  markers <- row.names(markers)
+
+  # top markers uses features as genes and group as type
+  features <- markers$feature
+  if (is.null(features)) features <- row.names(markers)
+
+  type <- markers$group
+  if (is.null(type)) type <- 'Gene'
+
 
   if (!grepl('sapiens|musculus', species))
     stop('Only Homo sapiens and Mus musculus supported')
@@ -735,16 +742,16 @@ get_gene_choices <- function(markers,
   # add gene description
   if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
 
-  idx <- match(markers, tx2gene$gene_name)
+  idx <- match(features, tx2gene$gene_name)
   desc <- tx2gene$description[idx]
-  desc[is.na(desc)] <- markers[is.na(desc)]
+  desc[is.na(desc)] <- features[is.na(desc)]
 
   # gene choices
   choices <- data.table::data.table(
-    label = markers,
-    value = markers,
+    label = features,
+    value = make.unique(features, sep = '__'),
     description = desc,
-    type = 'Gene',
+    type = type,
     ambient = ambient)
 
   # add qc choices
@@ -770,6 +777,38 @@ get_gene_choices <- function(markers,
 }
 
 
+get_gene_table <- function(markers,
+                           qc_metrics = NULL,
+                           qc_first = FALSE,
+                           species = 'Homo sapiens',
+                           tx2gene = NULL) {
+
+  ambient <- markers$ambient
+  if (is.null(ambient)) ambient <- FALSE
+
+  # top markers uses features as genes and group as type
+  features <- markers$feature
+  if (is.null(features)) features <- row.names(markers)
+
+  # add gene description
+  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
+
+  idx <- match(features, tx2gene$gene_name)
+  desc <- tx2gene$description[idx]
+  desc[is.na(desc)] <- features[is.na(desc)]
+
+  # gene choices
+  html_features <- paste0('<span title="', desc, '">', features, '</span>')
+  table <- data.table::data.table(
+    Feature = html_features,
+    AUC = markers$auc,
+    logFC = markers$logFC,
+    feature = features)
+
+  return(table)
+}
+
+
 #' Integrate previously saved SingleCellExperiments
 #'
 #' Performs integration and saves as a new analysis.
@@ -778,7 +817,7 @@ get_gene_choices <- function(markers,
 #' @param sc_dir Directory with saved single-cell datasets.
 #' @param test Character vector of test analysis names.
 #' @param ctrl Character vector of control analysis names.
-#' @param exclude_clusters Charactor vector of clusters for excluding cells.
+#' @param exclude_clusters Charactor vector of clusters for excluding cells. Only included to save to args.
 #' @param exclude_cells Character vector of cell names to exclude.
 #' @param integration_name Name for new integrated analysis.
 #' @param integration_type Charactor vector of one or more integration types.
@@ -793,8 +832,9 @@ get_gene_choices <- function(markers,
 #' @keywords internal
 integrate_saved_scseqs <- function(
   sc_dir,
-  dataset_names,
   integration_name,
+  dataset_names = NULL,
+  scseqs = NULL,
   integration_type = c('harmony', 'fastMNN', 'Azimuth'),
   exclude_clusters = NULL,
   exclude_cells = NULL,
@@ -815,6 +855,7 @@ integrate_saved_scseqs <- function(
   args$progress <- args$sc_dir <- NULL
   args$date <- Sys.time()
   args$value <- NULL
+  args$scseqs <- NULL
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -824,20 +865,14 @@ integrate_saved_scseqs <- function(
 
   dataset_name <- paste(integration_name, integration_type, sep = '_')
 
-  # save dummy data if testing shiny
-  if (isTRUE(getOption('shiny.testmode'))) {
-    scseq_data <- list(scseq = NULL, markers = NULL, annot = NULL)
-    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
-    return(TRUE)
-  }
+  if (is.null(scseqs)) {
+    progress$set(value+1, detail = 'loading')
+    scseqs <- load_scseq_subsets(dataset_names,
+                                 sc_dir,
+                                 subset_metrics,
+                                 is_include)
 
-  progress$set(value+1, detail = 'loading')
-  scseqs <- load_scseq_subsets(dataset_names,
-                               sc_dir,
-                               exclude_clusters,
-                               subset_metrics,
-                               is_include,
-                               exclude_cells = exclude_cells)
+  }
 
   if (!length(scseqs)) {
     progress$set(value+1, detail = 'error: no cells left')
@@ -918,8 +953,6 @@ integrate_saved_scseqs <- function(
 #'
 run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0, reset_annot = TRUE) {
 
-  species <- scseq@metadata$species
-
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -939,14 +972,11 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   has_replicates <- length(unique(scseq$batch)) > 2
 
   if (has_replicates) {
-    progress$set(value+1, detail = 'pseudobulking')
+    progress$set(value+1, detail = 'pseudobulk')
     summed <- aggregate_across_cells(scseq)
 
-    release <- switch(species,
-                      'Homo sapiens' = '94',
-                      'Mus musculus' = '98')
 
-    anal$pbulk_esets <- construct_pbulk_esets(summed, species, release)
+    anal$summed <- summed
   }
 
   # save in subdirectory e.g. snn1
@@ -974,7 +1004,6 @@ aggregate_across_cells <- function(scseq) {
   counts_mat <- SingleCellExperiment::counts(scseq)
   batch <- scseq$batch
   cluster <- scseq$cluster
-  orig.ident <- scseq$orig.ident
   y <- paste(cluster, batch, sep='_')
   levs <- unique(y)
 
@@ -986,8 +1015,7 @@ aggregate_across_cells <- function(scseq) {
   dup.y <- duplicated(y)
   cdata <- S4Vectors::DataFrame(
     cluster = cluster[!dup.y],
-    batch = batch[!dup.y],
-    orig.ident = orig.ident[!dup.y])
+    batch = batch[!dup.y])
 
   sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = agg),
@@ -1023,12 +1051,12 @@ run_integrate_saved_scseqs <- function( sc_dir,
     if (type == 'Azimuth') ref <- azimuth_ref
 
     # run integration
-    res <- integrate_saved_scseqs(sc_dir,
-                                  dataset_names,
-                                  integration_name = integration_name,
-                                  integration_type = type,
-                                  azimuth_ref = ref,
-                                  value = i*8-8)
+    res <- integrate_scseqs(sc_dir,
+                            dataset_names,
+                            integration_name = integration_name,
+                            integration_type = type,
+                            azimuth_ref = ref,
+                            value = i*8-8)
 
     # stop subsequent integration types if error
     if (!res) return(FALSE)
@@ -1037,7 +1065,7 @@ run_integrate_saved_scseqs <- function( sc_dir,
 }
 
 
-#' Subset previously saved SingleCellExperiment
+#' Subset SingleCellExperiment
 #'
 #' @param sc_dir Directory with saved single-cell datasets.
 #' @param founder Name of original founding dataset (may be ancestor of \code{from_dataset}).
@@ -1057,10 +1085,9 @@ subset_saved_scseq <- function(sc_dir,
                                from_dataset,
                                dataset_name,
                                exclude_clusters,
-                               exclude_cells,
                                subset_metrics,
                                is_integrated,
-                               is_include,
+                               is_include = NULL,
                                progress = NULL,
                                hvgs = NULL,
                                azimuth_ref = NULL) {
@@ -1070,33 +1097,37 @@ subset_saved_scseq <- function(sc_dir,
       cat(value, message, detail, '...\n')
     })
   }
-  progress$set(1, detail = 'loading')
 
-  is_include <- rep(is_include, length(subset_metrics))
+  progress$set(1, detail = 'loading')
+  scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include)
+
+  if (is.null(scseq)) {
+    progress$set(1, detail = "error: no cells")
+    Sys.sleep(3)
+    return(FALSE)
+  }
+
+  # exclude clusters
+  scseq <- scseq[, !scseq$cluster %in% exclude_clusters]
 
   if (is_integrated) {
-
-    # add to previous subsets
     args <- load_args(sc_dir, from_dataset)
-    args$is_include <- c(args$is_include, is_include)
-    args$subset_metrics <- c(args$subset_metrics, subset_metrics)
 
-    # possible to change integration type to Azimuth
-    if (!is.null(azimuth_ref)) args$integration_type <- 'Azimuth'
+    # use same integration type as previously unless azimuth_ref given
+    integration_type <- ifelse(!is.null(azimuth_ref),
+                               'Azimuth',
+                               args$integration_type)
 
-    for (ds in args$dataset_names)
-      args$exclude_cells[[ds]] <- c(args$exclude_cells[[ds]], exclude_cells[[ds]])
+    scseqs <- split_scseq(scseq)
+    rm(scseq); gc()
 
     res <- integrate_saved_scseqs(sc_dir,
-                                  dataset_names = args$dataset_names,
+                                  scseqs = scseqs,
                                   integration_name = dataset_name,
-                                  integration_type = args$integration_type,
-                                  exclude_clusters = args$exclude_clusters,
-                                  exclude_cells =  args$exclude_cells,
-                                  subset_metrics = args$subset_metrics,
-                                  is_include = args$is_include,
+                                  integration_type = integration_type,
+                                  exclude_clusters = exclude_clusters,
+                                  subset_metrics = subset_metrics,
                                   founder = founder,
-                                  pairs = args$pairs,
                                   hvgs = hvgs,
                                   azimuth_ref = azimuth_ref,
                                   progress = progress,
@@ -1107,23 +1138,10 @@ subset_saved_scseq <- function(sc_dir,
 
     # for save_scseq_args
     args <- c(as.list(environment()))
-    args$progress <- args$sc_dir <- NULL
+    args$progress <- args$sc_dir <- args$scseq <- NULL
     args$date <- Sys.time()
 
-    scseq <- load_scseq_subsets(from_dataset,
-                                sc_dir,
-                                exclude_clusters,
-                                subset_metrics,
-                                is_include,
-                                ident=from_dataset)
-
-    if (!length(scseq)) {
-      progress$set(1, detail = "error: no cells")
-      Sys.sleep(3)
-      return(FALSE)
-    }
-
-    process_raw_scseq(scseq[[1]],
+    process_raw_scseq(scseq,
                       dataset_name,
                       sc_dir,
                       hvgs = hvgs,
@@ -1139,6 +1157,25 @@ subset_saved_scseq <- function(sc_dir,
 
 load_args <- function(sc_dir, dataset_name) {
   jsonlite::read_json(file.path(sc_dir, dataset_name, 'args.json'), simplifyVector = TRUE)
+}
+
+split_scseq <- function(scseq) {
+
+  dataset_names <- unique(scseq$batch)
+  scseqs <- list()
+  for (dataset_name in dataset_names) {
+    scseqi <- scseq[, scseq$batch == dataset_name]
+    if (!ncol(scseqi)) next()
+
+    # store ambience for sample
+    amb_col <- paste0(dataset_name, '_ambience')
+    ambience <- SummarizedExperiment::rowData(scseqi)[[amb_col]]
+    SummarizedExperiment::rowData(scseqi)$ambience <- ambience
+
+    scseqs[[dataset_name]] <- scseqi
+  }
+
+  return(scseqs)
 }
 
 
@@ -1228,10 +1265,7 @@ add_combined_ambience <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters = NULL, subset_metrics = NULL, is_include = NULL, exclude_cells = NULL) {
-
-  exclude_datasets <- gsub('^(.+?)_\\d+$', '\\1', exclude_clusters)
-  exclude_clusters <- gsub('^.+?_(\\d+)$', '\\1', exclude_clusters)
+load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_include = NULL) {
 
   scseqs <- list()
 
@@ -1256,7 +1290,7 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters = NULL, s
       exclude <- cdata[, subset_metrics, drop = FALSE]
 
       for (i in seq_len(ncol(exclude)))
-        if (is_include[i]) exclude[,i] <- !exclude[,i]
+        if (is_include) exclude[,i] <- !exclude[,i]
 
       exclude <- apply(exclude, 1, any)
       scseq <- scseq[, !exclude]
@@ -1267,28 +1301,13 @@ load_scseq_subsets <- function(dataset_names, sc_dir, exclude_clusters = NULL, s
       scseq@colData <- scseq@colData[, !colnames(scseq@colData) %in% subset_metrics, drop = FALSE]
     }
 
-    # remove excluded clusters
-    is.exclude <- exclude_datasets == dataset_name
-    if (any(is.exclude)) {
-      exclude <- exclude_clusters[is.exclude]
-      scseq <- scseq[, !scseq$cluster %in% exclude]
-      gc()
-    }
-
-    # remove excluded cells
-    cells <- exclude_cells[[dataset_name]]
-    if (!is.null(cells)) {
-      exclude <- colnames(scseq) %in% cells
-      scseq <- scseq[, !exclude]
-
-      if (sum(exclude) != length(cells))
-        warning("Exclude cells didn't match perfectly.")
-    }
 
     # require that have cells left
     if (ncol(scseq)>0) scseqs[[dataset_name]] <- scseq
   }
 
+  if (!length(scseqs)) return(NULL)
+  if (length(scseqs) == 1) return(scseqs[[1]])
   return(scseqs)
 }
 
@@ -1333,17 +1352,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   dir.create(dataset_dir, showWarnings = FALSE)
   for (type in names(scseq_data)) {
     item <- scseq_data[[type]]
-
-    if (type == 'markers') {
-      # save marker data.frames individually for fast loading
-
-      for (i in names(item))
-        qs::qsave(item[[i]], scseq_part_path(sc_dir, dataset_name, paste0('markers_', i)), preset = 'fast')
-
-    } else {
-      qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type), preset = 'fast')
-    }
-
+    qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type), preset = 'fast')
   }
 
   return(NULL)

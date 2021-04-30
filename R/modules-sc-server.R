@@ -207,6 +207,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
   observe({
     toggle(id = "label-resolution-form", anim = TRUE, condition = scDataset$show_label_resoln())
   })
+
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
                                 dataset_dir = dataset_dir,
@@ -682,6 +683,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     toggle('show_label_resoln-parent', condition = dataset_exists())
   })
 
+  # color label-resoln button when toggled
+  observe({
+    toggleClass('show_label_resoln', 'btn-primary', condition = show_label_resoln())
+  })
+
+  observe({
+    toggleClass('show_integration', 'btn-primary', condition = show_integration() | show_subset())
+  })
+
 
   return(list(
     dataset_name = dataset_name,
@@ -855,7 +865,7 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, 
 #' @keywords internal
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
-  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln', 'apply_update', 'reset_resoln')
+  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
   options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
 
   ref_preds <- reactiveVal()
@@ -1111,16 +1121,13 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 #' @keywords internal
 #' @noRd
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, snn_graph, annot_path, show_label_resoln) {
-  resolution_inputs <- c('resoln', 'apply_update')
+  resolution_inputs <- c('resoln')
 
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()
   resoln <- reactiveVal()
 
-  observeEvent(show_label_resoln(), {
-    if (!show_label_resoln()) resoln(prev_resoln())
-    else (resoln(input[[rname()]]))
-  })
+  observe(prev_resoln(qread.safe(resoln_path())))
 
   # updateNumericInput removes focus preventing keyboard interaction
   observe({
@@ -1182,6 +1189,12 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     prev_resoln <- prev_resoln()
     if (prev_resoln == resoln) return(NULL)
 
+
+    disableAll(resolution_inputs)
+    progress <- Progress$new(session, min = 0, max = 2)
+    progress$set(message = "Updating:", detail = 'clusters', value = 1)
+    on.exit(progress$close())
+
     clusters <- get_clusters(g, resolution = resoln)
     qs::qsave(clusters, clusters_path)
 
@@ -1189,65 +1202,24 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     qs::qsave(levels(clusters), annot_path())
     transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
 
-    return(clusters)
-  })
-
-  applied <- reactiveVal(FALSE)
-  applied_path <- reactive(file.path(resoln_dir(), 'applied.qs'))
-  observe(applied(file.exists(applied_path())))
-
-  # update saved and prev resoln if applied
-  observe({
-    if (applied()) {
-      resoln <- resoln()
-      prev_resoln(resoln)
-      qs::qsave(resoln, isolate(resoln_path()))
-    }
-  })
-
-  same_resoln <- reactive(!is.null(prev_resoln()) && prev_resoln() == resoln())
-  allow_update <- reactive(!applied() | !same_resoln())
-
-  observe({
-    toggleClass('apply_update', 'btn-warning', condition = allow_update())
-    toggleState('apply_update', condition = allow_update())
-    toggleState('reset_resoln', condition = allow_update())
-  })
-
-  observeEvent(input$reset_resoln, {
-    updateNumericInput(session, rname(), value = prev_resoln())
-  })
-
-
-  observeEvent(input$apply_update, {
-    resoln <- resoln()
-    disableAll(resolution_inputs)
-    progress <- Progress$new(session, min = 0, max = 4)
-    progress$set(message = "Applying resolution update:", detail = 'loading', value = 1)
-    on.exit(progress$close())
-
-    dataset_name <- dataset_name()
-
-    # need non-loom version
-    scseq <- load_scseq_qs(dataset_dir())
-
+    scseq <- scseq()
     # add new clusters and run post clustering steps
-    scseq$cluster <- clusters()
-    run_post_cluster(scseq, dataset_name, sc_dir, resoln, progress, 1)
+    scseq$cluster <- clusters
+    run_post_cluster(scseq, dataset_name(), sc_dir, resoln, progress, 1, reset_annot = FALSE)
 
-    # mark as previously applied and re-enable
-    applied(TRUE)
-    qs::qsave(TRUE, applied_path())
+    # mark as previously applied
+    prev_resoln(resoln)
     qs::qsave(resoln, resoln_path())
     enableAll(resolution_inputs)
+
+    return(clusters)
   })
 
 
   return(list(
     clusters = clusters,
     resoln = resoln,
-    resoln_name = resoln_name,
-    applied = applied
+    resoln_name = resoln_name
   ))
 
 }
@@ -1282,9 +1254,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
     annot <- levels(scseq$cluster)
-    cluster_choices <- get_cluster_choices(annot, scseq = scseq)
-    cluster_choices$value <- paste(selected_dataset(), cluster_choices$value, sep = '_')
-    return(cluster_choices)
+    get_cluster_choices(annot, scseq = scseq)
   })
 
   metric_choices <- reactive({
@@ -1353,13 +1323,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
       founder <- get_founder(sc_dir, from_dataset)
       dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
 
-      # need exclude by cell name if integrated
-      # because current clusters don't correspond to original clusters
-
-      exclude_cells <- NULL
-      if (is_integrated && length(exclude_clusters))
-        exclude_cells <- get_exclude_cells(scseq(), exclude_clusters)
-
       subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
         package = 'dseqr',
@@ -1369,10 +1332,9 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
           from_dataset = from_dataset,
           dataset_name = dataset_name,
           exclude_clusters = exclude_clusters,
-          exclude_cells = exclude_cells,
           subset_metrics = subset_metrics,
-          is_include = is_include,
           is_integrated = is_integrated,
+          is_include = is_include,
           hvgs = hvgs,
           azimuth_ref = azimuth_ref
         )
@@ -1699,19 +1661,28 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     if (sel %in% names(markers)) return(NULL)
 
 
-    markers_path <- file.path(resoln_dir, paste0('markers_', sel, '.qs'))
+    markers_path <- file.path(resoln_dir, 'markers.qs')
 
     if (!file.exists(markers_path)) {
+      disableAll(cluster_inputs)
+      progress <- Progress$new(session, min = 0, max = 3)
+      progress$set(message = "Getting markers", value = 1)
+      on.exit(progress$close())
+
       scseq <- scseq()
-      dataset_name <- dataset_name()
       levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
       markers <- get_presto_markers(scseq)
+      resoln_name <- paste0(dataset_name(), '/', 'snn', resoln())
 
-      resoln_name <- get_resoln_name(sc_dir, dataset_name)
+      progress$set(message = "Saving", value = 2)
       save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)
+      progress$set(value = 3)
+      enableAll(cluster_inputs)
+
+    } else {
+      markers <- qs::qread(markers_path)
     }
 
-    markers[[sel]] <- qs::qread(markers_path)
     markers(markers)
   })
 
@@ -1775,21 +1746,29 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
+  feature <- reactive({
+    row <- input$gene_table_rows_selected
+    gt <- gene_table()
+    if (is.null(gt) | is.null(row)) return('')
+    gt[row]$feature
+  })
+
 
   # toggle for ridgeline
   gene_selected <- reactive({
-    sel <- input$selected_gene
+    sel <- feature()
     scseq <- scseq()
     if (!isTruthyAll(sel, scseq)) return(FALSE)
     sel %in% row.names(scseq)
   })
 
   have_biogps <- reactive({
-    input$selected_gene %in% biogps[, SYMBOL]
+    feature() %in% biogps[, SYMBOL]
   })
 
-  show_ridge <- reactive(input$show_ridge %% 2 != 1 | !have_biogps())
-  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !show_ridge()))
+  sel_ridge <- reactive(input$show_ridge %% 2 != 1)
+  show_ridge <- reactive(sel_ridge() | !have_biogps())
+  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !sel_ridge()))
 
   # toggle for showing custom metric
   show_custom_metric <- reactive(type != 'samples' && (input$show_custom_metric %%2 != 0))
@@ -1799,7 +1778,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
   })
 
-  observe(if (!show_custom_metric()) selected_gene(isolate(input$selected_gene)))
+  observe(if (!show_custom_metric()) selected_gene(isolate(feature())))
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   # toggle for showing dprimes plot
@@ -1809,9 +1788,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # hide buttons when not valid
   observe({
-    toggleState('show_dprimes-parent', condition = gene_selected() & is_integrated())
-    toggle('genecards-parent', condition = gene_selected())
-    toggle('show_ridge-parent', condition = have_biogps())
+    toggleState('show_dprimes', condition = gene_selected() & is_integrated())
+    toggleState('show_ridge', condition = have_biogps())
   })
 
   saved_metrics <- reactiveVal()
@@ -1888,13 +1866,38 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   scseq_genes <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
-    data.frame(idx = 1:nrow(scseq), row.names = row.names(scseq))
-  })
-  species <- reactive(scseq()@metadata$species)
+    resoln_dir <- resoln_dir()
 
+    markers_path <- file.path(resoln_dir, 'markers.qs')
+    if (!file.exists(markers_path)) return(NULL)
+
+    markers <- qs::qread(markers_path)
+    construct_top_markers(markers, scseq)
+  })
+
+
+  # click genecards
+  observeEvent(input$genecards, {
+    gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', feature())
+    runjs(paste0("window.open('", gene_link, "')"))
+  })
+
+
+  # reset selected gene if dataset or cluster changes
+  observe({
+    sel <- feature()
+    if (!isTruthy(sel)| !isTruthy(dataset_name())) return(NULL)
+    else selected_gene(sel)
+  })
+
+  # reset custom metric if dataset changes
+  observeEvent(resoln_name(), custom_metrics(NULL))
+
+  species <- reactive(scseq()@metadata$species)
   tx2gene <- reactive(dseqr.data::load_tx2gene(species()))
+
   # update marker genes based on cluster selection
-  gene_choices <- reactive({
+  gene_table <- reactive({
 
     qc_first <- FALSE
     markers <- selected_markers()
@@ -1911,41 +1914,47 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     }
 
     if (is.null(markers) || is.null(scseq())) return(NULL)
-    get_gene_choices(markers,
-                     qc_metrics = qc_metrics,
-                     qc_first = qc_first,
-                     species = species(),
-                     tx2gene = tx2gene())
-
-  }) %>% debounce(50)
-
-  # click genecards
-  observeEvent(input$genecards, {
-    gene_link <- paste0('https://www.genecards.org/cgi-bin/carddisp.pl?gene=', input$selected_gene)
-    runjs(paste0("window.open('", gene_link, "')"))
+    get_gene_table(markers,
+                   qc_metrics = qc_metrics,
+                   qc_first = qc_first,
+                   species = species(),
+                   tx2gene = tx2gene())
   })
 
+  output$gene_table <- DT::renderDataTable({
 
-  # reset selected gene if dataset or cluster changes
-  observe({
-    sel <- input$selected_gene
-    if (!isTruthy(sel)| !isTruthy(dataset_name())) return(NULL)
-    else selected_gene(sel)
-  })
-
-  # reset custom metric if dataset changes
-  observeEvent(resoln_name(), custom_metrics(NULL))
+    gene_table <- gene_table()
+    req(gene_table)
 
 
-  # update choices
-  observeEvent(gene_choices(), {
-    choices <- gene_choices()
-    if(is.null(choices)) return(NULL)
+    DT::datatable(
+      gene_table,
+      class = 'cell-border',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      selection = 'single',
+      extensions = 'Scroller',
+      options = list(
+        deferRender = TRUE,
+        scroller = TRUE,
+        dom = '<"hidden"f>t',
+        bInfo = 0,
+        scrollY=250,
+        search = list(regex = TRUE),
+        language = list(search = 'Select feature to plot:'),
+        columnDefs = list(
+          list(visible = FALSE, targets = c(3)),
+          list(searchable = FALSE, targets = c(0,1,2))
+        )
+      )
+    ) %>% DT::formatRound(c(2,3), digits = 2)
 
-    updateSelectizeInput(session, 'selected_gene',
-                         choices = rbind(NA, choices, fill = TRUE),
-                         server = TRUE,
-                         options = gene_options)
+  }, server = TRUE)
+
+  DTproxy <- DT::dataTableProxy("gene_table")
+
+  observeEvent(input$gene_search, {
+    DT::updateSearch(DTproxy, keywords = list('global' = input$gene_search))
   })
 
 
@@ -1959,6 +1968,20 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   ))
 
 
+}
+
+
+construct_top_markers <- function(markers, scseq) {
+
+  # top 10 markers per cluster (allow repeats)
+  top <- lapply(markers, head, 10)
+  top <- data.table::rbindlist(top)
+
+  # rest of genes
+  rest <- data.table::data.table(group = 'Other',
+                                 feature = setdiff(row.names(scseq), top$feature))
+
+  rbind(top, rest, fill = TRUE)
 }
 
 
@@ -2345,16 +2368,15 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   })
 
   pbulk_path <- reactive(file.path(resoln_dir(), 'pbulk_esets.qs'))
+  summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
 
 
-  lm_fit <- reactiveVal()
-  observeEvent(input$compare_groups, {
+  lm_fit <- reactive({
     groups <- input$compare_groups
+    if (length(groups) != 2) return(NULL)
 
-    if (length(groups) != 2) {
-      lm_fit(NULL)
-      return()
-    }
+    # save groups as previous
+    qs::qsave(groups, prev_path())
 
     new_contrast <- paste0(groups, collapse = '_vs_')
     new_contrast_dir <- file.path(resoln_dir(), new_contrast)
@@ -2369,7 +2391,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       # change groups to test/ctrl
       disableAll(input_ids)
 
-
       meta <- meta[meta$group %in% groups, ]
       groups <- ifelse(meta$group == groups[1], 'test', 'ctrl')
       names(groups) <- row.names(meta)
@@ -2381,9 +2402,19 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       progress$set(message = "Comparing groups:", detail = "loading", value = 1)
 
       # pseudobulk if replicates otherwise not
-      if (has_replicates) {
-        obj <- qs::qread(pbulk_path())
-        obj <- lapply(obj, function(x) {x$group <- groups[x$batch]; x})
+      pbulk_path <- pbulk_path()
+      have_pbulk <- file.exists(pbulk_path)
+
+      if (have_pbulk) {
+        obj <- qs::qread(pbulk_path)
+
+      } else if (has_replicates) {
+        summed <- summed()
+        idents <- unname(groups[summed$batch])
+        summed$orig.ident <- factor(idents, levels = c('test', 'ctrl'))
+        obj <- construct_pbulk_esets(summed, species())
+        qs::qsave(obj, pbulk_path)
+
       } else {
         obj <- load_scseq_qs(dataset_dir(), meta, groups)
       }
@@ -2402,9 +2433,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       enableAll(input_ids)
       progress$set(value = 3)
     }
-
-    qs::qsave(groups, prev_path())
-    lm_fit(fit)
+    return(fit)
   })
 
 
@@ -2414,7 +2443,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
   # update cluster choices in UI
   cluster_choices <- reactive({
-    applied()
 
     integrated <- is_integrated()
     resoln_dir <- resoln_dir()
@@ -2427,12 +2455,9 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
     if (is.null(annot)) return(NULL)
 
-    # resolution must be applied
-    applied <- file.exists(file.path(resoln_dir, 'applied.qs'))
-    if (!applied) return(NULL)
-
     top_tables <- top_tables()
     if (is.null(top_tables)) return(NULL)
+
 
     tryCatch({
       choices <- get_cluster_choices(
@@ -2467,9 +2492,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   kegga_path <- reactive(file.path(contrast_dir(), paste0('kegga_', clusters_str(), '.qs')))
   top_tables_paths <- reactive(file.path(contrast_dir(), 'top_tables.qs'))
 
-
-  # require cluster markers and fit result
-  cluster_markers <- reactive(qread.safe(file.path(resoln_dir(), paste0('markers_', clusters_str(), '.qs'))))
 
   # plot functions for left
   sel <- reactive(input$selected_cluster)
@@ -2575,41 +2597,37 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   }) %>% debounce(20)
 
 
-  # TODO: change ambient calling: https://bioconductor.org/books/release/OSCA/multi-sample-comparisons.html#ambient-problems
-  ambient_path <- reactive(file.path(resoln_dir(), 'ambient.qs'))
-  dataset_ambient <- reactiveVal()
-
-  observeEvent(input$compare_groups, {
+  cluster_ambient <- reactive({
     compare <- input$compare_groups
-    ambient_path <- ambient_path()
+    if (length(compare) != 2) return(NULL)
 
-    if (length(compare) != 2) {
-      amb <- NULL
+    sel <- sel()
+    resoln_dir <- resoln_dir()
+    ambience_path <- file.path(resoln_dir, paste0('ambience_', sel, '.qs'))
 
-    } else if (file.exists(ambient_path)) {
-      amb <- qs::qread(ambient_path)
+    if (file.exists(ambience_path)) {
+      amb <- qs::qread(ambience_path)
 
     } else {
-      combined <- scseq()
-      summed <- qs::qread(file.path(resoln_dir(), 'summed.qs'))
-      clusters <- levels(summed$cluster)
-      ambience <- get_ambience(combined)
+      # no cluster e.g. for 'All Clusters'
+      summed <- summed()
+      if (!sel %in% levels(summed$cluster)) return(NULL)
+
+      # check that not disabled
+      if (cluster_choices()[sel, 'disabled']) return(NULL)
 
       disableAll(input_ids)
-      progress <- Progress$new(session, min = 0, max = length(clusters))
+      progress <- Progress$new(session, min = 0, max = 2)
       on.exit(progress$close())
-      progress$set(message = "Calculating ambience:", value = 1)
+      progress$set(message = paste("Calculating ambience: cluster", sel), value = 1)
 
-      amb <- list()
-      for (i in seq_along(clusters)) {
-        clus <- clusters[i]
-        progress$set(detail = paste("cluster", clus), value = i)
-        amb[[clus]] <- calc_cluster_ambience(summed, ambience, clus)
-      }
-      qs::qsave(amb, ambient_path)
+      amb <- get_ambience(scseq())
+      amb <- calc_cluster_ambience(summed, amb, sel)
+      qs::qsave(amb, ambience_path)
+
+      enableAll(input_ids)
     }
-
-    dataset_ambient(amb)
+    return(amb)
   })
 
 
@@ -2620,7 +2638,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     contrast_dir <- contrast_dir()
     resoln_dir <- resoln_dir()
     if (is.null(contrast_dir)) return(NULL)
-    if (!dir.exists(contrast_dir)) return(NULL)
 
     tts_path <- file.path(contrast_dir, 'top_tables.qs')
 
@@ -2631,26 +2648,24 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       fit <- lm_fit()
       if (is.null(fit)) return(NULL)
 
-
-      dataset_ambient <- dataset_ambient()
-      if (is.null(dataset_ambient)) return(NULL)
+      disableAll(input_ids)
+      nmax <- length(fit)+1
+      progress <- Progress$new(session, min = 0, max = nmax)
+      on.exit(progress$close())
+      progress$set(message = "Differential Expression:", value = 1)
 
       tts <- list()
       for (i in seq_along(fit)) {
 
         cluster <- names(fit)[i]
+        progress$set(detail=paste('cluster', cluster), value = i)
+
         tt <- crossmeta::get_top_table(fit[[cluster]])
-        markers <- get_cluster_markers(cluster, resoln_dir)
-        tt$ambient <- row.names(tt) %in% dataset_ambient[[cluster]]
-
-        # add ambient-excluded adjusted pvals
-        tt$adj.P.Val.Amb[!tt$ambient] <- stats::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
-        if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
-
         tts[[cluster]] <- tt
       }
 
       # add 'All Clusters' result
+      progress$set(detail='all clusters', value = nmax)
       annot <-  qs::qread(file.path(resoln_dir, 'annot.qs'))
       all <- as.character(length(annot)+1)
       es <- run_esmeta(tts)
@@ -2659,6 +2674,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
       tts[[all]] <- es_to_tt(es, enids, cols)
 
       qs::qsave(tts, file.path(contrast_dir, 'top_tables.qs'))
+      enableAll(input_ids)
     }
     return(tts)
   })
@@ -2669,7 +2685,17 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     sel <- input$selected_cluster
     if (!isTruthy(sel)) return(NULL)
 
-    top_tables()[[sel]]
+    ambient <- cluster_ambient()
+    tt <- top_tables()[[sel]]
+    if (is.null(tt)) return(NULL)
+
+    tt$ambient <- row.names(tt) %in% ambient
+
+    # add ambient-excluded adjusted pvals
+    tt$adj.P.Val.Amb[!tt$ambient] <- stats::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
+    if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
+
+    return(tt)
   })
 
 
@@ -2834,7 +2860,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     utils::zip(file, tozip)
   }
 
-  output$download <- downloadHandler(
+  output$dl_anal <- downloadHandler(
     filename = function() {
       dl_fname()
     },
@@ -2858,7 +2884,6 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     ambient = ambient,
     top_table = top_table,
     has_replicates = has_replicates,
-    cluster_markers = cluster_markers,
     cluster_choices = cluster_choices,
     drug_queries = drug_queries,
     path_res = path_res,
