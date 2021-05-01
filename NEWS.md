@@ -1,3 +1,6 @@
+# dseqr 0.13.1
+* Restored 1v1 cluster comparisons now using AUC and percent differences.
+
 # dseqr 0.13.0
 
 * Added a `NEWS.md` file to track changes to the package.
