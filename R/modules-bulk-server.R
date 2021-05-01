@@ -38,7 +38,10 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
   # mds plotly with different orientations for mobile/desktop
 
   bulkMDS <- callModule(bulkMDS, 'bulk_mds',
-                        explore_eset = explore_eset)
+                        explore_eset = explore_eset,
+                        dataset_name = bulkForm$dataset_name,
+                        numsv = bulkForm$numsv_r,
+                        bulk_dir = bulk_dir)
 
   callModule(bulkMDSplotly, 'mds_plotly_unadjusted',
              explore_eset = explore_eset,
@@ -118,7 +121,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 #'
 #' @keywords internal
 #' @noRd
-bulkMDS <- function(input, output, session, explore_eset) {
+bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, bulk_dir) {
 
   group <- reactive({
     eset <- explore_eset()
@@ -136,12 +139,29 @@ bulkMDS <- function(input, output, session, explore_eset) {
     get_palette(levels(group()))
   })
 
+  mds_path <- reactive({
+    file.path(bulk_dir, paste0('mds_', numsv(), 'svs.qs'))
+  })
+
 
   mds <- reactive({
     eset <- explore_eset()
-    vsd <- Biobase::assayDataElement(eset, 'vsd')
-    adj <- Biobase::assayDataElement(eset, 'adjusted')
-    get_mds(vsd, adj, group())
+
+    mds_path <- isolate(mds_path())
+    if (file.exists(mds_path)) {
+      mds <- qs::qread(mds_path)
+
+    } else {
+      progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
+      progress$set(message = "Quantifying files", value = 1)
+      pquants[[dataset_name]] <- progress
+
+      vsd <- Biobase::assayDataElement(eset, 'vsd')
+      adj <- Biobase::assayDataElement(eset, 'adjusted')
+      mds <- get_mds(vsd, adj, group())
+      qs::qsave(mds, mds_path)
+    }
+
   })
 
   return(list(

@@ -7,10 +7,11 @@
 remove_dataset_files(
   data_dir,
   patterns = c("^adjusted_\\\\d+svs.qs$", "^iqr_keep_\\\\d+svs.qs$", "^vsd.qs$",
-    "^svobj.qs$", "^numsv.qs$", "^lm_fit_\\\\d+svs.qs$", "cmap_res_.+_\\\\d+svs.qs$",
-    "go_.+_\\\\d+svs.qs$", "goana_.+_\\\\d+svs.qs$", "kegg_.+_\\\\d+svs.qs$",
-    "kegga_.+_\\\\d+svs.qs$", "l1000_drugs_res_.+_\\\\d+svs.qs$",
-    "l1000_genes_res_.+_\\\\d+svs.qs$", "diff_expr_symbol_.+_\\\\d+svs.qs$"),
+    "^svobj.qs$", "^numsv.qs$", "^lm_fit_\\\\d+svs.qs$", "^mds_\\\\d+svs.qs$",
+    "cmap_res_.+_\\\\d+svs.qs$", "go_.+_\\\\d+svs.qs$", "goana_.+_\\\\d+svs.qs$",
+    "kegg_.+_\\\\d+svs.qs$", "kegga_.+_\\\\d+svs.qs$",
+    "l1000_drugs_res_.+_\\\\d+svs.qs$", "l1000_genes_res_.+_\\\\d+svs.qs$",
+    "diff_expr_symbol_.+_\\\\d+svs.qs$"),
   exclude = NULL
 )
 }
