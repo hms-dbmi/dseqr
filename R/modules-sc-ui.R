@@ -434,5 +434,3 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
-
-

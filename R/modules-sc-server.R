@@ -1948,6 +1948,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     }
 
     if (is.null(markers) || is.null(scseq())) return(NULL)
+
     get_gene_table(markers,
                    qc_metrics = qc_metrics,
                    qc_first = qc_first,
@@ -1965,12 +1966,12 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # different ncol if contrast
     cols <- colnames(gene_table)
     pct_targs <- grep('%', cols)
-    frac_targs <- grep('AUC', cols)
+    frac_targs <- grep('AUC|logFC', cols)
 
     vis_targ <- length(cols)-1
     search_targs <- 0:(vis_targ-1)
 
-    DT::datatable(
+    dt <- DT::datatable(
       gene_table,
       class = 'cell-border',
       rownames = FALSE,
@@ -1990,9 +1991,11 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
           list(searchable = FALSE, targets = search_targs)
         )
       )
-    ) %>%
-      DT::formatRound(pct_targs, digits = 0) %>%
-      DT::formatRound(frac_targs, digits = 2)
+    )
+
+    if (length(pct_targs)) dt <- DT::formatRound(dt, pct_targs, digits = 0)
+    if (length(frac_targs)) dt <- DT::formatRound(dt, frac_targs, digits = 2)
+    return(dt)
 
   }, server = TRUE)
 
@@ -2408,7 +2411,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     updateSelectizeInput(session,
                          'compare_groups',
                          choices = group_choices(),
-                         selected = isolate(prev_choices()),
+                         selected = prev_choices(),
                          server = TRUE,
                          options = group_options)
   })
@@ -2416,13 +2419,18 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   pbulk_path <- reactive(file.path(resoln_dir(), 'pbulk_esets.qs'))
   summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
 
+  # save groups as previous
+  observe({
+    groups <- input$compare_groups
+    if (length(groups) != 2) return(NULL)
+
+    qs::qsave(groups, prev_path())
+  })
 
   lm_fit <- reactive({
     groups <- input$compare_groups
     if (length(groups) != 2) return(NULL)
 
-    # save groups as previous
-    qs::qsave(groups, prev_path())
 
     new_contrast <- paste0(groups, collapse = '_vs_')
     new_contrast_dir <- file.path(resoln_dir(), new_contrast)
@@ -2940,3 +2948,4 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
+

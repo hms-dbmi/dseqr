@@ -780,12 +780,11 @@ get_gene_table <- function(markers,
                            species = 'Homo sapiens',
                            tx2gene = NULL) {
 
-  ambient <- markers$ambient
-  if (is.null(ambient)) ambient <- FALSE
+  # check if markers is limma::topTable
+  is.tt <- 't' %in% colnames(markers)
 
   # top markers uses features as genes and group as type
-  features <- markers$feature
-  if (is.null(features)) features <- row.names(markers)
+  features <- if (is.tt) row.names(markers) else markers$feature
 
   # add gene description
   if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
@@ -800,14 +799,30 @@ get_gene_table <- function(markers,
                            'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
                            features, features)
 
-  table <- data.table::data.table(
-    Feature = html_features,
-    'AUC' = markers$auc,
-    'ΔAUC' = markers$auc_diff,
-    '%' = markers$pct_in,
-    'Δ%' = markers$pct_diff,
-    feature = features
-  )
+  if (is.tt) {
+    html_features[markers$ambient] <- paste0(
+      html_features[markers$ambient],
+      "<span title='ambient' class='ambience-swatch pull-right'></span>")
+
+    table <- data.table::data.table(
+      Feature = html_features,
+      'logFC' = markers$logFC,
+      'FDR' = format.pval(markers$adj.P.Val.Amb, eps = 0.005, digits = 2),
+      feature = features
+    )
+
+  } else {
+
+    table <- data.table::data.table(
+      Feature = html_features,
+      'AUC' = markers$auc,
+      'ΔAUC' = markers$auc_diff,
+      '%' = markers$pct_in,
+      'Δ%' = markers$pct_diff,
+      feature = features
+    )
+  }
+
 
   return(table)
 }
