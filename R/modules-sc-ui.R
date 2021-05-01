@@ -276,6 +276,10 @@ clusterComparisonInput <- function(id) {
                   actionButton(ns('show_rename'), '',
                                icon = icon('tag', 'fa-fw'),
                                title = 'Toggle rename cluster'
+                  ),
+                  actionButton(ns('show_contrasts'), '',
+                               icon = icon('chevron-right', 'fa-fw'),
+                               title = 'Toggle single group comparisons'
                   )
                 )
             )
@@ -430,4 +434,5 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
+
 

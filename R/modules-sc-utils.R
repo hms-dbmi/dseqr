@@ -689,24 +689,21 @@ get_contrast_choices <- function(clusters, test) {
 #'
 #' @keywords internal
 #'
-get_contrast_markers <- function(con, dataset_dir) {
+get_contrast_markers <- function(con, markers) {
   con <- strsplit(con, '-vs-')[[1]]
-  tests_dir <- file.path(dataset_dir, 'tests')
-  pairs_path <- file.path(tests_dir, 'pairs.qs')
-  pairs <- qs::qread(pairs_path)
 
-  keep <- apply(pairs, 1, function(row) all(con %in% row))
-  keep <- which(keep)
+  test <- markers[[con[1]]]
+  ctrl <- markers[[con[2]]]
 
-  stat_paths <- file.path(tests_dir, paste0('statistics_pair', keep, '.qs'))
-  tests <- list(pairs = pairs[keep, ],
-                statistics = lapply(stat_paths, qs::qread))
+  common <- intersect(test$feature, ctrl$feature)
+  ctrl <- ctrl[match(common, ctrl$feature), ]
+  test <- test[match(common, test$feature), ]
 
-  # returns both directions
-  con_markers <- get_scseq_markers(tests)
-  names(con_markers) <- paste0(names(con_markers), '-vs-', rev(names(con_markers)))
+  test$auc_diff <- test$auc - ctrl$auc
+  test$pct_diff <- test$pct_in - ctrl$pct_in
+  test <- test[order(test$auc_diff, decreasing = TRUE), ]
 
-  return(con_markers)
+  return(test)
 }
 
 
@@ -798,14 +795,35 @@ get_gene_table <- function(markers,
   desc[is.na(desc)] <- features[is.na(desc)]
 
   # gene choices
-  html_features <- paste0('<span title="', desc, '">', features, '</span>')
+  html_features <- sprintf('<span title="%s"><a target="_blank" href="%s%s">%s</a></span>',
+                           desc,
+                           'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
+                           features, features)
+
   table <- data.table::data.table(
     Feature = html_features,
-    AUC = markers$auc,
-    logFC = markers$logFC,
-    feature = features)
+    'AUC' = markers$auc,
+    'ΔAUC' = markers$auc_diff,
+    '%' = markers$pct_in,
+    'Δ%' = markers$pct_diff,
+    feature = features
+  )
 
   return(table)
+}
+
+validate_up_meta <- function(res, ref) {
+  msg <- NULL
+  groups <- na.exclude(res$`Group name`)
+
+  if (!all(row.names(res) %in% row.names(ref))) {
+    msg <- "Do not change row names"
+
+  } else if (length(unique(groups)) < 2) {
+    msg <- 'Specify at least two groups'
+  }
+
+  return(msg)
 }
 
 

@@ -1,3 +1,4 @@
+
 #' Logic for Single Cell Tab
 #'
 #' @inheritParams bulkPage
@@ -1543,7 +1544,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #' @keywords internal
 #' @noRd
 clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot_path, annot, ref_preds, clusters) {
-  cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_rename')
+  cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   selected_cluster <- reactiveVal()
@@ -1552,7 +1553,14 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   # things that return for plotting
   selected_markers <- reactiveVal(NULL)
 
+  show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
   show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
+
+  test_cluster <- reactive({
+    test_cluster <- input$selected_cluster
+    req(test_cluster)
+    gsub('-vs-.+?$', '', test_cluster)
+  })
 
   # update data.frame for cluster/contrast choices
   choices <- reactive({
@@ -1560,7 +1568,15 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     req(clusters)
     req(scseq())
 
-    get_cluster_choices(clusters, with_all=TRUE, scseq = scseq())
+    if (show_contrasts()) {
+      test <- isolate(test_cluster())
+      choices <- get_contrast_choices(clusters, test)
+
+    } else {
+      choices <- get_cluster_choices(clusters, with_all=TRUE, scseq = scseq())
+    }
+
+    return(choices)
   })
 
 
@@ -1580,7 +1596,9 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
     no.prev <- is.null(prev)
     is.new <- !is.null(sel) && sel != prev
-    if ((no.prev || is.new)) {
+    is.flip <- !show_contrasts() & grepl('-vs-', sel)
+
+    if ((no.prev || is.new) & !is.flip) {
       selected_cluster(sel)
     }
   })
@@ -1602,6 +1620,14 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     toggle(id = "select_panel", condition = !show_rename())
   })
 
+  # show/hide contrasts
+  observe({
+    # update icon on toggle
+    icon <- ifelse(show_contrasts(), 'chevron-down', 'chevron-right')
+
+    updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
+    toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
+  })
 
 
   # modify/save annot if rename a cluster
@@ -1611,7 +1637,8 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     # update reactive annotation
     choices <- choices()
     sel_clust <- selected_cluster()
-    sel_idx <- as.numeric(sel_clust)
+    sel_idx <- gsub('-vs-\\d+$', '', sel_clust)
+    sel_idx <- as.numeric(sel_idx)
 
     # use currently save annot as reference
     ref_preds <- ref_preds()
@@ -1631,8 +1658,11 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   observeEvent(choices(), {
     choices <- choices()
     selected <- NULL
-    choices <- rbind(NA, choices)
-    selected <- isolate(selected_cluster())
+
+    if (!show_contrasts()) {
+      choices <- rbind(NA, choices)
+      selected <- isolate(selected_cluster())
+    }
 
     updateSelectizeInput(session, 'selected_cluster',
                          choices = choices,
@@ -1660,7 +1690,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
     if (sel %in% names(markers)) return(NULL)
 
-
     markers_path <- file.path(resoln_dir, 'markers.qs')
 
     if (!file.exists(markers_path)) {
@@ -1679,8 +1708,13 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
       progress$set(value = 3)
       enableAll(cluster_inputs)
 
-    } else {
+    } else if (!length(markers)) {
       markers <- qs::qread(markers_path)
+    }
+
+    if (grepl('-vs-', sel)) {
+      con_markers <- get_contrast_markers(sel, markers)
+      markers[[sel]] <- con_markers
     }
 
     markers(markers)
@@ -1927,6 +1961,15 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     req(gene_table)
 
 
+    # non-html feature column is hidden and used for search
+    # different ncol if contrast
+    cols <- colnames(gene_table)
+    pct_targs <- grep('%', cols)
+    frac_targs <- grep('AUC', cols)
+
+    vis_targ <- length(cols)-1
+    search_targs <- 0:(vis_targ-1)
+
     DT::datatable(
       gene_table,
       class = 'cell-border',
@@ -1943,11 +1986,13 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         search = list(regex = TRUE),
         language = list(search = 'Select feature to plot:'),
         columnDefs = list(
-          list(visible = FALSE, targets = c(3)),
-          list(searchable = FALSE, targets = c(0,1,2))
+          list(visible = FALSE, targets = vis_targ),
+          list(searchable = FALSE, targets = search_targs)
         )
       )
-    ) %>% DT::formatRound(c(2,3), digits = 2)
+    ) %>%
+      DT::formatRound(pct_targs, digits = 0) %>%
+      DT::formatRound(frac_targs, digits = 2)
 
   }, server = TRUE)
 
@@ -2003,6 +2048,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 
     hl <- NULL
     cluster <- selected_cluster()
+    cluster <- strsplit(cluster, '-vs-')[[1]]
     nclus <- length(annot)
 
     if (is_mobile() || length(annot) > 30) {
@@ -2894,19 +2940,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
-
-validate_up_meta <- function(res, ref) {
-  msg <- NULL
-  groups <- na.exclude(res$`Group name`)
-
-  if (!all(row.names(res) %in% row.names(ref))) {
-    msg <- "Do not change row names"
-
-  } else if (length(unique(groups)) < 2) {
-    msg <- 'Specify at least two groups'
-  }
-
-  return(msg)
-}
-

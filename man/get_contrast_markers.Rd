@@ -4,7 +4,7 @@
 \alias{get_contrast_markers}
 \title{Get markers for one cluster against one other cluster}
 \usage{
-get_contrast_markers(con, dataset_dir)
+get_contrast_markers(con, markers)
 }
 \arguments{
 \item{con}{String identifying clusters to compare e.g. \code{'1vs2'}}
