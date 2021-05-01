@@ -7,7 +7,6 @@ dataset_dirs <- file.path(sc_dir, integrated)
 deleted <- c()
 
 
-
 for (i in seq_along(dataset_dirs)) {
   dataset_name <- integrated[i]
   dataset_dir <- dataset_dirs[i]
@@ -114,6 +113,9 @@ for (dataset_name in dataset_names) {
   scseq <- qs::qread(scseq_path)
   qs::qsave(scseq, scseq_path, preset = 'fast')
   unlink(file.path(dataset_dir, 'scle.loom'))
+
+  marker_files <- list.files(dataset_dir, '^markers_\\d+.qs$', recursive = TRUE, full.names = TRUE)
+  unlink(marker_files)
 }
 
 for (dataset_name in dataset_names) {
