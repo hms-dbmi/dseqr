@@ -804,10 +804,14 @@ get_gene_table <- function(markers,
       html_features[markers$ambient],
       "<span title='ambient' class='ambience-swatch pull-right'></span>")
 
+    # use ambient removed pvals except for ambient genes
+    pvals <- markers$adj.P.Val.Amb
+    pvals[is.na(pvals)] <- markers$adj.P.Val[is.na(pvals)]
+
     table <- data.table::data.table(
       Feature = html_features,
       'logFC' = markers$logFC,
-      'FDR' = format.pval(markers$adj.P.Val.Amb, eps = 0.005, digits = 2),
+      'FDR' = format.pval(pvals, eps = 0.005, digits = 2),
       feature = features
     )
 
