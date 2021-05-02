@@ -184,7 +184,7 @@ run_limma_scseq <- function(obj, annot = 'gene_name') {
     # run as pseudobulk per eset
     lm_fit <- lapply(obj, function(x) {
       x <- crossmeta::run_limma_setup(x, list(pdata = Biobase::pData(x)))
-      crossmeta::run_limma(x,  annot = annot, filter = FALSE)
+      crossmeta::run_limma(x,  annot = annot, filter = FALSE, quick = TRUE)
     })
 
   } else {
