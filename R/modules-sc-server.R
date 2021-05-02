@@ -2264,7 +2264,11 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
 
   input_ids <- c('click_dl_anal', 'click_dl_meta', 'click_up_meta', 'compare_groups', 'selected_cluster')
 
-  prev_path <- reactive(file.path(dataset_dir(), 'prev_groups.qs'))
+  prev_path <- reactive({
+    if (is.null(dataset_dir())) return(NULL)
+    file.path(dataset_dir(), 'prev_groups.qs')
+  })
+
   meta_path <- reactive(file.path(dataset_dir(), 'meta.qs'))
 
 
@@ -2423,6 +2427,7 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
   observe({
     groups <- input$compare_groups
     if (length(groups) != 2) return(NULL)
+    if (is.null(prev_path())) return(NULL)
 
     qs::qsave(groups, prev_path())
   })
