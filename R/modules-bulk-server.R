@@ -140,7 +140,7 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
   })
 
   mds_path <- reactive({
-    file.path(bulk_dir, paste0('mds_', numsv(), 'svs.qs'))
+    file.path(bulk_dir, dataset_name(), paste0('mds_', numsv(), 'svs.qs'))
   })
 
 
@@ -152,16 +152,19 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
       mds <- qs::qread(mds_path)
 
     } else {
-      progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
-      progress$set(message = "Quantifying files", value = 1)
-      pquants[[dataset_name]] <- progress
+      progress <- Progress$new(session, min=0, max = 2)
+      on.exit(progress$close())
+      progress$set(message = "Scaling for MDS plots", value = 1)
 
       vsd <- Biobase::assayDataElement(eset, 'vsd')
       adj <- Biobase::assayDataElement(eset, 'adjusted')
       mds <- get_mds(vsd, adj, group())
+      progress$set(value = 2)
+
       qs::qsave(mds, mds_path)
     }
 
+    return(mds)
   })
 
   return(list(
