@@ -19,11 +19,11 @@ for (i in seq_along(dataset_dirs)) {
   }
 
   # update test/ctrl from args json
-  args <- load_args(sc_dir, dataset_name)
+  args <- dseqr:::load_args(sc_dir, dataset_name)
   if (is.null(args$dataset_names)) {
     args$dataset_names <- c(args$test, args$ctrl)
     args$test <- args$ctrl <- NULL
-    save_scseq_args(args, dataset_name, sc_dir)
+    dseqr:::save_scseq_args(args, dataset_name, sc_dir)
   }
 
   combined <- qs::qread(scseq_path)
@@ -74,25 +74,6 @@ for (i in seq_along(dataset_dirs)) {
   unlink(file.path(snn_dirs, 'top_tables.qs'), recursive = TRUE)
   unlink(file.path(snn_dirs, 'top_markers.qs'), recursive = TRUE)
   unlink(file.path(snn_dirs, 'cluster_stats.qs'), recursive = TRUE)
-
-  # calculate ambient
-  resoln <- dseqr:::load_resoln(dataset_dir)
-  snn_dir <- file.path(dataset_dir, resoln)
-  cat(' --- working on snn_dir', basename(snn_dir), '..\n')
-
-  ambient_path <- file.path(snn_dir, 'ambient.qs')
-  summed <- qs::qread(file.path(snn_dir, 'summed.qs'))
-
-  clusters <- levels(summed$cluster)
-  ambience <- dseqr:::get_ambience(combined)
-
-  amb <- list()
-  for (i in seq_along(clusters)) {
-    clus <- clusters[i]
-    cat('working on cluster', clus, '..\n')
-    amb[[clus]] <- dseqr:::calc_cluster_ambience(summed, ambience, clus)
-  }
-  qs::qsave(amb, ambient_path)
 }
 
 # remove deleted
@@ -104,19 +85,6 @@ qs::qsave(integrated, file.path(sc_dir, 'integrated.qs'))
 dataset_names <- list.files(sc_dir)
 dataset_names <- dataset_names[!grepl('.qs$', dataset_names)]
 
-for (dataset_name in dataset_names) {
-  cat('working on', dataset_name, '...\n')
-  dataset_dir <- file.path(sc_dir, dataset_name)
-  scseq_path <- file.path(dataset_dir, 'scseq.qs')
-  if (!file.exists(scseq_path)) next()
-
-  scseq <- qs::qread(scseq_path)
-  qs::qsave(scseq, scseq_path, preset = 'fast')
-  unlink(file.path(dataset_dir, 'scle.loom'))
-
-  marker_files <- list.files(dataset_dir, '^markers_\\d+.qs$', recursive = TRUE, full.names = TRUE)
-  unlink(marker_files)
-}
 
 for (dataset_name in dataset_names) {
   cat('working on', dataset_name, '...\n')
@@ -130,18 +98,22 @@ for (dataset_name in dataset_names) {
 
   snn_names <- list.files(dataset_dir, '^snn\\d')
 
+  marker_files <- list.files(dataset_dir, '^markers_\\d+.qs$', recursive = TRUE, full.names = TRUE)
+  unlink(marker_files)
+
   for (snn_name in snn_names) {
     snn_dir <- file.path(dataset_dir, snn_name)
-    applied <- file.exists(file.path(snn_dir, 'applied.qs'))
-    if (!applied) next()
-
-    scseq <- dseqr:::attach_clusters(scseq, snn_dir)
-    markers <- dseqr:::get_presto_markers(scseq)
-    resoln_name <- file.path(dataset_name, snn_name)
-    dseqr:::save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)
 
     # remove uneeded
     unlink(file.path(snn_dir, 'tests'), recursive = TRUE)
+    unlink(list.files(snn_dir, 'l1000_.+?.qs', full.names = TRUE))
+    unlink(list.files(snn_dir, 'cmap_.+?.qs', full.names = TRUE))
+    unlink(list.files(snn_dir, 'kegg_.+?.qs', full.names = TRUE))
+    unlink(list.files(snn_dir, 'kegga_.+?.qs', full.names = TRUE))
+    unlink(list.files(snn_dir, 'go_.+?.qs', full.names = TRUE))
+    unlink(list.files(snn_dir, 'goana_.+?.qs', full.names = TRUE))
+    unlink(file.path(snn_dir, 'applied.qs'))
     unlink(file.path(snn_dir, 'top_markers.qs'))
+    unlink(file.path(snn_dir, 'pbulk_esets.qs'))
   }
 }

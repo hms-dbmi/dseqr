@@ -2175,6 +2175,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
     species <- species()
     gene <- selected_gene()
     if (!length(gene)) return(NULL)
+    if (!length(species)) return
     if (species == 'Mus musculus') gene <- toupper(gene)
     if (!gene %in% biogps[, SYMBOL]) return(NULL)
 
@@ -2953,4 +2954,3 @@ scSampleComparison <- function(input, output, session, dataset_dir, resoln_dir, 
     pfun_right_bottom = pfun_right_bottom
   ))
 }
-
