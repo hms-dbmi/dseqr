@@ -774,9 +774,25 @@ get_gene_choices <- function(markers,
 }
 
 
+get_qc_table <- function(qc_metrics = NULL) {
+
+  is.score <- names(qc_metrics) == 'numeric'
+  html_metrics <- stringr::str_trunc(qc_metrics, 25, 'left')
+  html_metrics[is.score] <- paste0(
+    "<span class='input-swatch' style='background: linear-gradient(to right, lightgray, blue);'></span>",
+    sprintf("<span title='%s'>%s</span>", qc_metrics[is.score], html_metrics[is.score])
+  )
+  html_metrics[!is.score] <- paste0(
+    "<span class='input-swatch' style='background: linear-gradient(to right, lightgray 50%, blue 50%);'></span>",
+    sprintf("<span title='%s'>%s</span>", qc_metrics[!is.score], html_metrics[!is.score])
+  )
+
+
+  data.table::data.table(Feature = html_metrics,
+                         feature = qc_metrics)
+}
+
 get_gene_table <- function(markers,
-                           qc_metrics = NULL,
-                           qc_first = FALSE,
                            species = 'Homo sapiens',
                            tx2gene = NULL) {
 
@@ -798,6 +814,21 @@ get_gene_table <- function(markers,
                            desc,
                            'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
                            features, features)
+
+  # swatch indicates group that is marker for
+  group <- markers$group
+  levs <- setdiff(unique(group), '')
+  if (length(levs)>1) {
+    pal <- get_palette(levs)
+    names(pal) <- levs
+    has.grp <- group != ''
+    colors <- pal[group][has.grp]
+    html_features[has.grp] <- paste0(
+      sprintf('<span>%s: </span><span class="input-swatch" style="background: %s;"></span>',
+              names(colors), colors),
+      html_features[has.grp]
+    )
+  }
 
   if (is.tt) {
     html_features[markers$ambient] <- paste0(
@@ -828,8 +859,12 @@ get_gene_table <- function(markers,
   }
 
 
+
+
   return(table)
 }
+
+
 
 validate_up_meta <- function(res, ref) {
   msg <- NULL

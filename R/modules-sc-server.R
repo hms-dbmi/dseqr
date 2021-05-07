@@ -1930,10 +1930,11 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   species <- reactive(scseq()@metadata$species)
   tx2gene <- reactive(dseqr.data::load_tx2gene(species()))
 
+  qc_first <- reactive(is.null(selected_markers()))
+
   # update marker genes based on cluster selection
   gene_table <- reactive({
 
-    qc_first <- FALSE
     markers <- selected_markers()
     selected_cluster <- selected_cluster()
     qc_metrics <- qc_metrics()
@@ -1943,17 +1944,19 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     if (is.null(markers) & isTruthy(selected_cluster)) return(NULL)
 
     if (is.null(markers)) {
-      qc_first <- TRUE
       markers <- scseq_genes()
     }
 
     if (is.null(markers) || is.null(scseq())) return(NULL)
 
-    get_gene_table(markers,
-                   qc_metrics = qc_metrics,
-                   qc_first = qc_first,
-                   species = species(),
-                   tx2gene = tx2gene())
+    tables <- list()
+    tables[[1]] <- get_gene_table(markers, species = species(), tx2gene = tx2gene())
+    tables[[2]] <- get_qc_table(qc_metrics)
+
+    cols <- colnames(tables[[1]])
+    if (qc_first()) tables <- tables[c(2,1)]
+
+    data.table::rbindlist(tables, fill = TRUE)[, ..cols]
   })
 
   output$gene_table <- DT::renderDataTable({
@@ -1965,11 +1968,16 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
+    ncols <- length(cols)
     pct_targs <- grep('%', cols)
     frac_targs <- grep('AUC|logFC', cols)
 
-    vis_targ <- length(cols)-1
+    vis_targ <- (length(cols)-1)
     search_targs <- 0:(vis_targ-1)
+
+    # prevent sort when qc_first
+    sort_targs <- 0
+    if (qc_first()) sort_targs <- '_all'
 
     dt <- DT::datatable(
       gene_table,
@@ -1988,7 +1996,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         language = list(search = 'Select feature to plot:'),
         columnDefs = list(
           list(visible = FALSE, targets = vis_targ),
-          list(searchable = FALSE, targets = search_targs)
+          list(searchable = FALSE, targets = search_targs),
+          list(sortable = FALSE, targets = sort_targs)
         )
       )
     )
@@ -2026,7 +2035,7 @@ construct_top_markers <- function(markers, scseq) {
   top <- data.table::rbindlist(top)
 
   # rest of genes
-  rest <- data.table::data.table(group = 'Other',
+  rest <- data.table::data.table(group = '',
                                  feature = setdiff(row.names(scseq), top$feature))
 
   rbind(top, rest, fill = TRUE)
@@ -2175,7 +2184,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
     species <- species()
     gene <- selected_gene()
     if (!length(gene)) return(NULL)
-    if (!length(species)) return
+    if (!length(species)) return(NULL)
     if (species == 'Mus musculus') gene <- toupper(gene)
     if (!gene %in% biogps[, SYMBOL]) return(NULL)
 
