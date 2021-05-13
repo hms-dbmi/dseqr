@@ -1,5 +1,4 @@
 
-
 #' Logic for Drugs Tab
 #'
 #' @inheritParams bulkPage
@@ -728,18 +727,27 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   dataset_name <- reactive(sel()$dataset_name)
 
 
-  scSampleComparison <- callModule(scSampleComparison, 'sc',
-                                   is_sc = is_sc,
-                                   dataset_name = dataset_name,
-                                   dataset_dir = dataset_dir,
-                                   resoln_dir = resoln_dir)
+
+  scSampleGroups <- callModule(scSampleGroups, 'sample_groups',
+                               dataset_dir = dataset_dir,
+                               resoln_dir = resoln_dir,
+                               dataset_name = dataset_name)
+
+  scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
+                                 scseq = scSampleGroups$scseq,
+                                 lm_fit = scSampleGroups$lm_fit,
+                                 groups = scSampleGroups$groups,
+                                 dataset_dir = dataset_dir,
+                                 resoln_dir = resoln_dir,
+                                 dataset_name = dataset_name)
+
 
 
   # results for selected type (bulk, sc, custom, pert)
   drug_queries <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
-      drug_queries <- scSampleComparison$drug_queries()
+      drug_queries <- scSampleClusters$drug_queries()
 
     } else if (is_bulk()) {
       drug_queries <- bulkAnal$drug_queries()
@@ -763,7 +771,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   top_table <- reactive({
     if (is_sc()) {
-      top_table <- scSampleComparison$top_table()
+      top_table <- scSampleClusters$top_table()
 
     } else if (is_bulk()) {
       top_table <- bulkAnal$top_table()
@@ -780,7 +788,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   ambient <- reactive({
     if (is_sc()) {
-      ambient <- scSampleComparison$ambient()
+      ambient <- scSampleClusters$ambient()
 
     } else if (is_bulk()) {
       ambient <- NULL
@@ -789,7 +797,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   path_res <- reactive({
     if (is_sc()) {
-      path_res <- scSampleComparison$path_res()
+      path_res <- scSampleClusters$path_res()
 
     } else if (is_bulk()) {
       path_res <- bulkAnal$path_res()
@@ -803,7 +811,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   anal_name <- reactive({
     sel_name <- sel_name()
     if (is_sc()) {
-      anal_name <- paste(sel_name, scSampleComparison$annot_clusters(), sep = '_')
+      anal_name <- paste(sel_name, scSampleClusters$annot_clusters(), sep = '_')
 
     } else if (is_bulk()) {
       anal_name <- paste(sel_name, bulkAnal$name(), sep = '_')

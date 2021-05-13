@@ -4,10 +4,16 @@
 \alias{diff_abundance}
 \title{Run differential abundance analysis}
 \usage{
-diff_abundance(scseq, annot, pairs = NULL)
+diff_abundance(
+  obj,
+  annot = NULL,
+  pairs = NULL,
+  orig.ident = NULL,
+  filter = TRUE
+)
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment}}
+\item{obj}{\code{SingleCellExperiment} or count matrix}
 }
 \description{
 Run differential abundance analysis

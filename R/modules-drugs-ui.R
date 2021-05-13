@@ -211,7 +211,8 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
     ),
     tags$div(id='drugs-intro-comparison',
              tags$div(id = ns('sc_clusters_container'), style = 'display: none;',
-                      scSampleComparisonInput(ns('sc'))
+                      scSampleGroupsInput(ns('sample_groups')),
+                      scSampleClustersInput(ns('sample_clusters'))
              ),
              tags$div(id = ns('bulk_groups_container'), style = 'display: none;',
                       bulkAnalInput(ns('bulk'), with_dl = FALSE)

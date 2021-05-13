@@ -87,8 +87,14 @@ scFormInput <- function(id) {
             ),
             # inputs for comparing samples
             div(id = ns('sample_comparison_inputs'), style = 'display: none',
-                scSampleComparisonInput(ns('sample'), with_dl = TRUE),
-                selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
+                scSampleGroupsInput(ns('sample_groups')),
+
+                div(id = ns('sample_cluster_input'),
+                    scSampleClustersInput(ns('sample_clusters'), with_dl = TRUE),
+                ),
+                div(id = ns('sample_gene_input'),
+                    selectedGeneInput(ns('gene_samples'), sample_comparison = TRUE)
+                )
             )
         )
     )
@@ -321,7 +327,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   }
 
   div(id = 'sc-intro-feature',
-      div(style='height: 90px;',
+      div(style='height: 90px;', id=ns('gene_search_input'),
           shinypanel::textInputWithButtons(
             inputId = ns('gene_search'),
             label = 'Feature to plot:',
@@ -409,13 +415,26 @@ scRidgePlotOutput <- function(id) {
 #'
 #' @keywords internal
 #' @noRd
-scSampleComparisonInput <- function(id, with_dl = FALSE) {
+scSampleClustersInput <- function(id, with_dl = FALSE) {
   ns <- NS(id)
 
   dl_btn <- NULL
   if (with_dl)
     dl_btn <- actionButton(ns('click_dl_anal'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
+  shinypanel::selectizeInputWithButtons(
+    inputId = ns('selected_cluster'),
+    label = 'Cluster for group comparison:',
+    dl_btn,
+    #TODO: implement logic for multi-cluster differential expression
+    options = list(multiple = FALSE),
+    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
+  )
+
+}
+
+scSampleGroupsInput <- function(id) {
+  ns <- NS(id)
 
   tags$div(
     shinypanel::selectizeInputWithButtons(
@@ -427,23 +446,14 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
       container_id = ns('validate-up'),
       help_id = ns('error_msg')
     ),
-    shinypanel::selectizeInputWithButtons(
-      inputId = ns('selected_cluster'),
-      label = 'Cluster for group comparison:',
-      dl_btn,
-      #TODO: implement logic for multi-cluster differential expression
-      options = list(multiple = FALSE),
-      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
-    ),
 
     # hidden dl/upload buttons
     downloadLink(ns('dl_anal'), ''),
     downloadLink(ns('dl_meta'), ''),
     div(style = 'display: none',
-        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-    ),
-
+        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
+    )
   )
-
 }
+
 
