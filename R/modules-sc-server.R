@@ -49,6 +49,12 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
   # sample comparison plots ---
 
+  # cluster plot in top right
+  callModule(scAbundancePlot, 'abundance_plot',
+             scseq = scForm$scseq,
+             dataset_name = scForm$dataset_name,
+             sc_dir = sc_dir)
+
   callModule(scSampleMarkerPlot, 'left',
              selected_gene = scForm$samples_gene,
              plot_fun = scForm$samples_pfun_left)
@@ -2095,6 +2101,181 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 }
 
 
+scAbundancePlot <- function(input, output, session, scseq, dataset_name, sc_dir) {
+
+  plot_data <- reactive({
+    dataset_dir <- file.path(sc_dir, dataset_name())
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+
+    groups <- levels(scseq$orig.ident)
+    if (length(groups) != 2) return(NULL)
+
+    apath <- file.path(dataset_dir, 'abundance_plot_data.qs')
+    mpath <- file.path(dataset_dir, 'meta.qs')
+    have <- file.exists(apath)
+    valid <- file.info(apath)$ctime > file.info(mpath)$ctime
+
+    if (have && valid) {
+      plot_data <- qs::qread(apath)
+
+    } else {
+      plot_data <- get_abundance_plot_data(scseq)
+      qs::qsave(plot_data, apath)
+    }
+
+    return(plot_data)
+  })
+
+  plot <- reactive({
+
+    plot_data <- plot_data()
+    if (is.null(plot_data)) return(NULL)
+    plot_abundance(plot_data)
+  })
+
+
+  content <- function(file) {
+    data <- plot()$data
+    utils::write.csv(data, file)
+  }
+
+
+  output$abundance_plot <- shiny::renderPlot(plot())
+
+  return(list(
+    plot = plot
+  ))
+}
+
+plot_abundance <- function(plot_data = NULL) {
+
+  list2env(plot_data, envir = environment())
+
+  ggplot2::ggplot(aes(x=x,y=y, fill=direction, alpha=alpha), data=pt.dat) +
+    ggplot2::geom_tile(color='lightgray') +
+    cowplot::theme_cowplot() +
+    theme_no_axis_vals() +
+    theme_dimgray(with_nums = FALSE) +
+    ggplot2::scale_fill_manual(name = 'Δ cells',
+                               values = c('#A50F15', '#08519C', '#FFFFFF')) +
+    ggplot2::scale_alpha_continuous(name = 'p-val',
+                                    breaks = c(.5, 0.1),
+                                    labels = c('< .05', '≥ .05')) +
+    ggplot2::theme(legend.position = 'right',
+                   axis.ticks.x = element_blank(),
+                   axis.ticks.y = element_blank(),
+                   legend.title = element_text(size=12), #change legend title font size
+                   legend.text = element_text(size=10)) +
+    ggplot2::xlab(paste0(red, '1')) +
+    ggplot2::ylab(paste0(red, '2')) +
+    ggplot2::guides(fill = ggplot2::guide_legend(order = 1),
+                    alpha = ggplot2::guide_legend(order = 2))
+}
+
+get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig.ident, sample = scseq$batch) {
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  red <- reds[reds %in% c('UMAP', 'TSNE')]
+
+  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+
+  dat_orig <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
+  dat <- dat_orig
+
+  # create grid before downsample
+  x <- seq(min(dat$x), max(dat$x), length.out = nx)
+  y <- seq(min(dat$y), max(dat$y), length.out = ny)
+
+  # downsample within group so that each sample has same number of cells
+  dat <- dat %>%
+    dplyr::add_count(sample) %>%
+    dplyr::group_by(group) %>%
+    dplyr::mutate(nmin=min(n)) %>%
+    dplyr::group_by(sample) %>%
+    dplyr::sample_n(nmin) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-n, -nmin)
+
+  # downsample so that each group has same number of cells
+  nmin <- min(table(dat$group))
+  dat <- dat %>%
+    dplyr::group_by(group) %>%
+    dplyr::sample_n(nmin) %>%
+    dplyr::ungroup()
+
+  # get number of points per group in 100x100 grid
+  points <- cbind(dat$x, dat$y)
+
+  # bin by group for color
+  points <- cbind(dat$x, dat$y)
+  binxy <- data.frame(x=findInterval(points[,1], x),
+                      y=findInterval(points[,2], y))
+
+  binxy$x <- factor(binxy$x, levels = 1:nx)
+  binxy$y <- factor(binxy$y, levels = 1:ny)
+  binxy$group <- factor(dat$group)
+  res <- table(binxy)
+  res <- as.data.frame.table(res)
+
+  # bin by sample for alpha
+  points <- cbind(dat_orig$x, dat_orig$y)
+  binxy <- data.frame(x=findInterval(points[,1], x),
+                      y=findInterval(points[,2], y))
+
+  binxy$x <- factor(binxy$x, levels = 1:nx)
+  binxy$y <- factor(binxy$y, levels = 1:ny)
+  binxy$group <- factor(dat_orig$sample)
+  res2 <- table(binxy)
+  res2 <- as.data.frame.table(res2)
+  res2 <- tidyr::pivot_wider(res2, names_from=group, values_from = Freq)
+  rns <- paste(res2$x, res2$y, sep='-')
+  res2$x <- res2$y <- NULL
+  res2 <- as.matrix(res2)
+  row.names(res2) <- rns
+  res2 <- res2[rowSums(res2) !=0, ]
+
+  uniq <- !duplicated(dat$sample)
+  levs <- dat$group[uniq]
+  names(levs) <- dat$sample[uniq]
+  orig.ident <- levs[colnames(res2)]
+  abd <- diff_abundance(res2, orig.ident=orig.ident, filter = FALSE)
+
+
+
+  # get difference in number of cells between groups in 100x100 grid
+  is.in <- res$group == 'test'
+  d <- res[is.in, ]
+  row.names(d) <- paste(d$x, d$y, sep='-')
+  d$pval <- 1
+  d[row.names(abd), 'pval'] <- abd$P.Value
+  d$tots <- d$Freq + res$Freq[!is.in]
+  d$Freq <- d$Freq - res$Freq[!is.in]
+
+  # scale different by total number of cells
+  not.zero <- d$tots != 0
+  d$Freq[not.zero] <- d$Freq[not.zero]/d$tots[not.zero]
+
+  xx <- x[-length(x)] + 0.5*diff(x)
+  d$x <- xx[d$x]
+  yy <- y[-length(y)] + 0.5*diff(y)
+  d$y <- yy[d$y]
+
+  pt.dat <- d[d$tots>0, ]
+  range02 <- function(x, newMax, newMin){(x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin}
+  pt.dat$alpha <- 0.1
+  is.sig <- pt.dat$pval < 0.05
+  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig], 1, 0.5)
+  pt.dat$direction <- "="
+  pt.dat$direction[pt.dat$Freq > 0] <- "↑"
+  pt.dat$direction[pt.dat$Freq < 0] <- "↓"
+  pt.dat$direction <- factor(pt.dat$direction, levels = c('↑', '↓', '='), ordered = TRUE)
+
+  return(list(pt.dat = pt.dat,
+              red = red))
+}
+
+
+
 #' Logic for marker feature plots
 #'
 #' @keywords internal
@@ -2120,7 +2301,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     is_feature <- feature %in% colnames(cdata)
     if (!is_gene && !is_feature) return(NULL)
 
-    is_log <- is.logical(cdata[[feature]])
+    is_bool <- is.logical(cdata[[feature]])
     is_num <- is_gene || is.numeric(cdata[[feature]])
 
 
@@ -2130,7 +2311,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
       fdata <- get_feature_data(plots_dir, scseq, feature)
       pl <- update_feature_plot(plot, fdata, feature)
 
-    } else if (is_log) {
+    } else if (is_bool) {
+
       ft <- cdata[[feature]]
       scseq$cluster <- factor(ft, levels = c(FALSE, TRUE))
       ncells <- sum(ft)
@@ -2138,6 +2320,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
 
       title <- paste0(feature, ' (', format(ncells, big.mark=","), ' :: ', pcells, '%)')
       pl <- plot_cluster(scseq, label = FALSE, label.index = FALSE, order = TRUE, title = title, cols =  c('lightgray', 'blue'))
+      pl +
+        ggplot2::stat_density_2d(geom='polygon', aes(x=UMAP1, y=UMAP2, fill=cluster,  alpha = ..level..), contour_var = 'count')
     } else {
       pl <- NULL
     }

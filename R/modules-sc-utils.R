@@ -67,18 +67,24 @@ validate_preds <- function(preds, sc_dir) {
 
 #' Run differential abundance analysis
 #'
-#' @param scseq \code{SingleCellExperiment}
+#' @param obj \code{SingleCellExperiment} or count matrix
 #'
 #'
 #' @keywords internal
-diff_abundance <- function(scseq, annot, pairs = NULL) {
+diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, filter = TRUE) {
 
-  abundances <- table(scseq$cluster, scseq$batch)
-  abundances <- unclass(abundances)
-  row.names(abundances) <- annot
+  if (is(obj, 'SingleCellExperiment')) {
+    abundances <- table(obj$cluster, obj$batch)
+    abundances <- unclass(abundances)
+    row.names(abundances) <- annot
 
+    extra.info <- obj@colData[match(colnames(abundances), obj$batch),]
 
-  extra.info <- scseq@colData[match(colnames(abundances), scseq$batch),]
+  } else {
+    abundances <- obj
+    extra.info <- data.frame(orig.ident)
+  }
+
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
 
   adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
@@ -103,8 +109,10 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
     y.ab$samples$pair <- factor(pairs[colnames(y.ab),])
 
 
-  keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
-  y.ab <- y.ab[keep,]
+  if (filter) {
+    keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
+    y.ab <- y.ab[keep,]
+  }
 
   # setup eset so that it will work with run_limma
   eset <- Biobase::ExpressionSet(y.ab$counts, Biobase::AnnotatedDataFrame(y.ab$samples))
@@ -113,7 +121,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
 
   prev <- list(pdata = Biobase::pData(eset))
   eset <- crossmeta::run_limma_setup(eset, prev)
-  lm_fit <- crossmeta::run_limma(eset)
+  lm_fit <- crossmeta::run_limma(eset, filter = filter)
 
   tt <- crossmeta::get_top_table(lm_fit, with.es = FALSE)
   tt <- cbind(tt, adj[row.names(tt), ])
@@ -121,6 +129,7 @@ diff_abundance <- function(scseq, annot, pairs = NULL) {
   tt$ENTREZID <- NULL
   return(tt)
 }
+
 
 
 #' Get label transfer choices data.frame

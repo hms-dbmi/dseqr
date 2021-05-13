@@ -17,7 +17,10 @@ scPageUI <- function(id, tab, active) {
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                scClusterPlotOutput(ns('cluster_plot'))
+                scClusterPlotOutput(ns('cluster_plot')),
+                div(style='margin-top:35px;',
+                    scAbundancePlotOutput(ns('abundance_plot'))
+                )
             )
         ),
         hr(),
@@ -349,6 +352,15 @@ scClusterPlotOutput <- function(id) {
   shinydlplot::downloadablePlotUI(ns('cluster_plot'))
 }
 
+#' Output plot of single cell abundances
+#'
+#' @keywords internal
+#' @noRd
+scAbundancePlotOutput <- function(id) {
+  ns <- NS(id)
+  shiny::plotOutput(ns('abundance_plot'))
+}
+
 
 #' Output plot of single cell markers
 #'
@@ -434,3 +446,4 @@ scSampleComparisonInput <- function(id, with_dl = FALSE) {
   )
 
 }
+
