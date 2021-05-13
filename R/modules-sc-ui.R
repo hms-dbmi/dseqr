@@ -12,15 +12,16 @@ scPageUI <- function(id, tab, active) {
   active_class <- ifelse(tab == active, 'active', '')
   withTags({
     div(class = paste('tab-pane', active_class), `data-value` = tab, id = id_from_tab(tab),
-        div(class = 'row',
+        div(class = 'row row-fluid',
             div(class = 'col-sm-12 col-lg-6',
+                style = 'align-self: start',
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                scClusterPlotOutput(ns('cluster_plot')),
-                div(style='margin-top:35px;',
+                div(style='margin-bottom:35px;',
                     scAbundancePlotOutput(ns('abundance_plot'))
-                )
+                ),
+                scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
         hr(),
@@ -344,7 +345,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
                          icon = icon('plus', 'fa-fw'),
                          title = 'Save custom metric'))
       ),
-      DT::dataTableOutput(ns('gene_table'), width='100%')
+      DT::dataTableOutput(ns('gene_table'), width='100%', height='291px')
   )
 }
 
@@ -455,5 +456,4 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
-
 

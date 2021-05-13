@@ -2768,7 +2768,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
   observe({
-    toggle('gene_search_input', condition = !is.null(gene_table()))
+    toggle('gene_search_input', condition = !is.null(gene_table()) | type == 'clusters')
   })
 
 
@@ -2820,16 +2820,24 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
     cluster <- strsplit(cluster, '-vs-')[[1]]
     nclus <- length(annot)
 
-    if (is_mobile() || length(annot) > 30) {
-      annot <- as.character(seq_along(annot))
-    }
+    omit_labels <- is_mobile() || length(annot) > 30
+    if (omit_labels) annot <- as.character(seq_along(annot))
 
 
     if (isTruthy(cluster) && nclus >= as.numeric(cluster))
       hl <- as.numeric(cluster)
 
-    update_cluster_plot(plot, annot, hl)
+    pl <- update_cluster_plot(plot, annot, hl)
 
+    if (omit_labels) {
+      pl <- pl +
+        ggplot2::ggtitle('Labels Omitted') +
+        ggplot2::theme(
+          plot.title.position = "plot",
+          plot.title = ggplot2::element_text(
+            color = 'lightgray', hjust = 1, size = 16, face = 'plain', margin = ggplot2::margin(b = 15)))
+    }
+    return(pl)
   })
 
 

@@ -302,3 +302,11 @@ input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
    opacity: 1;
 }
+
+/* to allow vertical-align in columns */
+@media (min-width: 768px) {
+  .row-fluid {
+    display: flex;
+    align-items: flex-end;
+  }
+}
