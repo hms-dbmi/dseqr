@@ -68,6 +68,7 @@ validate_preds <- function(preds, sc_dir) {
 #' Run differential abundance analysis
 #'
 #' @param obj \code{SingleCellExperiment} or count matrix
+#' @param orig.ident factor of group identities with length \code{ncol(obj)}
 #'
 #'
 #' @keywords internal
@@ -87,9 +88,9 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
 
   y.ab <- edgeR::DGEList(abundances, samples=extra.info)
 
+  # adjusted counts for calculating logFC if two samples
   adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
   adj <- round(adj)
-  colnames(adj) <- paste0(colnames(adj), '_adjusted_counts')
 
   group <- y.ab$samples$orig.ident
   group <- stats::relevel(group, 'ctrl')
@@ -99,15 +100,13 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
   if (ncol(adj) == 2) {
     ord <- match(c('test', 'ctrl'), y.ab$samples$group)
     adj <- as.data.frame(adj[, ord])
-    adj$logFC <- log2(adj[[1]]) - log2(adj[[2]])
-    adj <- adj[order(abs(adj$logFC), decreasing = TRUE), ]
+    adj$logFC <- log2(adj[[1]]+1) - log2(adj[[2]]+1)
+    adj <- adj[order(abs(adj$logFC), decreasing = TRUE), 'logFC', drop=FALSE]
     return(adj)
   }
 
-
   if (!is.null(pairs))
     y.ab$samples$pair <- factor(pairs[colnames(y.ab),])
-
 
   if (filter) {
     keep <- edgeR::filterByExpr(y.ab, group=y.ab$samples$orig.ident)
@@ -124,7 +123,6 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
   lm_fit <- crossmeta::run_limma(eset, filter = filter)
 
   tt <- crossmeta::get_top_table(lm_fit, with.es = FALSE)
-  tt <- cbind(tt, adj[row.names(tt), ])
 
   tt$ENTREZID <- NULL
   return(tt)
