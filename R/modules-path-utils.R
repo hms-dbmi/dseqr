@@ -222,50 +222,70 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #' Run pseudo bulk limma fit
 #'
 #' @param summed Pseudobulk \code{SingleCellExperiment}
+#' @param ... additional arguments to \link[edgeR]{filterByExpr}
 #' @return Normalized \code{ExpressionSet}
 #'
 #'
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens') {
+construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
 
   release <- switch(species,
                     'Homo sapiens' = '94',
                     'Mus musculus' = '98')
 
-  y <- edgeR::DGEList(SingleCellExperiment::counts(summed), samples = summed@colData)
-  clusters <- y$samples$cluster
+  y <- SingleCellExperiment::counts(summed)
 
+  # construct eset with all clusters
   annot <- dseqr.data::get_ensdb_package(species, release)
   fdata <- rkal::setup_fdata(species, release)
+  fdata <- fdata[row.names(y), ]
+  fdata <- as.data.frame(fdata)
+  row.names(fdata) <- fdata$gene_name
+  pdata <- as.data.frame(summed@colData)
+
+  eset <- Biobase::ExpressionSet(
+    y,
+    phenoData = Biobase::AnnotatedDataFrame(pdata),
+    featureData = Biobase::AnnotatedDataFrame(fdata), annotation = annot)
+
+  # use test and ctrl as group
+  eset$group <- eset$orig.ident
+
+  clusters <- summed$cluster
+  clusts <- levels(clusters)
+
+  # for speed with grid
+  norm.method <- ifelse(length(clusts) > 250,
+                        'upperquartile',
+                        'TMMwsp')
 
   esets <- list()
-  for (clust in levels(clusters)) {
-    yi <- y[, clusters == clust]
+  for (clust in clusts) {
+    is.clust <- clusters == clust
 
     # skip if no replicates
-    group <- yi$samples$orig.ident
+    group <- summed$orig.ident[is.clust]
     neach <- table(group)
     if (any(neach == 0) || sum(neach) < 3) next
 
+    yi <- y[, is.clust]
+    eseti <- eset[, is.clust]
+
     # filter genes
-    keep <- edgeR::filterByExpr(yi, group = group)
+    keep <- edgeR::filterByExpr(yi, group = group, ...)
     yi <- yi[keep, ]
+    eseti <- eseti[keep, ]
 
     # skip if less than 2 genes (required by voom)
     if (nrow(yi) < 2) next
 
     # normalize for composition
-    yi <- edgeR::calcNormFactors(yi)
-
-    # construct eset
-    eset <- rkal::construct_eset(yi, fdata, annot)
-
-    # use test and ctrl as group
-    eset$group <- eset$orig.ident
+    eseti$lib.size <- colSums(yi)
+    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, norm.method)
 
     # add vst transformed values
-    eset <- add_vsd(eset, pbulk = TRUE)
-    esets[[clust]] <- eset
+    eseti <- add_vsd(eseti, pbulk = TRUE)
+    esets[[clust]] <- eseti
   }
 
   return(esets)
