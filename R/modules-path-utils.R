@@ -169,7 +169,7 @@ load_scseq_datasets <- function(data_dir) {
 
 #' Run limma fit for clusters in single cell RNA-Seq dataset
 #'
-#' @param obj \code{SingleCellExperiment} or list of \code{ExpressionSet} objects for pseudobulk.
+#' @param esets list of \code{ExpressionSet} objects for pseudobulk.
 #' @param annot Annotation to use. Default \code{'gene_name'} works for both mouse and human.
 #'
 #' @return Named list with slots: \itemize{
@@ -178,18 +178,13 @@ load_scseq_datasets <- function(data_dir) {
 #' }
 #'
 #' @keywords internal
-run_limma_scseq <- function(obj, annot = 'gene_name') {
+run_limma_scseq <- function(esets, annot = 'gene_name') {
 
-  if (is.list(obj)) {
-    # run as pseudobulk per eset
-    lm_fit <- lapply(obj, function(x) {
-      x <- crossmeta::run_limma_setup(x, list(pdata = Biobase::pData(x)))
-      crossmeta::run_limma(x,  annot = annot, filter = FALSE, quick = TRUE)
-    })
-
-  } else {
-    lm_fit <- fit_lm_scseq(obj)
-  }
+  # run as pseudobulk per eset
+  lm_fit <- lapply(esets, function(eset) {
+    eset <- crossmeta::run_limma_setup(eset, list(pdata = Biobase::pData(eset)))
+    crossmeta::run_limma(eset,  annot = annot, filter = FALSE, quick = TRUE)
+  })
 
   return(lm_fit)
 }
@@ -246,7 +241,7 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
   pdata <- Biobase::AnnotatedDataFrame(as.data.frame(summed@colData))
   eset <- Biobase::ExpressionSet(y, pdata, fdata, annotation = annot)
 
-  # use test and ctrl as group
+  # use groups from meta
   eset$group <- eset$orig.ident
 
   clusters <- summed$cluster
@@ -254,10 +249,10 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
   for (clust in levels(clusters)) {
     is.clust <- clusters == clust
 
-    # skip if no replicates
+    # skip if only one group
     group <- summed$orig.ident[is.clust]
     neach <- table(group)
-    if (any(neach == 0) || sum(neach) < 3) next
+    if (sum(neach>0) < 2) next
 
     yi <- y[, is.clust]
     eseti <- eset[, is.clust]

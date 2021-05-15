@@ -590,7 +590,7 @@ html_space <- function(x, justify = 'right') {
 #' @inheritParams get_cluster_choices
 #'
 #' @return List with cluster stats
-get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, has_replicates = FALSE, use_disk = FALSE, sample_comparison = FALSE, contrast_dir = NULL) {
+get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL, use_disk = FALSE, sample_comparison = FALSE, contrast_dir = NULL) {
 
   stats_dir <- resoln_dir
   if (!is.null(contrast_dir)) stats_dir <- contrast_dir
@@ -629,7 +629,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
   }
 
   # number of significant differentially expressed genes in each cluster (pseudobulk)
-  if (sample_comparison & has_replicates) {
+  if (sample_comparison) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
@@ -1041,22 +1041,15 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   # used for label transfer
   scseq_sample <- downsample_clusters(scseq)
 
+  progress$set(value+1, detail = 'pseudobulk')
+  summed <-  aggregate_across_cells(scseq)
+
   anal <- list(scseq_sample = scseq_sample,
                clusters = scseq$cluster,
+               summed = summed,
                applied = TRUE)
 
   if (reset_annot) anal$annot <- levels(scseq$cluster)
-
-  # pseudobulk by sample if replicates
-  has_replicates <- length(unique(scseq$batch)) > 2
-
-  if (has_replicates) {
-    progress$set(value+1, detail = 'pseudobulk')
-    summed <- aggregate_across_cells(scseq)
-
-
-    anal$summed <- summed
-  }
 
   # save in subdirectory e.g. snn1
   progress$set(value+3, detail = 'saving')
@@ -1065,19 +1058,6 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
 }
 
-run_integrated_anals <- function(obj) {
-
-
-  progress$set(value+2, detail = 'fitting models')
-  lm_fit <- run_limma_scseq(obj)
-  anal_int <- list(summed = summed,
-                   lm_fit_0svs = lm_fit,
-                   pbulk_esets = pbulk_esets,
-                   has_replicates = has_replicates)
-
-  anal <- c(anal, anal_int)
-
-}
 
 aggregate_across_cells <- function(scseq) {
   counts_mat <- SingleCellExperiment::counts(scseq)

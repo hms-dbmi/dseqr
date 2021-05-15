@@ -1,6 +1,14 @@
 run_esmeta <- function(tts) {
-  # only consider genes
-  anals <- lapply(tts, function(tt) list(top_tables = list(tt)))
+  # only for clusters with residual dof
+  anals <- list()
+  for (clust in names(tts)) {
+    tt <- tts[[clust]]
+    if (!'dprime' %in% colnames(tt)) next
+    anals[[clust]] <- list(top_tables = list(tt))
+  }
+
+  if (!length(anals)) return(NULL)
+
   es <- crossmeta::es_meta(anals)
   es <- es$all$filt
   return(es)

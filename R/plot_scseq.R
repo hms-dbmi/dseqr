@@ -181,11 +181,6 @@ plot_feature_sample <- function(feature, scseq, group, reduction = 'TSNE', plot 
   # use the same scale for each sample so that comparable
   suppressMessages(plot <- plot + ggplot2::scale_color_continuous(low = cols[1], high = cols[2], limits = lims))
 
-  # remove control plot labels and legend
-  if (group == 'ctrl')
-    plot <- plot + ggplot2::xlab('') + ggplot2::ylab('') +
-    ggplot2::theme(legend.position = 'none')
-
   return(plot)
 }
 
