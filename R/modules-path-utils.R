@@ -67,8 +67,8 @@ construct_path_df <- function(top_table) {
   df$fdr <- safe.fun(format.pval, top_table$adj.P.Val, eps = 0.005, digits = 2)
   df$description <- tx2gene$description[match(row.names(top_table), tx2gene$gene_name)]
   df$Link <- paste0("<a class='xaxis-tooltip' ",
-                   "href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=",
-                   row.names(top_table), "'>", row.names(top_table), "</a>")
+                    "href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=",
+                    row.names(top_table), "'>", row.names(top_table), "</a>")
 
   dplyr::mutate(df, Gene = factor(Gene, levels = Gene))
 }
@@ -241,26 +241,17 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
   fdata <- fdata[row.names(y), ]
   fdata <- as.data.frame(fdata)
   row.names(fdata) <- fdata$gene_name
-  pdata <- as.data.frame(summed@colData)
 
-  eset <- Biobase::ExpressionSet(
-    y,
-    phenoData = Biobase::AnnotatedDataFrame(pdata),
-    featureData = Biobase::AnnotatedDataFrame(fdata), annotation = annot)
+  fdata <- Biobase::AnnotatedDataFrame(fdata)
+  pdata <- Biobase::AnnotatedDataFrame(as.data.frame(summed@colData))
+  eset <- Biobase::ExpressionSet(y, pdata, fdata, annotation = annot)
 
   # use test and ctrl as group
   eset$group <- eset$orig.ident
 
   clusters <- summed$cluster
-  clusts <- levels(clusters)
-
-  # for speed with grid
-  norm.method <- ifelse(length(clusts) > 250,
-                        'upperquartile',
-                        'TMMwsp')
-
   esets <- list()
-  for (clust in clusts) {
+  for (clust in levels(clusters)) {
     is.clust <- clusters == clust
 
     # skip if no replicates
@@ -281,7 +272,7 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
 
     # normalize for composition
     eseti$lib.size <- colSums(yi)
-    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, norm.method)
+    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, 'TMMwsp')
 
     # add vst transformed values
     eseti <- add_vsd(eseti, pbulk = TRUE)

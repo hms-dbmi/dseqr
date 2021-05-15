@@ -508,7 +508,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
                          options = group_options)
   })
 
-  pbulk_path <- reactive(file.path(resoln_dir(), 'pbulk_esets.qs'))
   summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
   species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
@@ -551,18 +550,11 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       progress$set(message = "Comparing groups:", detail = "loading", value = 1)
 
       # pseudobulk if replicates otherwise not
-      pbulk_path <- pbulk_path()
-      have_pbulk <- file.exists(pbulk_path)
-
-      if (have_pbulk) {
-        obj <- qs::qread(pbulk_path)
-
-      } else if (has_replicates) {
+      if (has_replicates) {
         summed <- summed()
         idents <- unname(groups[summed$batch])
         summed$orig.ident <- factor(idents, levels = c('test', 'ctrl'))
         obj <- construct_pbulk_esets(summed, species())
-        qs::qsave(obj, pbulk_path)
 
       } else {
         obj <- load_scseq_qs(dataset_dir(), meta, groups)
@@ -617,7 +609,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       fit <- qs::qread(fit_path)
 
     } else {
-      browser()
       meta <- up_meta()
 
       # change groups to test/ctrl
@@ -634,18 +625,12 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       progress$set(message = "Comparing groups:", detail = "loading", value = 1)
 
       # pseudobulk if replicates otherwise not
-      pbulk_path <- pbulk_grid_path()
-      have_pbulk <- file.exists(pbulk_path)
-
-      if (have_pbulk) {
-        obj <- qs::qread(pbulk_path)
-
-      } else if (has_replicates) {
+      if (has_replicates) {
         summed <- summed_grid()
         idents <- unname(groups[summed$batch])
         summed$orig.ident <- factor(idents, levels = c('test', 'ctrl'))
-        obj <- construct_pbulk_esets(summed, species(), min.count=3)
-        qs::qsave(obj, pbulk_path)
+        obj <- construct_pbulk_esets(summed, species(),
+                                     min.count = 2, min.total.count = 5)
 
       } else {
         obj <- load_scseq_qs(dataset_dir(), meta, groups)
@@ -654,12 +639,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       # fitting models
       progress$set(detail = "fitting", value = 2)
       fit <- run_limma_scseq(obj)
-
-      unlink(new_contrast_dir, recursive = TRUE)
-      dir.create(new_contrast_dir)
-      rep_path <- file.path(new_contrast_dir, 'has_replicates.qs')
       qs::qsave(fit, fit_path)
-      qs::qsave(has_replicates, rep_path)
 
       # save groups so that loaded next timHe
       enableAll(input_ids)
@@ -791,15 +771,21 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
         if (is.null(cplots_dir)) return(NULL)
         plot_path <- file.path(cplots_dir, pname)
 
+        scseq <- scseq()
         if (file.exists(plot_path)) {
-          pfun <- qs::qread(plot_path)
+          plot_data <- qs::qread(plot_path)
 
         } else {
-          browser()
-          pfun <- plot_scseq_grid(gene, top_tables)
-          pfun <- plot_scseq_dprimes(gene, annot, sel, top_tables, amb)
-          qs::qsave(pfun, plot_path)
+          grid <- get_grid(scseq)
+          reds <- SingleCellExperiment::reducedDimNames(scseq)
+          red  <- reds[reds %in% c('UMAP', 'TSNE')]
+
+          plot_data <- get_gene_diff(gene, top_tables, grid, red)
+          qs::qsave(plot_data, plot_path)
         }
+
+        plot <- plot_scseq_diff(plot_data, gene)
+        pfun <- list(plot = plot, height = 453)
 
       } else {
         scseq <- scseq()
@@ -817,48 +803,6 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
       return(pfun)
     }
   })
-
-  # pfun_left <- reactive({
-  #   req(is_integrated())
-  #
-  #   function(gene) {
-  #     if(!isTruthy(gene)) return(NULL)
-  #
-  #     if (show_dprimes() & is_integrated()) {
-  #       pname <- paste(gene, 'grid.qs', sep='-')
-  #
-  #       cplots_dir <- cplots_dir()
-  #       if (is.null(cplots_dir)) return(NULL)
-  #
-  #       plot_path <- file.path(cplots_dir, pname)
-  #
-  #       if (file.exists(plot_path)) {
-  #         plot_data <- qs::qread(plot_path)
-  #
-  #       } else {
-  #         plot_data <- get_expression_data(scseq(), gene)
-  #         qs::qsave(plot_data, plot_path)
-  #       }
-  #
-  #       plot <- plot_abundance(plot_data)
-  #       pfun <- list(plot = plot, height=453)
-  #
-  #     } else {
-  #       scseq <- scseq()
-  #       if(is.null(scseq)) return(NULL)
-  #       cplots_dir <- cplots_dir()
-  #       if (is.null(cplots_dir)) return(NULL)
-  #       gene_data <- get_feature_data(cplots_dir, scseq, gene)
-  #
-  #       # update base feature plot
-  #       plot <- feature_plot()
-  #       plot <- update_feature_plot(plot, gene_data, gene)
-  #       plot <- plot_feature_sample(gene, scseq(), 'test', plot=plot)
-  #       pfun <- list(plot = plot, height = 453)
-  #     }
-  #     return(pfun)
-  #   }
-  # })
 
 
 
@@ -1015,7 +959,6 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
     } else {
       fit <- lm_fit_grid()
-      browser()
       if (is.null(fit)) return(NULL)
 
       disableAll(input_ids)
@@ -3050,7 +2993,7 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_name, sc_dir,
       plot_data <- qs::qread(apath)
 
     } else {
-      plot_data <- get_abundance_plot_data(scseq)
+      plot_data <- get_abundance_diff(scseq)
       qs::qsave(plot_data, apath)
     }
 
@@ -3060,7 +3003,7 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_name, sc_dir,
   plot <- reactive({
     plot_data <- plot_data()
     if (is.null(plot_data)) return(NULL)
-    plot_abundance(plot_data)
+    plot_scseq_diff(plot_data, feature = 'abundance')
   })
 
 
@@ -3085,41 +3028,34 @@ get_grid <- function(scseq, nx=120, ny=60) {
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
 
   # create grid
-  grid_xi <- seq(min(dat$x), max(dat$x), length.out = nx)
-  grid_yi <- seq(min(dat$y), max(dat$y), length.out = ny)
+  xi <- seq(min(dat$x), max(dat$x), length.out = nx)
+  yi <- seq(min(dat$y), max(dat$y), length.out = ny)
 
   # in nx*ny grid: get xy bin for each point
   points <- cbind(dat$x, dat$y)
-  grid <- data.frame(grid_xi = findInterval(points[,1], grid_xi),
-                     grid_yi = findInterval(points[,2], grid_yi))
+  grid <- data.frame(xi = findInterval(points[,1], xi),
+                     yi = findInterval(points[,2], yi))
 
-  grid$grid_xi <- factor(grid$grid_xi, levels = 1:nx)
-  grid$grid_yi <- factor(grid$grid_yi, levels = 1:ny)
+  grid$grid_xi <- factor(grid$xi, levels = 1:nx)
+  grid$grid_yi <- factor(grid$yi, levels = 1:ny)
 
-  grid_x <- grid_xi[-length(grid_xi)] + 0.5*diff(grid_xi)
-  grid_y <- grid_yi[-length(grid_yi)] + 0.5*diff(grid_yi)
+  x <- xi[-length(xi)] + 0.5*diff(xi)
+  y <- yi[-length(yi)] + 0.5*diff(yi)
 
-  grid$grid_x <- grid_x[grid$grid_xi]
-  grid$grid_y <- grid_y[grid$grid_yi]
+  grid$x <- x[grid$xi]
+  grid$y <- y[grid$yi]
 
-  grid$grid_xi <- grid$grid_xi
-  grid$grid_yi <- grid$grid_yi
-
-  grid$cluster <- paste(grid$grid_xi, grid$grid_yi, sep='-')
+  grid$cluster <- paste(grid$xi, grid$yi, sep='-')
   return(grid)
 }
 
-get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig.ident, sample = scseq$batch) {
+get_abundance_diff <- function(scseq, nx = 120, ny = 60, group = scseq$orig.ident, sample = scseq$batch) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
   red.mat <- SingleCellExperiment::reducedDim(scseq, red)
 
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
-
-  # create grid before downsample
-  x <- seq(min(dat$x), max(dat$x), length.out = nx)
-  y <- seq(min(dat$y), max(dat$y), length.out = ny)
 
   # downsample within group so that each sample has same number of cells
   dsamp <- dat %>%
@@ -3138,12 +3074,14 @@ get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig
     dplyr::sample_n(nmin) %>%
     dplyr::ungroup()
 
+  # create grid on non-downsampled
+  x <- seq(min(dat$x), max(dat$x), length.out = nx)
+  y <- seq(min(dat$y), max(dat$y), length.out = ny)
+
   # in nx*ny grid: get xy bin for downsampled points
   points <- cbind(dsamp$x, dsamp$y)
-
-  points <- cbind(dsamp$x, dsamp$y)
-  binxy <- data.frame(x=findInterval(points[,1], x),
-                      y=findInterval(points[,2], y))
+  binxy <- data.frame(x = findInterval(points[,1], x),
+                      y = findInterval(points[,2], y))
 
   binxy$x <- factor(binxy$x, levels = 1:nx)
   binxy$y <- factor(binxy$y, levels = 1:ny)
@@ -3155,8 +3093,8 @@ get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig
 
   # in nx*ny grid: get xy bin for all points
   points <- cbind(dat$x, dat$y)
-  binxy <- data.frame(x=findInterval(points[,1], x),
-                      y=findInterval(points[,2], y))
+  binxy <- data.frame(x = findInterval(points[,1], x),
+                      y = findInterval(points[,2], y))
 
   binxy$x <- factor(binxy$x, levels = 1:nx)
   binxy$y <- factor(binxy$y, levels = 1:ny)
@@ -3165,7 +3103,8 @@ get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig
   binxy$group <- factor(dat$sample)
   stab <- table(binxy)
   stab <- as.data.frame.table(stab)
-  stab <- tidyr::pivot_wider(stab, names_from=group, values_from = Freq)
+
+  stab <- tidyr::pivot_wider(stab, names_from=group, values_from=Freq)
   rns <- paste(stab$x, stab$y, sep='-')
   stab$x <- stab$y <- NULL
   stab <- as.matrix(stab)
@@ -3198,11 +3137,10 @@ get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig
 
   # alpha 0.1: not significant
   # alpha 0.5-1: significant
-  pt.dat <- d[d$tots>0, ]
+  pt.dat <- d[d$tots > 5, ]
   pt.dat$alpha <- 0.1
   is.sig <- pt.dat$pval < 0.05
-  range02 <- function(x, newMax, newMin){(x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin}
-  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig], 1, 0.5)
+  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig])
 
   pt.dat$direction <- "="
   pt.dat$direction[pt.dat$diff > 0] <- "↑"
@@ -3213,104 +3151,40 @@ get_abundance_plot_data <- function(scseq, nx = 120, ny = 60, group = scseq$orig
 }
 
 
-get_expression_data <- function(scseq, gene, nx = 120, ny = 60) {
-  reds <- SingleCellExperiment::reducedDimNames(scseq)
-  red <- reds[reds %in% c('UMAP', 'TSNE')]
 
-  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
-  dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
-
-  # create grid
-  x <- seq(min(dat$x), max(dat$x), length.out = nx)
-  y <- seq(min(dat$y), max(dat$y), length.out = ny)
-
-  # in nx*ny grid: get xy bin for each point
-  points <- cbind(dat$x, dat$y)
-  binxy <- data.frame(x=findInterval(points[,1], x),
-                      y=findInterval(points[,2], y))
-
-  binxy$x <- factor(binxy$x, levels = 1:nx)
-  binxy$y <- factor(binxy$y, levels = 1:ny)
-
-  # bin gene counts
-  binxy$count <- SingleCellExperiment::counts(scseq)[gene,]
-  binxy$sample <- scseq$batch
-
-  stab <- binxy %>%
-    group_by(sample, x, y, .drop = FALSE) %>%
-    summarise(count = sum(count))
-
-  obj <- tidyr::pivot_wider(stab,
-                            id_cols = c('x', 'y', 'sample'),
-                            names_from = sample,
-                            values_from = count)
-
-  rns <- paste(obj$x, obj$y, sep = '-')
-  obj$x <- obj$y <- NULL
-  obj <- as.matrix(obj)
-  row.names(obj) <- rns
-  has.count <- row.names(obj)[rowSums(obj) != 0]
-  obj <- obj[has.count, ]
-
-  # map from sample to group
-  orig.ident <- scseq$orig.ident
-  names(orig.ident) <- scseq$batch
-  orig.ident <- orig.ident[!duplicated(names(orig.ident))]
-
-  # differential abundance
-  abd <- diff_abundance(obj, orig.ident=orig.ident, filter = FALSE)
-
-  # get logFC/pvals between groups in nx*ny grid
-  d <- stab[, c('x', 'y')] %>%
-    distinct() %>%
-    as.data.frame()
-
-  row.names(d) <- paste(d$x, d$y, sep='-')
-
-  xx <- x[-length(x)] + 0.5*diff(x)
-  d$x <- xx[d$x]
-  yy <- y[-length(y)] + 0.5*diff(y)
-  d$y <- yy[d$y]
-
-  # alpha 0.1: not significant
-  # alpha 0.5-1: significant
-  pt.dat <- d[has.count, ]
-  pt.dat$pval <- 1
-  pt.dat[row.names(abd), 'pval'] <- abd$P.Value
-
-  pt.dat$direction <- '='
-  is.pos <- row.names(abd)[abd$logFC > 0]
-  is.neg <- row.names(abd)[abd$logFC < 0]
-  pt.dat[is.pos, 'direction'] <- "↑"
-  pt.dat[is.neg, 'direction'] <- "↓"
-  pt.dat$direction <- factor(pt.dat$direction, levels = c('↑', '↓', '='), ordered = TRUE)
-
-  pt.dat$alpha <- 0.1
-  is.sig <- pt.dat$pval < 0.05
-  range02 <- function(x, newMax, newMin){(x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin}
-  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig], 1, 0.5)
-
-
-  return(list(pt.dat=pt.dat, red=red))
-}
-
-
-plot_abundance <- function(plot_data) {
+plot_scseq_diff <- function(plot_data, feature = 'abundance') {
 
   list2env(plot_data, envir = environment())
 
-  title <- paste0('Test vs Control: Abundance')
+  title <- 'Test vs Control: Abundance'
+  delta_name <- 'Δ cells'
 
-  ggplot2::ggplot(ggplot2::aes(x=grid_x, y=grid_y, fill=direction, alpha=alpha), data=pt.dat) +
+  if (feature != 'abundance') {
+    title <- paste('Test vs Control:', feature)
+    delta_name <- 'Δ gene'
+  }
+
+  # color per direction
+  fill <- c('#A50F15', '#08519C', '#FFFFFF')
+  names(fill) <- levels(pt.dat$direction)
+  fill <- fill[names(fill) %in% pt.dat$direction]
+
+  n.alpha <- length(unique(pt.dat$alpha))
+  b.alpha <- c(.5, 0.1)
+  l.alpha <- c('< .05', '≥ .05')
+
+  if (n.alpha == 1) {
+    b.alpha <- 0.1
+    l.alpha <- '≥ .05'
+  }
+
+  ggplot2::ggplot(ggplot2::aes(x=x, y=y, fill=direction, alpha=alpha), data=pt.dat) +
     ggplot2::geom_tile(color='lightgray') +
     cowplot::theme_cowplot() +
     theme_no_axis_vals() +
     theme_dimgray(with_nums = FALSE) +
-    ggplot2::scale_fill_manual(name = 'Δ cells',
-                               values = c('#A50F15', '#08519C', '#FFFFFF')) +
-    ggplot2::scale_alpha_continuous(name = 'p-val',
-                                    breaks = c(.5, 0.1),
-                                    labels = c('< .05', '≥ .05')) +
+    ggplot2::scale_fill_manual(name = delta_name, values = fill) +
+    ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
     ggplot2::theme(legend.position = 'right',
                    axis.ticks.x = ggplot2::element_blank(),
                    axis.ticks.y = ggplot2::element_blank(),
@@ -3326,7 +3200,7 @@ plot_abundance <- function(plot_data) {
 }
 
 
-plot_scseq_grid <- function(gene, tts, grid) {
+get_gene_diff <- function(gene, tts, grid, red) {
 
   tt <- lapply(tts, function(x) x[gene, ])
   tt <- do.call(rbind, tt)
@@ -3343,15 +3217,14 @@ plot_scseq_grid <- function(gene, tts, grid) {
     filter(n > 5) %>% # at least n cells
     dplyr::rename(pval = P.Value, direction = logFC) %>%
     dplyr::mutate(pval = replace(pval, is.na(pval), 1),
-                  direction = case_when(is.na(direction) ~ '=',
+                  direction = case_when(is.na(direction) ~ '?',
                                         direction > 0 ~ '↑',
                                         direction < 0 ~ '↓'),
                   alpha = case_when(pval >= 0.05 ~ 0.1,
-                                    pval <  0.05 ~ range02(pval)))
+                                    pval <  0.05 ~ range02(-log10(pval)))) %>%
+    dplyr::mutate(direction = factor(direction, levels = c('↑', '↓', '?'), ordered = TRUE))
 
-
-  plot_abundance(list(pt.dat=pt.dat, red=red))
-
+  return(list(pt.dat=pt.dat, red=red))
 }
 
 range02 <- function(x, newMax=1, newMin=0.5){

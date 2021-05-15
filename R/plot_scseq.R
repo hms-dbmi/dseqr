@@ -137,8 +137,8 @@ plot_feature <- function(scseq,
 
   FeaturePlot(scseq, feature, reduction = reduction, pt.size = pt.size, order = TRUE, cols = cols) +
     theme_no_axis_vals() +
-    ggplot2::xlab('TSNE1') +
-    ggplot2::ylab('TSNE2') +
+    ggplot2::xlab(paste0(reduction, '1')) +
+    ggplot2::ylab(paste0(reduction, '2')) +
     ggplot2::theme(plot.title = ggplot2::element_blank()) +
     theme_dimgray(with_nums = FALSE) +
     ggplot2::ggtitle(title) +
