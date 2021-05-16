@@ -3172,7 +3172,9 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     is.num <- is.gene || is.numeric(scseq@colData[[gene]])
     if (!is.num) return(NULL)
 
-    dat_path <- file.path(plots_dir(), paste(gene, cluster, 'cluster_ridgedat.qs', sep='-'))
+    fparts <- c(gene, cluster, 'cluster_ridgedat.qs')
+    fname <- paste(fparts[fparts != ''], collapse = '-')
+    dat_path <- file.path(plots_dir(), fname)
 
     if (file.exists(dat_path)) {
       annot <- annot()

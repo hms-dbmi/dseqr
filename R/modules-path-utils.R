@@ -222,7 +222,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
+construct_pbulk_esets <- function(summed, species = 'Homo sapiens', norm.method = 'TMMwsp', ...) {
 
   release <- switch(species,
                     'Homo sapiens' = '94',
@@ -267,7 +267,7 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
 
     # normalize for composition
     eseti$lib.size <- colSums(yi)
-    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, 'TMMwsp')
+    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, norm.method)
 
     # add vst transformed values
     eseti <- add_vsd(eseti, pbulk = TRUE)

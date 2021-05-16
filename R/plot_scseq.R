@@ -205,6 +205,7 @@ update_feature_plot <- function(plot,
 
   prev <- tail(colnames(plot$data), 1)
   col <- make.names(feature)
+  plot$data <- plot$data[names(feature_data), ]
   plot$data[[prev]] <- NULL
   plot$data[[col]] <- feature_data[row.names(plot$data)]
 
@@ -227,39 +228,6 @@ update_feature_plot <- function(plot,
   return(plot)
 
 }
-
-
-
-#' Get Data to Update Feature Plot
-#'
-#' If feature data previously saved, then it is loaded. Otherwise, feature
-#' data is saved for subsequent calls.
-#'
-#' @param plots_dir Path to directory where feature data is saved
-#' @param scseq SingleCellExperiment
-#' @param feature Name of feature to get
-#'
-#' @return Named numeric vector of feature values. Names are cell names.
-#' @keywords internal
-#'
-get_feature_data <- function(plots_dir, scseq, feature) {
-  # cache/get data for new feature
-  dat_path <- file.path(plots_dir, paste0(feature, '_data.qs'))
-  if (file.exists(dat_path)) {
-    fdat <- qs::qread(dat_path)
-
-  } else {
-    is.gene <- feature %in% row.names(scseq)
-    if (is.gene) fdat <- SingleCellExperiment::logcounts(scseq)[feature, ]
-    else fdat <- scseq[[feature]]
-    qs::qsave(fdat, dat_path)
-  }
-  names(fdat) <- colnames(scseq)
-  return(fdat)
-}
-
-
-
 
 #' Downsample cells within each cluster across a group
 #'
@@ -327,7 +295,7 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #' @return list used by \link{VlnPlot}
 #'
 #' @keywords internal
-get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE) {
+get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, tlogs = NULL) {
   n <- NULL
 
   if (isTruthy(selected_cluster)) {
@@ -367,9 +335,9 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 
   # either highlight test group or selected cluster
   if (by.sample) {
-    scseq <- scseq[, scseq$cluster %in% sel]
-    y <- factor(scseq$batch)
-    hl <- scseq$orig.ident
+    keep <- scseq$cluster %in% sel
+    y <- factor(scseq$batch[keep])
+    hl <- scseq$orig.ident[keep]
 
     # cluster name get's appended by VlnPlot
     title <- paste('Expression by Sample:', feature, 'in')
@@ -384,7 +352,9 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 
 
   if (feature %in% row.names(scseq)) {
-    x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+    if (!is.null(tlogs)) x <- fast_col_extract(tlogs, feature)
+    else x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+    if (exists('keep')) x <- x[keep]
 
   } else {
     x <- scseq[[feature]]
