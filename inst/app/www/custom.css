@@ -310,3 +310,9 @@ input[type=number]::-webkit-outer-spin-button {
     align-items: flex-end;
   }
 }
+
+
+.fast-spin {
+  -webkit-animation: fa-spin 1s infinite linear;
+  animation: fa-spin 1s infinite linear;
+}
