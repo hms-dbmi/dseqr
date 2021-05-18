@@ -637,3 +637,181 @@ col2hex <- function(cname, dark) {
                  green = colMat[2, ]/255,
                  blue = colMat[3, ]/255)
 }
+
+
+plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
+
+  title <- 'Difference in Test vs Control Samples: Abundance'
+  delta_name <- 'Δ cells'
+
+  if (feature != 'abundance') {
+    title <- paste('Difference in Test vs Control Samples:', feature)
+    delta_name <- 'Δ gene'
+  }
+
+  # color per direction
+  fill <- c('#A50F15', '#08519C', '#FFFFFF')
+  names(fill) <- levels(pt.dat$direction)
+  fill <- fill[names(fill) %in% pt.dat$direction]
+
+  n.alpha <- length(unique(pt.dat$alpha))
+  b.alpha <- c(.5, 0.1)
+  l.alpha <- c('< .05', '≥ .05')
+
+  if (n.alpha == 1) {
+    b.alpha <- 0.1
+    l.alpha <- '≥ .05'
+  }
+
+  ggplot2::ggplot(ggplot2::aes(x=x, y=y, fill=direction, alpha=alpha), data=pt.dat) +
+    ggplot2::geom_tile(color='lightgray') +
+    cowplot::theme_cowplot() +
+    theme_no_axis_vals() +
+    theme_dimgray(with_nums = FALSE) +
+    ggplot2::scale_fill_manual(name = delta_name, values = fill) +
+    ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
+    ggplot2::theme(legend.position = 'right',
+                   axis.ticks.x = ggplot2::element_blank(),
+                   axis.ticks.y = ggplot2::element_blank(),
+                   legend.title = ggplot2::element_text(size=12),
+                   legend.text = ggplot2::element_text(size=10),
+                   plot.title.position = "plot",
+                   plot.title = ggplot2::element_text(color = "#333333", hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 15))) +
+    ggplot2::guides(fill = ggplot2::guide_legend(order = 1),
+                    alpha = ggplot2::guide_legend(order = 2)) +
+    ggplot2::ggtitle(title) +
+    ggplot2::xlab('') +
+    ggplot2::ylab('')
+}
+
+
+get_gene_diff <- function(gene, tts, grid) {
+
+  tt <- lapply(tts, function(x) x[gene, ])
+  tt <- do.call(rbind, tt)
+  tt <- tt[!is.na(tt$logFC), c('P.Value', 'logFC')]
+  tt$cluster <- row.names(tt)
+
+  # get points in grid with cells
+  pt.dat <- grid %>%
+    add_count(grid_xi, grid_yi) %>%
+    left_join(tt) %>%
+    distinct() %>%
+    filter(n > 5) %>% # at least n cells
+    dplyr::rename(pval = P.Value, direction = logFC) %>%
+    dplyr::mutate(pval = replace(pval, is.na(pval), 1),
+                  direction = case_when(is.na(direction) ~ '?',
+                                        direction > 0 ~ '↑',
+                                        direction < 0 ~ '↓'),
+                  alpha = case_when(pval >= 0.05 ~ 0.1,
+                                    pval <  0.05 ~ range02(-log10(pval)))) %>%
+    dplyr::mutate(direction = factor(direction, levels = c('↑', '↓', '?'), ordered = TRUE))
+
+  return(pt.dat)
+}
+
+get_abundance_diff <- function(scseq, nx = 120, ny = 60, group = scseq$orig.ident, sample = scseq$batch) {
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  red <- reds[reds %in% c('UMAP', 'TSNE')]
+
+  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+
+  dat <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
+
+  # downsample within group so that each sample has same number of cells
+  dsamp <- dat %>%
+    dplyr::add_count(sample) %>%
+    dplyr::group_by(group) %>%
+    dplyr::mutate(nmin=min(n)) %>%
+    dplyr::group_by(sample) %>%
+    dplyr::sample_n(nmin) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-n, -nmin)
+
+  # downsample so that each group has same number of cells
+  nmin <- min(table(dsamp$group))
+  dsamp <- dsamp %>%
+    dplyr::group_by(group) %>%
+    dplyr::sample_n(nmin) %>%
+    dplyr::ungroup()
+
+  # create grid on non-downsampled
+  x <- seq(min(dat$x), max(dat$x), length.out = nx)
+  y <- seq(min(dat$y), max(dat$y), length.out = ny)
+
+  # in nx*ny grid: get xy bin for downsampled points
+  points <- cbind(dsamp$x, dsamp$y)
+  binxy <- data.frame(x = findInterval(points[,1], x),
+                      y = findInterval(points[,2], y))
+
+  binxy$x <- factor(binxy$x, levels = 1:nx)
+  binxy$y <- factor(binxy$y, levels = 1:ny)
+
+  # bin by group for color (logFC sign)
+  binxy$group <- factor(dsamp$group)
+  gtab <- table(binxy)
+  gtab <- as.data.frame.table(gtab)
+
+  # in nx*ny grid: get xy bin for all points
+  points <- cbind(dat$x, dat$y)
+  binxy <- data.frame(x = findInterval(points[,1], x),
+                      y = findInterval(points[,2], y))
+
+  binxy$x <- factor(binxy$x, levels = 1:nx)
+  binxy$y <- factor(binxy$y, levels = 1:ny)
+
+  # bin by sample for alpha (pvals)
+  binxy$group <- factor(dat$sample)
+  stab <- table(binxy)
+  stab <- as.data.frame.table(stab)
+
+  stab <- tidyr::pivot_wider(stab, names_from=group, values_from=Freq)
+  rns <- paste(stab$x, stab$y, sep='-')
+  stab$x <- stab$y <- NULL
+  stab <- as.matrix(stab)
+  row.names(stab) <- rns
+  stab <- stab[rowSums(stab) != 0, ]
+
+  uniq <- !duplicated(dat$sample)
+  levs <- dat$group[uniq]
+  names(levs) <- dat$sample[uniq]
+  orig.ident <- levs[colnames(stab)]
+  abd <- diff_abundance(stab, orig.ident=orig.ident, filter = FALSE)
+
+  # get difference in number of cells between groups in nx*ny grid
+  is.in <- gtab$group == 'test'
+  d <- gtab[is.in, ]
+  row.names(d) <- paste(d$x, d$y, sep='-')
+  d$pval <- 1
+  d[row.names(abd), 'pval'] <- abd$P.Value
+  d$tots <- d$Freq + gtab$Freq[!is.in]
+  d$diff <- d$Freq - gtab$Freq[!is.in]
+
+  # scale difference by total number of cells
+  not.zero <- d$tots != 0
+  d$diff[not.zero] <- d$diff[not.zero]/d$tots[not.zero]
+
+  xx <- x[-length(x)] + 0.5*diff(x)
+  d$x <- xx[d$x]
+  yy <- y[-length(y)] + 0.5*diff(y)
+  d$y <- yy[d$y]
+
+  # alpha 0.1: not significant
+  # alpha 0.5-1: significant
+  pt.dat <- d[d$tots > 5, ]
+  pt.dat$alpha <- 0.1
+  is.sig <- pt.dat$pval < 0.05
+  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig])
+
+  pt.dat$direction <- "="
+  pt.dat$direction[pt.dat$diff > 0] <- "↑"
+  pt.dat$direction[pt.dat$diff < 0] <- "↓"
+  pt.dat$direction <- factor(pt.dat$direction, levels = c('↑', '↓', '='), ordered = TRUE)
+
+  return(pt.dat)
+}
+
+
+range02 <- function(x, newMax=1, newMin=0.5){
+  (x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin
+}

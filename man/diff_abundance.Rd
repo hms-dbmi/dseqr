@@ -14,6 +14,8 @@ diff_abundance(
 }
 \arguments{
 \item{obj}{\code{SingleCellExperiment} or count matrix}
+
+\item{orig.ident}{factor of group identities with length \code{ncol(obj)}}
 }
 \description{
 Run differential abundance analysis

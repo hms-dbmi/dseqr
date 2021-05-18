@@ -871,6 +871,19 @@ get_gene_table <- function(markers,
   return(table)
 }
 
+construct_top_markers <- function(markers, scseq) {
+
+  # top 10 markers per cluster (allow repeats)
+  top <- lapply(markers, head, 10)
+  top <- data.table::rbindlist(top)
+
+  # rest of genes
+  rest <- data.table::data.table(group = '',
+                                 feature = setdiff(row.names(scseq), top$feature))
+
+  rbind(top, rest, fill = TRUE)
+}
+
 
 
 validate_up_meta <- function(res, ref) {
@@ -1720,4 +1733,108 @@ get_resoln_name <- function(sc_dir, dataset_name) {
 load_resoln <- function(dataset_dir) {
   resoln_path <- file.path(dataset_dir, 'resoln.qs')
   paste0('snn', sapply(resoln_path, qread.safe, .nofile = 1))
+}
+
+
+#' Run limma on pseudobulk experiment
+#'
+#' @param meta data.frame of sample metadata with column \code{group} and \code{row.names}
+#'   set with \code{summed$batch}
+#' @param fit_path path to save fit to.
+#' @param species species name used to retrieve feature annotation.
+#' @param dataset_name name of dataset (default NULL). Used as return value if \code{summed} is \code{NULL}.
+#' @param summed_path path to read \code{summed} from with \code{qs::qread}.
+#' @param summed pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
+#'   and the call is assumed to originate from \code{callr::r_bg}.
+#' @param progress progress object or \code{NULL}.
+#' @param ... additional arguments to \link[edgeR]{filterByExpr}.
+#'
+#' @return \code{dataset_name} if \code{summed} is \code{NULL}. Otherwise, a fit object.
+#' @export
+#'
+run_limma_scseq <- function(meta, fit_path, species, summed_path = NULL, summed = NULL, progress = NULL, value = 0, ...) {
+
+  # if no summed then running with callr::r_bg
+  if (is.null(summed)) {
+    summed <- qs::qread(summed_path)
+    is_bg <- TRUE
+  }
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+  groups <- meta$group
+  names(groups) <- row.names(meta)
+
+  # need at least two groups
+  gtab <- table(groups)
+  if (length(gtab) < 2) return(NULL)
+
+  # add groups
+  idents <- unname(groups[summed$batch])
+  summed$orig.ident <- factor(idents)
+
+  # TODO: get logFC for all genes with counts with logfc.only argument to crossmeta::run_limma
+  progress$set(detail = "fit-prep", value = value+1)
+  esets <- construct_pbulk_esets(summed, species, ...)
+
+  # fitting models
+  progress$set(detail = "fitting", value = value+2)
+  fit <- lapply(esets, function(eset) {
+    eset <- crossmeta::run_limma_setup(eset, list(pdata = Biobase::pData(eset)))
+    crossmeta::run_limma(eset,  annot = 'gene_name', filter = FALSE)
+  })
+  qs::qsave(fit, fit_path)
+
+  progress$set(value = value+4)
+
+  # fit too big to return from callr::r_bg
+  if (is_bg) return(TRUE)
+  else return(fit)
+}
+
+
+get_grid <- function(scseq, nx=120, ny=60) {
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  red <- reds[reds %in% c('UMAP', 'TSNE')]
+
+  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+  dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
+
+  # create grid
+  xi <- seq(min(dat$x), max(dat$x), length.out = nx)
+  yi <- seq(min(dat$y), max(dat$y), length.out = ny)
+
+  # in nx*ny grid: get xy bin for each point
+  points <- cbind(dat$x, dat$y)
+  grid <- data.frame(xi = findInterval(points[,1], xi),
+                     yi = findInterval(points[,2], yi))
+
+  grid$grid_xi <- factor(grid$xi, levels = 1:nx)
+  grid$grid_yi <- factor(grid$yi, levels = 1:ny)
+
+  x <- xi[-length(xi)] + 0.5*diff(xi)
+  y <- yi[-length(yi)] + 0.5*diff(yi)
+
+  grid$x <- x[grid$xi]
+  grid$y <- y[grid$yi]
+
+  grid$cluster <- paste(grid$xi, grid$yi, sep='-')
+  return(grid)
+}
+
+
+# faster column extraction from dgCMatrix
+fast_col_extract <- function(m, col) {
+  i <- which(colnames(m) == col)
+  r <- numeric(nrow(m))
+  inds <- seq(from = m@p[i]+1,
+              to = m@p[i+1],
+              length.out = max(0, m@p[i+1] - m@p[i]))
+  r[m@i[inds]+1] <- m@x[inds]
+  names(r) <- row.names(m)
+  return(r)
 }

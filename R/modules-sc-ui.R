@@ -57,7 +57,6 @@ scPageUI <- function(id, tab, active) {
 }
 
 
-
 #' Input form for Single Cell Exploration page
 #'
 #' @keywords internal
@@ -166,6 +165,7 @@ labelTransferFormInput <- function(id) {
   })
 }
 
+
 #' Input form for specifying leiden resolution parameter
 #'
 #' @keywords internal
@@ -233,6 +233,7 @@ integrationFormInput <- function(id) {
     )
   })
 }
+
 
 #' Input form for subsetting single cell datasets
 #'
@@ -328,10 +329,13 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   }
 
   div(id = 'sc-intro-feature',
-      div(style='height: 90px;', id=ns('gene_search_input'),
+      tags$label(class='control-label', `for`=ns('gene_table'), 'Select feature to plot:'),
+      DT::dataTableOutput(ns('gene_table'), width='100%', height='291px'),
+      div(id=ns('gene_search_input'),
+          style = 'height: 60px',
           shinypanel::textInputWithButtons(
             inputId = ns('gene_search'),
-            label = 'Feature to plot:',
+            label = '',
             btn1, btn2,
             placeholder = 'type regex to search'
           )
@@ -344,8 +348,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
             actionButton(ns('save_custom_metric'), '',
                          icon = icon('plus', 'fa-fw'),
                          title = 'Save custom metric'))
-      ),
-      DT::dataTableOutput(ns('gene_table'), width='100%', height='291px')
+      )
   )
 }
 
@@ -358,6 +361,7 @@ scClusterPlotOutput <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotUI(ns('cluster_plot'))
 }
+
 
 #' Output plot of single cell abundances
 #'
@@ -378,6 +382,7 @@ scMarkerPlotOutput <- function(id) {
   shinydlplot::downloadablePlotUI(ns('marker_plot'))
 }
 
+
 #' Output plot of biogps data for a gene
 #'
 #' @keywords internal
@@ -386,6 +391,7 @@ scBioGpsPlotOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns('biogps_plot'), height = '423px')
 }
+
 
 #' Output plot/plotly for samples comparison with integrated datasets
 #'
@@ -398,6 +404,7 @@ scSampleMarkerPlotOutput <- function(id) {
     plotly::plotlyOutput(ns('plotly'), height = 'auto')
   )
 }
+
 
 #' Output Ridgeline plot
 #'
@@ -434,6 +441,7 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
 
 }
 
+
 scSampleGroupsInput <- function(id) {
   ns <- NS(id)
 
@@ -456,4 +464,3 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
-

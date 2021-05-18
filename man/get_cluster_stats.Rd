@@ -8,7 +8,6 @@ get_cluster_stats(
   resoln_dir = NULL,
   scseq = NULL,
   top_tables = NULL,
-  has_replicates = FALSE,
   use_disk = FALSE,
   sample_comparison = FALSE,
   contrast_dir = NULL
@@ -23,13 +22,13 @@ if \code{NULL} (Default), will be loaded.}
 \item{top_tables}{List of \code{limma::topTable} results used by
 scSampleComparison for integrated datasets.}
 
-\item{has_replicates}{Boolean indicating if integrated dataset has multiple
-samples in at least one group. Used by scSampleComparison.}
-
 \item{use_disk}{Should results by saved to disk? used by scSampleComparison
 to persist results to disk.}
 
 \item{sample_comparison}{is this for test vs control comparion? Default is \code{FALSE}.}
+
+\item{has_replicates}{Boolean indicating if integrated dataset has multiple
+samples in at least one group. Used by scSampleComparison.}
 }
 \value{
 List with cluster stats

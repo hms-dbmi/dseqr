@@ -167,28 +167,6 @@ load_scseq_datasets <- function(data_dir) {
 }
 
 
-#' Run limma fit for clusters in single cell RNA-Seq dataset
-#'
-#' @param esets list of \code{ExpressionSet} objects for pseudobulk.
-#' @param annot Annotation to use. Default \code{'gene_name'} works for both mouse and human.
-#'
-#' @return Named list with slots: \itemize{
-#'  \item fit result of \link[limma]{lmFit}.
-#'  \item mod \code{model.matrix} used for \code{fit}.
-#' }
-#'
-#' @keywords internal
-run_limma_scseq <- function(esets, annot = 'gene_name') {
-
-  # run as pseudobulk per eset
-  lm_fit <- lapply(esets, function(eset) {
-    eset <- crossmeta::run_limma_setup(eset, list(pdata = Biobase::pData(eset)))
-    crossmeta::run_limma(eset,  annot = annot, filter = FALSE, quick = TRUE)
-  })
-
-  return(lm_fit)
-}
-
 #' Loads markers for single cell cluster
 #'
 #' @param selected_clusters Character vector of integers
@@ -222,7 +200,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens', norm.method = 'TMMwsp', ...) {
+construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
 
   release <- switch(species,
                     'Homo sapiens' = '94',
@@ -267,7 +245,7 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', norm.method 
 
     # normalize for composition
     eseti$lib.size <- colSums(yi)
-    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, norm.method)
+    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, 'TMMwsp')
 
     # add vst transformed values
     eseti <- add_vsd(eseti, pbulk = TRUE)

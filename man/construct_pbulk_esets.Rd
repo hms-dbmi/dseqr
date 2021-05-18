@@ -4,10 +4,12 @@
 \alias{construct_pbulk_esets}
 \title{Run pseudo bulk limma fit}
 \usage{
-construct_pbulk_esets(summed, species = "Homo sapiens")
+construct_pbulk_esets(summed, species = "Homo sapiens", ...)
 }
 \arguments{
 \item{summed}{Pseudobulk \code{SingleCellExperiment}}
+
+\item{...}{additional arguments to \link[edgeR]{filterByExpr}}
 }
 \value{
 Normalized \code{ExpressionSet}
