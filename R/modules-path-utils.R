@@ -235,7 +235,7 @@ construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
     yi <- y[, is.clust]
     eseti <- eset[, is.clust]
 
-    # filter genes
+    # remove genes with no counts
     keep <- edgeR::filterByExpr(yi, group = group, ...)
     yi <- yi[keep, ]
     eseti <- eseti[keep, ]

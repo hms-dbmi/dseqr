@@ -293,7 +293,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
 check_has_scseq <- function(dataset_names, sc_dir) {
   sapply(dataset_names, function(dataset_name) {
     fnames <- list.files(file.path(sc_dir, dataset_name))
-    any(fnames %in% c('scseq.qs', 'scseq.qs'))
+    any(fnames %in% c('scseq.qs', 'shell.qs'))
   })
 }
 
@@ -1424,7 +1424,14 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   dir.create(dataset_dir, showWarnings = FALSE)
   for (type in names(scseq_data)) {
     item <- scseq_data[[type]]
-    qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type), preset = 'fast')
+
+    if (type == 'scseq') {
+      dataset_dir <- file.path(sc_dir, dataset_name)
+      split_save_scseq(item, dataset_dir)
+
+    } else {
+      qs::qsave(item, scseq_part_path(sc_dir, dataset_name, type), preset = 'fast')
+    }
   }
 
   return(NULL)
@@ -1439,12 +1446,20 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #' @return SingleCellExperiment
 #' @keywords internal
 #'
-load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL) {
-  scseq_path <- file.path(dataset_dir, 'scseq.qs')
-  transition_efs(scseq_path)
-  resoln_name <- load_resoln(dataset_dir)
+load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = FALSE, with_counts = FALSE) {
+  scseq <- qs::qread(file.path(dataset_dir, 'shell.qs'))
 
-  scseq <- qs::qread(scseq_path)
+  if (with_logs) {
+    dgclogs <- qs::qread(file.path(dataset_dir, 'dgclogs.qs'))
+    SingleCellExperiment::logcounts(scseq) <- dgclogs
+  }
+
+  if (with_counts) {
+    counts <- qs::qread(file.path(dataset_dir, 'counts.qs'))
+    SingleCellExperiment::counts(scseq) <- counts
+  }
+
+  resoln_name <- load_resoln(dataset_dir)
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
 
@@ -1777,16 +1792,21 @@ run_limma_scseq <- function(meta, fit_path, species, summed_path = NULL, summed 
   idents <- unname(groups[summed$batch])
   summed$orig.ident <- factor(idents)
 
-  # TODO: get logFC for all genes with counts with logfc.only argument to crossmeta::run_limma
+  # TODO: for grid, move this to
   progress$set(detail = "fit-prep", value = value+1)
-  esets <- construct_pbulk_esets(summed, species, ...)
+  esets <- construct_pbulk_esets(summed, species, min.total.count = 8, min.count = 5)
 
   # fitting models
   progress$set(detail = "fitting", value = value+2)
-  fit <- lapply(esets, function(eset) {
+  fit <- list()
+  for (i in seq_along(esets)) {
+    cat('working on', i, 'of', length(esets), '...\n')
+    clust <- names(esets)[i]
+    eset <- esets[[i]]
     eset <- crossmeta::run_limma_setup(eset, list(pdata = Biobase::pData(eset)))
-    crossmeta::run_limma(eset,  annot = 'gene_name', filter = FALSE)
-  })
+    fit[[clust]] <- fit_lm(eset,  quick = TRUE)
+  }
+
   qs::qsave(fit, fit_path)
 
   progress$set(value = value+4)
@@ -1828,13 +1848,37 @@ get_grid <- function(scseq, nx=120, ny=60) {
 
 
 # faster column extraction from dgCMatrix
-fast_col_extract <- function(m, col) {
-  i <- which(colnames(m) == col)
-  r <- numeric(nrow(m))
+fast_dgr_row <- function(m, row) {
+  i <- which(row.names(m) == row)
+  r <- numeric(ncol(m))
   inds <- seq(from = m@p[i]+1,
               to = m@p[i+1],
               length.out = max(0, m@p[i+1] - m@p[i]))
-  r[m@i[inds]+1] <- m@x[inds]
-  names(r) <- row.names(m)
+  r[m@j[inds]+1] <- m@x[inds]
+  names(r) <- colnames(m)
   return(r)
+}
+
+# convert dgCMatrix to dgRMatrix
+dgc_to_dgr <- function(dgc) {
+  dgc.t <- Matrix::t(dgc)
+  dgr <- new('dgRMatrix', j = dgc.t@i, p = dgc.t@p, x = dgc.t@x, Dim = dim(dgc))
+  dimnames(dgr) <- dimnames(dgc)
+  return(dgr)
+}
+
+
+split_save_scseq <- function(scseq, dataset_dir) {
+  # save as seperate parts
+  dgc.logs <- SingleCellExperiment::logcounts(scseq)
+  counts <- SingleCellExperiment::counts(scseq)
+  dgr.logs <- dgc_to_dgr(dgc.logs)
+
+  SingleCellExperiment::logcounts(scseq) <- NULL
+  SingleCellExperiment::counts(scseq) <- NULL
+
+  qs::qsave(scseq, file.path(dataset_dir, 'shell.qs'), preset = 'fast')
+  qs::qsave(dgc.logs, file.path(dataset_dir, 'dgclogs.qs'), preset = 'fast')
+  qs::qsave(dgr.logs, file.path(dataset_dir, 'dgrlogs.qs'), preset = 'fast')
+  qs::qsave(counts, file.path(dataset_dir, 'counts.qs'), preset = 'fast')
 }

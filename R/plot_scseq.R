@@ -295,7 +295,7 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #' @return list used by \link{VlnPlot}
 #'
 #' @keywords internal
-get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, tlogs = NULL) {
+get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, dgrlogs = NULL) {
   n <- NULL
 
   if (isTruthy(selected_cluster)) {
@@ -352,7 +352,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 
 
   if (feature %in% row.names(scseq)) {
-    if (!is.null(tlogs)) x <- fast_col_extract(tlogs, feature)
+    if (!is.null(dgrlogs)) x <- fast_dgr_row(dgrlogs, feature)
     else x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
     if (exists('keep')) x <- x[keep]
 
@@ -641,11 +641,11 @@ col2hex <- function(cname, dark) {
 
 plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
 
-  title <- 'Difference in Test vs Control Samples: Abundance'
+  title <- 'Abundance in Test vs Control Samples'
   delta_name <- 'Δ cells'
 
   if (feature != 'abundance') {
-    title <- paste('Difference in Test vs Control Samples:', feature)
+    title <- paste('Expression in Test vs Control Samples:', feature)
     delta_name <- 'Δ gene'
   }
 
