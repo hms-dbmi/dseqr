@@ -687,8 +687,11 @@ plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
 
 get_gene_diff <- function(gene, tts, grid) {
 
-  tt <- lapply(tts, function(x) x[gene, ])
-  tt <- do.call(rbind, tt)
+  tts <- lapply(tts, function(x) x[gene,, drop=FALSE])
+  tts <- tts[!is.na(tts)]
+  tt <- data.table::rbindlist(tts, fill = TRUE)
+  tt <- as.data.frame(tt)
+  row.names(tt) <- names(tts)
   tt <- tt[!is.na(tt$logFC), c('P.Value', 'logFC')]
   tt$cluster <- row.names(tt)
 

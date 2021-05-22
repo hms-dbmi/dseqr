@@ -8,10 +8,13 @@
 #' @keywords internal
 get_drug_paths <- function(data_dir, suffix, ftype = '.qs') {
   suffix <- paste0(suffix, ftype)
+  drugs_dir <- file.path(data_dir, 'drugs')
+  dir.create(drugs_dir, showWarnings = FALSE)
+
   list(
-    cmap = file.path(data_dir, paste0('cmap_res_', suffix)),
-    l1000_drugs = file.path(data_dir, paste0('l1000_drugs_res_', suffix)),
-    l1000_genes = file.path(data_dir, paste0('l1000_genes_res_', suffix))
+    cmap = file.path(drugs_dir, paste0('cmap_res_', suffix)),
+    l1000_drugs = file.path(drugs_dir, paste0('l1000_drugs_res_', suffix)),
+    l1000_genes = file.path(drugs_dir, paste0('l1000_genes_res_', suffix))
   )
 }
 

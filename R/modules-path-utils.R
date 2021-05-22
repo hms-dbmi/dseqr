@@ -200,112 +200,52 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'
 #'
 #'@keywords internal
-construct_pbulk_esets <- function(summed, species = 'Homo sapiens', ...) {
-
-  release <- switch(species,
-                    'Homo sapiens' = '94',
-                    'Mus musculus' = '98')
+construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 
   y <- SingleCellExperiment::counts(summed)
 
-  # construct eset with all clusters
-  annot <- dseqr.data::get_ensdb_package(species, release)
-  fdata <- rkal::setup_fdata(species, release)
-  fdata <- fdata[row.names(y), ]
-  fdata <- as.data.frame(fdata)
-  row.names(fdata) <- fdata$gene_name
-
-  fdata <- Biobase::AnnotatedDataFrame(fdata)
-  pdata <- Biobase::AnnotatedDataFrame(as.data.frame(summed@colData))
-  eset <- Biobase::ExpressionSet(y, pdata, fdata, annotation = annot)
-
   # use groups from meta
-  eset$group <- eset$orig.ident
-
+  groups <- summed$orig.ident
   clusters <- summed$cluster
-  esets <- list()
+  idx <- seq_along(clusters)
+  idx <- split(idx, clusters)
+
+
+  subsets <- list()
   for (clust in levels(clusters)) {
-    is.clust <- clusters == clust
+    is.clust <- idx[[clust]]
 
     # skip if only one group
-    group <- summed$orig.ident[is.clust]
-    neach <- table(group)
+    groupi <- groups[is.clust]
+    neach <- tabulate(groupi)
     if (sum(neach>0) < 2) next
 
     yi <- y[, is.clust]
-    eseti <- eset[, is.clust]
 
-    # remove genes with no counts
-    keep <- edgeR::filterByExpr(yi, group = group, ...)
-    yi <- yi[keep, ]
-    eseti <- eseti[keep, ]
+    # remove genes with low counts
+    keep <- edgeR::filterByExpr(yi, group = groupi, ...)
+    yik <- yi[keep, ]
 
     # skip if less than 2 genes (required by voom)
-    if (nrow(yi) < 2) next
+    if (nrow(yik) < 2) next
 
     # normalize for composition
-    eseti$lib.size <- colSums(yi)
-    eseti$norm.factors <- edgeR::calcNormFactors(yi, eseti$lib.size, 'TMMwsp')
+    lib.size <- colSums(yik)
+    norm.factors <- edgeR::calcNormFactors(yik, lib.size, method)
 
-    # add vst transformed values
-    eseti <- add_vsd(eseti, pbulk = TRUE)
-    esets[[clust]] <- eseti
+    pdata <- list(
+      group = groupi,
+      lib.size = lib.size,
+      norm.factors = norm.factors
+    )
+
+    subsets[[clust]] <- list(
+      pdata = pdata,
+      yik = yik
+    )
   }
 
-  return(esets)
-}
-
-
-#' Fit limma eBayes on single cell RNA-seq dataset
-#'
-#' @param scseq \code{SingleCellExperiment} object.
-#'
-#' @return List with model matrix and result of call to \code{\link[limma]{lmFit}}
-#'
-#' @keywords internal
-fit_lm_scseq <- function(scseq) {
-  SYMBOL_9606 <- ENTREZID <- NULL
-
-  hs <- readRDS(system.file('extdata', 'hs.rds', package = 'dseqr.data'))
-  data.table::setkey(hs, SYMBOL_9606)
-
-  # one fit per cluster
-  fits <- list()
-  clusters <- scseq$cluster
-  species <- scseq@metadata$species
-
-  for (clust in levels(clusters)) {
-
-    # use multiBatchNorm logcounts
-    yi <- scseq[, clusters == clust]
-    dat <- SingleCellExperiment::logcounts(yi)
-    dat <- dat[Matrix::rowSums(dat) > 0, ]
-
-    # require at least 5 cells per group
-    group <- yi$orig.ident
-    neach <- table(group)
-    if (any(neach < 5)) next
-
-    mod <- stats::model.matrix(~0 + group)
-    colnames(mod) <- gsub('^group', '', colnames(mod))
-    fit <- limma::lmFit(dat, mod)
-
-    # add enids for go/kegg pathway analyses
-    rn <- row.names(dat)
-    if (species == 'Homo sapiens') {
-      fit$genes <- hs[rn, list(ENTREZID)]
-
-    } else if (species == 'Mus musculus') {
-      tx2gene_mouse <- dseqr.data::load_tx2gene(species)
-      tx <- tx2gene_mouse
-      tx$ENTREZID <- as.character(tx$entrezid)
-      ind <- match(rn, tx2gene_mouse$gene_name)
-      fit$genes <- tx[ind, 'ENTREZID']
-    }
-
-    fits[[clust]] <- list(fit = fit, mod = mod)
-  }
-  return(fits)
+  return(subsets)
 }
 
 

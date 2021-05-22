@@ -5,34 +5,35 @@
 \title{Run limma on pseudobulk experiment}
 \usage{
 run_limma_scseq(
+  summed,
   meta,
-  fit_path,
   species,
-  summed_path = NULL,
-  summed = NULL,
+  trend = FALSE,
+  method = "TMMwsp",
+  with_fdata = FALSE,
   progress = NULL,
   value = 0,
   ...
 )
 }
 \arguments{
+\item{summed}{pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
+and the call is assumed to originate from \code{callr::r_bg}.}
+
 \item{meta}{data.frame of sample metadata with column \code{group} and \code{row.names}
 set with \code{summed$batch}}
 
-\item{fit_path}{path to save fit to.}
-
 \item{species}{species name used to retrieve feature annotation.}
-
-\item{summed_path}{path to read \code{summed} from with \code{qs::qread}.}
-
-\item{summed}{pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
-and the call is assumed to originate from \code{callr::r_bg}.}
 
 \item{progress}{progress object or \code{NULL}.}
 
 \item{...}{additional arguments to \link[edgeR]{filterByExpr}.}
 
+\item{fit_path}{path to save fit to.}
+
 \item{dataset_name}{name of dataset (default NULL). Used as return value if \code{summed} is \code{NULL}.}
+
+\item{summed_path}{path to read \code{summed} from with \code{qs::qread}.}
 }
 \value{
 \code{dataset_name} if \code{summed} is \code{NULL}. Otherwise, a fit object.

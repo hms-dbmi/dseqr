@@ -430,30 +430,14 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
   if (with_dl)
     dl_btn <- actionButton(ns('click_dl_anal'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results')
 
-  shinypanel::selectizeInputWithButtons(
-    inputId = ns('selected_cluster'),
-    label = 'Cluster for group comparison:',
-    dl_btn,
-    #TODO: implement logic for multi-cluster differential expression
-    options = list(multiple = FALSE),
-    label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
-  )
-
-}
-
-
-scSampleGroupsInput <- function(id) {
-  ns <- NS(id)
-
   tags$div(
     shinypanel::selectizeInputWithButtons(
-      inputId = ns('compare_groups'),
-      label = 'Groups to compare:',
-      actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
-      actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
-      options = list(maxItems = 2, placeholder = 'Select test then control group'),
-      container_id = ns('validate-up'),
-      help_id = ns('error_msg')
+      inputId = ns('selected_cluster'),
+      label = 'Cluster for group comparison:',
+      dl_btn,
+      #TODO: implement logic for multi-cluster differential expression
+      options = list(multiple = FALSE),
+      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
     ),
 
     # hidden dl/upload buttons
@@ -462,5 +446,21 @@ scSampleGroupsInput <- function(id) {
     div(style = 'display: none',
         fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
     )
+  )
+
+}
+
+
+scSampleGroupsInput <- function(id) {
+  ns <- NS(id)
+
+  shinypanel::selectizeInputWithButtons(
+    inputId = ns('compare_groups'),
+    label = 'Groups to compare:',
+    actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
+    actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
+    options = list(maxItems = 2, placeholder = 'Select test then control group'),
+    container_id = ns('validate-up'),
+    help_id = ns('error_msg')
   )
 }

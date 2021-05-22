@@ -8,7 +8,8 @@ load_scseq_subsets(
   dataset_names,
   sc_dir,
   subset_metrics = NULL,
-  is_include = NULL
+  is_include = NULL,
+  ...
 )
 }
 \arguments{

@@ -507,7 +507,9 @@ evaluate_custom_metric <- function(metric, scseq) {
 
   # make sure will run
   expr <- SingleCellExperiment::logcounts(scseq)
-  expr <- expr[row.names(expr) %in% ft,, drop = FALSE]
+  genes <- row.names(expr)[row.names(expr) %in% ft]
+
+  expr <- frows(expr, genes)
   expr <- t(as.matrix(expr))
 
   qcs <- scseq@colData
@@ -864,11 +866,27 @@ get_gene_table <- function(markers,
       feature = features
     )
   }
-
-
-
-
   return(table)
+}
+
+get_leftover_table <- function(features, species = 'Homo sapiens', tx2gene = NULL) {
+
+  # add gene description
+  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
+
+  idx <- match(features, tx2gene$gene_name)
+  desc <- tx2gene$description[idx]
+  desc[is.na(desc)] <- features[is.na(desc)]
+
+  # gene choices
+  html_features <- sprintf('<span title="%s"><a target="_blank" href="%s%s">%s</a></span>',
+                           desc,
+                           'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
+                           features, features)
+  data.table::data.table(
+    Feature = html_features,
+    feature = features
+    )
 }
 
 construct_top_markers <- function(markers, scseq) {
@@ -962,7 +980,9 @@ integrate_saved_scseqs <- function(
     scseqs <- load_scseq_subsets(dataset_names,
                                  sc_dir,
                                  subset_metrics,
-                                 is_include)
+                                 is_include,
+                                 with_logs = TRUE,
+                                 with_counts = TRUE)
 
   }
 
@@ -1171,7 +1191,8 @@ subset_saved_scseq <- function(sc_dir,
   }
 
   progress$set(1, detail = 'loading')
-  scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include)
+  scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include,
+                              with_counts = TRUE, with_logs = is_integrated)
 
   if (is.null(scseq)) {
     progress$set(1, detail = "error: no cells")
@@ -1337,14 +1358,14 @@ add_combined_ambience <- function(combined, scseqs) {
 #' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
-load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_include = NULL) {
+load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_include = NULL, ...) {
 
   scseqs <- list()
 
   # load each scseq and exclude based on metrics
   for (dataset_name in dataset_names) {
     dataset_dir <- file.path(sc_dir, dataset_name)
-    scseq <- load_scseq_qs(dataset_dir)
+    scseq <- load_scseq_qs(dataset_dir, ...)
 
     # set orig.resoln to track resolution of origin datasets
     resoln_name <- load_resoln(dataset_dir)
@@ -1538,18 +1559,14 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #'
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, es, ambient = NULL, species = NULL, ngenes = 200) {
+run_drug_queries <- function(top_table, drug_paths, es, species = NULL, ngenes = 200) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
 
   if (isTRUE(species == 'Mus musculus')) {
     names(dprimes) <- toupper(names(dprimes))
-    ambient <- toupper(ambient)
   }
-
-  # exclude ambient (for single cell only)
-  dprimes <- dprimes[!names(dprimes) %in% ambient]
 
   # get correlations between query and drug signatures
   res <- list(
@@ -1767,13 +1784,8 @@ load_resoln <- function(dataset_dir) {
 #' @return \code{dataset_name} if \code{summed} is \code{NULL}. Otherwise, a fit object.
 #' @export
 #'
-run_limma_scseq <- function(meta, fit_path, species, summed_path = NULL, summed = NULL, progress = NULL, value = 0, ...) {
+run_limma_scseq <- function(summed, meta, species, trend = FALSE, method = 'TMMwsp', with_fdata = FALSE, progress = NULL, value = 0, ...) {
 
-  # if no summed then running with callr::r_bg
-  if (is.null(summed)) {
-    summed <- qs::qread(summed_path)
-    is_bg <- TRUE
-  }
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -1792,28 +1804,78 @@ run_limma_scseq <- function(meta, fit_path, species, summed_path = NULL, summed 
   idents <- unname(groups[summed$batch])
   summed$orig.ident <- factor(idents)
 
-  # TODO: for grid, move this to
-  progress$set(detail = "fit-prep", value = value+1)
-  esets <- construct_pbulk_esets(summed, species, min.total.count = 8, min.count = 5)
+  progress$set(value = value+1)
+  subsets <- construct_pbulk_subsets(summed, method, ...)
 
-  # fitting models
-  progress$set(detail = "fitting", value = value+2)
-  fit <- list()
-  for (i in seq_along(esets)) {
-    cat('working on', i, 'of', length(esets), '...\n')
-    clust <- names(esets)[i]
-    eset <- esets[[i]]
-    eset <- crossmeta::run_limma_setup(eset, list(pdata = Biobase::pData(eset)))
-    fit[[clust]] <- fit_lm(eset,  quick = TRUE)
+  # need entrezids for pathway analyses
+  fdata <- NULL
+  if (with_fdata) {
+    # get feature annotation
+    release <- switch(species,
+                      'Homo sapiens' = '94',
+                      'Mus musculus' = '98')
+
+    fdata <- rkal::setup_fdata(species, release)
+    fdata <- fdata[row.names(summed), ]
+    fdata <- as.data.frame(fdata)
+    row.names(fdata) <- fdata$gene_name
   }
 
-  qs::qsave(fit, fit_path)
+  # fitting models
+  type <- ifelse(trend, 'grid:', 'cluster:')
+  progress$set(message = paste('Fitting', type), detail = '', value = value+2)
+  inc <- 2/length(subsets)
+
+  fit <- list()
+  for (i in seq_along(subsets)) {
+    clust <- names(subsets)[i]
+    progress$set(detail = clust)
+    progress$inc(inc)
+    subset <- subsets[[i]]
+    fit[[clust]] <- fit_lm(subset, fdata, trend)
+  }
 
   progress$set(value = value+4)
+  return(fit)
+}
 
-  # fit too big to return from callr::r_bg
-  if (is_bg) return(TRUE)
-  else return(fit)
+fit_lm <- function(subset, fdata, trend = FALSE) {
+  pdata <- subset$pdata
+  group <- pdata$group
+  mod <- stats::model.matrix(~0 + group)
+  colnames(mod) <- gsub("^group", "", colnames(mod))
+
+  lib.size <- pdata$lib.size * pdata$norm.factors
+
+  # fit for unfiltered genes
+  yik <- subset$yik
+  if (trend) {
+    v <- t(log2(t(yik + 0.5)/(lib.size + 1) * 1e+06))
+    aw <- limma::arrayWeights(v, mod, method = "reml")
+    fit <- limma::lmFit(v, mod, weights = aw)
+
+  } else {
+    v <- quickVoomWithQualityWeights(yik, mod, lib.size)
+    fit <- limma::lmFit(v, mod)
+  }
+
+  if (!is.null(fdata)) {
+    fit$genes <- data.frame(fdata[row.names(fit), 'ENTREZID', drop = FALSE])
+  }
+  return(list(fit=fit, mod=mod))
+}
+
+quickVoomWithQualityWeights <- function (y, mod, lib.size) {
+  # need log-expressed values for arrayWeights
+  v <- t(log2(t(y + 0.5)/(lib.size + 1) * 1e+06))
+  aw <- limma::arrayWeights(v, mod, method = "reml")
+  suppressWarnings(v <- limma::voom(y, mod, lib.size, weights = aw))
+
+  #	incorporate the array weights into the voom weights
+  v$weights <- t(aw * t(v$weights))
+  v$targets$sample.weights <- aw
+
+  return(v)
 }
 
 
@@ -1846,6 +1908,21 @@ get_grid <- function(scseq, nx=120, ny=60) {
   return(grid)
 }
 
+
+frows <- function(m, rows, drop = FALSE) {
+  if (methods::is(m, 'dgRMatrix')) {
+    rlist <- lapply(rows, function(r) fast_dgr_row(m, r))
+    res <- matrix(unlist(rlist),
+                  nrow = length(rows),
+                  byrow = TRUE,
+                  dimnames = list(rows, colnames(m)))
+    res <- res[rows,, drop = drop]
+
+  } else {
+    res <- res[rows,, drop = drop]
+  }
+  return(res)
+}
 
 # faster column extraction from dgCMatrix
 fast_dgr_row <- function(m, row) {

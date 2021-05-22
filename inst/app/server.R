@@ -74,7 +74,6 @@ server <- function(input, output, session) {
                        indices_dir = indices_dir,
                        is_mobile = is_mobile)
 
-  # TODO: get new_dataset from bulkPage and scPage
   drugsPage <- callModule(drugsPage, 'drug',
                           data_dir = data_dir,
                           new_bulk = bulkPage$new_dataset,

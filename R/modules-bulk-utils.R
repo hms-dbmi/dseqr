@@ -515,6 +515,7 @@ get_path_res <- function(de, go_path, kegg_path, goana_path, kegga_path, species
 
   # get goana and kegga results
   goana_res <- run_path_anal(de, 'goana', species = species, universe = universe)
+  goana_res <- goana_res[goana_res$Ont == 'BP', ]
   kegga_res <- run_path_anal(de, 'kegga', species = species, universe = universe)
 
   qs::qsave(goana_res, goana_path)
@@ -596,7 +597,7 @@ check_bulk_changed <- function(prev, pdata) {
   return(changed)
 }
 
-add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE, pbulk = FALSE) {
+add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE) {
 
   # for cases where manually added (e.g. nanostring dataset)
   els <- Biobase::assayDataElementNames(eset)
@@ -608,10 +609,6 @@ add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE, pbulk = FALSE) {
 
   } else if (!is.null(vsd_path) && file.exists(vsd_path)) {
     vsd <- qs::qread(vsd_path)
-
-  } else if (pbulk) {
-    dge <- edgeR::DGEList(Biobase::exprs(eset))
-    vsd <- edgeR::cpm(dge)
 
   } else {
     vsd <- crossmeta::get_vsd(eset)

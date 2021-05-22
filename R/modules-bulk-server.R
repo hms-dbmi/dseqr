@@ -982,7 +982,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   scseq <- reactive({
     dataset_name <- input$dtangle_dataset
     dataset_dir <- file.path(sc_dir, dataset_name)
-    load_scseq_qs(dataset_dir)
+    load_scseq_qs(dataset_dir, with_logs = TRUE)
   })
 
   observeEvent(input$submit_dtangle, {

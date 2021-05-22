@@ -11,7 +11,7 @@ get_ridge_data(
   by.sample = FALSE,
   decreasing = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
   with_all = FALSE,
-  tlogs = NULL
+  dgrlogs = NULL
 )
 }
 \arguments{
