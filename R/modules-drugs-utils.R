@@ -228,12 +228,12 @@ load_custom_anals <- function(data_dir) {
     custom_names <- gsub('^cmap_res_(.+?).qs$', '\\1', custom_names)
 
 
-    anals <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)
-    colnames(anals) <- c("dataset_name", "dataset_dir", "label", "value", "type")
+    anals <- data.frame(matrix(ncol = 6, nrow = 0), stringsAsFactors = FALSE)
+    colnames(anals) <- c("dataset_name", "dataset_dir", "label", "value", "type", "group")
     custom_dir <- file.path(data_dir, 'custom_queries')
 
     for (i in seq_along(custom_names))
-      anals[i, ] <- c(NA, 'custom_queries', custom_names[i], custom_names[i], 'Custom')
+      anals[i, ] <- c(NA, 'custom_queries', custom_names[i], custom_names[i], 'Custom', 'Custom')
 
   }
 
@@ -246,11 +246,11 @@ load_custom_anals <- function(data_dir) {
 #'
 #' @keywords internal
 load_pert_anals <- function() {
-  anals <- data.frame(matrix(NA, ncol = 5, nrow = length(pert_names)), stringsAsFactors = FALSE)
-  colnames(anals) <- c("dataset_name", "dataset_dir", "label", "value", "type")
+  anals <- data.frame(matrix(NA, ncol = 6, nrow = length(pert_names)), stringsAsFactors = FALSE)
+  colnames(anals) <- c("dataset_name", "dataset_dir", "label", "value", "type", "group")
 
-  anals$label <- anals$value <- pert_names
-  anals$type <- 'CMAP02/L1000 Perturbations'
+  anals$label <- anals$value <- anals$dataset_name <- pert_names
+  anals$type <- anals$group <- 'CMAP02/L1000 Perturbations'
 
   return(anals)
 }

@@ -25,10 +25,16 @@ convert <- function(app_dir) {
     scseq <- qs::qread(scseq_path)
 
     # save as seperate parts
-    split_save_scseq(scseq, dataset_dir)
+    dseqr:::split_save_scseq(scseq, dataset_dir)
 
     # delete previous
     unlink(scseq_path)
+    remove <- list.files(dataset_dir,
+                       '^lm_fit|^top_tables|^cluster_stats|plots|ambient.qs|^l1000_|^cmap_|^kegg|^go',
+                       recursive = TRUE, full.names = TRUE, include.dirs = TRUE)
+    unlink(remove, recursive = TRUE)
 
   }
 }
+
+for  (app_dir in app_dirs) convert(app_dir)

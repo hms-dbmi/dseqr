@@ -155,7 +155,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
   dgrlogs <- reactive({
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
-    qs::qread(file.path(dataset_dir, 'dgrlogs.qs'))
+    progress <- Progress$new(session, min = 0, max = 2)
+    progress$set(message = "Loading logcounts", value = 1)
+    on.exit(progress$close())
+    res <- qs::qread(file.path(dataset_dir, 'dgrlogs.qs'))
+    progress$set(value = 2)
+    return(res)
   })
 
   counts <- reactive({
@@ -187,7 +192,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
     names(qc) <- sapply(metrics, class)
 
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor', qc)]
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping_|^cluster_l', qc)]
   }, )
 
   # show the toggle if dataset is integrated
@@ -206,7 +211,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 
   # hide sample cluster/feature inputs if not two groups
   have_contrast <- reactive(length(scSampleGroups$groups()) == 2)
-  have_cluster <- reactive(isTruthy(scSampleClusters$selected_cluster()))
+  have_cluster <- reactive(isTruthy(scSampleClusters$top_table()))
   observe(toggle(id = "sample_cluster_input",condition = have_contrast()))
   observe(toggle(id = "sample_gene_input",condition = have_cluster()))
 
@@ -232,7 +237,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
                           new_dataset = new_dataset,
                           indices_dir = indices_dir)
 
-  scClusterPlots <- clusterPlots(plots_dir, scseq = scseq_clusts)
+  scClusterPlots <- clusterPlots(plots_dir, scseq_clusts, dgrlogs)
 
 
   # label transfer between datasets
@@ -329,7 +334,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
                                show_dprimes = scSampleGene$show_dprimes)
 
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
-                                 scseq = scSampleGroups$scseq,
+                                 input_scseq = scseq,
+                                 meta = scSampleGroups$meta,
                                  dgrlogs = dgrlogs,
                                  lm_fit = scSampleGroups$lm_fit,
                                  lm_fit_grid = scSampleGroups$lm_fit_grid,
@@ -337,6 +343,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
                                  input_annot = annot,
                                  dataset_dir = dataset_dir,
                                  resoln_dir = resoln_dir,
+                                 resoln = resoln,
                                  plots_dir = plots_dir,
                                  feature_plot = scClusterPlots$feature_plot_samples,
                                  dataset_name = scDataset$dataset_name,
@@ -409,7 +416,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
 
   # need for drugs tab
-  scseq_clust <- reactive({
+  scseq <- reactive({
     scseq <- input_scseq()
     if (!is.null(scseq)) return(scseq)
 
@@ -419,20 +426,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     scseq <- load_scseq_qs(dataset_dir)
     attach_clusters(scseq, resoln_dir())
   })
-
-  scseq <- reactive({
-    scseq <- scseq_clust()
-    if (is.null(scseq)) return(NULL)
-
-    meta <- up_meta()
-    groups <- input$compare_groups
-    if (is.null(meta)) return(scseq)
-    if (length(groups) != 2) return(scseq)
-
-
-    attach_meta(scseq, meta=meta, groups=groups)
-  })
-
 
   prev_path <- reactive({
     if (is.null(dataset_dir())) return(NULL)
@@ -570,7 +563,9 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   })
 
   lm_fit <- reactive({
-    fit_path <- file.path(resoln_dir(), 'lm_fit_0svs.qs')
+    resoln_dir <- resoln_dir()
+    if (is.null(resoln_dir)) return(NULL)
+    fit_path <- file.path(resoln_dir, 'lm_fit_0svs.qs')
 
     if (file.exists(fit_path)) {
       fit <- qs::qread(fit_path)
@@ -578,8 +573,9 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     } else {
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 4)
-      progress$set(message = "Pseudobulking grid", value = 1)
+      progress$set(message = "Pseudobulking:", detail = 'clusters', value = 1)
       on.exit(progress$close())
+
 
       fit <- run_limma_scseq(summed = summed(),
                              meta = up_meta(),
@@ -612,7 +608,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 5)
       on.exit(progress$close())
-      progress$set(message = "Pseudobulking clusters", value = 1)
+      progress$set(message = "Pseudobulking:", detail = 'grid', value = 1)
       summed <- summed_grid()
 
       lm_fit <- run_limma_scseq(
@@ -644,6 +640,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     lm_fit = lm_fit,
     lm_fit_grid = lm_fit_grid,
     groups = groups,
+    meta = up_meta,
     scseq = scseq
   ))
 }
@@ -657,16 +654,55 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid, groups, dataset_dir, resoln_dir, plots_dir, feature_plot, dataset_name, sc_dir, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, dgrlogs = function()NULL) {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, dgrlogs = function()NULL, page = 'single-cell') {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
+  contrast_dir <- reactiveVal()
 
-  contrast_dir <- reactive({
+  # update contrast_dir if groups or resoln changes
+  observe({
     groups <- groups()
-    if (length(groups) != 2) return(NULL)
+    dataset_dir <- isolate(dataset_dir())
+    if (length(groups) != 2) {
+      cdir <- NULL
+    } else {
+      contrast <- paste0(groups, collapse = '_vs_')
+      resoln <- resoln()
+      cdir <- file.path(dataset_dir, paste0('snn', resoln), contrast)
+    }
+    contrast_dir(cdir)
+  })
+
+  # set contrast_dir to saved if dataset_dir changes
+  observeEvent(dataset_dir(), {
+    dataset_dir <- dataset_dir()
+    if (is.null(dataset_dir)) {
+      contrast_dir(NULL)
+      return()
+    }
+
+    groups_path <- file.path(dataset_dir, 'prev_groups.qs')
+    groups <- qread.safe(groups_path)
+    if (is.null(groups)) {
+      contrast_dir(NULL)
+      return()
+    }
+
     contrast <- paste0(groups, collapse = '_vs_')
-    file.path(resoln_dir(), contrast)
+    resoln_name <- load_resoln(dataset_dir)
+    contrast_dir(file.path(dataset_dir, resoln_name, contrast))
+  })
+
+  scseq <- reactive({
+    meta <- meta()
+    scseq <- input_scseq()
+    groups <- groups()
+    if (is.null(meta) | is.null(scseq) | is.null(groups)) return(NULL)
+    if (length(groups) != 2) return(NULL)
+    if (!all(groups %in% meta$group)) return(NULL)
+    if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
+    attach_meta(scseq, meta=meta, groups=groups)
   })
 
 
@@ -720,8 +756,13 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
 
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
+  drug_paths <- reactive({
+    cdir <- contrast_dir()
+    if (is.null(cdir)) return(NULL)
+    get_drug_paths(cdir, clusters_str())
+  })
+
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
-  drug_paths <- reactive(get_drug_paths(contrast_dir(), clusters_str()))
   pathways_dir <- reactive(file.path(contrast_dir(), 'pathways'))
   go_path <- reactive(file.path(pathways_dir(), paste0('go_', clusters_str(), '.qs')))
   kegg_path <- reactive(file.path(pathways_dir(), paste0('kegg_', clusters_str(), '.qs')))
@@ -735,16 +776,19 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
 
   pfun_left <- reactive({
-    req(is_integrated())
+    int <- is_integrated()
+    req(int)
 
     function(gene) {
       if(!isTruthy(gene)) return(NULL)
 
-      if (show_dprimes() & is_integrated()) {
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+
+      if (show_dprimes() & int) {
         top_tables <- top_tables_grid()
         if(is.null(top_tables)) return(NULL)
 
-        scseq <- scseq()
         grid <- get_grid(scseq)
         plot_data <- get_gene_diff(gene, top_tables, grid)
 
@@ -752,14 +796,15 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
         pfun <- list(plot = plot, height = 453)
 
       } else {
-        scseq <- scseq()
-        if(is.null(scseq)) return(NULL)
-        gene_data <- fast_dgr_row(dgrlogs(), gene)
+        dgrlogs <- isolate(dgrlogs())
+        if (is.null(dgrlogs)) return(NULL)
+        gene_data <- fast_dgr_row(dgrlogs, gene)
 
         # update base feature plot
         plot <- feature_plot()
         plot <- update_feature_plot(plot, gene_data, gene)
-        plot <- plot_feature_sample(gene, scseq(), 'test', plot=plot)
+
+        plot <- plot_feature_sample(gene, scseq, 'test', plot=plot)
         pfun <- list(plot = plot, height = 453)
       }
       return(pfun)
@@ -777,7 +822,10 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
       scseq <- scseq()
       if (!isTruthyAll(scseq, gene)) return(NULL)
 
-      gene_data <- fast_dgr_row(dgrlogs(), gene)
+      dgrlogs <- isolate(dgrlogs())
+      if (is.null(dgrlogs)) return(NULL)
+
+      gene_data <- fast_dgr_row(dgrlogs, gene)
       if (is.null(gene_data)) return(NULL)
 
       # update base feature plot
@@ -815,11 +863,11 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
 
   cluster_ambient <- reactive({
-    compare <- input$compare_groups
-    if (length(compare) != 2) return(NULL)
+    if (length(groups()) != 2) return(NULL)
 
     sel <- sel()
     resoln_dir <- resoln_dir()
+    if (is.null(resoln_dir)) return(NULL)
     ambience_path <- file.path(resoln_dir, paste0('ambience_', sel, '.qs'))
 
     if (file.exists(ambience_path)) {
@@ -831,7 +879,8 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
       if (!sel %in% levels(summed$cluster)) return(NULL)
 
       # check that not disabled
-      if (cluster_choices()[sel, 'disabled']) return(NULL)
+      disabled <- cluster_choices()[sel, 'disabled']
+      if (is.null(disabled) || disabled) return(NULL)
 
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
@@ -862,8 +911,8 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
     } else {
       fit <- lm_fit()
-      if (is.null(fit)) return(NULL)
-
+      groups <- groups()
+      if (is.null(fit) | is.null(groups)) return(NULL)
 
       disableAll(input_ids)
       nmax <- length(fit)+1
@@ -873,13 +922,12 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
       tts <- list()
       for (i in seq_along(fit)) {
-
         cluster <- names(fit)[i]
         progress$set(detail=paste('cluster', cluster), value = i)
 
         tts[[cluster]] <- crossmeta::get_top_table(
           fit[[cluster]],
-          groups(),
+          groups,
           robust = TRUE,
           allow.no.resid = TRUE)
       }
@@ -925,7 +973,8 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
 
     } else {
       fit <- lm_fit_grid()
-      if (is.null(fit)) return(NULL)
+      groups <- groups()
+      if (is.null(fit) | is.null(groups)) return(NULL)
 
       disableAll(input_ids)
       nmax <- length(fit)+1
@@ -936,9 +985,12 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
       tts <- list()
       for (i in seq_along(fit)) {
         cluster <- names(fit)[i]
-        progress$set(detail=paste('cluster', cluster), value = i)
+        progress$set(detail=paste('grid', cluster), value = i)
+        tt <- crossmeta::get_top_table(fit[[cluster]],
+                                       groups,
+                                       trend = TRUE,
+                                       allow.no.resid = TRUE)
 
-        tt <- crossmeta::get_top_table(fit[[cluster]], trend = TRUE, allow.no.resid = TRUE)
         tt <- tt[, colnames(tt) %in% c('logFC', 'P.Value'), drop = FALSE]
         tts[[cluster]] <- tt
       }
@@ -950,16 +1002,16 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
   })
 
 
-
   # top table for selected cluster only
   top_table <- reactive({
     sel <- input$selected_cluster
     if (!isTruthy(sel)) return(NULL)
 
-    ambient <- cluster_ambient()
     tt <- top_tables()[[sel]]
     if (is.null(tt)) return(NULL)
+    if (page == 'drugs') return(tt)
 
+    ambient <- cluster_ambient()
     tt$ambient <- row.names(tt) %in% ambient
 
     # add ambient-excluded adjusted pvals
@@ -982,8 +1034,9 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
     dpaths <- drug_paths()
     contrast_dir <- contrast_dir()
     if (is.null(contrast_dir)) return(NULL)
+    drugs_dir <- file.path(contrast_dir, 'drugs')
 
-    saved_drugs <- any(grepl('^cmap_res_', list.files(contrast_dir)))
+    saved_drugs <- any(grepl('^cmap_res_', list.files(drugs_dir)))
 
     if (!isTruthy(input$selected_cluster)) {
       res <- NULL
@@ -1056,7 +1109,8 @@ scSampleClusters <- function(input, output, session, scseq, lm_fit, lm_fit_grid,
         # exclude ambient
         ambient <- ambient()
         lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
-        de <- crossmeta::fit_ebayes(lm_fit, 'test-ctrl')
+        contrast <- paste0(groups(), collapse = '-')
+        de <- crossmeta::fit_ebayes(lm_fit, contrast)
       }
       pathways_dir <- pathways_dir()
       dir.create(pathways_dir, showWarnings = FALSE)
@@ -1176,8 +1230,9 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
 
   scseq_logs <- reactive({
     scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    SingleCellExperiment::logcounts(scseq) <- dgrlogs()
+    dgrlogs <- dgrlogs()
+    if (is.null(scseq) | is.null(dgrlogs)) return(NULL)
+    SingleCellExperiment::logcounts(scseq) <- dgrlogs
     return(scseq)
   })
 
@@ -2052,7 +2107,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     SingleCellExperiment::counts(scseq) <- counts()
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters
-    browser()
     run_post_cluster(scseq, dataset_name(), sc_dir, resoln, progress, 1, reset_annot = FALSE)
 
     # mark as previously applied
@@ -2696,6 +2750,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # for updating plot of current custom metric
   observe({
+
     metric <- input$custom_metric
     metric <- gsub('^ | $', '', metric)
     # need logcounts
@@ -3040,12 +3095,13 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     if (is_num) {
       plots_dir <- plots_dir()
       plot <- feature_plot_clusters()
-      is.gene <- feature %in% row.names(scseq)
-      dgrlogs <- dgrlogs()
-      if (is.null(dgrlogs)) return(NULL)
 
-      if (is.gene) fdata <- fast_dgr_row(dgrlogs, feature)
-      else fdata <- scseq[[feature]]
+      if (is_gene) {
+        fdata <- fast_dgr_row(dgrlogs(), feature)
+      } else {
+        fdata <- scseq[[feature]]
+        names(fdata) <- colnames(scseq)
+      }
 
       pl <- update_feature_plot(plot, fdata, feature)
 
@@ -3142,8 +3198,9 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     if (!is.num) return(NULL)
 
     scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-    rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, dgrlogs=dgrlogs())
+    dgrlogs <- dgrlogs()
+    if (is.null(scseq) | is.null(dgrlogs)) return(NULL)
+    rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, dgrlogs=dgrlogs)
 
     return(rdat)
   }) %>% debounce(20)

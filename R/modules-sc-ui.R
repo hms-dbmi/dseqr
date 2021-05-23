@@ -441,11 +441,7 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
     ),
 
     # hidden dl/upload buttons
-    downloadLink(ns('dl_anal'), ''),
-    downloadLink(ns('dl_meta'), ''),
-    div(style = 'display: none',
-        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
-    )
+    downloadLink(ns('dl_anal'), '')
   )
 
 }
@@ -454,13 +450,22 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
 scSampleGroupsInput <- function(id) {
   ns <- NS(id)
 
-  shinypanel::selectizeInputWithButtons(
-    inputId = ns('compare_groups'),
-    label = 'Groups to compare:',
-    actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
-    actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
-    options = list(maxItems = 2, placeholder = 'Select test then control group'),
-    container_id = ns('validate-up'),
-    help_id = ns('error_msg')
+  tags$div(
+    shinypanel::selectizeInputWithButtons(
+      inputId = ns('compare_groups'),
+      label = 'Groups to compare:',
+      actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
+      actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
+      options = list(maxItems = 2, placeholder = 'Select test then control group'),
+      container_id = ns('validate-up'),
+      help_id = ns('error_msg')
+    ),
+    downloadLink(ns('dl_meta'), ''),
+    div(style = 'display: none',
+        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
+    )
   )
 }
+
+
+

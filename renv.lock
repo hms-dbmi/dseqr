@@ -700,15 +700,15 @@
     },
     "crossmeta": {
       "Package": "crossmeta",
-      "Version": "1.17.17",
+      "Version": "1.17.18",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "52c0713b682abb0374506dcdda3c72012f8992c5",
-      "Hash": "a0b58970bbf46f015de5fdf8c549ef07"
+      "RemoteSha": "b7b5d7b7af410cc373dfcccaa73f4ceacc4db95e",
+      "Hash": "e25ab1cc6414c8960f8968cdbfb4c395"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -1191,9 +1191,15 @@
     },
     "limma": {
       "Package": "limma",
-      "Version": "3.46.0",
-      "Source": "Bioconductor",
-      "Hash": "78b860aa595c42e02464243a213b3e6d"
+      "Version": "3.48.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "limma",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "7c5ecf4b3489aa4ba9a047fb71f89c617194c4e3",
+      "Hash": "3ad548a2cac3ef9df69aef7f61429d00"
     },
     "listenv": {
       "Package": "listenv",

@@ -152,18 +152,41 @@ load_scseq_datasets <- function(data_dir) {
   sc_dir <- file.path(data_dir, 'single-cell')
   int_path <- file.path(sc_dir, 'integrated.qs')
 
-  datasets <- data.frame(matrix(ncol = 5, nrow = 0), stringsAsFactors = FALSE)
-  colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type")
+  datasets <- data.frame(matrix(ncol = 6, nrow = 0), stringsAsFactors = FALSE)
+  colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type", "group")
 
   if (file.exists(int_path)) {
     integrated <- qread.safe(int_path)
     has.scseq <- check_has_scseq(integrated, sc_dir)
     integrated <- integrated[has.scseq]
 
-    for(ds in integrated) datasets[nrow(datasets) + 1, ] <- c(ds, file.path('single-cell', ds), ds, NA, 'Single Cell')
+    group <- get_scdata_type(integrated, sc_dir, none = 'Integrated')
+
+    sub <- duplicated(group) | duplicated(group, fromLast = TRUE)
+    group[!sub] <- 'Integrated'
+    opt <- integrated
+    opt[sub] <- stringr::str_replace(opt[sub], paste0(group[sub], '_'), '')
+
+    for(i in seq_along(integrated)) {
+      ds <- integrated[i]
+      row <- c(ds, file.path('single-cell', ds), opt[i], NA, group[i], 'Single Cell')
+      datasets[nrow(datasets) + 1, ] <- row
+    }
   }
 
   return(datasets)
+}
+
+get_scdata_type <- function(dataset_names, sc_dir, none) {
+  sapply(
+    dataset_names,
+    function(ds) {
+      qread.safe(
+        file.path(sc_dir, ds, 'founder.qs'),
+        .nofile = none,
+        .nullfile = none)
+    },
+    USE.NAMES = FALSE)
 }
 
 

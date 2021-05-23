@@ -313,10 +313,7 @@ get_sc_dataset_choices <- function(sc_dir) {
   has.scseq <- check_has_scseq(integrated, sc_dir)
   integrated <- integrated[has.scseq]
 
-  int_type <- lapply(integrated, function(int) qread.safe(file.path(sc_dir, int, 'founder.qs'),
-                                                          .nofile = 'Integrated',
-                                                          .nullfile = 'Integrated'))
-  int_type <- unlist(int_type)
+  int_type <- get_scdata_type(integrated, sc_dir, none = 'Integrated')
 
   sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
   int_type[!sub] <- 'Integrated'
@@ -330,9 +327,7 @@ get_sc_dataset_choices <- function(sc_dir) {
   individual <- individual[unlist(has.scseq)]
 
   # founder for subsets as type
-  ind_type <- sapply(individual, function(ind) qread.safe(file.path(sc_dir, ind, 'founder.qs'),
-                                                          .nofile = 'Individual',
-                                                          .nullfile = 'Individual'), USE.NAMES = FALSE)
+  ind_type <- get_scdata_type(individual, sc_dir, none = 'Individual')
 
 
   # add founders that are currently individual

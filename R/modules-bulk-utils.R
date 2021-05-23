@@ -324,7 +324,7 @@ load_bulk_datasets <-function(data_dir) {
                          dataset_dir = file.path('bulk', dataset_names), stringsAsFactors = FALSE)
 
   datasets$value <-  datasets$label <- datasets$dataset_name
-  if (nrow(datasets)) datasets$type <- 'Bulk Data'
+  if (nrow(datasets)) datasets$type <- datasets$group <- 'Bulk Data'
 
   return(datasets)
 }

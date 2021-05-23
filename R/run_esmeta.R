@@ -3,7 +3,7 @@ run_esmeta <- function(tts) {
   anals <- list()
   for (clust in names(tts)) {
     tt <- tts[[clust]]
-    if (!'dprime' %in% colnames(tt)) browser()
+    if (!'dprime' %in% colnames(tt)) next
     anals[[clust]] <- list(top_tables = list(tt))
   }
 
@@ -21,6 +21,7 @@ run_pmeta <- function(tts) {
 
   for (clust in names(tts)) {
     tt <- tts[[clust]]
+    if (!'P.Value' %in% colnames(tt)) next
     idx <- match(row.names(tt), genes)
     pvals[[clust]] <- NA
     pvals[idx, clust] <- tt$P.Value

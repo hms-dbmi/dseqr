@@ -62,7 +62,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
     choices <- rbind(bulk_datasets, scseq_datasets, custom_anals, pert_anals)
     choices$value <- seq_len(nrow(choices))+1
-    choices$title <- choices$label
+    choices$title <- choices$dataset_name
     choices$label <- stringr::str_trunc(choices$label, 35)
     choices <- rbind(NA, choices)
 
@@ -652,17 +652,17 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
     row_num <- input$query
     choices <- choices()
     req(choices)
-    if (!isTruthy(row_num)) return(list(type = ''))
+    if (!isTruthy(row_num)) return(list(group = ''))
     req(row_num, choices)
 
     choices[row_num, ]
   })
 
   # the type of dataset/analysis
-  is_bulk <- reactive(sel()$type == 'Bulk Data')
-  is_sc <- reactive(sel()$type == 'Single Cell')
-  is_custom <- reactive(sel()$type == 'Custom')
-  is_pert <- reactive(sel()$type == 'CMAP02/L1000 Perturbations')
+  is_bulk <- reactive(sel()$group == 'Bulk Data')
+  is_sc <- reactive(sel()$group == 'Single Cell')
+  is_custom <- reactive(sel()$group == 'Custom')
+  is_pert <- reactive(sel()$group == 'CMAP02/L1000 Perturbations')
 
 
   observe({
@@ -715,12 +715,21 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
 
 
+
   # Single cell analysis
   # ---
-  resoln_dir <- reactive({
+
+  resoln <- reactive({
     dataset_dir <- dataset_dir()
     req(dataset_dir)
-    file.path(dataset_dir, load_resoln(dataset_dir))
+    resoln_path <- file.path(dataset_dir, 'resoln.qs')
+    qread.safe(resoln_path)
+  })
+
+  resoln_dir <- reactive({
+    resoln <- resoln()
+    if (is.null(resoln)) return(NULL)
+    file.path(dataset_dir(), paste0('snn', resoln))
   })
 
 
@@ -734,12 +743,15 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
                                dataset_name = dataset_name)
 
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
-                                 scseq = scSampleGroups$scseq,
+                                 input_scseq = scSampleGroups$scseq,
+                                 meta = scSampleGroups$meta,
                                  lm_fit = scSampleGroups$lm_fit,
                                  groups = scSampleGroups$groups,
                                  dataset_dir = dataset_dir,
                                  resoln_dir = resoln_dir,
-                                 dataset_name = dataset_name)
+                                 resoln = resoln,
+                                 dataset_name = dataset_name,
+                                 page = 'drugs')
 
 
 
