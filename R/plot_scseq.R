@@ -700,7 +700,7 @@ get_gene_diff <- function(gene, tts, grid) {
     add_count(grid_xi, grid_yi) %>%
     left_join(tt) %>%
     distinct() %>%
-    filter(n > 2) %>% # at least n cells
+    filter(n > 0) %>% # at least n cells
     dplyr::rename(pval = P.Value, direction = logFC) %>%
     dplyr::mutate(pval = replace(pval, is.na(pval), 1),
                   direction = case_when(is.na(direction) ~ '?',
@@ -804,7 +804,7 @@ get_abundance_diff <- function(scseq, group = scseq$orig.ident, sample = scseq$b
 
   # alpha 0.1: not significant
   # alpha 0.5-1: significant
-  pt.dat <- d[d$tots > 2, ] # greater than 2 cells
+  pt.dat <- d[d$tots > 0, ] # greater than 0 cells
   pt.dat$alpha <- 0.1
   is.sig <- pt.dat$pval < 0.05
   pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig])

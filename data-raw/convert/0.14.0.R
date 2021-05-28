@@ -1,6 +1,6 @@
 library(SingleCellExperiment)
 
-app_dir <- "/home/alex/patient_data/sjia"
+app_dir <- "/home/alex/patient_data/example"
 app_dirs <- list.files('/srv/dseqr')
 app_dirs <- setdiff(app_dirs,
                     c('indices', 'node_modules', 'pert_signature_dir',
