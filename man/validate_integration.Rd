@@ -4,7 +4,7 @@
 \alias{validate_integration}
 \title{Validate dataset selection for integration}
 \usage{
-validate_integration(types, name, azimuth_ref)
+validate_integration(types, name, azimuth_ref, dataset_names)
 }
 \value{
 \code{NULL} if valid, otherwise an error message

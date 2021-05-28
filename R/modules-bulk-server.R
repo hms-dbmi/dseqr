@@ -1049,7 +1049,10 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
     K = length(pure_samples)
     n_markers = sapply(seq_len(K),function(i){
-      max(3, which(marker_list$V[[i]] > quantiles[[i]]))
+      min(
+        length(marker_list$L[[i]]),
+        max(3, which(marker_list$V[[i]] > quantiles[[i]]))
+      )
     })
 
     # run deconvolution and get get proportion estimates

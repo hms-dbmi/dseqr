@@ -54,11 +54,12 @@ construct_path_df <- function(top_table) {
   Gene <- NULL
 
   tx2gene <- dseqr.data::load_tx2gene()
+  dp <- top_table$dprime
+  if (is.null(dp)) dp <- top_table$logFC
 
-  df <- data.frame(
-    Gene = row.names(top_table),
-    Dprime = signif(top_table$dprime, digits = 3),
-    stringsAsFactors = FALSE)
+  df <- data.frame(Gene = row.names(top_table),
+                   Dprime = signif(dp, digits = 3),
+                   stringsAsFactors = FALSE)
 
   # split up assignment because custom query signatures may not have all
   df$logfc <- safe.fun(signif, top_table$logFC, digits = 3)

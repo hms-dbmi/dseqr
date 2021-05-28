@@ -459,7 +459,7 @@ VlnPlot <- function(feature = NULL,
                       ncells = ncells)
 
 
-  if (with.height) pl <- list(plot = pl, height = max(420, length(ncells) * 38))
+  if (with.height) pl <- list(plot = pl, height = max(235, length(ncells) * 38))
   return(pl)
 
 }
@@ -700,7 +700,7 @@ get_gene_diff <- function(gene, tts, grid) {
     add_count(grid_xi, grid_yi) %>%
     left_join(tt) %>%
     distinct() %>%
-    filter(n > 5) %>% # at least n cells
+    filter(n > 2) %>% # at least n cells
     dplyr::rename(pval = P.Value, direction = logFC) %>%
     dplyr::mutate(pval = replace(pval, is.na(pval), 1),
                   direction = case_when(is.na(direction) ~ '?',
@@ -713,9 +713,12 @@ get_gene_diff <- function(gene, tts, grid) {
   return(pt.dat)
 }
 
-get_abundance_diff <- function(scseq, nx = 120, ny = 60, group = scseq$orig.ident, sample = scseq$batch) {
+get_abundance_diff <- function(scseq, group = scseq$orig.ident, sample = scseq$batch) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
+
+  if (red == 'UMAP') nx=120; ny=60
+  if (red == 'TSNE') nx=100; ny=50
 
   red.mat <- SingleCellExperiment::reducedDim(scseq, red)
 
@@ -801,7 +804,7 @@ get_abundance_diff <- function(scseq, nx = 120, ny = 60, group = scseq$orig.iden
 
   # alpha 0.1: not significant
   # alpha 0.5-1: significant
-  pt.dat <- d[d$tots > 5, ]
+  pt.dat <- d[d$tots > 2, ] # greater than 2 cells
   pt.dat$alpha <- 0.1
   is.sig <- pt.dat$pval < 0.05
   pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig])

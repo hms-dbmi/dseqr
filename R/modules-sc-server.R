@@ -57,7 +57,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
              dplots_dir = scForm$dplots_dir,
              comparison_type = scForm$comparison_type,
              compare_groups = scForm$compare_groups,
-             sc_dir = sc_dir)
+             sc_dir = sc_dir,
+             meta = scForm$meta)
 
   callModule(scSampleMarkerPlot, 'left',
              selected_gene = scForm$samples_gene,
@@ -396,6 +397,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
     feature_plot_clusters = scClusterPlots$feature_plot_clusters,
     cluster_plot = scClusterPlots$cluster_plot,
     annot = annot,
+    meta = scSampleGroups$meta,
     compare_groups = scSampleGroups$groups,
     dgrlogs = dgrlogs
   ))
@@ -596,6 +598,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   lm_fit_grid <- reactive({
     if (!show_dprimes()) return(NULL)
+    meta <- up_meta()
+    if (max(table(meta$group)) < 2) return(NULL)
 
     fit_path <- file.path(dataset_dir(), 'lm_fit_grid_0svs.qs')
 
@@ -885,7 +889,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       on.exit(progress$close())
-      progress$set(message = paste("Calculating ambience: cluster", sel), value = 1)
+      progress$set(message = paste("Detecting ambient genes: cluster", sel), value = 1)
 
       amb <- get_ambience(scseq())
       amb <- calc_cluster_ambience(summed, amb, sel)
@@ -925,11 +929,15 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         cluster <- names(fit)[i]
         progress$set(detail=paste('cluster', cluster), value = i)
 
-        tts[[cluster]] <- crossmeta::get_top_table(
+        tt <- crossmeta::get_top_table(
           fit[[cluster]],
           groups,
           robust = TRUE,
           allow.no.resid = TRUE)
+
+        # need dprime for drug plots and queries
+        if (is.null(tt$dprime)) tt$dprime <- tt$logFC
+        tts[[cluster]] <- tt
       }
 
       # add 'All Clusters' result
@@ -938,15 +946,18 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       all <- as.character(length(annot)+1)
       es <- run_esmeta(tts)
 
-      # perform p-val meta analysis for pvals
-      # effect size too conservative
-      es$pval <- es$fdr <- NA
-      pvals <- run_pmeta(tts)
-      common <- intersect(row.names(pvals), row.names(es))
-      es[common, 'pval'] <- pvals[common, 'p.meta']
-      es[common, 'fdr'] <- pvals[common, 'fdr']
+      if (is.null(es)) {
+        tts[[all]] <- run_esmeta_logc(tts)
 
-      if (!is.null(es)) {
+      } else {
+        # perform p-val meta analysis for pvals
+        # effect size too conservative
+        es$pval <- es$fdr <- NA
+        pvals <- run_pmeta(tts)
+        common <- intersect(row.names(pvals), row.names(es))
+        es[common, 'pval'] <- pvals[common, 'p.meta']
+        es[common, 'fdr'] <- pvals[common, 'fdr']
+
         enids <- extract_enids(tts)
         cols <- colnames(tts[[1]])
         tts[[all]] <- es_to_tt(es, enids, cols)
@@ -962,6 +973,11 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
+    meta <- up_meta()
+    groups <- groups()
+    if (is.null(groups) | is.null(meta)) return(NULL)
+    meta <- meta[meta$group %in% groups, ]
+    if (nrow(meta) < 3) return(NULL)
 
     contrast_dir <- contrast_dir()
     if (is.null(contrast_dir)) return(NULL)
@@ -973,8 +989,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     } else {
       fit <- lm_fit_grid()
-      groups <- groups()
-      if (is.null(fit) | is.null(groups)) return(NULL)
+      if (is.null(fit)) return(NULL)
 
       disableAll(input_ids)
       nmax <- length(fit)+1
@@ -1090,12 +1105,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
                   goana = qs::qread(goana_path))
 
     } else {
-      lm_fit <- lm_fit()
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       progress$set(message = "Running pathway analysis", value = 1)
       on.exit(progress$close())
 
+      lm_fit <- lm_fit()
       cluster <- input$selected_cluster
       lm_fit <- lm_fit[[cluster]]
 
@@ -1110,8 +1125,17 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         ambient <- ambient()
         lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
         contrast <- paste0(groups(), collapse = '-')
-        de <- crossmeta::fit_ebayes(lm_fit, contrast)
+
+        # no df.residual if 1v1
+        have.df <- max(lm_fit$fit$df.residual) > 0
+        if (have.df) {
+          de <- crossmeta::fit_ebayes(lm_fit, contrast)
+        } else {
+          de <- top_table()
+          de <- de[!de$ambient, ]
+        }
       }
+
       pathways_dir <- pathways_dir()
       dir.create(pathways_dir, showWarnings = FALSE)
 
@@ -1201,7 +1225,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     shinyjs::click("dl_anal")
   })
 
-  observe(toggleState('click_dl_anal', condition = isTruthy(input$selected_cluster)))
 
   selected_cluster <- reactiveVal()
   observe(selected_cluster(input$selected_cluster))
@@ -1596,8 +1619,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
 # modal to confirm adding single-cell dataset
-confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL) {
-  qc <- NULL
+confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, with_azi = TRUE) {
 
   if (type[1] == 'quant') {
     label <- 'Quantify'
@@ -1609,17 +1631,18 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
       selected = 'all and none',
       multiple = TRUE)
 
-  } else {
-    label <- paste(toupper(substr(type, 1, 1)), substr(type, 2, nchar(type)), sep="")
-    id <- paste0('confirm_', type)
-  }
-  azi <- selectizeInput(
-    session$ns('azimuth_ref'),
-    HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-    choices = c('', 'human_pbmc'),
-    options = list(placeholder = 'optional'))
+    azi <- selectizeInput(
+      session$ns('azimuth_ref'),
+      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+      choices = c('', 'human_pbmc'),
+      options = list(placeholder = 'optional'))
 
-  UI <- div(qc, azi)
+    UI <- div(qc, azi)
+  } else if (type[1] == 'subset') {
+    label <- 'Subset'
+    id <- 'confirm_subset'
+    UI <- NULL
+  }
 
   modalDialog(
     UI,
@@ -2102,6 +2125,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
       transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
     }
 
+
     on.exit(progress$close())
     scseq <- scseq()
     SingleCellExperiment::counts(scseq) <- counts()
@@ -2374,6 +2398,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   observeEvent(input$submit_integration, {
 
+
     dataset_names <- input$integration_datasets
     types <- input$integration_types
     name <- input$integration_name
@@ -2381,11 +2406,11 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     azimuth_ref <- input$azimuth_ref
     if (!use_azimuth()) azimuth_ref <- NULL
 
-    error_msg <- validate_integration(types, name, azimuth_ref)
+    error_msg <- validate_integration(types, name, azimuth_ref, dataset_names)
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
 
-      integs[[integration_name]] <- callr::r_bg(
+      integs[[name]] <- callr::r_bg(
         func = run_integrate_saved_scseqs,
         package = 'dseqr',
         args = list(
@@ -2400,6 +2425,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       progress <- Progress$new(max=8*length(types))
       msg <- paste(stringr::str_trunc(name, 33), "integration:")
       progress$set(message = msg, value = 0)
+      pintegs[[name]] <- progress
 
     } else {
       # show error message
@@ -2813,10 +2839,10 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   scseq_genes <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
+    bio <- SummarizedExperiment::rowData(scseq)$bio
+    ord <- order(bio, decreasing = TRUE)
 
-    markers <- cluster_markers()
-    if (is.null(markers)) return(NULL)
-    construct_top_markers(markers, scseq)
+    data.table::data.table(feature = row.names(scseq)[ord])
   })
 
 
@@ -3010,7 +3036,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 }
 
 
-scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir) {
+scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta) {
 
   show_plot <- reactive(length(compare_groups()) == 2 & comparison_type() == 'samples')
   observe(toggle('abundance_plot', condition = show_plot()))
@@ -3025,6 +3051,10 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 
     scseq_groups <- unique(scseq$orig.ident)
     if (length(scseq_groups) != 2) return(NULL)
+
+    meta <- meta()
+    meta <- meta[meta$group %in% groups, ]
+    if (nrow(meta) < 3) return(NULL)
 
     apath <- file.path(dplots_dir(), 'abundance_plot_data.qs')
     mpath <- file.path(dataset_dir, 'meta.qs')

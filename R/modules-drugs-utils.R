@@ -597,7 +597,7 @@ get_cors_html <- function(cors, titles, cor_titles, cors_range) {
 
 
   return(cors_html)
-  }
+}
 
 
 
@@ -655,33 +655,23 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
     description <- '%{customdata.description}'
   }
 
-  if (drugs) {
-    fontsize = 12
-    pergene = 25
-    title <- 'Standardized Effect Size for Top Query Genes'
-    hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Gene</span>: ', text, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Description</span>: ', description, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval,
-      '<extra></extra>')
+  fontsize = 12
+  pergene = 25
+  title <- 'Standardized Effect Size for Top Query Genes'
+  pre <- '<span style="color: crimson; font-weight: bold; text-align: left;">'
+  hovertemplate <- c(
+    paste0(pre, 'Gene</span>: ', text),
+    paste0(pre, 'Description</span>: ', description),
+    paste0(pre, 'Dprime</span>: ', dprime),
+    paste0(pre, 'SD</span>: ', sd),
+    paste0(pre, 'FDR</span>: ', fdr),
+    paste0(pre, 'Pvalue</span>: ', pval))
 
-  } else {
-    fontsize = 14
-    pergene = 35
-    title <- 'Standardized Pseudobulk Effect Size for Each Cluster'
-    hovertemplate = paste0(
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Cluster</span>: ', text, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Dprime</span>: ', dprime, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">SD</span>: ', sd, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">logFC</span>: ', logfc, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">FDR</span>: ', fdr, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Pvalue</span>: ', pval, '<br>',
-      '<span style="color: crimson; font-weight: bold; text-align: left;">Ambient</span>: ', ambient,
-      '<extra></extra>')
-  }
+  check_cols <- c('Gene', 'description', 'Dprime', 'sd', 'fdr', 'pval')
+  hovertemplate <- hovertemplate[check_cols %in% colnames(path_df)]
+
+  hovertemplate <- paste(hovertemplate, collapse = '<br>')
+  hovertemplate <- paste0(hovertemplate, '<extra></extra>')
 
   sds <- path_df$sds
   dprimes <- path_df$Dprime
@@ -702,7 +692,7 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
 
   left <- max(nchar(genes)+5)*7
 
-  yi <- ifelse(drugs, 0.999, 0.95)
+  yi <- 0.999
 
   (pl <- plotly::plot_ly(data = path_df,
                          y = ~Gene,

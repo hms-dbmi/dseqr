@@ -487,6 +487,7 @@ get_path_res <- function(de, go_path, kegg_path, goana_path, kegga_path, species
 
   } else {
     statistic <- de$t
+    if (is.null(statistic)) statistic <- abs(de$logFC)
     names(statistic) <- de$ENTREZID
     universe <- unique(de$ENTREZID)
   }
@@ -515,7 +516,6 @@ get_path_res <- function(de, go_path, kegg_path, goana_path, kegga_path, species
 
   # get goana and kegga results
   goana_res <- run_path_anal(de, 'goana', species = species, universe = universe)
-  goana_res <- goana_res[goana_res$Ont == 'BP', ]
   kegga_res <- run_path_anal(de, 'kegga', species = species, universe = universe)
 
   qs::qsave(goana_res, goana_path)
@@ -533,20 +533,22 @@ run_path_anal <- function(de, type, species, universe, cutoff = 0.05) {
     path_res <- func(de, geneid = 'ENTREZID', species = species)
 
   } else {
-    # short circuit if no DE
     is.sig <- de$adj.P.Val < cutoff
+
     if (!sum(is.sig)) {
-      message('No DE genes')
-      return(data.frame())
+      message('No DE genes. Using top 300.')
+      de <- de[!is.na(de$ENTREZID), ]
+      is.sig <- rep(FALSE, nrow(de))
+      is.sig[1:min(300, length(is.sig))] <- TRUE
     }
 
     # colnames for kegga or goana
-    cols <- c('Term', 'Ont', 'N')
     if (type == 'kegga') cols <- c('Pathway', 'N')
+    if (type == 'goana') cols <- c('Term', 'Ont', 'N')
 
     # run func for up and down regulated genes
-    de_up <- de$ENTREZID[is.sig & de$t > 0]
-    de_dn <- de$ENTREZID[is.sig & de$t < 0]
+    de_up <- de$ENTREZID[is.sig & de$logFC > 0]
+    de_dn <- de$ENTREZID[is.sig & de$logFC < 0]
     up <- func(de_up, species = species, universe = universe)
     dn <- func(de_dn, species = species, universe = universe)
 

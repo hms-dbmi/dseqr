@@ -1,4 +1,3 @@
-
 #' Logic for Drugs Tab
 #'
 #' @inheritParams bulkPage
@@ -616,7 +615,8 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #' @keywords internal
 #' @noRd
 selectedAnal <- function(input, output, session, data_dir, choices, new_custom, pert_query_dir = NULL) {
-  options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'))
+  options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'),
+                  searchField = c('dataset_name', 'label'))
 
 
   # update dataset/analysis choice
@@ -851,4 +851,3 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   ))
 
 }
-

@@ -156,7 +156,8 @@ process_raw_scseq <- function(scseq,
                    sc_dir,
                    resoln,
                    progress,
-                   value + 3)
+                   value + 3,
+                   reset_annot = !is.azimuth)
 
   progress$set(value = value + 7)
 }
@@ -906,16 +907,13 @@ normalize_scseq <- function(scseq) {
 add_hvgs <- function(sce, hvgs = NULL) {
 
   if (is.null(hvgs)) {
-    hvgs <- calc_hvgs(sce)
+    dec <- scran::modelGeneVar(sce)
+    SummarizedExperiment::rowData(sce)$bio <- dec$bio
+    hvgs <- scran::getTopHVGs(dec, prop=0.1)
   }
 
   SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
   return(sce)
-}
-
-calc_hvgs <- function(sce) {
-  dec <- scran::modelGeneVar(sce)
-  scran::getTopHVGs(dec, prop=0.1)
 }
 
 
@@ -1242,9 +1240,8 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
     SingleCellExperiment::reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
   }
 
-  cor.out$orig.ident <- unlist(lapply(scseqs, `[[`, 'orig.ident'), use.names = FALSE)
-  cor.out$orig.cluster <- unlist(lapply(scseqs, `[[`, 'cluster'), use.names = FALSE)
-  cor.out$orig.resoln <- unlist(lapply(scseqs, `[[`, 'orig.resoln'), use.names = FALSE)
+  # bio is used for sorting markers when no cluster selected
+  SummarizedExperiment::rowData(cor.out)$bio <- decs$bio
 
   rm(combined); gc()
 

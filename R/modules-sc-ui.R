@@ -250,7 +250,10 @@ subsetFormInput <- function(id) {
           container_id = ns('exclude-container'),
           label = 'Features to subset on:',
           actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected features'),
-          options = list(multiple = TRUE, optgroupField = 'type')),
+          options = list(multiple = TRUE,
+                         optgroupField = 'type',
+                         placeholder = 'Select none to recluster')),
+        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', 'human_pbmc'), width = '100%', options = list(placeholder = 'optional')),
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),
@@ -466,6 +469,3 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
-
-
-

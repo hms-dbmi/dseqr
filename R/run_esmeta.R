@@ -3,8 +3,8 @@ run_esmeta <- function(tts) {
   anals <- list()
   for (clust in names(tts)) {
     tt <- tts[[clust]]
-    if (!'dprime' %in% colnames(tt)) next
-    anals[[clust]] <- list(top_tables = list(tt))
+    if (!'t' %in% colnames(tt)) next
+    anals[[clust]] <- list(top_tables = list('test-ctrl'=tt))
   }
 
   if (!length(anals)) return(NULL)
@@ -12,6 +12,37 @@ run_esmeta <- function(tts) {
   es <- crossmeta::es_meta(anals)
   es <- es$all$filt
   return(es)
+}
+
+run_esmeta_logc <- function(tts) {
+  # all genes
+  genes <- lapply(tts, function(tt) {genes <- row.names(tt); names(genes) <- tt$ENTREZID; genes})
+  genes <- unlist(unname(genes))
+  dups <- duplicated(genes)
+  genes <- genes[!dups]
+
+  logfc <- data.frame(row.names = genes)
+
+  for (clust in names(tts)) {
+    tt <- tts[[clust]]
+    if (!'logFC' %in% colnames(tt)) next
+    idx <- match(row.names(tt), genes)
+    logfc[[clust]] <- NA
+    logfc[idx, clust] <- tt$logFC
+  }
+
+  # frequency of most consistent direction
+  freq <- apply(logfc, 1, function(r) {
+    pos <- r > 0
+    pos <- pos[!is.na(pos)]
+    max(sum(pos), sum(!pos))/length(pos)
+  })
+  ord <- order(freq, decreasing = TRUE)
+
+  logfc$logFC <- apply(logfc, 1, mean, na.rm = TRUE)
+  logfc$ENTREZID <- names(genes)
+  logfc$dprime <- logfc$logFC
+  logfc[ord, c('ENTREZID', 'logFC', 'dprime')]
 }
 
 # p value meta-analysis
@@ -28,7 +59,7 @@ run_pmeta <- function(tts) {
   }
 
   pvals$p.meta <- apply(pvals, 1, sumz)
-  pvals <- pvals[!is.na(pvals$p.meta), ]
+  pvals <- pvals[!is.na(pvals$p.meta),, drop = FALSE]
   pvals$fdr <- p.adjust(pvals$p.meta, method = 'BH')
 
   pvals <- pvals[order(pvals$fdr), c('p.meta', 'fdr')]
@@ -89,8 +120,16 @@ es_to_tt <- function(es, enids, cols) {
 tt_to_es <- function(tt) {
   keep <- c('ENTREZID', 'dprime', 'vardprime', 't', 'P.Value', 'adj.P.Val')
   new <- c('ENTREZID', 'mu', 'var', 'z', 'pval', 'fdr')
-  es <- tt[, keep]
-  colnames(es) <- new
+
+  # has replicates
+  if (all(keep %in% colnames(tt))) {
+    es <- tt[, keep]
+    colnames(es) <- new
+
+  } else {
+    es <- tt[, c('ENTREZID', 'logFC')]
+    colnames(es)[2] <- 'mean.logFC'
+  }
   return(es)
 }
 

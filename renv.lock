@@ -707,8 +707,8 @@
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "b7b5d7b7af410cc373dfcccaa73f4ceacc4db95e",
-      "Hash": "e25ab1cc6414c8960f8968cdbfb4c395"
+      "RemoteSha": "78a7463c00ae3bbdd244e093dc5adaac0e0862b7",
+      "Hash": "b883430ea84e92bf7e0d04c4f19cce9f"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -1191,15 +1191,9 @@
     },
     "limma": {
       "Package": "limma",
-      "Version": "3.48.0",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "limma",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "7c5ecf4b3489aa4ba9a047fb71f89c617194c4e3",
-      "Hash": "3ad548a2cac3ef9df69aef7f61429d00"
+      "Version": "3.46.0",
+      "Source": "Bioconductor",
+      "Hash": "78b860aa595c42e02464243a213b3e6d"
     },
     "listenv": {
       "Package": "listenv",

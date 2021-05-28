@@ -569,8 +569,8 @@ interpret <- function(expr_str,
 #'
 html_space <- function(x, justify = 'right') {
   if (is.null(x)) return(NULL)
-  x <- format(as.character(x), justify = justify)
-  gsub(' ', '&nbsp;&nbsp;', x)
+  width <- max(nchar(x))*7.64
+  sprintf('<span style="width:%spx;display:inline-block;">%s</span>', width, x)
 }
 
 #' Get/Save cluster stats for single-cell related selectizeInputs
@@ -626,7 +626,10 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
   }
 
   # number of significant differentially expressed genes in each cluster (pseudobulk)
-  if (sample_comparison) {
+  samples <- scseq$batch[scseq$orig.ident %in% c('test', 'ctrl')]
+  reps <- length(unique(samples)) > 2
+
+  if (sample_comparison & reps) {
     nsig <- rep(0, nbins)
     names(nsig) <- seq_len(nbins)
 
@@ -801,7 +804,7 @@ get_gene_table <- function(markers,
                            tx2gene = NULL) {
 
   # check if markers is limma::topTable
-  is.tt <- 't' %in% colnames(markers)
+  is.tt <- 'logFC' %in% colnames(markers)
 
   # top markers uses features as genes and group as type
   features <- if (is.tt) row.names(markers) else markers$feature
@@ -846,7 +849,7 @@ get_gene_table <- function(markers,
     table <- data.table::data.table(
       Feature = html_features,
       'logFC' = markers$logFC,
-      'FDR' = format.pval(pvals, eps = 0.005, digits = 2),
+      'FDR' = safe.fun(format.pval, pvals, eps = 0.005, digits = 2),
       feature = features
     )
 
@@ -881,7 +884,7 @@ get_leftover_table <- function(features, species = 'Homo sapiens', tx2gene = NUL
   data.table::data.table(
     Feature = html_features,
     feature = features
-    )
+  )
 }
 
 construct_top_markers <- function(markers, scseq) {
@@ -1138,12 +1141,12 @@ run_integrate_saved_scseqs <- function( sc_dir,
     if (type == 'Azimuth') ref <- azimuth_ref
 
     # run integration
-    res <- integrate_scseqs(sc_dir,
-                            dataset_names,
-                            integration_name = integration_name,
-                            integration_type = type,
-                            azimuth_ref = ref,
-                            value = i*8-8)
+    res <- integrate_saved_scseqs(sc_dir,
+                                  dataset_names,
+                                  integration_name = integration_name,
+                                  integration_type = type,
+                                  azimuth_ref = ref,
+                                  value = i*8-8)
 
     # stop subsequent integration types if error
     if (!res) return(FALSE)
@@ -1187,7 +1190,7 @@ subset_saved_scseq <- function(sc_dir,
 
   progress$set(1, detail = 'loading')
   scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include,
-                              with_counts = TRUE, with_logs = is_integrated)
+                              with_counts = TRUE, with_logs = is_integrated)[[1]]
 
   if (is.null(scseq)) {
     progress$set(1, detail = "error: no cells")
@@ -1228,6 +1231,10 @@ subset_saved_scseq <- function(sc_dir,
     args <- c(as.list(environment()))
     args$progress <- args$sc_dir <- args$scseq <- NULL
     args$date <- Sys.time()
+
+    # remove previous reduction
+    SingleCellExperiment::reducedDims(scseq) <- NULL
+
 
     process_raw_scseq(scseq,
                       dataset_name,
@@ -1395,7 +1402,6 @@ load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_
   }
 
   if (!length(scseqs)) return(NULL)
-  if (length(scseqs) == 1) return(scseqs[[1]])
   return(scseqs)
 }
 
@@ -1478,6 +1484,7 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
   resoln_name <- load_resoln(dataset_dir)
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
+  if (is.null(scseq$batch)) scseq$batch <- scseq$project
 
   return(scseq)
 }
@@ -1488,7 +1495,7 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
 #' @return \code{NULL} if valid, otherwise an error message
 #'
 #' @keywords internal
-validate_integration <- function(types, name, azimuth_ref) {
+validate_integration <- function(types, name, azimuth_ref, dataset_names) {
   msg <- NULL
 
   if ('Azimuth' %in% types & azimuth_ref == '') {
@@ -1497,6 +1504,8 @@ validate_integration <- function(types, name, azimuth_ref) {
     msg <- 'Select one or more integration types'
   } else if (name == '') {
     msg <- 'Enter name for integrated dataset'
+  } else if (length(dataset_names) < 2) {
+    msg <- 'Select atleast two datasets'
   }
 
   return(msg)
@@ -1520,8 +1529,6 @@ validate_subset <- function(from_dataset, subset_name, subset_clusters, is_inclu
   } else if (all.excluded) {
     msg <- 'All excluded'
 
-  } else if (all.included & no.hvgs) {
-    msg <- 'All included without custom genes'
   }
 
   return(msg)
@@ -1874,9 +1881,12 @@ quickVoomWithQualityWeights <- function (y, mod, lib.size) {
 }
 
 
-get_grid <- function(scseq, nx=120, ny=60) {
+get_grid <- function(scseq) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
+
+  if (red == 'UMAP') nx=120; ny=60
+  if (red == 'TSNE') nx=100; ny=50
 
   red.mat <- SingleCellExperiment::reducedDim(scseq, red)
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
