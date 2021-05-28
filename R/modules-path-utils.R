@@ -179,7 +179,7 @@ load_scseq_datasets <- function(data_dir) {
 }
 
 get_scdata_type <- function(dataset_names, sc_dir, none) {
-  sapply(
+  unlist(sapply(
     dataset_names,
     function(ds) {
       qread.safe(
@@ -187,7 +187,7 @@ get_scdata_type <- function(dataset_names, sc_dir, none) {
         .nofile = none,
         .nullfile = none)
     },
-    USE.NAMES = FALSE)
+    USE.NAMES = FALSE))
 }
 
 
