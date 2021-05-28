@@ -2842,7 +2842,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     bio <- SummarizedExperiment::rowData(scseq)$bio
     ord <- order(bio, decreasing = TRUE)
 
-    data.table::data.table(feature = row.names(scseq)[ord])
+    data.frame(row.names = row.names(scseq)[ord])
   })
 
 
