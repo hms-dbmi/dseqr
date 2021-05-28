@@ -804,7 +804,7 @@ get_gene_table <- function(markers,
                            tx2gene = NULL) {
 
   # check if markers is limma::topTable
-  is.tt <- 'logFC' %in% colnames(markers)
+  is.tt <- !'auc' %in% colnames(markers)
 
   # top markers uses features as genes and group as type
   features <- if (is.tt) row.names(markers) else markers$feature

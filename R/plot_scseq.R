@@ -459,7 +459,7 @@ VlnPlot <- function(feature = NULL,
                       ncells = ncells)
 
 
-  if (with.height) pl <- list(plot = pl, height = max(235, length(ncells) * 38))
+  if (with.height) pl <- list(plot = pl, height = max(235, length(ncells) * 45))
   return(pl)
 
 }

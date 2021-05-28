@@ -973,7 +973,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
-    meta <- up_meta()
+    meta <- meta()
     groups <- groups()
     if (is.null(groups) | is.null(meta)) return(NULL)
     meta <- meta[meta$group %in% groups, ]
@@ -3256,3 +3256,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
