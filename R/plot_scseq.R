@@ -14,25 +14,30 @@ plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, leg
 
   # dynamic label/point size
   if (!is.null(scseq)) {
-    levs <- levels(scseq$cluster)
-    pt.size <- min(6000/ncol(scseq), 2)
-    nc <- length(levs)
-    if (nc > 30) levels(scseq$cluster) <- shorten_cluster_labels(levs)
-
+    ncells <- ncol(scseq)
     reds <- SingleCellExperiment::reducedDimNames(scseq)
     reds <- reds[reds %in% c('UMAP', 'TSNE')]
     if (!reduction %in% reds) reduction <- reds[1]
 
+
+    levs <- levels(scseq$cluster)
+    nc <- length(levs)
+    if (nc > 30) levels(scseq$cluster) <- shorten_cluster_labels(levs)
+
+
   } else {
+    ncells <- nrow(plot_data)
+    reduction <- gsub('1$', '', colnames(plot_data)[1])
+
     levs <- levels(plot_data$cluster)
-    pt.size <- min(6000/nrow(plot_data), 2)
     nc <- length(levs)
     if (nc > 30) {
       levels(plot_data$cluster) <- shorten_cluster_labels(levs)
       add_warn <- TRUE
     }
-    reduction <- gsub('1$', '', colnames(plot_data)[1])
   }
+
+  pt.size <- min(6000/ncells, 2)
 
   if (is.null(cols))
     cols <- get_palette(levs, with_all = TRUE)

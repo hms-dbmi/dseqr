@@ -208,6 +208,7 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 
   queries <- list()
   for (ds in names(scseqs)) {
+
     scseq <- scseqs[[ds]]
     counts <- SingleCellExperiment::counts(scseq)
     query <- Seurat::CreateSeuratObject(counts = counts,
@@ -229,6 +230,9 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       verbose = FALSE
     )
 
+    # error if more than ncells
+    k <- min(100, round(ncol(scseq)/4))
+
     # Find anchors between query and reference
     anchors <- Seurat::FindTransferAnchors(
       reference = reference$map,
@@ -242,7 +246,7 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
       dims = 1:50,
       n.trees = 20,
-      mapping.score.k = 100,
+      mapping.score.k = k,
       verbose = FALSE
     )
 
@@ -259,6 +263,7 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       anchorset = anchors,
       refdata = refdata,
       n.trees = 20,
+      k.weight = round(k/2),
       store.weights = TRUE,
       verbose = FALSE
     )
@@ -303,7 +308,7 @@ run_azimuth <- function(scseqs, azimuth_ref) {
     # Calculate mapping score and add to metadata
     query <- Seurat::AddMetaData(
       object = query,
-      metadata = Seurat::MappingScore(anchors = anchors),
+      metadata = Seurat::MappingScore(anchors = anchors, ksmooth = k, kanchors = round(k/2)),
       col.name = "mapping.score"
     )
 
