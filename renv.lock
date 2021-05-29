@@ -99,12 +99,6 @@
       "Repository": "CRAN",
       "Hash": "030aaec5bc6553f35347cbb1e70b1a17"
     },
-    "DESeq2": {
-      "Package": "DESeq2",
-      "Version": "1.30.0",
-      "Source": "Bioconductor",
-      "Hash": "70f50d662ec8f7c534dfd233c949e1d5"
-    },
     "DEoptimR": {
       "Package": "DEoptimR",
       "Version": "1.0-8",
@@ -700,15 +694,15 @@
     },
     "crossmeta": {
       "Package": "crossmeta",
-      "Version": "1.17.18",
+      "Version": "1.17.19",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "crossmeta",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "78a7463c00ae3bbdd244e093dc5adaac0e0862b7",
-      "Hash": "b883430ea84e92bf7e0d04c4f19cce9f"
+      "RemoteSha": "e59888a33b8e1058486bd7853cd3c679d18f4a5c",
+      "Hash": "03e2f86f063c77c562944106e3ccebf7"
     },
     "crosstalk": {
       "Package": "crosstalk",
@@ -928,12 +922,6 @@
       "Version": "1.72.1",
       "Source": "Bioconductor",
       "Hash": "c25bd3bb0821c2e7cda02b177b20136b"
-    },
-    "geneplotter": {
-      "Package": "geneplotter",
-      "Version": "1.68.0",
-      "Source": "Bioconductor",
-      "Hash": "beb82d45bc852daee31a515bf818d561"
     },
     "generics": {
       "Package": "generics",
@@ -1564,15 +1552,15 @@
     },
     "rkal": {
       "Package": "rkal",
-      "Version": "0.99.3",
+      "Version": "0.99.4",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "rkal",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "4078ce4609ca10607a84eb5f8b6d2e0746ed2efb",
-      "Hash": "e5f41fddebac189b6407a88a81f72214"
+      "RemoteSha": "5b9ddd004d87a99406e9c32772c4c2c619232b67",
+      "Hash": "e94f7a07fc4cc3825d396da54f5bfecf"
     },
     "rlang": {
       "Package": "rlang",
