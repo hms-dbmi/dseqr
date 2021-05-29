@@ -3029,10 +3029,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
              filename = filename,
              content = content)
 
-
-  return(list(
-    plot = plot
-  ))
 }
 
 
@@ -3042,6 +3038,7 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
   observe(toggle('abundance_plot', condition = show_plot()))
 
   plot_data <- reactive({
+
     dataset_dir <- dataset_dir()
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
@@ -3049,12 +3046,11 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
     groups <- compare_groups()
     if (length(groups) != 2) return(NULL)
 
-    scseq_groups <- unique(scseq$orig.ident)
-    if (length(scseq_groups) != 2) return(NULL)
-
     meta <- meta()
     meta <- meta[meta$group %in% groups, ]
     if (nrow(meta) < 3) return(NULL)
+
+    scseq <- attach_meta(scseq, meta=meta, groups=groups)
 
     apath <- file.path(dplots_dir(), 'abundance_plot_data.qs')
     mpath <- file.path(dataset_dir, 'meta.qs')
@@ -3079,17 +3075,8 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
   })
 
 
-  content <- function(file) {
-    data <- plot()$data
-    utils::write.csv(data, file)
-  }
-
-
   output$abundance_plot <- shiny::renderPlot(plot())
 
-  return(list(
-    plot = plot
-  ))
 }
 
 
@@ -3170,12 +3157,6 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
              filename = filename,
              content = content)
 
-
-
-
-  return(list(
-    plot = plot
-  ))
 }
 
 
