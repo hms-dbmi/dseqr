@@ -2861,7 +2861,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
       new <- markers()[[sel]]
 
       prev <- isolate(selected_markers())
-      if (is.null(prev) || !identical(row.names(new), row.names(prev)))
+      if (is.null(prev) || !identical(new, prev))
         selected_markers(new)
     }
   })
@@ -3433,3 +3433,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
