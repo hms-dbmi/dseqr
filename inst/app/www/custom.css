@@ -279,8 +279,9 @@ body {
   background-color: slategray;
 }
 
-.secondary-navbar .btn-group {
+.secondary-navbar-btn-group {
   margin-right: 10px;
+  display: inline;
 }
 
 /*shinyFiles TODO: fix in shinypanel.css */

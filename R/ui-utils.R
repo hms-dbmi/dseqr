@@ -72,7 +72,7 @@ navbar2UI <- function(hide) {
 
   ui <- tags$div(
     class = 'secondary-navbar',
-    tags$div(class = 'btn-group',
+    tags$div(class = 'secondary-navbar-btn-group',
              tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw')),
     ),
     tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw')),
