@@ -1,3 +1,5 @@
+
+
 tabs <- getShinyOption('tabs', c('Single Cell', 'Bulk Data', 'Drugs'))
 data_dir <- getShinyOption('data_dir')
 logout_url <- getShinyOption('logout_url')
@@ -28,9 +30,6 @@ bootstrapPage(
   fluidPage(
     tags$div(
       class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
-
-
-
 
       # tabs
       scPageUI("sc", tab = 'Single Cell', active),

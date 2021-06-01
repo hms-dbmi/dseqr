@@ -329,7 +329,6 @@ get_sc_dataset_choices <- function(sc_dir) {
   # founder for subsets as type
   ind_type <- get_scdata_type(individual, sc_dir, none = 'Individual')
 
-
   # add founders that are currently individual
   # from saving without QC0 QC1
   self.founder <- individual %in% ind_type
@@ -384,7 +383,7 @@ datasets_to_list <- function(datasets) {
   res <- datasets$value
   names(res) <- datasets$optionLabel
   types <- datasets$type
-  res <- lapply(unique(types), function(type) c('', res[types==type]))
+  res <- lapply(unique(types), function(type) res[types==type])
   names(res) <- unique(types)
   return(res)
 

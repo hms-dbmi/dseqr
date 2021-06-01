@@ -179,7 +179,7 @@ load_scseq_datasets <- function(data_dir) {
 }
 
 get_scdata_type <- function(dataset_names, sc_dir, none) {
-  unlist(sapply(
+  types <- unlist(sapply(
     dataset_names,
     function(ds) {
       qread.safe(
@@ -188,6 +188,10 @@ get_scdata_type <- function(dataset_names, sc_dir, none) {
         .nullfile = none)
     },
     USE.NAMES = FALSE))
+
+  ntype <- table(types)[types]
+  types[ntype == 1] <- none
+  return(types)
 }
 
 

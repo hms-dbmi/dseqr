@@ -903,12 +903,14 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       disabled <- cluster_choices()[sel, 'disabled']
       if (is.null(disabled) || disabled) return(NULL)
 
-      disableAll(input_ids)
+      amb <- get_ambience(scseq())
+      if (ncol(amb) != ncol(summed))
+
+        disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       on.exit(progress$close())
       progress$set(message = paste("Detecting ambient genes: cluster", sel), value = 1)
 
-      amb <- get_ambience(scseq())
       amb <- calc_cluster_ambience(summed, amb, sel)
       qs::qsave(amb, ambience_path)
 
@@ -1447,13 +1449,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(df)
   })
 
-  is_rendered <- reactiveVal(FALSE)
-
   output$up_table <- DT::renderDataTable({
-    df <- data.frame(Sample=NA, File=NA, Size=NA)
-    is_rendered(TRUE)
 
-    DT::datatable(df,
+    table <- up_table()
+    if (is.null(table)) return(NULL)
+    samples <- up_samples()
+    if (!is.null(samples)) table$Sample <- samples
+
+    DT::datatable(table,
                   class = 'cell-border',
                   rownames = FALSE,
                   escape = FALSE, # to allow HTML in table
@@ -1464,40 +1467,27 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                     ordering = FALSE,
                     dom = 't',
                     scroller = TRUE,
-                    bInfo = 0,
-                    scrollY= FALSE
+                    scrollY = min(250, length(samples)*38)
                   )) %>%  DT::formatStyle('Size', `text-align` = 'right')
   })
 
-  up_proxy <- DT::dataTableProxy('up_table')
 
-  observeEvent(up_samples(), {
-    req(is_rendered())
-    table <- up_table()
-    samples <- up_samples()
-    if (!is.null(samples)) table$Sample <- samples
-    DT::replaceData(up_proxy, table, resetPaging = FALSE, rownames = FALSE)
-  })
-
-
-  allow_delete <- reactive(isTruthy(input$remove_name) & input$confirm_delete == 'delete')
+  allow_delete <- reactive(isTruthy(input$remove_datasets) & input$confirm_delete == 'delete')
 
   observe({
     toggleState('delete_dataset', condition = allow_delete())
   })
 
   observe({
-    toggle('confirm_delete_container', condition = isTruthy(input$remove_name))
+    toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
   })
 
   observeEvent(input$delete_dataset, {
-
-    ds <- datasets()
-    remove_name <- ds[ds$value == input$remove_name, 'name']
-    unlink(file.path(sc_dir, remove_name), recursive = TRUE)
+    remove_datasets <- input$remove_datasets
+    unlink(file.path(sc_dir, remove_datasets), recursive = TRUE)
     updateTextInput(session, 'confirm_delete', value = '')
     removeModal()
-    new_dataset(remove_name)
+    new_dataset(remove_datasets)
   })
 
   observe({
@@ -1537,13 +1527,19 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # open modal selectors
   observeEvent(add_sc(), {
-    showModal(uploadModal(isTruthy(up_table())))
+    showModal(uploadModal(session, isTruthy(up_table())))
   })
 
   observeEvent(remove_sc(), {
-    choices <- datasets()
-    choices <- datasets_to_list(choices)
-    showModal(deleteModal(choices))
+    ds <- datasets()
+    ds <- ds[!ds$type %in% 'Previous Session', ]
+
+    choices <- ds %>%
+      dplyr::group_by(type) %>%
+      dplyr::summarise(names = list(name))
+
+    names(choices$names) <- choices$type
+    showModal(deleteModal(session, choices$names))
   })
 
 
@@ -1599,6 +1595,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                       'high_doublet_score')
 
   # run single-cell quantification
+  qargs <- reactiveValues()
   quants <- reactiveValues()
   pquants <- reactiveValues()
   deselect_dataset <- reactiveVal(0)
@@ -1648,25 +1645,51 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
       }
 
+      # add function that initiates quantification
+      # allows to run n at a time
+      qargs[[dataset_name]] <- list(
+        opts = opts,
+        fastq_dir = fastq_dir,
+        sc_dir = sc_dir,
+        indices_dir = indices_dir,
+        azimuth_ref = azimuth_ref
+      )
+    }
+  })
+
+  # restrict to two imports at a time
+  observe({
+    invalidateLater(5000, session)
+    todo <- reactiveValuesToList(qargs)
+    todo <- names(todo)[!sapply(todo, is.null)]
+    if (!length(todo)) return(NULL)
+
+    doing <- reactiveValuesToList(quants)
+    doing <- names(doing)[!sapply(doing, is.null)]
+    nmax <- 2
+
+    if (length(doing) >= nmax) return(NULL)
+
+    while (length(doing) < nmax && length(todo)) {
+      dataset_name <- todo[1]
+      todo <- todo[-1]
+      doing <- c(doing, dataset_name)
+
+      args <- qargs[[dataset_name]]
+      qargs[[dataset_name]] <- NULL
+
       quants[[dataset_name]] <- callr::r_bg(
         func = run_load_raw_scseq,
         package = 'dseqr',
-        args = list(
-          opts = opts,
-          fastq_dir = fastq_dir,
-          sc_dir = sc_dir,
-          indices_dir = indices_dir,
-          azimuth_ref = azimuth_ref
-        )
+        args = args
       )
 
-      progress <- Progress$new(max=10*length(opts))
+      progress <- Progress$new(max=10*length(args$opts))
       msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
       progress$set(message = msg, value = 0)
       pquants[[dataset_name]] <- progress
     }
   })
-
 
   observe({
     invalidateLater(5000, session)
@@ -1679,6 +1702,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     datasets <- datasets_to_list(datasets)
     updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = datasets, options = options)
   })
+
 
 
   # show/hide integration/label-transfer forms
@@ -1723,7 +1747,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 }
 
 # modal to upload dataset
-uploadModal <- function(show_init) {
+uploadModal <- function(session, show_init) {
   label <- "Click upload or drag files:"
   label_title <- "Accepts 10X *.fastq.gz or Cell Ranger files (*.h5 or matrix.mtx, barcodes.tsv, and genes.tsv)"
   label <- tags$span(label,
@@ -1755,15 +1779,21 @@ uploadModal <- function(show_init) {
 }
 
 # modal to delete dataset
-deleteModal <- function(choices) {
+deleteModal <- function(session, choices) {
+
   modalDialog(
     tags$div(class='selectize-fh',
-             selectizeInput(session$ns('remove_name'),
-                            label='Select dataset to delete:',
-                            width = '100%',
-                            options = options,
-                            choices = choices
-             )
+             shinyWidgets::pickerInput(session$ns('remove_datasets'),
+                                       label='Select datasets to delete:',
+                                       width = '100%',
+                                       choices = choices,
+                                       options = shinyWidgets::pickerOptions(
+                                         `selected-text-format` = "count > 0",
+                                         actionsBox = TRUE,
+                                         liveSearch = TRUE,
+                                         width='fit',
+                                         size=14),
+                                       multiple = TRUE)
     ),
     tags$div(id=session$ns('confirm_delete_container'), style='display:none;',
              tags$div(class='alert alert-danger', 'This action cannot be undone.'),
@@ -1772,13 +1802,13 @@ deleteModal <- function(choices) {
                        placeholder = "delete", width = '100%'
              ),
     ),
-    title = 'Delete Single Cell Dataset',
+    title = 'Delete Single Cell Datasets',
     size = 'm',
     footer = tagList(
-      actionButton(session$ns("delete_dataset"), "Delete Dataset", class = 'btn-danger'),
+      actionButton(session$ns("delete_dataset"), "Delete Datasets", class = 'btn-danger'),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
-    easyClose = FALSE,
+    easyClose = TRUE,
   )
 }
 
@@ -1856,10 +1886,10 @@ keep_curr_selected <- function(datasets, prev, curr) {
 
   # get currently selected row
   curr <- as.numeric(curr)
-  curr_text <- do.call(paste0, prev[curr, ])
+  curr_name <- prev[curr, 'name']
 
   # position in new datasets
-  new_posn <- which(curr_text == do.call(paste0, datasets))
+  new_posn <- which(curr_name == datasets$name)[1]
 
   # move so that row at new_posn is at curr
   idx <- seq_len(nrow(datasets))
@@ -3403,4 +3433,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-

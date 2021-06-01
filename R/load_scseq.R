@@ -372,24 +372,24 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
   # if pre-filtered cellranger, can't determine outliers/empty droplets
   ncount <- Matrix::colSums(counts)
   if (min(ncount) > 10) {
-    ambience <- rep(0, nrow(counts))
     keep_cells <- seq_len(ncol(counts))
+    rowData <- NULL
 
   } else {
     ambience <- DropletUtils::estimateAmbience(counts, good.turing = FALSE, round = FALSE)
     keep_cells <- detect_cells(counts, species = species)
+    rowData <- S4Vectors::DataFrame(ambience)
   }
 
   project <- rep(project, length(keep_cells))
 
   # add ambience metadata for genes
-  rowData <- S4Vectors::DataFrame(ambience)
   colData <- S4Vectors::DataFrame(project = project, batch = project)
 
   sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = counts[, keep_cells]),
-    rowData = rowData,
-    colData = colData
+    colData = colData,
+    rowData = rowData
   )
 
   # flag to know if need to convert for drug queries
@@ -1275,6 +1275,7 @@ get_ambience <- function(combined) {
   ambience <- SummarizedExperiment::rowData(combined)
   ambience <- ambience[, grepl('ambience$', colnames(ambience)), drop=FALSE]
   ambience <- as.matrix(ambience)
+
   return(ambience)
 
 }
@@ -1282,6 +1283,7 @@ get_ambience <- function(combined) {
 calc_cluster_ambience <- function(summed, ambience, clus) {
   counts <- SingleCellExperiment::counts(summed)
   counts <- counts[, summed$cluster == clus]
+  if (ncol(counts) != ncol(ambience)) return(NULL)
   amb <- DropletUtils::maximumAmbience(counts, ambience, mode = 'proportion')
   amb <- rowMeans(amb, na.rm=TRUE)
   amb <- amb[!is.na(amb)]

@@ -29,8 +29,8 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                    span(class = 'navbar-brand', title = 'dseqr',
                         tags$a(class = 'brand-icons',
                                href="/",
-                             tags$img(src="favicon.png"),
-                             span('seqr')
+                               tags$img(src="favicon.png"),
+                               span('seqr')
                         )
                    )
                ),
@@ -66,7 +66,9 @@ navbar2UI <- function(hide) {
 
   ui <- tags$div(
     class = 'secondary-navbar',
-    tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw')),
+    tags$div(class = 'btn-group',
+             tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw')),
+    ),
     tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw')),
     tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw')),
     tags$span(icon('', 'fa-fw')),
