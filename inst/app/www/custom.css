@@ -100,7 +100,7 @@
 .brand-icons {
     background-color: white;
     padding: 5px 12px 5px 0px;
-    cursor: default;
+    cursor: pointer;
     color: #333;
     text-decoration: none !important;
 }
