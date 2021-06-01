@@ -1539,7 +1539,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       dplyr::summarise(names = list(name))
 
     names(choices$names) <- choices$type
-    showModal(deleteModal(session, choices$names))
+    choices <- choices$names
+    if (length(choices == 1)) choices <- unname(unlist(choices))
+
+    showModal(deleteModal(session, choices))
   })
 
 
