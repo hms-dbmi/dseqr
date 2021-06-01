@@ -1108,9 +1108,8 @@ add_scseq_qcplot_metrics <- function(sce) {
 get_presto_markers <- function(scseq) {
   markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts', verbose = TRUE)
   markers <- markers %>%
-    dplyr::filter(logFC > 0) %>%
     dplyr::group_by(group) %>%
-    dplyr::arrange(pval -auc) %>%
+    dplyr::arrange(pval, -auc) %>%
     dplyr::group_split() %>%
     as.list()
 
