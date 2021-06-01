@@ -783,7 +783,7 @@ get_gene_choices <- function(markers,
 get_qc_table <- function(qc_metrics = NULL) {
 
   is.score <- names(qc_metrics) == 'numeric'
-  html_metrics <- stringr::str_trunc(qc_metrics, 25, 'left')
+  html_metrics <- stringr::str_trunc(qc_metrics, 40, 'left')
   html_metrics[is.score] <- paste0(
     "<span class='input-swatch' style='background: linear-gradient(to right, lightgray, blue);'></span>",
     sprintf("<span title='%s'>%s</span>", qc_metrics[is.score], html_metrics[is.score])
