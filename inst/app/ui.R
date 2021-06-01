@@ -1,6 +1,7 @@
 tabs <- getShinyOption('tabs', c('Single Cell', 'Bulk Data', 'Drugs'))
 data_dir <- getShinyOption('data_dir')
 logout_url <- getShinyOption('logout_url')
+is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
 
@@ -10,6 +11,7 @@ bootstrapPage(
   # scrollspy for docs tab
   extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}", functions = 'init'),
   includeScript(path = 'www/renderSelectize.js'),
+  includeScript(path = 'www/progressBinding.js'),
   includeScript(path = 'www/isMobile.js'),
   includeScript(path = 'www/toggleClinicalTitle.js'),
   includeScript(path = 'www/contextMenu.js'),
@@ -21,13 +23,14 @@ bootstrapPage(
   tags$head(HTML("<title>Dseqr</title>"),
             tags$link(rel = "icon", type = "image/png", href = "https://raw.githubusercontent.com/hms-dbmi/dseqr.sp/master/favicon.png")),
   navbarUI(tabs, active, logout_url),
+  navbar2UI(is_example),
+
   fluidPage(
     tags$div(
       class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
 
-      # rintrojs stuff
-      span(id = 'start_tour', class='action-button shiny-bound-input btn-intro-icon btn-intro', icon('info', 'fa-fw fa-w-6')),
-      shinyBS::bsTooltip(id = 'start_tour', title = 'Tour this page', placement = 'right', options = list(container = 'body')),
+
+
 
       # tabs
       scPageUI("sc", tab = 'Single Cell', active),

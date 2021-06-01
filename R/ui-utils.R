@@ -59,6 +59,26 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
   )
 }
 
+navbar2UI <- function(hide) {
+  class <- 'action-button shiny-bound-input btn-intro'
+  add <- ifelse(hide, 'disabled', '')
+
+
+  ui <- tags$div(
+    class = 'secondary-navbar',
+    tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw')),
+    tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw')),
+    tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw')),
+    tags$span(icon('', 'fa-fw')),
+    shinyBS::bsTooltip(id = paste0('add_dataset', add), title = 'Add Datasets', placement = 'bottom', options = list(container = 'body')),
+    shinyBS::bsTooltip(id = paste0('remove_dataset', add), title = 'Remove Datasets', placement = 'bottom', options = list(container = 'body')),
+    shinyBS::bsTooltip(id = 'start_tour', title = 'Tour this page', placement = 'bottom', options = list(container = 'body'))
+  )
+
+
+  return(ui)
+}
+
 
 #' UI for a tab pane
 #'

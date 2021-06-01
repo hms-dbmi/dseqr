@@ -126,7 +126,7 @@ scSelectedDatasetInput <- function(id) {
     div(id = 'sc-intro-dataset',
         shinypanel::selectizeInputWithButtons(
           inputId = ns('selected_dataset'),
-          label = 'Select or upload a single-cell dataset:',
+          label = 'Select a single-cell dataset:',
           actionButton(
             ns('show_label_resoln'), '',
             icon = icon('cog', 'fa-fw'),

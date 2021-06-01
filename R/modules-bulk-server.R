@@ -448,7 +448,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
 
 
-  uploadModal <- function() {
+  uploadBulkModal <- function() {
     label <- "Click upload or drag files:"
     label_title <- "Accepts *.fastq.gz or eset.qs"
     label <- tags$span(label,
@@ -471,7 +471,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
   # open modal if creating
   observe({
     req(is.create())
-    showModal(uploadModal())
+    showModal(uploadBulkModal())
   })
 
   # move uploaded to destination
@@ -766,7 +766,7 @@ handle_bulk_progress <- function(bgs, progs, new_dataset) {
 }
 
 file.move <- function(from, to) {
-  if (file.exists(to)) unlink(to)
+  if (any(file.exists(to))) unlink(to)
   tryCatch(
     file.rename(from, to),
     warning = function(w) {

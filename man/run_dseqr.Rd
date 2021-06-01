@@ -16,7 +16,8 @@ run_dseqr(
   test_data = FALSE,
   host = "0.0.0.0",
   port = 3838,
-  logout_url = NULL
+  logout_url = NULL,
+  is_example = FALSE
 )
 }
 \arguments{

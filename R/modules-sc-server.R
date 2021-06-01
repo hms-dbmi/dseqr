@@ -6,13 +6,15 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
+scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_sc, remove_sc) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
                        sc_dir = sc_dir,
                        indices_dir = indices_dir,
-                       is_mobile = is_mobile)
+                       is_mobile = is_mobile,
+                       add_sc = add_sc,
+                       remove_sc = remove_sc)
 
   # cluster plot in top right
   callModule(scClusterPlot, 'cluster_plot',
@@ -95,7 +97,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
+scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_sc, remove_sc) {
 
   # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
@@ -160,6 +162,18 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
     progress$set(message = "Loading logcounts", value = 1)
     on.exit(progress$close())
     res <- qs::qread(file.path(dataset_dir, 'dgrlogs.qs'))
+    progress$set(value = 2)
+    return(res)
+  })
+
+  # dgCMatrix logcounts other
+  dgclogs <- reactive({
+    dataset_dir <- dataset_dir()
+    if (is.null(dataset_dir)) return(NULL)
+    progress <- Progress$new(session, min = 0, max = 2)
+    progress$set(message = "Loading logcounts", value = 1)
+    on.exit(progress$close())
+    res <- qs::qread(file.path(dataset_dir, 'dgclogs.qs'))
     progress$set(value = 2)
     return(res)
   })
@@ -236,7 +250,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
   scDataset <- callModule(scSelectedDataset, 'dataset',
                           sc_dir = sc_dir,
                           new_dataset = new_dataset,
-                          indices_dir = indices_dir)
+                          indices_dir = indices_dir,
+                          add_sc = add_sc,
+                          remove_sc = remove_sc)
 
   scClusterPlots <- clusterPlots(plots_dir, scseq_clusts, dgrlogs)
 
@@ -268,6 +284,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
                              dataset_name = scDataset$dataset_name,
                              scseq = scDataset$scseq,
                              counts = counts,
+                             dgclogs = dgclogs,
                              snn_graph = scDataset$snn_graph,
                              annot_path = annot_path,
                              show_label_resoln = scDataset$show_label_resoln)
@@ -307,7 +324,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile) {
                                     annot_path = annot_path,
                                     annot = annot,
                                     ref_preds = scLabelTransfer$pred_annot,
-                                    clusters = scResolution$clusters)
+                                    clusters = scResolution$clusters,
+                                    dgclogs = dgclogs)
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               scseq = scseq_clusts,
@@ -430,7 +448,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   })
 
   prev_path <- reactive({
-    if (is.null(dataset_dir())) return(NULL)
+    if (!isTruthy(dataset_dir())) return(NULL)
     file.path(dataset_dir(), 'prev_groups.qs')
   })
 
@@ -540,7 +558,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     groups <- input$compare_groups
     if (length(groups) != 2) return(NULL)
     if (is.null(prev_path())) return(NULL)
-
     qs::qsave(groups, prev_path())
   })
 
@@ -1318,28 +1335,20 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir) {
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
-  options <- list(create = TRUE,
-                  placeholder = 'Type name to add new single-cell dataset',
-                  render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+  options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'),
                   searchField = c('optgroup', 'label'))
 
-  # get directory with fastqs/h5 files
-  roots <- c('single-cell' = sc_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots, restrictions = get_exclude_dirs(sc_dir))
-
-
-  dataset_exists <- reactive(isTruthy(input$selected_dataset) & !is.create())
-
   dataset_name <- reactive({
-    if (!dataset_exists()) return(NULL)
     ds <- datasets()
-    ds <- ds$name[ds$value == input$selected_dataset]
+    ds$name[ds$value == input$selected_dataset]
   })
 
   dataset_dir <- reactive(file.path(sc_dir, dataset_name()))
   snn_path <- reactive(file.path(dataset_dir(), 'snn_graph.qs'))
+
+  dataset_exists <- reactive(isTruthy(dataset_name()))
 
 
   # load scseq
@@ -1356,12 +1365,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       snn_graph <- qs::qread(snn_path)
 
     } else {
-      disableAll(dataset_inputs)
       scseq <- scseq()
       if (!isTruthy(scseq)) return(NULL)
       is.azi <- file.exists(file.path(dataset_dir(), 'azimuth_ref.qs'))
       if (is.azi) return(NULL)
 
+      disableAll(dataset_inputs)
       snn_graph <- get_snn_graph(scseq)
       qs::qsave(snn_graph, snn_path)
       enableAll(dataset_inputs)
@@ -1407,62 +1416,147 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     qs::qsave(sel, prev_path)
   })
 
+  # logic for upload table modal
+  up_all <- reactiveVal()
+  up_samples <- reactiveVal()
+  up_select <- reactiveVal(FALSE)
 
-  # are we creating a new dataset?
-  is.create <- reactive({
-    dataset_name <- input$selected_dataset
-    datasets <- datasets()
-    if (!isTruthy(dataset_name)) return(FALSE)
+  observeEvent(input$up_raw, {
+    sel <- NULL
+    prev <- up_all()
+    if (!is.null(prev)) sel <- rep(FALSE, nrow(prev))
 
-    !dataset_name %in% datasets$value
+    new <- input$up_raw
+    sel <- c(sel, rep(TRUE, nrow(new)))
+
+    up_all(rbind.data.frame(prev, new))
+    up_select(sel)
   })
 
-  uploadModal <- function() {
-    label <- "Click upload or drag files:"
-    label_title <- "Accepts 10X *.fastq.gz or Cell Ranger files (*.h5 or matrix.mtx, barcodes.tsv, and genes.tsv)"
-    label <- tags$span(label,
-                       title = label_title,
-                       span(class = "hover-info",
-                            icon("info", "fa-fw")))
+  up_table <- reactive({
+    df <- up_all()
+    if (is.null(df)) return(NULL)
 
-    modalDialog(
-      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.h5', '.tsv', '.fastq.gz'), multiple = TRUE),
-      title = 'Upload or Select Existing?',
-      size = 's',
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("click_existing"), "Select Existing", class = 'pull-left btn-warning')
-      ),
-      easyClose = FALSE,
-    )
+    df <- df[, c('name', 'size')]
+    df$size <- sapply(df$size, utils:::format.object_size, units = 'auto')
+    colnames(df) <- c('File', 'Size')
+
+    df <- dplyr::mutate(df, Sample = NA, .before = 1)
+    samples <- isolate(up_samples())
+    if (!is.null(samples)) df$Sample <- samples
+    return(df)
+  })
+
+  is_rendered <- reactiveVal(FALSE)
+
+  output$up_table <- DT::renderDataTable({
+    df <- data.frame(Sample=NA, File=NA, Size=NA)
+    is_rendered(TRUE)
+
+    DT::datatable(df,
+                  class = 'cell-border',
+                  rownames = FALSE,
+                  escape = FALSE, # to allow HTML in table
+                  selection = 'multiple',
+                  extensions = 'Scroller',
+                  options = list(
+                    scrollX = TRUE,
+                    ordering = FALSE,
+                    dom = 't',
+                    scroller = TRUE,
+                    bInfo = 0,
+                    scrollY= FALSE
+                  )) %>%  DT::formatStyle('Size', `text-align` = 'right')
+  })
+
+  up_proxy <- DT::dataTableProxy('up_table')
+
+  observeEvent(up_samples(), {
+    req(is_rendered())
+    table <- up_table()
+    samples <- up_samples()
+    if (!is.null(samples)) table$Sample <- samples
+    DT::replaceData(up_proxy, table, resetPaging = FALSE, rownames = FALSE)
+  })
+
+
+  allow_delete <- reactive(isTruthy(input$remove_name) & input$confirm_delete == 'delete')
+
+  observe({
+    toggleState('delete_dataset', condition = allow_delete())
+  })
+
+  observe({
+    toggle('confirm_delete_container', condition = isTruthy(input$remove_name))
+  })
+
+  observeEvent(input$delete_dataset, {
+
+    ds <- datasets()
+    remove_name <- ds[ds$value == input$remove_name, 'name']
+    unlink(file.path(sc_dir, remove_name), recursive = TRUE)
+    updateTextInput(session, 'confirm_delete', value = '')
+    removeModal()
+    new_dataset(remove_name)
+  })
+
+  observe({
+    toggle('sample_name_container', condition = isTruthy(up_table()))
+  })
+
+  validate_add_sample <- function(sample, rows) {
+    msg <- NULL
+    if (length(rows) < 2) {
+      msg <- 'Select at least two rows.'
+    }
+
+    return(msg)
   }
 
+  observeEvent(input$add_sample, {
+    sample <- input$sample_name
+    rows <- input$up_table_rows_selected
+    msg <- validate_add_sample(sample, rows)
 
-  # open shinyFiles selector if creating
-  observe({
-    req(is.create())
-    showModal(uploadModal())
+    html('error_msg', html = msg)
+    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+
+    if (is.null(msg)) {
+      df <- up_all()
+      up_select(FALSE)
+      up_all(df)
+
+      samples <- up_samples()
+      samples[rows] <- sample
+      up_samples(samples)
+
+      updateTextInput(session, 'sample_name', value = '')
+    }
   })
 
+
+  # open modal selectors
+  observeEvent(add_sc(), {
+    showModal(uploadModal(isTruthy(up_table())))
+  })
+
+  observeEvent(remove_sc(), {
+    choices <- datasets()
+    choices <- datasets_to_list(choices)
+    showModal(deleteModal(choices))
+  })
+
+
+  observeEvent(input$up_raw_progress, {
+    # TODO: show table
+  })
 
   # move uploaded to destination
   observeEvent(input$up_raw, {
     df <- input$up_raw
-    sel <- input$selected_dataset
-    req(df, sel)
-
-    dataset_dir <- file.path(sc_dir, input$selected_dataset)
-    dir.create(dataset_dir, showWarnings = FALSE)
-
-    for (i in 1:nrow(df)) {
-      dpath <- df$datapath[i]
-      fpath <- file.path(dataset_dir, df$name[i])
-      file.move(dpath, fpath)
-    }
-
-    removeModal()
-    Sys.sleep(1)
-    new_dataset_dir(dataset_dir)
+    prev <- up_samples()
+    new <- c(prev, rep(NA, nrow(df)))
+    up_samples(new)
   })
 
   observeEvent(input$click_existing, {
@@ -1471,26 +1565,32 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     shinyjs::click('new_dataset_dir')
   })
 
-  # get path to dir with new dataset files
-  new_dataset_dir <- reactiveVal()
-  observe({
-    new_dataset_dir <- input$new_dataset_dir
+  validate_import_samples <- function(up_df, samples) {
+    msg <- NULL
+    nsamp <- sum(!is.na(samples))
+    neach <- table(samples)
 
-    # need selected subfolder
-    # will be integer on create
-    req(!methods::is(new_dataset_dir, 'integer'))
+    if (nsamp == 0) {
+      msg <- 'Specify samples for some files'
+    }
 
-    dir <- shinyFiles::parseDirPath(roots, new_dataset_dir)
-    new_dataset_dir(as.character(dir))
+    return(msg)
+  }
+
+  # ask for confirmation
+  observeEvent(input$import_samples, {
+
+    up_df <- up_all()
+    samples <- up_samples()
+    msg <- validate_import_samples(up_df, samples)
+
+    html('error_msg', html = msg)
+    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+
+    if (is.null(msg)) {
+      showModal(confirmModal(session, 'quant', metric_choices))
+    }
   })
-
-  observeEvent(input$selected_dataset, {
-    new_dataset_dir(NULL)
-  })
-
-  # ask for confirmation after folder selection
-  observeEvent(new_dataset_dir(), showModal(confirmModal(session, 'quant', metric_choices)))
-
 
   metric_choices <- c('low_lib_size',
                       'low_n_features',
@@ -1513,47 +1613,58 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     removeModal()
 
-    fastq_dir <- new_dataset_dir()
-    dataset_name <- input$selected_dataset
+    up <- up_all()
+    samples <- up_samples()
+    uniq_samples <- unique(na.omit(samples))
+
     azimuth_ref <- input$azimuth_ref
     if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
 
-    if (metrics[1] == 'all and none') {
-      opts <- list(
-        list(dataset_name = paste0(dataset_name, '_QC0'),
-             metrics = NULL,
-             founder = dataset_name),
-        list(dataset_name = paste0(dataset_name, '_QC1'),
-             metrics = metric_choices,
-             founder = dataset_name))
+    for (dataset_name in uniq_samples) {
+      upi <- up[samples %in% dataset_name,, drop = FALSE]
+
+      fastq_dir <- file.path(sc_dir, dataset_name)
+      unlink(fastq_dir, recursive = TRUE)
+      dir.create(fastq_dir)
+      file.move(upi$datapath, file.path(fastq_dir, upi$name))
+
+      if (metrics[1] == 'all and none') {
+        opts <- list(
+          list(dataset_name = paste0(dataset_name, '_QC0'),
+               metrics = NULL,
+               founder = dataset_name),
+          list(dataset_name = paste0(dataset_name, '_QC1'),
+               metrics = metric_choices,
+               founder = dataset_name))
 
 
-    } else {
-      if (metrics[1] == 'none') metrics <- NULL
-      opts <- list(
-        list(dataset_name = dataset_name,
-             metrics = metrics,
-             founder = NULL))
-    }
+      } else {
+        if (metrics[1] == 'none') metrics <- NULL
+        opts <- list(
+          list(dataset_name = dataset_name,
+               metrics = metrics,
+               founder = NULL))
 
-    quants[[dataset_name]] <- callr::r_bg(
-      func = run_load_raw_scseq,
-      package = 'dseqr',
-      args = list(
-        opts = opts,
-        fastq_dir = fastq_dir,
-        sc_dir = sc_dir,
-        indices_dir = indices_dir,
-        azimuth_ref = azimuth_ref
+
+      }
+
+      quants[[dataset_name]] <- callr::r_bg(
+        func = run_load_raw_scseq,
+        package = 'dseqr',
+        args = list(
+          opts = opts,
+          fastq_dir = fastq_dir,
+          sc_dir = sc_dir,
+          indices_dir = indices_dir,
+          azimuth_ref = azimuth_ref
+        )
       )
-    )
 
-    progress <- Progress$new(max=10*length(opts))
-    msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
-    progress$set(message = msg, value = 0)
-    pquants[[dataset_name]] <- progress
-
-    deselect_dataset(deselect_dataset()+1)
+      progress <- Progress$new(max=10*length(opts))
+      msg <- paste(stringr::str_trunc(dataset_name, 33), "import:")
+      progress$set(message = msg, value = 0)
+      pquants[[dataset_name]] <- progress
+    }
   })
 
 
@@ -1569,12 +1680,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = datasets, options = options)
   })
 
-  observeEvent(deselect_dataset(), {
-    req(deselect_dataset())
-    datasets <- datasets()
-    datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'selected_dataset', choices = datasets, options = options)
-  })
 
   # show/hide integration/label-transfer forms
   show_integration <- reactive(input$show_integration %% 3 == 2)
@@ -1615,6 +1720,66 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+# modal to upload dataset
+uploadModal <- function(show_init) {
+  label <- "Click upload or drag files:"
+  label_title <- "Accepts 10X *.fastq.gz or Cell Ranger files (*.h5 or matrix.mtx, barcodes.tsv, and genes.tsv)"
+  label <- tags$span(label,
+                     title = label_title,
+                     span(class = "hover-info",
+                          icon("info", "fa-fw")))
+
+  modalDialog(
+    fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz'), multiple = TRUE),
+    tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
+             shinypanel::textInputWithButtons(
+               session$ns('sample_name'),
+               'Sample name for selected rows:',
+               actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
+               container_id = session$ns('validate-up'),
+               help_id = session$ns('error_msg')
+             ),
+             hr()
+    ),
+    DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    title = 'Upload Single Cell Datasets',
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE,
+  )
+}
+
+# modal to delete dataset
+deleteModal <- function(choices) {
+  modalDialog(
+    tags$div(class='selectize-fh',
+             selectizeInput(session$ns('remove_name'),
+                            label='Select dataset to delete:',
+                            width = '100%',
+                            options = options,
+                            choices = choices
+             )
+    ),
+    tags$div(id=session$ns('confirm_delete_container'), style='display:none;',
+             tags$div(class='alert alert-danger', 'This action cannot be undone.'),
+             br(),
+             textInput(session$ns('confirm_delete'), HTML('<span> Type <i><span style="color: gray">delete</span></i> to confirm:</span>'),
+                       placeholder = "delete", width = '100%'
+             ),
+    ),
+    title = 'Delete Single Cell Dataset',
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("delete_dataset"), "Delete Dataset", class = 'btn-danger'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE,
+  )
 }
 
 
@@ -2025,7 +2190,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 #'
 #' @keywords internal
 #' @noRd
-resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, snn_graph, annot_path, show_label_resoln) {
+resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln) {
   resolution_inputs <- c('resoln')
 
   prev_resoln <- reactiveVal()
@@ -2128,7 +2293,11 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     on.exit(progress$close())
     scseq <- scseq()
+    # need counts for pseudobulk
+    # need dgclogs for scseq sample (for label transfer)
     SingleCellExperiment::counts(scseq) <- counts()
+    SingleCellExperiment::logcounts(scseq) <- dgclogs()
+
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters
     run_post_cluster(scseq, dataset_name(), sc_dir, resoln, progress, 1, reset_annot = FALSE)
@@ -2245,6 +2414,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
       founder <- get_founder(sc_dir, from_dataset)
       dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
+
 
       subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
@@ -2398,7 +2568,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   observeEvent(input$submit_integration, {
 
-
     dataset_names <- input$integration_datasets
     types <- input$integration_types
     name <- input$integration_name
@@ -2432,8 +2601,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
       html('error_msg', html = error_msg)
       addClass('name-container', class = 'has-error')
     }
-
-
   })
 
   # progress monitoring of integration
@@ -2466,7 +2633,7 @@ comparisonType <- function(input, output, session, scseq, is_integrated) {
 #'
 #' @keywords internal
 #' @noRd
-clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot_path, annot, ref_preds, clusters) {
+clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot_path, annot, ref_preds, clusters, dgclogs) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
   contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
@@ -2614,8 +2781,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
       dataset_name <- dataset_name()
 
       # need dgclogs for presto
-      dgc_path <- file.path(sc_dir, dataset_name, 'dgclogs.qs')
-      logcounts(scseq) <- qs::qread(dgc_path)
+      logcounts(scseq) <- dgclogs()
 
       disableAll(cluster_inputs)
       progress <- Progress$new(session, min = 0, max = 3)

@@ -380,9 +380,11 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
     keep_cells <- detect_cells(counts, species = species)
   }
 
+  project <- rep(project, length(keep_cells))
+
   # add ambience metadata for genes
   rowData <- S4Vectors::DataFrame(ambience)
-  colData <- S4Vectors::DataFrame(project = rep(project, length(keep_cells)))
+  colData <- S4Vectors::DataFrame(project = project, batch = project)
 
   sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = counts[, keep_cells]),
@@ -1045,6 +1047,7 @@ add_doublet_score <- function(scseq) {
 
   scseq <- scDblFinder::scDblFinder(scseq, use.cxds=TRUE)
   scseq$doublet_score <- scseq$scDblFinder.score
+  scseq$doublet_class <- scseq$scDblFinder.class
 
   # cleanup
   cdata <- scseq@colData

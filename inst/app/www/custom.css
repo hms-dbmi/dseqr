@@ -126,7 +126,7 @@ ul.nav.navbar-nav {
 }
 
 .navbar {
-    margin-bottom: 50px;
+    margin-bottom: 0px;
 }
 
 
@@ -168,6 +168,7 @@ ul.nav.navbar-nav {
     border-width: 5px 5px 0 5px;
     border-color: #333333 transparent transparent transparent;
 }
+
 
 
 /* DATATABLES */
@@ -239,21 +240,37 @@ input[type=text] {
 /* introjs button styling */
 .btn-intro {
     border: 1px solid #ddd;
-    padding: 4px;
-    padding-top: 6px;
+    padding: 6px 8px;
     border-radius: 2px;
     cursor: pointer;
     font-size: 12px;
-    position: relative;
-    bottom: 30px;
     color: #333;
-    box-shadow: 2px 2px 2px gray;
+    margin-right: -1px;
+    background-color: white;
+
 }
 
-.btn-intro:hover {
+.btn-intro:hover:not(.disabled) {
     background: #333;
     color: #fff;
     border-color: transparent;
+}
+
+.btn-intro.disabled {
+  opacity: .75;
+  cursor: not-allowed;
+}
+
+.btn-intro i {
+  text-align: center;
+}
+
+
+.secondary-navbar {
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 50px;
+  padding: 15px;
+  background-color: slategray;
 }
 
 /*shinyFiles TODO: fix in shinypanel.css */
@@ -315,4 +332,18 @@ input[type=number]::-webkit-outer-spin-button {
 .fast-spin {
   -webkit-animation: fa-spin 1s infinite linear;
   animation: fa-spin 1s infinite linear;
+}
+
+
+@media (min-width: 768px) {
+  .modal-dialog {
+      width: 400px;
+      margin: 30px auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .modal-sm {
+      width: 300px;
+  }
 }

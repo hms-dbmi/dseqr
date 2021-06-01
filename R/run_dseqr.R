@@ -36,17 +36,18 @@
 #' # run_dseqr(app_name, data_dir)
 #'
 run_dseqr <- function(app_name,
-                         data_dir = '/srv/dseqr',
-                         app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
-                         pert_query_dir = file.path(data_dir, 'pert_query_dir'),
-                         pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
-                         indices_dir = file.path(data_dir, 'indices'),
-                         tabs = c('Single Cell', 'Bulk Data', 'Drugs'),
-                         test = FALSE,
-                         test_data = FALSE,
-                         host = '0.0.0.0',
-                         port = 3838,
-                         logout_url = NULL) {
+                      data_dir = '/srv/dseqr',
+                      app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
+                      pert_query_dir = file.path(data_dir, 'pert_query_dir'),
+                      pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
+                      indices_dir = file.path(data_dir, 'indices'),
+                      tabs = c('Single Cell', 'Bulk Data', 'Drugs'),
+                      test = FALSE,
+                      test_data = FALSE,
+                      host = '0.0.0.0',
+                      port = 3838,
+                      logout_url = NULL,
+                      is_example = FALSE) {
 
   user_dir <- file.path(data_dir, app_name)
   if (!dir.exists(user_dir)) init_dseqr(app_name, data_dir)
@@ -57,7 +58,8 @@ run_dseqr <- function(app_name,
                pert_signature_dir = normalizePath(pert_signature_dir),
                indices_dir = normalizePath(indices_dir),
                tabs = tabs,
-               logout_url = logout_url)
+               logout_url = logout_url,
+               is_example = is_example)
 
 
   if (test) {

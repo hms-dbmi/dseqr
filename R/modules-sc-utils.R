@@ -1205,9 +1205,11 @@ subset_saved_scseq <- function(sc_dir,
     args <- load_args(sc_dir, from_dataset)
 
     # use same integration type as previously unless azimuth_ref given
-    integration_type <- ifelse(!is.null(azimuth_ref),
-                               'Azimuth',
-                               args$integration_type)
+    itype <- args$integration_type
+    if (!is.null(azimuth_ref)) itype <- 'Azimuth'
+
+    # use harmony if previous was azimuth and no ref specified
+    if (itype == 'Azimuth' & is.null(azimuth_ref)) itype <- 'harmony'
 
     scseqs <- split_scseq(scseq)
     rm(scseq); gc()
@@ -1215,7 +1217,7 @@ subset_saved_scseq <- function(sc_dir,
     res <- integrate_saved_scseqs(sc_dir,
                                   scseqs = scseqs,
                                   integration_name = dataset_name,
-                                  integration_type = integration_type,
+                                  integration_type = itype,
                                   exclude_clusters = exclude_clusters,
                                   subset_metrics = subset_metrics,
                                   founder = founder,
@@ -1498,7 +1500,7 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
 validate_integration <- function(types, name, azimuth_ref, dataset_names) {
   msg <- NULL
 
-  if ('Azimuth' %in% types & azimuth_ref == '') {
+  if ('Azimuth' %in% types & !isTruthy(azimuth_ref)) {
     msg <- 'Select azimuth reference'
   } else if (is.null(types)) {
     msg <- 'Select one or more integration types'
