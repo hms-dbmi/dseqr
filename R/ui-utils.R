@@ -59,6 +59,12 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
   )
 }
 
+#' UI for secondary navbar
+#'
+#' @param hide should delete and add be disabled (for demo)
+#' @return shiny.tag with html for secondary navbar
+#'
+#' @export
 navbar2UI <- function(hide) {
   class <- 'action-button shiny-bound-input btn-intro'
   add <- ifelse(hide, 'disabled', '')
