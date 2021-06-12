@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(rlang)
   library(SingleCellExperiment)
+  library(shinypanel)
 })
 
 

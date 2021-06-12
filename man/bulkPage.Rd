@@ -4,7 +4,16 @@
 \alias{bulkPage}
 \title{Logic for Bulk Data Tab}
 \usage{
-bulkPage(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir)
+bulkPage(
+  input,
+  output,
+  session,
+  data_dir,
+  sc_dir,
+  bulk_dir,
+  indices_dir,
+  gs_dir
+)
 }
 \arguments{
 \item{input, output, session}{standard shiny module boilerplate}

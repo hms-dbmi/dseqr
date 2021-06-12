@@ -10,6 +10,7 @@ scPage(
   session,
   sc_dir,
   indices_dir,
+  gs_dir,
   is_mobile,
   add_sc,
   remove_sc

@@ -278,26 +278,27 @@ construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 
 
 
-#' Get gslist for pathway analysis
+#' Get gene to GO map for pathway analysis
 #'
 #' @param species Species identifier
 #' @param type either 'go' or 'kegg'
-#' @param gs_dir Directory to save gslist to
+#' @param gs_dir Directory to save genego to
 #'
-#' @return gslist
+#' @return genego
 #' @keywords internal
-get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir') {
+get_genego <- function(species = 'Hs', gs_dir = NULL) {
   PathwayID <- GeneID <- SYMBOL <- NULL
 
-  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+  persist <- !is.null(gs_dir)
+  if (persist && !dir.exists(gs_dir)) dir.create(gs_dir)
 
-  fname <- paste('gslist', type, species, 'qs', sep = '.')
-  gslist_path <- file.path(gs_dir, fname)
+  fname <- paste('genego', species, 'qs', sep = '.')
+  genego_path <- file.path(gs_dir, fname)
 
-  if (file.exists(gslist_path)) {
-    gslist <- qs::qread(gslist_path)
+  if (file.exists(genego_path)) {
+    genego <- qs::qread(genego_path)
 
-  } else if (type == 'go') {
+  } else {
     orgPkg <- paste0("org.",species,".eg.db")
     require(orgPkg, character.only = TRUE, quietly = TRUE)
 
@@ -318,91 +319,44 @@ get_gslist <- function(species = 'Hs', type = 'go', gs_dir = '/srv/dseqr/gs_dir'
     egGO2ALLEGS <- tryCatch(utils::getFromNamespace(obj,orgPkg), error=function(e) FALSE)
     if(is.logical(egGO2ALLEGS)) stop("Can't find gene ontology mappings in package ",orgPkg)
 
-    # Entrez gene to symbol
-    # TODO for Hs: get from toupper(hs[EG.GO$gene_id, SYMBOL_9606]) so that consistent with original annotation
-    EG.GO <- AnnotationDbi::toTable(egGO2ALLEGS)
-    EG.GO$SYMBOL <- AnnotationDbi::mapIds(get(orgPkg), EG.GO$gene_id, column = 'SYMBOL', keytype = 'ENTREZID')
-    gslist <- split(EG.GO, EG.GO$go_id)
-    gslist <- lapply(gslist, function(df) {tmp <- df$gene_id; names(tmp) <- df$SYMBOL; tmp})
-    qs::qsave(gslist, gslist_path)
+    genego <- AnnotationDbi::toTable(egGO2ALLEGS)[, c("gene_id", "go_id", "Ontology")]
+    genego <- data.table::data.table(genego)
+    genego <- genego[genego$Ontology == 'BP', ]
+    genego <- genego[!duplicated(genego), ]
 
-  } else if (type == 'kegg') {
-
-    orgPkg <- paste0("org.",species,".eg.db")
-    require(orgPkg, character.only = TRUE, quietly = TRUE)
-
-    kegg_species <- get_kegg_species(species)
-    gkl <- limma::getGeneKEGGLinks(kegg_species, convert = TRUE)
-    # TODO for Hs: get from toupper(hs[EG.GO$gene_id, SYMBOL_9606]) so that consistent with original annotation
-    gkl$SYMBOL <- AnnotationDbi::mapIds(get(orgPkg), gkl$GeneID, column = 'SYMBOL', keytype = 'ENTREZID')
-    gkl <- gkl %>%
-      dplyr::group_by(PathwayID) %>%
-      dplyr::summarise(gslist = list(GeneID),
-                       symbols = list(SYMBOL))
-
-    gslist <- gkl$gslist
-    symbols <- gkl$symbols
-    gslist <- lapply(seq_along(gslist), function(i) {tmp <- gslist[[i]]; names(tmp) <- symbols[[i]]; tmp})
-
-    names(gslist) <- gkl$PathwayID
-    qs::qsave(gslist, gslist_path)
-
+    if (persist) qs::qsave(genego, genego_path)
   }
 
-  return(gslist)
+  return(genego)
 }
 
-#' Convert from species identifier to KEGG species identifier
-#'
-#' @param species species identifier
-#'
-#' @return KEGG species identifier
-#' @keywords internal
-get_kegg_species <- function(species) {
-  species <- match.arg(species, c("Ag", "At", "Bt", "Ce", "Dm", "Dr", "EcK12", "EcSakai", "Gg", "Hs", "Mm", "Mmu", "Pf", "Pt", "Rn", "Ss", "Xl"))
-  #	Convert from Bioconductor to KEGG species codes
-  species.KEGG <- switch(species, "Ag"="aga", "At"="ath", "Bt"="bta", "Ce"="cel", "Cf"="cfa", "Dm"="dme", "Dr"="dre", "EcK12"="eco", "EcSakai"="ecs", "Gg"="gga", "Hs"="hsa", "Mm"="mmu", "Mmu"="mcc", "Pf"="pfa", "Pt"="ptr", "Rn"="rno", "Ss"="ssc", "Xl"="xla")
-
-  return(species.KEGG)
-}
 
 
 #' Get names of gene set
 #'
 #' @param gslist result of \code{\link{get_gslist}}
-#' @param type either 'go' or 'kegg'
-#' @param species species identifier
 #' @param gs_dir Directory to save results to
 #'
 #' @return Description of \code{gslist} gene sets
 #' @keywords internal
 #'
-get_gs.names <- function(gslist, type = 'go', species = 'Hs', gs_dir = '/srv/dseqr/gs_dir') {
-  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+get_gonames <- function(genego, gs_dir = NULL) {
+  persist <- !is.null(gs_dir)
+  if (persist && !dir.exists(gs_dir)) dir.create(gs_dir)
 
-  fname <- paste('gs.names', type, species, 'qs', sep = '.')
-  gs.names_path <- file.path(gs_dir, fname)
+  fname <- paste('genego.names', 'qs', sep = '.')
+  gonames_path <- file.path(gs_dir, fname)
 
-  if (file.exists(gs.names_path)) {
-    gs.names <- qs::qread(gs.names_path)
+  if (file.exists(gonames_path)) {
+    gonames <- qs::qread(gonames_path)
 
-  } else if (type == 'go') {
-    GOID <- names(gslist)
-    TERM <- suppressMessages(AnnotationDbi::select(GO.db::GO.db,keys=GOID,columns="TERM"))
-    gs.names <- TERM$TERM
-    names(gs.names) <- TERM$GOID
-    qs::qsave(gs.names, gs.names_path)
-
-  } else if (type == 'kegg') {
-    kegg_species <- get_kegg_species(species)
-    gs.names <- limma::getKEGGPathwayNames(kegg_species, remove=TRUE)
-    row.names(gs.names) <- gs.names$PathwayID
-    gs.names <- gs.names[names(gslist), 'Description']
-    names(gs.names) <- names(gslist)
-    qs::qsave(gs.names, gs.names_path)
-
+  } else {
+    GOID <- unique(genego$go_id)
+    gonames <- suppressMessages(AnnotationDbi::select(GO.db::GO.db, keys=GOID, columns="TERM"))
+    gonames <- data.table::data.table(gonames, key = 'GOID')
   }
 
-  return(gs.names)
+  if (persist) qs::qsave(gonames, gonames_path)
+  return(gonames)
 }
 

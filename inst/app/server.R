@@ -9,6 +9,9 @@ server <- function(input, output, session) {
     # path where pert queries will be stored
     pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
 
+    # path where gene set data is stored
+    gs_dir <- getShinyOption('gs_dir', '/srv/dseqr/gs_dir')
+
     # path where pert signatures will be stored
     pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/dseqr/pert_signature_dir')
 
@@ -72,11 +75,13 @@ server <- function(input, output, session) {
                            data_dir = data_dir,
                            sc_dir = sc_dir,
                            bulk_dir = bulk_dir,
+                           gs_dir = gs_dir,
                            indices_dir = indices_dir)
 
     scPage <- callModule(scPage, 'sc',
                          sc_dir = sc_dir,
                          indices_dir = indices_dir,
+                         gs_dir = gs_dir,
                          is_mobile = is_mobile,
                          add_sc = reactive(input$add_dataset),
                          remove_sc = reactive(input$remove_dataset))

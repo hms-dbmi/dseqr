@@ -6,12 +6,13 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_sc, remove_sc) {
+scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
                        sc_dir = sc_dir,
                        indices_dir = indices_dir,
+                       gs_dir = gs_dir,
                        is_mobile = is_mobile,
                        add_sc = add_sc,
                        remove_sc = remove_sc)
@@ -97,7 +98,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_s
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_sc, remove_sc) {
+scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
   # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
@@ -367,6 +368,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, is_mobile, add_s
                                  feature_plot = scClusterPlots$feature_plot_samples,
                                  dataset_name = scDataset$dataset_name,
                                  sc_dir = sc_dir,
+                                 gs_dir = gs_dir,
                                  is_integrated = scDataset$is_integrated,
                                  show_dprimes = scSampleGene$show_dprimes,
                                  comparison_type = comparisonType,
@@ -602,8 +604,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
                              progress = progress,
                              trend = FALSE,
                              with_fdata = TRUE,
-                             min.total.count = 7,
-                             min.count = 3)
+                             min.total.count = 15,
+                             min.count = 10)
 
       progress$set(message = "Saving fits", detail = "", value = 5)
       qs::qsave(fit, fit_path)
@@ -675,7 +677,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, dgrlogs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, dgrlogs = function()NULL, page = 'single-cell') {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
@@ -785,10 +787,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
   pathways_dir <- reactive(file.path(contrast_dir(), 'pathways'))
-  go_path <- reactive(file.path(pathways_dir(), paste0('go_', clusters_str(), '.qs')))
-  kegg_path <- reactive(file.path(pathways_dir(), paste0('kegg_', clusters_str(), '.qs')))
   goana_path <- reactive(file.path(pathways_dir(), paste0('goana_', clusters_str(), '.qs')))
-  kegga_path <- reactive(file.path(pathways_dir(), paste0('kegga_', clusters_str(), '.qs')))
   top_tables_paths <- reactive(file.path(pathways_dir(), 'top_tables.qs'))
 
 
@@ -798,7 +797,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   pfun_left <- reactive({
     int <- is_integrated()
-    req(int)
 
     function(gene) {
       if(!isTruthy(gene)) return(NULL)
@@ -807,16 +805,19 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       if (is.null(scseq)) return(NULL)
 
       if (show_dprimes() & int) {
-        top_tables <- top_tables_grid()
-        if(is.null(top_tables)) return(NULL)
+        # violin plot on left
+        sel <- sel()
 
-        grid <- get_grid(scseq)
-        plot_data <- get_gene_diff(gene, top_tables, grid)
+        if(!isTruthyAll(sel, gene)) return(NULL)
 
-        plot <- plot_scseq_diff(plot_data, gene)
-        pfun <- list(plot = plot, height = 453)
+        try(ridge_data <- get_ridge_data(
+          gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
+
+        plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
+        return(plot)
 
       } else {
+        # test expression on left
         dgrlogs <- isolate(dgrlogs())
         if (is.null(dgrlogs)) return(NULL)
         gene_data <- fast_dgr_row(dgrlogs, gene)
@@ -843,18 +844,29 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       scseq <- scseq()
       if (!isTruthyAll(scseq, gene)) return(NULL)
 
-      dgrlogs <- isolate(dgrlogs())
-      if (is.null(dgrlogs)) return(NULL)
 
-      gene_data <- fast_dgr_row(dgrlogs, gene)
-      if (is.null(gene_data)) return(NULL)
-
-      # update base feature plot
-      plot <- feature_plot()
-      plot <- update_feature_plot(plot, gene_data, gene)
       if (!show_dprimes() | !is_integrated()) {
+        # plot ctrl expression if not dprimes or not integrated
+        dgrlogs <- isolate(dgrlogs())
+        if (is.null(dgrlogs)) return(NULL)
+
+        gene_data <- fast_dgr_row(dgrlogs, gene)
+        if (is.null(gene_data)) return(NULL)
+
+        plot <- feature_plot()
+        plot <- update_feature_plot(plot, gene_data, gene)
+
         plot <- plot_feature_sample(gene, scseq(), 'ctrl', plot=plot) +
           ggplot2::theme(legend.position = 'none')
+
+      } else {
+        top_tables <- top_tables_grid()
+        if(is.null(top_tables)) return(NULL)
+
+        grid <- get_grid(scseq)
+        plot_data <- get_gene_diff(gene, top_tables, grid)
+
+        plot <- plot_scseq_diff(plot_data, gene)
       }
       pfun <- list(plot = plot, height = 453)
       return(pfun)
@@ -864,18 +876,34 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   pfun_right_bottom <- reactive({
 
     function(gene) {
-      sel <- sel()
       scseq <- scseq()
-      is_integrated <- is_integrated()
-      default <- list(plot=NULL, height=1)
 
-      if(!isTruthyAll(sel, scseq, gene, is_integrated)) return(default)
+      if (!show_dprimes()) {
+        sel <- sel()
+        is_integrated <- is_integrated()
+        default <- list(plot=NULL, height=1)
 
-      try(ridge_data <- get_ridge_data(
-        gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
+        if(!isTruthyAll(sel, scseq, gene, is_integrated)) return(default)
 
-      plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
-      return(plot)
+        try(ridge_data <- get_ridge_data(
+          gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
+
+        plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
+        return(plot)
+
+      } else {
+        if (!isTruthyAll(scseq, gene)) return(NULL)
+
+        dgrlogs <- isolate(dgrlogs())
+        if (is.null(dgrlogs)) return(NULL)
+
+        gene_data <- fast_dgr_row(dgrlogs, gene)
+        if (is.null(gene_data)) return(NULL)
+
+        plot <- feature_plot()
+        plot <- update_feature_plot(plot, gene_data, gene)
+        return(list(plot = plot, height = 453))
+      }
     }
   }) %>% debounce(20)
 
@@ -1112,16 +1140,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # goana pathway result
   path_res <- reactive({
-    go_path <- go_path()
-    kegg_path <- kegg_path()
     goana_path <- goana_path()
-    kegga_path <- kegga_path()
 
-    if (file.exists(kegga_path)) {
-      res <- list(go = qs::qread(go_path),
-                  kg = qs::qread(kegg_path),
-                  kegga = qs::qread(kegga_path),
-                  goana = qs::qread(goana_path))
+    if (file.exists(goana_path)) {
+      res <- qs::qread(goana_path)
 
     } else {
       disableAll(input_ids)
@@ -1158,12 +1180,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       pathways_dir <- pathways_dir()
       dir.create(pathways_dir, showWarnings = FALSE)
 
-      res <- get_path_res(de,
-                          go_path = go_path,
-                          kegg_path = kegg_path,
-                          goana_path = goana_path,
-                          kegga_path = kegga_path,
-                          species = species)
+      # TODO: run for all clusters at same time
+      res <- get_path_res(de, goana_path, gs_dir, species)
+      qs::qsave(res, goana_path)
+
       progress$inc(1)
       enableAll(input_ids)
     }
@@ -1206,11 +1226,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'cameraPR_go.csv'
-    kg_fname <- 'cameraPR_kegg.csv'
     ab_fname <- 'abundances.csv'
-    kegga_fname <- 'kegga.csv'
-    goana_fname <- 'goana.csv'
+    goup_fname <- 'go_up.csv'
+    godn_fname <- 'go_down.csv'
 
     tt <- top_table()
     if (is.meta()) tt <- tt_to_es(tt)
@@ -1219,11 +1237,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     abundances <- abundances()
     tozip <- c()
     tozip <- write.csv.safe(tt, tt_fname, tozip)
-    tozip <- write.csv.safe(tt, tt_fname, tozip)
-    tozip <- write.csv.safe(pres$go, go_fname, tozip)
-    tozip <- write.csv.safe(pres$kg, kg_fname, tozip)
-    tozip <- write.csv.safe(pres$kegga, kegga_fname, tozip)
-    tozip <- write.csv.safe(pres$goana, goana_fname, tozip)
+    tozip <- write.csv.safe(pres$up, goup_fname, tozip)
+    tozip <- write.csv.safe(pres$dn, godn_fname, tozip)
     tozip <- write.csv.safe(abundances, ab_fname, tozip)
 
     #create the zip file
@@ -3436,4 +3451,6 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
+
 

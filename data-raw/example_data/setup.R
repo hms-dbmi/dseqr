@@ -58,9 +58,9 @@ for (i in seq_along(dataset_names)) {
 # dataset name: GSE93624_ped_crohns_illeum
 app_name <- 'example'
 app_dir <- 'inst/app'
-data_dir <- 'data-raw/patient_data'
-pert_query_dir <- 'data-raw/drug_gene_queries/data'
-pert_signature_dir <- 'data-raw/drug_es/signatures'
+data_dir <- '~/patient_data'
+pert_query_dir <- '~/drug_gene_queries/data'
+pert_signature_dir <- '~/drug_es/signatures'
 indices_dir <- '/srv/dseqr/indices'
 
 dseqr::run_dseqr(app_name, data_dir, app_dir, pert_query_dir, pert_signature_dir, indices_dir, port = 3838)

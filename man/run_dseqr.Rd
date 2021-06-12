@@ -10,6 +10,7 @@ run_dseqr(
   app_dir = system.file("app", package = "dseqr", mustWork = TRUE),
   pert_query_dir = file.path(data_dir, "pert_query_dir"),
   pert_signature_dir = file.path(data_dir, "pert_signature_dir"),
+  gs_dir = file.path(data_dir, "gs_dir"),
   indices_dir = file.path(data_dir, "indices"),
   tabs = c("Single Cell", "Bulk Data", "Drugs"),
   test = FALSE,

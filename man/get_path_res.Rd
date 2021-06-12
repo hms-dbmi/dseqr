@@ -6,25 +6,21 @@
 \usage{
 get_path_res(
   de,
-  go_path,
-  kegg_path,
   goana_path,
-  kegga_path,
+  gs_dir,
   species = "Hs",
-  min.genes = 4
+  genego = NULL,
+  gonames = NULL,
+  coef = ncol(de),
+  nmin = 50,
+  cutoff = 0.05
 )
 }
 \arguments{
 \item{de}{Result of \code{\link[crossmeta]{fit_ebayes}} or
 \code{link[crossmeta]{get_top_table}}}
 
-\item{go_path}{Path to save camerPR Gene Ontology result}
-
-\item{kegg_path}{Path to save cameraPR KEGG result}
-
 \item{goana_path}{Path to save goana Gene Ontology result}
-
-\item{kegga_path}{Path to save kegga KEGG result}
 }
 \value{
 List with GO and KEGG results

@@ -12,7 +12,7 @@
 #'   bulk dataset is added.
 #'
 #' @export
-bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir) {
+bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir, gs_dir) {
 
   msg_quant <- reactiveVal()
 
@@ -30,6 +30,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          data_dir = data_dir,
                          sc_dir = sc_dir,
                          bulk_dir = bulk_dir,
+                         gs_dir = gs_dir,
                          msg_quant = msg_quant,
                          explore_eset = explore_eset,
                          pdata = dsQuantTable$pdata,
@@ -327,7 +328,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, pdata, indices_dir) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, pdata, indices_dir, gs_dir) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
@@ -364,6 +365,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
   anal <- callModule(bulkFormAnal, 'anal_form',
                      data_dir = data_dir,
                      dataset_dir = dataset$dataset_dir,
+                     gs_dir = gs_dir,
                      dataset_name = dataset$dataset_name,
                      explore_eset = explore_eset,
                      numsv_r = dataset$numsv_r,
@@ -434,7 +436,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     datasets <- datasets()
     req(datasets)
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = datasets, options = options)
+    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c('', datasets), options = options)
   })
 
   observeEvent(deselect_dataset(), {
@@ -442,7 +444,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     datasets <- datasets()
     req(datasets)
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dataset_name', choices = datasets, options = options)
+    updateSelectizeInput(session, 'dataset_name', choices = c('', datasets), options = options)
   })
 
 
@@ -831,7 +833,7 @@ bulkEndType <- function(input, output, session, fastq_dir) {
 #'
 #' @keywords internal
 #' @noRd
-bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, explore_eset, numsv_r, svobj_r) {
+bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, gs_dir, explore_eset, numsv_r, svobj_r) {
 
 
   # run surrogate variable analysis if required
@@ -902,7 +904,8 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
                          eset = explore_eset,
                          svobj = svobj_r,
                          numsv = numsv_r,
-                         dataset_dir = dataset_dir)
+                         dataset_dir = dataset_dir,
+                         gs_dir = gs_dir)
 
 
   return(list(
@@ -1463,7 +1466,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 #'
 #' @keywords internal
 #' @noRd
-bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, is_bulk = function()TRUE) {
+bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, svobj, dataset_dir, gs_dir, is_bulk = function()TRUE) {
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
   input_ids <- c('click_dl', 'contrast_groups')
 
@@ -1511,23 +1514,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     get_drug_paths(dataset_dir(), suffix)
   })
 
-  go_path <- reactive({
-    fname <- paste0('go_', anal_name(), '_', numsv_str(), '.qs')
-    file.path(dataset_dir(), fname)
-  })
-
   goana_path <- reactive({
     fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.qs')
-    file.path(dataset_dir(), fname)
-  })
-
-  kegg_path <- reactive({
-    fname <- paste0('kegg_', anal_name(), '_', numsv_str(), '.qs')
-    file.path(dataset_dir(), fname)
-  })
-
-  kegga_path <- reactive({
-    fname <- paste0('kegga_', anal_name(), '_', numsv_str(), '.qs')
     file.path(dataset_dir(), fname)
   })
 
@@ -1619,17 +1607,10 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   # go/kegg pathway result
   path_res <- reactive({
     req(full_contrast())
-    go_path <- go_path()
-    kegg_path <- kegg_path()
     goana_path <- goana_path()
-    kegga_path <- kegga_path()
 
-    if (file.exists(kegga_path)) {
-      res <- list(
-        go = qs::qread(go_path),
-        kg = qs::qread(kegg_path),
-        goana = qs::qread(goana_path),
-        kegga = qs::qread(kegga_path))
+    if (file.exists(goana_path)) {
+      res <- qs::qread(goana_path)
 
     } else {
       lm_fit <- lm_fit()
@@ -1648,11 +1629,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- crossmeta::fit_ebayes(lm_fit, contrast)
-      res <- get_path_res(ebfit,
-                          go_path = go_path,
-                          kegg_path = kegg_path,
-                          goana_path = goana_path,
-                          kegga_path = kegga_path)
+      res <- get_path_res(ebfit, goana_path, gs_dir)
+      qs::qsave(res, goana_path)
+
       progress$inc(1)
       enableAll(input_ids)
     }
@@ -1680,20 +1659,16 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
-    go_fname <- 'cameraPR_go.csv'
-    kg_fname <- 'cameraPR_kegg.csv'
-    goana_fname <- 'goana.csv'
-    kegga_fname <- 'kegga.csv'
+    goup_fname <- 'go_up.csv'
+    godn_fname <- 'go_dn.csv'
 
     path_res <- path_res()
     utils::write.csv(top_table(), tt_fname)
-    utils::write.csv(path_res$go, go_fname)
-    utils::write.csv(path_res$kg, kg_fname)
-    utils::write.csv(path_res$kegga, kegga_fname)
-    utils::write.csv(path_res$goana, goana_fname)
+    utils::write.csv(path_res$up, goup_fname)
+    utils::write.csv(path_res$dn, godn_fname)
 
     #create the zip file
-    utils::zip(file, c(tt_fname, go_fname, kg_fname, goana_fname, kegga_fname))
+    utils::zip(file, c(tt_fname, goup_fname, godn_fname))
   }
 
   output$download <- downloadHandler(
