@@ -615,7 +615,7 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
     pull(Down.Genes)
 
 
-  # simplify using semantic similarity
+  # simplify using similarity
   # also formats FDRs and adds gene names
   go_up <- simplify(go_up, up_genes) %>% dplyr::rename(Regex.Up = genes)
   go_dn <- simplify(go_dn, dn_genes) %>% dplyr::rename(Regex.Down = genes)
