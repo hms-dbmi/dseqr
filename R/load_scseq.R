@@ -455,7 +455,7 @@ transition_efs <- function(fpath) {
   # move out of IA by copying
   message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
   message('moving: ', fpath, ' to standard access.')
-  tmp <- file.path(dirname(fpath), 'tmp.loom')
+  tmp <- file.path(dirname(fpath), 'tmp.qs')
   file.copy(fpath, tmp)
   unlink(fpath)
   file.move(tmp, fpath)
