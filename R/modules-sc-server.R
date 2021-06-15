@@ -968,6 +968,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       groups <- groups()
       if (is.null(fit) | is.null(groups)) return(NULL)
 
+      # prevent error when change dataset
+      if (!all(groups) %in% colnames(fit[[1]]$mod)) return(NULL)
+
       disableAll(input_ids)
       nmax <- length(fit)+1
       progress <- Progress$new(session, min = 0, max = nmax)
@@ -978,6 +981,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       for (i in seq_along(fit)) {
         cluster <- names(fit)[i]
         progress$set(detail=paste('cluster', cluster), value = i)
+
 
         tt <- crossmeta::get_top_table(
           fit[[cluster]],
@@ -3454,6 +3458,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-
-
-

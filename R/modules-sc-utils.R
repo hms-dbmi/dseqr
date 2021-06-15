@@ -1470,7 +1470,9 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #' @keywords internal
 #'
 load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = FALSE, with_counts = FALSE) {
-  scseq <- qs::qread(file.path(dataset_dir, 'shell.qs'))
+  shell_path <- file.path(dataset_dir, 'shell.qs')
+  transition_efs(shell_path)
+  scseq <- qs::qread(shell_path)
 
   if (with_logs) {
     dgclogs <- qs::qread(file.path(dataset_dir, 'dgclogs.qs'))
