@@ -1562,7 +1562,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     names(choices$names) <- choices$type
     choices <- choices$names
-    if (length(choices == 1)) choices <- unname(unlist(choices))
+    if (length(choices) == 1) choices <- unname(unlist(choices))
 
     showModal(deleteModal(session, choices))
   })
