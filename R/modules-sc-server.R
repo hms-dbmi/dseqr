@@ -1417,6 +1417,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   prev_datasets <- reactiveVal()
+  curr_selected <- reactiveVal()
   datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
@@ -1424,7 +1425,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     prev <- isolate(prev_datasets())
     curr <- isolate(input$selected_dataset)
 
-    datasets <- keep_curr_selected(datasets, prev, curr)
+    if (isTruthy(prev) && isTruthy(curr)) {
+      datasets <- keep_curr_selected(datasets, prev, curr)
+
+      # set currently selected name
+      curr_selected(prev[as.numeric(curr), 'name'])
+    }
+
     prev_datasets(datasets)
     return(datasets)
   })
@@ -1498,6 +1505,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observe({
     toggleState('delete_dataset', condition = allow_delete())
+    toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
   })
 
   observe({
@@ -1724,8 +1732,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observe({
     datasets <- datasets()
+    sel <- isolate(input$selected_dataset)
+
+    # for when delete current dataset
+    removed.curr <- !is.null(curr_selected()) && !curr_selected() %in% datasets$name
+    if (removed.curr) sel <- ''
+
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'selected_dataset', selected = isolate(input$selected_dataset), choices = datasets, options = options)
+    updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options)
   })
 
 
@@ -1830,7 +1844,7 @@ deleteModal <- function(session, choices) {
     title = 'Delete Single Cell Datasets',
     size = 'm',
     footer = tagList(
-      actionButton(session$ns("delete_dataset"), "Delete Datasets", class = 'btn-danger'),
+      actionButton(session$ns("delete_dataset"), "Delete Datasets"),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
     easyClose = TRUE,
@@ -1907,14 +1921,16 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
 #'
 keep_curr_selected <- function(datasets, prev, curr) {
 
-  if (!isTruthy(prev) || !isTruthy(curr)) return(datasets)
-
   # get currently selected row
   curr <- as.numeric(curr)
   curr_name <- prev[curr, 'name']
 
   # position in new datasets
   new_posn <- which(curr_name == datasets$name)[1]
+  ndata <- nrow(datasets)
+
+  # in case delete current that is last
+  if (curr > ndata | is.na(new_posn)) return(datasets)
 
   # move so that row at new_posn is at curr
   idx <- seq_len(nrow(datasets))
