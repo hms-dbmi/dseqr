@@ -333,7 +333,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
   div(id = 'sc-intro-feature',
       tags$label(class='control-label', `for`=ns('gene_table'), 'Select feature to plot:'),
-      DT::dataTableOutput(ns('gene_table'), width='100%', height='291px'),
+      DT::dataTableOutput(ns('gene_table'), width='100%', height='330px'),
       div(id=ns('gene_search_input'),
           style = 'height: 60px',
           shinypanel::textInputWithButtons(
@@ -362,7 +362,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @noRd
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('cluster_plot'))
+  shinydlplot::downloadablePlotUI(ns('cluster_plot'), zoom = TRUE)
 }
 
 
@@ -372,7 +372,7 @@ scClusterPlotOutput <- function(id) {
 #' @noRd
 scAbundancePlotOutput <- function(id) {
   ns <- NS(id)
-  shiny::plotOutput(ns('abundance_plot'))
+  shinydlplot::downloadablePlotUI(ns('abundance_plot'), zoom = TRUE)
 }
 
 
@@ -382,7 +382,7 @@ scAbundancePlotOutput <- function(id) {
 #' @noRd
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('marker_plot'))
+  shinydlplot::downloadablePlotUI(ns('marker_plot'), zoom = TRUE)
 }
 
 
@@ -402,10 +402,8 @@ scBioGpsPlotOutput <- function(id) {
 #' @noRd
 scSampleMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto'), style = 'line-height: 0px;'),
-    plotly::plotlyOutput(ns('plotly'), height = 'auto')
-  )
+  tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto', zoom = TRUE), style = 'line-height: 0px;')
+
 }
 
 
@@ -416,7 +414,6 @@ scSampleMarkerPlotOutput <- function(id) {
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
   shinydlplot::downloadablePlotUI(ns('ridge_plot'), height = 'auto')
-  # plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
 

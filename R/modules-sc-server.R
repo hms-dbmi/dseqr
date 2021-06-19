@@ -17,6 +17,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
                        add_sc = add_sc,
                        remove_sc = remove_sc)
 
+  zoom <- reactiveValues()
+
   # cluster plot in top right
   callModule(scClusterPlot, 'cluster_plot',
              scseq = scForm$scseq,
@@ -24,7 +26,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
              selected_cluster = scForm$selected_cluster,
              dataset_name = scForm$dataset_name,
              cluster_plot = scForm$cluster_plot,
-             is_mobile = is_mobile)
+             is_mobile = is_mobile,
+             zoom = zoom)
 
   # cluster comparison plots ---
 
@@ -35,7 +38,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
              dataset_name = scForm$dataset_name,
              plots_dir = scForm$plots_dir,
              feature_plot_clusters = scForm$feature_plot_clusters,
-             dgrlogs = scForm$dgrlogs)
+             dgrlogs = scForm$dgrlogs,
+             zoom = zoom)
 
   callModule(scBioGpsPlot, 'biogps_plot',
              selected_gene = scForm$clusters_gene,
@@ -61,20 +65,25 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
              comparison_type = scForm$comparison_type,
              compare_groups = scForm$compare_groups,
              sc_dir = sc_dir,
-             meta = scForm$meta)
+             meta = scForm$meta,
+             zoom = zoom)
 
+  # TODO don't also brushing of ridgeplot (changes location)
   callModule(scSampleMarkerPlot, 'left',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_left)
+             plot_fun = scForm$samples_pfun_left,
+             zoom = zoom)
 
 
   callModule(scSampleMarkerPlot, 'right',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_right)
+             plot_fun = scForm$samples_pfun_right,
+             zoom = zoom)
 
   callModule(scSampleMarkerPlot, 'right_bottom',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_right_bottom)
+             plot_fun = scForm$samples_pfun_right_bottom,
+             zoom = zoom)
 
 
 
@@ -1949,7 +1958,7 @@ keep_curr_selected <- function(datasets, prev, curr) {
 #'
 #' @keywords internal
 #' @noRd
-scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, is_mobile) {
+scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, is_mobile, zoom) {
 
   res <- reactive({
     gene <- selected_gene()
@@ -1974,7 +1983,8 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, 
   plot <- reactive({
     res <- res()
     if (is.null(res)) return(NULL)
-    return(res$plot)
+    pl <- zoom_plot(res$plot, zoom$x, zoom$y)
+    return(pl)
   })
 
 
@@ -1990,13 +2000,15 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, 
     utils::write.csv(d, file)
   }
 
+  ranges <- callModule(shinydlplot::downloadablePlot,
+                       "plot",
+                       plot = plot,
+                       filename = filename,
+                       content = content,
+                       height = height)
 
-  callModule(shinydlplot::downloadablePlot,
-             "plot",
-             plot = plot,
-             filename = filename,
-             content = content,
-             height = height)
+  observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
+  observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
 
 }
 
@@ -3151,11 +3163,18 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     frac_targs <- grep('AUC|logFC', cols)
 
     vis_targ <- (length(cols)-1)
-    search_targs <- 0:(vis_targ-1)
+    search_targs <- 0
 
-    # prevent sort when qc_first
+    # prevent sort/filter when qc_first
     sort_targs <- 0
-    if (qc_first()) sort_targs <- '_all'
+    filter <- list(position='top', clear = FALSE, vertical = TRUE, opacity = 0.85)
+    if (qc_first()) {
+      sort_targs <- '_all'
+      filter = list(position='none')
+    }
+
+    if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols= pct_targs]
+    if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols= frac_targs]
 
     dt <- DT::datatable(
       gene_table,
@@ -3164,6 +3183,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
       escape = FALSE, # to allow HTML in table
       selection = 'single',
       extensions = 'Scroller',
+      filter = filter,
       options = list(
         deferRender = TRUE,
         scroller = TRUE,
@@ -3181,8 +3201,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
       )
     )
 
-    if (length(pct_targs)) dt <- DT::formatRound(dt, pct_targs, digits = 0)
-    if (length(frac_targs)) dt <- DT::formatRound(dt, frac_targs, digits = 2)
+
     return(dt)
 
   }, server = TRUE)
@@ -3216,7 +3235,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster, dataset_name, cluster_plot, is_mobile) {
+scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster, dataset_name, cluster_plot, is_mobile, zoom) {
 
   filename <- function() {
     paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
@@ -3241,6 +3260,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
       hl <- as.numeric(cluster)
 
     pl <- update_cluster_plot(plot, annot, hl)
+    pl <- zoom_plot(pl, zoom$x, zoom$y)
 
     if (omit_labels) {
       pl <- pl +
@@ -3250,6 +3270,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
           plot.title = ggplot2::element_text(
             color = 'lightgray', hjust = 1, size = 16, face = 'plain', margin = ggplot2::margin(b = 15)))
     }
+
     return(pl)
   })
 
@@ -3260,18 +3281,20 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
   }
 
 
-  callModule(shinydlplot::downloadablePlot,
-             "cluster_plot",
-             plot = plot,
-             filename = filename,
-             content = content)
+  ranges <- callModule(shinydlplot::downloadablePlot,
+                       "cluster_plot",
+                       plot = plot,
+                       filename = filename,
+                       content = content)
 
+  observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
+  observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
 }
 
 
-scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta) {
+scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta, zoom) {
 
-  show_plot <- reactive(length(compare_groups()) == 2 & comparison_type() == 'samples')
+  show_plot <- reactive(length(compare_groups()) == 2)
   observe(toggle('abundance_plot', condition = show_plot()))
 
   plot_data <- reactive({
@@ -3308,12 +3331,18 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
   plot <- reactive({
     plot_data <- plot_data()
     if (is.null(plot_data)) return(NULL)
-    plot_scseq_diff(plot_data, feature = 'abundance')
+    pl <- plot_scseq_diff(plot_data, feature = 'abundance')
+    zoom_plot(pl, zoom$x, zoom$y, zoom.pt = FALSE)
   })
 
+  ranges <- callModule(shinydlplot::downloadablePlot,
+                       "abundance_plot",
+                       filename = '',
+                       content = '',
+                       plot = plot)
 
-  output$abundance_plot <- shiny::renderPlot(plot())
-
+  observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
+  observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
 }
 
 
@@ -3321,7 +3350,7 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, dgrlogs, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, dgrlogs, zoom, custom_metrics = function()NULL) {
 
 
   plot <- reactive({
@@ -3372,6 +3401,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
       pl <- NULL
     }
 
+    pl <- zoom_plot(pl, zoom$x, zoom$y)
     return(pl)
   })
 
@@ -3388,12 +3418,14 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     utils::write.csv(plot$data, file)
   }
 
-  callModule(shinydlplot::downloadablePlot,
-             "marker_plot",
-             plot = plot,
-             filename = filename,
-             content = content)
+  ranges <- callModule(shinydlplot::downloadablePlot,
+                       "marker_plot",
+                       plot = plot,
+                       filename = filename,
+                       content = content)
 
+  observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
+  observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
 }
 
 

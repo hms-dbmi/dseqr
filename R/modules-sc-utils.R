@@ -503,8 +503,13 @@ evaluate_custom_metric <- function(metric, scseq) {
   expr <- SingleCellExperiment::logcounts(scseq)
   genes <- row.names(expr)[row.names(expr) %in% ft]
 
-  expr <- frows(expr, genes)
-  expr <- t(as.matrix(expr))
+  if (length(genes)) {
+    expr <- frows(expr, genes)
+    expr <- t(as.matrix(expr))
+
+  } else {
+    expr <- data.frame(expr=NA)
+  }
 
   qcs <- scseq@colData
   qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
@@ -1918,6 +1923,7 @@ get_grid <- function(scseq) {
 
 
 frows <- function(m, rows, drop = FALSE) {
+  if (!length(rows)) return(NULL)
   if (methods::is(m, 'dgRMatrix')) {
     rlist <- lapply(rows, function(r) fast_dgr_row(m, r))
     res <- matrix(unlist(rlist),

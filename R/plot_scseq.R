@@ -82,7 +82,29 @@ update_cluster_plot <- function(plot, annot, hl) {
     cols[hl] <- 'black'
   }
   plot$layers[[2]]$aes_params$colour <- cols
+  return(plot)
+}
 
+zoom_plot <- function(plot, x, y, zoom.pt = TRUE) {
+
+  # set zoom
+  if (length(plot$layers) == 2) {
+    d2 <- plot$layers[[2]]$data
+    keep.labs <- d2[[1]] > x[1] & d2[[1]] < x[2] & d2[[2]] > y[1] & d2[[2]] < y[2]
+
+    plot$layers[[2]]$aes_params$colour[!keep.labs] <- 'transparent'
+  }
+  plot <- plot + ggplot2::coord_cartesian(x, y)
+  if (!zoom.pt) return(plot)
+
+  # set point size
+  d <- plot$data
+  if (is.null(x))
+    ncells <- nrow(d)
+  else
+    ncells <- sum(d[[1]] > x[1] & d[[1]] < x[2] & d[[2]] > y[1] & d[[2]] < y[2])
+
+  plot$layers[[1]]$aes_params$size <- min(6000/ncells, 3)
   return(plot)
 }
 
