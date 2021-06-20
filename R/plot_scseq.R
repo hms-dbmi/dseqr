@@ -111,7 +111,7 @@ get_ptsize <- function(plot, x, y) {
 
 resize_points <- function(plot, ptsize) {
   plot$layers[[1]]$aes_params$size <- ptsize
-  # return(plot)
+  return(plot)
 }
 
 #' Shorted cluster labels when there are lots of clusters
