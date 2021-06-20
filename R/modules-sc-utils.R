@@ -863,8 +863,8 @@ get_gene_table <- function(markers,
       Feature = html_features,
       'AUC' = markers$auc,
       'ΔAUC' = markers$auc_diff,
-      '%' = markers$pct_in,
-      'Δ%' = markers$pct_diff,
+      '%IN' = markers$pct_in,
+      '%OUT' = markers$pct_out,
       feature = features
     )
   }

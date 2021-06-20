@@ -173,6 +173,10 @@ ul.nav.navbar-nav {
 
 /* DATATABLES */
 
+.well-form {
+  max-width: 420px !important;
+}
+
 /* filter box */
 td .form-group {
   min-height: unset !important;
@@ -186,11 +190,6 @@ thead tr:nth-child(2) input {
   border-radius: 0px;
 }
 
-
-.dataTables_scroll,
-.dataTables_scrollBody {
-    overflow-x: hidden !important;
-}
 
 .dt-fake-height {
     height: 1px;
