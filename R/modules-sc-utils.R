@@ -853,7 +853,7 @@ get_gene_table <- function(markers,
     table <- data.table::data.table(
       Feature = html_features,
       'logFC' = markers$logFC,
-      'FDR' = safe.fun(format.pval, pvals, eps = 0.005, digits = 2),
+      'FDR' = pvals,
       feature = features
     )
 
@@ -1907,9 +1907,6 @@ get_grid <- function(scseq) {
   points <- cbind(dat$x, dat$y)
   grid <- data.frame(xi = findInterval(points[,1], xi),
                      yi = findInterval(points[,2], yi))
-
-  grid$grid_xi <- factor(grid$xi, levels = 1:nx)
-  grid$grid_yi <- factor(grid$yi, levels = 1:ny)
 
   x <- xi[-length(xi)] + 0.5*diff(xi)
   y <- yi[-length(yi)] + 0.5*diff(yi)

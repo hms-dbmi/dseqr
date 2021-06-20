@@ -4,7 +4,7 @@
 ^data-raw$
 ^run_sjia\.R$
 ^sync-aws\.sh$
-
+^example_data\.tar\.gz$
 ^packrat/
 ^renv$
 ^renv\.lock$

@@ -43,12 +43,14 @@ scPageUI <- function(id, tab, active) {
             # row for samples comparison (integrated test vs ctrl)
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
                 div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
-                    scSampleMarkerPlotOutput(ns('left'))
+                    scSamplePlotOutput(ns('expr_test')),
+                    scSamplePlotOutput(ns('expr_sample_violin'), zoom = FALSE),
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
-                    scSampleMarkerPlotOutput(ns('right')),
+                    scSamplePlotOutput(ns('expr_ctrl')),
+                    scSamplePlotOutput(ns('expr_diff_grid')),
                     br(),
-                    scSampleMarkerPlotOutput(ns('right_bottom'))
+                    scSamplePlotOutput(ns('expr_all'))
                 )
             )
         )
@@ -340,7 +342,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
             inputId = ns('gene_search'),
             label = '',
             btn1, btn2,
-            placeholder = 'type regex to search'
+            placeholder = 'type regex to search gene'
           )
       ),
       div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
@@ -396,13 +398,13 @@ scBioGpsPlotOutput <- function(id) {
 }
 
 
-#' Output plot/plotly for samples comparison with integrated datasets
+#' Output plots for samples comparison with integrated datasets
 #'
 #' @keywords internal
 #' @noRd
-scSampleMarkerPlotOutput <- function(id) {
+scSamplePlotOutput <- function(id, zoom = TRUE) {
   ns <- NS(id)
-  tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto', zoom = TRUE), style = 'line-height: 0px;')
+  tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto', zoom = zoom), style = 'line-height: 0px;')
 
 }
 
@@ -466,3 +468,4 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
+

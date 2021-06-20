@@ -11,7 +11,7 @@ plot_feature(
   cols = c("lightgray", "blue"),
   reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
   title = paste0("Expression by Cell: ", feature),
-  pt.size = min(6000/ncol(scseq), 2)
+  pt.size = min(6000/ncol(scseq), 4)
 )
 }
 \arguments{

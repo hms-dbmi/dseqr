@@ -37,7 +37,7 @@ plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, leg
     }
   }
 
-  pt.size <- min(6000/ncells, 2)
+  pt.size <- min(6000/ncells, 4)
 
   if (is.null(cols))
     cols <- get_palette(levs, with_all = TRUE)
@@ -85,7 +85,8 @@ update_cluster_plot <- function(plot, annot, hl) {
   return(plot)
 }
 
-zoom_plot <- function(plot, x, y, zoom.pt = TRUE) {
+zoom_plot <- function(plot, x, y) {
+  if (is.null(x)) return(plot)
 
   # set zoom
   if (length(plot$layers) == 2) {
@@ -94,9 +95,10 @@ zoom_plot <- function(plot, x, y, zoom.pt = TRUE) {
 
     plot$layers[[2]]$aes_params$colour[!keep.labs] <- 'transparent'
   }
-  plot <- plot + ggplot2::coord_cartesian(x, y)
-  if (!zoom.pt) return(plot)
+  plot + ggplot2::coord_cartesian(x, y)
+}
 
+get_ptsize <- function(plot, x, y) {
   # set point size
   d <- plot$data
   if (is.null(x))
@@ -104,8 +106,12 @@ zoom_plot <- function(plot, x, y, zoom.pt = TRUE) {
   else
     ncells <- sum(d[[1]] > x[1] & d[[1]] < x[2] & d[[2]] > y[1] & d[[2]] < y[2])
 
-  plot$layers[[1]]$aes_params$size <- min(6000/ncells, 3)
-  return(plot)
+  min(6000/ncells, 4)
+}
+
+resize_points <- function(plot, ptsize) {
+  plot$layers[[1]]$aes_params$size <- ptsize
+  # return(plot)
 }
 
 #' Shorted cluster labels when there are lots of clusters
@@ -153,7 +159,7 @@ plot_feature <- function(scseq,
                          cols = c('lightgray', 'blue'),
                          reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
                          title = paste0('Expression by Cell: ', feature),
-                         pt.size = min(6000/ncol(scseq), 2)) {
+                         pt.size = min(6000/ncol(scseq), 4)) {
 
 
   if (reverse_scale) cols <- rev(cols)
@@ -724,7 +730,7 @@ get_gene_diff <- function(gene, tts, grid) {
 
   # get points in grid with cells
   pt.dat <- grid %>%
-    add_count(grid_xi, grid_yi) %>%
+    add_count(xi, yi) %>%
     left_join(tt) %>%
     distinct() %>%
     filter(n > 0) %>% # at least n cells

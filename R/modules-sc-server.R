@@ -20,14 +20,14 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
   zoom <- reactiveValues()
 
   # cluster plot in top right
-  callModule(scClusterPlot, 'cluster_plot',
-             scseq = scForm$scseq,
-             annot = scForm$annot,
-             selected_cluster = scForm$selected_cluster,
-             dataset_name = scForm$dataset_name,
-             cluster_plot = scForm$cluster_plot,
-             is_mobile = is_mobile,
-             zoom = zoom)
+  ptsize <- callModule(scClusterPlot, 'cluster_plot',
+                       scseq = scForm$scseq,
+                       annot = scForm$annot,
+                       selected_cluster = scForm$selected_cluster,
+                       dataset_name = scForm$dataset_name,
+                       cluster_plot = scForm$cluster_plot,
+                       is_mobile = is_mobile,
+                       zoom = zoom)
 
   # cluster comparison plots ---
 
@@ -39,6 +39,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
              plots_dir = scForm$plots_dir,
              feature_plot_clusters = scForm$feature_plot_clusters,
              dgrlogs = scForm$dgrlogs,
+             ptsize = ptsize,
              zoom = zoom)
 
   callModule(scBioGpsPlot, 'biogps_plot',
@@ -64,26 +65,49 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
              dplots_dir = scForm$dplots_dir,
              comparison_type = scForm$comparison_type,
              compare_groups = scForm$compare_groups,
-             sc_dir = sc_dir,
              meta = scForm$meta,
+             sc_dir = sc_dir,
              zoom = zoom)
 
-  # TODO don't also brushing of ridgeplot (changes location)
-  callModule(scSampleMarkerPlot, 'left',
+  # plots down below form
+  callModule(scSamplePlot, 'expr_test',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_left,
-             zoom = zoom)
+             plot_fun = scForm$samples_pfun_expr,
+             show_dprimes = scForm$show_dprimes,
+             layout_dprimes = FALSE,
+             ptsize = ptsize,
+             zoom = zoom,
+             ident = 'test')
 
-
-  callModule(scSampleMarkerPlot, 'right',
+  callModule(scSamplePlot, 'expr_ctrl',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_right,
-             zoom = zoom)
+             plot_fun = scForm$samples_pfun_expr,
+             show_dprimes = scForm$show_dprimes,
+             layout_dprimes = FALSE,
+             ptsize = ptsize,
+             zoom = zoom,
+             ident = 'ctrl')
 
-  callModule(scSampleMarkerPlot, 'right_bottom',
+  callModule(scSamplePlot, 'expr_all',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_right_bottom,
-             zoom = zoom)
+             plot_fun = scForm$samples_pfun_expr,
+             show_dprimes = scForm$show_dprimes,
+             ptsize = ptsize,
+             zoom = zoom,
+             ident = NULL)
+
+
+  callModule(scSamplePlot, 'expr_sample_violin',
+             selected_gene = scForm$samples_gene,
+             plot_fun = scForm$samples_pfun_violin,
+             zoom.pt = FALSE)
+
+  callModule(scSamplePlot, 'expr_diff_grid',
+             selected_gene = scForm$samples_gene,
+             plot_fun = scForm$samples_pfun_grid,
+             show_dprimes = scForm$show_dprimes,
+             zoom = zoom,
+             zoom.pt = FALSE)
 
 
 
@@ -413,9 +437,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
     clusters_gene = scClusterGene$selected_gene,
     custom_metrics = scClusterGene$custom_metrics,
     show_ridge = scClusterGene$show_ridge,
-    samples_pfun_left = scSampleClusters$pfun_left,
-    samples_pfun_right = scSampleClusters$pfun_right,
-    samples_pfun_right_bottom = scSampleClusters$pfun_right_bottom,
+    show_dprimes = scSampleClusters$show_dprimes,
+    samples_pfun_expr = scSampleClusters$pfun_expr,
+    samples_pfun_violin = scSampleClusters$pfun_violin,
+    samples_pfun_grid = scSampleClusters$pfun_grid,
     clusters_cluster = scClusterComparison$selected_cluster,
     samples_cluster = scSampleClusters$selected_cluster,
     labels_cluster = scLabelsComparison$selected_cluster,
@@ -803,125 +828,63 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   top_tables_paths <- reactive(file.path(pathways_dir(), 'top_tables.qs'))
 
 
-  # plot functions for left
+  # plot functions
   sel <- reactive(input$selected_cluster)
 
-
-  pfun_left <- reactive({
-    int <- is_integrated()
-
-    function(gene) {
-      if(!isTruthy(gene)) return(NULL)
-
+  pfun_violin <- reactive({
+    pfun <- function(gene) {
+      sel <- sel()
       scseq <- scseq()
-      if (is.null(scseq)) return(NULL)
+      if(!isTruthyAll(sel, gene, scseq)) return(NULL)
 
-      if (show_dprimes() & int) {
-        # violin plot on left
-        sel <- sel()
+      try(ridge_data <- get_ridge_data(
+        gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
 
-        if(!isTruthyAll(sel, gene)) return(NULL)
-
-        try(ridge_data <- get_ridge_data(
-          gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
-
-        plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
-        return(plot)
-
-      } else {
-        # test expression on left
-        dgrlogs <- isolate(dgrlogs())
-        if (is.null(dgrlogs)) return(NULL)
-        gene_data <- fast_dgr_row(dgrlogs, gene)
-
-        # update base feature plot
-        plot <- feature_plot()
-        plot <- update_feature_plot(plot, gene_data, gene)
-
-        plot <- plot_feature_sample(gene, scseq, 'test', plot=plot)
-        pfun <- list(plot = plot, height = 453)
-      }
-      return(pfun)
+      plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
+      return(plot)
     }
+    return(pfun)
   })
 
+  pfun_expr <- reactive({
 
+    pfun <- function(gene, ident = NULL) {
+      # test expression on left
+      scseq <- scseq()
+      dgrlogs <- isolate(dgrlogs())
+      if(!isTruthyAll(dgrlogs, gene, scseq)) return(NULL)
 
-  # plot functions for right
-  pfun_right <- reactive({
+      gene_data <- fast_dgr_row(dgrlogs, gene)
+
+      # update base feature plot
+      plot <- feature_plot()
+      plot <- update_feature_plot(plot, gene_data, gene)
+
+      if (!is.null(ident)) plot <- plot_feature_sample(gene, scseq, ident, plot=plot)
+      list(plot = plot, height = 453)
+    }
+    return(pfun)
+  })
+
+  pfun_grid <- reactive({
     req(is_integrated())
+    scseq <- scseq()
 
-    function(gene) {
+    pfun <- function(gene) {
+      top_tables <- top_tables_grid()
+      if (!isTruthyAll(scseq, gene, top_tables)) return(NULL)
 
-      scseq <- scseq()
-      if (!isTruthyAll(scseq, gene)) return(NULL)
+      grid <- get_grid(scseq)
+      plot_data <- get_gene_diff(gene, top_tables, grid)
 
-
-      if (!show_dprimes() | !is_integrated()) {
-        # plot ctrl expression if not dprimes or not integrated
-        dgrlogs <- isolate(dgrlogs())
-        if (is.null(dgrlogs)) return(NULL)
-
-        gene_data <- fast_dgr_row(dgrlogs, gene)
-        if (is.null(gene_data)) return(NULL)
-
-        plot <- feature_plot()
-        plot <- update_feature_plot(plot, gene_data, gene)
-
-        plot <- plot_feature_sample(gene, scseq(), 'ctrl', plot=plot) +
-          ggplot2::theme(legend.position = 'none')
-
-      } else {
-        top_tables <- top_tables_grid()
-        if(is.null(top_tables)) return(NULL)
-
-        grid <- get_grid(scseq)
-        plot_data <- get_gene_diff(gene, top_tables, grid)
-
-        plot <- plot_scseq_diff(plot_data, gene)
-      }
-      pfun <- list(plot = plot, height = 453)
-      return(pfun)
+      plot <- plot_scseq_diff(plot_data, gene)
+      list(plot = plot, height = 453)
     }
+
+    return(pfun)
   })
-
-  pfun_right_bottom <- reactive({
-
-    function(gene) {
-      scseq <- scseq()
-
-      if (!show_dprimes()) {
-        sel <- sel()
-        is_integrated <- is_integrated()
-        default <- list(plot=NULL, height=1)
-
-        if(!isTruthyAll(sel, scseq, gene, is_integrated)) return(default)
-
-        try(ridge_data <- get_ridge_data(
-          gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
-
-        plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
-        return(plot)
-
-      } else {
-        if (!isTruthyAll(scseq, gene)) return(NULL)
-
-        dgrlogs <- isolate(dgrlogs())
-        if (is.null(dgrlogs)) return(NULL)
-
-        gene_data <- fast_dgr_row(dgrlogs, gene)
-        if (is.null(gene_data)) return(NULL)
-
-        plot <- feature_plot()
-        plot <- update_feature_plot(plot, gene_data, gene)
-        return(list(plot = plot, height = 453))
-      }
-    }
-  }) %>% debounce(20)
-
 
   summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
-
 
   cluster_ambient <- reactive({
     if (length(groups()) != 2) return(NULL)
@@ -958,7 +921,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     }
     return(amb)
   })
-
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
@@ -1288,9 +1250,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     path_res = path_res,
     selected_cluster = selected_cluster,
     annot_clusters = annot_clusters,
-    pfun_left = pfun_left,
-    pfun_right = pfun_right,
-    pfun_right_bottom = pfun_right_bottom
+    pfun_expr = pfun_expr,
+    pfun_grid = pfun_grid,
+    pfun_violin = pfun_violin,
+    show_dprimes = reactive(show_dprimes() & is_integrated())
   ))
 }
 
@@ -1958,15 +1921,18 @@ keep_curr_selected <- function(datasets, prev, curr) {
 #'
 #' @keywords internal
 #' @noRd
-scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, is_mobile, zoom) {
+scSamplePlot <- function(input, output, session, selected_gene, plot_fun, show_dprimes = function()TRUE, layout_dprimes = TRUE, ptsize = NULL, zoom = NULL, zoom.pt = TRUE, ...) {
 
   res <- reactive({
     gene <- selected_gene()
     req(gene)
-    suppressMessages(plot_fun()(gene))
+    suppressMessages(plot_fun()(gene, ...))
   })
 
   height <- reactive({
+    if (show_dprimes() & !layout_dprimes) return(1)
+    if (!show_dprimes() & layout_dprimes) return(1)
+
     h <- res()$height
     if (is.null(h)) return(1)
     else return(h)
@@ -1975,28 +1941,26 @@ scSampleMarkerPlot <- function(input, output, session, selected_gene, plot_fun, 
 
 
   filename <- function() {
-    fname <- plot()$labels$title
+    fname <- tolower(plot()$labels$title)
     fname <- gsub(':', '', fname)
+    fname <- gsub(' ', '_', fname)
     paste0(fname, '.csv')
   }
 
   plot <- reactive({
+    if (show_dprimes() & !layout_dprimes) return(NULL)
+    if (!show_dprimes() & layout_dprimes) return(NULL)
+
     res <- res()
     if (is.null(res)) return(NULL)
     pl <- zoom_plot(res$plot, zoom$x, zoom$y)
+    if (zoom.pt) pl <- resize_points(pl, ptsize())
     return(pl)
   })
 
 
   content <- function(file) {
     d <- plot()$data
-
-    # clean up data for ridgeplots
-    if (!'TSNE1' %in% colnames(d)) {
-      d <- d[, c('x', 'y')]
-      colnames(d) <- c(selected_gene(), 'sample')
-    }
-
     utils::write.csv(d, file)
   }
 
@@ -3161,6 +3125,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     ncols <- length(cols)
     pct_targs <- grep('%', cols)
     frac_targs <- grep('AUC|logFC', cols)
+    pval_targs <- grep('FDR', cols)
 
     vis_targ <- (length(cols)-1)
     search_targs <- 0
@@ -3173,8 +3138,9 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
       filter = list(position='none')
     }
 
-    if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols= pct_targs]
-    if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols= frac_targs]
+    if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols = pct_targs]
+    if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols = frac_targs]
+    if (length(pval_targs)) gene_table[, (pval_targs) := round(.SD, 3), .SDcols = pval_targs]
 
     dt <- DT::datatable(
       gene_table,
@@ -3200,7 +3166,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         headerCallback = DT::JS("function(thead, data, start, end, display) {$('th', thead).css('font-weight', 'normal');}")
       )
     )
-
 
     return(dt)
 
@@ -3241,6 +3206,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
     paste0(dataset_name(), '_cluster_plot_data_', Sys.Date(), '.csv')
   }
 
+  # return pt.size for other plots
+  ptsize <- reactiveVal()
+
 
   plot <- reactive({
     plot <- cluster_plot()
@@ -3261,6 +3229,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 
     pl <- update_cluster_plot(plot, annot, hl)
     pl <- zoom_plot(pl, zoom$x, zoom$y)
+    size <- get_ptsize(pl, zoom$x, zoom$y)
+    pl <- resize_points(pl, size)
+    ptsize(size)
 
     if (omit_labels) {
       pl <- pl +
@@ -3289,6 +3260,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 
   observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
   observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
+
+  return(ptsize)
 }
 
 
@@ -3332,13 +3305,25 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
     plot_data <- plot_data()
     if (is.null(plot_data)) return(NULL)
     pl <- plot_scseq_diff(plot_data, feature = 'abundance')
-    zoom_plot(pl, zoom$x, zoom$y, zoom.pt = FALSE)
+    zoom_plot(pl, zoom$x, zoom$y)
   })
+
+  filename <- function() {
+    fname <- tolower(plot()$labels$title)
+    fname <- gsub(':', '', fname)
+    fname <- gsub(' ', '_', fname)
+    paste0(fname, '.csv')
+  }
+
+  content <- function(file) {
+    plot <- plot()
+    utils::write.csv(plot$data, file)
+  }
 
   ranges <- callModule(shinydlplot::downloadablePlot,
                        "abundance_plot",
-                       filename = '',
-                       content = '',
+                       filename = filename,
+                       content = content,
                        plot = plot)
 
   observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
@@ -3350,7 +3335,7 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, dgrlogs, zoom, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, dgrlogs, zoom, ptsize, custom_metrics = function()NULL) {
 
 
   plot <- reactive({
@@ -3402,6 +3387,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
     }
 
     pl <- zoom_plot(pl, zoom$x, zoom$y)
+    pl <- resize_points(pl, ptsize())
     return(pl)
   })
 
@@ -3478,8 +3464,8 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     if (!is.num) return(NULL)
 
     scseq <- scseq()
-    dgrlogs <- dgrlogs()
-    if (is.null(scseq) | is.null(dgrlogs)) return(NULL)
+    dgrlogs <- if (is.gene) dgrlogs() else NULL
+    if (is.null(scseq)) return(NULL)
     rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, dgrlogs=dgrlogs)
 
     return(rdat)
@@ -3491,7 +3477,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     VlnPlot(ridge_data = ridge_data)
   }) %>% debounce(20)
 
-  content <- function(file){
+  content <- function(file) {
     d <- ridge_data()$df[, c('x', 'y')]
     colnames(d) <- c(selected_gene(), 'cluster')
     utils::write.csv(d, file, row.names = FALSE)
@@ -3506,3 +3492,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
