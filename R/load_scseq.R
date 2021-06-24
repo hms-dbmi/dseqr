@@ -138,12 +138,13 @@ process_raw_scseq <- function(scseq,
 
   } else {
     progress$set(message = "running Azimuth", detail = '', value = value + 2)
+
+    resoln <- get_azimuth_resoln(azimuth_ref)
     azres <- run_azimuth(list(one = scseq), azimuth_ref)
-    scseq <- transfer_azimuth(azres, scseq)
+    scseq <- transfer_azimuth(azres, scseq, resoln)
     rm(azres); gc()
 
     # because e.g. default resoln is celltype.l2 for human pbmc
-    resoln <- switch(azimuth_ref, 'human_pbmc' = 2)
 
     anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref)
     save_scseq_data(anal, dataset_name, sc_dir)
@@ -162,7 +163,7 @@ process_raw_scseq <- function(scseq,
   progress$set(value = value + 7)
 }
 
-transfer_azimuth <- function(azres, scseq) {
+transfer_azimuth <- function(azres, scseq, resoln) {
   # add new data back to scseq
   projs <- lapply(azres, function(x) {
     proj <- x@reductions$proj.umap@cell.embeddings
@@ -176,18 +177,34 @@ transfer_azimuth <- function(azres, scseq) {
 
   get_meta <- function(l, m) unlist(lapply(l, function(x) x@meta.data[[m]]), use.names = FALSE)
 
-  scseq$mapping_score <- get_meta(azres, 'mapping.score')
-  scseq$cluster_l1_score <- get_meta(azres, 'predicted.celltype.l1.score')
-  scseq$cluster_l2_score <- get_meta(azres, 'predicted.celltype.l2.score')
-  scseq$cluster_l3_score <- get_meta(azres, 'predicted.celltype.l3.score')
+  scseq$mapping.score <- get_meta(azres, 'mapping.score')
 
-  scseq$cluster_l1 <- get_meta(azres, 'predicted.celltype.l1')
-  scseq$cluster_l2 <- get_meta(azres, 'predicted.celltype.l2')
-  scseq$cluster_l3 <- get_meta(azres, 'predicted.celltype.l3')
+  cols <- colnames(azres[[1]]@meta.data)
+  azi_cols <- get_azimuth_cols(cols)
+  for (col in azi_cols) scseq[[col]] <- get_meta(azres, col)
 
-  clus <- factor(scseq$cluster_l2)
+  clus <- factor(scseq[[resoln]])
   scseq$cluster <- factor(as.numeric(clus))
   return(scseq)
+}
+
+get_resoln_dir <- function(resoln) {
+  is.num <- is.numstring(resoln)
+  ifelse(is.num,
+         paste0('snn', resoln),
+         resoln)
+}
+
+is.numstring <- function(x) !is.na(suppressWarnings(as.numeric(x)))
+
+get_azimuth_cols <- function(cols, type = c('both', 'score', 'cluster')) {
+
+  score_cols <- grep('^predicted[.].+?[.]score$', cols, value = TRUE)
+  if (type[1] == 'score') return(score_cols)
+
+  clust_cols <- gsub('^(predicted[.].+?)[.]score$', '\\1', score_cols)
+  if (type[1] == 'cluster') return(clust_cols)
+  return(c(score_cols, clust_cols))
 }
 
 
@@ -195,16 +212,20 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
 
-  refdata <- lapply(c("celltype.l1", "celltype.l2", "celltype.l3"), function(x) {
+  refnames <- grep('^celltype|^annotation', colnames(reference$map@meta.data), value = TRUE)
+
+  refdata <- lapply(refnames, function(x) {
     reference$map[[x, drop = TRUE]]
   })
 
-  names(refdata) <- c("celltype.l1", "celltype.l2", "celltype.l3")
+  names(refdata) <- refnames
 
-  refdata[["impADT"]] <- Seurat::GetAssayData(
-    object = reference$map[['ADT']],
-    slot = 'data'
-  )
+  if ('ADT' %in% names(reference$map@assays)) {
+    refdata[["impADT"]] <- Seurat::GetAssayData(
+      object = reference$map[['ADT']],
+      slot = 'data'
+    )
+  }
 
   queries <- list()
   for (ds in names(scseqs)) {
@@ -312,7 +333,6 @@ run_azimuth <- function(scseqs, azimuth_ref) {
       col.name = "mapping.score"
     )
 
-
     queries[[ds]] <- query
   }
 
@@ -322,12 +342,11 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
 
   # cluster columns
-  cols <- grep('^cluster_l\\d$', colnames(meta), value = TRUE)
+  cols <- get_azimuth_cols(colnames(meta), 'cluster')
 
   # save annotation and clusters for each
-  for (i in seq_along(cols)) {
-    dataset_subname <- file.path(dataset_name, paste0('snn', i))
-    col <- cols[i]
+  for (col in cols) {
+    dataset_subname <- file.path(dataset_name, col)
     clusters <- factor(meta[[col]])
 
     scseq_data <- list(
@@ -1237,7 +1256,8 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
 
   } else if (type[1] == 'Azimuth') {
     azres <- run_azimuth(scseqs, azimuth_ref)
-    cor.out <- transfer_azimuth(azres, combined)
+    resoln <- get_azimuth_resoln(azimuth_ref)
+    cor.out <- transfer_azimuth(azres, combined, resoln)
     rm(azres); gc()
 
     # re-name merged to logcounts
@@ -1258,6 +1278,12 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
   rm(counts, scseqs); gc()
 
   return(cor.out)
+}
+
+get_azimuth_resoln <- function(azimuth_ref) {
+  switch(azimuth_ref,
+         'human_pbmc' = 'predicted.celltype.l2',
+         'human_lung' = 'predicted.annotation.l2')
 }
 
 

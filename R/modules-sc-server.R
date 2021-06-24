@@ -150,7 +150,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
     dataset_dir <- dataset_dir()
     resoln <- resoln()
     req(dataset_dir, resoln)
-    resoln_dir <- file.path(dataset_dir, paste0('snn', resoln))
+    resoln_dir <- file.path(dataset_dir, get_resoln_dir(resoln))
     if (!dir.exists(resoln_dir)) dir.create(resoln_dir)
     return(resoln_dir)
   })
@@ -244,7 +244,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
     names(qc) <- sapply(metrics, class)
 
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping_|^cluster_l', qc)]
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted', qc)]
   }, )
 
   # show the toggle if dataset is integrated
@@ -729,7 +729,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     } else {
       contrast <- paste0(groups, collapse = '_vs_')
       resoln <- resoln()
-      cdir <- file.path(dataset_dir, paste0('snn', resoln), contrast)
+      cdir <- file.path(dataset_dir, get_resoln_dir(resoln), contrast)
     }
     contrast_dir(cdir)
   })
@@ -940,7 +940,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       if (is.null(fit) | is.null(groups)) return(NULL)
 
       # prevent error when change dataset
-      if (!all(groups) %in% colnames(fit[[1]]$mod)) return(NULL)
+      if (!all(groups %in% colnames(fit[[1]]$mod))) return(NULL)
 
       disableAll(input_ids)
       nmax <- length(fit)+1
@@ -1840,7 +1840,7 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
     azi <- selectizeInput(
       session$ns('azimuth_ref'),
       HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-      choices = c('', 'human_pbmc'),
+      choices = c('', azimuth_refs),
       options = list(placeholder = 'optional'))
 
     UI <- div(qc, azi)
@@ -2260,7 +2260,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   first_set <- reactiveVal(TRUE)
   observeEvent(input[[rname()]], {
     set <- input[[rname()]]
-    if (set >= 0.1 & set <= 5.1 & !first_set()) resoln(set)
+    if (!first_set() && (!is.numstring(set) || set >= 0.1 & set <= 5.1))
+      resoln(set)
 
     first_set(FALSE)
   }, ignoreInit = TRUE)
@@ -2279,19 +2280,28 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # restrict resolutions if azimuth
     apath <- file.path(dataset_dir(), 'azimuth_ref.qs')
-    axist <- file.exists(apath)
-    is_azimuth(axist)
-
-    rname(ifelse(axist, 'resoln_azi', 'resoln'))
+    isazi <- file.exists(apath)
+    is_azimuth(isazi)
 
     rpath <- file.path(dataset_dir(), 'resoln.qs')
     resoln_path(rpath)
     init <- qread.safe(rpath, 1)
     resoln(init)
-    updateNumericInput(session, rname(), value=init)
+
+    if (isazi) {
+      rname('resoln_azi')
+      cols <- colnames(scseq()@colData)
+      choices <- get_azimuth_cols(cols, 'cluster')
+      updateSelectizeInput(session, 'resoln_azi', choices = choices, selected = init)
+
+    } else {
+      rname('resoln')
+      updateNumericInput(session, 'resoln', value = init)
+    }
+
   }, priority = 1)
 
-  resoln_name <- reactive(file.path(dataset_name(), paste0('snn', resoln())))
+  resoln_name <- reactive(file.path(dataset_name(), get_resoln_dir(resoln())))
 
   # clusters after change resolution
   clusters_path <- reactive(file.path(resoln_dir(), 'clusters.qs'))
@@ -2304,7 +2314,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (!is.null(clusters)) {
       qs::qsave(resoln, resoln_path())
 
-      resoln_name <-  paste0('snn', resoln)
+      resoln_name <-  get_resoln_dir(resoln)
       applied_path <- file.path(sc_dir, dataset_name(),resoln_name, 'applied.qs')
       if (file.exists(applied_path)) {
         prev_resoln(resoln)
@@ -2461,7 +2471,6 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
       founder <- get_founder(sc_dir, from_dataset)
       dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
-
 
       subsets[[dataset_name]] <- callr::r_bg(
         func = subset_saved_scseq,
@@ -2837,7 +2846,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
       levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
       markers <- get_presto_markers(scseq)
-      resoln_name <- paste0(dataset_name, '/', 'snn', resoln())
+      resoln_name <- paste0(dataset_name, '/', get_resoln_dir(resoln()))
 
       progress$set(message = "Saving", value = 2)
       save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)

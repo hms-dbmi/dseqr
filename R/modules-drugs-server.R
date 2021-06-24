@@ -729,7 +729,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   resoln_dir <- reactive({
     resoln <- resoln()
     if (is.null(resoln)) return(NULL)
-    file.path(dataset_dir(), paste0('snn', resoln))
+    file.path(dataset_dir(), get_resoln_dir(resoln))
   })
 
 

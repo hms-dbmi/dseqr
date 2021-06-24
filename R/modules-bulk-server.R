@@ -965,7 +965,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     dataset_dir <- file.path(sc_dir, anal_name)
     resoln_path <- file.path(dataset_dir, 'resoln.qs')
     resoln <- qs::qread(resoln_path)
-    file.path(dataset_dir, paste0('snn', resoln))
+    file.path(dataset_dir, get_resoln_dir(resoln))
   })
 
   annot <- reactive(qs::qread(file.path(dtangle_subdir(), 'annot.qs')))

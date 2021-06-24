@@ -183,10 +183,9 @@ resolutionFormInput <- function(id) {
             min=0.1, value=1, max=5.1, step = 0.1, width = '100%')
       ),
       div(id = ns('resoln_azi_container'), style='display: none;',
-          numericInput(
+          selectizeInput(
             ns('resoln_azi'),
-            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')),
-            min=1, value=2, max=3, step = 1, width = '100%')
+            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')), choices = '', width = '100%')
       )
     )
   })
@@ -218,7 +217,7 @@ integrationFormInput <- function(id) {
             selectizeInput(
               ns('azimuth_ref'),
               HTML('Select Azimuth reference:'),
-              choices = c('', 'human_pbmc'), width = '100%')
+              choices = c('', azimuth_refs), width = '100%')
         ),
         shinypanel::textInputWithButtons(
           ns('integration_name'),
@@ -255,7 +254,7 @@ subsetFormInput <- function(id) {
           options = list(multiple = TRUE,
                          optgroupField = 'type',
                          placeholder = 'Select none to recluster')),
-        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', 'human_pbmc'), width = '100%', options = list(placeholder = 'optional')),
+        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', azimuth_refs), width = '100%', options = list(placeholder = 'optional')),
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),

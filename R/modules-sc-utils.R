@@ -194,42 +194,6 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
   paste('single-cell', anal, cluster, paste0(Sys.Date(), '.csv'), sep='_')
 }
 
-#' Get choices for included cluster in integration
-#' @param dataset_names Names of analyses selected for integration
-#' @param anal_colors Character vector of colors to indicate analysis
-#' @param data_dir Directory with single cell analyses.
-#'
-#' @return data.frame with columns for rendering selectizeInput include choices
-#'
-#' @keywords internal
-get_exclude_choices <- function(dataset_names, data_dir, anal_colors = NA) {
-
-  if (is.null(dataset_names)) return(NULL)
-
-  # load markers and annotation for each
-  resolns <- load_resoln(file.path(data_dir, dataset_names))
-  resoln_names <- file.path(dataset_names, resolns)
-
-  annot_paths <- scseq_part_path(data_dir, resoln_names, 'annot')
-  marker_paths <- scseq_part_path(data_dir, resoln_names, 'markers')
-
-  annots <- lapply(annot_paths, qs::qread)
-  clusters <- lapply(annots, seq_along)
-
-  exclude_choices <- lapply(seq_along(dataset_names), function(i) {
-    data.frame(
-      name = stringr::str_trunc(annots[[i]], 27),
-      value = paste(dataset_names[i], clusters[[i]], sep = '_'),
-      anal = dataset_names[i],
-      label = annots[[i]],
-      color = anal_colors[i], stringsAsFactors = FALSE
-    )
-  })
-
-  do.call(rbind, exclude_choices)
-}
-
-
 
 #' Get cluster choices data.frame for selectize dropdown
 #'
@@ -1020,7 +984,9 @@ integrate_saved_scseqs <- function(
 
   is_azimuth <- integration_type == 'Azimuth'
   if (is_azimuth) {
-    resoln <- switch(azimuth_ref, 'human_pbmc' = 2)
+    # default resoln for each azimuth ref
+    resoln <- get_azimuth_resoln(azimuth_ref)
+
     scseq_data$resoln <- resoln
     scseq_data$azimuth_ref <- azimuth_ref
     scseq_data$scseq <- combined
@@ -1088,7 +1054,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
   # save in subdirectory e.g. snn1
   progress$set(value+3, detail = 'saving')
-  dataset_subname <- file.path(dataset_name, paste0('snn', resoln))
+  dataset_subname <- file.path(dataset_name, get_resoln_dir(resoln))
   save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
 
 }
@@ -1723,11 +1689,11 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
 transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
 
   # ref clusters are from previous resolution
-  ref_resoln_name <- file.path(dataset_name, paste0('snn', prev_resoln))
+  ref_resoln_name <- file.path(dataset_name, get_resoln_dir(prev_resoln))
   ref_cluster <- qs::qread(file.path(sc_dir, ref_resoln_name, 'clusters.qs'))
 
   # query clusters are new resolution
-  query_resoln_name <- file.path(dataset_name, paste0('snn', resoln))
+  query_resoln_name <- file.path(dataset_name, get_resoln_dir(resoln))
   query_cluster <- qs::qread(file.path(sc_dir, query_resoln_name, 'clusters.qs'))
 
   # transfer labels
@@ -1774,7 +1740,8 @@ get_resoln_name <- function(sc_dir, dataset_name) {
 #'
 load_resoln <- function(dataset_dir) {
   resoln_path <- file.path(dataset_dir, 'resoln.qs')
-  paste0('snn', sapply(resoln_path, qread.safe, .nofile = 1))
+  resoln <- qread.safe(resoln_path, .nofile = 1)
+  get_resoln_dir(resoln)
 }
 
 
