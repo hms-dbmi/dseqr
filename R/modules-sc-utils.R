@@ -676,7 +676,8 @@ get_contrast_markers <- function(con, markers) {
 
   test$auc_diff <- test$auc - ctrl$auc
   test$pct_diff <- test$pct_in - ctrl$pct_in
-  test <- test[order(test$auc_diff, decreasing = TRUE), ]
+  test$auc <- NULL
+  test <- test[order(test$pct_diff, decreasing = TRUE), ]
 
   return(test)
 }
@@ -772,7 +773,7 @@ get_gene_table <- function(markers,
                            tx2gene = NULL) {
 
   # check if markers is limma::topTable
-  is.tt <- !'auc' %in% colnames(markers)
+  is.tt <- !any(c('auc_diff', 'auc') %in% colnames(markers))
 
   # top markers uses features as genes and group as type
   features <- if (is.tt) row.names(markers) else markers$feature
@@ -825,12 +826,19 @@ get_gene_table <- function(markers,
 
     table <- data.table::data.table(
       Feature = html_features,
-      'AUC' = markers$auc,
       'ΔAUC' = markers$auc_diff,
+      'AUC' = markers[['auc']],
+      'Δ%' = markers$pct_diff,
       '%IN' = markers$pct_in,
       '%OUT' = markers$pct_out,
       feature = features
     )
+
+    is.con <- 'auc_diff' %in% colnames(markers)
+    if (is.con) {
+      data.table::setnames(table, '%IN', '%A')
+      data.table::setnames(table, '%OUT', '%B')
+    }
   }
   return(table)
 }
