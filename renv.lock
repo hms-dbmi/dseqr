@@ -794,15 +794,15 @@
     },
     "dseqr.data": {
       "Package": "dseqr.data",
-      "Version": "0.99.5",
+      "Version": "0.99.8",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "dseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "1e965d9fb9df6126a0429c5c95537a86bf77ef28",
-      "Hash": "616dda9c511553b871d5a5a0a149a221"
+      "RemoteSha": "17a9891d1b6a65f9a244b545a3d1910dba14d3a8",
+      "Hash": "efc0bebc02db2257a1a1eee692431f63"
     },
     "dtangle": {
       "Package": "dtangle",
