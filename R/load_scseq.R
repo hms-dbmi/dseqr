@@ -16,6 +16,7 @@ load_raw_scseq <- function(dataset_name,
                            fastq_dir,
                            sc_dir,
                            indices_dir,
+                           tx2gene_dir,
                            progress = NULL,
                            recount = FALSE,
                            value = 0,
@@ -29,6 +30,8 @@ load_raw_scseq <- function(dataset_name,
                                        'high_subsets_mito_percent',
                                        'low_subsets_ribo_percent',
                                        'high_doublet_score')) {
+
+  if (!is.null(metrics) && metrics[1] == 'none') metrics <- NULL
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
       cat(value, message, detail, '...\n')
@@ -43,12 +46,12 @@ load_raw_scseq <- function(dataset_name,
 
   progress$set(message = "loading", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-  scseq <- create_scseq(fastq_dir, project = dataset_name, type = type)
+  scseq <- create_scseq(fastq_dir, tx2gene_dir, dataset_name, type)
   gc()
 
   progress$set(message = "running QC", value = value + 3)
   scseq <- add_doublet_score(scseq)
-  scseq <- add_scseq_qc_metrics(scseq, scseq@metadata$species, for_qcplots = TRUE)
+  scseq <- add_scseq_qc_metrics(scseq, for_qcplots = TRUE)
 
   scseq <- run_scseq_qc(scseq, metrics)
 
@@ -69,13 +72,14 @@ load_raw_scseq <- function(dataset_name,
 
 #' @keywords internal
 #' @noRd
-run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, azimuth_ref = NULL) {
+run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
 
   for (opt in opts) {
     load_raw_scseq(opt$dataset_name,
                    fastq_dir,
                    sc_dir,
                    indices_dir,
+                   tx2gene_dir,
                    metrics = opt$metrics,
                    founder = opt$founder,
                    azimuth_ref = azimuth_ref)
@@ -212,7 +216,8 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
 
-  refnames <- grep('^celltype|^annotation', colnames(reference$map@meta.data), value = TRUE)
+  pat <- '^celltype|^annotation|^class$|^cluster$|^subclass$|^cross_species_cluster$'
+  refnames <- grep(pat, colnames(reference$map@meta.data), value = TRUE)
 
   refdata <- lapply(refnames, function(x) {
     reference$map[[x, drop = TRUE]]
@@ -371,7 +376,7 @@ save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
 #' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @export
 #'
-create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) {
+create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'cellranger')) {
 
   # load counts
   #TODO suport mouse for kallisto
@@ -379,24 +384,29 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
     data_dir <- file.path(data_dir, 'bus_output')
     counts <- load_kallisto_counts(data_dir)
     species <- 'Homo sapiens'
+    tx2gene <- load_tx2gene(species, tx2gene_dir)
 
   } else if (type[1] == 'cellranger') {
     counts <- load_cellranger_counts(data_dir)
     species <- get_species(counts)
 
-    counts <- process_cellranger_counts(counts, species)
+    # TODO: save tx2gene for other species
+    tx2gene <- load_tx2gene(species, tx2gene_dir)
+    counts <- process_cellranger_counts(counts, tx2gene)
   }
 
   # get ambience expression profile/determine outlier genes
   # if pre-filtered cellranger, can't determine outliers/empty droplets
   ncount <- Matrix::colSums(counts)
+  qcgenes <- load_scseq_qcgenes(species, tx2gene)
+
   if (min(ncount) > 10) {
     keep_cells <- seq_len(ncol(counts))
     rowData <- NULL
 
   } else {
     ambience <- DropletUtils::estimateAmbience(counts, good.turing = FALSE, round = FALSE)
-    keep_cells <- detect_cells(counts, species = species)
+    keep_cells <- detect_cells(counts, qcgenes)
     rowData <- S4Vectors::DataFrame(ambience)
   }
 
@@ -411,9 +421,30 @@ create_scseq <- function(data_dir, project, type = c('kallisto', 'cellranger')) 
     rowData = rowData
   )
 
-  # flag to know if need to convert for drug queries
   sce@metadata$species <- species
+  sce@metadata$mrna <- qcgenes$mrna
+  sce@metadata$rrna <- qcgenes$rrna
   return(sce)
+}
+
+load_tx2gene <- function(species, tx2gene_dir) {
+  # simplify species name
+  ensdb_species <- strsplit(species, " ")[[1]]
+  ensdb_species[1] <- tolower(substr(ensdb_species[1], 1, 1))
+  ensdb_species <- paste(ensdb_species, collapse = '')
+
+  # load if previously saved otherwise save
+  fname <- paste0(ensdb_species, '_tx2gene.rds')
+  fpath <- file.path(tx2gene_dir,  fname)
+
+  if (file.exists(fpath)) {
+    tx2gene <- readRDS(fpath)
+  } else {
+    tx2gene <- dseqr.data::load_tx2gene(species, with_hgnc = TRUE)
+    saveRDS(tx2gene, fpath)
+  }
+
+  return(tx2gene)
 }
 
 
@@ -531,52 +562,42 @@ load_cellranger_counts <- function(data_dir) {
   return(counts)
 }
 
-process_cellranger_counts <- function(counts, species) {
+process_cellranger_counts <- function(counts, tx2gene) {
   gene_id <- gene_name <- NULL
-
-  if (!grepl('sapiens|musculus', species)) stop('Species not supported')
-  tx2gene <- dseqr.data::load_tx2gene(species)
-
-  counts <- counts[row.names(counts) %in% tx2gene$gene_id, ]
 
   # name genes by tx2gene so that best match with cmap/l1000 data
   map <- tx2gene %>%
     dplyr::filter(gene_id %in% row.names(counts)) %>%
     dplyr::select(gene_id, gene_name) %>%
-    dplyr::distinct() %>%
-    dplyr::arrange(match(gene_id, row.names(counts)))
+    dplyr::distinct()
 
-  stopifnot(setequal(row.names(counts), map$gene_id))
-
-  row.names(counts) <- map$gene_name
+  idx <- match(map$gene_id, row.names(counts))
+  row.names(counts)[idx] <- map$gene_name
 
   # remove non-expressed genes
   counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   # sum counts in rows with same gene
   counts <- Matrix.utils::aggregate.Matrix(counts, row.names(counts), fun = 'sum')
-
   return(counts)
 }
 
-#' Get tx2gene for human or mouse depending on intersections
+#' Get species for human or mouse depending on gene ids
 #'
 #' @param counts dgCMatrix where rownames are gene ids
 #'
-#' @return tx2gene for human or mouse
+#' @return either 'Homo sapiens' or 'Mus musculus'
 #' @export
 #' @keywords internal
 #'
 get_species <- function(counts) {
 
-  tx2gene <- dseqr.data::load_tx2gene('Homo sapiens')
-  tx2gene_mouse <- dseqr.data::load_tx2gene('Mus musculus')
+  ensid <- grep('^ENS[A-Z]+G[0-9]+$', row.names(counts), value = TRUE)[1]
+  ensid <- gsub('^(ENS[A-Z]+)G[0-9]+$', '\\1', ensid)
+  if (is.na(ensid)) stop('Need Ensembl IDs')
 
-  nhuman <- sum(row.names(counts) %in% tx2gene$gene_id)
-  nmouse <- sum(row.names(counts) %in% tx2gene_mouse$gene_id)
+  return(ensmap[ensid, 'species'])
 
-  if (nhuman > nmouse) return('Homo sapiens')
-  else if (nmouse > nhuman) return('Mus musculus')
 }
 
 #' Load in data from 10X
@@ -873,7 +894,7 @@ standardize_cellranger <- function(data_dir) {
 #'
 #' @return Named list with \code{rrna} and \code{mrna} character vectors.
 #' @keywords internal
-load_scseq_qcgenes <- function(species = 'Homo sapiens') {
+load_scseq_qcgenes <- function(species = 'Homo sapiens', tx2gene = NULL) {
 
   # load mito and ribo genes
   if (species == 'Homo sapiens') {
@@ -885,26 +906,12 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens') {
     mrna <- readLines(system.file('extdata', 'mrna_mouse.csv', package = 'dseqr', mustWork = TRUE))
 
   } else {
-    stop("Only 'Homo sapiens' and 'Mus musculus' supported")
+    rrna <- NULL
+    mrna <- tx2gene$gene_name[tx2gene$seq_name == 'MT']
   }
 
   return(list(rrna=rrna, mrna=mrna))
 }
-
-#' Add Mitochondrial and Ribosomal RNA gene Names to SingelCellExperiment
-#'
-#' @inheritParams add_scseq_qc_metrics
-#'
-#'
-add_qc_genes <- function(sce, species) {
-  # add qc genes as metadata
-  qcgenes <- load_scseq_qcgenes(species)
-  sce@metadata$mrna <- qcgenes$mrna
-  sce@metadata$rrna <- qcgenes$rrna
-
-  return(sce)
-}
-
 
 #' Utility wrapper to run normalization and log transformation
 #'
@@ -1080,15 +1087,12 @@ add_doublet_score <- function(scseq) {
 #' Calculate QC metrics for SingleCellExperiment
 #'
 #' @param sce \code{SingleCellExperiment}
-#' @param species Character indicating species. Either \code{'Homo sapiens'},
-#' or \code{'Mus musculus'}.
 #' @param for_qcplots Are the QC metrics being added for QC plots? Used by
 #' \link{load_raw_scseq}.
 #'
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
-add_scseq_qc_metrics <- function(sce, species, for_qcplots = FALSE) {
+add_scseq_qc_metrics <- function(sce, for_qcplots = FALSE) {
 
-  sce <- add_qc_genes(sce, species)
   sce <- scater::addPerCellQC(sce,
                               subsets=list(mito = which(row.names(sce) %in% sce@metadata$mrna),
                                            ribo = which(row.names(sce) %in% sce@metadata$rrna)))
@@ -1283,7 +1287,10 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
 get_azimuth_resoln <- function(azimuth_ref) {
   switch(azimuth_ref,
          'human_pbmc' = 'predicted.celltype.l2',
-         'human_lung' = 'predicted.annotation.l2')
+         'human_lung' = 'predicted.annotation.l2',
+         'human_motorcortex' = 'predicted.subclass',
+         'mouse_motorcortex' = 'predicted.subclass'
+  )
 }
 
 

@@ -218,6 +218,11 @@ td.dt-nopad span {
     white-space: nowrap;
 }
 
+/* no overflow-y for drugs/bulk */
+.dt-container .dataTables_scrollBody {
+  overflow-y: hidden !important;
+}
+
 
 /* for contrast in bulk data */
 .selectize-input>.bulk-item .contrast {

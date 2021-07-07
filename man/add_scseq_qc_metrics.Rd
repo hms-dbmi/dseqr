@@ -4,13 +4,10 @@
 \alias{add_scseq_qc_metrics}
 \title{Calculate QC metrics for SingleCellExperiment}
 \usage{
-add_scseq_qc_metrics(sce, species, for_qcplots = FALSE)
+add_scseq_qc_metrics(sce, for_qcplots = FALSE)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment}}
-
-\item{species}{Character indicating species. Either \code{'Homo sapiens'},
-or \code{'Mus musculus'}.}
 
 \item{for_qcplots}{Are the QC metrics being added for QC plots? Used by
 \link{load_raw_scseq}.}

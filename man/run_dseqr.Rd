@@ -12,6 +12,7 @@ run_dseqr(
   pert_signature_dir = file.path(data_dir, "pert_signature_dir"),
   gs_dir = file.path(data_dir, "gs_dir"),
   indices_dir = file.path(data_dir, "indices"),
+  tx2gene_dir = file.path(data_dir, "tx2gene"),
   tabs = c("Single Cell", "Bulk Data", "Drugs"),
   test = FALSE,
   test_data = FALSE,

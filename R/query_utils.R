@@ -61,13 +61,12 @@ query_drugs <- function(query_genes, drug_es, ngenes = 200) {
 
   if (length(query_genes) == 1) {
     # single gene: sort by opposing sign
-    sim <- sort(drug_es[1,], decreasing = query_genes > 0)
-    sim <- scales::rescale(-sim, to = c(-1,1))
+    sim <- sort(drug_es[1,], decreasing = query_genes < 0)
+    sim <- scales::rescale(sim, to = c(-1,1))
   } else {
     # pearson correlation
     sim <- stats::cor(query_genes, drug_es, method="pearson")
     sim <- structure(c(sim), names=colnames(sim))
-
   }
 
   return(sim)

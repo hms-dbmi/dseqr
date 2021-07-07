@@ -18,9 +18,13 @@ server <- function(input, output, session) {
     # path where kallisto index is downloaded and stored
     indices_dir <- getShinyOption('indices_dir', '/srv/dseqr/indices')
 
+    # path where save tx2genes
+    tx2gene_dir <- getShinyOption('tx2gene_dir', '/srv/dseqr/tx2gene')
+
     if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
     if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
     if (!dir.exists(indices_dir)) dir.create(indices_dir)
+    if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
 
     # for testing don't seem to be able to pass arguments as options
     if (isTRUE(getOption('shiny.testmode'))) {
@@ -81,6 +85,7 @@ server <- function(input, output, session) {
     scPage <- callModule(scPage, 'sc',
                          sc_dir = sc_dir,
                          indices_dir = indices_dir,
+                         tx2gene_dir = tx2gene_dir,
                          gs_dir = gs_dir,
                          is_mobile = is_mobile,
                          add_sc = reactive(input$add_dataset),

@@ -2,16 +2,14 @@
 #' Determine non-empty droplets
 #'
 #' @param counts dgCMatrix of counts
-#' @param species Character vector with names of species. Supports Homo sapiens or Mus musculus.
 #'
 #' @return Indices of columns of counts corresponding to non-empty droplets
 #' @keywords internal
 #'
-detect_cells <- function(counts, species = 'Homo sapiens') {
+detect_cells <- function(counts, qcgenes) {
 
   # omit mito/ribo genes for cell calling (see MarioniLab/DropletUtils#33)
-  qc <- load_scseq_qcgenes(species)
-  keep.genes <- !row.names(counts) %in% unlist(qc)
+  keep.genes <- !row.names(counts) %in% unlist(qcgenes)
 
   set.seed(100)
   e.out <- DropletUtils::emptyDrops(counts[keep.genes, ], retain = Inf)

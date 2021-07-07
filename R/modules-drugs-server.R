@@ -146,7 +146,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
     if (!dir.exists(custom_dir)) dir.create(custom_dir)
 
     res_paths <- get_drug_paths(custom_dir, custom_name)
-    res_paths$query_genes <- file.path(custom_dir, paste0('query_genes_', custom_name, '.qs'))
+    res_paths$query_genes <- file.path(custom_dir, 'drugs', paste0('query_genes_', custom_name, '.qs'))
     return(res_paths)
   })
 
@@ -162,7 +162,11 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
   })
 
   observeEvent(input$click_custom, {
-    req(input$custom_name)
+    if (!isTruthy(input$custom_name)) {
+      error_msg('Need name for query')
+      return(NULL)
+    }
+    error_msg(NULL)
     shinyjs::click('up_custom')
   })
 
@@ -790,7 +794,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
     } else if (is_custom()) {
       fname <- paste0('query_genes_', sel_name(), '.qs')
-      top_table <- qs::qread(file.path(data_dir, 'custom_queries', fname))
+      top_table <- qs::qread(file.path(data_dir, 'custom_queries', 'drugs', fname))
 
     } else {
       top_table <- NULL

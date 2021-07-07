@@ -6,12 +6,13 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobile, add_sc, remove_sc) {
+scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
   # the analysis and options
   scForm <- callModule(scForm, 'form',
                        sc_dir = sc_dir,
                        indices_dir = indices_dir,
+                       tx2gene_dir = tx2gene_dir,
                        gs_dir = gs_dir,
                        is_mobile = is_mobile,
                        add_sc = add_sc,
@@ -131,7 +132,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobile, add_sc, remove_sc) {
+scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
   # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
@@ -288,6 +289,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, gs_dir, is_mobil
                           sc_dir = sc_dir,
                           new_dataset = new_dataset,
                           indices_dir = indices_dir,
+                          tx2gene_dir = tx2gene_dir,
                           add_sc = add_sc,
                           remove_sc = remove_sc)
 
@@ -634,7 +636,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       progress$set(message = "Pseudobulking:", detail = 'clusters', value = 1)
       on.exit(progress$close())
 
-
       fit <- run_limma_scseq(summed = summed(),
                              meta = up_meta(),
                              species = species(),
@@ -840,6 +841,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       try(ridge_data <- get_ridge_data(
         gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
 
+      if (all(ridge_data$df$x == 0)) return(NULL)
       plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
       return(plot)
     }
@@ -1331,7 +1333,7 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, add_sc, remove_sc) {
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'),
                   searchField = c('optgroup', 'label'))
@@ -1422,18 +1424,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # logic for upload table modal
   up_all <- reactiveVal()
   up_samples <- reactiveVal()
-  up_select <- reactiveVal(FALSE)
 
   observeEvent(input$up_raw, {
-    sel <- NULL
     prev <- up_all()
-    if (!is.null(prev)) sel <- rep(FALSE, nrow(prev))
-
     new <- input$up_raw
-    sel <- c(sel, rep(TRUE, nrow(new)))
-
     up_all(rbind.data.frame(prev, new))
-    up_select(sel)
   })
 
   up_table <- reactive({
@@ -1515,7 +1510,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     if (is.null(msg)) {
       df <- up_all()
-      up_select(FALSE)
       up_all(df)
 
       samples <- up_samples()
@@ -1554,10 +1548,21 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # move uploaded to destination
   observeEvent(input$up_raw, {
-    df <- input$up_raw
+    new <- input$up_raw
     prev <- up_samples()
-    new <- c(prev, rep(NA, nrow(df)))
-    up_samples(new)
+
+    # initialize names using file prefixes
+    pat <- paste0(
+      '([_ -]+)?',
+      c('barcodes[.]tsv(.+)?$',
+        'features[.]tsv(.+)?$',
+        'genes[.]tsv(.+)?$',
+        'matrix[.]mtx(.+)?$'), collapse = '|')
+
+    new <- gsub(pat, '', new$name)
+    new[new == ''] <- NA
+
+    up_samples(c(prev, new))
   })
 
   observeEvent(input$click_existing, {
@@ -1641,7 +1646,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
       } else {
-        if (metrics[1] == 'none') metrics <- NULL
         opts <- list(
           list(dataset_name = dataset_name,
                metrics = metrics,
@@ -1657,6 +1661,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         fastq_dir = fastq_dir,
         sc_dir = sc_dir,
         indices_dir = indices_dir,
+        tx2gene_dir = tx2gene_dir,
         azimuth_ref = azimuth_ref
       )
     }
@@ -3086,7 +3091,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   observeEvent(resoln_name(), custom_metrics(NULL))
 
   species <- reactive(scseq()@metadata$species)
-  tx2gene <- reactive(dseqr.data::load_tx2gene(species()))
+  tx2gene <- reactive(load_tx2gene(species(), tx2gene_dir))
 
   qc_first <- reactive(is.null(selected_markers()))
 
@@ -3501,4 +3506,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-

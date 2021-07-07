@@ -9,6 +9,7 @@ load_raw_scseq(
   fastq_dir,
   sc_dir,
   indices_dir,
+  tx2gene_dir,
   progress = NULL,
   recount = FALSE,
   value = 0,

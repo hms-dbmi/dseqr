@@ -4,11 +4,7 @@
 \alias{load_scseq_qcgenes}
 \title{Load mitochondrial and ribsomal gene names}
 \usage{
-load_scseq_qcgenes(species = "Homo sapiens")
-}
-\arguments{
-\item{species}{Character indicating species. Either \code{'Homo sapiens'},
-or \code{'Mus musculus'}.}
+load_scseq_qcgenes(species = "Homo sapiens", tx2gene = NULL)
 }
 \value{
 Named list with \code{rrna} and \code{mrna} character vectors.

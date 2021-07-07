@@ -220,7 +220,7 @@ dl_pert_result <- function(res_path) {
 #'
 #' @keywords internal
 load_custom_anals <- function(data_dir) {
-  custom_dir <- file.path(data_dir, 'custom_queries')
+  custom_dir <- file.path(data_dir, 'custom_queries', 'drugs')
 
   anals <- NULL
   if (dir.exists(custom_dir)) {
@@ -233,7 +233,7 @@ load_custom_anals <- function(data_dir) {
     custom_dir <- file.path(data_dir, 'custom_queries')
 
     for (i in seq_along(custom_names))
-      anals[i, ] <- c(NA, 'custom_queries', custom_names[i], custom_names[i], 'Custom', 'Custom')
+      anals[i, ] <- c(custom_names[i], 'custom_queries', custom_names[i], custom_names[i], 'Custom', 'Custom')
 
   }
 

@@ -153,6 +153,7 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
 
   if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
   else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
+  else external <- ''
 
   choices <- data.frame(
     label = c('Reset Labels', external, anal_options$name),
@@ -676,77 +677,11 @@ get_contrast_markers <- function(con, markers) {
 
   test$auc_diff <- test$auc - ctrl$auc
   test$pct_diff <- test$pct_in - ctrl$pct_in
+  test$pct_out <- ctrl$pct_in
   test$auc <- NULL
   test <- test[order(test$pct_diff, decreasing = TRUE), ]
 
   return(test)
-}
-
-
-#' Add cell percents to gene choices for single cell
-#'
-#' @param scseq \code{SingleCellExperiment} object
-#' @param markers data.frame of marker genes.
-#'
-#' @return data.frame of all genes, with markers on top and cell percent columns
-#'
-#' @keywords internal
-get_gene_choices <- function(markers,
-                             qc_metrics = NULL,
-                             qc_first = FALSE,
-                             species = 'Homo sapiens',
-                             tx2gene = NULL) {
-
-
-  ambient <- markers$ambient
-  if (is.null(ambient)) ambient <- FALSE
-
-  # top markers uses features as genes and group as type
-  features <- markers$feature
-  if (is.null(features)) features <- row.names(markers)
-
-  type <- markers$group
-  if (is.null(type)) type <- 'Gene'
-
-
-  if (!grepl('sapiens|musculus', species))
-    stop('Only Homo sapiens and Mus musculus supported')
-
-  # add gene description
-  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
-
-  idx <- match(features, tx2gene$gene_name)
-  desc <- tx2gene$description[idx]
-  desc[is.na(desc)] <- features[is.na(desc)]
-
-  # gene choices
-  choices <- data.table::data.table(
-    label = features,
-    value = make.unique(features, sep = '__'),
-    description = desc,
-    type = type,
-    ambient = ambient)
-
-  # add qc choices
-  if (length(qc_metrics)) {
-    qc_type <- ifelse(names(qc_metrics) == 'numeric',
-                      'QC Score',
-                      'Boolean Features')
-
-    qc_choices <- data.table::data.table(
-      label = qc_metrics,
-      value = qc_metrics,
-      description = NA,
-      type = qc_type,
-      ambient = FALSE)
-
-    choices <- list(choices, qc_choices)
-    if (qc_first) choices <- choices[c(2,1)]
-
-    choices <- data.table::rbindlist(choices)
-  }
-
-  return(choices)
 }
 
 
@@ -1798,9 +1733,11 @@ run_limma_scseq <- function(summed, meta, species, trend = FALSE, method = 'TMMw
     # get feature annotation
     release <- switch(species,
                       'Homo sapiens' = '94',
-                      'Mus musculus' = '98')
+                      'Mus musculus' = '98',
+                      '103')
 
     fdata <- rkal::setup_fdata(species, release)
+    fdata <- unique(fdata, by = c('gene_name'))
     fdata <- fdata[row.names(summed), ]
     fdata <- as.data.frame(fdata)
     row.names(fdata) <- fdata$gene_name

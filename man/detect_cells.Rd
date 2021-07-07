@@ -4,12 +4,10 @@
 \alias{detect_cells}
 \title{Determine non-empty droplets}
 \usage{
-detect_cells(counts, species = "Homo sapiens")
+detect_cells(counts, qcgenes)
 }
 \arguments{
 \item{counts}{dgCMatrix of counts}
-
-\item{species}{Character vector with names of species. Supports Homo sapiens or Mus musculus.}
 }
 \value{
 Indices of columns of counts corresponding to non-empty droplets
