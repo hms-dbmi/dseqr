@@ -1555,10 +1555,10 @@
     },
     "rintrojs": {
       "Package": "rintrojs",
-      "Version": "0.3.0",
+      "Version": "0.2.2",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c93b7efc3f34a5888d9a919f86e77414"
+      "Hash": "15a8768183fd609cee75e4789da27621"
     },
     "rkal": {
       "Package": "rkal",
