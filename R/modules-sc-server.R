@@ -372,6 +372,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                               dataset_name = scDataset$dataset_name,
                               resoln_name = scResolution$resoln_name,
                               resoln_dir = resoln_dir,
+                              tx2gene_dir = tx2gene_dir,
                               is_integrated = scDataset$is_integrated,
                               cluster_markers = scClusterComparison$cluster_markers,
                               selected_markers = scClusterComparison$selected_markers,
@@ -2927,7 +2928,7 @@ warnApplyModal <- function(type = c('markers', 'transfer', 'select')) {
 #'
 #' @keywords internal
 #' @noRd
-selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, scseq, dgrlogs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, dgrlogs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneOption, item: geneItem}'))
 
   selected_gene <- reactiveVal(NULL)
