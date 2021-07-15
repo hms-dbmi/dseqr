@@ -1,3 +1,4 @@
+
 #' Logic for Single Cell Tab
 #'
 #' @inheritParams bulkPage
@@ -421,6 +422,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              dataset_name = scDataset$dataset_name,
                              resoln_name = scResolution$resoln_name,
                              resoln_dir = resoln_dir,
+                             tx2gene_dir = tx2gene_dir,
                              is_integrated = scDataset$is_integrated,
                              selected_markers = scSampleClusters$top_table,
                              selected_cluster = scSampleClusters$selected_cluster,
