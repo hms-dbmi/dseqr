@@ -29,10 +29,14 @@ rkal::build_kallisto_index('/srv/dseqr/indices')
 ### Prefer docker?
 
 ```bash
+# pull image
 docker pull alexvpickering/dseqr
-```
 
-The docker image contains pre-built kallisto index.
+# run at http://0.0.0.0:3838/ and keep data on exit
+docker run -v path/to/app_dir:/srv/dseqr \
+-p 3838:3838 \
+alexvpickering/dseqr R -e 'dseqr::run_dseqr("example")'
+```
 
 
 ### Host it
