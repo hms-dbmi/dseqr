@@ -4,7 +4,7 @@
 \alias{transition_efs}
 \title{Utility to move files on EFS from IA to SA}
 \usage{
-transition_efs(fpath)
+transition_efs(fpath, efs_diff)
 }
 \arguments{
 \item{fpath}{Path of file}

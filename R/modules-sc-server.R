@@ -194,12 +194,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   dgrlogs <- reactive({
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
-    progress <- Progress$new(session, min = 0, max = 3)
-    progress$set(message = "Moving to fast storage", value = 1)
+    progress <- Progress$new(session, min = 0, max = 2)
     on.exit(progress$close())
     fpath <- file.path(dataset_dir, 'dgrlogs.qs')
-    transition_efs(fpath)
-    progress$set(message = "Loading logcounts", value = 2)
+    progress$set(message = "Loading logcounts", value = 1)
     res <- qs::qread(fpath)
     progress$set(value = 2)
     return(res)
@@ -1331,6 +1329,19 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
   ))
 }
 
+#' Pre-load dgrlogs into cache
+#' @export
+#'
+precache_dgrlogs <- function(dataset_dir, efs_diff) {
+  fpath <- file.path(dataset_dir, 'dgrlogs.qs')
+  cat('1 moving to faster storage ...\n')
+  transition_efs(fpath, efs_diff)
+  cat('2 caching in RAM ...\n')
+  qs::qread(fpath)
+  cat('3 done ...\n')
+  return(TRUE)
+}
+
 
 #' Logic for selected dataset part of scForm
 #'
@@ -1353,9 +1364,35 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # load scseq
+  loads <- reactiveValues()
+  ploads <- reactiveValues()
+  dummy <- reactiveVal()
+
   scseq <- reactive({
-    if (!isTruthy(dataset_name())) return(NULL)
-    load_scseq_qs(dataset_dir())
+    dataset_name <- dataset_name()
+    if (!isTruthy(dataset_name)) return(NULL)
+    dataset_dir <- dataset_dir()
+
+    # transition out of EFS IA and load into RAM cache
+    efs_diff <- Sys.getenv('EFS_LIFECYCLE')
+    args <- list(dataset_dir = dataset_dir, efs_diff = efs_diff)
+
+    loads[[dataset_name]] <- callr::r_bg(
+      func = precache_dgrlogs,
+      package = 'dseqr',
+      args = args)
+
+
+    # dummy progress to hide from user
+    progress <- list(set = function(value, detail) {}, close = function() {})
+    ploads[[dataset_name]] <- progress
+
+    load_scseq_qs(dataset_dir)
+  })
+
+  observe({
+    invalidateLater(5000, session)
+    handle_sc_progress(loads, ploads, dummy)
   })
 
   # load snn graph
