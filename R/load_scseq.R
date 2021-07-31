@@ -491,8 +491,10 @@ attach_meta <- function(scseq, dataset_dir = NULL, meta = NULL, groups = NULL) {
 #' @return NULL
 #' @export
 #'
-transition_efs <- function(fpath, efs_diff) {
+transition_efs <- function(fpath) {
 
+  # get efs lifecycle from ENV
+  efs_diff <- Sys.getenv('EFS_LIFECYCLE')
   efs_diff <- as.difftime(as.numeric(efs_diff), units='days')
   if (is.na(efs_diff)) return(NULL)
 

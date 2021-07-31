@@ -1332,10 +1332,10 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
 #' Pre-load dgrlogs into cache
 #' @export
 #'
-precache_dgrlogs <- function(dataset_dir, efs_diff) {
+precache_dgrlogs <- function(dataset_dir) {
   fpath <- file.path(dataset_dir, 'dgrlogs.qs')
   cat('1 moving to faster storage ...\n')
-  transition_efs(fpath, efs_diff)
+  transition_efs(fpath)
   cat('2 caching in RAM ...\n')
   qs::qread(fpath)
   cat('3 done ...\n')
@@ -1374,13 +1374,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_dir <- dataset_dir()
 
     # transition out of EFS IA and load into RAM cache
-    efs_diff <- Sys.getenv('EFS_LIFECYCLE')
-    args <- list(dataset_dir = dataset_dir, efs_diff = efs_diff)
-
     loads[[dataset_name]] <- callr::r_bg(
       func = precache_dgrlogs,
       package = 'dseqr',
-      args = args)
+      args = list(dataset_dir = dataset_dir),
+      env = c('EFS_LIFECYCLE' = 7, callr::rcmd_safe_env())
+    )
 
 
     # dummy progress to hide from user

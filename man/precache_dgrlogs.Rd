@@ -4,7 +4,7 @@
 \alias{precache_dgrlogs}
 \title{Pre-load dgrlogs into cache}
 \usage{
-precache_dgrlogs(dataset_dir, efs_diff)
+precache_dgrlogs(dataset_dir)
 }
 \description{
 Pre-load dgrlogs into cache
