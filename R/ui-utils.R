@@ -73,14 +73,24 @@ navbar2UI <- function(hide) {
   ui <- tags$div(
     class = 'secondary-navbar',
     tags$div(class = 'secondary-navbar-btn-group',
-             tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw')),
+             tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour'),
+             shinyWidgets::dropdownButton(
+               textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '400px', height='102px'),
+               actionButton('submit_feedback', 'Submit', class = 'btn-primary pull-right'),
+               circle = FALSE,
+               status = paste(class, 'action-button'),
+               icon = tags$i(class= 'far fa-comment-dots fa-fw'),
+               label = 'Feedback',
+               inline = TRUE,
+               width = '420px',
+               inputId = 'feedback-btn'
+             )
     ),
     tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw')),
     tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw')),
     tags$span(icon('', 'fa-fw')),
     shinyBS::bsTooltip(id = paste0('add_dataset', add), title = 'Add Datasets', placement = 'bottom', options = list(container = 'body')),
-    shinyBS::bsTooltip(id = paste0('remove_dataset', add), title = 'Remove Datasets', placement = 'bottom', options = list(container = 'body')),
-    shinyBS::bsTooltip(id = 'start_tour', title = 'Tour this page', placement = 'bottom', options = list(container = 'body'))
+    shinyBS::bsTooltip(id = paste0('remove_dataset', add), title = 'Remove Datasets', placement = 'bottom', options = list(container = 'body'))
   )
 
 

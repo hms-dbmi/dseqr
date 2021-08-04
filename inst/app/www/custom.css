@@ -303,9 +303,29 @@ body {
 }
 
 .secondary-navbar-btn-group {
-  margin-right: 10px;
+  margin-right: 20px;
   display: inline;
 }
+
+/* fixes for shinyWidgets dropdown (feedback button) */
+.caret {
+  display: none;
+}
+
+#feedback-btn {
+  height: 28px;
+  margin-bottom: 1px;
+}
+
+#feedback {
+  border-style: dashed;
+}
+
+ul.dropdown-menu {
+  margin-top: 23px;
+  margin-left: -62px;
+}
+
 
 /*shinyFiles TODO: fix in shinypanel.css */
 .sF-textChoice > .btn {

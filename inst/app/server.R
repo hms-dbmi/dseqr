@@ -67,6 +67,22 @@ server <- function(input, output, session) {
 
     })
 
+    feedback_counter <- reactiveVal(0)
+    observeEvent(input$submit_feedback, {
+        params <- rev(strsplit(data_dir, '/')[[1]])
+        dataset <- params[1]
+        user <- params[2]
+
+        httr::POST(url = "https://hooks.slack.com/services/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",
+                   httr::add_headers('Content-Type' = 'application/json'),
+                   body = sprintf('{"text": "%s \n user: %s, app: %s"}', input$feedback, user, dataset))
+
+        updateTextAreaInput(session, 'feedback', value = '', placeholder = 'Thank you!')
+        shinyjs::delay(3000, updateTextAreaInput(session, 'feedback', placeholder = ''))
+    })
+
+
+
     observe({
         toggle('add_dataset', condition = input$tabs == 'Single Cell')
         toggle('remove_dataset', condition = input$tabs == 'Single Cell')
