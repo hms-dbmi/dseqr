@@ -19,13 +19,17 @@ wget && rm -rf /var/lib/apt/lists/*
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.13.2')"
+    R -e "remotes::install_github('rstudio/renv@0.14.0')"
 
 
+# initial lockfile: sync periodically
+COPY ./renv.lock.init .
+RUN R -e 'renv::restore(lockfile="renv.lock.init")'
+
+
+# lockfile: use this until slow
 COPY ./renv.lock .
-
-# restore the package environment
-RUN R -e 'options(renv.consent = TRUE); renv::restore()'
+RUN R -e 'renv::restore(lockfile="renv.lock")'
 
 # Download miniconda and kallisto/bustools
 # install in system-wide location
