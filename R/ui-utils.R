@@ -86,11 +86,9 @@ navbar2UI <- function(hide) {
                inputId = 'feedback-btn'
              )
     ),
-    tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw')),
-    tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw')),
-    tags$span(icon('', 'fa-fw')),
-    shinyBS::bsTooltip(id = paste0('add_dataset', add), title = 'Add Datasets', placement = 'bottom', options = list(container = 'body')),
-    shinyBS::bsTooltip(id = paste0('remove_dataset', add), title = 'Remove Datasets', placement = 'bottom', options = list(container = 'body'))
+    tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw'), 'Add Datasets'),
+    tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), 'Delete Datasets'),
+    tags$span(icon('', 'fa-fw'))
   )
 
 
