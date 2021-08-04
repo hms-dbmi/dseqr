@@ -73,7 +73,9 @@ server <- function(input, output, session) {
         dataset <- params[1]
         user <- params[2]
 
-        httr::POST(url = "https://hooks.slack.com/services/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",
+        url <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+
+        httr::POST(url = url,
                    httr::add_headers('Content-Type' = 'application/json'),
                    body = sprintf('{"text": "%s \n user: %s, app: %s"}', input$feedback, user, dataset))
 
