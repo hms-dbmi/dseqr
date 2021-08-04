@@ -12,7 +12,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
   if (!is.null(logout_url)) {
     # target _top break out of iframe for ShinyProxy
     logout_li <- tags$li(class = 'navbar-right', `data-toggle`="collapse",
-                         `data-target`=".navbar-collapse.in", a(target="_top", href = logout_url, 'Logout')
+                         `data-target`=".navbar-collapse.in", a(target="_top", href = logout_url, 'Sign out')
     )
 
   }
