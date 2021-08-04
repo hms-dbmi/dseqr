@@ -626,7 +626,16 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   lm_fit <- reactive({
     resoln_dir <- resoln_dir()
     if (is.null(resoln_dir)) return(NULL)
-    fit_path <- file.path(resoln_dir, 'lm_fit_0svs.qs')
+
+    groups <- input$compare_groups
+    if (is.null(groups)) return(NULL)
+    if (length(groups) != 2) return(NULL)
+
+    # add hash using uploaded metadata & groups to detect changes
+    tohash <- list(meta = up_meta(), groups = groups)
+    meta_hash <- digest::digest(tohash, algo = 'murmur32')
+    fit_file <- paste0('lm_fit_0svs_', meta_hash, '.qs')
+    fit_path <- file.path(resoln_dir, fit_file)
 
     if (file.exists(fit_path)) {
       fit <- qs::qread(fit_path)
@@ -724,6 +733,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # update contrast_dir if groups or resoln changes
   observe({
+
     groups <- groups()
     dataset_dir <- isolate(dataset_dir())
     if (length(groups) != 2) {
@@ -3545,3 +3555,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+

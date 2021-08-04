@@ -1,7 +1,7 @@
 "element","scrollTo","position","intro"
 "#sc-intro-dataset",,"right","<i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
 "#sc-form-dataset-show_label_resoln",,"auto","Click to show inputs for transferring labels from another dataset to the selected dataset and for changing cluster resolution."
-"#sc-form-dataset-show_integration",,"bottom","<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
+"#sc-form-dataset-show_integration",,"bottom","<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples. </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
 "#sc-cluster_plot-cluster_plot-plot_container",,,"Dimensionality reduction plot of clusters and associated labels."
 "#sc-intro-cluster",,"top","Select a cluster to sort genes by.</br> Select nothing to show QC features first."
 "#sc-form-cluster-show_rename",,"top","Click here to rename the selected cluster."
