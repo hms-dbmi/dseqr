@@ -285,7 +285,7 @@ body {
 }
 
 .btn-intro.disabled {
-  opacity: .75;
+  opacity: .25;
   cursor: not-allowed;
 }
 
@@ -293,6 +293,11 @@ body {
   text-align: center;
 }
 
+@media (max-width: 460px) {
+  .hidden-xxs {
+      display: none!important;
+  }
+}
 
 .secondary-navbar {
   border-bottom: 1px solid #ddd;
@@ -311,11 +316,6 @@ body {
   display: none;
 }
 
-#feedback-btn {
-  height: 29px;
-  margin-bottom: 2px;
-}
-
 #feedback {
   border-style: dashed;
 }
@@ -325,9 +325,6 @@ ul.dropdown-menu {
   margin-left: -66px;
 }
 
-.secondary-navbar i:hover {
-  color: #333;
-}
 
 /*shinyFiles TODO: fix in shinypanel.css */
 .sF-textChoice > .btn {

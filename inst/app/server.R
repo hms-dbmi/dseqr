@@ -21,6 +21,8 @@ server <- function(input, output, session) {
     # path where save tx2genes
     tx2gene_dir <- getShinyOption('tx2gene_dir', '/srv/dseqr/tx2gene')
 
+    is_example <- getShinyOption('is_example', FALSE)
+
     if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
     if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
     if (!dir.exists(indices_dir)) dir.create(indices_dir)
@@ -100,14 +102,24 @@ server <- function(input, output, session) {
                            gs_dir = gs_dir,
                            indices_dir = indices_dir)
 
+    if (is_example) {
+        add_sc <- reactiveVal()
+        remove_sc <- reactiveVal()
+
+    } else {
+        add_sc <- reactive(input$add_dataset)
+        remove_sc <- reactive(input$remove_dataset)
+    }
+
+
     scPage <- callModule(scPage, 'sc',
                          sc_dir = sc_dir,
                          indices_dir = indices_dir,
                          tx2gene_dir = tx2gene_dir,
                          gs_dir = gs_dir,
                          is_mobile = is_mobile,
-                         add_sc = reactive(input$add_dataset),
-                         remove_sc = reactive(input$remove_dataset))
+                         add_sc = add_sc,
+                         remove_sc = remove_sc)
 
     drugsPage <- callModule(drugsPage, 'drug',
                             data_dir = data_dir,

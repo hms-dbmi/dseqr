@@ -66,28 +66,29 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
 #'
 #' @export
 navbar2UI <- function(hide) {
-  class <- 'action-button shiny-bound-input btn-intro'
+  class <- 'action-button shiny-bound-input btn-intro btn'
   add <- ifelse(hide, 'disabled', '')
 
 
   ui <- tags$div(
     class = 'secondary-navbar',
-    tags$div(class = 'secondary-navbar-btn-group',
-             tags$span(id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour'),
-             shinyWidgets::dropdownButton(
-               textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '400px', height='102px'),
-               actionButton('submit_feedback', 'Submit', class = 'btn-primary pull-right'),
-               circle = FALSE,
-               status = paste(class, 'action-button'),
-               icon = tags$i(class= 'far fa-comment-dots fa-fw'),
-               label = 'Feedback',
-               inline = TRUE,
-               width = '437px',
-               inputId = 'feedback-btn'
-             )
+    tags$div(
+      class = 'secondary-navbar-btn-group',
+      tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour'),
+      shinyWidgets::dropdownButton(
+        textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '400px', height='102px'),
+        actionButton('submit_feedback', 'Submit', class = 'btn-primary pull-right'),
+        circle = FALSE,
+        status = paste(class, 'action-button'),
+        icon = tags$i(class= 'far fa-comment-dots fa-fw'),
+        label = 'Feedback',
+        inline = TRUE,
+        width = '437px',
+        inputId = 'feedback-btn'
+      )
     ),
-    tags$span(id = paste0('add_dataset', add), class=paste(class, add), icon('plus', 'fa-fw'), 'Add Datasets'),
-    tags$span(id = paste0('remove_dataset', add), class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), 'Delete Datasets'),
+    tags$button(id = 'add_dataset', class=paste(class, add), icon('plus', 'fa-fw'), tags$span(class='hidden-xxs', 'Add Datasets')),
+    tags$button(id = 'remove_dataset', class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), tags$span(class = 'hidden-xxs', 'Delete Datasets')),
     tags$span(icon('', 'fa-fw'))
   )
 
