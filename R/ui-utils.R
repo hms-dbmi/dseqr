@@ -82,7 +82,7 @@ navbar2UI <- function(hide) {
                icon = tags$i(class= 'far fa-comment-dots fa-fw'),
                label = 'Feedback',
                inline = TRUE,
-               width = '420px',
+               width = '437px',
                inputId = 'feedback-btn'
              )
     ),
