@@ -265,7 +265,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   have_contrast <- reactive(length(scSampleGroups$groups()) == 2)
   have_cluster <- reactive(isTruthy(scSampleClusters$top_table()))
   observe(toggle(id = "sample_cluster_input",condition = have_contrast()))
-  observe(toggle(id = "sample_gene_input",condition = have_cluster()))
+  observe(toggle(id = "sample_gene_input",condition = have_contrast()))
 
   selected_cluster <- reactiveVal('')
   observe({
@@ -2784,6 +2784,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     ref_preds <- ref_preds()
     annot_path <- annot_path()
     if (!isTruthy(annot_path)) annot(NULL)
+    if (!file.exists(annot_path)) return(NULL)
     else if (!is.null(ref_preds)) annot(ref_preds)
     else annot(qs::qread(annot_path))
   })
@@ -3033,7 +3034,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # disable buttons when not valid
   observe({
-    toggleState('show_dprimes', condition = gene_selected() & is_integrated())
+    toggleState('show_dprimes', condition = is_integrated())
     toggleState('show_ridge', condition = have_biogps())
   })
 
@@ -3568,3 +3569,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
