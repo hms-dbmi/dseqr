@@ -674,7 +674,7 @@ col2hex <- function(cname, dark) {
 
 plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
 
-  title <- 'Abundance in Test vs Control Samples'
+  title <- 'Cell Number in Test vs Control Samples'
   delta_name <- 'Δ cells'
 
   if (feature != 'abundance') {
