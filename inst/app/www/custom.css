@@ -320,9 +320,11 @@ body {
   border-style: dashed;
 }
 
-ul.dropdown-menu {
+#dropdown-menu-feedback-btn {
   margin-top: 23px;
   margin-left: -66px;
+  width: auto;
+  max-width: 360px;
 }
 
 

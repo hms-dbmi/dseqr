@@ -76,14 +76,13 @@ navbar2UI <- function(hide) {
       class = 'secondary-navbar-btn-group',
       tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour'),
       shinyWidgets::dropdownButton(
-        textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '400px', height='102px'),
+        textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '360px', height='102px'),
         actionButton('submit_feedback', 'Submit', class = 'btn-primary pull-right'),
         circle = FALSE,
         status = paste(class, 'action-button'),
         icon = tags$i(class= 'far fa-comment-dots fa-fw'),
         label = 'Feedback',
         inline = TRUE,
-        width = '437px',
         inputId = 'feedback-btn'
       )
     ),
