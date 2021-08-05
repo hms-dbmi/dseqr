@@ -617,8 +617,8 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
 
   # simplify using similarity
   # also formats FDRs and adds gene names
-  go_up <- simplify(go_up, up_genes) %>% dplyr::rename(Regex.Up = genes)
-  go_dn <- simplify(go_dn, dn_genes) %>% dplyr::rename(Regex.Down = genes)
+  go_up <- simplify(go_up, up_genes) %>% dplyr::rename(Genes = genes)
+  go_dn <- simplify(go_dn, dn_genes) %>% dplyr::rename(Genes = genes)
 
   return(list(up=go_up, dn=go_dn))
 }
@@ -685,7 +685,7 @@ simplify <- function(go_res, genes, cutoff = 0.7, by = 'FDR') {
       gni <- genes[usedi]
       common <- Reduce(intersect, gni)
       gni <- lapply(gni, function(x) c(common, setdiff(x, common)))
-      go_res[usedi, 'genes'] <- unlist(lapply(gni, function(gs) paste0('^', gs, '$', collapse='|')))
+      go_res[usedi, 'genes'] <- unlist(lapply(gni, function(gs) paste(gs, collapse=', ')))
 
       used <- c(used, usedi)
     }
@@ -693,17 +693,17 @@ simplify <- function(go_res, genes, cutoff = 0.7, by = 'FDR') {
   no.grp <- go_res$group == 0
   max.grp <- max(go_res$group)
   go_res$group[no.grp] <- seq(max.grp+1, max.grp+sum(no.grp))
-  go_res$genes[no.grp] <- unlist(lapply(genes[no.grp], function(gs) paste0('^', gs, '$', collapse='|')))
+  go_res$genes[no.grp] <- unlist(lapply(genes[no.grp], function(gs) paste(gs, collapse=', ')))
 
   go_res <- go_res %>%
     dplyr::group_by(group) %>%
     dplyr::mutate(gmin = min(FDR)) %>%
     dplyr::arrange(FDR) %>%
     dplyr::mutate(Term = group_terms(Term)) %>%
-    dplyr::mutate(FDR = format.pval(FDR, eps = 0.001, digits = 1)) %>%
+    dplyr::mutate(FDR = format.pval(FDR, eps = 0.0001, digits = 1)) %>%
     dplyr::ungroup() %>%
     dplyr::arrange(gmin, group) %>%
-    dplyr::select(-gmin, -group, -P.Value) %>%
+    dplyr::select(-gmin, -group) %>%
     as.data.frame()
 
   row.names(go_res) <- go_res$ID

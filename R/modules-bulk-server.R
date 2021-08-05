@@ -400,7 +400,10 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #' @noRd
 bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset, deselect_dataset) {
 
-  options <- list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type')
+  options <- list(create = TRUE,
+                  placeholder = 'Type name to add new bulk dataset',
+                  optgroupField = 'type',
+                  render = I('{option: bulkDatasetOptions, item: bulkDatasetItem}'))
 
   # get directory with fastqs
   roots <- c('bulk' = bulk_dir)
@@ -436,7 +439,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     datasets <- datasets()
     req(datasets)
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c('', datasets), options = options)
+    updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c("", datasets), options = options)
   })
 
   observeEvent(deselect_dataset(), {
@@ -1766,3 +1769,5 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
+

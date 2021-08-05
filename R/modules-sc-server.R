@@ -3205,6 +3205,9 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols = frac_targs]
     if (length(pval_targs)) gene_table[, (pval_targs) := round(.SD, 3), .SDcols = pval_targs]
 
+    regex <- input$gene_search
+    if (grepl(', ', regex)) regex <- format_comma_regex(regex)
+
     dt <- DT::datatable(
       gene_table,
       class = 'cell-border',
@@ -3219,7 +3222,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         dom = '<"hidden"f>t',
         bInfo = 0,
         scrollY=250,
-        search = list(regex = TRUE, search = input$gene_search),
+        search = list(regex = TRUE, search = regex),
         language = list(search = 'Select feature to plot:'),
         columnDefs = list(
           list(visible = FALSE, targets = vis_targ),
@@ -3238,12 +3241,16 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   observe({
     # keep search gene table changes
-    DT::updateSearch(DTproxy, keywords = list('global' = input$gene_search))
+    regex <- input$gene_search
+    if (grepl(', ', regex)) regex <- format_comma_regex(regex)
+
+    DT::updateSearch(DTproxy, keywords = list('global' = regex))
   })
 
   observe({
     toggle('gene_search_input', condition = !is.null(gene_table()))
   })
+
 
 
   return(list(
@@ -3256,6 +3263,12 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   ))
 
 
+}
+
+format_comma_regex <- function(regex) {
+  regex <- gsub(', ', '$|^', regex)
+  regex <- paste0('^', regex, '$')
+  return(regex)
 }
 
 
@@ -3555,4 +3568,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-

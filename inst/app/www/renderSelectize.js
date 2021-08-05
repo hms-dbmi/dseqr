@@ -329,6 +329,24 @@ function scDatasetOptions(item, escape) {
   return clustEl;
 }
 
+function bulkDatasetOptions(item, escape) {
+
+  var clustEl = "<div title='" + item.label + "'>" +
+                  escape(item.value) +
+                "</div>";
+
+  return clustEl;
+}
+
+function bulkDatasetItem(item, escape) {
+
+  var clustEl = "<div>" +
+                  escape(item.value) +
+                "</div>";
+
+  return clustEl;
+}
+
 
 function scDatasetItem(item, escape) {
 
