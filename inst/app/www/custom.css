@@ -389,6 +389,14 @@ input[type=number]::-webkit-outer-spin-button {
   animation: fa-spin 1s infinite linear;
 }
 
+.modal-dialog.modal-lg {
+  width: 600px !important;
+}
+
+.modal-dialog.modal-lg .modal-body {
+  height: 100% !important;
+}
+
 
 @media (min-width: 768px) {
   .modal-dialog {
