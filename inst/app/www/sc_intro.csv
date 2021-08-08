@@ -1,15 +1,16 @@
 "element","scrollTo","position","intro"
-"#sc-intro-dataset",,"right","<i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
+"#add_dataset",,"bottom","Click to show modal to upload single cell datasets."
+"#sc-intro-dataset",,"right","Select an individual or integrated single cell dataset to explore.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
 "#sc-form-dataset-show_label_resoln",,"auto","Click to show inputs for transferring labels from another dataset to the selected dataset and for changing cluster resolution."
-"#sc-form-dataset-show_integration",,"bottom","<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples. </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
-"#sc-cluster_plot-cluster_plot-plot_container",,,"Dimensionality reduction plot of clusters and associated labels."
+"#sc-form-dataset-show_integration",,"bottom-left-aligned","<b>Click once:</b></br>Shows inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering.</br></br><b>Click twice:</b></br>Shows inputs to create a new dataset by integrating multiple samples. </br></br>For cluster-specific pseudobulk differential expression analysis, pathway analysis, and drug queries for a set of test samples in comparison to a set of control samples."
+"#sc-cluster_plot-cluster_plot-plot_container",,"bottom","Dimensionality reduction plot of clusters and associated labels."
 "#sc-intro-cluster",,"top","Select a cluster to sort genes by.</br> Select nothing to show QC features first."
 "#sc-form-cluster-show_rename",,"top","Click here to rename the selected cluster."
 "#sc-form-cluster-show_contrasts",,"top","Click here to sort genes by comparing the selected cluster to one other cluster.</br></br> This is usefull for distinguishing closely related clusters."
 "#sc-intro-feature",,"right","Select a gene or QC feature to plot for this intro.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
-"#sc-marker_plot_cluster-marker_plot-plot_container",,,"Dimensionality reduction plot for the selected feature."
+"#sc-marker_plot_cluster-marker_plot-plot_container",,"bottom","Dimensionality reduction plot for the selected feature."
 "#sc-ridge_container","tooltip","top","Violin plot shows distribution of selected feature in each cluster."
-"#sc-form-gene_clusters-show_custom_metric",,,"Click to plot complex metrics. For example:</br></br>
+"#sc-form-gene_clusters-show_custom_metric",,"bottom","Click to plot complex metrics. For example:</br></br>
 <code>FTL*(cluster==1)</code> shows FTL expression in cluster 1.</br></br>
 <code>doublet_score>3|mito_percent>15</code> shows cells that meet this criteria.</br></br>
 Saved boolean custom metrics can be used for subsetting a dataset for QC or subclustering."

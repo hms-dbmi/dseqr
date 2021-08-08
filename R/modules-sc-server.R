@@ -1839,7 +1839,7 @@ uploadModal <- function(session, show_init) {
       actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
-    easyClose = FALSE,
+    easyClose = TRUE,
   )
 }
 

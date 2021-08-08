@@ -593,8 +593,8 @@ process_cellranger_counts <- function(counts, tx2gene) {
 #'
 get_species <- function(counts) {
 
-  ensid <- grep('^ENS[A-Z]+G[0-9]+$', row.names(counts), value = TRUE)[1]
-  ensid <- gsub('^(ENS[A-Z]+)G[0-9]+$', '\\1', ensid)
+  ensid <- grep('^ENS[A-Z]*G[0-9]+$', row.names(counts), value = TRUE)[1]
+  ensid <- gsub('^(ENS[A-Z]*)G[0-9]+$', '\\1', ensid)
   if (is.na(ensid)) stop('Need Ensembl IDs')
 
   return(ensmap[ensid, 'species'])

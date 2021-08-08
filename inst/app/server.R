@@ -69,6 +69,12 @@ server <- function(input, output, session) {
 
     })
 
+    observe({
+        input$tabs
+        if (length(list.files(sc_dir))) return(NULL)
+        shinyjs::click('add_dataset')
+    })
+
     feedback_counter <- reactiveVal(0)
     observeEvent(input$submit_feedback, {
         params <- rev(strsplit(data_dir, '/')[[1]])
