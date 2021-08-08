@@ -317,8 +317,12 @@ function bulkContrastItem(item, escape) {
 function scDatasetOptions(item, escape) {
 
   var opt = item.optgroup;
-  opt = typeof opt == 'undefined' ? '' : opt;
-  opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
+  if (opt === item.label) {
+    opt = ''
+  } else {
+    opt = typeof opt == 'undefined' ? '' : opt;
+    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
+  }
 
   var full_name = opt + item.label;
 

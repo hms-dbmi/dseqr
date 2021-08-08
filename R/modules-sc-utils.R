@@ -294,15 +294,11 @@ get_sc_dataset_choices <- function(sc_dir) {
   # founder for subsets as type
   ind_type <- get_scdata_type(individual, sc_dir, none = 'Individual')
 
-  # add founders that are currently individual
-  # from saving without QC0 QC1
-  self.founder <- individual %in% ind_type
-  ind_type[self.founder] <- individual[self.founder]
-
   # exclude founder name from option label
   sub <- ind_type != 'Individual'
   ind_opt <- individual
   ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_?'), '')
+  ind_opt[ind_opt == ""] <- individual[ind_opt == ""]
 
   label <- c(integrated, individual)
   type <- c(int_type, ind_type)
@@ -1103,7 +1099,7 @@ subset_saved_scseq <- function(sc_dir,
 
   progress$set(1, detail = 'loading')
   scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include,
-                              with_counts = TRUE, with_logs = is_integrated)[[1]]
+                              with_counts = TRUE, with_logs = TRUE)[[1]]
 
   if (is.null(scseq)) {
     progress$set(1, detail = "error: no cells")

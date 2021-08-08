@@ -189,6 +189,11 @@ get_scdata_type <- function(dataset_names, sc_dir, none) {
     },
     USE.NAMES = FALSE))
 
+  # when no founder but subsetted
+  fnames <- types[types %in% dataset_names]
+  is.founder <- dataset_names %in% fnames
+  types[is.founder] <- dataset_names[is.founder]
+
   ntype <- table(types)[types]
   types[ntype == 1] <- none
   return(types)
