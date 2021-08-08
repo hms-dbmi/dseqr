@@ -48,8 +48,8 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                                    a(href = 'https://github.com/hms-dbmi/dseqr', target="_blank", icon('github'), style = 'padding-bottom: 0px; font-size:17px;',)
                            ),
                            # docs section
-                           tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in",
-                                   a(href = "https://docs.dseqr.com/docs/general/usability/", `target` = '_blank', 'Docs')
+                           tags$li(class = 'navbar-right', `data-toggle`="collapse", `data-target`=".navbar-collapse.in", id = 'docs-link',
+                                   a(href = "https://docs.dseqr.com/docs/single-cell/add-dataset/", `target` = '_blank', 'Docs')
                            ),
                            # logout section
                            logout_li

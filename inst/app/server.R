@@ -70,9 +70,15 @@ server <- function(input, output, session) {
     })
 
     observe({
-        input$tabs
-        if (length(list.files(sc_dir))) return(NULL)
+        if (length(list.dirs(sc_dir, recursive = FALSE))) return(NULL)
+        # show hints and add dataset modal if no datasets
         shinyjs::click('add_dataset')
+        rintrojs::hintjs(session,
+                         options = list(hints =
+                                            data.frame(
+                                                element = '#docs-link',
+                                                hint = 'Read the docs for all the details.',
+                                                hintPosition = 'middle-middle')))
     })
 
     feedback_counter <- reactiveVal(0)
