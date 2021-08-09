@@ -1816,15 +1816,11 @@ uploadModal <- function(session, show_init) {
   label <- "Click upload or drag files:"
   label_title <- "10X *.fastq.gz or Cell Ranger matrix.mtx, barcodes.tsv, and features.tsv"
   label <- tags$span(label, span(class = "hover-info", id = 'up-info', icon("info", "fa-fw")))
-  # <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-  #     <span aria-hidden="true">&times;</span>
-  #     </button>
 
   modalDialog(
     fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'), multiple = TRUE),
-    tags$div(class='alert alert-warning alert-dismissible fade in', role = 'alert',
-             tags$button(class='close', `data-dismiss`='alert', '×'),
-             'Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
+    tags$div(class='alert alert-warning', role = 'alert',
+             '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
              tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
     tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
              hr(),
