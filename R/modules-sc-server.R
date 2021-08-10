@@ -3011,7 +3011,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
   have_biogps <- reactive({
-    feature() %in% biogps[, SYMBOL]
+    toupper(feature()) %in% biogps[, SYMBOL]
   })
 
   sel_ridge <- reactive(input$show_ridge %% 2 != 1)
