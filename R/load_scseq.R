@@ -1072,7 +1072,7 @@ add_doublet_score <- function(scseq) {
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
-  scseq <- scDblFinder::scDblFinder(scseq, use.cxds=TRUE)
+  scseq <- scDblFinder::scDblFinder(scseq)
   scseq$doublet_score <- scseq$scDblFinder.score
   scseq$doublet_class <- scseq$scDblFinder.class
 

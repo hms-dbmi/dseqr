@@ -1617,9 +1617,15 @@
     },
     "scDblFinder": {
       "Package": "scDblFinder",
-      "Version": "1.4.0",
-      "Source": "Bioconductor",
-      "Hash": "d578f334c561c69607bf1cb8e7b212f9"
+      "Version": "1.7.4",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "scDblFinder",
+      "RemoteUsername": "plger",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "71e65fb1d8b9ef9d130b65e7d2fd14a1eb5c3fab",
+      "Hash": "76db21226b8b5a7faab9224a1bd2c670"
     },
     "scales": {
       "Package": "scales",
