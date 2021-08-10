@@ -313,7 +313,6 @@ function bulkContrastItem(item, escape) {
 }
 
 
-
 function scDatasetOptions(item, escape) {
 
   var opt = item.optgroup;
@@ -328,6 +327,26 @@ function scDatasetOptions(item, escape) {
 
   var clustEl = "<div title='" + full_name + "'>" +
                   escape(item.label) +
+                "</div>";
+
+  return clustEl;
+}
+
+function scDatasetItem(item, escape) {
+
+
+  var opt = item.optgroup;
+  if (opt === item.label) {
+    opt = ''
+  } else {
+    opt = typeof opt == 'undefined' ? '' : opt;
+    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
+  }
+
+  var full_name = opt + item.label;
+
+  var clustEl = "<div title='" + full_name + "'>" +
+                  escape(full_name) +
                 "</div>";
 
   return clustEl;
@@ -351,21 +370,6 @@ function bulkDatasetItem(item, escape) {
   return clustEl;
 }
 
-
-function scDatasetItem(item, escape) {
-
-  var opt = item.optgroup;
-  opt = typeof opt == 'undefined' ? '' : opt;
-  opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual' || opt == '') ? '' : opt + '_';
-
-  var full_name = opt + item.label;
-
-  var clustEl = "<div title='" + full_name + "'>" +
-                  escape(full_name) +
-                "</div>";
-
-  return clustEl;
-}
 
 function scDatasetItemDF(item, escape) {
 

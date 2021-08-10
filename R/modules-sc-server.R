@@ -3347,7 +3347,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta, zoom) {
 
   show_plot <- reactive(length(compare_groups()) == 2)
-  observe(toggle('abundance_plot', condition = show_plot()))
+  observe(toggle('abundance_plot_container', condition = show_plot()))
 
   plot_data <- reactive({
 
@@ -3504,10 +3504,9 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
   # plot BioGPS data
   output$biogps_plot <- renderPlot({
     species <- species()
-    gene <- selected_gene()
+    gene <- toupper(selected_gene())
     if (!length(gene)) return(NULL)
     if (!length(species)) return(NULL)
-    if (species == 'Mus musculus') gene <- toupper(gene)
     if (!gene %in% biogps[, SYMBOL]) return(NULL)
 
     plot_biogps(gene)

@@ -18,9 +18,7 @@ scPageUI <- function(id, tab, active) {
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                div(style='margin-bottom:35px;',
-                    scAbundancePlotOutput(ns('abundance_plot'))
-                ),
+                scAbundancePlotOutput(ns('abundance_plot')),
                 scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
@@ -373,7 +371,11 @@ scClusterPlotOutput <- function(id) {
 #' @noRd
 scAbundancePlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('abundance_plot'), zoom = TRUE)
+
+  div(style='margin-bottom:35px;',
+      id = ns('abundance_plot_container'),
+      shinydlplot::downloadablePlotUI(ns('abundance_plot'), zoom = TRUE)
+  )
 }
 
 
