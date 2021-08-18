@@ -9,6 +9,8 @@
 </script>
 <script>
 $(document).on('shiny:inputchanged', function(event) {
-     gtag('event', 'input', {'name': event.name, 'value': event.value});
+     if (event.value && event.value.length) {
+        gtag('event', 'input', {'name': event.name, 'value': event.value});
+     }
  });
 </script>

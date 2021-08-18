@@ -236,9 +236,9 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
   })
 
   # show pert study choices
-  choices <- data.frame(study = c('CMAP02', 'L1000', 'L1000'),
-                        subset = c('drugs', 'drugs', 'genetic'),
-                        value = c('CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
+  choices <- data.frame(study = c(NA, 'CMAP02', 'L1000', 'L1000'),
+                        subset = c(NA, 'drugs', 'drugs', 'genetic'),
+                        value = c(NA, 'CMAP02', 'L1000 Drugs', 'L1000 Genetic'),
                         stringsAsFactors = FALSE)
 
 
