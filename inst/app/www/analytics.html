@@ -1,0 +1,28 @@
+<!-- Global site tag (gtag.js) - GA -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8TWCFWLB0N"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-8TWCFWLB0N');
+</script>
+<!-- GA events -->
+<script>
+$(document).on('shiny:inputchanged', function(event) {
+     if (event.value && event.value.length) {
+        gtag('event', 'input', {'name': event.name, 'value': event.value});
+     }
+ });
+</script>
+<!-- HJ -->
+<script>
+    (function(h,o,t,j,a,r){
+        h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+        h._hjSettings={hjid:2560942,hjsv:6};
+        a=o.getElementsByTagName('head')[0];
+        r=o.createElement('script');r.async=1;
+        r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+        a.appendChild(r);
+    })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+</script>
