@@ -6,6 +6,8 @@ active <- tabs[1]
 
 
 bootstrapPage(
+  if (!is.null(logout_url)) includeHTML("www/gtm.html"),
+  if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),
   useShinyjs(),
   rintrojs::introjsUI(),
   # scrollspy for docs tab
@@ -20,9 +22,9 @@ bootstrapPage(
   includeCSS(path = 'www/bs-docs.css'),
   includeCSS(path = 'www/drugs.css'),
   includeCSS(path = 'www/pathways.css'),
-  if (!is.null(logout_url)) tags$head(includeHTML("www/analytics.html")),
   tags$head(HTML("<title>Dseqr</title>"),
             tags$link(rel = "icon", type = "image/png", href = "https://raw.githubusercontent.com/hms-dbmi/dseqr.sp/master/favicon.png")),
+
   navbarUI(tabs, active, logout_url),
   navbar2UI(is_example),
 
