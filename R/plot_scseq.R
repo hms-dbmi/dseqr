@@ -385,8 +385,12 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 
 
   if (feature %in% row.names(scseq)) {
-    if (!is.null(dgrlogs)) x <- fast_dgr_row(dgrlogs, feature)
-    else x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+    if (!is.null(dgrlogs)) {
+      x <- fast_dgr_row(dgrlogs, feature)
+      x <- x[colnames(scseq)]
+    } else {
+      x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+    }
     if (exists('keep')) x <- x[keep]
 
   } else {
@@ -730,17 +734,17 @@ get_gene_diff <- function(gene, tts, grid) {
 
   # get points in grid with cells
   pt.dat <- grid %>%
-    add_count(xi, yi) %>%
-    left_join(tt) %>%
-    distinct() %>%
-    filter(n > 0) %>% # at least n cells
+    dplyr::add_count(xi, yi) %>%
+    dplyr::left_join(tt) %>%
+    dplyr::distinct() %>%
+    dplyr::filter(n > 0) %>% # at least n cells
     dplyr::rename(pval = P.Value, direction = logFC) %>%
     dplyr::mutate(pval = replace(pval, is.na(pval), 1),
-                  direction = case_when(is.na(direction) ~ '?',
-                                        direction > 0 ~ '↑',
-                                        direction < 0 ~ '↓'),
-                  alpha = case_when(pval >= 0.05 ~ 0.1,
-                                    pval <  0.05 ~ range02(-log10(pval)))) %>%
+                  direction = dplyr::case_when(is.na(direction) ~ '?',
+                                               direction > 0 ~ '↑',
+                                               direction < 0 ~ '↓'),
+                  alpha = dplyr::case_when(pval >= 0.05 ~ 0.1,
+                                           pval <  0.05 ~ range02(-log10(pval)))) %>%
     dplyr::mutate(direction = factor(direction, levels = c('↑', '↓', '?'), ordered = TRUE))
 
   return(pt.dat)

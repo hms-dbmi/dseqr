@@ -470,13 +470,14 @@ attach_meta <- function(scseq, dataset_dir = NULL, meta = NULL, groups = NULL) {
 
   if (is.null(meta)) return(scseq)
 
-  meta <- meta[meta$group %in% groups, ]
+  sample_group <- meta$group
+  sample_group[sample_group == groups[1]] <- 'test'
+  sample_group[sample_group == groups[2]] <- 'ctrl'
+  other <- setdiff(sample_group, c('test', 'ctrl'))
+  names(sample_group) <- row.names(meta)
+  cell_group <- unname(sample_group[scseq$batch])
 
-  groups <- ifelse(meta$group == groups[1], 'test', 'ctrl')
-  names(groups) <- row.names(meta)
-  groups <- unname(groups[scseq$batch])
-
-  scseq$orig.ident <- factor(groups, levels = c('test', 'ctrl'))
+  scseq$orig.ident <- factor(cell_group, levels = c('test', 'ctrl', other))
   return(scseq)
 }
 

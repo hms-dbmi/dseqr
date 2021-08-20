@@ -190,6 +190,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     return(scseq)
   })
 
+
   # dgRMatrix logcounts for fast row indexing
   dgrlogs <- reactive({
     dataset_dir <- dataset_dir()
@@ -774,7 +775,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     if (length(groups) != 2) return(NULL)
     if (!all(groups %in% meta$group)) return(NULL)
     if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
-    attach_meta(scseq, meta=meta, groups=groups)
+    scseq <- attach_meta(scseq, meta=meta, groups=groups)
+    scseq <- subset_contrast(scseq)
+    return(scseq)
   })
 
 
@@ -849,8 +852,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       scseq <- scseq()
       if(!isTruthyAll(sel, gene, scseq)) return(NULL)
 
-      try(ridge_data <- get_ridge_data(
-        gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs()))
+      ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs())
 
       if (all(ridge_data$df$x == 0)) return(NULL)
       plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
@@ -966,12 +968,16 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         cluster <- names(fit)[i]
         progress$set(detail=paste('cluster', cluster), value = i)
 
+        tt <- tryCatch({
+          crossmeta::get_top_table(
+            fit[[cluster]],
+            groups,
+            robust = TRUE,
+            allow.no.resid = TRUE)
+        },
+        error = function(e) NULL)
+        if (is.null(tt)) next()
 
-        tt <- crossmeta::get_top_table(
-          fit[[cluster]],
-          groups,
-          robust = TRUE,
-          allow.no.resid = TRUE)
 
         # need dprime for drug plots and queries
         if (is.null(tt$dprime)) tt$dprime <- tt$logFC
@@ -1039,10 +1045,16 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       for (i in seq_along(fit)) {
         cluster <- names(fit)[i]
         progress$set(detail=paste('grid', cluster), value = i)
-        tt <- crossmeta::get_top_table(fit[[cluster]],
-                                       groups,
-                                       trend = TRUE,
-                                       allow.no.resid = TRUE)
+
+        tt <- tryCatch({
+          crossmeta::get_top_table(
+            fit[[cluster]],
+            groups,
+            trend = TRUE,
+            allow.no.resid = TRUE)
+        },
+        error = function(e) NULL)
+        if (is.null(tt)) next()
 
         tt <- tt[, colnames(tt) %in% c('logFC', 'P.Value'), drop = FALSE]
         tts[[cluster]] <- tt
@@ -3359,17 +3371,17 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
     if (length(groups) != 2) return(NULL)
 
     meta <- meta()
-    meta <- meta[meta$group %in% groups, ]
-    if (nrow(meta) < 3) return(NULL)
+    if (sum(meta$group %in% groups) < 3) return(NULL)
 
     scseq <- attach_meta(scseq, meta=meta, groups=groups)
+    scseq <- subset_contrast(scseq)
 
-    apath <- file.path(dplots_dir(), 'abundance_plot_data.qs')
-    mpath <- file.path(dataset_dir, 'meta.qs')
-    have <- file.exists(apath)
-    valid <- file.info(apath)$ctime > file.info(mpath)$ctime
+    # add hash for if change groups
+    tohash <- list(meta = meta, groups = groups)
+    meta_hash <- digest::digest(tohash, algo = 'murmur32')
 
-    if (have && valid) {
+    apath <- file.path(dplots_dir(), paste0('abundance_plot_data_', meta_hash, '.qs'))
+    if (file.exists(apath)) {
       plot_data <- qs::qread(apath)
 
     } else {
@@ -3407,6 +3419,13 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 
   observe({zoom$x <- ranges$x; zoom$y <- ranges$y})
   observe({ranges$x <- zoom$x; ranges$y <- zoom$y})
+}
+
+subset_contrast <- function(scseq) {
+  is.con <- scseq$orig.ident %in% c('test', 'ctrl')
+  scseq <- scseq[, is.con]
+  scseq$orig.ident <- droplevels(scseq$orig.ident)
+  return(scseq)
 }
 
 
@@ -3570,3 +3589,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+
