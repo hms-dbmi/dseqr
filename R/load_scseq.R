@@ -508,9 +508,14 @@ transition_efs <- function(fpath) {
   message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
   message('moving: ', fpath, ' to standard access.')
   tmp <- file.path(dirname(fpath), 'tmp.qs')
-  file.copy(fpath, tmp)
-  unlink(fpath)
-  file.move(tmp, fpath)
+
+  if (file.copy(fpath, tmp)) {
+    res <- try(qs::qread(tmp), silent = TRUE)
+    if (class(res) != "try-error") {
+      unlink(fpath)
+      file.move(tmp, fpath)
+    }
+  }
 }
 
 
