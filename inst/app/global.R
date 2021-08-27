@@ -8,6 +8,9 @@ suppressPackageStartupMessages({
   library(rlang)
   library(shinypanel)
   library(magrittr)
+  dseqr_path <- find.package('dseqr')
+  lazyLoad(file.path(dseqr_path, 'R/dseqr'))
+  lazyLoad(file.path(dseqr_path, 'R/sysdata'))
 })
 
 
