@@ -11,7 +11,7 @@ run_scseq_qc(
 )
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}.}
+\item{sce}{\code{DietSCE}.}
 
 \item{metrics}{Character vector of metrics to remove outliers for.}
 }

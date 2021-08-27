@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{integrate_saved_scseqs}
 \alias{integrate_saved_scseqs}
-\title{Integrate previously saved SingleCellExperiments}
+\title{Integrate previously saved DietSCEs}
 \usage{
 integrate_saved_scseqs(
   sc_dir,

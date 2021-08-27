@@ -5,7 +5,7 @@ app_dir <- '/home/alex/patient_data/example'
 app_dirs <- list.files('/srv/dseqr')
 app_dirs <- setdiff(app_dirs,
                     c('indices', 'node_modules', 'pert_signature_dir',
-                      'pert_query_dir', 'gs_dir', 'example_data.tar.gz'))
+                      'pert_query_dir', 'gs_dir', 'example_data.tar.gz', 'tx2gene'))
 
 
 convert <- function(app_dir) {

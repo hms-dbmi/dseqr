@@ -1,6 +1,6 @@
 #' Plot TSNE coloured by cluster
 #'
-#' @param scseq SingleCellExperiment
+#' @param scseq DietSCE
 #' @param legend Should legend be kept? Default is \code{FALSE}.
 #' @param title Title of plot
 #' @param ... additional argument to \code{DimPlot}
@@ -15,7 +15,7 @@ plot_cluster <- function(scseq = NULL, reduction = 'TSNE', plot_data = NULL, leg
   # dynamic label/point size
   if (!is.null(scseq)) {
     ncells <- ncol(scseq)
-    reds <- SingleCellExperiment::reducedDimNames(scseq)
+    reds <- reducedDimNames(scseq)
     reds <- reds[reds %in% c('UMAP', 'TSNE')]
     if (!reduction %in% reds) reduction <- reds[1]
 
@@ -143,7 +143,7 @@ shorten_cluster_labels <- function(labels) {
 
 #' Plot TSNE coloured by gene or QC metric
 #'
-#' @param scseq \code{SingleCellExperiment} object.
+#' @param scseq \code{DietSCE} object.
 #' @param feature Character vector specifying feature to colour cells by.
 #' @param reverse_scale Should the scale be reversed (lower values of feature
 #'   are darker)?
@@ -164,7 +164,7 @@ plot_feature <- function(scseq,
 
   if (reverse_scale) cols <- rev(cols)
 
-  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  reds <- reducedDimNames(scseq)
   reds <- reds[reds %in% c('UMAP', 'TSNE')]
   if (!reduction %in% reds) reduction <- reds[1]
 
@@ -186,7 +186,7 @@ plot_feature <- function(scseq,
 #' Format gene plots for sample comparison for dseqr app
 #'
 #' @param group Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}
-#' @param scseq \code{SingleCellExperiment} object.
+#' @param scseq \code{DietSCE} object.
 #'
 #' @return \code{plot} formatted for dseqr app
 #'
@@ -267,7 +267,7 @@ update_feature_plot <- function(plot,
 #' Used for sample comparison plots to show equal number of test and control
 #' cells for each cluster
 #'
-#' @param scseq SingleCellExperiment
+#' @param scseq DietSCE
 #'
 #' @return \code{scseq} with equal number
 #' @keywords internal
@@ -289,12 +289,12 @@ downsample_group <- function(scseq, group = 'orig.ident') {
 
 }
 
-#' Downsample SingleCellExperiment clusters
+#' Downsample DietSCE clusters
 #'
 #' Gets a maximum number of cells in each cluster. Used for generate mini
 #' datasets for faster label transfer.
 #'
-#' @param scseq SingleCellExperiment
+#' @param scseq DietSCE
 #' @param max.cells maximum number of cells in each \code{scseq$cluster}
 #'
 #' @return scseq
@@ -317,7 +317,7 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #' Get data for single-cell ridgeline plots
 #'
 #' @param feature Feature name to generate ridge plot for. Either a row or \code{colData} of \code{scseq}.
-#' @param scseq \code{SingleCellExperiment}.
+#' @param scseq \code{DietSCE}.
 #' @param selected_cluster Name of the selected cluster.
 #' @param by.sample if \code{TRUE} plot \code{feature} ridge for each \code{scseq$batch}. Default (\code{FALSE})
 #'  will plot \code{feature} for each \code{scseq$cluster}.
@@ -389,7 +389,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
       x <- h5logs[feature, ]
       x <- x[colnames(scseq)]
     } else {
-      x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
+      x <- as.numeric(logcounts(scseq[feature, ]))
     }
     if (exists('keep')) x <- x[keep]
 
@@ -751,13 +751,13 @@ get_gene_diff <- function(gene, tts, grid) {
 }
 
 get_abundance_diff <- function(scseq, group = scseq$orig.ident, sample = scseq$batch) {
-  reds <- SingleCellExperiment::reducedDimNames(scseq)
+  reds <- reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
   if (red == 'UMAP') nx=120; ny=60
   if (red == 'TSNE') nx=100; ny=50
 
-  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+  red.mat <- reducedDim(scseq, red)
 
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
 

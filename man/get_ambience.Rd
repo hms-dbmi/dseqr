@@ -7,7 +7,7 @@
 get_ambience(combined)
 }
 \arguments{
-\item{scseqs}{List of \code{SingleCellExperiment} objects.}
+\item{scseqs}{List of \code{DietSCE} objects.}
 }
 \value{
 List with test and control ambient genes

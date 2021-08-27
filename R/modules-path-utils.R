@@ -227,7 +227,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 
 #' Run pseudo bulk limma fit
 #'
-#' @param summed Pseudobulk \code{SingleCellExperiment}
+#' @param summed Pseudobulk \code{DietSCE}
 #' @param ... additional arguments to \link[edgeR]{filterByExpr}
 #' @return Normalized \code{ExpressionSet}
 #'
@@ -235,7 +235,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 #'@keywords internal
 construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 
-  y <- SingleCellExperiment::counts(summed)
+  y <- counts(summed)
 
   # use groups from meta
   groups <- summed$orig.ident

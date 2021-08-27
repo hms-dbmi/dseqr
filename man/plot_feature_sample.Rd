@@ -14,7 +14,7 @@ plot_feature_sample(
 )
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment} object.}
+\item{scseq}{\code{DietSCE} object.}
 
 \item{group}{Level in \code{scseq$orig.ident} to show cells for. Either \code{'ctrl'} or \code{'test'}}
 }

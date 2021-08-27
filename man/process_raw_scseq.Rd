@@ -19,7 +19,7 @@ process_raw_scseq(
 )
 }
 \arguments{
-\item{scseq}{\code{SingleCellExperiment}}
+\item{scseq}{\code{DietSCE}}
 
 \item{dataset_name}{Name of dataset to save}
 

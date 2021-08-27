@@ -9,7 +9,7 @@ evaluate_custom_metric(metric, scseq)
 \arguments{
 \item{metric}{String with metric to evaluate}
 
-\item{scseq}{\code{SingleCellExperiment} to evaluate \code{metric} for.}
+\item{scseq}{\code{DietSCE} to evaluate \code{metric} for.}
 }
 \value{
 data.frame with column name \code{metric} and result.

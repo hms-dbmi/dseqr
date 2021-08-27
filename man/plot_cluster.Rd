@@ -17,7 +17,7 @@ plot_cluster(
 )
 }
 \arguments{
-\item{scseq}{SingleCellExperiment}
+\item{scseq}{DietSCE}
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 

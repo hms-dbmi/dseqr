@@ -15,7 +15,7 @@ This can be a character vector of row names, an integer vector of row indices or
 \item{pairs}{}
 }
 \value{
-Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDim, and batch annotation.
+Integrated \code{DietSCE} with logcounts assay, corrected reducedDim, and batch annotation.
 }
 \description{
 Run harmony integration

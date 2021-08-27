@@ -7,7 +7,7 @@
 get_presto_markers(scseq)
 }
 \arguments{
-\item{scseq}{SingleCellExperiment object}
+\item{scseq}{DietSCE object}
 }
 \value{
 list of data.frames, one for each cluster

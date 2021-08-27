@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{load_scseq_qs}
 \alias{load_scseq_qs}
-\title{Load SingleCellExperiment from qs file}
+\title{Load DietSCE from qs file}
 \usage{
 load_scseq_qs(
   dataset_dir,
@@ -16,7 +16,7 @@ load_scseq_qs(
 \item{dataset_dir}{Path to folder with scseq.qs file}
 }
 \value{
-SingleCellExperiment
+DietSCE
 }
 \description{
 Also attaches clusters from last applied leiden resolution and stores resolution.

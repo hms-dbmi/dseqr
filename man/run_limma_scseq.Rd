@@ -17,7 +17,7 @@ run_limma_scseq(
 )
 }
 \arguments{
-\item{summed}{pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
+\item{summed}{pseudobulk \code{DietSCE}. If \code{NULL}, \code{summed_path} must be supplied
 and the call is assumed to originate from \code{callr::r_bg}.}
 
 \item{meta}{data.frame of sample metadata with column \code{group} and \code{row.names}

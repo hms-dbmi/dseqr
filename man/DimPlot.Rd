@@ -34,7 +34,7 @@ DimPlot(
 )
 }
 \arguments{
-\item{object}{SingleCellExperiment object}
+\item{object}{DietSCE object}
 
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 

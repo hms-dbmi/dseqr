@@ -17,7 +17,7 @@ get_ridge_data(
 \arguments{
 \item{feature}{Feature name to generate ridge plot for. Either a row or \code{colData} of \code{scseq}.}
 
-\item{scseq}{\code{SingleCellExperiment}.}
+\item{scseq}{\code{DietSCE}.}
 
 \item{selected_cluster}{Name of the selected cluster.}
 

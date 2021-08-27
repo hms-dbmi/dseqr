@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{run_post_cluster}
 \alias{run_post_cluster}
-\title{Post-Cluster Processing of SingleCellExperiment}
+\title{Post-Cluster Processing of DietSCE}
 \usage{
 run_post_cluster(
   scseq,
@@ -15,7 +15,7 @@ run_post_cluster(
 )
 }
 \arguments{
-\item{scseq}{SingleCellExperiment}
+\item{scseq}{DietSCE}
 
 \item{resoln}{resolution parameter}
 
@@ -26,5 +26,5 @@ run_post_cluster(
 \item{integrated}{is \code{scseq} integrated?}
 }
 \description{
-Post-Cluster Processing of SingleCellExperiment
+Post-Cluster Processing of DietSCE
 }

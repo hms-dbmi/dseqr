@@ -2,19 +2,19 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{add_combined_metrics}
 \alias{add_combined_metrics}
-\title{Add QC metrics to integrated SingleCellExperiment}
+\title{Add QC metrics to integrated DietSCE}
 \usage{
 add_combined_metrics(combined, scseqs)
 }
 \arguments{
-\item{combined}{Integrated \code{SingleCellExperiment}}
+\item{combined}{Integrated \code{DietSCE}}
 
-\item{scseqs}{list of \code{SingleCellExperiment}s used to create \code{combined}}
+\item{scseqs}{list of \code{DietSCE}s used to create \code{combined}}
 }
 \value{
 \code{combined} with QC metrics from \code{scseqs} added
 }
 \description{
-Add QC metrics to integrated SingleCellExperiment
+Add QC metrics to integrated DietSCE
 }
 \keyword{internal}

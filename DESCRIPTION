@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.16.0
+Version: 0.17.0
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
@@ -62,7 +62,6 @@ Imports:
     rintrojs (>= 0.2.2),
     RColorBrewer,
     Rtsne,
-    S4Vectors,
     scDblFinder,
     Seurat,
     shiny (>= 1.4.0),
@@ -72,9 +71,7 @@ Imports:
     shinyFiles (>= 0.7.5),
     shinydlplot (>= 0.1.0),
     shinypanel (>= 0.1.0),
-    SingleCellExperiment (>= 1.9.1),
     SingleR (>= 1.1.6),
-    SummarizedExperiment,
     scran (>= 1.14.5),
     stringr,
     stats,

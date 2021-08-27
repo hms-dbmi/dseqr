@@ -3,13 +3,11 @@
 suppressPackageStartupMessages({
   library(shiny)
   library(shinyjs)
-  library(dseqr)
   library(shinyBS)
   library(shinyWidgets)
-  library(dplyr)
   library(rlang)
-  library(SingleCellExperiment)
   library(shinypanel)
+  library(magrittr)
 })
 
 

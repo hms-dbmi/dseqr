@@ -7,7 +7,7 @@
 downsample_group(scseq, group = "orig.ident")
 }
 \arguments{
-\item{scseq}{SingleCellExperiment}
+\item{scseq}{DietSCE}
 }
 \value{
 \code{scseq} with equal number

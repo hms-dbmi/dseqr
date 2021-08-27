@@ -2,16 +2,16 @@
 % Please edit documentation in R/load_scseq.R
 \name{add_scseq_qcplot_metrics}
 \alias{add_scseq_qcplot_metrics}
-\title{Add QC metrics to SingleCellExperiment for plotting}
+\title{Add QC metrics to DietSCE for plotting}
 \usage{
 add_scseq_qcplot_metrics(sce)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{sce}{\code{DietSCE}}
 }
 \value{
 \code{sce} with formated qc metrics.
 }
 \description{
-Add QC metrics to SingleCellExperiment for plotting
+Add QC metrics to DietSCE for plotting
 }

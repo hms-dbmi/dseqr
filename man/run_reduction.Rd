@@ -7,7 +7,7 @@
 run_reduction(sce, type = c("auto", "TSNE", "UMAP"), dimred = "PCA")
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{sce}{\code{DietSCE}}
 
 \item{dimred}{reducedDim to run TSNE or UMAP on}
 }

@@ -1033,7 +1033,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     # quantile normalize scseq and rnaseq dataset
     progress$set(value = 2)
-    y <- cbind(as.matrix(SingleCellExperiment::logcounts(scseq)), adj)
+    y <- cbind(as.matrix(logcounts(scseq)), adj)
 
     y <- limma::normalizeBetweenArrays(y)
     y <- t(y)

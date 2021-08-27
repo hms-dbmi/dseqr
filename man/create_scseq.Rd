@@ -2,7 +2,7 @@
 % Please edit documentation in R/load_scseq.R
 \name{create_scseq}
 \alias{create_scseq}
-\title{Load kallisto/bustools quantification into a SingleCellExperiment object.}
+\title{Load kallisto/bustools quantification into a DietSCE object.}
 \usage{
 create_scseq(
   data_dir,
@@ -19,8 +19,8 @@ create_scseq(
 \item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.}
 }
 \value{
-\code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
+\code{DietSCE} object with empty droplets removed and ambient outliers recorded.
 }
 \description{
-Load kallisto/bustools quantification into a SingleCellExperiment object.
+Load kallisto/bustools quantification into a DietSCE object.
 }

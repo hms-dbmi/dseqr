@@ -765,7 +765,7 @@ add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE) {
 
   } else {
     vsd <- crossmeta::get_vsd(eset)
-    vsd <- SummarizedExperiment::assay(vsd)
+    vsd <- assay(vsd)
     qs::qsave(vsd, vsd_path)
   }
 
