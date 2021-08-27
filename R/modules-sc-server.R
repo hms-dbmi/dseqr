@@ -40,7 +40,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              dataset_name = scForm$dataset_name,
              plots_dir = scForm$plots_dir,
              feature_plot_clusters = scForm$feature_plot_clusters,
-             dgrlogs = scForm$dgrlogs,
+             h5logs = scForm$h5logs,
              ptsize = ptsize,
              zoom = zoom)
 
@@ -55,7 +55,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              scseq = scForm$scseq,
              annot = scForm$annot,
              plots_dir =scForm$plots_dir,
-             dgrlogs = scForm$dgrlogs)
+             h5logs = scForm$h5logs)
 
 
   # sample comparison plots ---
@@ -191,17 +191,13 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   })
 
 
-  # dgRMatrix logcounts for fast row indexing
-  dgrlogs <- reactive({
+  # read transposed hdf5 logcounts for fast row indexing
+  h5logs <- reactive({
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
-    progress <- Progress$new(session, min = 0, max = 2)
-    on.exit(progress$close())
-    fpath <- file.path(dataset_dir, 'dgrlogs.qs')
-    progress$set(message = "Loading logcounts", value = 1)
-    res <- qs::qread(fpath)
-    progress$set(value = 2)
-    return(res)
+    fpath <- file.path(dataset_dir, 'tlogs.tenx')
+    res <- HDF5Array::TENxMatrix(fpath, group="mm10")
+    return(t(res))
   })
 
   # dgCMatrix logcounts other
@@ -293,7 +289,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                           add_sc = add_sc,
                           remove_sc = remove_sc)
 
-  scClusterPlots <- clusterPlots(plots_dir, scseq_clusts, dgrlogs)
+  scClusterPlots <- clusterPlots(plots_dir, scseq_clusts, h5logs)
 
 
   # label transfer between datasets
@@ -368,7 +364,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   scClusterGene <- callModule(selectedGene, 'gene_clusters',
                               scseq = scseq_clusts,
-                              dgrlogs = dgrlogs,
+                              h5logs = h5logs,
                               dataset_name = scDataset$dataset_name,
                               resoln_name = scResolution$resoln_name,
                               resoln_dir = resoln_dir,
@@ -395,7 +391,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
                                  input_scseq = scseq,
                                  meta = scSampleGroups$meta,
-                                 dgrlogs = dgrlogs,
+                                 h5logs = h5logs,
                                  lm_fit = scSampleGroups$lm_fit,
                                  lm_fit_grid = scSampleGroups$lm_fit_grid,
                                  groups = scSampleGroups$groups,
@@ -417,7 +413,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              scseq = scDataset$scseq,
-                             dgrlogs = dgrlogs,
+                             h5logs = h5logs,
                              dataset_name = scDataset$dataset_name,
                              resoln_name = scResolution$resoln_name,
                              resoln_dir = resoln_dir,
@@ -460,7 +456,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     annot = annot,
     meta = scSampleGroups$meta,
     compare_groups = scSampleGroups$groups,
-    dgrlogs = dgrlogs
+    h5logs = h5logs
   ))
 }
 
@@ -726,7 +722,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, dgrlogs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
@@ -852,7 +848,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       scseq <- scseq()
       if(!isTruthyAll(sel, gene, scseq)) return(NULL)
 
-      ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, dgrlogs=dgrlogs())
+      ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, h5logs=h5logs())
 
       if (all(ridge_data$df$x == 0)) return(NULL)
       plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
@@ -866,10 +862,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     pfun <- function(gene, ident = NULL) {
       # test expression on left
       scseq <- scseq()
-      dgrlogs <- isolate(dgrlogs())
-      if(!isTruthyAll(dgrlogs, gene, scseq)) return(NULL)
+      h5logs <- isolate(h5logs())
+      if(!isTruthyAll(h5logs, gene, scseq)) return(NULL)
 
-      gene_data <- fast_dgr_row(dgrlogs, gene)
+      gene_data <- h5logs[gene, ]
 
       # update base feature plot
       plot <- feature_plot()
@@ -1283,7 +1279,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 }
 
 
-clusterPlots <- function(plots_dir, scseq, dgrlogs) {
+clusterPlots <- function(plots_dir, scseq, h5logs) {
 
 
   # create feature and cluster plot for future updating
@@ -1291,9 +1287,9 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
 
   scseq_logs <- reactive({
     scseq <- scseq()
-    dgrlogs <- dgrlogs()
-    if (is.null(scseq) | is.null(dgrlogs)) return(NULL)
-    SingleCellExperiment::logcounts(scseq) <- dgrlogs
+    h5logs <- h5logs()
+    if (is.null(scseq) | is.null(h5logs)) return(NULL)
+    SingleCellExperiment::logcounts(scseq) <- h5logs
     return(scseq)
   })
 
@@ -1351,19 +1347,6 @@ clusterPlots <- function(plots_dir, scseq, dgrlogs) {
   ))
 }
 
-#' Pre-load dgrlogs into cache
-#' @export
-#'
-precache_dgrlogs <- function(dataset_dir) {
-  fpath <- file.path(dataset_dir, 'dgrlogs.qs')
-  cat('1 moving to faster storage ...\n')
-  transition_efs(fpath)
-  cat('2 caching in RAM ...\n')
-  qs::qread(fpath)
-  cat('3 done ...\n')
-  return(TRUE)
-}
-
 
 #' Logic for selected dataset part of scForm
 #'
@@ -1384,36 +1367,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   dataset_exists <- reactive(isTruthy(dataset_name()))
 
-
-  # load scseq
-  loads <- reactiveValues()
-  ploads <- reactiveValues()
-  dummy <- reactiveVal()
-
   scseq <- reactive({
     dataset_name <- dataset_name()
     if (!isTruthy(dataset_name)) return(NULL)
     dataset_dir <- dataset_dir()
-
-    # transition out of EFS IA and load into RAM cache
-    loads[[dataset_name]] <- callr::r_bg(
-      func = precache_dgrlogs,
-      package = 'dseqr',
-      args = list(dataset_dir = dataset_dir),
-      env = c('EFS_LIFECYCLE' = 7, callr::rcmd_safe_env())
-    )
-
-
-    # dummy progress to hide from user
-    progress <- list(set = function(value, detail) {}, close = function() {})
-    ploads[[dataset_name]] <- progress
-
     load_scseq_qs(dataset_dir)
-  })
-
-  observe({
-    invalidateLater(5000, session)
-    handle_sc_progress(loads, ploads, dummy)
   })
 
   # load snn graph
@@ -2991,7 +2949,7 @@ warnApplyModal <- function(type = c('markers', 'transfer', 'select')) {
 #'
 #' @keywords internal
 #' @noRd
-selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, dgrlogs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
   gene_options <- list(render = I('{option: geneOption, item: geneItem}'))
 
   selected_gene <- reactiveVal(NULL)
@@ -3074,7 +3032,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
 
-    SingleCellExperiment::logcounts(scseq) <- dgrlogs()
+    SingleCellExperiment::logcounts(scseq) <- h5logs()
 
     if (metric %in% exist_metric_names()) {
       selected_gene(metric)
@@ -3433,7 +3391,7 @@ subset_contrast <- function(scseq) {
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, dgrlogs, zoom, ptsize, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, dataset_name, plots_dir, feature_plot_clusters, h5logs, zoom, ptsize, custom_metrics = function()NULL) {
 
 
   plot <- reactive({
@@ -3463,7 +3421,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, datase
       plot <- feature_plot_clusters()
 
       if (is_gene) {
-        fdata <- fast_dgr_row(dgrlogs(), feature)
+        fdata <- h5logs()[feature, ]
       } else {
         fdata <- scseq[[feature]]
         names(fdata) <- colnames(scseq)
@@ -3537,7 +3495,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #'
 #' @keywords internal
 #' @noRd
-scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, dgrlogs) {
+scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, h5logs) {
 
   height <- reactive({
     scseq <- scseq()
@@ -3561,9 +3519,9 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     if (!is.num) return(NULL)
 
     scseq <- scseq()
-    dgrlogs <- if (is.gene) dgrlogs() else NULL
+    h5logs <- if (is.gene) h5logs() else NULL
     if (is.null(scseq)) return(NULL)
-    rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, dgrlogs=dgrlogs)
+    rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, h5logs=h5logs)
 
     return(rdat)
   }) %>% debounce(20)
@@ -3589,4 +3547,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-

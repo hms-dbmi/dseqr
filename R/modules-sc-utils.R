@@ -465,7 +465,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   genes <- row.names(expr)[row.names(expr) %in% ft]
 
   if (length(genes)) {
-    expr <- frows(expr, genes)
+    expr <- expr[genes,, drop = FALSE]
     expr <- t(as.matrix(expr))
 
   } else {
@@ -1827,55 +1827,17 @@ get_grid <- function(scseq) {
   return(grid)
 }
 
-
-frows <- function(m, rows, drop = FALSE) {
-  if (!length(rows)) return(NULL)
-  if (methods::is(m, 'dgRMatrix')) {
-    rlist <- lapply(rows, function(r) fast_dgr_row(m, r))
-    res <- matrix(unlist(rlist),
-                  nrow = length(rows),
-                  byrow = TRUE,
-                  dimnames = list(rows, colnames(m)))
-    res <- res[rows,, drop = drop]
-
-  } else {
-    res <- res[rows,, drop = drop]
-  }
-  return(res)
-}
-
-# faster column extraction from dgCMatrix
-fast_dgr_row <- function(m, row) {
-  i <- which(row.names(m) == row)
-  r <- numeric(ncol(m))
-  inds <- seq(from = m@p[i]+1,
-              to = m@p[i+1],
-              length.out = max(0, m@p[i+1] - m@p[i]))
-  r[m@j[inds]+1] <- m@x[inds]
-  names(r) <- colnames(m)
-  return(r)
-}
-
-# convert dgCMatrix to dgRMatrix
-dgc_to_dgr <- function(dgc) {
-  dgc.t <- Matrix::t(dgc)
-  dgr <- new('dgRMatrix', j = dgc.t@i, p = dgc.t@p, x = dgc.t@x, Dim = dim(dgc))
-  dimnames(dgr) <- dimnames(dgc)
-  return(dgr)
-}
-
-
 split_save_scseq <- function(scseq, dataset_dir) {
   # save as seperate parts
   dgc.logs <- SingleCellExperiment::logcounts(scseq)
   counts <- SingleCellExperiment::counts(scseq)
-  dgr.logs <- dgc_to_dgr(dgc.logs)
+  t.logs <- Matrix::t(dgc.logs)
 
   SingleCellExperiment::logcounts(scseq) <- NULL
   SingleCellExperiment::counts(scseq) <- NULL
 
   qs::qsave(scseq, file.path(dataset_dir, 'shell.qs'), preset = 'fast')
   qs::qsave(dgc.logs, file.path(dataset_dir, 'dgclogs.qs'), preset = 'fast')
-  qs::qsave(dgr.logs, file.path(dataset_dir, 'dgrlogs.qs'), preset = 'fast')
+  HDF5Array::writeTENxMatrix(t.logs, file.path(dataset_dir, 'tlogs.tenx'), group = 'mm10')
   qs::qsave(counts, file.path(dataset_dir, 'counts.qs'), preset = 'fast')
 }

@@ -1,3 +1,11 @@
+# dseqr 0.16.0
+* updated `scDblFinder` to 1.7.4
+* improved upload modal
+* support for all ensembl species
+* switch to `HDF5Array::TENxMatrix` for fast gene exploration without loading time
+* see [convert script](data-raw/convert/0.16.0.R) to update data generated with `[v0.15.0-0.16.0)`
+*
+
 # dseqr 0.15.0
 * Added `human_lung` reference from azimuth
 * can zoom plots with brush and double-click

@@ -156,7 +156,7 @@ FeaturePlot <- function(
 
   } else {
     fdata <- SingleCellExperiment::logcounts(object)
-    fdata <- frows(fdata, features)[, cells, drop = FALSE]
+    fdata <- fdata[features, cells, drop = FALSE]
     fdata <- t(as.matrix(fdata))
   }
 
