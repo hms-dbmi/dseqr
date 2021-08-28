@@ -20,7 +20,7 @@ load_scseq_subsets(
 \item{ident}{Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.}
 }
 \value{
-List of \code{DietSCE} objects.
+List of \code{SingleCellExperiment} objects.
 }
 \description{
 Sets orig.ident to \code{ident}.

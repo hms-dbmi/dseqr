@@ -7,7 +7,7 @@
 add_doublet_score(scseq)
 }
 \arguments{
-\item{scseq}{\code{DietSCE} object with \code{hvg} column in \code{rowData}
+\item{scseq}{\code{SingleCellExperiment} object with \code{hvg} column in \code{rowData}
 and \code{npcs} in \code{metadata} slot}
 }
 \value{

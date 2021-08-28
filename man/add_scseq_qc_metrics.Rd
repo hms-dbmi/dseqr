@@ -2,12 +2,12 @@
 % Please edit documentation in R/load_scseq.R
 \name{add_scseq_qc_metrics}
 \alias{add_scseq_qc_metrics}
-\title{Calculate QC metrics for DietSCE}
+\title{Calculate QC metrics for SingleCellExperiment}
 \usage{
 add_scseq_qc_metrics(sce, for_qcplots = FALSE)
 }
 \arguments{
-\item{sce}{\code{DietSCE}}
+\item{sce}{\code{SingleCellExperiment}}
 
 \item{for_qcplots}{Are the QC metrics being added for QC plots? Used by
 \link{load_raw_scseq}.}
@@ -16,5 +16,5 @@ add_scseq_qc_metrics(sce, for_qcplots = FALSE)
 \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 }
 \description{
-Calculate QC metrics for DietSCE
+Calculate QC metrics for SingleCellExperiment
 }

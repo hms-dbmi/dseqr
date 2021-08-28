@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{subset_saved_scseq}
 \alias{subset_saved_scseq}
-\title{Subset DietSCE}
+\title{Subset SingleCellExperiment}
 \usage{
 subset_saved_scseq(
   sc_dir,
@@ -39,6 +39,6 @@ subset_saved_scseq(
 TRUE is successful, otherwise FALSE
 }
 \description{
-Subset DietSCE
+Subset SingleCellExperiment
 }
 \keyword{internal}

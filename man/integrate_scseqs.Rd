@@ -13,7 +13,7 @@ integrate_scseqs(
 )
 }
 \arguments{
-\item{scseqs}{List of \code{DietSCE} objects}
+\item{scseqs}{List of \code{SingleCellExperiment} objects}
 
 \item{type}{One of \code{'harmony'} (default) or \code{'fastMNN'} specifying integration to use.}
 
@@ -23,7 +23,7 @@ samples. If not \code{NULL} (default), then harmony includes pairings
 as a covariate.}
 }
 \value{
-Integrated \code{DietSCE} object.
+Integrated \code{SingleCellExperiment} object.
 }
 \description{
 Integrate multiple scRNA-seq samples

@@ -7,7 +7,7 @@
 construct_pbulk_subsets(summed, method = "TMMwsp", ...)
 }
 \arguments{
-\item{summed}{Pseudobulk \code{DietSCE}}
+\item{summed}{Pseudobulk \code{SingleCellExperiment}}
 
 \item{...}{additional arguments to \link[edgeR]{filterByExpr}}
 }

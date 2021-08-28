@@ -7,7 +7,7 @@
 add_hvgs(sce, hvgs = NULL)
 }
 \arguments{
-\item{sce}{\code{DietSCE} object}
+\item{sce}{\code{SingleCellExperiment} object}
 }
 \description{
 Runs after \code{preprocess_scseq}

@@ -2,16 +2,16 @@
 % Please edit documentation in R/load_scseq.R
 \name{run_pca}
 \alias{run_pca}
-\title{Cluster DietSCE}
+\title{Cluster SingleCellExperiment}
 \usage{
 run_pca(sce)
 }
 \arguments{
-\item{sce}{\code{DietSCE}}
+\item{sce}{\code{SingleCellExperiment}}
 }
 \value{
 \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
 }
 \description{
-Cluster DietSCE
+Cluster SingleCellExperiment
 }

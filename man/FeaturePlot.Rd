@@ -33,7 +33,7 @@ FeaturePlot(
 )
 }
 \arguments{
-\item{object}{DietSCE object}
+\item{object}{SingleCellExperiment object}
 
 \item{features}{Vector of features to plot. Features can come from:
 \itemize{

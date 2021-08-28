@@ -7,7 +7,7 @@
 get_npc_choices(sce, type = "PCA")
 }
 \arguments{
-\item{sce}{\code{DietSCE}}
+\item{sce}{\code{SingleCellExperiement}}
 }
 \value{
 result of \code{scran::getClusteredPCs}

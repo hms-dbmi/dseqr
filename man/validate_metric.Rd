@@ -9,7 +9,7 @@ validate_metric(metric, scseq)
 \arguments{
 \item{metric}{String with custom metric to evaluate.}
 
-\item{scseq}{\code{DietSCE} to evaluate \code{metric} for.}
+\item{scseq}{\code{SingleCellExperiment} to evaluate \code{metric} for.}
 }
 \value{
 Either a data.frame is successful or a object with class 'try-error'.

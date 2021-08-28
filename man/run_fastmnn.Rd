@@ -11,10 +11,10 @@ run_fastmnn(logcounts, subset.row, scseqs)
 
 \item{subset.row}{A vector specifying which features to use for correction.}
 
-\item{scseqs}{list of \code{DietSCE} objects to integrate.}
+\item{scseqs}{list of \code{SingleCellExperiment} objects to integrate.}
 }
 \value{
-Integrated \code{DietSCE} with logcounts assay, corrected reducedDim, and batch annotation.
+Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDim, and batch annotation.
 }
 \description{
 Run fastMNN integration

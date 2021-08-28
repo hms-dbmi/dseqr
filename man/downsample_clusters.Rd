@@ -2,12 +2,12 @@
 % Please edit documentation in R/plot_scseq.R
 \name{downsample_clusters}
 \alias{downsample_clusters}
-\title{Downsample DietSCE clusters}
+\title{Downsample SingleCellExperiment clusters}
 \usage{
 downsample_clusters(scseq, max.cells = 200)
 }
 \arguments{
-\item{scseq}{DietSCE}
+\item{scseq}{SingleCellExperiment}
 
 \item{max.cells}{maximum number of cells in each \code{scseq$cluster}}
 }

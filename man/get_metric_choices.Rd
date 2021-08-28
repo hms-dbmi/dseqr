@@ -7,7 +7,7 @@
 get_metric_choices(scseq)
 }
 \arguments{
-\item{scseq}{\code{DietSCE}}
+\item{scseq}{\code{SingleCellExperiment}}
 }
 \value{
 data.frame

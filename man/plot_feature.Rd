@@ -15,7 +15,7 @@ plot_feature(
 )
 }
 \arguments{
-\item{scseq}{\code{DietSCE} object.}
+\item{scseq}{\code{SingleCellExperiment} object.}
 
 \item{feature}{Character vector specifying feature to colour cells by.}
 

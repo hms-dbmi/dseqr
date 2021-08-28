@@ -16,7 +16,7 @@ get_cluster_stats(
 \arguments{
 \item{resoln_dir}{Sub directory with single cell dataset info specific to resolution.}
 
-\item{scseq}{\code{DietSCE} object to get/save stats for.
+\item{scseq}{\code{SingleCellExperiment} object to get/save stats for.
 if \code{NULL} (Default), will be loaded.}
 
 \item{top_tables}{List of \code{limma::topTable} results used by

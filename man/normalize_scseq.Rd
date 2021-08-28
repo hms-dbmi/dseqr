@@ -7,7 +7,7 @@
 normalize_scseq(scseq)
 }
 \arguments{
-\item{scseq}{\code{DietSCE} object}
+\item{scseq}{\code{SingleCellExperiment} object}
 }
 \value{
 Normalized and log transformed \code{scseq}.
