@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.17.2
+Version: 0.17.3
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
@@ -24,7 +24,6 @@ SystemRequirements:
 Imports:
     AnnotationDbi (>= 1.48.0),
     Biobase (>= 2.46.0),
-    BiocParallel,
     batchelor (>= 1.3.9),
     crossmeta,
     cowplot,
@@ -33,7 +32,6 @@ Imports:
     dplyr (>= 0.8.3),
     DT (>= 0.11),
     DropletUtils(>= 1.6.1),
-    doParallel (>= 1.0.15),
     data.table (>= 1.12.8),
     dtangle (>= 2.0.9),
     dseqr.data,
@@ -50,8 +48,6 @@ Imports:
     harmony (>= 1.0),
     igraph (>= 1.2.4.2),
     limma (>= 3.40.2),
-    org.Hs.eg.db (>= 3.10.0),
-    org.Mm.eg.db (>= 3.10.0),
     magrittr (>= 1.5),
     Matrix.utils (>= 0.9.7),
     Matrix,
@@ -61,7 +57,6 @@ Imports:
     rlang (>= 0.4.3),
     rintrojs (>= 0.2.2),
     RColorBrewer,
-    Rtsne,
     scDblFinder,
     Seurat,
     shiny (>= 1.4.0),

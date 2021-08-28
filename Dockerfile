@@ -18,12 +18,14 @@ wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src/dseqr
 
-# install dseqr dependencies from renv.lock file
-RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.14.0')"
-
 # sets cache location for renv
 ENV RENV_PATHS_ROOT=/src/.cache/R/renv
+
+# install dseqr dependencies from renv.lock file
+RUN touch /src/dseqr/.Renviron && \
+    echo "RENV_PATHS_ROOT = $RENV_PATHS_ROOT" > /src/dseqr/.Renviron && \
+    R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
+    R -e "remotes::install_github('rstudio/renv@0.14.0')"
 
 # initial lockfile: sync periodically
 COPY ./renv.lock.init .
@@ -33,7 +35,10 @@ RUN R -e 'renv::restore(lockfile="renv.lock.init")'
 COPY ./renv.lock .
 RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
 
-RUN rm -rf $RENV_PATHS_ROOT/source
+# move packages to system library and clear out renv
+RUN mv /src/.cache/R/renv/cache/v5/R-4.0/x86_64-pc-linux-gnu/* /usr/local/lib/R/library/ && \
+    rm -rf /src && \
+    mkdir -p /src/dseqr
 
 # Download miniconda and kallisto/bustools
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O /src/miniconda.sh && \
@@ -55,17 +60,19 @@ COPY R/* R/
 
 # -------
 FROM rhub/r-minimal:4.0.5
-
-COPY --from=0 /src/* /src/
 WORKDIR /src/dseqr
 
-# set tmp directory on EFS (for file uploads)
-ENV TMP_DIR=/srv/dseqr/tmp
+# get source code and R packages
+COPY --from=0 /src /src
+COPY --from=0 /usr/local/lib/R/library /usr/local/lib/R/library/
+
+# set cache location for renv & add miniconda to PATH
+ENV TMP_DIR=/srv/dseqr/tmp PATH="/src/miniconda/bin:$PATH"
+RUN mkdir -p $TMP_DIR && \
+    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
 # install dseqr last as will have to redo often
-RUN R -e "renv::install('hms-dbmi/dseqr@0.17.2')" && \
-    mkdir -p $TMP_DIR && \
-    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
+RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.17.3', dependencies = FALSE, upgrade = FALSE)"
 
 # docker build -t alexvpickering/dseqr:latest .
 # docker push alexvpickering/dseqr

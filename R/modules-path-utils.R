@@ -305,7 +305,12 @@ get_genego <- function(species = 'Hs', gs_dir = NULL) {
 
   } else {
     orgPkg <- paste0("org.",species,".eg.db")
-    require(orgPkg, character.only = TRUE, quietly = TRUE)
+    pkg.exists <- require(orgPkg, character.only = TRUE, quietly = TRUE)
+
+    if (!pkg.exists) {
+      BiocManager::install(orgPkg, update = FALSE)
+      require(orgPkg, character.only = TRUE, quietly = TRUE)
+    }
 
     #	Get access to package of GO terms
     suppressPackageStartupMessages(OK <- requireNamespace("GO.db",quietly=TRUE))
