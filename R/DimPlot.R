@@ -4,7 +4,7 @@
 #' cell and it's positioned based on the cell embeddings determined by the reduction technique. By
 #' default, cells are colored by their identity class (can be changed with the group.by parameter).
 #'
-#' @param object DietSCE object
+#' @param object SingleCellExperiment object
 #' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
 #' @param cells Vector of cells to plot (default is all cells)
 #' @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
@@ -82,6 +82,7 @@ DimPlot <- function(
   ...
 ) {
 
+
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -91,9 +92,9 @@ DimPlot <- function(
 
   if (is.null(data)) {
     cells <- cells %||% colnames(x = object)
-    data <- reducedDim(object, reduction)
+    data <- SingleCellExperiment::reducedDim(object, reduction)
     data <- as.data.frame(x = data)
-    groups <- colData(object)[cells, group.by]
+    groups <- SummarizedExperiment::colData(object)[cells, group.by]
   } else {
     cells <- row.names(data)
     groups <- data[cells, group.by]
