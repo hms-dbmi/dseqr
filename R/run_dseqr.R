@@ -55,15 +55,16 @@ run_dseqr <- function(app_name,
   if (!dir.exists(user_dir)) init_dseqr(app_name, data_dir)
 
   # pass arguments to app through options then run
-  shinyOptions(data_dir = normalizePath(user_dir),
-               pert_query_dir = normalizePath(pert_query_dir),
-               pert_signature_dir = normalizePath(pert_signature_dir),
-               gs_dir = normalizePath(gs_dir),
-               indices_dir = normalizePath(indices_dir),
-               tx2gene_dir = normalizePath(tx2gene_dir),
-               tabs = tabs,
-               logout_url = logout_url,
-               is_example = is_example)
+  shiny::shinyOptions(
+    data_dir = normalizePath(user_dir),
+    pert_query_dir = normalizePath(pert_query_dir),
+    pert_signature_dir = normalizePath(pert_signature_dir),
+    gs_dir = normalizePath(gs_dir),
+    indices_dir = normalizePath(indices_dir),
+    tx2gene_dir = normalizePath(tx2gene_dir),
+    tabs = tabs,
+    logout_url = logout_url,
+    is_example = is_example)
 
 
   if (test) {
@@ -85,7 +86,7 @@ run_dseqr <- function(app_name,
 
   # auto-reload if update app files
   if (!is_aws) options(shiny.autoreload = TRUE)
-  runApp(app_dir, launch.browser = TRUE, host = host, port = port)
+  shiny::runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 
 

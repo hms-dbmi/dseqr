@@ -1,9 +1,8 @@
 dseqr_path <- find.package('dseqr')
-invisible({
-    lazyLoad(file.path(find.package('SingleCellExperiment'), 'R/SingleCellExperiment'))
-    lazyLoad(file.path(dseqr_path, 'R/dseqr'))
-    lazyLoad(file.path(dseqr_path, 'R/sysdata'))
-})
+
+lazyLoad(file.path(dseqr_path, 'R/dseqr'))
+lazyLoad(file.path(dseqr_path, 'R/sysdata'))
+
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -15,4 +14,13 @@ message('app_name: ', app_name)
 message('is_example: ', is_example)
 message('logout_url: ', logout_url)
 
-run_dseqr(app_name, logout_url = logout_url, is_example = is_example)
+run_dseqr(app_name,
+          app_dir = 'inst/app',
+          data_dir = '~/patient_data',
+          pert_query_dir = '~/dseqr/pert_query_dir',
+          pert_signature_dir = '~/dseqr/pert_signature_dir',
+          gs_dir = '~/dseqr/gs_dir',
+          indices_dir = '~/dseqr/indices',
+          tx2gene_dir = '~/dseqr/tx2gene',
+          logout_url = logout_url,
+          is_example = is_example)
