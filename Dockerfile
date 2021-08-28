@@ -57,6 +57,7 @@ echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 RUN R -e "remotes::install_github('hms-dbmi/dseqr', ref='try-lazy-sce', dependencies = FALSE, upgrade = FALSE)"
 
 COPY inst/run.R .
+COPY R/* R/
 
 # docker build -t alexvpickering/dseqr:latest .
 # docker push alexvpickering/dseqr

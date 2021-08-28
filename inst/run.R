@@ -1,8 +1,6 @@
-dseqr_path <- find.package('dseqr')
 
-lazyLoad(file.path(dseqr_path, 'R/dseqr'))
-lazyLoad(file.path(dseqr_path, 'R/sysdata'))
-
+for (f in list.files('R', '.R$', full.names = TRUE)) source(f)
+load('R/sysdata.rda')
 
 args <- commandArgs(trailingOnly = TRUE)
 
