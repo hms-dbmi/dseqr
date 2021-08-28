@@ -123,6 +123,19 @@ server <- function(input, output, session) {
         remove_sc <- reactive(input$remove_dataset)
     }
 
+    values <- reactiveValues(finished.init = FALSE)
+
+    session$onFlushed(function() {
+        message("session flushed")
+        values$finished.init <- TRUE
+    })
+
+    observe({
+        req(values$finished.init)
+        message("loading SCE")
+        suppressPackageStartupMessages(require(SingleCellExperiment))
+    })
+
 
     scPage <- callModule(scPage, 'sc',
                          sc_dir = sc_dir,

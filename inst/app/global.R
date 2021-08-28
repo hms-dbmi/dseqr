@@ -8,12 +8,7 @@ suppressPackageStartupMessages({
   library(rlang)
   library(shinypanel)
   library(magrittr)
-  dseqr_path <- find.package('dseqr')
-  lazyLoad(file.path(dseqr_path, 'R/dseqr'))
-  lazyLoad(file.path(dseqr_path, 'R/sysdata'))
 })
-
-
 
 # setup Drugs table annotation
 # variable get updated when they are first needed
