@@ -607,7 +607,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     if (!file.exists(summed_path)){
       # need counts to aggregate
       scseq <- scseq()
-      counts(scseq) <- counts()
+      SingleCellExperiment::counts(scseq) <- counts()
       grid <- get_grid(scseq)
 
       scseq$cluster <- factor(grid$cluster)
@@ -1289,7 +1289,7 @@ clusterPlots <- function(plots_dir, scseq, h5logs) {
     scseq <- scseq()
     h5logs <- h5logs()
     if (is.null(scseq) | is.null(h5logs)) return(NULL)
-    logcounts(scseq) <- h5logs
+    SingleCellExperiment::logcounts(scseq) <- h5logs
     return(scseq)
   })
 
@@ -2378,8 +2378,8 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     scseq <- scseq()
     # need counts for pseudobulk
     # need dgclogs for scseq sample (for label transfer)
-    counts(scseq) <- counts()
-    logcounts(scseq) <- dgclogs()
+    SingleCellExperiment::counts(scseq) <- counts()
+    SingleCellExperiment::logcounts(scseq) <- dgclogs()
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters
@@ -3032,13 +3032,12 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
 
-    logcounts(scseq) <- h5logs()
+    SingleCellExperiment::logcounts(scseq) <- h5logs()
 
     if (metric %in% exist_metric_names()) {
       selected_gene(metric)
       return(NULL)
     }
-    validate_metric(metric, scseq)
 
     res <- suppressWarnings(validate_metric(metric, scseq))
     res.na <- all(is.na(res[[1]]))
@@ -3089,7 +3088,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   scseq_genes <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
-    bio <- rowData(scseq)$bio
+    bio <- SummarizedExperiment::rowData(scseq)$bio
     ord <- order(bio, decreasing = TRUE)
 
     data.frame(row.names = row.names(scseq)[ord])

@@ -20,7 +20,7 @@ detect_cells <- function(counts, qcgenes) {
 
 #' Run quality control for single-cell dataset
 #'
-#' @param sce \code{DietSCE}.
+#' @param sce \code{SingleCellExperiment}.
 #' @param metrics Character vector of metrics to remove outliers for.
 #'
 #' @return \code{sce} with outliers removed.

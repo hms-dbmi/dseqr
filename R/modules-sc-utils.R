@@ -67,14 +67,14 @@ validate_preds <- function(preds, sc_dir) {
 
 #' Run differential abundance analysis
 #'
-#' @param obj \code{DietSCE} or count matrix
+#' @param obj \code{SingleCellExperiment} or count matrix
 #' @param orig.ident factor of group identities with length \code{ncol(obj)}
 #'
 #'
 #' @keywords internal
 diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, filter = TRUE) {
 
-  if (is(obj, 'DietSCE')) {
+  if (is(obj, 'SingleCellExperiment')) {
     abundances <- table(obj$cluster, obj$batch)
     abundances <- unclass(abundances)
     row.names(abundances) <- annot
@@ -379,7 +379,7 @@ get_exclude_dirs <- function(sc_dir) {
 
 #' Get choices data.frame for custom metrics (for subsetting)
 #'
-#' @param scseq \code{DietSCE}
+#' @param scseq \code{SingleCellExperiment}
 #'
 #' @return data.frame
 #' @keywords internal
@@ -412,7 +412,7 @@ get_metric_choices <- function(scseq) {
 #' Validate a custom metric
 #'
 #' @param metric String with custom metric to evaluate.
-#' @param scseq \code{DietSCE} to evaluate \code{metric} for.
+#' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
 #'
 #' @return Either a data.frame is successful or a object with class 'try-error'.
 #'
@@ -452,7 +452,7 @@ get_metric_features <- function(metric) {
 #' Evaluate custom single-cell metric
 #'
 #' @param metric String with metric to evaluate
-#' @param scseq \code{DietSCE} to evaluate \code{metric} for.
+#' @param scseq \code{SingleCellExperiment} to evaluate \code{metric} for.
 #'
 #' @return data.frame with column name \code{metric} and result.
 #'
@@ -461,7 +461,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   ft <- get_metric_features(metric)
 
   # make sure will run
-  expr <- logcounts(scseq)
+  expr <- SingleCellExperiment::logcounts(scseq)
   genes <- row.names(expr)[row.names(expr) %in% ft]
 
   if (length(genes)) {
@@ -541,7 +541,7 @@ html_space <- function(x, justify = 'right') {
 #' Get/Save cluster stats for single-cell related selectizeInputs
 #'
 #' @param resoln_dir Sub directory with single cell dataset info specific to resolution.
-#' @param scseq \code{DietSCE} object to get/save stats for.
+#' @param scseq \code{SingleCellExperiment} object to get/save stats for.
 #'   if \code{NULL} (Default), will be loaded.
 #' @param top_tables List of \code{limma::topTable} results used by
 #'   scSampleComparison for integrated datasets.
@@ -825,7 +825,7 @@ validate_up_meta <- function(res, ref) {
 }
 
 
-#' Integrate previously saved DietSCEs
+#' Integrate previously saved SingleCellExperiments
 #'
 #' Performs integration and saves as a new analysis.
 #' Used by \code{explore_scseq_clusters} shiny app.
@@ -961,9 +961,9 @@ integrate_saved_scseqs <- function(
   return(TRUE)
 }
 
-#' Post-Cluster Processing of DietSCE
+#' Post-Cluster Processing of SingleCellExperiment
 #'
-#' @param scseq DietSCE
+#' @param scseq SingleCellExperiment
 #' @param resoln resolution parameter
 #' @param integrated is \code{scseq} integrated?
 #' @param progress progress
@@ -1001,7 +1001,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 
 
 aggregate_across_cells <- function(scseq) {
-  counts_mat <- counts(scseq)
+  counts_mat <- SingleCellExperiment::counts(scseq)
   batch <- scseq$batch
   cluster <- scseq$cluster
   y <- paste(cluster, batch, sep='_')
@@ -1013,13 +1013,13 @@ aggregate_across_cells <- function(scseq) {
 
   # setup colData
   dup.y <- duplicated(y)
-  cdata <- data.frame(
+  cdata <- S4Vectors::DataFrame(
     cluster = cluster[!dup.y],
     batch = batch[!dup.y])
 
-  sce <- DietSCE(
+  sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = agg),
-    rowData = rowData(scseq),
+    rowData = SingleCellExperiment::rowData(scseq),
     colData = cdata
   )
 
@@ -1065,7 +1065,7 @@ run_integrate_saved_scseqs <- function( sc_dir,
 }
 
 
-#' Subset DietSCE
+#' Subset SingleCellExperiment
 #'
 #' @param sc_dir Directory with saved single-cell datasets.
 #' @param founder Name of original founding dataset (may be ancestor of \code{from_dataset}).
@@ -1145,7 +1145,7 @@ subset_saved_scseq <- function(sc_dir,
     args$date <- Sys.time()
 
     # remove previous reduction
-    reducedDims(scseq) <- NULL
+    SingleCellExperiment::reducedDims(scseq) <- NULL
 
 
     process_raw_scseq(scseq,
@@ -1176,8 +1176,8 @@ split_scseq <- function(scseq) {
 
     # store ambience for sample
     amb_col <- paste0(dataset_name, '_ambience')
-    ambience <- rowData(scseqi)[[amb_col]]
-    rowData(scseqi)$ambience <- ambience
+    ambience <- SummarizedExperiment::rowData(scseqi)[[amb_col]]
+    SummarizedExperiment::rowData(scseqi)$ambience <- ambience
 
     scseqs[[dataset_name]] <- scseqi
   }
@@ -1223,10 +1223,10 @@ save_scseq_args <- function(args, dataset_name, sc_dir) {
                        pretty = TRUE)
 }
 
-#' Add QC metrics to integrated DietSCE
+#' Add QC metrics to integrated SingleCellExperiment
 #'
-#' @param combined Integrated \code{DietSCE}
-#' @param scseqs list of \code{DietSCE}s used to create \code{combined}
+#' @param combined Integrated \code{SingleCellExperiment}
+#' @param scseqs list of \code{SingleCellExperiment}s used to create \code{combined}
 #'
 #' @return \code{combined} with QC metrics from \code{scseqs} added
 #'
@@ -1251,10 +1251,10 @@ add_combined_ambience <- function(combined, scseqs) {
   for (sample in samples) {
     col <- paste0(sample, '_ambience')
     sce <- scseqs[[sample]]
-    rdata <- rowData(sce[genes, ])
+    rdata <- SingleCellExperiment::rowData(sce[genes, ])
     # legacy calculated pct_ambient from droplets < 10
     scol <- ifelse('ambience' %in% colnames(rdata), 'ambience', 'pct_ambient')
-    rowData(combined)[[col]] <- rdata[[scol]]
+    SummarizedExperiment::rowData(combined)[[col]] <- rdata[[scol]]
   }
 
   return(combined)
@@ -1269,7 +1269,7 @@ add_combined_ambience <- function(combined, scseqs) {
 #' @param sc_dir The directory with single-cell datasets
 #' @param ident Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.
 #'
-#' @return List of \code{DietSCE} objects.
+#' @return List of \code{SingleCellExperiment} objects.
 #'
 #' @keywords internal
 load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_include = NULL, ...) {
@@ -1371,13 +1371,13 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   return(NULL)
 }
 
-#' Load DietSCE from qs file
+#' Load SingleCellExperiment from qs file
 #'
 #' Also attaches clusters from last applied leiden resolution and stores resolution.
 #'
 #' @param dataset_dir Path to folder with scseq.qs file
 #'
-#' @return DietSCE
+#' @return SingleCellExperiment
 #' @keywords internal
 #'
 load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = FALSE, with_counts = FALSE) {
@@ -1387,12 +1387,12 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
 
   if (with_logs) {
     dgclogs <- qs::qread(file.path(dataset_dir, 'dgclogs.qs'))
-    logcounts(scseq) <- dgclogs
+    SingleCellExperiment::logcounts(scseq) <- dgclogs
   }
 
   if (with_counts) {
     counts <- qs::qread(file.path(dataset_dir, 'counts.qs'))
-    counts(scseq) <- counts
+    SingleCellExperiment::counts(scseq) <- counts
   }
 
   resoln_name <- load_resoln(dataset_dir)
@@ -1693,7 +1693,7 @@ load_resoln <- function(dataset_dir) {
 #' @param species species name used to retrieve feature annotation.
 #' @param dataset_name name of dataset (default NULL). Used as return value if \code{summed} is \code{NULL}.
 #' @param summed_path path to read \code{summed} from with \code{qs::qread}.
-#' @param summed pseudobulk \code{DietSCE}. If \code{NULL}, \code{summed_path} must be supplied
+#' @param summed pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
 #'   and the call is assumed to originate from \code{callr::r_bg}.
 #' @param progress progress object or \code{NULL}.
 #' @param ... additional arguments to \link[edgeR]{filterByExpr}.
@@ -1799,13 +1799,13 @@ quickVoomWithQualityWeights <- function (y, mod, lib.size) {
 
 
 get_grid <- function(scseq) {
-  reds <- reducedDimNames(scseq)
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
   if (red == 'UMAP') nx=120; ny=60
   if (red == 'TSNE') nx=100; ny=50
 
-  red.mat <- reducedDim(scseq, red)
+  red.mat <- SingleCellExperiment::reducedDim(scseq, red)
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
 
   # create grid
@@ -1829,12 +1829,12 @@ get_grid <- function(scseq) {
 
 split_save_scseq <- function(scseq, dataset_dir) {
   # save as seperate parts
-  dgc.logs <- logcounts(scseq)
-  counts <- counts(scseq)
+  dgc.logs <- SingleCellExperiment::logcounts(scseq)
+  counts <- SingleCellExperiment::counts(scseq)
   t.logs <- Matrix::t(dgc.logs)
 
-  logcounts(scseq) <- NULL
-  counts(scseq) <- NULL
+  SingleCellExperiment::logcounts(scseq) <- NULL
+  SingleCellExperiment::counts(scseq) <- NULL
 
   qs::qsave(scseq, file.path(dataset_dir, 'shell.qs'), preset = 'fast')
   qs::qsave(dgc.logs, file.path(dataset_dir, 'dgclogs.qs'), preset = 'fast')

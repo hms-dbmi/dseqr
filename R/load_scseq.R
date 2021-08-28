@@ -92,7 +92,7 @@ run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir
 
 #' Process Count Data for App
 #'
-#' @param scseq \code{DietSCE}
+#' @param scseq \code{SingleCellExperiment}
 #' @param dataset_name Name of dataset to save
 #' @param sc_dir Directory to save dataset to
 #' @param progress Shiny progress object. Default (\code{NULL}) prints to stdout.
@@ -177,7 +177,7 @@ transfer_azimuth <- function(azres, scseq, resoln) {
 
   proj <- do.call(rbind, projs)
   type <- gsub('1$', '', colnames(proj)[1])
-  reducedDim(scseq, type) <- proj
+  SingleCellExperiment::reducedDim(scseq, type) <- proj
 
   get_meta <- function(l, m) unlist(lapply(l, function(x) x@meta.data[[m]]), use.names = FALSE)
 
@@ -236,7 +236,7 @@ run_azimuth <- function(scseqs, azimuth_ref) {
   for (ds in names(scseqs)) {
 
     scseq <- scseqs[[ds]]
-    counts <- counts(scseq)
+    counts <- SingleCellExperiment::counts(scseq)
     query <- Seurat::CreateSeuratObject(counts = counts,
                                         min.cells = 1, min.features = 1)
 
@@ -367,13 +367,13 @@ save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
 
 
 
-#' Load kallisto/bustools quantification into a DietSCE object.
+#' Load kallisto/bustools quantification into a SingleCellExperiment object.
 #'
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
 #' @param project String identifying sample.
 #' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.
 #'
-#' @return \code{DietSCE} object with empty droplets removed and ambient outliers recorded.
+#' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @export
 #'
 create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'cellranger')) {
@@ -407,15 +407,15 @@ create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'c
   } else {
     ambience <- DropletUtils::estimateAmbience(counts, good.turing = FALSE, round = FALSE)
     keep_cells <- detect_cells(counts, qcgenes)
-    rowData <- data.frame(ambience)
+    rowData <- S4Vectors::DataFrame(ambience)
   }
 
   project <- rep(project, length(keep_cells))
 
   # add ambience metadata for genes
-  colData <- data.frame(project = project, batch = project)
+  colData <- S4Vectors::DataFrame(project = project, batch = project)
 
-  sce <- DietSCE(
+  sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = counts[, keep_cells]),
     colData = colData,
     rowData = rowData
@@ -923,7 +923,7 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens', tx2gene = NULL) {
 #' Utility wrapper to run normalization and log transformation
 #'
 #'
-#' @param scseq \code{DietSCE} object
+#' @param scseq \code{SingleCellExperiment} object
 #'
 #' @return Normalized and log transformed \code{scseq}.
 #' @export
@@ -941,25 +941,25 @@ normalize_scseq <- function(scseq) {
 #'
 #' Runs after \code{preprocess_scseq}
 #'
-#' @param sce \code{DietSCE} object
+#' @param sce \code{SingleCellExperiment} object
 #'
 #' @export
 add_hvgs <- function(sce, hvgs = NULL) {
 
   if (is.null(hvgs)) {
     dec <- scran::modelGeneVar(sce)
-    rowData(sce)$bio <- dec$bio
+    SummarizedExperiment::rowData(sce)$bio <- dec$bio
     hvgs <- scran::getTopHVGs(dec, prop=0.1)
   }
 
-  rowData(sce)$hvg <- row.names(sce) %in% hvgs
+  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
   return(sce)
 }
 
 
 #' Run TSNE or UMAP
 #'
-#' @param sce \code{DietSCE}
+#' @param sce \code{SingleCellExperiment}
 #' @param dimred reducedDim to run TSNE or UMAP on
 #'
 #' @return \code{sce} with \code{'TSNE'} or \code{'UMAP'} \code{reducedDim}
@@ -979,7 +979,7 @@ run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA')
     sce <- scater::runUMAP(sce, dimred = dimred, n_dimred = sce@metadata$npcs, min_dist=0.3)
 
   }
-  colnames(reducedDim(sce, type)) <- paste0(type, 1:2)
+  colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, 1:2)
   return(sce)
 }
 
@@ -991,7 +991,8 @@ run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA')
 #'
 #' Used to pick number of PCs to retain
 #'
-#' @param sce \code{DietSCE}
+#' @param sce \code{SingleCellExperiement}
+#' @inheritParams SingleCellExperiment::reducedDim
 #'
 #' @return result of \code{scran::getClusteredPCs}
 #' @keywords internal
@@ -1008,13 +1009,13 @@ get_npc_choices <- function(sce, type = 'PCA') {
     cluster_fun(g)$membership
   }
 
-  pcs <- reducedDim(sce, type = type)
+  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
   pcs <- pcs[, utils::head(seq_len(ncol(pcs)), 50)]
 
   choices <- scran::getClusteredPCs(pcs, FUN = FUN, by=2)
   names(choices$clusters) <- choices$n.pcs
 
-  npcs <- choices@metadata$chosen
+  npcs <- S4Vectors::metadata(choices)$chosen
   cluster <- factor(choices$clusters[[as.character(npcs)]])
 
 
@@ -1023,11 +1024,11 @@ get_npc_choices <- function(sce, type = 'PCA') {
 
 
 get_snn_graph <- function(sce, npcs = 30) {
-  types <- reducedDimNames(sce)
+  types <- SingleCellExperiment::reducedDimNames(sce)
   type <- ifelse('corrected' %in% types, 'corrected', 'PCA')
 
   # walktrap very slow if too many cells
-  pcs <- reducedDim(sce, type = type)
+  pcs <- SingleCellExperiment::reducedDim(sce, type = type)
   pcs <- pcs[, utils::head(seq_len(ncol(pcs)), npcs)]
   g <- scran::buildSNNGraph(pcs, transposed = TRUE)
   return(g)
@@ -1046,16 +1047,16 @@ get_clusters <- function(snn_graph, type = c('leiden', 'walktrap'), resolution =
   return(factor(cluster))
 }
 
-#' Cluster DietSCE
+#' Cluster SingleCellExperiment
 #'
-#' @param sce \code{DietSCE}
+#' @param sce \code{SingleCellExperiment}
 #'
 #' @return \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
 #' @export
 run_pca <- function(sce) {
 
   # run PCA on HVGs
-  rdata <- rowData(sce)
+  rdata <- SummarizedExperiment::rowData(sce)
   subset_row <- row.names(rdata[rdata$hvg, ])
 
   set.seed(100)
@@ -1066,7 +1067,7 @@ run_pca <- function(sce) {
 
 #' Calculate doublet score for each cell
 #'
-#' @param scseq \code{DietSCE} object with \code{hvg} column in \code{rowData}
+#' @param scseq \code{SingleCellExperiment} object with \code{hvg} column in \code{rowData}
 #'   and \code{npcs} in \code{metadata} slot
 #'
 #' @return \code{scseq} with column \code{doublet_score} added to \code{colData}.
@@ -1074,7 +1075,7 @@ run_pca <- function(sce) {
 #' @keywords internal
 add_doublet_score <- function(scseq) {
 
-  hvgs <- rowData(scseq)$hvg
+  hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
   # TODO: make sure > 200 counts
@@ -1091,9 +1092,9 @@ add_doublet_score <- function(scseq) {
 
 
 
-#' Calculate QC metrics for DietSCE
+#' Calculate QC metrics for SingleCellExperiment
 #'
-#' @param sce \code{DietSCE}
+#' @param sce \code{SingleCellExperiment}
 #' @param for_qcplots Are the QC metrics being added for QC plots? Used by
 #' \link{load_raw_scseq}.
 #'
@@ -1109,9 +1110,9 @@ add_scseq_qc_metrics <- function(sce, for_qcplots = FALSE) {
   return(sce)
 }
 
-#' Add QC metrics to DietSCE for plotting
+#' Add QC metrics to SingleCellExperiment for plotting
 #'
-#' @param sce \code{DietSCE}
+#' @param sce \code{SingleCellExperiment}
 #'
 #' @return \code{sce} with formated qc metrics.
 add_scseq_qcplot_metrics <- function(sce) {
@@ -1127,7 +1128,7 @@ add_scseq_qcplot_metrics <- function(sce) {
 
 #' Get cluster markers using presto
 #'
-#' @param scseq DietSCE object
+#' @param scseq SingleCellExperiment object
 #'
 #' @return list of data.frames, one for each cluster
 #' @export
@@ -1160,9 +1161,9 @@ get_presto_markers <- function(scseq) {
 #'
 #' @param logcounts dgCMatrix of logcounts.
 #' @inheritParams  batchelor::fastMNN
-#' @param scseqs list of \code{DietSCE} objects to integrate.
+#' @param scseqs list of \code{SingleCellExperiment} objects to integrate.
 #'
-#' @return Integrated \code{DietSCE} with logcounts assay, corrected reducedDim, and batch annotation.
+#' @return Integrated \code{SingleCellExperiment} with logcounts assay, corrected reducedDim, and batch annotation.
 #' @keywords internal
 run_fastmnn <- function(logcounts, subset.row, scseqs) {
 
@@ -1179,11 +1180,11 @@ run_fastmnn <- function(logcounts, subset.row, scseqs) {
   cor.out <- do.call(mnn.fun, scseqs) ; gc()
 
   # store merged (batch normalized) for DE
-  assay(cor.out, 'logcounts') <- logcounts
+  SummarizedExperiment::assay(cor.out, 'logcounts') <- logcounts
 
   # remove things that dont use (bloats loom object)
-  assay(cor.out, 'reconstructed') <- NULL
-  rowData(cor.out)$rotation <- NULL
+  SummarizedExperiment::assay(cor.out, 'reconstructed') <- NULL
+  SummarizedExperiment::rowData(cor.out)$rotation <- NULL
 
   return(cor.out)
 }
@@ -1212,10 +1213,10 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
   pcs <- scater::calculatePCA(logcounts, subset_row = subset_row)
   emb <- harmony::HarmonyMatrix(pcs, meta_data, vars_use, do_pca = FALSE, max.iter.harmony = 40)
 
-  cor.out <- DietSCE(
+  cor.out <- SingleCellExperiment::SingleCellExperiment(
     assays = list(logcounts = logcounts),
     reducedDims = list(corrected = emb),
-    colData =  data.frame(batch = batch))
+    colData =  S4Vectors::DataFrame(batch = batch))
 
   return(cor.out)
 }
@@ -1224,14 +1225,14 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 
 #' Integrate multiple scRNA-seq samples
 #'
-#' @param scseqs List of \code{DietSCE} objects
+#' @param scseqs List of \code{SingleCellExperiment} objects
 #' @param type One of \code{'harmony'} (default) or \code{'fastMNN'} specifying integration to use.
 #' @param pairs data.frame with columns \code{'sample'} with sample
 #'   names of \code{scseqs} and \code{'pair'} with integers indicating paired
 #'   samples. If not \code{NULL} (default), then harmony includes pairings
 #'   as a covariate.
 #'
-#' @return Integrated \code{DietSCE} object.
+#' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
 integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), pairs = NULL, hvgs = NULL, azimuth_ref = NULL) {
 
@@ -1256,7 +1257,7 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
   # integration
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
-  logcounts <- assay(combined, 'merged')
+  logcounts <- SummarizedExperiment::assay(combined, 'merged')
   gc()
 
   if (type[1] == 'harmony') {
@@ -1272,20 +1273,20 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
     rm(azres); gc()
 
     # re-name merged to logcounts
-    assayNames(cor.out) <- 'logcounts'
+    SummarizedExperiment::assayNames(cor.out) <- 'logcounts'
 
     # corrected is used to check if integrated
-    reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
+    SingleCellExperiment::reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
   }
 
   # bio is used for sorting markers when no cluster selected
-  rowData(cor.out)$bio <- decs$bio
+  SummarizedExperiment::rowData(cor.out)$bio <- decs$bio
 
   rm(combined); gc()
 
   # get counts for pseudobulk
   counts <- do.call(no_correct('counts'), scseqs)
-  assay(cor.out, 'counts') <- assay(counts, 'merged')
+  SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
   rm(counts, scseqs); gc()
 
   return(cor.out)
@@ -1304,14 +1305,14 @@ get_azimuth_resoln <- function(azimuth_ref) {
 
 #' Get genes that are ambient in at least one test and control sample
 #'
-#' @param scseqs List of \code{DietSCE} objects.
+#' @param scseqs List of \code{SingleCellExperiment} objects.
 #'
 #' @return List with test and control ambient genes
 #' @keywords internal
 get_ambience <- function(combined) {
 
   # ambient call for each gene in each cluster
-  ambience <- rowData(combined)
+  ambience <- SummarizedExperiment::rowData(combined)
   ambience <- ambience[, grepl('ambience$', colnames(ambience)), drop=FALSE]
   ambience <- as.matrix(ambience)
 
@@ -1320,7 +1321,7 @@ get_ambience <- function(combined) {
 }
 
 calc_cluster_ambience <- function(summed, ambience, clus) {
-  counts <- counts(summed)
+  counts <- SingleCellExperiment::counts(summed)
   counts <- counts[, summed$cluster == clus]
   if (ncol(counts) != ncol(ambience)) return(NULL)
   amb <- DropletUtils::maximumAmbience(counts, ambience, mode = 'proportion')
@@ -1343,8 +1344,8 @@ calc_cluster_ambience <- function(summed, ambience, clus) {
 add_integrated_ambient <- function(combined, ambient) {
 
   genes <- row.names(combined)
-  rowData(combined)$test_ambient <- genes %in% ambient$test
-  rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
+  SummarizedExperiment::rowData(combined)$test_ambient <- genes %in% ambient$test
+  SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
 
   return(combined)
 }

@@ -148,14 +148,14 @@ FeaturePlot <- function(
   # Get plotting data
   colnames(object) <- make.unique(colnames(object))
   cells <- cells %||% colnames(x = object)
-  rdata <- reducedDim(object, reduction)[cells, dims]
+  rdata <- SingleCellExperiment::reducedDim(object, reduction)[cells, dims]
 
   # first try cell annotations then genes
   if (features %in% colnames(object@colData)) {
     fdata <- object@colData[cells, features, drop = FALSE]
 
   } else {
-    fdata <- logcounts(object)
+    fdata <- SingleCellExperiment::logcounts(object)
     fdata <- fdata[features, cells, drop = FALSE]
     fdata <- t(as.matrix(fdata))
   }
