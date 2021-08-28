@@ -628,8 +628,12 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     if (is.null(groups)) return(NULL)
     if (length(groups) != 2) return(NULL)
 
+    # make sure meta is current
+    meta <- up_meta()
+    if (!all(groups %in% meta$group)) return(NULL)
+
     # add hash using uploaded metadata & groups to detect changes
-    tohash <- list(meta = up_meta(), groups = groups)
+    tohash <- list(meta = meta, groups = groups)
     meta_hash <- digest::digest(tohash, algo = 'murmur32')
     fit_file <- paste0('lm_fit_0svs_', meta_hash, '.qs')
     fit_path <- file.path(resoln_dir, fit_file)
@@ -638,13 +642,17 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       fit <- qs::qread(fit_path)
 
     } else {
+      # make sure summed is current
+      summed <- summed()
+      if (!all(row.names(meta) %in% summed$batch)) return(NULL)
+
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 4)
       progress$set(message = "Pseudobulking:", detail = 'clusters', value = 1)
       on.exit(progress$close())
 
-      fit <- run_limma_scseq(summed = summed(),
-                             meta = up_meta(),
+      fit <- run_limma_scseq(summed = summed,
+                             meta = meta,
                              species = species(),
                              progress = progress,
                              trend = FALSE,
@@ -3547,3 +3555,4 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
+

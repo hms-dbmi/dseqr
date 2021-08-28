@@ -63,7 +63,7 @@ WORKDIR /src/dseqr
 ENV TMP_DIR=/srv/dseqr/tmp
 
 # install dseqr last as will have to redo often
-RUN R -e "renv::install('hms-dbmi/dseqr@0.17.1')" && \
+RUN R -e "renv::install('hms-dbmi/dseqr@0.17.2')" && \
     mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
