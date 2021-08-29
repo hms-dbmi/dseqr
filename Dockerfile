@@ -18,14 +18,10 @@ wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src/dseqr
 
-# sets cache location for renv
-ENV RENV_PATHS_ROOT=/src/.cache/R/renv
-
 # install dseqr dependencies from renv.lock file
-RUN touch /src/dseqr/.Renviron && \
-    echo "RENV_PATHS_ROOT = $RENV_PATHS_ROOT" > /src/dseqr/.Renviron && \
-    R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.14.0')"
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
+    R -e "remotes::install_github('rstudio/renv@0.14.0')" && \
+    R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically
 COPY ./renv.lock.init .
@@ -35,10 +31,11 @@ RUN R -e 'renv::restore(lockfile="renv.lock.init")'
 COPY ./renv.lock .
 RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
 
-# move packages to system library and clear out renv
-RUN mv /src/.cache/R/renv/cache/v5/R-4.0/x86_64-pc-linux-gnu/* /usr/local/lib/R/library/ && \
-    rm -rf /src && \
-    mkdir -p /src/dseqr
+# move library and delete renv
+RUN mv /src/dseqr/renv/library/R-4.0/x86_64-pc-linux-gnu /src/library && \
+    rm -rf /src/dseqr && \
+    mkdir /src/dseqr && \
+    echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
 
 # Download miniconda and kallisto/bustools
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O /src/miniconda.sh && \
@@ -55,24 +52,43 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_data()"
 
-COPY inst/run.R .
-COPY R/* R/
 
 # -------
-FROM rhub/r-minimal:4.0.5
+FROM rocker/r-ver:4.0.5
 WORKDIR /src/dseqr
 
 # get source code and R packages
 COPY --from=0 /src /src
-COPY --from=0 /usr/local/lib/R/library /usr/local/lib/R/library/
+COPY --from=0 $R_HOME/etc/Rprofile.site $R_HOME/etc/Rprofile.site
 
-# set cache location for renv & add miniconda to PATH
-ENV TMP_DIR=/srv/dseqr/tmp PATH="/src/miniconda/bin:$PATH"
+# add conda to path
+ENV PATH="/src/miniconda/bin:$PATH"
+
+# set temporary directory for R
+ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
-    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
+    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # pkg-config \
+    # libcurl4-openssl-dev \
+    # libv8-dev \
+    libxml2-dev \
+    # libssl-dev \
+    # libbz2-dev \
+    # liblzma-dev \
+    libhdf5-dev
+    # zlib1g-dev \
+    # libpng-dev \
+    # libjpeg-dev
+    # wget && rm -rf /var/lib/apt/lists/*
 
-# install dseqr last as will have to redo often
-RUN R -e "remotes::install_github('hms-dbmi/dseqr@0.17.3', dependencies = FALSE, upgrade = FALSE)"
+
+# need dseqr in libPaths
+RUN R -e "renv::install('hms-dbmi/dseqr@0.17.4')"
+
+# add source files
+COPY inst/run.R .
+COPY R/* R/
 
 # docker build -t alexvpickering/dseqr:latest .
 # docker push alexvpickering/dseqr
