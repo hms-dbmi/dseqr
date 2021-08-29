@@ -5,6 +5,8 @@ args <- commandArgs(trailingOnly = TRUE)
 
 app_name <- args[1]
 is_example <- app_name == 'example'
+if (app_name == 'private') app_name <- Sys.getenv('SHINYPROXY_USERNAME')
+
 logout_url <- sprintf('https://%s/logout', args[2])
 
 message('app_name: ', app_name)
