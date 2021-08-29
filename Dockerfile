@@ -65,26 +65,16 @@ COPY --from=0 $R_HOME/etc/Rprofile.site $R_HOME/etc/Rprofile.site
 ENV PATH="/src/miniconda/bin:$PATH"
 
 # set temporary directory for R
+# need dseqr in libPaths
 ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
     apt-get update && apt-get install -y --no-install-recommends \
-    # pkg-config \
-    # libcurl4-openssl-dev \
-    # libv8-dev \
-    libxml2-dev \
-    # libssl-dev \
-    # libbz2-dev \
-    # liblzma-dev \
-    libhdf5-dev
-    # zlib1g-dev \
-    # libpng-dev \
-    # libjpeg-dev
-    # wget && rm -rf /var/lib/apt/lists/*
-
-
-# need dseqr in libPaths
-RUN R -e "renv::install('hms-dbmi/dseqr@0.17.4')"
+    libxml2-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.17.4', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remove.packages('remotes')"
 
 # add source files
 COPY inst/run.R .
