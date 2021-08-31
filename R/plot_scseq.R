@@ -236,6 +236,9 @@ update_feature_plot <- function(plot,
                                 feature,
                                 reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
 
+  # make feature_data names unique to make plot data row.names
+  names(feature_data) <- make.unique(names(feature_data))
+
   prev <- tail(colnames(plot$data), 1)
   col <- make.names(feature)
   plot$data <- plot$data[names(feature_data), ]
@@ -256,6 +259,14 @@ update_feature_plot <- function(plot,
         colors = c('blue', 'lightgray'),
         guide = "colorbar"
       ))
+
+  if (all(feature_data == 0)) {
+    plot <- plot +
+      ggplot2::scale_color_gradientn(
+        colors = 'lightgray',
+        guide = "colorbar"
+      )
+  }
 
   plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
   return(plot)
@@ -676,7 +687,7 @@ col2hex <- function(cname, dark) {
 }
 
 
-plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
+plot_scseq_diff <- function(pt.dat, feature = 'abundance', legend.position = 'right') {
 
   title <- 'Cell Number in Test vs Control Samples'
   delta_name <- 'Δ cells'
@@ -707,7 +718,7 @@ plot_scseq_diff <- function(pt.dat, feature = 'abundance') {
     theme_dimgray(with_nums = FALSE) +
     ggplot2::scale_fill_manual(name = delta_name, values = fill) +
     ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
-    ggplot2::theme(legend.position = 'right',
+    ggplot2::theme(legend.position = legend.position,
                    axis.ticks.x = ggplot2::element_blank(),
                    axis.ticks.y = ggplot2::element_blank(),
                    legend.title = ggplot2::element_text(size=12),

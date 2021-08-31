@@ -68,6 +68,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              comparison_type = scForm$comparison_type,
              compare_groups = scForm$compare_groups,
              meta = scForm$meta,
+             is_mobile = is_mobile,
              sc_dir = sc_dir,
              zoom = zoom)
 
@@ -896,7 +897,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       grid <- get_grid(scseq)
       plot_data <- get_gene_diff(gene, top_tables, grid)
 
-      plot <- plot_scseq_diff(plot_data, gene)
+      legend.position <- ifelse(is_mobile(), 'none', 'right')
+      plot <- plot_scseq_diff(plot_data, gene, legend.position)
       list(plot = plot, height = 453)
     }
 
@@ -3322,7 +3324,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, selected_cluster
 }
 
 
-scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta, zoom) {
+scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta, is_mobile, zoom) {
 
   show_plot <- reactive(length(compare_groups()) == 2)
   observe(toggle('abundance_plot_container', condition = show_plot()))
@@ -3361,7 +3363,8 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
   plot <- reactive({
     plot_data <- plot_data()
     if (is.null(plot_data)) return(NULL)
-    pl <- plot_scseq_diff(plot_data, feature = 'abundance')
+    legend.position <- ifelse(is_mobile(), 'none', 'right')
+    pl <- plot_scseq_diff(plot_data, 'abundance', legend.position)
     zoom_plot(pl, zoom$x, zoom$y)
   })
 
@@ -3537,6 +3540,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   plot <- reactive({
     ridge_data <- ridge_data()
     if (is.null(ridge_data)) return(NULL)
+    if (all(ridge_data$df$x == 0)) return(NULL)
     VlnPlot(ridge_data = ridge_data)
   }) %>% debounce(20)
 
@@ -3555,4 +3559,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
              content = content,
              height = height)
 }
-
