@@ -156,7 +156,7 @@ shorten_cluster_labels <- function(labels) {
 plot_feature <- function(scseq,
                          feature,
                          reduction = 'TSNE',
-                         cols = c('lightgray', 'blue'),
+                         cols = const$colors$ft,
                          reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
                          title = paste0('Expression by Cell: ', feature),
                          pt.size = min(6000/ncol(scseq), 4)) {
@@ -191,7 +191,7 @@ plot_feature <- function(scseq,
 #' @return \code{plot} formatted for dseqr app
 #'
 #' @keywords internal
-plot_feature_sample <- function(feature, scseq, group, reduction = 'TSNE', plot = NULL, cols = c('lightgray', 'blue')) {
+plot_feature_sample <- function(feature, scseq, group, reduction = 'TSNE', plot = NULL, cols = const$colors$ft) {
 
   if (is.null(plot)) plot <- plot_feature(scseq, feature, reduction)
 
@@ -234,7 +234,11 @@ plot_feature_sample <- function(feature, scseq, group, reduction = 'TSNE', plot 
 update_feature_plot <- function(plot,
                                 feature_data,
                                 feature,
-                                reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')) {
+                                reverse_scale = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'),
+                                is_qc = feature %in% c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score')) {
+
+  colors <- const$colors$ft
+  if (is_qc) colors <- const$colors$qc
 
   # make feature_data names unique to make plot data row.names
   names(feature_data) <- make.unique(names(feature_data))
@@ -253,20 +257,15 @@ update_feature_plot <- function(plot,
   plot$layers[[1]]$mapping$colour <- rlang::quo_set_expr(
     plot$layers[[1]]$mapping$colour, rlang::ensym(col))
 
-  if (reverse_scale) suppressMessages(
-    plot <- plot +
-      ggplot2::scale_color_gradientn(
-        colors = c('blue', 'lightgray'),
-        guide = "colorbar"
-      ))
+  # update color
+  if (reverse_scale) colors <- rev(colors)
+  if (all(feature_data == 0)) colors <- const$colors$n0
 
-  if (all(feature_data == 0)) {
-    plot <- plot +
+  plot <- plot +
       ggplot2::scale_color_gradientn(
-        colors = 'lightgray',
+        colors = colors,
         guide = "colorbar"
       )
-  }
 
   plot <- plot + ggplot2::ggtitle(paste('Expression by Cell:', feature))
   return(plot)

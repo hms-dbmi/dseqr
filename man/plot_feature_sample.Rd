@@ -10,7 +10,7 @@ plot_feature_sample(
   group,
   reduction = "TSNE",
   plot = NULL,
-  cols = c("lightgray", "blue")
+  cols = const$colors$ft
 )
 }
 \arguments{

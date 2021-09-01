@@ -633,8 +633,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     meta <- up_meta()
     if (!all(groups %in% meta$group)) return(NULL)
 
-    # add hash using uploaded metadata & groups to detect changes
-    tohash <- list(meta = meta, groups = groups)
+    # add hash using uploaded metadata to detect changes
+    tohash <- list(meta = meta)
     meta_hash <- digest::digest(tohash, algo = 'murmur32')
     fit_file <- paste0('lm_fit_0svs_', meta_hash, '.qs')
     fit_path <- file.path(resoln_dir, fit_file)
@@ -674,7 +674,12 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     meta <- up_meta()
     if (max(table(meta$group)) < 2) return(NULL)
 
-    fit_path <- file.path(dataset_dir(), 'lm_fit_grid_0svs.qs')
+    # add hash using uploaded metadata to detect changes
+    tohash <- list(meta = meta)
+    meta_hash <- digest::digest(tohash, algo = 'murmur32')
+
+    fit_file <- paste0('lm_fit_grid_0svs_', meta_hash, '.qs')
+    fit_path <- file.path(dataset_dir(), fit_file)
 
     if (file.exists(fit_path)) {
       lm_fit <- qs::qread(fit_path)
@@ -690,7 +695,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
       lm_fit <- run_limma_scseq(
         summed = summed,
-        meta = up_meta(),
+        meta = meta,
         species = species(),
         trend = TRUE,
         method = 'RLE',
@@ -1558,6 +1563,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(remove_sc(), {
     ds <- datasets()
     ds <- ds[!ds$type %in% 'Previous Session', ]
+    ds <- tibble::as_tibble(ds)
+    names(ds$name) <- ds$name
 
     choices <- ds %>%
       dplyr::group_by(type) %>%
@@ -1565,7 +1572,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     names(choices$names) <- choices$type
     choices <- choices$names
-    if (length(choices) == 1) choices <- unname(unlist(choices))
 
     showModal(deleteModal(session, choices))
   })
@@ -1612,20 +1618,33 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(msg)
   }
 
+  detect_import_species <- function(up_df) {
+
+    gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
+
+    # support only human if no genes.tsv file
+    if (!length(gene.file)) return("Homo sapiens")
+
+    genes <- read.table(up_df$datapath[gene.file], row.names = 1)
+    get_species(genes)
+  }
+
   # ask for confirmation
   observeEvent(input$import_samples, {
 
     up_df <- up_all()
     samples <- up_samples()
     msg <- validate_import_samples(up_df, samples)
+    species <- detect_import_species(up_df)
 
     html('error_msg', html = msg)
     toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
 
     if (is.null(msg)) {
-      showModal(confirmModal(session, 'quant', metric_choices))
+      showModal(confirmModal(session, 'quant', metric_choices, species))
     }
   })
+
 
   metric_choices <- c('low_lib_size',
                       'low_n_features',
@@ -1861,7 +1880,7 @@ deleteModal <- function(session, choices) {
 
 
 # modal to confirm adding single-cell dataset
-confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, with_azi = TRUE) {
+confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = 'Homo sapiens') {
 
   if (type[1] == 'quant') {
     label <- 'Quantify'
@@ -1873,13 +1892,17 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
       selected = 'all and none',
       multiple = TRUE)
 
-    azi <- selectizeInput(
+    azi <- NULL
+    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
+
+    if (length(species_refs)) azi <- selectizeInput(
       session$ns('azimuth_ref'),
       HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-      choices = c('', azimuth_refs),
+      choices = c('', species_refs),
       options = list(placeholder = 'optional'))
 
     UI <- div(qc, azi)
+
   } else if (type[1] == 'subset') {
     label <- 'Subset'
     id <- 'confirm_subset'
@@ -2463,6 +2486,25 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     return(choices)
   })
 
+  # set azimuth refs
+
+  species_refs <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+    species <- scseq@metadata$species
+    unname(azimuth_refs[names(azimuth_refs) == species])
+  })
+
+  observe({
+    species_refs <- species_refs()
+    req(species_refs)
+    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs))
+  })
+
+  observe({
+    toggle('azimuth_ref', length(species_refs()))
+  })
+
   # change UI of exclude toggle
   observe({
     toggleClass(id = 'toggle_icon', 'fa-plus text-success', condition = is_include())
@@ -2608,6 +2650,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     prev <- qread.safe(file.path(sc_dir, 'prev_dataset.qs'))
     ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
 
+    ds <- tibble::as_tibble(ds)
+    names(ds$name) <- ds$name
+
     choices <- ds %>%
       dplyr::group_by(type) %>%
       dplyr::summarise(names = list(name))
@@ -2620,7 +2665,9 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
-  allow_integration <- reactive(length(input$integration_datasets > 1))
+
+  allow_integration <- reactive(length(input$integration_datasets) > 1)
+
 
   # show/hide integration forms
   observe({
@@ -2645,14 +2692,44 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   # show name box only if something selected
-  observe(toggle(id = 'name-container', condition = allow_integration()))
+  # observe(toggle(id = 'name-container', condition = allow_integration()))
+
+  # set azimuth refs based on species
+  species <- reactive({
+    get_integration_species(input$integration_datasets, sc_dir)
+  })
+
+  species_refs <- reactive({
+    species <- species()
+    unname(azimuth_refs[names(azimuth_refs) == species])
+  })
+
+  enable_azi <- reactive(length(species_refs()) > 0)
+
+  observe(toggle('azimuth_ref', condition = enable_azi()))
+  observe({
+    disabledChoices <- NULL
+    if (!enable_azi()) disabledChoices <- 'Azimuth'
+
+    updateCheckboxGroupButtons(session,
+                               'integration_types',
+                               disabledChoices = disabledChoices)
+  })
+
+  observe({
+    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs()))
+  })
 
 
   # run integration
   pintegs <- reactiveValues()
   integs <- reactiveValues()
 
-  use_azimuth <- reactive('Azimuth' %in% input$integration_types)
+  use_azimuth <- reactive({
+    'Azimuth' %in% input$integration_types &&
+      enable_azi() &&
+      allow_integration()
+  })
 
   observe({
     toggle('azimuth_ref_container', condition = use_azimuth())
@@ -2667,7 +2744,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
     azimuth_ref <- input$azimuth_ref
     if (!use_azimuth()) azimuth_ref <- NULL
 
-    error_msg <- validate_integration(types, name, azimuth_ref, dataset_names)
+    error_msg <- validate_integration(types, name, azimuth_ref, dataset_names, sc_dir)
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
 

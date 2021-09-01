@@ -8,7 +8,7 @@ plot_feature(
   scseq,
   feature,
   reduction = "TSNE",
-  cols = c("lightgray", "blue"),
+  cols = const$colors$ft,
   reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
   title = paste0("Expression by Cell: ", feature),
   pt.size = min(6000/ncol(scseq), 4)

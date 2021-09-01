@@ -124,6 +124,8 @@ process_raw_scseq <- function(scseq,
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
 
+  species <- scseq@metdata$species
+
   is.azimuth <- !is.null(azimuth_ref)
   if (!is.azimuth) {
     progress$set(message = "reducing", value = value + 1)
@@ -137,7 +139,7 @@ process_raw_scseq <- function(scseq,
     gc()
 
     # save independent of resolution
-    anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln)
+    anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
 
   } else {
@@ -150,7 +152,7 @@ process_raw_scseq <- function(scseq,
 
     # because e.g. default resoln is celltype.l2 for human pbmc
 
-    anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref)
+    anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
     save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
   }

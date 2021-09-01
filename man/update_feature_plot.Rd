@@ -8,7 +8,9 @@ update_feature_plot(
   plot,
   feature_data,
   feature,
-  reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected")
+  reverse_scale = feature \%in\% c("ribo_percent", "log10_sum", "log10_detected"),
+  is_qc = feature \%in\% c("ribo_percent", "mito_percent", "log10_sum",
+    "log10_detected", "doublet_score")
 )
 }
 \arguments{

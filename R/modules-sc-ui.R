@@ -215,7 +215,7 @@ integrationFormInput <- function(id) {
             selectizeInput(
               ns('azimuth_ref'),
               HTML('Select Azimuth reference:'),
-              choices = c('', azimuth_refs), width = '100%')
+              choices = c('', unname(azimuth_refs)), width = '100%')
         ),
         shinypanel::textInputWithButtons(
           ns('integration_name'),
@@ -252,7 +252,7 @@ subsetFormInput <- function(id) {
           options = list(multiple = TRUE,
                          optgroupField = 'type',
                          placeholder = 'Select none to recluster')),
-        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', azimuth_refs), width = '100%', options = list(placeholder = 'optional')),
+        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', unname(azimuth_refs)), width = '100%', options = list(placeholder = 'optional')),
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),

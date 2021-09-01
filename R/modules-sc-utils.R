@@ -686,14 +686,14 @@ get_qc_table <- function(qc_metrics = NULL) {
 
   is.score <- names(qc_metrics) == 'numeric'
   html_metrics <- stringr::str_trunc(qc_metrics, 40, 'left')
-  html_metrics[is.score] <- paste0(
-    "<span class='input-swatch' style='background: linear-gradient(to right, lightgray, blue);'></span>",
-    sprintf("<span title='%s'>%s</span>", qc_metrics[is.score], html_metrics[is.score])
-  )
-  html_metrics[!is.score] <- paste0(
-    "<span class='input-swatch' style='background: linear-gradient(to right, lightgray 50%, blue 50%);'></span>",
-    sprintf("<span title='%s'>%s</span>", qc_metrics[!is.score], html_metrics[!is.score])
-  )
+  html_metrics[is.score] <- sprintf(
+    "<span class='input-swatch' style='background: linear-gradient(to right, %s, %s);'></span><span title='%s'>%s</span>",
+    const$colors$qc[1], const$colors$qc[2], qc_metrics[is.score], html_metrics[is.score])
+
+  html_metrics[!is.score] <- sprintf(
+    "<span class='input-swatch' style='background: linear-gradient(to right, %s 50%%, %s 50%%);'></span><span title='%s'>%s</span>",
+    const$colors$ft[1], const$colors$ft[2], qc_metrics[!is.score], html_metrics[!is.score])
+
 
 
   data.table::data.table(Feature = html_metrics,
@@ -1409,8 +1409,11 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
 #' @return \code{NULL} if valid, otherwise an error message
 #'
 #' @keywords internal
-validate_integration <- function(types, name, azimuth_ref, dataset_names) {
+validate_integration <- function(types, name, azimuth_ref, dataset_names, sc_dir) {
   msg <- NULL
+
+  species <- get_integration_species(dataset_names, sc_dir)
+
 
   if ('Azimuth' %in% types & !isTruthy(azimuth_ref)) {
     msg <- 'Select azimuth reference'
@@ -1420,9 +1423,17 @@ validate_integration <- function(types, name, azimuth_ref, dataset_names) {
     msg <- 'Enter name for integrated dataset'
   } else if (length(dataset_names) < 2) {
     msg <- 'Select atleast two datasets'
+  } else if (length(species) > 1) {
+    msg <- 'Datasets must be from the same species'
   }
 
   return(msg)
+}
+
+get_integration_species <- function(integration_datasets, sc_dir) {
+  species_paths <- file.path(sc_dir, integration_datasets, 'species.qs')
+  species <- lapply(species_paths, qread.safe)
+  unique(unlist(species))
 }
 
 validate_subset <- function(from_dataset, subset_name, subset_clusters, is_include, hvgs) {

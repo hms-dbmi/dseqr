@@ -91,10 +91,15 @@ DimPlot <- function(
   dims <- paste0(reduction, dims)
 
   if (is.null(data)) {
+    # make sure cell ids are unique
     cells <- cells %||% colnames(x = object)
+    cells <- make.unique(cells)
+
     data <- SingleCellExperiment::reducedDim(object, reduction)
     data <- as.data.frame(x = data)
-    groups <- SummarizedExperiment::colData(object)[cells, group.by]
+    cdata <- as.data.frame(object@colData)
+
+    groups <- cdata[cells, group.by]
   } else {
     cells <- row.names(data)
     groups <- data[cells, group.by]
