@@ -1,7 +1,7 @@
 # add species.qs for individual datasets
 library(SingleCellExperiment)
 
-app_dirs <- list.files('/home/alex/patient_data')
+app_dirs <- list.files('/srv/dseqr')
 app_dirs <- setdiff(app_dirs,
                     c('indices', 'node_modules', 'pert_signature_dir',
                       'pert_query_dir', 'gs_dir', 'example_data.tar.gz', 'tx2gene'))

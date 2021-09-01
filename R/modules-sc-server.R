@@ -2497,12 +2497,11 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
 
   observe({
     species_refs <- species_refs()
-    req(species_refs)
     updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs))
   })
 
   observe({
-    toggle('azimuth_ref', length(species_refs()))
+    toggle('azimuth_ref', condition = length(species_refs()) > 0)
   })
 
   # change UI of exclude toggle
