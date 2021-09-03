@@ -2516,7 +2516,21 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
-    showModal(confirmModal(session, 'subset'))
+    error_msg <- validate_subset(selected_dataset(),
+                                 input$subset_name,
+                                 input$subset_clusters,
+                                 is_include(),
+                                 hvgs())
+
+    if (is.null(error_msg)) {
+      removeClass('name-container', 'has-error')
+      showModal(confirmModal(session, 'subset'))
+
+    } else {
+      # show error message
+      html('error_msg', html = error_msg)
+      addClass('name-container', class = 'has-error')
+    }
   })
 
   observeEvent(input$confirm_subset, {
@@ -2534,52 +2548,41 @@ subsetForm <- function(input, output, session, sc_dir, scseq, datasets, show_sub
     azimuth_ref <- input$azimuth_ref
     if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
 
-    error_msg <- validate_subset(from_dataset, subset_name, subset_clusters, is_include, hvgs)
+    exclude_clusters <- intersect(cluster_choices$value, subset_clusters)
+    subset_metrics <- intersect(metric_choices$value, subset_clusters)
 
-    if (is.null(error_msg)) {
-      removeClass('name-container', 'has-error')
-
-      exclude_clusters <- intersect(cluster_choices$value, subset_clusters)
-      subset_metrics <- intersect(metric_choices$value, subset_clusters)
-
-      if (is_include && length(exclude_clusters)) {
-        exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
-      }
-
-      founder <- get_founder(sc_dir, from_dataset)
-      dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
-
-      subsets[[dataset_name]] <- callr::r_bg(
-        func = subset_saved_scseq,
-        package = 'dseqr',
-        args = list(
-          sc_dir = sc_dir,
-          founder = founder,
-          from_dataset = from_dataset,
-          dataset_name = dataset_name,
-          exclude_clusters = exclude_clusters,
-          subset_metrics = subset_metrics,
-          is_integrated = is_integrated,
-          is_include = is_include,
-          hvgs = hvgs,
-          azimuth_ref = azimuth_ref
-        )
-      )
-
-      progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
-      msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
-      progress$set(message = msg, value = 0)
-      psubsets[[dataset_name]] <- progress
-
-
-      # clear inputs
-      updateTextInput(session, 'subset_name', value = '')
-
-    } else {
-      # show error message
-      html('error_msg', html = error_msg)
-      addClass('name-container', class = 'has-error')
+    if (is_include && length(exclude_clusters)) {
+      exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
     }
+
+    founder <- get_founder(sc_dir, from_dataset)
+    dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
+
+    subsets[[dataset_name]] <- callr::r_bg(
+      func = subset_saved_scseq,
+      package = 'dseqr',
+      args = list(
+        sc_dir = sc_dir,
+        founder = founder,
+        from_dataset = from_dataset,
+        dataset_name = dataset_name,
+        exclude_clusters = exclude_clusters,
+        subset_metrics = subset_metrics,
+        is_integrated = is_integrated,
+        is_include = is_include,
+        hvgs = hvgs,
+        azimuth_ref = azimuth_ref
+      )
+    )
+
+    progress <- Progress$new(max=ifelse(is_integrated, 9, 8))
+    msg <- paste(stringr::str_trunc(dataset_name, 33), "subset:")
+    progress$set(message = msg, value = 0)
+    psubsets[[dataset_name]] <- progress
+
+
+    # clear inputs
+    updateTextInput(session, 'subset_name', value = '')
   })
 
 
