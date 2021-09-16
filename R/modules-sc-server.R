@@ -19,25 +19,26 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                        add_sc = add_sc,
                        remove_sc = remove_sc)
 
-  view_state <- reactiveVal()
-
   # cluster plot in top right
-  callModule(scClusterPlot, 'cluster_plot',
-             scseq = scForm$scseq,
-             annot = scForm$annot,
-             is_mobile = is_mobile,
-             view_state = view_state)
+  clusters_view <- callModule(
+    scClusterPlot, 'cluster_plot',
+    scseq = scForm$scseq,
+    annot = scForm$annot,
+    is_mobile = is_mobile,
+    clusters_marker_view = clusters_marker_view,
+    samples_marker_view = all_markers_view)
 
   # cluster comparison plots ---
 
 
-  callModule(scMarkerPlot, 'marker_plot_cluster',
-             scseq = scForm$scseq,
-             custom_metrics = scForm$custom_metrics,
-             selected_feature = scForm$clusters_gene,
-             h5logs = scForm$h5logs,
-             show_controls = TRUE,
-             view_state = view_state)
+  clusters_marker_view <- callModule(
+    scMarkerPlot, 'marker_plot_cluster',
+    scseq = scForm$scseq,
+    custom_metrics = scForm$custom_metrics,
+    selected_feature = scForm$clusters_gene,
+    h5logs = scForm$h5logs,
+    show_controls = TRUE,
+    clusters_view = clusters_view)
 
   callModule(scBioGpsPlot, 'biogps_plot',
              selected_gene = scForm$clusters_gene,
@@ -66,37 +67,36 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              is_mobile = is_mobile,
              sc_dir = sc_dir)
 
-  test_markers_view_state <- callModule(
-    scMarkerPlot,
-    'expr_test',
+  test_markers_view <- callModule(
+    scMarkerPlot, 'expr_test',
     scseq = scForm$scseq,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'test',
     is_hide = scForm$show_dprimes,
-    view_state = view_state)
+    clusters_view = clusters_view,
+    markers_view = ctrl_markers_view)
 
-  ctrl_markers_view_state <- callModule(
-    scMarkerPlot,
-    'expr_ctrl',
+  ctrl_markers_view <- callModule(
+    scMarkerPlot, 'expr_ctrl',
     scseq = scForm$scseq,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'ctrl',
     is_hide = scForm$show_dprimes,
-    view_state = view_state)
+    clusters_view = clusters_view,
+    markers_view = test_markers_view)
 
-  scSamplesMarkerPlot <- callModule(
-    scMarkerPlot,
-    'expr_all',
+  all_markers_view <- callModule(
+    scMarkerPlot, 'expr_all',
     scseq = scForm$scseq,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     is_hide = reactive(!scForm$show_dprimes()),
-    view_state = view_state)
+    clusters_view = clusters_view)
 
 
   callModule(scSamplePlot, 'expr_sample_violin',
@@ -3278,7 +3278,7 @@ get_label_coords <- function(coords, labels) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, view_state) {
+scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clusters_marker_view, samples_marker_view) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggle('cluster_plot_container', condition = show_plot()))
@@ -3326,12 +3326,10 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, view_
   })
 
   proxy <- picker::picker_proxy('cluster_plot')
-  observe(picker::update_picker(proxy, view_state()))
+  observe(picker::update_picker(proxy, clusters_marker_view()))
+  observe(picker::update_picker(proxy, samples_marker_view()))
 
-  new_view <- reactive(input$cluster_plot_view_state)
-
-  observe(view_state(new_view()))
-
+  return(reactive(input$cluster_plot_view_state))
 }
 
 
@@ -3402,7 +3400,7 @@ subset_contrast <- function(scseq) {
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, view_state, is_hide = function()FALSE, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, clusters_view, markers_view = function()NULL, is_hide = function()FALSE, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
 
 
   show_plot <- reactive(length(colors()) & !is_hide())
@@ -3498,12 +3496,10 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
   })
 
   proxy <- picker::picker_proxy('marker_plot')
-  observe(picker::update_picker(proxy, view_state()))
+  observe(picker::update_picker(proxy, clusters_view()))
+  observe(picker::update_picker(proxy, markers_view()))
 
-  new_view <- reactive(input$marker_plot_view_state)
-
-  observe(view_state(new_view()))
-
+  return(reactive(input$marker_plot_view_state))
 }
 
 
@@ -3575,6 +3571,5 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 
   output$ridge_plot <- renderPlot(plot(), height=height)
 }
-
 
 
