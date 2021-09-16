@@ -3405,14 +3405,14 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
 
   show_plot <- reactive(length(colors()) & !is_hide())
   observe(toggle('marker_plot', condition = show_plot()))
+  is_drawn <- reactiveVal(FALSE)
 
   output$marker_plot <- picker::renderPicker({
     scseq <- scseq()
-    colors <- colors()
-    if (!isTruthy(colors) || !isTruthy(scseq)) return(NULL)
+    cells <- cells()
+    if (!isTruthy(cells) || !isTruthy(scseq)) return(NULL)
 
-    scseq <- scseq[, names(colors)]
-    names(colors) <- NULL
+    scseq <- scseq[, cells]
 
     reds <- SingleCellExperiment::reducedDimNames(scseq)
     reds <- reds[reds %in% c('UMAP', 'TSNE')]
@@ -3434,7 +3434,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
     }
 
     picker::picker(coords,
-                   colors,
+                   isolate(colors()),
                    labels,
                    # show_controls = show_controls,
                    show_controls = FALSE,
@@ -3442,10 +3442,24 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
   })
 
 
-  colors <- reactive({
+  cells <- reactive({
     scseq <- scseq()
-    feature <- selected_feature()
-    if (!isTruthy(feature) || !isTruthy(scseq)) return(NULL)
+    if (!isTruthy(scseq)) return(NULL)
+
+    # subset to selected group
+    if (!is.null(group)) {
+      scseq <- scseq[, scseq$orig.ident == group]
+    }
+
+    set.seed(0)
+    sample(colnames(scseq))
+  })
+
+
+  # column data (custom metric + stored)
+  cdata <- reactive({
+    scseq <- scseq()
+    if (!isTruthy(scseq)) return(NULL)
 
     metrics <- custom_metrics()
     cdata <- scseq@colData
@@ -3453,14 +3467,22 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
     if (!is.null(metrics) && nrow(cdata) != nrow(metrics)) return(NULL)
     if (!is.null(metrics)) {
       cdata <- cbind(cdata, metrics)
-      scseq@colData <- cdata
     }
+
+    return(cdata)
+  })
+
+
+  colors <- reactive({
+    scseq <- scseq()
+    feature <- selected_feature()
+    cells <- cells()
+    cdata <- cdata()
+    if (!isTruthyAll(feature, scseq, cells, cdata)) return(NULL)
 
     is_gene <- feature %in% row.names(scseq)
     is_feature <- feature %in% colnames(cdata)
     if (!is_gene && !is_feature) return(NULL)
-
-    is_bool <- is.logical(cdata[[feature]])
 
     # get feature
     if (is_gene) {
@@ -3471,9 +3493,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
       names(ft) <- colnames(scseq)
     }
 
-    # boolean points on top otherwise random
-    ft <- if (is_bool) sort(ft) else sample(ft)
-    cells <- names(ft)
+    ft <- ft[cells]
 
     # get colors
     is_qc <- feature %in% c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score')
@@ -3484,13 +3504,6 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
 
     ft.scaled <- scales::rescale(ft, c(0, 1))
     colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
-    names(colors) <- cells
-
-    # subset to selected group
-    if (!is.null(group)) {
-      group_cells <- colnames(scseq[, scseq$orig.ident == group])
-      colors <- colors[group_cells]
-    }
 
     return(colors)
   })
@@ -3498,6 +3511,7 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
   proxy <- picker::picker_proxy('marker_plot')
   observe(picker::update_picker(proxy, clusters_view()))
   observe(picker::update_picker(proxy, markers_view()))
+  observe(picker::update_picker(proxy, colors = colors()))
 
   return(reactive(input$marker_plot_view_state))
 }
@@ -3571,5 +3585,3 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
 
   output$ridge_plot <- renderPlot(plot(), height=height)
 }
-
-
