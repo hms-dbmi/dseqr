@@ -3319,6 +3319,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, view_
                    colors,
                    labels,
                    label_repels,
+                   show_controls = FALSE,
                    text_props = list(getSize=14,
                                      getTextAnchor = 'middle',
                                      getAlignmentBaseline = 'center'))
@@ -3437,7 +3438,8 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
     picker::picker(coords,
                    colors,
                    labels,
-                   show_controls = show_controls,
+                   # show_controls = show_controls,
+                   show_controls = FALSE,
                    label_coords = label_coords)
   })
 

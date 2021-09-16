@@ -27,16 +27,6 @@ RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.
 COPY ./renv.lock.init .
 RUN R -e 'renv::restore(lockfile="renv.lock.init")'
 
-# lockfile: use this until slow
-COPY ./renv.lock .
-RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
-
-# move library and delete renv
-RUN mv /src/dseqr/renv/library/R-4.0/x86_64-pc-linux-gnu /src/library && \
-    rm -rf /src/dseqr && \
-    mkdir /src/dseqr && \
-    echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
-
 # Download miniconda and kallisto/bustools
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O /src/miniconda.sh && \
 bash /src/miniconda.sh -b -p /src/miniconda
@@ -52,6 +42,15 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_data()"
 
+# lockfile: use this until slow
+COPY ./renv.lock .
+RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
+
+# move library and delete renv
+RUN mv /src/dseqr/renv/library/R-4.0/x86_64-pc-linux-gnu /src/library && \
+    rm -rf /src/dseqr && \
+    mkdir /src/dseqr && \
+    echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
 
 # -------
 FROM rocker/r-ver:4.0.5
@@ -73,7 +72,7 @@ RUN mkdir -p $TMP_DIR && \
     libxml2-dev && \
     rm -rf /var/lib/apt/lists/* && \
     R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr@0.19.0', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.19.1', dependencies = FALSE, upgrade = FALSE)" && \
     R -e "remove.packages('remotes')"
 
 # add source files
