@@ -1,3 +1,7 @@
+# dseqr 0.19.0
+* switch to `picker` for scatter plots
+* add support for .h5 uploads
+
 # dseqr 0.16.0
 * updated `scDblFinder` to 1.7.4
 * improved upload modal

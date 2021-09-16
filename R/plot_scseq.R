@@ -715,20 +715,25 @@ plot_scseq_diff <- function(pt.dat, feature = 'abundance', legend.position = 'ri
     cowplot::theme_cowplot() +
     theme_no_axis_vals() +
     theme_dimgray(with_nums = FALSE) +
+    ggplot2::scale_x_continuous(expand = c(0, 0), limits = range(pt.dat$x)) +
+    ggplot2::scale_y_continuous(expand = c(0, 0), limits = range(pt.dat$y)) +
     ggplot2::scale_fill_manual(name = delta_name, values = fill) +
     ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
     ggplot2::theme(legend.position = legend.position,
                    axis.ticks.x = ggplot2::element_blank(),
                    axis.ticks.y = ggplot2::element_blank(),
+                   axis.line.x = ggplot2::element_blank(),
+                   axis.line.y = ggplot2::element_blank(),
+                   axis.title.x = ggplot2::element_blank(),
+                   axis.title.y = ggplot2::element_blank(),
                    legend.title = ggplot2::element_text(size=12),
                    legend.text = ggplot2::element_text(size=10),
                    plot.title.position = "plot",
+                   plot.background = ggplot2::element_rect(colour = "#dddddd", fill=NA, size=1),
                    plot.title = ggplot2::element_text(color = "#333333", hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 15))) +
     ggplot2::guides(fill = ggplot2::guide_legend(order = 1),
                     alpha = ggplot2::guide_legend(order = 2)) +
-    ggplot2::ggtitle(title) +
-    ggplot2::xlab('') +
-    ggplot2::ylab('')
+    ggplot2::ggtitle(title)
 }
 
 

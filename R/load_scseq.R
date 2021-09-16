@@ -124,7 +124,7 @@ process_raw_scseq <- function(scseq,
   scseq <- normalize_scseq(scseq)
   scseq <- add_hvgs(scseq, hvgs = hvgs)
 
-  species <- scseq@metdata$species
+  species <- scseq@metadata$species
 
   is.azimuth <- !is.null(azimuth_ref)
   if (!is.azimuth) {

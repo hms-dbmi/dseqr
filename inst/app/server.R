@@ -1,4 +1,3 @@
-
 server <- function(input, output, session) {
 
     # get arguments from calling function
@@ -133,7 +132,7 @@ server <- function(input, output, session) {
 
     observe({
         req(values$finished.init)
-        message("loading SCE")
+        message("loading SingleCellExperiment")
         suppressPackageStartupMessages(require(SingleCellExperiment))
     })
 

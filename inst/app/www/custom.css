@@ -3,6 +3,9 @@
     right: unset !important;
 }
 
+.picker {
+  border: 1px solid #ddd;
+}
 
 /* MDS plots */
 .beside-downloadable {

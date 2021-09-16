@@ -1839,6 +1839,7 @@ get_grid <- function(scseq) {
 }
 
 split_save_scseq <- function(scseq, dataset_dir) {
+
   # save as seperate parts
   dgc.logs <- SingleCellExperiment::logcounts(scseq)
   counts <- SingleCellExperiment::counts(scseq)

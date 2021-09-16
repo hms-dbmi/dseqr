@@ -1317,6 +1317,18 @@
       "Repository": "CRAN",
       "Hash": "52f8028b028076bc3b7ee5d6251abf0d"
     },
+    "picker": {
+      "Package": "picker",
+      "Version": "0.0.0.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "picker",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "35fecc64f36b61a1b7c9f6df19562df896fbc0f2",
+      "Hash": "f8674a261bf86a7fcff315d9d49cb4bd"
+    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.6.1",
@@ -1502,6 +1514,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "30e5eba91b67f7f4d75d31de14bbfbdc"
+    },
+    "repel": {
+      "Package": "repel",
+      "Version": "0.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "repel",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "0bbdf3c4a9b8094caece470cb3f7c747cdb8296c",
+      "Hash": "940da303e9ed711e42acafd28d47fd3f"
     },
     "reshape2": {
       "Package": "reshape2",

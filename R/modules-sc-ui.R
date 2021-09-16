@@ -41,14 +41,14 @@ scPageUI <- function(id, tab, active) {
             # row for samples comparison (integrated test vs ctrl)
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
                 div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
-                    scSamplePlotOutput(ns('expr_test')),
+                    scMarkerPlotOutput(ns('expr_test')),
+                    scSamplePlotOutput(ns('expr_diff_grid')),
                     scSamplePlotOutput(ns('expr_sample_violin'), zoom = FALSE),
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
-                    scSamplePlotOutput(ns('expr_ctrl')),
-                    scSamplePlotOutput(ns('expr_diff_grid')),
+                    scMarkerPlotOutput(ns('expr_ctrl')),
+                    scMarkerPlotOutput(ns('expr_all')),
                     br(),
-                    scSamplePlotOutput(ns('expr_all'))
                 )
             )
         )
@@ -361,7 +361,10 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @noRd
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('cluster_plot'), zoom = TRUE)
+  div(style = 'display: none',
+      id = ns('cluster_plot_container'),
+      picker::pickerOutput(ns('cluster_plot'))
+  )
 }
 
 
@@ -372,9 +375,9 @@ scClusterPlotOutput <- function(id) {
 scAbundancePlotOutput <- function(id) {
   ns <- NS(id)
 
-  div(style='margin-bottom:35px;',
+  div(style='margin-bottom:35px; display: none;',
       id = ns('abundance_plot_container'),
-      shinydlplot::downloadablePlotUI(ns('abundance_plot'), zoom = TRUE)
+      shiny::plotOutput(ns('abundance_plot'))
   )
 }
 
@@ -385,7 +388,7 @@ scAbundancePlotOutput <- function(id) {
 #' @noRd
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('marker_plot'), zoom = TRUE)
+  picker::pickerOutput(ns('marker_plot'))
 }
 
 
@@ -405,8 +408,9 @@ scBioGpsPlotOutput <- function(id) {
 #' @noRd
 scSamplePlotOutput <- function(id, zoom = TRUE) {
   ns <- NS(id)
-  tags$div(shinydlplot::downloadablePlotUI(ns('plot'), height = 'auto', zoom = zoom), style = 'line-height: 0px;')
-
+  div(style='margin-bottom: 20px',
+      shiny::plotOutput(ns('plot'), height = 'auto')
+  )
 }
 
 
@@ -416,7 +420,7 @@ scSamplePlotOutput <- function(id, zoom = TRUE) {
 #' @noRd
 scRidgePlotOutput <- function(id) {
   ns <- NS(id)
-  shinydlplot::downloadablePlotUI(ns('ridge_plot'), height = 'auto')
+  shiny::plotOutput(ns('ridge_plot'), height = 'auto')
 }
 
 
