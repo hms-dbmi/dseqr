@@ -603,16 +603,16 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
 
   # for adding gene names
   up_genes <- gids %>%
-    filter(go_id %in% row.names(go_up)) %>%
-    mutate(idx = match(go_id, row.names(go_up))) %>%
-    arrange(idx) %>%
-    pull(Up.Genes)
+    dplyr::filter(go_id %in% row.names(go_up)) %>%
+    dplyr::mutate(idx = match(go_id, row.names(go_up))) %>%
+    dplyr::arrange(idx) %>%
+    dplyr::pull(Up.Genes)
 
   dn_genes <- gids %>%
-    filter(go_id %in% row.names(go_dn)) %>%
-    mutate(idx = match(go_id, row.names(go_dn))) %>%
-    arrange(idx) %>%
-    pull(Down.Genes)
+    dplyr::filter(go_id %in% row.names(go_dn)) %>%
+    dplyr::mutate(idx = match(go_id, row.names(go_dn))) %>%
+    dplyr::arrange(idx) %>%
+    dplyr::pull(Down.Genes)
 
 
   # simplify using similarity

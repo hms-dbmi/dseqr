@@ -38,6 +38,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_feature = scForm$clusters_gene,
     h5logs = scForm$h5logs,
     show_controls = TRUE,
+    is_mobile = is_mobile,
     clusters_view = clusters_view)
 
   callModule(scBioGpsPlot, 'biogps_plot',
@@ -75,6 +76,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     h5logs = scForm$h5logs,
     group = 'test',
     is_hide = scForm$show_dprimes,
+    is_mobile = is_mobile,
     clusters_view = clusters_view,
     markers_view = ctrl_markers_view)
 
@@ -86,6 +88,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     h5logs = scForm$h5logs,
     group = 'ctrl',
     is_hide = scForm$show_dprimes,
+    is_mobile = is_mobile,
     clusters_view = clusters_view,
     markers_view = test_markers_view)
 
@@ -96,6 +99,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     is_hide = reactive(!scForm$show_dprimes()),
+    is_mobile = is_mobile,
     clusters_view = clusters_view)
 
 
@@ -286,8 +290,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                           add_sc = add_sc,
                           remove_sc = remove_sc)
 
-  scClusterPlots <- clusterPlots(plots_dir, scseq_clusts, h5logs)
-
 
   # label transfer between datasets
   # show/hide label transfer forms
@@ -397,7 +399,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                  resoln_dir = resoln_dir,
                                  resoln = resoln,
                                  plots_dir = plots_dir,
-                                 feature_plot = scClusterPlots$feature_plot_samples,
                                  dataset_name = scDataset$dataset_name,
                                  sc_dir = sc_dir,
                                  gs_dir = gs_dir,
@@ -729,7 +730,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, feature_plot, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
@@ -1262,42 +1263,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     pfun_grid = pfun_grid,
     pfun_violin = pfun_violin,
     show_dprimes = reactive(show_dprimes() & is_integrated())
-  ))
-}
-
-
-clusterPlots <- function(plots_dir, scseq, h5logs) {
-
-
-  # create feature and cluster plot for future updating
-  feature_plot_path <- reactive(file.path(plots_dir(), 'feature_plot.qs'))
-
-  scseq_logs <- reactive({
-    scseq <- scseq()
-    h5logs <- h5logs()
-    if (is.null(scseq) | is.null(h5logs)) return(NULL)
-    SingleCellExperiment::logcounts(scseq) <- h5logs
-    return(scseq)
-  })
-
-  # this is ugly but avoids error from clusters/samples updating same plot
-  feature_plot_samples <- reactive({
-    plot_path <- feature_plot_path()
-    plot <- qread.safe(plot_path)
-
-    if (is.null(plot)) {
-      scseq <- scseq_logs()
-      if (is.null(scseq)) return(NULL)
-      plot <- plot_feature(scseq, row.names(scseq)[1]) +
-        ggplot2::labs(x='', y='')
-      qs::qsave(plot, plot_path)
-    }
-    return(plot)
-  })
-
-
-  return(list(
-    feature_plot_samples = feature_plot_samples
   ))
 }
 
@@ -3315,11 +3280,20 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clust
       yrange = range(coords[,2]),
       direction = 'y')
 
+    deck_props <- list()
+    if (is_mobile()) {
+      deck_props <- list(
+        '_pickable' = FALSE,
+        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
+      )
+    }
+
     picker::picker(coords,
                    colors,
                    labels,
                    label_repels,
                    show_controls = FALSE,
+                   deck_props = deck_props,
                    text_props = list(getSize=14,
                                      getTextAnchor = 'middle',
                                      getAlignmentBaseline = 'center'))
@@ -3400,7 +3374,7 @@ subset_contrast <- function(scseq) {
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, clusters_view, markers_view = function()NULL, is_hide = function()FALSE, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, clusters_view, is_mobile, markers_view = function()NULL, is_hide = function()FALSE, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
 
 
   show_plot <- reactive(length(colors()) & !is_hide())
@@ -3433,12 +3407,21 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
                                  label = toupper(group))
     }
 
+    deck_props <- list()
+    if (is_mobile()) {
+      deck_props <- list(
+        '_pickable' = FALSE,
+        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
+      )
+    }
+
     picker::picker(coords,
                    isolate(colors()),
                    labels,
                    # show_controls = show_controls,
                    show_controls = FALSE,
-                   label_coords = label_coords)
+                   label_coords = label_coords,
+                   deck_props = deck_props)
   })
 
 
