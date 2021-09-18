@@ -92,7 +92,7 @@ SingleExIPlot <- function(
     ggplot2::scale_color_manual(values = c(color_dark, 'gray')),
     ggplot2::theme(legend.position = 'none',
                    plot.title.position = "plot",
-                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14),
+                   axis.text.y = ggplot2::element_text(color = '#333333', size = 14, hjust = 0),
                    axis.text.x = ggplot2::element_text(color = '#333333', size = 14),
                    panel.grid.major.y = ggplot2::element_line(colour='dimgray', size=0.1),
                    plot.title = ggplot2::element_text(color = '#333333', size = 16, face = 'plain', margin = ggplot2::margin(b = 25))),

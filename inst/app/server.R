@@ -107,12 +107,6 @@ server <- function(input, output, session) {
 
     is_mobile <- reactive(input$is_mobile)
 
-    bulkPage <- callModule(bulkPage, 'bulk',
-                           data_dir = data_dir,
-                           sc_dir = sc_dir,
-                           bulk_dir = bulk_dir,
-                           gs_dir = gs_dir,
-                           indices_dir = indices_dir)
 
     if (is_example) {
         add_sc <- reactiveVal()
@@ -136,7 +130,6 @@ server <- function(input, output, session) {
         suppressPackageStartupMessages(require(SingleCellExperiment))
     })
 
-
     scPage <- callModule(scPage, 'sc',
                          sc_dir = sc_dir,
                          indices_dir = indices_dir,
@@ -145,6 +138,13 @@ server <- function(input, output, session) {
                          is_mobile = is_mobile,
                          add_sc = add_sc,
                          remove_sc = remove_sc)
+
+    bulkPage <- callModule(bulkPage, 'bulk',
+                           data_dir = data_dir,
+                           sc_dir = sc_dir,
+                           bulk_dir = bulk_dir,
+                           gs_dir = gs_dir,
+                           indices_dir = indices_dir)
 
     drugsPage <- callModule(drugsPage, 'drug',
                             data_dir = data_dir,

@@ -219,6 +219,7 @@ td.dt-nopad span {
 /* table text on 1 line */
 .dt-container {
     white-space: nowrap;
+    overflow-x: hidden;
 }
 
 /* no overflow-y for drugs/bulk */

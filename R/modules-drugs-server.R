@@ -686,7 +686,10 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   dataset_dir <- reactive({
     if (!isTruthy(input$query)) return(NULL)
-    file.path(data_dir, sel()$dataset_dir)
+    dataset_dir <- sel()$dataset_dir
+    if (is.na(dataset_dir)) return(NULL)
+
+    file.path(data_dir, dataset_dir)
   })
 
 
@@ -855,3 +858,4 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   ))
 
 }
+

@@ -564,7 +564,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
     dataset_dir <- dirname(resoln_dir)
     scseq <- load_scseq_qs(dataset_dir)
     scseq <- attach_clusters(scseq, resoln_dir)
-    scseq <- scseq[, scseq$orig.ident %in% c('test', 'ctrl')]
+    if (sample_comparison) scseq <- scseq[, scseq$orig.ident %in% c('test', 'ctrl')]
   }
 
   ncells <- c(tabulate(scseq$cluster), ncol(scseq))

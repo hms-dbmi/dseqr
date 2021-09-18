@@ -59,7 +59,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              scseq = scForm$scseq,
              annot = scForm$annot,
              plots_dir =scForm$plots_dir,
-             h5logs = scForm$h5logs)
+             h5logs = scForm$h5logs,
+             is_mobile = is_mobile)
 
 
   # sample comparison plots ---
@@ -872,7 +873,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       violin_data <- get_violin_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, h5logs=h5logs())
 
       if (all(violin_data$df$x == 0)) return(NULL)
-      plot <- VlnPlot(violin_data = violin_data, with.height = TRUE, is_mobile = is_mobile())
+      plot <- plot_violin(violin_data = violin_data, with.height = TRUE, is_mobile = is_mobile())
       return(plot)
     }
     return(pfun)
@@ -3103,7 +3104,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clust
 
     if (is_mobile()) {
       deck_props <- list(
-        '_pickable' = FALSE,
         '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
       )
     }
@@ -3481,7 +3481,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #'
 #' @keywords internal
 #' @noRd
-scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, h5logs) {
+scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, h5logs, is_mobile) {
 
   show_plot <- reactive(!is.null(plot()))
   observe(toggle('violin_plot', condition = show_plot()))
@@ -3519,7 +3519,7 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     violin_data <- violin_data()
     if (is.null(violin_data)) return(NULL)
     if (all(violin_data$df$x == 0)) return(NULL)
-    VlnPlot(violin_data = violin_data)
+    plot_violin(violin_data = violin_data, is_mobile = is_mobile())
   }) %>% debounce(20)
 
 

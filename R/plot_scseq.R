@@ -149,26 +149,30 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 #' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
 #' @keywords internal
 #'
-format_violin_annot <- function(annot) {
+format_violin_annot <- function(annot, pad_left = FALSE) {
 
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
   if (any(is.char)) {
-    annot[is.char] <- paste0(seq_along(annot)[is.char], ': ', annot[is.char])
+
+    nums <- seq_along(annot)[is.char]
+    if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = ' ')
+    text <- annot[is.char]
+    annot[is.char] <- paste0(nums, ': ', text)
   }
   return(annot)
 }
 
-VlnPlot <- function(feature = NULL,
-                    scseq = NULL,
-                    selected_cluster = NULL,
-                    by.sample = FALSE,
-                    with_all = FALSE,
-                    with.height = FALSE,
-                    violin_data = NULL,
-                    is_mobile = FALSE,
-                    decreasing = feature %in% c('ribo_percent',
-                                                'log10_sum',
-                                                'log10_detected')) {
+plot_violin <- function(feature = NULL,
+                        scseq = NULL,
+                        selected_cluster = NULL,
+                        by.sample = FALSE,
+                        with_all = FALSE,
+                        with.height = FALSE,
+                        violin_data = NULL,
+                        is_mobile = FALSE,
+                        decreasing = feature %in% c('ribo_percent',
+                                                    'log10_sum',
+                                                    'log10_detected')) {
 
   if (is.null(violin_data)) {
     violin_data <- get_violin_data(
@@ -180,8 +184,10 @@ VlnPlot <- function(feature = NULL,
   if (by.sample) {
     title <- paste(title, c(clus_levs, 'All Clusters')[seli])
     if (is_mobile) df <- shorten_y(df)
+
   } else {
-    annot <- format_violin_annot(clus_levs)
+    if (is_mobile) clus_levs <- stringr::str_trunc(clus_levs, width = 6, ellipsis = '.')
+    annot <- format_violin_annot(clus_levs, pad_left = TRUE)
     levels(df$y) <- annot[clus_ord]
     if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
   }
@@ -211,6 +217,7 @@ VlnPlot <- function(feature = NULL,
 
 }
 
+# shorten labels for sample violin plot on mobile
 shorten_y <- function(df) {
   short <- df %>%
     dplyr::group_by(y) %>%
