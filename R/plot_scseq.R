@@ -330,57 +330,6 @@ col2hex <- function(cname, dark) {
 }
 
 
-plot_scseq_diff <- function(pt.dat, feature = 'abundance', legend.position = 'right') {
-
-  title <- 'Cell Number in Test vs Control Samples'
-  delta_name <- 'Δ cells'
-
-  if (feature != 'abundance') {
-    title <- paste('Expression in Test vs Control Samples:', feature)
-    delta_name <- 'Δ gene'
-  }
-
-  # color per direction
-  fill <- c('#A50F15', '#08519C', '#FFFFFF')
-  names(fill) <- levels(pt.dat$direction)
-  fill <- fill[names(fill) %in% pt.dat$direction]
-
-  n.alpha <- length(unique(pt.dat$alpha))
-  b.alpha <- c(.5, 0.1)
-  l.alpha <- c('< .05', '≥ .05')
-
-  if (n.alpha == 1) {
-    b.alpha <- 0.1
-    l.alpha <- '≥ .05'
-  }
-
-  ggplot2::ggplot(ggplot2::aes(x=x1, y=y1, fill=direction, alpha=alpha), data=pt.dat) +
-    ggplot2::geom_tile(color='lightgray') +
-    cowplot::theme_cowplot() +
-    theme_no_axis_vals() +
-    theme_dimgray(with_nums = FALSE) +
-    ggplot2::scale_x_continuous(expand = c(0, 0), limits = range(pt.dat$x1)) +
-    ggplot2::scale_y_continuous(expand = c(0, 0), limits = range(pt.dat$y1)) +
-    ggplot2::scale_fill_manual(name = delta_name, values = fill) +
-    ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
-    ggplot2::theme(legend.position = legend.position,
-                   axis.ticks.x = ggplot2::element_blank(),
-                   axis.ticks.y = ggplot2::element_blank(),
-                   axis.line.x = ggplot2::element_blank(),
-                   axis.line.y = ggplot2::element_blank(),
-                   axis.title.x = ggplot2::element_blank(),
-                   axis.title.y = ggplot2::element_blank(),
-                   legend.title = ggplot2::element_text(size=12),
-                   legend.text = ggplot2::element_text(size=10),
-                   plot.title.position = "plot",
-                   plot.background = ggplot2::element_rect(colour = "#dddddd", fill=NA, size=1),
-                   plot.title = ggplot2::element_text(color = "#333333", hjust = 0, size = 16, face = 'plain', margin = ggplot2::margin(b = 15))) +
-    ggplot2::guides(fill = ggplot2::guide_legend(order = 1),
-                    alpha = ggplot2::guide_legend(order = 2)) +
-    ggplot2::ggtitle(title)
-}
-
-
 get_grid_expression <- function(gene, tts, grid) {
 
   tts <- lapply(tts, function(x) x[gene,, drop=FALSE])

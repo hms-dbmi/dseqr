@@ -20,7 +20,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     add_sc = add_sc,
     remove_sc = remove_sc)
 
-  observeEvent(scForm$compare_groups(), {scForm$show_pbulk(FALSE)})
+  # prevent grid differential expression on contrast change
+  observeEvent(scForm$compare_groups(), scForm$show_pbulk(FALSE))
 
   # cluster plot in top right
   clusters_view <- callModule(
@@ -65,7 +66,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   have_comparison <- reactive(length(scForm$compare_groups()) == 2)
 
-  # cluster plot in top right
+  # grid abundance layer data
   grid_abundance <- callModule(
     scGridAbundance, 'grid_abundance',
     scseq = scForm$scseq,
@@ -77,7 +78,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   test_markers_view <- callModule(
     scMarkerPlot, 'expr_test',
-    scseq = scForm$scseq,
+    scseq = scForm$scseq_meta,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
@@ -89,7 +90,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   ctrl_markers_view <- callModule(
     scMarkerPlot, 'expr_ctrl',
-    scseq = scForm$scseq,
+    scseq = scForm$scseq_meta,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
@@ -225,6 +226,19 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     return(scseq)
   })
 
+  # update scseq with group names
+  # gets used for sample comparison marker plots
+  scseq_meta <- reactive({
+    scseq <- scseq()
+    meta <- scSampleGroups$meta()
+    groups <- scSampleGroups$groups()
+
+    if (!isTruthyAll(scseq, meta, groups)) return(NULL)
+    if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
+
+    attach_meta(scseq, meta = meta, groups = groups)
+  })
+
   qc_metrics <- reactive({
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
@@ -313,7 +327,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              dgclogs = dgclogs,
                              snn_graph = scDataset$snn_graph,
                              annot_path = annot_path,
-                             show_label_resoln = scDataset$show_label_resoln)
+                             show_label_resoln = scDataset$show_label_resoln,
+                             compare_groups = scSampleGroups$groups)
 
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
@@ -422,6 +437,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   return(list(
     scseq = scseq,
+    scseq_meta = scseq_meta,
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
     custom_metrics = scClusterGene$custom_metrics,
@@ -563,9 +579,21 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     qread.safe(prev_path())
   })
 
+  groups <- reactiveVal()
+  observeEvent(dataset_name(), groups(NULL))
+  observe(groups(input$compare_groups))
+
+  # reset when change resolution
+  observe({
+    groups <- groups()
+    if (is.null(groups) || groups != 'reset') return(NULL)
+    updateSelectizeInput(session, 'compare_groups', selected = '')
+  })
+
   observe({
     # group_choices may not change with dataset_name change
     dataset_name()
+
     updateSelectizeInput(session,
                          'compare_groups',
                          choices = group_choices(),
@@ -580,10 +608,10 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   # save groups as previous
   observe({
-    groups <- input$compare_groups
-    if (length(groups) != 2) return(NULL)
-    if (is.null(prev_path())) return(NULL)
-    qs::qsave(groups, prev_path())
+    groups <- groups()
+    prev_path <- isolate(prev_path())
+    if (is.null(prev_path)) return(NULL)
+    qs::qsave(groups, prev_path)
   })
 
 
@@ -697,12 +725,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     return(lm_fit)
   })
 
-
-
-  groups <- reactiveVal()
-  observeEvent(dataset_name(), groups(NULL))
-  observe(groups(input$compare_groups))
-
   return(list(
     lm_fit = lm_fit,
     lm_fit_grid = lm_fit_grid,
@@ -766,7 +788,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     meta <- meta()
     scseq <- input_scseq()
     groups <- groups()
-    if (is.null(meta) | is.null(scseq) | is.null(groups)) return(NULL)
+    if (!isTruthyAll(meta, scseq, groups)) return(NULL)
     if (length(groups) != 2) return(NULL)
     if (!all(groups %in% meta$group)) return(NULL)
     if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
@@ -1711,116 +1733,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   ))
 }
 
-# modal to upload dataset
-uploadModal <- function(session, show_init) {
-  label <- "Click upload or drag files:"
-  label_title <- "10X *.fastq.gz or Cell Ranger matrix.mtx, barcodes.tsv, and features.tsv"
-  label <- tags$span(label, span(class = "hover-info", id = 'up-info', icon("info", "fa-fw")))
-
-  modalDialog(
-    fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'), multiple = TRUE),
-    tags$div(class='alert alert-warning', role = 'alert',
-             '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
-             tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
-    tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
-             hr(),
-             shinypanel::textInputWithButtons(
-               session$ns('sample_name'),
-               'Sample name for selected rows:',
-               actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
-               container_id = session$ns('validate-up'),
-               help_id = session$ns('error_msg')
-             ),
-             hr(),
-             shinyBS::bsTooltip('up-info', label_title, options = list(container = 'body', html = TRUE))
-    ),
-    DT::dataTableOutput(session$ns('up_table'), width = '100%'),
-    title = 'Upload Single Cell Datasets',
-    size = 'l',
-    footer = tagList(
-      actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
-      tags$div(class='pull-left', modalButton("Cancel"))
-    ),
-    easyClose = TRUE,
-  )
-}
-
-# modal to delete dataset
-deleteModal <- function(session, choices) {
-
-  modalDialog(
-    tags$div(class='selectize-fh',
-             shinyWidgets::pickerInput(session$ns('remove_datasets'),
-                                       label='Select datasets to delete:',
-                                       width = '100%',
-                                       choices = choices,
-                                       options = shinyWidgets::pickerOptions(
-                                         `selected-text-format` = "count > 0",
-                                         actionsBox = TRUE,
-                                         liveSearch = TRUE,
-                                         width='fit',
-                                         size=14),
-                                       multiple = TRUE)
-    ),
-    tags$div(id=session$ns('confirm_delete_container'), style='display:none;',
-             tags$div(class='alert alert-danger', 'This action cannot be undone.'),
-             br(),
-             textInput(session$ns('confirm_delete'), HTML('<span> Type <i><span style="color: gray">delete</span></i> to confirm:</span>'),
-                       placeholder = "delete", width = '100%'
-             ),
-    ),
-    title = 'Delete Single Cell Datasets',
-    size = 'm',
-    footer = tagList(
-      actionButton(session$ns("delete_dataset"), "Delete Datasets"),
-      tags$div(class='pull-left', modalButton("Cancel"))
-    ),
-    easyClose = TRUE,
-  )
-}
-
-
-# modal to confirm adding single-cell dataset
-confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = 'Homo sapiens') {
-
-  if (type[1] == 'quant') {
-    label <- 'Quantify'
-    id <- 'confirm_quant'
-    qc <- selectizeInput(
-      session$ns('qc_metrics'),
-      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
-      choices = c('all', 'all and none', 'none', metric_choices),
-      selected = 'all',
-      multiple = TRUE)
-
-    azi <- NULL
-    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
-
-    if (length(species_refs)) azi <- selectizeInput(
-      session$ns('azimuth_ref'),
-      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-      choices = c('', species_refs),
-      options = list(placeholder = 'optional'))
-
-    UI <- div(qc, azi)
-
-  } else if (type[1] == 'subset') {
-    label <- 'Subset'
-    id <- 'confirm_subset'
-    UI <- NULL
-  }
-
-  modalDialog(
-    UI,
-    title = 'Create new single-cell dataset?',
-    size = 's',
-    footer = tagList(
-      modalButton("Cancel"),
-      actionButton(session$ns(id), label, class = 'pull-left btn-warning')
-    )
-  )
-}
-
 
 #' Logic for selecting cluster to plot label origin for integrated dataset
 #'
@@ -1838,39 +1750,6 @@ scLabelsComparison <- function(input, output, session, cluster_choices) {
   return(list(
     selected_cluster = reactive(input$selected_cluster)
   ))
-}
-
-
-#' Take currently selected row and keep it in the same position
-#'
-#' Used to stop dataset change when adding new datasets
-#'
-#' @param datasets current data.frame of single-cell datasets
-#' @param prev previous data.frame of single-cell datasets
-#' @param curr name of currently selected row from \code{prev}
-#'
-#' @return \code{datasets} with \code{curr} at same row as it is in \code{prev}
-#'
-keep_curr_selected <- function(datasets, prev, curr) {
-
-  # get currently selected row
-  curr <- as.numeric(curr)
-  curr_name <- prev[curr, 'name']
-
-  # position in new datasets
-  new_posn <- which(curr_name == datasets$name)[1]
-  ndata <- nrow(datasets)
-
-  # in case delete current that is last
-  if (curr > ndata | is.na(new_posn)) return(datasets)
-
-  # move so that row at new_posn is at curr
-  idx <- seq_len(nrow(datasets))
-  idx_new <- replace(idx, c(curr, new_posn), c(new_posn, curr))
-  datasets <- datasets[idx_new, ]
-  datasets$value <- idx
-  return(datasets)
-
 }
 
 
@@ -1974,12 +1853,6 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     req(show_label_resoln())
 
     query <- query()
-    if (!isTruthy(query)) {
-      showModal(warnApplyModal('transfer'))
-      updateSelectizeInput(session, 'ref_name', selected = NULL)
-      return(NULL)
-    }
-
     disableAll(label_transfer_inputs)
 
     # Create a Progress object
@@ -2066,7 +1939,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
   })
 
 
-  # show transfered labels immediately upon selection if have
+  # show transferred labels immediately upon selection if have
   observe({
     query_name <- resoln_name()
     ref_name <- input$ref_name
@@ -2132,6 +2005,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     resoln_name <- resoln_name()
 
     req(resoln_name)
+    req(ref_name)
 
     showModal(transferModal())
   })
@@ -2166,7 +2040,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
 #'
 #' @keywords internal
 #' @noRd
-resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln) {
+resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups) {
   resolution_inputs <- c('resoln')
 
   prev_resoln <- reactiveVal()
@@ -2189,8 +2063,12 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   first_set <- reactiveVal(TRUE)
   observeEvent(input[[rname()]], {
     set <- input[[rname()]]
-    if (!first_set() && (!is.numstring(set) || set >= 0.1 & set <= 5.1))
+    if (!first_set() && (!is.numstring(set) || set >= 0.1 & set <= 5.1)) {
       resoln(set)
+
+      # prevent update to DE results after change resolution
+      compare_groups('reset')
+    }
 
     first_set(FALSE)
   }, ignoreInit = TRUE)
@@ -2888,21 +2766,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 }
 
 
-warnApplyModal <- function(type = c('markers', 'transfer', 'select')) {
-  text <- switch(
-    type[1],
-    markers = 'Either apply or reset cluster resolution to sort marker genes by cluster.',
-    transfer = 'Either apply or reset cluster resolution to transfer labels.'
-  )
-
-  modalDialog(
-    text,
-    title = 'Apply or Reset',
-    size = 's',
-    easyClose = TRUE
-  )
-}
-
 
 #' Logic for selected gene to show plots for
 #'
@@ -2960,14 +2823,10 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # toggle for showing pseudobulk grid layer
   show_pbulk <- reactiveVal(FALSE)
+  observeEvent(input$show_pbulk, show_pbulk(type == 'samples' && !show_pbulk()))
 
-  observeEvent(input$show_pbulk, {
-    show_pbulk(type == 'samples' && !show_pbulk())
-  })
-
-  observeEvent(dataset_name(), {
-    show_pbulk(FALSE)
-  })
+  # prevent grid differential expression on dataset change
+  observeEvent(dataset_name(), show_pbulk(FALSE))
 
   observe(toggleClass(id = "show_pbulk", 'btn-primary', condition = show_pbulk()))
 
@@ -3206,21 +3065,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
 }
 
-format_comma_regex <- function(regex) {
-  regex <- gsub(', ', '$|^', regex)
-  regex <- paste0('^', regex, '$')
-  return(regex)
-}
-
-get_label_coords <- function(coords, labels) {
-  colnames(coords) <- c('x', 'y')
-  coords$label <- labels
-
-  coords %>%
-    dplyr::group_by(label) %>%
-    dplyr::summarize(x = median(x), y = median(y))
-}
-
 
 #' Logic for cluster plots
 #'
@@ -3390,14 +3234,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clust
 }
 
 
-get_scatter_props <- function(ncells) {
-  pt.size <- min(20000/ncells, 4)
-  scatter_props <- list(radiusMinPixels = pt.size)
-
-  if (pt.size < 2) scatter_props$stroked <- FALSE
-  return(scatter_props)
-}
-
+# get grid abundance data
 scGridAbundance <- function(input, output, session, scseq, dataset_dir, sc_dir, compare_groups, dplots_dir, meta) {
 
   grid_abundance <- reactive({
@@ -3436,13 +3273,6 @@ scGridAbundance <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 
 }
 
-subset_contrast <- function(scseq) {
-  is.con <- scseq$orig.ident %in% c('test', 'ctrl')
-  scseq <- scseq[, is.con]
-  scseq$orig.ident <- droplevels(scseq$orig.ident)
-  return(scseq)
-}
-
 
 #' Logic for marker feature plots
 #'
@@ -3453,7 +3283,6 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
 
   have_colors <- reactive(length(colors()))
   observe(toggle('marker_plot', condition = show_plot() && have_colors()))
-  is_drawn <- reactiveVal(FALSE)
 
   output$marker_plot <- picker::renderPicker({
     if (!show_plot()) return(NULL)
@@ -3696,5 +3525,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
 

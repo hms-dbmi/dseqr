@@ -1000,6 +1000,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
 }
 
 
+# fast pseudobulk using presto
 aggregate_across_cells <- function(scseq) {
   counts_mat <- SingleCellExperiment::counts(scseq)
   batch <- scseq$batch
@@ -1025,8 +1026,6 @@ aggregate_across_cells <- function(scseq) {
 
   return(sce)
 }
-
-
 
 
 #' Integration Utility Function for Background Process
@@ -1844,6 +1843,7 @@ get_grid <- function(scseq) {
   return(grid)
 }
 
+# split up scseq parts so that can load what need (faster)
 split_save_scseq <- function(scseq, dataset_dir) {
 
   # save as seperate parts
@@ -1858,4 +1858,174 @@ split_save_scseq <- function(scseq, dataset_dir) {
   qs::qsave(dgc.logs, file.path(dataset_dir, 'dgclogs.qs'), preset = 'fast')
   HDF5Array::writeTENxMatrix(t.logs, file.path(dataset_dir, 'tlogs.tenx'), group = 'mm10')
   qs::qsave(counts, file.path(dataset_dir, 'counts.qs'), preset = 'fast')
+}
+
+# subset scseq to cells in test vs control contrast
+subset_contrast <- function(scseq) {
+  is.con <- scseq$orig.ident %in% c('test', 'ctrl')
+  scseq <- scseq[, is.con]
+  scseq$orig.ident <- droplevels(scseq$orig.ident)
+  return(scseq)
+}
+
+
+# to allow pasting comma seperated genes into gene search
+format_comma_regex <- function(regex) {
+  regex <- gsub(', ', '$|^', regex)
+  regex <- paste0('^', regex, '$')
+  return(regex)
+}
+
+# get median coordinates for cluster labels
+get_label_coords <- function(coords, labels) {
+  colnames(coords) <- c('x', 'y')
+  coords$label <- labels
+
+  coords %>%
+    dplyr::group_by(label) %>%
+    dplyr::summarize(x = median(x), y = median(y))
+}
+
+
+#' Take currently selected row and keep it in the same position
+#'
+#' Used to stop dataset change when adding new datasets
+#'
+#' @param datasets current data.frame of single-cell datasets
+#' @param prev previous data.frame of single-cell datasets
+#' @param curr name of currently selected row from \code{prev}
+#'
+#' @return \code{datasets} with \code{curr} at same row as it is in \code{prev}
+#'
+keep_curr_selected <- function(datasets, prev, curr) {
+
+  # get currently selected row
+  curr <- as.numeric(curr)
+  curr_name <- prev[curr, 'name']
+
+  # position in new datasets
+  new_posn <- which(curr_name == datasets$name)[1]
+  ndata <- nrow(datasets)
+
+  # in case delete current that is last
+  if (curr > ndata | is.na(new_posn)) return(datasets)
+
+  # move so that row at new_posn is at curr
+  idx <- seq_len(nrow(datasets))
+  idx_new <- replace(idx, c(curr, new_posn), c(new_posn, curr))
+  datasets <- datasets[idx_new, ]
+  datasets$value <- idx
+  return(datasets)
+
+}
+
+
+# modal to upload dataset
+uploadModal <- function(session, show_init) {
+  label <- "Click upload or drag files:"
+  label_title <- "10X *.fastq.gz or Cell Ranger matrix.mtx, barcodes.tsv, and features.tsv"
+  label <- tags$span(label, span(class = "hover-info", id = 'up-info', icon("info", "fa-fw")))
+
+  modalDialog(
+    fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'), multiple = TRUE),
+    tags$div(class='alert alert-warning', role = 'alert',
+             '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
+             tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
+    tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
+             hr(),
+             shinypanel::textInputWithButtons(
+               session$ns('sample_name'),
+               'Sample name for selected rows:',
+               actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
+               container_id = session$ns('validate-up'),
+               help_id = session$ns('error_msg')
+             ),
+             hr(),
+             shinyBS::bsTooltip('up-info', label_title, options = list(container = 'body', html = TRUE))
+    ),
+    DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    title = 'Upload Single Cell Datasets',
+    size = 'l',
+    footer = tagList(
+      actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = TRUE,
+  )
+}
+
+# modal to delete dataset
+deleteModal <- function(session, choices) {
+
+  modalDialog(
+    tags$div(class='selectize-fh',
+             shinyWidgets::pickerInput(session$ns('remove_datasets'),
+                                       label='Select datasets to delete:',
+                                       width = '100%',
+                                       choices = choices,
+                                       options = shinyWidgets::pickerOptions(
+                                         `selected-text-format` = "count > 0",
+                                         actionsBox = TRUE,
+                                         liveSearch = TRUE,
+                                         width='fit',
+                                         size=14),
+                                       multiple = TRUE)
+    ),
+    tags$div(id=session$ns('confirm_delete_container'), style='display:none;',
+             tags$div(class='alert alert-danger', 'This action cannot be undone.'),
+             br(),
+             textInput(session$ns('confirm_delete'), HTML('<span> Type <i><span style="color: gray">delete</span></i> to confirm:</span>'),
+                       placeholder = "delete", width = '100%'
+             ),
+    ),
+    title = 'Delete Single Cell Datasets',
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("delete_dataset"), "Delete Datasets"),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = TRUE,
+  )
+}
+
+
+# modal to confirm adding single-cell dataset
+confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = 'Homo sapiens') {
+
+  if (type[1] == 'quant') {
+    label <- 'Quantify'
+    id <- 'confirm_quant'
+    qc <- selectizeInput(
+      session$ns('qc_metrics'),
+      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
+      choices = c('all', 'all and none', 'none', metric_choices),
+      selected = 'all',
+      multiple = TRUE)
+
+    azi <- NULL
+    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
+
+    if (length(species_refs)) azi <- selectizeInput(
+      session$ns('azimuth_ref'),
+      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+      choices = c('', species_refs),
+      options = list(placeholder = 'optional'))
+
+    UI <- div(qc, azi)
+
+  } else if (type[1] == 'subset') {
+    label <- 'Subset'
+    id <- 'confirm_subset'
+    UI <- NULL
+  }
+
+  modalDialog(
+    UI,
+    title = 'Create new single-cell dataset?',
+    size = 's',
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(session$ns(id), label, class = 'pull-left btn-warning')
+    )
+  )
 }
