@@ -14,6 +14,10 @@ const <- list(
         n0 = gray,
         ft = c(gray, 'blue'),
         qc = c(gray, 'red')
+    ),
+    features = list(
+        qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score'),
+        reverse = c('ribo_percent', 'log10_sum', 'log10_detected')
     )
 )
 

@@ -18,7 +18,7 @@ scPageUI <- function(id, tab, active) {
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                scAbundancePlotOutput(ns('abundance_plot')),
+                # scAbundancePlotOutput(ns('abundance_plot')),
                 scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
@@ -33,8 +33,8 @@ scPageUI <- function(id, tab, active) {
                     div(id = ns('biogps_container'), class="beside-downloadable",
                         scBioGpsPlotOutput(ns('biogps_plot'))
                     ),
-                    div(style = 'display: none;', id = ns('ridge_container'),
-                        scRidgePlotOutput(ns('ridge_plot'))
+                    div(style = 'display: none;', id = ns('violin_container'),
+                        scViolinPlotOutput(ns('violin_plot'))
                     )
                 )
             ),
@@ -42,13 +42,12 @@ scPageUI <- function(id, tab, active) {
             div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
                 div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
                     scMarkerPlotOutput(ns('expr_test')),
-                    scSamplePlotOutput(ns('expr_diff_grid')),
-                    scSamplePlotOutput(ns('expr_sample_violin'), zoom = FALSE),
+                    br(),
+                    scSamplePlotOutput(ns('expr_sample_violin')),
                 ),
                 div(class = "col-sm-12 col-lg-6 mobile-margin",
                     scMarkerPlotOutput(ns('expr_ctrl')),
-                    scMarkerPlotOutput(ns('expr_all')),
-                    br(),
+                    br()
                 )
             )
         )
@@ -319,14 +318,14 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   ns <- NS(id)
   gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
-  ridge_btn  <- actionButton(ns('show_ridge'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
-  dprimes_btn  <- actionButton(ns('show_dprimes'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle Pseudobulk plot')
+  biogps_btn  <- actionButton(ns('show_biogps'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
+  pbulk_btn  <- actionButton(ns('show_pbulk'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle between Δ EXPRESSION and Δ CELLS layer')
 
   if (sample_comparison) {
     btn1 <- NULL
-    btn2 <- dprimes_btn
+    btn2 <- pbulk_btn
   } else {
-    btn1 <- ridge_btn
+    btn1 <- biogps_btn
     btn2 <- custom_btn
   }
 
@@ -406,7 +405,7 @@ scBioGpsPlotOutput <- function(id) {
 #'
 #' @keywords internal
 #' @noRd
-scSamplePlotOutput <- function(id, zoom = TRUE) {
+scSamplePlotOutput <- function(id) {
   ns <- NS(id)
   div(style='margin-bottom: 20px',
       shiny::plotOutput(ns('plot'), height = 'auto')
@@ -414,13 +413,13 @@ scSamplePlotOutput <- function(id, zoom = TRUE) {
 }
 
 
-#' Output Ridgeline plot
+#' Output violin plot
 #'
 #' @keywords internal
 #' @noRd
-scRidgePlotOutput <- function(id) {
+scViolinPlotOutput <- function(id) {
   ns <- NS(id)
-  shiny::plotOutput(ns('ridge_plot'), height = 'auto')
+  shiny::plotOutput(ns('violin_plot'), height = 'auto')
 }
 
 

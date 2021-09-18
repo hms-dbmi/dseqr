@@ -1,3 +1,6 @@
+# dseqr 0.20.0
+* switch to `picker` for grid plots
+
 # dseqr 0.19.0
 * switch to `picker` for scatter plots
 * add support for .h5 uploads

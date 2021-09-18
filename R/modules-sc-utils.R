@@ -1820,19 +1820,25 @@ get_grid <- function(scseq) {
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
 
   # create grid
-  xi <- seq(min(dat$x), max(dat$x), length.out = nx)
-  yi <- seq(min(dat$y), max(dat$y), length.out = ny)
+  x <- seq(min(dat$x), max(dat$x), length.out = nx)
+  y <- seq(min(dat$y), max(dat$y), length.out = ny)
 
   # in nx*ny grid: get xy bin for each point
   points <- cbind(dat$x, dat$y)
-  grid <- data.frame(xi = findInterval(points[,1], xi),
-                     yi = findInterval(points[,2], yi))
+  grid <- data.frame(xi = findInterval(points[,1], x),
+                     yi = findInterval(points[,2], y))
 
-  x <- xi[-length(xi)] + 0.5*diff(xi)
-  y <- yi[-length(yi)] + 0.5*diff(yi)
+  diff.x <- diff(x[1:2])
+  diff.y <- diff(y[1:2])
 
-  grid$x <- x[grid$xi]
-  grid$y <- y[grid$yi]
+  x2 <- x + diff.x
+  y2 <- y + diff.y
+
+  grid$x1 <- x[grid$xi]
+  grid$x2 <- x2[grid$xi]
+
+  grid$y1 <- y[grid$yi]
+  grid$y2 <- y2[grid$yi]
 
   grid$cluster <- paste(grid$xi, grid$yi, sep='-')
   return(grid)

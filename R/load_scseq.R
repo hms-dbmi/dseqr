@@ -473,8 +473,10 @@ attach_meta <- function(scseq, dataset_dir = NULL, meta = NULL, groups = NULL) {
   if (is.null(meta)) return(scseq)
 
   sample_group <- meta$group
-  sample_group[sample_group == groups[1]] <- 'test'
-  sample_group[sample_group == groups[2]] <- 'ctrl'
+  is.test <- sample_group == groups[1]
+  is.ctrl <- sample_group == groups[2]
+  sample_group[is.test] <- 'test'
+  sample_group[is.ctrl] <- 'ctrl'
   other <- setdiff(sample_group, c('test', 'ctrl'))
   names(sample_group) <- row.names(meta)
   cell_group <- unname(sample_group[scseq$batch])

@@ -10,14 +10,17 @@
 scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
   # the analysis and options
-  scForm <- callModule(scForm, 'form',
-                       sc_dir = sc_dir,
-                       indices_dir = indices_dir,
-                       tx2gene_dir = tx2gene_dir,
-                       gs_dir = gs_dir,
-                       is_mobile = is_mobile,
-                       add_sc = add_sc,
-                       remove_sc = remove_sc)
+  scForm <- callModule(
+    scForm, 'form',
+    sc_dir = sc_dir,
+    indices_dir = indices_dir,
+    tx2gene_dir = tx2gene_dir,
+    gs_dir = gs_dir,
+    is_mobile = is_mobile,
+    add_sc = add_sc,
+    remove_sc = remove_sc)
+
+  observeEvent(scForm$compare_groups(), {scForm$show_pbulk(FALSE)})
 
   # cluster plot in top right
   clusters_view <- callModule(
@@ -26,7 +29,10 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     annot = scForm$annot,
     is_mobile = is_mobile,
     clusters_marker_view = clusters_marker_view,
-    samples_marker_view = all_markers_view)
+    grid_abundance = grid_abundance,
+    grid_expression_fun = scForm$grid_expression_fun,
+    selected_gene = scForm$samples_gene,
+    show_pbulk = scForm$show_pbulk)
 
   # cluster comparison plots ---
 
@@ -46,7 +52,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              species = scForm$species)
 
 
-  callModule(scRidgePlot, 'ridge_plot',
+  callModule(scViolinPlot, 'violin_plot',
              selected_gene = scForm$clusters_gene,
              selected_cluster = scForm$clusters_cluster,
              scseq = scForm$scseq,
@@ -57,16 +63,17 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   # sample comparison plots ---
 
+  have_comparison <- reactive(length(scForm$compare_groups()) == 2)
+
   # cluster plot in top right
-  callModule(scAbundancePlot, 'abundance_plot',
-             scseq = scForm$scseq,
-             dataset_dir = scForm$dataset_dir,
-             dplots_dir = scForm$dplots_dir,
-             comparison_type = scForm$comparison_type,
-             compare_groups = scForm$compare_groups,
-             meta = scForm$meta,
-             is_mobile = is_mobile,
-             sc_dir = sc_dir)
+  grid_abundance <- callModule(
+    scGridAbundance, 'grid_abundance',
+    scseq = scForm$scseq,
+    dataset_dir = scForm$dataset_dir,
+    dplots_dir = scForm$dplots_dir,
+    compare_groups = scForm$compare_groups,
+    meta = scForm$meta,
+    sc_dir = sc_dir)
 
   test_markers_view <- callModule(
     scMarkerPlot, 'expr_test',
@@ -75,8 +82,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'test',
-    is_hide = scForm$show_dprimes,
     is_mobile = is_mobile,
+    show_plot = have_comparison,
     clusters_view = clusters_view,
     markers_view = ctrl_markers_view)
 
@@ -87,30 +94,15 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'ctrl',
-    is_hide = scForm$show_dprimes,
     is_mobile = is_mobile,
+    show_plot = have_comparison,
     clusters_view = clusters_view,
     markers_view = test_markers_view)
-
-  all_markers_view <- callModule(
-    scMarkerPlot, 'expr_all',
-    scseq = scForm$scseq,
-    custom_metrics = scForm$custom_metrics,
-    selected_feature = scForm$samples_gene,
-    h5logs = scForm$h5logs,
-    is_hide = reactive(!scForm$show_dprimes()),
-    is_mobile = is_mobile,
-    clusters_view = clusters_view)
 
 
   callModule(scSamplePlot, 'expr_sample_violin',
              selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_violin)
-
-  callModule(scSamplePlot, 'expr_diff_grid',
-             selected_gene = scForm$samples_gene,
-             plot_fun = scForm$samples_pfun_grid,
-             show_dprimes = scForm$show_dprimes)
+             plot_fun = scForm$samples_violin_pfun)
 
 
 
@@ -122,8 +114,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
 
   observe({
-    toggle(id = 'biogps_container', condition = !scForm$show_ridge())
-    toggle(id = 'ridge_container', condition = scForm$show_ridge())
+    toggle(id = 'biogps_container', condition = !scForm$show_biogps())
+    toggle(id = 'violin_container', condition = scForm$show_biogps())
   })
 
   return(NULL)
@@ -385,7 +377,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                input_scseq = scseq,
                                counts = counts,
                                dataset_name = scDataset$dataset_name,
-                               show_dprimes = scSampleGene$show_dprimes)
+                               show_pbulk = scSampleGene$show_pbulk)
 
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
                                  input_scseq = scseq,
@@ -403,7 +395,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                  sc_dir = sc_dir,
                                  gs_dir = gs_dir,
                                  is_integrated = scDataset$is_integrated,
-                                 show_dprimes = scSampleGene$show_dprimes,
                                  comparison_type = comparisonType,
                                  exclude_ambient = scSampleGene$exclude_ambient,
                                  applied = scResolution$applied,
@@ -434,10 +425,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
     custom_metrics = scClusterGene$custom_metrics,
-    show_ridge = scClusterGene$show_ridge,
-    show_dprimes = scSampleClusters$show_dprimes,
-    samples_pfun_violin = scSampleClusters$pfun_violin,
-    samples_pfun_grid = scSampleClusters$pfun_grid,
+    show_biogps = scClusterGene$show_biogps,
+    show_pbulk = scSampleGene$show_pbulk,
+    samples_violin_pfun = scSampleClusters$violin_pfun,
+    grid_expression_fun = scSampleClusters$grid_expression_fun,
     clusters_cluster = scClusterComparison$selected_cluster,
     samples_cluster = scSampleClusters$selected_cluster,
     labels_cluster = scLabelsComparison$selected_cluster,
@@ -464,7 +455,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #' @keywords internal
 #' @noRd
 #'
-scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, dataset_name, input_scseq = function()NULL, show_dprimes = function()FALSE, counts = function()NULL) {
+scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, dataset_name, input_scseq = function()NULL, show_pbulk = function()FALSE, counts = function()NULL) {
   group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
   input_ids <- c('click_dl_meta', 'click_up_meta', 'compare_groups')
 
@@ -664,7 +655,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
 
   lm_fit_grid <- reactive({
-    if (!show_dprimes()) return(NULL)
+    if (!show_pbulk()) return(NULL)
     meta <- up_meta()
     if (max(table(meta$group)) < 2) return(NULL)
 
@@ -730,7 +721,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, show_dprimes = function()TRUE, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
   cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
@@ -850,38 +841,37 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   # plot functions
   sel <- reactive(input$selected_cluster)
 
-  pfun_violin <- reactive({
+  violin_pfun <- reactive({
     pfun <- function(gene) {
       sel <- sel()
       scseq <- scseq()
       if(!isTruthyAll(sel, gene, scseq)) return(NULL)
 
-      ridge_data <- get_ridge_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, h5logs=h5logs())
+      violin_data <- get_violin_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, h5logs=h5logs())
 
-      if (all(ridge_data$df$x == 0)) return(NULL)
-      plot <- VlnPlot(ridge_data = ridge_data, with.height = TRUE, is_mobile = is_mobile())
+      if (all(violin_data$df$x == 0)) return(NULL)
+      plot <- VlnPlot(violin_data = violin_data, with.height = TRUE, is_mobile = is_mobile())
       return(plot)
     }
     return(pfun)
   })
 
-  pfun_grid <- reactive({
+
+
+  grid_expression_fun <- reactive({
     req(is_integrated())
     scseq <- scseq()
 
-    pfun <- function(gene) {
+    fun <- function(gene) {
       top_tables <- top_tables_grid()
       if (!isTruthyAll(scseq, gene, top_tables)) return(NULL)
 
       grid <- get_grid(scseq)
-      plot_data <- get_gene_diff(gene, top_tables, grid)
-
-      legend.position <- ifelse(is_mobile(), 'none', 'right')
-      plot <- plot_scseq_diff(plot_data, gene, legend.position)
-      list(plot = plot, height = 400)
+      grid_expression <- get_grid_expression(gene, top_tables, grid)
+      return(grid_expression)
     }
 
-    return(pfun)
+    return(fun)
   })
 
   summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
@@ -1251,7 +1241,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   selected_cluster <- reactiveVal()
   observe(selected_cluster(input$selected_cluster))
 
-
   return(list(
     ambient = ambient,
     top_table = top_table,
@@ -1260,9 +1249,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     path_res = path_res,
     selected_cluster = selected_cluster,
     annot_clusters = annot_clusters,
-    pfun_grid = pfun_grid,
-    pfun_violin = pfun_violin,
-    show_dprimes = reactive(show_dprimes() & is_integrated())
+    grid_expression_fun = grid_expression_fun,
+    violin_pfun = violin_pfun,
+    is_integrated = is_integrated
   ))
 }
 
@@ -1892,19 +1881,15 @@ keep_curr_selected <- function(datasets, prev, curr) {
 #'
 #' @keywords internal
 #' @noRd
-scSamplePlot <- function(input, output, session, selected_gene, plot_fun, show_dprimes = function()TRUE, layout_dprimes = TRUE, ptsize = NULL, ...) {
+scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 
-  observe(toggle('plot', condition = show_dprimes()))
   res <- reactive({
     gene <- selected_gene()
     req(gene)
-    suppressMessages(plot_fun()(gene, ...))
+    suppressMessages(plot_fun()(gene))
   })
 
   height <- reactive({
-    if (show_dprimes() & !layout_dprimes) return(1)
-    if (!show_dprimes() & layout_dprimes) return(1)
-
     h <- res()$height
     if (is.null(h)) return(1)
     else return(h)
@@ -1912,20 +1897,12 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun, show_d
 
 
   plot <- reactive({
-    if (show_dprimes() & !layout_dprimes) return(NULL)
-    if (!show_dprimes() & layout_dprimes) return(NULL)
-
     res <- res()
     if (is.null(res)) return(NULL)
     return(res$plot)
   })
 
-
-
   output$plot <- shiny::renderPlot(plot(), height = height)
-
-
-
 }
 
 
@@ -2954,7 +2931,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
 
-  # toggle for ridgeline
   gene_selected <- reactive({
     sel <- feature()
     scseq <- scseq()
@@ -2962,13 +2938,14 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     sel %in% row.names(scseq)
   })
 
+  # toggle for violin plot
   have_biogps <- reactive({
     toupper(feature()) %in% biogps[, SYMBOL]
   })
 
-  sel_ridge <- reactive(input$show_ridge %% 2 != 1)
-  show_ridge <- reactive(sel_ridge() | !have_biogps())
-  observe(toggleClass(id = "show_ridge", 'btn-primary', condition = !sel_ridge()))
+  sel_violin <- reactive(input$show_biogps %% 2 != 1)
+  show_biogps <- reactive(sel_violin() | !have_biogps())
+  observe(toggleClass(id = "show_biogps", 'btn-primary', condition = !sel_violin()))
 
   # toggle for showing custom metric
   show_custom_metric <- reactive(type != 'samples' && (input$show_custom_metric %%2 != 0))
@@ -2981,15 +2958,24 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   observe(if (!show_custom_metric()) selected_gene(isolate(feature())))
   observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
-  # toggle for showing dprimes plot
-  show_dprimes <- reactive(type == 'samples' && (input$show_dprimes %%2 != 0))
-  observe(toggleClass(id = "show_dprimes", 'btn-primary', condition = show_dprimes()))
+  # toggle for showing pseudobulk grid layer
+  show_pbulk <- reactiveVal(FALSE)
+
+  observeEvent(input$show_pbulk, {
+    show_pbulk(type == 'samples' && !show_pbulk())
+  })
+
+  observeEvent(dataset_name(), {
+    show_pbulk(FALSE)
+  })
+
+  observe(toggleClass(id = "show_pbulk", 'btn-primary', condition = show_pbulk()))
 
 
   # disable buttons when not valid
   observe({
-    toggleState('show_dprimes', condition = is_integrated())
-    toggleState('show_ridge', condition = have_biogps())
+    toggleState('show_pbulk', condition = is_integrated())
+    toggleState('show_biogps', condition = have_biogps())
   })
 
   saved_metrics <- reactiveVal()
@@ -3211,8 +3197,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   return(list(
     selected_gene = selected_gene,
     exclude_ambient = exclude_ambient,
-    show_ridge = show_ridge,
-    show_dprimes = show_dprimes,
+    show_biogps = show_biogps,
+    show_pbulk = show_pbulk,
     custom_metrics = custom_metrics,
     saved_metrics = saved_metrics
   ))
@@ -3230,12 +3216,9 @@ get_label_coords <- function(coords, labels) {
   colnames(coords) <- c('x', 'y')
   coords$label <- labels
 
-
-
   coords %>%
     dplyr::group_by(label) %>%
-    dplyr::summarize(x = median(x), y = median(y)) %>%
-    dplyr::mutate(label = format_ridge_annot(label))
+    dplyr::summarize(x = median(x), y = median(y))
 }
 
 
@@ -3243,13 +3226,12 @@ get_label_coords <- function(coords, labels) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clusters_marker_view, samples_marker_view) {
+scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggle('cluster_plot_container', condition = show_plot()))
 
-  output$cluster_plot <- picker::renderPicker({
-
+  coords <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
 
@@ -3258,15 +3240,39 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clust
     red <- ifelse('UMAP' %in% reds, 'UMAP', reds[1])
 
     coords <- SingleCellExperiment::reducedDim(scseq, red)
-    coords <- as.data.frame(coords)
+    as.data.frame(coords)
+  })
+
+  labels <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
 
     labels <- scseq$cluster
     annot <- levels(labels)
-    annot <- format_ridge_annot(annot)
+    annot <- format_violin_annot(annot)
     levels(labels) <- annot
-    pal <- get_palette(annot)
-    names(pal) <- annot
-    colors <- unname(pal[labels])
+    return(labels)
+  })
+
+  deck_props <- reactive({
+    deck_props <- list()
+
+    if (is_mobile()) {
+      deck_props <- list(
+        '_pickable' = FALSE,
+        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
+      )
+    }
+
+    return(deck_props)
+  })
+
+
+  label_repels <- reactive({
+    coords <- coords()
+    scseq <- scseq()
+    labels <- as.character(labels())
+    if (!isTruthyAll(coords, scseq, labels)) return(NULL)
 
     # show nums if too many labels/mobile
     label_coords <- get_label_coords(coords, labels)
@@ -3280,28 +3286,105 @@ scClusterPlot <- function(input, output, session, scseq, annot, is_mobile, clust
       yrange = range(coords[,2]),
       direction = 'y')
 
-    deck_props <- list()
-    if (is_mobile()) {
-      deck_props <- list(
-        '_pickable' = FALSE,
-        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
-      )
+    return(label_repels)
+  })
+
+  label_coords <- reactive({
+    label_repels <- label_repels()
+    title <- title()
+    coords <- coords()
+    show_grid <- show_grid()
+
+    if (!isTruthyAll(label_repels, title, coords)) return(NULL)
+
+    nlab <- nrow(label_repels)
+    title <- ifelse(show_grid, title, '')
+
+    label_repels <- rbind(
+      c(min(coords[,1]), max(coords[,2]), title),
+      label_repels)
+
+    label_repels$anchor <- c('start', rep('middle', nlab))
+    label_repels$baseline <- c('top', rep('center', nlab))
+    label_repels$size <- c(18, rep(14, nlab))
+
+    # only title label if showing grid
+    if (show_grid)
+      label_repels <- label_repels[1, ]
+
+    return(label_repels)
+  })
+
+  show_grid <- reactive({
+    show_grid <- input$cluster_plot_show_grid
+    ifelse(is.null(show_grid), FALSE, show_grid)
+  })
+
+  text_props <- list(getSize=htmlwidgets::JS("d => d.size"),
+                     getTextAnchor = htmlwidgets::JS("d => d.anchor"),
+                     getAlignmentBaseline = htmlwidgets::JS("d => d.baseline"))
+
+  title <- reactiveVal()
+
+  polygons <- reactive({
+    gene <- selected_gene()
+
+    if (show_pbulk() & isTruthy(gene)) {
+      grid_expression_fun <- grid_expression_fun()
+      polygons <- grid_expression_fun(gene)
+      if (is.null(polygons)) return(NULL)
+
+      polygons <- add_grid_colors(polygons)
+      title(paste0('Δ EXPRESSION: ', gene))
+
+    } else {
+      polygons <- grid_abundance()
+      title('Δ CELLS')
     }
+
+    return(polygons)
+  })
+
+
+  output$cluster_plot <- picker::renderPicker({
+    coords <- coords()
+    labels <- labels()
+    deck_props <- deck_props()
+    label_coords <- isolate(label_coords())
+    polygons <- isolate(polygons())
+
+    if (!isTruthyAll(coords, labels, deck_props)) return(NULL)
+
+    annot <- levels(labels)
+    pal <- get_palette(annot)
+    names(pal) <- annot
+    colors <- unname(pal[labels])
 
     picker::picker(coords,
                    colors,
                    labels,
-                   label_repels,
+                   label_coords,
+                   polygons = polygons,
+                   point_color_polygons = "white",
                    show_controls = FALSE,
                    deck_props = deck_props,
-                   text_props = list(getSize=14,
-                                     getTextAnchor = 'middle',
-                                     getAlignmentBaseline = 'center'))
+                   text_props = text_props)
   })
 
   proxy <- picker::picker_proxy('cluster_plot')
   observe(picker::update_picker(proxy, clusters_marker_view()))
-  observe(picker::update_picker(proxy, samples_marker_view()))
+  observe(picker::update_picker(proxy, label_coords = label_coords()))
+  observe(picker::update_picker(proxy, polygons = polygons()))
+
+  have_pbulk <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(FALSE)
+    grid_expression_fun <- grid_expression_fun()
+    polygons <- grid_expression_fun(row.names(scseq)[1])
+    isTruthy(polygons)
+  })
+
+  observe(picker::update_picker(proxy, show_grid = show_pbulk() && have_pbulk()))
 
   return(reactive(input$cluster_plot_view_state))
 }
@@ -3315,12 +3398,9 @@ get_scatter_props <- function(ncells) {
   return(scatter_props)
 }
 
-scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, comparison_type, compare_groups, dplots_dir, meta, is_mobile) {
+scGridAbundance <- function(input, output, session, scseq, dataset_dir, sc_dir, compare_groups, dplots_dir, meta) {
 
-  show_plot <- reactive(length(compare_groups()) == 2)
-  observe(toggle('abundance_plot_container', condition = show_plot()))
-
-  plot_data <- reactive({
+  grid_abundance <- reactive({
 
     dataset_dir <- dataset_dir()
     scseq <- scseq()
@@ -3339,27 +3419,21 @@ scAbundancePlot <- function(input, output, session, scseq, dataset_dir, sc_dir, 
     tohash <- list(meta = meta, groups = groups)
     meta_hash <- digest::digest(tohash, algo = 'murmur32')
 
-    apath <- file.path(dplots_dir(), paste0('abundance_plot_data_', meta_hash, '.qs'))
+    apath <- file.path(dplots_dir(), paste0('grid_abundance_', meta_hash, '.qs'))
     if (file.exists(apath)) {
-      plot_data <- qs::qread(apath)
+      grid_abundance <- qs::qread(apath)
 
     } else {
-      plot_data <- get_abundance_diff(scseq)
-      qs::qsave(plot_data, apath)
+      grid_abundance <- get_grid_abundance(scseq)
+      qs::qsave(grid_abundance, apath)
     }
 
-    return(plot_data)
+    add_grid_colors(grid_abundance)
   })
 
-  plot <- reactive({
-    plot_data <- plot_data()
-    if (is.null(plot_data)) return(NULL)
-    legend.position <- ifelse(is_mobile(), 'none', 'right')
-    plot_scseq_diff(plot_data, 'abundance', legend.position)
-  })
+  return(grid_abundance)
 
 
-  output$abundance_plot <- shiny::renderPlot(plot())
 }
 
 subset_contrast <- function(scseq) {
@@ -3374,37 +3448,47 @@ subset_contrast <- function(scseq) {
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, clusters_view, is_mobile, markers_view = function()NULL, is_hide = function()FALSE, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs, clusters_view, is_mobile, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
 
 
-  show_plot <- reactive(length(colors()) & !is_hide())
-  observe(toggle('marker_plot', condition = show_plot()))
+  have_colors <- reactive(length(colors()))
+  observe(toggle('marker_plot', condition = show_plot() && have_colors()))
   is_drawn <- reactiveVal(FALSE)
 
   output$marker_plot <- picker::renderPicker({
+    if (!show_plot()) return(NULL)
+
     scseq <- scseq()
     cells <- cells()
+    title <- title()
     if (!isTruthy(cells) || !isTruthy(scseq)) return(NULL)
-
-    scseq <- scseq[, cells]
 
     reds <- SingleCellExperiment::reducedDimNames(scseq)
     reds <- reds[reds %in% c('UMAP', 'TSNE')]
     red <- ifelse('UMAP' %in% reds, 'UMAP', reds[1])
 
     coords <- SingleCellExperiment::reducedDim(scseq, red)
-    coords <- as.data.frame(coords)
+    coords <- data.frame(coords)
+
+    # use xrange and yrange for all data
+    xrange <- range(coords[,1])
+    yrange <- range(coords[,2])
+
+    # now subset
+    cell.idx <- match(cells, colnames(scseq))
+    scseq <- scseq[, cell.idx]
+    coords <- coords[cell.idx, ]
 
     labels <- scseq$cluster
-    levels(labels) <- format_ridge_annot(levels(labels))
+    levels(labels) <- format_violin_annot(levels(labels))
 
-    # get plot label
+    # show group name as plot label
     label_coords <- NULL
 
-    if (!is.null(group)) {
-      label_coords <- data.frame(x = min(coords[,1]),
-                                 y = max(coords[, 2]),
-                                 label = toupper(group))
+    if (isTruthy(title)) {
+      label_coords <- data.frame(x = xrange[1],
+                                 y = yrange[2],
+                                 label = title)
     }
 
     deck_props <- list()
@@ -3418,24 +3502,12 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
     picker::picker(coords,
                    isolate(colors()),
                    labels,
+                   xrange = xrange,
+                   yrange = yrange,
                    # show_controls = show_controls,
                    show_controls = FALSE,
                    label_coords = label_coords,
                    deck_props = deck_props)
-  })
-
-
-  cells <- reactive({
-    scseq <- scseq()
-    if (!isTruthy(scseq)) return(NULL)
-
-    # subset to selected group
-    if (!is.null(group)) {
-      scseq <- scseq[, scseq$orig.ident == group]
-    }
-
-    set.seed(0)
-    sample(colnames(scseq))
   })
 
 
@@ -3456,12 +3528,17 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
   })
 
 
+
+  group_title <- if (is.null(group)) '' else toupper(group)
+  title <- reactiveVal(group_title)
+  cells <- reactiveVal()
+  update_colors_proxy <- reactiveVal(TRUE)
+
   colors <- reactive({
     scseq <- scseq()
     feature <- selected_feature()
-    cells <- cells()
     cdata <- cdata()
-    if (!isTruthyAll(feature, scseq, cells, cdata)) return(NULL)
+    if (!isTruthyAll(feature, scseq, cdata)) return(NULL)
 
     is_gene <- feature %in% row.names(scseq)
     is_feature <- feature %in% colnames(cdata)
@@ -3472,29 +3549,80 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
       ft <- h5logs()[feature, ]
 
     } else {
-      ft <- scseq[[feature]]
+      ft <- cdata[[feature]]
       names(ft) <- colnames(scseq)
     }
 
-    ft <- ft[cells]
+    # order cell ids if logical
+    ids <- colnames(scseq)
+    if (!is.null(group))
+      ids <- ids[scseq$orig.ident == group]
+
+    bool.ft <- is.logical(ft)
+
+    set.seed(0)
+    if (bool.ft) ids <- ids[order(ft)]
+    else ids <- sample(ids)
+
+    prev <- isolate(cells())
+    changed.ids <- !identical(prev, ids)
+    if (changed.ids) cells(ids)
+
+    update_colors_proxy(!changed.ids)
 
     # get colors
-    is_qc <- feature %in% c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score')
-    cols <- if (is_qc) const$colors$qc else const$colors$ft
+    ft.ids <- ft[ids]
+    all.zero <- all(ft.ids == 0)
 
-    reverse_scale <- feature %in% c('ribo_percent', 'log10_sum', 'log10_detected')
-    if (reverse_scale) cols <- rev(cols)
+    if (bool.ft || all.zero) {
+      cols <- const$colors$ft
+      ntot <- length(ft.ids)
 
-    ft.scaled <- scales::rescale(ft, c(0, 1))
-    colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
+      colors <- rep(cols[1], ntot)
+      colors[ft.ids] <- cols[2]
+
+      # title is info
+      ncells <- sum(ft.ids)
+      pcells <- round(ncells/ntot*100, 1)
+
+      title(sprintf("%s (%s cells :: %s%%)", feature, ncells, pcells))
+
+    } else {
+
+      # scale before subsetting to group
+      ft.scaled <- scales::rescale(ft, c(0, 1))
+      ft.scaled <- ft.scaled[ids]
+
+      is_qc <- feature %in% const$features$qc
+      reverse_scale <- feature %in% const$features$reverse
+
+      cols <- if (is_qc) const$colors$qc else const$colors$ft
+      if (reverse_scale) cols <- rev(cols)
+      colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
+
+      # title is group
+      prev <- isolate(title())
+      if (prev != group_title) title(group_title)
+    }
 
     return(colors)
   })
 
+
+  title_coords <- reactive({
+
+  })
+
+  observe(picker::update_picker(proxy, label_coords = title_coords()))
+
   proxy <- picker::picker_proxy('marker_plot')
   observe(picker::update_picker(proxy, clusters_view()))
   observe(picker::update_picker(proxy, markers_view()))
-  observe(picker::update_picker(proxy, colors = colors()))
+
+  observe({
+    if (!update_colors_proxy()) return(NULL)
+    picker::update_picker(proxy, colors = colors())
+  })
 
   return(reactive(input$marker_plot_view_state))
 }
@@ -3520,14 +3648,14 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 }
 
 
-#' Logic for Ridge plot for clusters
+#' Logic for violin plot for clusters
 #'
 #' @keywords internal
 #' @noRd
-scRidgePlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, h5logs) {
+scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, plots_dir, h5logs) {
 
   show_plot <- reactive(!is.null(plot()))
-  observe(toggle('ridge_plot', condition = show_plot()))
+  observe(toggle('violin_plot', condition = show_plot()))
 
   height <- reactive({
     scseq <- scseq()
@@ -3540,7 +3668,7 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
   gene_d <- selected_gene %>% debounce(20)
   clus_d <- selected_cluster %>% debounce(20)
 
-  ridge_data <- reactive({
+  violin_data <- reactive({
     gene <- gene_d()
     cluster <- clus_d()
     if (!isTruthy(gene)) return(NULL)
@@ -3553,18 +3681,20 @@ scRidgePlot <- function(input, output, session, selected_gene, selected_cluster,
     scseq <- scseq()
     h5logs <- if (is.gene) h5logs() else NULL
     if (is.null(scseq)) return(NULL)
-    rdat <- get_ridge_data(gene, scseq, cluster, with_all = TRUE, h5logs=h5logs)
+    vdat <- get_violin_data(gene, scseq, cluster, with_all = TRUE, h5logs=h5logs)
 
-    return(rdat)
+    return(vdat)
   }) %>% debounce(20)
 
   plot <- reactive({
-    ridge_data <- ridge_data()
-    if (is.null(ridge_data)) return(NULL)
-    if (all(ridge_data$df$x == 0)) return(NULL)
-    VlnPlot(ridge_data = ridge_data)
+    violin_data <- violin_data()
+    if (is.null(violin_data)) return(NULL)
+    if (all(violin_data$df$x == 0)) return(NULL)
+    VlnPlot(violin_data = violin_data)
   }) %>% debounce(20)
 
 
-  output$ridge_plot <- renderPlot(plot(), height=height)
+  output$violin_plot <- renderPlot(plot(), height=height)
 }
+
+

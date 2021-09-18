@@ -24,21 +24,21 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 }
 
 
-#' Get data for single-cell ridgeline plots
+#' Get data for single-cell violinline plots
 #'
-#' @param feature Feature name to generate ridge plot for. Either a row or \code{colData} of \code{scseq}.
+#' @param feature Feature name to generate violin plot for. Either a row or \code{colData} of \code{scseq}.
 #' @param scseq \code{SingleCellExperiment}.
 #' @param selected_cluster Name of the selected cluster.
-#' @param by.sample if \code{TRUE} plot \code{feature} ridge for each \code{scseq$batch}. Default (\code{FALSE})
+#' @param by.sample if \code{TRUE} plot \code{feature} violin for each \code{scseq$batch}. Default (\code{FALSE})
 #'  will plot \code{feature} for each \code{scseq$cluster}.
 #' @param with.height Whether to return height of plot. See value for details.
-#' @param decreasing if \code{TRUE}, ridgelines with smaller mean values of \code{feature} will show up on top.
+#' @param decreasing if \code{TRUE}, violinlines with smaller mean values of \code{feature} will show up on top.
 #'  Used to show features where smaller values indicate potential QC issues.
 #'
 #' @return list used by \link{VlnPlot}
 #'
 #' @keywords internal
-get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, h5logs = NULL) {
+get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, h5logs = NULL) {
   n <- NULL
 
   if (isTruthy(selected_cluster)) {
@@ -149,7 +149,7 @@ get_ridge_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, 
 #' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
 #' @keywords internal
 #'
-format_ridge_annot <- function(annot) {
+format_violin_annot <- function(annot) {
 
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
   if (any(is.char)) {
@@ -164,24 +164,24 @@ VlnPlot <- function(feature = NULL,
                     by.sample = FALSE,
                     with_all = FALSE,
                     with.height = FALSE,
-                    ridge_data = NULL,
+                    violin_data = NULL,
                     is_mobile = FALSE,
                     decreasing = feature %in% c('ribo_percent',
                                                 'log10_sum',
                                                 'log10_detected')) {
 
-  if (is.null(ridge_data)) {
-    ridge_data <- get_ridge_data(
+  if (is.null(violin_data)) {
+    violin_data <- get_violin_data(
       feature, scseq, selected_cluster, by.sample, decreasing, with_all)
   }
 
-  list2env(ridge_data, envir = environment())
+  list2env(violin_data, envir = environment())
 
   if (by.sample) {
     title <- paste(title, c(clus_levs, 'All Clusters')[seli])
     if (is_mobile) df <- shorten_y(df)
   } else {
-    annot <- format_ridge_annot(clus_levs)
+    annot <- format_violin_annot(clus_levs)
     levels(df$y) <- annot[clus_ord]
     if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
   }
@@ -354,13 +354,13 @@ plot_scseq_diff <- function(pt.dat, feature = 'abundance', legend.position = 'ri
     l.alpha <- '≥ .05'
   }
 
-  ggplot2::ggplot(ggplot2::aes(x=x, y=y, fill=direction, alpha=alpha), data=pt.dat) +
+  ggplot2::ggplot(ggplot2::aes(x=x1, y=y1, fill=direction, alpha=alpha), data=pt.dat) +
     ggplot2::geom_tile(color='lightgray') +
     cowplot::theme_cowplot() +
     theme_no_axis_vals() +
     theme_dimgray(with_nums = FALSE) +
-    ggplot2::scale_x_continuous(expand = c(0, 0), limits = range(pt.dat$x)) +
-    ggplot2::scale_y_continuous(expand = c(0, 0), limits = range(pt.dat$y)) +
+    ggplot2::scale_x_continuous(expand = c(0, 0), limits = range(pt.dat$x1)) +
+    ggplot2::scale_y_continuous(expand = c(0, 0), limits = range(pt.dat$y1)) +
     ggplot2::scale_fill_manual(name = delta_name, values = fill) +
     ggplot2::scale_alpha_identity(name = 'p-val', breaks = b.alpha, labels = l.alpha, guide = "legend") +
     ggplot2::theme(legend.position = legend.position,
@@ -381,7 +381,7 @@ plot_scseq_diff <- function(pt.dat, feature = 'abundance', legend.position = 'ri
 }
 
 
-get_gene_diff <- function(gene, tts, grid) {
+get_grid_expression <- function(gene, tts, grid) {
 
   tts <- lapply(tts, function(x) x[gene,, drop=FALSE])
   tts <- tts[!is.na(tts)]
@@ -396,20 +396,15 @@ get_gene_diff <- function(gene, tts, grid) {
     dplyr::add_count(xi, yi) %>%
     dplyr::left_join(tt) %>%
     dplyr::distinct() %>%
-    dplyr::filter(n > 0) %>% # at least n cells
-    dplyr::rename(pval = P.Value, direction = logFC) %>%
-    dplyr::mutate(pval = replace(pval, is.na(pval), 1),
-                  direction = dplyr::case_when(is.na(direction) ~ '?',
-                                               direction > 0 ~ '↑',
-                                               direction < 0 ~ '↓'),
-                  alpha = dplyr::case_when(pval >= 0.05 ~ 0.1,
-                                           pval <  0.05 ~ range02(-log10(pval)))) %>%
-    dplyr::mutate(direction = factor(direction, levels = c('↑', '↓', '?'), ordered = TRUE))
+    dplyr::filter(n > 3) %>% # at least n cells
+    dplyr::mutate(logFC = ifelse(is.na(logFC), 0, logFC)) %>%
+    dplyr::rename(pval = P.Value, diff = logFC) %>%
+    dplyr::mutate(pval = replace(pval, is.na(pval), 1))
 
   return(pt.dat)
 }
 
-get_abundance_diff <- function(scseq, group = scseq$orig.ident, sample = scseq$batch) {
+get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$batch) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
@@ -493,27 +488,47 @@ get_abundance_diff <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   not.zero <- d$tots != 0
   d$diff[not.zero] <- d$diff[not.zero]/d$tots[not.zero]
 
-  xx <- x[-length(x)] + 0.5*diff(x)
-  d$x <- xx[d$x]
-  yy <- y[-length(y)] + 0.5*diff(y)
-  d$y <- yy[d$y]
+  # get xy coords that define polygons in grid
+  diff.x <- diff(x[1:2])
+  diff.y <- diff(y[1:2])
+
+  x2 <- x + diff.x
+  d$x1 <- x[d$x]
+  d$x2 <- x2[d$x]
+
+  y2 <- y + diff.y
+  d$y1 <- y[d$y]
+  d$y2 <- y2[d$y]
+
+  grid_abundance <- d[d$tots > 0, ] # greater than 0 cells
+  return(grid_abundance)
+}
+
+add_grid_colors <- function(data) {
 
   # alpha 0.1: not significant
   # alpha 0.5-1: significant
-  pt.dat <- d[d$tots > 0, ] # greater than 0 cells
-  pt.dat$alpha <- 0.1
-  is.sig <- pt.dat$pval < 0.05
-  pt.dat$alpha[is.sig] <- range02(-log10(pt.dat$pval)[is.sig])
+  alpha <- rep(0.1, nrow(data))
+  is.sig <- data$pval < 0.05
+  alpha[is.sig] <- range02(-log10(data$pval)[is.sig])
 
-  pt.dat$direction <- "="
-  pt.dat$direction[pt.dat$diff > 0] <- "↑"
-  pt.dat$direction[pt.dat$diff < 0] <- "↓"
-  pt.dat$direction <- factor(pt.dat$direction, levels = c('↑', '↓', '='), ordered = TRUE)
+  data$color <- '#FFFFFF'
+  data$color[data$diff > 0] <- 'red'
+  data$color[data$diff < 0] <- 'blue'
+  data$color <- add_alpha(data$color, alpha)
 
-  return(pt.dat)
+  return(data)
+}
+
+add_alpha <- function(colors, alpha){
+  if(missing(alpha)) stop("provide a value for alpha between 0 and 1")
+  rgb <- col2rgb(colors, alpha=TRUE)
+  rgb[4,] <- round(rgb[4,]*alpha)
+  new.colors <- rgb(rgb[1,], rgb[2,], rgb[3,], rgb[4,], maxColorValue = 255)
+  return(new.colors)
 }
 
 
-range02 <- function(x, newMax=1, newMin=0.5){
-  (x - min(x))/(max(x)-min(x)) * (newMax - newMin) + newMin
+range02 <- function(x, newMax=1, newMin=0.5) {
+  scales::rescale(x, to = c(newMin, newMax))
 }
