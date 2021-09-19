@@ -1,4 +1,3 @@
-
 server <- function(input, output, session) {
 
     # get arguments from calling function
@@ -139,6 +138,7 @@ server <- function(input, output, session) {
                          is_mobile = is_mobile,
                          add_sc = add_sc,
                          remove_sc = remove_sc)
+
 
     bulkPage <- callModule(bulkPage, 'bulk',
                            data_dir = data_dir,
