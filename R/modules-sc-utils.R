@@ -445,7 +445,9 @@ get_metric_features <- function(metric) {
   ft <- gsub(' ', '', ft)
   ft <- ft[ft != '']
   not.num <- is.na(suppressWarnings(as.numeric(ft)))
-  ft[not.num]
+  ft <- ft[not.num]
+  is.quote <- grepl("\"|'", ft)
+  ft[!is.quote]
 }
 
 
@@ -458,6 +460,7 @@ get_metric_features <- function(metric) {
 #'
 #' @keywords internal
 evaluate_custom_metric <- function(metric, scseq) {
+
   ft <- get_metric_features(metric)
 
   # make sure will run
@@ -478,6 +481,8 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- cbind(expr, qcs)
   dat <- as.data.frame(cbind(expr, qcs))
   colnames(dat) <- c(colnames(expr), colnames(qcs))
+  ft <- ft[ft %in% colnames(dat)]
+
   dat <- dat[, match(ft, colnames(dat)), drop = FALSE]
 
   # convert features to generic (in case e.g. minus)
@@ -1398,6 +1403,10 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
   if (is.null(scseq$batch)) scseq$batch <- scseq$project
+
+  # for custom metrics
+  scseq$sample <- scseq$batch
+  scseq$group <- scseq$orig.ident
 
   return(scseq)
 }

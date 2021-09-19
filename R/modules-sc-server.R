@@ -3388,6 +3388,9 @@ scMarkerPlot <- function(input, output, session, scseq, selected_feature, h5logs
       names(ft) <- colnames(scseq)
     }
 
+    # e.g. group or sample columns
+    if (is.character(ft) | is.factor(ft)) return(NULL)
+
     # order cell ids if logical
     ids <- colnames(scseq)
     if (!is.null(group))
