@@ -1929,6 +1929,27 @@ keep_curr_selected <- function(datasets, prev, curr) {
 }
 
 
+# detects species from cellranger h5 or features.tsv
+detect_import_species <- function(up_df) {
+
+  gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
+  h5.file <- grep('[.]h5$', up_df$name)[1]
+
+  # support only human if no genes.tsv file
+  if (is.na(gene.file) & is.na(h5.file)) return("Homo sapiens")
+
+  if (!is.na(h5.file)) {
+    infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
+    genes <- infile[['matrix/features/id']][]
+    genes <- data.frame(row.names = genes)
+  } else {
+    genes <- read.table(up_df$datapath[gene.file], row.names = 1)
+  }
+
+  get_species(genes)
+}
+
+
 # modal to upload dataset
 uploadModal <- function(session, show_init) {
   label <- "Click upload or drag files:"

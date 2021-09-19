@@ -1294,9 +1294,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'),
                   searchField = c('optgroup', 'label'))
 
-  dataset_name <- reactive({
+  dataset_name <- reactiveVal()
+  observe({
     ds <- datasets()
-    ds$name[ds$value == input$selected_dataset]
+    sel_idx <- input$selected_dataset
+    sel <- ds$name[ds$value == sel_idx]
+    if (!length(sel)) sel <- NULL
+
+    prev <- isolate(dataset_name())
+    if (is.null(prev) || is.null(sel) || sel != prev) dataset_name(sel)
   })
 
   dataset_dir <- reactive(file.path(sc_dir, dataset_name()))
@@ -1540,24 +1546,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(msg)
   }
 
-  detect_import_species <- function(up_df) {
-
-    gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
-    h5.file <- grep('[.]h5$', up_df$name)[1]
-
-    # support only human if no genes.tsv file
-    if (is.na(gene.file) & is.na(h5.file)) return("Homo sapiens")
-
-    if (length(h5.file)) {
-      infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
-      genes <- infile[['matrix/features/id']][]
-      genes <- data.frame(row.names = genes)
-    } else {
-      genes <- read.table(up_df$datapath[gene.file], row.names = 1)
-    }
-
-    get_species(genes)
-  }
 
   # ask for confirmation
   observeEvent(input$import_samples, {
@@ -3534,5 +3522,3 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
-
