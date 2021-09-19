@@ -4,7 +4,7 @@
 \alias{format_violin_annot}
 \title{Add cluster numbers to annotation}
 \usage{
-format_violin_annot(annot)
+format_violin_annot(annot, pad_left = FALSE)
 }
 \arguments{
 \item{annot}{Character vector of cluster names}
