@@ -585,10 +585,16 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   observe(groups(input$compare_groups))
 
   # reset when change resolution
+  first_set <- reactiveVal(TRUE)
   observe({
     groups <- groups()
     if (is.null(groups) || groups != 'reset') return(NULL)
-    updateSelectizeInput(session, 'compare_groups', selected = '')
+    first <- isolate(first_set())
+    if (!first)
+      updateSelectizeInput(session, 'compare_groups', selected = '')
+
+
+    first_set(FALSE)
   })
 
   observe({
@@ -3525,4 +3531,5 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+
 

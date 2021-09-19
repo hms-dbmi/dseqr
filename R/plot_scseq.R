@@ -151,14 +151,17 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 #'
 format_violin_annot <- function(annot, pad_left = FALSE) {
 
+  nums <- seq_along(annot)
+  if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = ' ')
+
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
   if (any(is.char)) {
-
-    nums <- seq_along(annot)[is.char]
-    if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = ' ')
     text <- annot[is.char]
-    annot[is.char] <- paste0(nums, ': ', text)
+    annot[is.char] <- paste0(nums[is.char], ': ', text)
+  } else {
+    annot <- nums
   }
+
   return(annot)
 }
 
@@ -186,7 +189,7 @@ plot_violin <- function(feature = NULL,
     if (is_mobile) df <- shorten_y(df)
 
   } else {
-    if (is_mobile) clus_levs <- stringr::str_trunc(clus_levs, width = 6, ellipsis = '.')
+    if (is_mobile) clus_levs <- seq_along(clus_levs)
     annot <- format_violin_annot(clus_levs, pad_left = TRUE)
     levels(df$y) <- annot[clus_ord]
     if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
@@ -201,6 +204,9 @@ plot_violin <- function(feature = NULL,
 
   data <- as.data.frame(df[,'x'])
 
+  height <- max(235, length(ncells) * 45)
+  if (is_mobile) ncells <- NULL
+
   pl <- SingleExIPlot(data,
                       idents = df$y,
                       hl = df$hl,
@@ -212,7 +218,7 @@ plot_violin <- function(feature = NULL,
                       ncells = ncells)
 
 
-  if (with.height) pl <- list(plot = pl, height = max(235, length(ncells) * 45))
+  if (with.height) pl <- list(plot = pl, height = height)
   return(pl)
 
 }
@@ -224,9 +230,12 @@ shorten_y <- function(df) {
     dplyr::slice(1) %>%
     dplyr::group_by(hl) %>%
     dplyr::arrange(as.character(y)) %>%
-    dplyr::mutate(new = paste0(toupper(hl), seq_along(hl)))
+    dplyr::mutate(new = paste0(toupper(hl), seq_along(hl))) %>%
+    as.data.frame()
 
-  levels(df$y) <- short$new
+  row.names(short) <- short$y
+
+  levels(df$y) <- short[levels(df$y), 'new']
   return(df)
 }
 

@@ -26,7 +26,7 @@ scPageUI <- function(id, tab, active) {
         div(id = ns('comparison_row'), style = '',
             # row for cluster comparison
             div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-6 col-lg-push-6",
+                div(class = "col-sm-12 col-lg-6 col-lg-push-6 mobile-margin",
                     scMarkerPlotOutput(ns('marker_plot_cluster'))
                 ),
                 div(class = "col-sm-12 col-lg-6 col-lg-pull-6 mobile-margin",
@@ -39,16 +39,23 @@ scPageUI <- function(id, tab, active) {
                 )
             ),
             # row for samples comparison (integrated test vs ctrl)
-            div(class = 'row', id = ns('sample_comparison_row'), style = 'display: none;',
-                div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
-                    scMarkerPlotOutput(ns('expr_test')),
-                    br(),
-                    scSamplePlotOutput(ns('expr_sample_violin')),
+            div(id = ns('sample_comparison_row'), style = 'display: none;',
+                div(class = 'row',
+                    div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
+                        scMarkerPlotOutput(ns('expr_test')),
+                        br()
+                    ),
+                    div(class = "col-sm-12 col-lg-6 mobile-margin",
+                        scMarkerPlotOutput(ns('expr_ctrl')),
+                        br()
+                    )
                 ),
-                div(class = "col-sm-12 col-lg-6 mobile-margin",
-                    scMarkerPlotOutput(ns('expr_ctrl')),
-                    br()
+                div(class = 'row',
+                    div(class = "col-sm-12 col-lg-6 mobile-margin",
+                        scSamplePlotOutput(ns('expr_sample_violin'))
+                    )
                 )
+
             )
         )
     )
@@ -472,4 +479,3 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
-
