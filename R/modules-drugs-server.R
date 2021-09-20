@@ -790,7 +790,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   top_table <- reactive({
     if (is_sc()) {
-      top_table <- scSampleClusters$top_table()
+      top_table <- scSampleClusters$top_table()[[1]]
 
     } else if (is_bulk()) {
       top_table <- bulkAnal$top_table()

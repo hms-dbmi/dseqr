@@ -338,7 +338,9 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 
   div(id = 'sc-intro-feature',
       tags$label(class='control-label', `for`=ns('gene_table'), 'Select feature to plot:'),
-      DT::dataTableOutput(ns('gene_table'), width='100%', height='330px'),
+      div(class = 'normal-header',
+          DT::dataTableOutput(ns('gene_table'), width='100%', height='330px'),
+      ),
       div(id=ns('gene_search_input'),
           style = 'height: 60px',
           shinypanel::textInputWithButtons(

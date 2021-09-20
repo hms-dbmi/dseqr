@@ -1404,10 +1404,6 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
   if (is.null(scseq$batch)) scseq$batch <- scseq$project
 
-  # for custom metrics
-  scseq$sample <- scseq$batch
-  scseq$group <- scseq$orig.ident
-
   return(scseq)
 }
 

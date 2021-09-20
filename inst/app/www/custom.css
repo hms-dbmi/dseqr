@@ -222,6 +222,10 @@ td.dt-nopad span {
     overflow-x: hidden;
 }
 
+.normal-header table.dataTable thead th, table.dataTable thead td {
+  font-weight: normal;
+}
+
 /* no overflow-y for drugs/bulk */
 .dt-container .dataTables_scrollBody {
   overflow-y: hidden !important;

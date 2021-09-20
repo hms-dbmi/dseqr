@@ -20,7 +20,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     remove_sc = remove_sc)
 
   # prevent grid differential expression on contrast change
-  observeEvent(scForm$compare_groups(), scForm$show_pbulk(FALSE))
+  observeEvent(scForm$groups(), scForm$show_pbulk(FALSE))
 
   # cluster plot in top right
   clusters_view <- callModule(
@@ -69,22 +69,23 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   # sample comparison plots ---
 
-  have_comparison <- reactive(length(scForm$compare_groups()) == 2)
+  have_comparison <- reactive(length(scForm$groups()) == 2)
 
   # grid abundance layer data
   grid_abundance <- callModule(
     scGridAbundance, 'grid_abundance',
     scseq = scForm$scseq,
-    dataset_dir = scForm$dataset_dir,
-    dplots_dir = scForm$dplots_dir,
-    compare_groups = scForm$compare_groups,
     meta = scForm$meta,
+    groups = scForm$groups,
+    dplots_dir = scForm$dplots_dir,
     sc_dir = sc_dir)
 
   test_markers_view <- callModule(
     scMarkerPlot, 'expr_test',
-    scseq = scForm$scseq_meta,
+    scseq = scForm$scseq,
     annot = scForm$annot,
+    meta = scForm$meta,
+    groups = scForm$groups,
     clusters = scForm$clusters,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
@@ -97,8 +98,10 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   ctrl_markers_view <- callModule(
     scMarkerPlot, 'expr_ctrl',
-    scseq = scForm$scseq_meta,
+    scseq = scForm$scseq,
     annot = scForm$annot,
+    meta = scForm$meta,
+    groups = scForm$groups,
     clusters = scForm$clusters,
     custom_metrics = scForm$custom_metrics,
     selected_feature = scForm$samples_gene,
@@ -233,18 +236,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     return(scseq)
   })
 
-  # update scseq with group names
-  # gets used for sample comparison marker plots
-  scseq_meta <- reactive({
-    scseq <- scseq()
-    meta <- scSampleGroups$meta()
-    groups <- scSampleGroups$groups()
-
-    if (!isTruthyAll(scseq, meta, groups)) return(NULL)
-    if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
-
-    attach_meta(scseq, meta = meta, groups = groups)
-  })
 
   qc_metrics <- reactive({
     scseq <- scseq()
@@ -448,8 +439,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   return(list(
     scseq = scDataset$scseq,
     annot = annot,
+    meta = scSampleGroups$meta,
+    groups = scSampleGroups$groups,
     clusters = scResolution$clusters,
-    scseq_meta = scseq_meta,
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
     custom_metrics = scClusterGene$custom_metrics,
@@ -467,8 +459,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     plots_dir = plots_dir,
     dplots_dir = dplots_dir,
     dataset_dir = dataset_dir,
-    meta = scSampleGroups$meta,
-    compare_groups = scSampleGroups$groups,
     h5logs = h5logs
   ))
 }
@@ -1087,7 +1077,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     tt <- top_tables()[[sel]]
     if (is.null(tt)) return(NULL)
-    if (page == 'drugs') return(tt)
+    if (page == 'drugs') return(list(tt))
 
     ambient <- cluster_ambient()
     tt$ambient <- row.names(tt) %in% ambient
@@ -1096,12 +1086,15 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     tt$adj.P.Val.Amb[!tt$ambient] <- stats::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
     if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
 
+    # need as list to check validity in markers table
+    tt <- list(tt)
+    names(tt) <- sel
     return(tt)
   })
 
 
-  # need ambient for pathway
-  ambient <- reactive({tt <- top_table() ; row.names(tt)[tt$ambient]})
+  # need ambient for pathway and drugs
+  ambient <- reactive({tt <- top_table()[[1]]; row.names(tt)[tt$ambient]})
   species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
   # indicating if 'All Clusters' selected
@@ -1175,7 +1168,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       species <- paste(substring(strsplit(species, ' ')[[1]], 1, 1), collapse = '')
 
       if (is.meta()) {
-        de <- top_table()
+        de <- top_table()[[1]]
 
       } else {
         # exclude ambient
@@ -1188,7 +1181,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         if (have.df) {
           de <- crossmeta::fit_ebayes(lm_fit, contrast)
         } else {
-          de <- top_table()
+          de <- top_table()[[1]]
           de <- de[!de$ambient, ]
         }
       }
@@ -1246,7 +1239,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     goup_fname <- 'go_up.csv'
     godn_fname <- 'go_down.csv'
 
-    tt <- top_table()
+    tt <- top_table()[[1]]
     if (is.meta()) tt <- tt_to_es(tt)
 
     pres <- path_res()
@@ -1270,7 +1263,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # download can timeout so get objects before clicking
   observeEvent(input$click_dl_anal, {
-    tt <- top_table()
+    tt <- top_table()[[1]]
     pres <- path_res()
     shinyjs::click("dl_anal")
   })
@@ -2772,7 +2765,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     sel <- sel()
 
     if (!is.null(sel)) {
-      new <- markers()[[sel]]
+      new <- markers()[sel]
 
       prev <- isolate(selected_markers())
       if (is.null(prev) || !identical(new, prev))
@@ -2966,22 +2959,29 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   species <- reactive(scseq()@metadata$species)
   tx2gene <- reactive(load_tx2gene(species(), tx2gene_dir))
 
-  qc_first <- reactive(is.null(selected_markers()))
-
   # update marker genes based on cluster selection
-  gene_table <- reactive({
+  gene_table <- reactiveVal()
+
+  observe({
 
     markers <- selected_markers()
+    markers_cluster <- names(markers)
     selected_cluster <- selected_cluster()
-    qc_metrics <- qc_metrics()
 
+    markers <- markers[[1]]
+    qc_metrics <- qc_metrics()
 
     # will error if labels
     # also prevents intermediate redraws
     if (is.null(markers) & isTruthy(selected_cluster)) return(NULL)
 
-    if (is.null(markers)) {
+    # prevent redraws on cluster comparison
+    if (isTruthy(selected_cluster) && selected_cluster != markers_cluster) return(NULL)
+
+    qc_first <- FALSE
+    if (is.null(markers) | !isTruthy(selected_cluster)) {
       markers <- scseq_genes()
+      qc_first <- TRUE
     }
 
     scseq <- scseq()
@@ -2996,16 +2996,18 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     tables[[3]] <- get_leftover_table(other, species(), tx2gene())
 
     cols <- colnames(tables[[1]])
-    if (qc_first()) tables <- tables[c(2,1,3)]
+    if (qc_first) tables <- tables[c(2,1,3)]
 
-    data.table::rbindlist(tables, fill = TRUE)[, ..cols]
+    res <- data.table::rbindlist(tables, fill = TRUE)[, ..cols]
+
+    prev <- isolate(gene_table())
+    if (!identical(res, prev)) gene_table(res)
   })
 
   output$gene_table <- DT::renderDataTable({
 
     gene_table <- gene_table()
     if (is.null(gene_table)) return(NULL)
-
 
     # non-html feature column is hidden and used for search
     # different ncol if contrast
@@ -3021,7 +3023,9 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # prevent sort/filter when qc_first
     sort_targs <- 0
     filter <- list(position='top', clear = FALSE, vertical = TRUE, opacity = 0.85)
-    if (qc_first()) {
+
+    qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
+    if (qc_first) {
       sort_targs <- '_all'
       filter = list(position='none')
     }
@@ -3053,8 +3057,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
           list(visible = FALSE, targets = vis_targ),
           list(searchable = FALSE, targets = search_targs),
           list(sortable = FALSE, targets = sort_targs)
-        ),
-        headerCallback = DT::JS("function(thead, data, start, end, display) {$('th', thead).css('font-weight', 'normal');}")
+        )
       )
     )
 
@@ -3103,6 +3106,16 @@ safe_set_clusters <- function(scseq, clusters) {
   scseq$cluster <- clusters
   return(scseq)
 }
+
+
+safe_set_meta <- function(scseq, meta, groups) {
+
+  if (!isTruthyAll(scseq, meta, groups)) return(NULL)
+  if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
+
+  attach_meta(scseq, meta = meta, groups = groups)
+}
+
 
 
 #' Logic for cluster plots
@@ -3329,21 +3342,17 @@ get_scatter_props <- function(is_mobile, ncells) {
 
 
 # get grid abundance data
-scGridAbundance <- function(input, output, session, scseq, dataset_dir, sc_dir, compare_groups, dplots_dir, meta) {
+scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplots_dir, meta) {
 
   grid_abundance <- reactive({
-
-    dataset_dir <- dataset_dir()
-    scseq <- scseq()
-    if (is.null(scseq)) return(NULL)
-
-    groups <- compare_groups()
-    if (length(groups) != 2) return(NULL)
-
+    groups <- groups()
     meta <- meta()
+    scseq <- safe_set_meta(scseq(), meta, groups)
+
+    if (is.null(scseq)) return(NULL)
+    if (length(groups) != 2) return(NULL)
     if (sum(meta$group %in% groups) < 3) return(NULL)
 
-    scseq <- attach_meta(scseq, meta=meta, groups=groups)
     scseq <- subset_contrast(scseq)
 
     # add hash for if change groups
@@ -3372,7 +3381,7 @@ scGridAbundance <- function(input, output, session, scseq, dataset_dir, sc_dir, 
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, meta = function()NULL, groups = function()NULL, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
 
 
   have_colors <- reactive(length(colors()))
@@ -3464,6 +3473,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
   # column data (custom metric + stored)
   cdata <- reactive({
     scseq <- scseq()
+    if (!is.null(group)) scseq <- safe_set_meta(scseq, meta(), groups())
+
     if (!isTruthy(scseq)) return(NULL)
 
     metrics <- custom_metrics()
@@ -3486,8 +3497,10 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
   colors <- reactive({
     scseq <- scseq()
-    feature <- selected_feature()
+    if (!is.null(group)) scseq <- safe_set_meta(scseq, meta(), groups())
+
     cdata <- cdata()
+    feature <- selected_feature()
     if (!isTruthyAll(feature, scseq, cdata)) return(NULL)
 
     is_gene <- feature %in% row.names(scseq)
@@ -3506,11 +3519,11 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     # e.g. group or sample columns
     if (is.character(ft) | is.factor(ft)) return(NULL)
 
-    # order cell ids if logical
+    # get group
     ids <- colnames(scseq)
-    if (!is.null(group))
-      ids <- ids[scseq$orig.ident == group]
+    if (!is.null(group)) ids <- ids[scseq$orig.ident == group]
 
+    # order cell ids if logical
     bool.ft <- is.logical(ft)
 
     set.seed(0)
