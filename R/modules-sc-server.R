@@ -2629,7 +2629,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     prev <- isolate(selected_cluster())
 
     no.prev <- is.null(prev)
-    is.new <- isTruthy(sel) && sel != prev
+    is.new <- !is.null(sel) && sel != prev
     is.flip <- !show_contrasts() & grepl('-vs-', sel)
 
     if ((no.prev || is.new) & !is.flip) {
@@ -2975,6 +2975,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     selected_cluster <- selected_cluster()
     qc_metrics <- qc_metrics()
 
+
     # will error if labels
     # also prevents intermediate redraws
     if (is.null(markers) & isTruthy(selected_cluster)) return(NULL)
@@ -3263,7 +3264,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     if (!isTruthyAll(coords, deck_props)) return(NULL)
 
-    pt.size <- max(3, min(8, 6000/nrow(coords)))
+    scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
 
 
     picker::picker(coords,
@@ -3275,7 +3276,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
                    show_controls = FALSE,
                    deck_props = deck_props,
                    text_props = text_props,
-                   scatter_props = list(radiusMinPixels = pt.size))
+                   scatter_props = scatter_props)
   })
 
   proxy <- picker::picker_proxy('cluster_plot')
@@ -3312,6 +3313,18 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   observe(picker::update_picker(proxy, show_grid = show_pbulk() && have_pbulk()))
 
   return(reactive(input$cluster_plot_view_state))
+}
+
+get_scatter_props <- function(is_mobile, ncells) {
+  if (is_mobile) pt.size <- max(1, min(3, 6000/ncells))
+  else pt.size <- max(3, min(8, 6000/ncells))
+
+  scatter_props <- list(
+    radiusMinPixels = pt.size,
+    stroked = pt.size >= 3
+  )
+
+  return(scatter_props)
 }
 
 
@@ -3411,7 +3424,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     xrange <- range(coords[,1])
     yrange <- range(coords[,2])
 
-    pt.size <- max(3, min(8, 6000/nrow(coords)))
+    scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
 
     # now subset
     cell.idx <- match(cells, colnames(scseq))
@@ -3444,7 +3457,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
                    show_controls = FALSE,
                    label_coords = label_coords,
                    deck_props = deck_props,
-                   scatter_props = list(radiusMinPixels = pt.size))
+                   scatter_props = scatter_props)
   })
 
 
@@ -3638,4 +3651,3 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
