@@ -1999,7 +1999,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
     }
 
     return(annot)
-  }) %>% debounce(50)
+  })
 
   # overwrite annotation
   transferModal <- function() {
@@ -2615,10 +2615,9 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     else annot(qs::qread(annot_path))
   })
 
-  sel_d <- reactive(input$selected_cluster) %>% debounce(20)
 
   observe({
-    sel <- sel_d()
+    sel <- input$selected_cluster
     prev <- isolate(selected_cluster())
 
     no.prev <- is.null(prev)
@@ -2761,8 +2760,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 
 
   observe({
-    sel <- debounce(selected_cluster, 20)
-    sel <- sel()
+    sel <- selected_cluster()
 
     if (!is.null(sel)) {
       new <- markers()[sel]
@@ -3175,6 +3173,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     coords <- coords()
     labels <- as.character(labels())
     if (!isTruthyAll(coords, labels)) return(NULL)
+    if (nrow(coords) != length(labels)) return(NULL)
 
     # show nums if too many labels/mobile
     label_coords <- get_label_coords(coords, labels)
@@ -3618,22 +3617,10 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
   show_plot <- reactive(!is.null(plot()))
   observe(toggle('violin_plot', condition = show_plot()))
 
-  height <- reactive({
-    scseq <- scseq()
-    clusters <- clusters()
-    scseq <- safe_set_clusters(scseq, clusters)
-    if (is.null(scseq)) height <- 453
-    else height <- max(length(levels(scseq$cluster))*38, 420)
-    return(height)
-  })
-
-
-  gene_d <- selected_gene %>% debounce(20)
-  clus_d <- selected_cluster %>% debounce(20)
 
   violin_data <- reactive({
-    gene <- gene_d()
-    cluster <- clus_d()
+    gene <- selected_gene()
+    cluster <- selected_cluster()
     if (!isTruthy(gene)) return(NULL)
 
     scseq <- scseq()
@@ -3652,14 +3639,19 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     vdat <- get_violin_data(gene, scseq, cluster, with_all = TRUE, h5logs=h5logs)
 
     return(vdat)
-  }) %>% debounce(20)
+  })
+
+  height <- reactiveVal()
 
   plot <- reactive({
     violin_data <- violin_data()
     if (is.null(violin_data)) return(NULL)
     if (all(violin_data$df$x == 0)) return(NULL)
+
+    height(max(length(levels(violin_data$df$y))*38, 420))
+
     plot_violin(violin_data = violin_data, is_mobile = is_mobile())
-  }) %>% debounce(20)
+  })
 
 
   output$violin_plot <- renderPlot(plot(), height=height)
