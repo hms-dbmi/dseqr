@@ -28,6 +28,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq = scForm$scseq,
     annot = scForm$annot,
     clusters = scForm$clusters,
+    dataset_name = scForm$dataset_name,
     is_mobile = is_mobile,
     clusters_marker_view = clusters_marker_view,
     grid_abundance = grid_abundance,
@@ -3107,7 +3108,7 @@ safe_set_clusters <- function(scseq, clusters) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, clusters, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
+scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggle('cluster_plot_container', condition = show_plot()))
@@ -3249,17 +3250,18 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, is_mob
   # don't understand magic but mostly stops intermediate color/label change
   # when dataset changes
 
-  update_colors <- reactiveVal(0)
-  update_label_coords <- reactiveVal(0)
-  observeEvent(scseq(), {update_colors(0); update_label_coords(0)})
+  update_colors_proxy <- reactiveVal(FALSE)
+  update_label_coords_proxy <- reactiveVal(FALSE)
+  observeEvent(dataset_name(), {
+    update_colors_proxy(FALSE)
+    update_label_coords_proxy(FALSE)
+  }, priority = 100)
 
   output$cluster_plot <- picker::renderPicker({
     coords <- coords()
     deck_props <- deck_props()
 
     if (!isTruthyAll(coords, deck_props)) return(NULL)
-    update_colors(1)
-    update_label_coords(1)
 
     pt.size <- max(3, min(8, 6000/nrow(coords)))
 
@@ -3284,18 +3286,18 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, is_mob
   observe({
     label_coords <- label_coords()
     if (!is.null(label_coords)) {
-      curr <- isolate(update_label_coords())
-      if (curr > 0) picker::update_picker(proxy, label_coords = label_coords)
-      update_label_coords(curr+1)
+      allow <- isolate(update_label_coords_proxy())
+      if (allow) picker::update_picker(proxy, label_coords = label_coords)
+      update_label_coords_proxy(TRUE)
     }
   })
 
   observe({
     colors <- colors()
     if (!is.null(colors)) {
-      curr <- isolate(update_colors())
-      if (curr > 0) picker::update_picker(proxy, colors = colors)
-      update_colors(curr+1)
+      allow <- isolate(update_colors_proxy())
+      if (allow) picker::update_picker(proxy, colors = colors)
+      update_colors_proxy(TRUE)
     }
   })
 
@@ -3636,3 +3638,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+
