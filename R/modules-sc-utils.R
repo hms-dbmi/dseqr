@@ -1946,15 +1946,20 @@ detect_import_species <- function(up_df) {
 }
 
 
+
 # modal to upload dataset
 uploadModal <- function(session, show_init) {
   label <- "Click upload or drag files:"
-  label_title <- "10X *.fastq.gz or Cell Ranger matrix.mtx, barcodes.tsv, and features.tsv"
-  label <- tags$span(label, span(class = "hover-info", id = 'up-info', icon("info", "fa-fw")))
 
   modalDialog(
     fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'), multiple = TRUE),
     tags$div(class='alert alert-warning', role = 'alert',
+             tags$div(tags$b("For each sample upload files:")),
+             tags$br(),
+             tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), " or"),
+             tags$br(),
+             tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv")),
+             hr(),
              '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
              tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
     tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
@@ -1966,8 +1971,7 @@ uploadModal <- function(session, show_init) {
                container_id = session$ns('validate-up'),
                help_id = session$ns('error_msg')
              ),
-             hr(),
-             shinyBS::bsTooltip('up-info', label_title, options = list(container = 'body', html = TRUE))
+             hr()
     ),
     DT::dataTableOutput(session$ns('up_table'), width = '100%'),
     title = 'Upload Single Cell Datasets',

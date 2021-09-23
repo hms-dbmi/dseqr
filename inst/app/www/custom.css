@@ -398,7 +398,9 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 .modal-dialog.modal-lg {
-  width: 600px !important;
+  width: 600px;
+  max-width: 600px !important;
+  width: auto;
 }
 
 .modal-dialog.modal-lg .modal-body {

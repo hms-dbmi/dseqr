@@ -187,10 +187,6 @@ button.dt-button.buttons-collection {
 
 /* gene plot modal */
 
-.modal-dialog.modal-lg {
-  width: 98%;
-}
-
 .modal-dialog.modal-lg .modal-body {
   /* 550px plot plus extras */
   height: 760px;
