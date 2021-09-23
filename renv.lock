@@ -1524,8 +1524,8 @@
       "RemoteRepo": "repel",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "0bbdf3c4a9b8094caece470cb3f7c747cdb8296c",
-      "Hash": "940da303e9ed711e42acafd28d47fd3f"
+      "RemoteSha": "77394b17ba902d6b73d15d120557e43183c91527",
+      "Hash": "c50167cbdc7a00815cc7ad905df143dd"
     },
     "reshape2": {
       "Package": "reshape2",

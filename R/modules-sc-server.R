@@ -3178,13 +3178,18 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     # show nums if too many labels/mobile
     label_coords <- get_label_coords(coords, labels)
 
-    if (is_mobile() | nrow(label_coords) > 30)
+    if (is_mobile() | nrow(label_coords) > 45)
       label_coords$label <- gsub('^(\\d+):.+?$', '\\1', label_coords$label)
+
+    nlab <- nrow(label_coords)
+    fontsize <- ifelse(nlab > 15, 14, 18)
 
     label_repels <- repel::repel_text(
       label_coords,
       xrange = range(coords[,1]),
       yrange = range(coords[,2]),
+      mar = rep(0, 4),
+      fontsize = fontsize,
       direction = 'y')
 
     return(label_repels)
@@ -3200,6 +3205,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     nlab <- nrow(label_repels)
     title <- ifelse(show_grid, title, '')
+    label_size <- ifelse(nlab > 15, 14, 18)
 
     label_repels <- rbind(
       c(min(coords[,1]), max(coords[,2]), title),
@@ -3207,7 +3213,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     label_repels$anchor <- c('start', rep('middle', nlab))
     label_repels$baseline <- c('top', rep('center', nlab))
-    label_repels$size <- c(18, rep(14, nlab))
+    label_repels$size <- c(18, rep(label_size, nlab))
 
     # only title label if showing grid
     if (show_grid)
@@ -3328,8 +3334,14 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 }
 
 get_scatter_props <- function(is_mobile, ncells) {
-  if (is_mobile) pt.size <- max(1, min(3, 6000/ncells))
-  else pt.size <- max(3, min(8, 6000/ncells))
+  if (is_mobile) {
+    pt.size <- 3
+    if (ncells > 10000) pt.size <- 2
+    if (ncells > 20000) pt.size <- 1
+  } else {
+    pt.size <- 5
+    if (ncells > 10000) pt.size <- 3
+  }
 
   scatter_props <- list(
     radiusMinPixels = pt.size,
@@ -3346,12 +3358,12 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
   grid_abundance <- reactive({
     groups <- groups()
     meta <- meta()
-    scseq <- safe_set_meta(scseq(), meta, groups)
 
-    if (is.null(scseq)) return(NULL)
     if (length(groups) != 2) return(NULL)
     if (sum(meta$group %in% groups) < 3) return(NULL)
+    if (length(intersect(groups, meta$group)) < 2) return(NULL)
 
+    scseq <- safe_set_meta(scseq(), meta, groups)
     scseq <- subset_contrast(scseq)
 
     # add hash for if change groups
