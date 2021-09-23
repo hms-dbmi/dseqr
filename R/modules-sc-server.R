@@ -3111,6 +3111,10 @@ safe_set_meta <- function(scseq, meta, groups) {
   if (!isTruthyAll(scseq, meta, groups)) return(NULL)
   if (!all(row.names(meta) %in% scseq$batch)) return(NULL)
 
+  if (length(groups) != 2) return(NULL)
+  if (sum(meta$group %in% groups) < 3) return(NULL)
+  if (length(intersect(groups, meta$group)) < 2) return(NULL)
+
   attach_meta(scseq, meta = meta, groups = groups)
 }
 
@@ -3359,11 +3363,8 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
     groups <- groups()
     meta <- meta()
 
-    if (length(groups) != 2) return(NULL)
-    if (sum(meta$group %in% groups) < 3) return(NULL)
-    if (length(intersect(groups, meta$group)) < 2) return(NULL)
-
     scseq <- safe_set_meta(scseq(), meta, groups)
+    if (is.null(scseq)) return(NULL)
     scseq <- subset_contrast(scseq)
 
     # add hash for if change groups
