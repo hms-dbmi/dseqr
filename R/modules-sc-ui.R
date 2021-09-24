@@ -277,12 +277,14 @@ subsetFormInput <- function(id) {
 }
 
 
+
 #' Input form and buttons to select a cluster or contrast and rename a cluster
 #'
 #' @keywords internal
 #' @noRd
 clusterComparisonInput <- function(id) {
   ns <- NS(id)
+
 
   withTags({
     div(id = 'sc-intro-cluster',
@@ -292,10 +294,6 @@ clusterComparisonInput <- function(id) {
                   ns('selected_cluster'),
                   label = 'Sort marker genes for:',
                   label_title = 'Cluster (n cells :: % of total)',
-                  actionButton(ns('show_rename'), '',
-                               icon = icon('tag', 'fa-fw'),
-                               title = 'Toggle rename cluster'
-                  ),
                   actionButton(ns('show_contrasts'), '',
                                icon = icon('chevron-right', 'fa-fw'),
                                title = 'Toggle single group comparisons'
@@ -315,6 +313,7 @@ clusterComparisonInput <- function(id) {
     )
   })
 }
+
 
 
 #' Input form to select gene for scBioGpsPlotOutput and scMarkerPlotOutput
@@ -376,6 +375,8 @@ scClusterPlotOutput <- function(id) {
 }
 
 
+
+
 #' Output plot of single cell abundances
 #'
 #' @keywords internal
@@ -388,6 +389,7 @@ scAbundancePlotOutput <- function(id) {
       shiny::plotOutput(ns('abundance_plot'))
   )
 }
+
 
 
 #' Output plot of single cell markers

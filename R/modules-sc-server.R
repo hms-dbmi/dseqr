@@ -851,6 +851,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
 
+
   # path to lmfit, cluster markers, drug query results, and goanna pathway results
   drug_paths <- reactive({
     cdir <- contrast_dir()
@@ -2580,7 +2581,11 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   selected_markers <- reactiveVal(NULL)
 
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
-  show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
+  show_rename <- reactive({
+    rename_count <- input$show_rename
+    if (is.null(rename_count)) rename_count <- 0
+    (input$rename_cluster + rename_count) %% 2 != 0
+  })
 
   test_cluster <- reactive({
     test_cluster <- input$selected_cluster
@@ -2603,6 +2608,11 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     }
 
     return(choices)
+  })
+
+
+  observe({
+    print(input$selected_cluster_rename)
   })
 
 
@@ -2787,7 +2797,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 #' @keywords internal
 #' @noRd
 selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
-  gene_options <- list(render = I('{option: geneOption, item: geneItem}'))
 
   selected_gene <- reactiveVal(NULL)
 
@@ -3295,7 +3304,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
                    label_coords = isolate(label_coords()),
                    polygons = isolate(polygons()),
                    point_color_polygons = "white",
-                   show_controls = FALSE,
+                   show_controls = TRUE,
                    deck_props = deck_props,
                    text_props = text_props,
                    scatter_props = scatter_props)
@@ -3469,13 +3478,13 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       )
     }
 
+
     picker::picker(coords,
                    colors = isolate(colors()),
                    labels = isolate(labels()),
                    xrange = xrange,
                    yrange = yrange,
-                   # show_controls = show_controls,
-                   show_controls = FALSE,
+                   show_controls = show_controls,
                    label_coords = label_coords,
                    deck_props = deck_props,
                    scatter_props = scatter_props)

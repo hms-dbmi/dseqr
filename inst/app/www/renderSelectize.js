@@ -1,7 +1,12 @@
 
 // These functions are for styling the selectize input cluster selector
+// Item: selected item
+// Options: available options in dropdown
 
-// styling if looking at cluster
+
+// Single Cell
+
+// selected cluster or contrast
 function contrastOptions(item, escape) {
 
   var infoContrasts =  "<div style='color: #A0A0A0;text-align:right;'>" +
@@ -25,12 +30,12 @@ function contrastOptions(item, escape) {
   var disabled = item.disabled ? 'disabled-option': '';
 
   var clustEl = "<div style='columns: 2;' title='" + title + "' class='" + disabled + "'>" +
-                            "<div style='margin-right: -80px'>" +
-                              "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
-                              escape(item.name) +
-                            "</div>" +
-                            info +
-                            "</div>";
+                  "<div style='margin-right: -80px'>" +
+                    "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
+                    escape(item.name) +
+                  "</div>" +
+                    info +
+                "</div>";
 
 
   // styling if looking at contrast
@@ -46,9 +51,29 @@ function contrastOptions(item, escape) {
   return (typeof item.pcells !== 'undefined' | typeof item.ntest !== 'undefined') ? clustEl : conEl;
 }
 
+var renameCount = 1;
+var deleteCount = 1;
+function clickRename(event) {
+
+  event.stopPropagation()
+  sendDataToShiny('sc-form-cluster-show_rename', renameCount++);
+}
+
+function preventDropdown(event) {
+   event.preventDefault();
+}
+
+function clickDelete() {
+  sendDataToShiny('sc-form-cluster-show_rename', deleteCount++);
+}
+
+function sendDataToShiny(id, data) {
+  console.log(id)
+  console.log(data)
+    Shiny.onInputChange(id, data);
+}
 
 
-//styling for current item
 function contrastItem(item, escape) {
   var infoContrasts =  "<span style='color: #A0A0A0;'> (" + item.ncells + " :: " + item.pcells + "%" + ")</span>";
 
@@ -64,14 +89,26 @@ function contrastItem(item, escape) {
 
   var swatchClass = item.testColor == '' ? '' : 'input-swatch';
 
+
   // disable when no top_table
   var disabled = item.disabled ? 'disabled-option': '';
 
+  var renameIcon = '<span onmousedown="preventDropdown(event)" onclick="clickRename(event)" class="selectize-btn" title="Rename">' +
+                      '<i class="fa fa-tag fa-fw" role="presentation" aria-label="tag icon"></i>' +
+                    '</span>';
+
+  var deleteIcon = '<span onmousedown="preventDropdown(event)" onclick="clickDelete(event)" class="selectize-btn" title="Delete">' +
+                      '<i class="far fa-trash-alt fa-fw"></i>' +
+                   '</span>';
+
   // styling if looking at cluster
-  var clustEl = "<div title='" + title + "' class='" + disabled + "'>" +
+  var clustEl = "<div title='" + title + "' class='" + disabled + "' style='display: inline-block'>" +
                     "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
                      escape(item.name) +
                      info +
+                     "<span style = 'margin-left:10px;'>" +
+                       renameIcon +
+                     "</span>" +
                 "</div>";
 
    // styling if looking at contrast
@@ -88,46 +125,78 @@ function contrastItem(item, escape) {
 }
 
 
-function excludeOptions(item, escape) {
-  var res = "<div>" +
-                "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
-                  escape(item.name) +
+function transferLabelOption(item, escape) {
+  var predsMarkup = item.preds ? "<div class ='circle-swatch pull-right'></div>" : "<div></div>";
+
+  var res = "<div title='" + item.label + "' style='columns: 2;'>" +
+              "<div style='margin-right: -80px'>" +
+                  escape(item.optionLabel) +
+              "</div>" +
+              predsMarkup +
             "</div>";
 
   return res;
 }
 
-function integationOption(item, escape) {
-  var res = "<div>" +
-              "<div class='input-swatch' style='background-color:" + item.color + "'></div>" +
-                escape(item.label) +
-            "</div>";
 
-  return res;
+function scDatasetOptions(item, escape) {
+
+  var opt = item.optgroup;
+  if (opt === item.label) {
+    opt = ''
+  } else {
+    opt = typeof opt == 'undefined' ? '' : opt;
+    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
+  }
+
+  var full_name = opt + item.label;
+
+  var clustEl = "<div title='" + full_name + "'>" +
+                  escape(item.label) +
+                "</div>";
+
+  return clustEl;
 }
 
 
-function geneOption(item, escape) {
+function scDatasetItem(item, escape) {
 
-  var circle =  item.ambient ? "<div class ='ambience-swatch pull-right'></div>" : "<div></div>" ;
 
-    var markup = "<div title = '" + item.description + "' style='columns: 2;'>" +
-      "<div>" +
-          escape(item.label) +
-      "</div>" +
-        circle
-    "</div>";
+  var opt = item.optgroup;
+  if (opt === item.label) {
+    opt = ''
+  } else {
+    opt = typeof opt == 'undefined' ? '' : opt;
+    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
+  }
 
-  return markup;
+  var full_name = opt + item.label;
+
+  var clustEl = "<div title='" + full_name + "'>" +
+                  escape(full_name) +
+                "</div>";
+
+  return clustEl;
 }
 
-function geneItem(item, escape) {
 
-  var gene = "<div title = '" + item.description + "'>" + escape(item.label) + "</div>";
+function scDatasetItemDF(item, escape) {
 
-  return gene;
+
+  var label = item.label;
+
+  var clustEl = "<div title='" + label + "'>" +
+                  escape(label) +
+                "</div>";
+
+  return clustEl;
 }
 
+
+
+// Drugs tab:
+
+// select cell line
 function cellOptions(item, escape) {
 
   var markup = "<div style='columns: 2;'>" +
@@ -138,39 +207,6 @@ function cellOptions(item, escape) {
         item.sample_type +
     "</div>" +
   "</div>";
-
-  return markup;
-}
-
-function pathOptions(item, escape) {
-
-  var label = "<div class = 'path-fdr pull-left'>" + item.dirLabel + "</div>";
-  var circle = item.ignore ? "<div></div>" : "<div class ='circle-swatch pull-right'></div>";
-
-  var markup =
-  "<div>" +
-    "<div class = 'pull-left path-name-option' title = '" + escape(item.name) + "'>" +
-        escape(item.label) +
-    "</div>" +
-    "<div class = 'pull-right path-option-right'>" +
-      label +
-      circle +
-      "</div>" +
-    "<div class = 'clearfix'></div>" +
-  "</div>";
-
-  return markup;
-}
-
-function pathItem(item, escape) {
-
-  var fdr = item.fdr ? " (" + item.fdr + ")" : '';
-
-  var markup =
-    "<div title = '" + escape(item.name) + "'>" +
-        escape(item.label) +
-        "<span class = 'path-fdr'>" + fdr + "</span>"
-    "</div>";
 
   return markup;
 }
@@ -200,39 +236,6 @@ function studyItem(item, escape) {
   return res;
 }
 
-function queryGenesItem(item, escape) {
-  // color to indicate if in cmap alone or cmap and l1000
-  var bgColor = item.cmap_only ? '#f0ad4e' : '#efefef';
-  var res = "<div style='background-color:" + bgColor + "'>" + escape(item.gene) + "</div>";
-  return res;
-}
-
-function queryGenesOption(item, escape) {
-
-  var infoText = item.cmap_only ? 'ONLY CMAP02' : '';
-
-  var res = "<div style='columns: 2;'>" +
-              "<div style='margin-right: -80px'>" +
-                  escape(item.gene) +
-              "</div>" +
-              "<div style='color: #A0A0A0;text-align:right;'>" + infoText + "</div>" +
-            "</div>";
-
-  return res;
-}
-
-function transferLabelOption(item, escape) {
-  var predsMarkup = item.preds ? "<div class ='circle-swatch pull-right'></div>" : "<div></div>";
-
-  var res = "<div title='" + item.label + "' style='columns: 2;'>" +
-              "<div style='margin-right: -80px'>" +
-                  escape(item.optionLabel) +
-              "</div>" +
-              predsMarkup +
-            "</div>";
-
-  return res;
-}
 
 function querySignatureItem(item, escape) {
 
@@ -244,6 +247,7 @@ function querySignatureItem(item, escape) {
 
   return res;
 }
+
 
 function querySignatureOptions(item, escape) {
 
@@ -270,6 +274,7 @@ function pertOptions(item, escape) {
   return markup;
 }
 
+
 function pertItem(item, escape) {
 
   var cor = item.cor ? item.cor : '';
@@ -284,6 +289,7 @@ function pertItem(item, escape) {
 }
 
 
+// Bulk tab:
 function bulkContrastOptions(item, escape) {
 
   var swatch = item.color ? "<div class='input-swatch' style='background-color:" + item.color + "'></div>" : "";
@@ -297,8 +303,6 @@ function bulkContrastOptions(item, escape) {
 }
 
 
-
-//styling for current item
 function bulkContrastItem(item, escape) {
 
    var swatch = "<div class='input-swatch' style='background-color:" + item.color + "'></div>";
@@ -313,45 +317,6 @@ function bulkContrastItem(item, escape) {
 }
 
 
-function scDatasetOptions(item, escape) {
-
-  var opt = item.optgroup;
-  if (opt === item.label) {
-    opt = ''
-  } else {
-    opt = typeof opt == 'undefined' ? '' : opt;
-    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
-  }
-
-  var full_name = opt + item.label;
-
-  var clustEl = "<div title='" + full_name + "'>" +
-                  escape(item.label) +
-                "</div>";
-
-  return clustEl;
-}
-
-function scDatasetItem(item, escape) {
-
-
-  var opt = item.optgroup;
-  if (opt === item.label) {
-    opt = ''
-  } else {
-    opt = typeof opt == 'undefined' ? '' : opt;
-    opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
-  }
-
-  var full_name = opt + item.label;
-
-  var clustEl = "<div title='" + full_name + "'>" +
-                  escape(full_name) +
-                "</div>";
-
-  return clustEl;
-}
-
 function bulkDatasetOptions(item, escape) {
 
   var clustEl = "<div title='" + item.label + "'>" +
@@ -361,23 +326,11 @@ function bulkDatasetOptions(item, escape) {
   return clustEl;
 }
 
+
 function bulkDatasetItem(item, escape) {
 
   var clustEl = "<div>" +
                   escape(item.value) +
-                "</div>";
-
-  return clustEl;
-}
-
-
-function scDatasetItemDF(item, escape) {
-
-
-  var label = item.label;
-
-  var clustEl = "<div title='" + label + "'>" +
-                  escape(label) +
                 "</div>";
 
   return clustEl;

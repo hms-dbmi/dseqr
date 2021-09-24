@@ -4,14 +4,12 @@ logout_url <- getShinyOption('logout_url')
 is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
-
 bootstrapPage(
   if (!is.null(logout_url)) includeHTML("www/gtm.html"),
   if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),
   useShinyjs(),
   rintrojs::introjsUI(),
   # scrollspy for docs tab
-  extendShinyjs(text = "shinyjs.init = function() {$('body').scrollspy({ target: '.bs-docs-sidenav', offset: 60 });}", functions = 'init'),
   includeScript(path = 'www/renderSelectize.js'),
   includeScript(path = 'www/progressBinding.js'),
   includeScript(path = 'www/isMobile.js'),
@@ -40,6 +38,3 @@ bootstrapPage(
     )
   )
 )
-
-
-
