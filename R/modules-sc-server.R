@@ -2656,6 +2656,23 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
   })
 
 
+  prev_new_name <- reactiveVal('')
+  observeEvent(input$new_cluster_name, {
+
+    curr_new <- input$new_cluster_name
+    prev_new <- prev_new_name()
+
+    if (nchar(curr_new) && !nchar(prev_new)) {
+      updateActionButton(session, "rename_cluster", icon = tags$i(class ='far fa-fw fa-check-square'))
+
+    } else if (!nchar(curr_new) && nchar(prev_new)) {
+      updateActionButton(session, "rename_cluster", icon = tags$i(class ='far fa-fw fa-window-close'))
+    }
+
+    prev_new_name(curr_new)
+  })
+
+
   # modify/save annot if rename a cluster
   observeEvent(input$rename_cluster, {
     req(input$new_cluster_name)

@@ -176,7 +176,7 @@ selectedDrugStudyInput <- function(id) {
       shinypanel::selectizeInputWithButtons(
         inputId = ns('study'), label = 'Select perturbation study:',
         shiny::actionButton(ns('direction'), label = '', icon = icon('arrows-alt-v', 'fa-fw'), title = 'change direction of correlation', `parent-style` = 'display: none;'),
-        shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), onclick = 'toggleClinicalTitle(this)', title = 'only show compounds with a clinical phase'),
+        shiny::actionButton(ns('clinical'), label = '', icon = icon('pills', 'fa-fw'), title = 'only show compounds with a clinical phase'),
         shiny::actionButton(ns('advanced'), label = '', icon = icon('cogs', 'fa-fw'), title = 'toggle advanced options'))
   )
 

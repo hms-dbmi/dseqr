@@ -136,7 +136,7 @@ scSelectedDatasetInput <- function(id) {
           actionButton(
             ns('show_label_resoln'), '',
             icon = icon('cog', 'fa-fw'),
-            title = 'Toggle for label transfer and cluster resolution',
+            title = 'Toggle label transfer and cluster resolution',
             class = 'squashed-btn',
             `parent-style`='display: none;'
           ),
@@ -308,8 +308,8 @@ clusterComparisonInput <- function(id) {
               ns('new_cluster_name'),
               'New cluster name:',
               actionButton(ns('rename_cluster'), '',
-                           icon = icon('plus', 'fa-fw'),
-                           title = 'Rename cluster'))
+                           icon = tags$i(class ='far fa-fw fa-window-close'))
+            )
         )
 
     )

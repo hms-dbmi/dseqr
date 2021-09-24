@@ -1,3 +1,7 @@
+body {
+    font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
+}
+
 /* fix for FixedColumns styling in Datasets tab */
 .DTFC_RightWrapper {
     right: unset !important;
