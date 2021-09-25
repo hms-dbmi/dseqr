@@ -4,6 +4,8 @@ logout_url <- getShinyOption('logout_url')
 is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
+
+
 bootstrapPage(
   if (!is.null(logout_url)) includeHTML("www/gtm.html"),
   if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),

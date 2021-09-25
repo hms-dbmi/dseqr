@@ -473,7 +473,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #' @noRd
 #'
 scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, dataset_name, input_scseq = function()NULL, show_pbulk = function()FALSE, counts = function()NULL) {
-  group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
+  group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'), onInitialize = I(disableMobileKeyboard))
   input_ids <- c('click_dl_meta', 'click_up_meta', 'compare_groups')
 
 
@@ -741,6 +741,13 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 }
 
 
+disableMobileKeyboard <- '
+function(){
+  $(".selectize-input input").attr("readonly", "readonly");
+}
+'
+
+
 #' Logic for single cell sample comparison cluster for Single Cell and Drugs tabs
 #'
 #' IMPORTANT! USED IN DRUGS TAB:
@@ -750,7 +757,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @noRd
 #'
 scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
-  cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
   contrast_dir <- reactiveVal()
@@ -1294,7 +1301,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
   options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'),
-                  searchField = c('optgroup', 'label'))
+                  searchField = c('optgroup', 'label'), onInitialize = I(disableMobileKeyboard))
 
   dataset_name <- reactiveVal()
   observe({
@@ -1756,7 +1763,7 @@ detect_import_species <- function(up_df) {
 #' @keywords internal
 #' @noRd
 scLabelsComparison <- function(input, output, session, cluster_choices) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
@@ -1808,7 +1815,7 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
-  options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
+  options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = I(disableMobileKeyboard))
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
@@ -2205,7 +2212,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #' @noRd
 subsetForm <- function(input, output, session, sc_dir, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
   type <- name <- NULL
-  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
 
   subset_name <- reactive(input$subset_name)
   new_dataset <- reactiveVal()
@@ -2572,7 +2579,7 @@ comparisonType <- function(input, output, session, is_integrated) {
 clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot, annot_path, ref_preds, clusters, dgclogs) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
   selected_cluster <- reactiveVal()
   markers <- reactiveVal(list())
 
@@ -2804,7 +2811,6 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
 #' @keywords internal
 #' @noRd
 selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
-  gene_options <- list(render = I('{option: geneOption, item: geneItem}'))
 
   selected_gene <- reactiveVal(NULL)
 

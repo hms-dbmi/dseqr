@@ -62,7 +62,6 @@ scPageUI <- function(id, tab, active) {
   })
 }
 
-
 #' Input form for Single Cell Exploration page
 #'
 #' @keywords internal
