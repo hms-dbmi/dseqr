@@ -143,8 +143,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   set_readonly <- reactive({
     mobile <- is_mobile()
-    if (!is.null(mobile) && mobile) return(I(disableMobileKeyboard))
-    return(NULL)
+    !is.null(mobile) && mobile
   })
 
   # updates if new integrated or subset dataset
@@ -761,12 +760,16 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @noRd
 #'
 scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+  input_ids <- c('click_dl_anal', 'selected_cluster')
+
   cluster_options <- reactive({
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('selected_cluster'))
+
     list(render = I('{option: contrastOptions, item: contrastItem}'),
-         onInitialize = set_readonly())
+         onInitialize = on_init)
   })
 
-  input_ids <- c('click_dl_anal', 'selected_cluster')
 
   contrast_dir <- reactiveVal()
 
@@ -1302,11 +1305,14 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 }
 
 
-disableMobileKeyboard <- '
-    function(){
-      $(".selectize-input input").attr("readonly", "readonly");
-    }
-    '
+disableMobileKeyboard <- function(id) {
+  I(paste0('
+        function(){
+          $("#', id, '+ .selectize-control input").attr("readonly", "readonly");
+        }
+    '))
+
+}
 
 #' Logic for selected dataset part of scForm
 #'
@@ -1314,11 +1320,15 @@ disableMobileKeyboard <- '
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, set_readonly, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
+
   options <- reactive({
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('selected_dataset'))
+
     list(
       render = I('{option: scDatasetOptions, item: scDatasetItem}'),
       searchField = c('optgroup', 'label'),
-      onInitialize = set_readonly())
+      onInitialize = on_init)
   })
 
   dataset_name <- reactiveVal()
@@ -1831,11 +1841,14 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #'
 #' @keywords internal
 #' @noRd
-labelTransferForm <- function(input, output, session, sc_dir, set_readonly, is_mobile, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
-  label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
+labelTransferForm <- function(input, output, session, sc_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
+  label_transfer_inputs <- c('submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
 
   options <-  reactive({
-    list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = set_readonly())
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('ref_name'))
+
+    list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = on_init)
   })
 
   ref_preds <- reactiveVal()
@@ -2232,22 +2245,21 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #' @keywords internal
 #' @noRd
 subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
+  subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
   type <- name <- NULL
 
   contrastOptions <- reactive({
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('subset_clusters'))
+
     list(render = I('{option: contrastOptions, item: contrastItem}'),
-         onInitialize = set_readonly())
+         onInitialize = on_init)
 
   })
 
   subset_name <- reactive(input$subset_name)
   new_dataset <- reactiveVal()
 
-  subset_inputs <- c('subset_name',
-                     'submit_subset',
-                     'subset_clusters',
-                     'toggle_exclude',
-                     'click_up')
 
   # show/hide integration forms
   observe({
@@ -2606,8 +2618,11 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
   contrast_options <- reactive({
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('selected_cluster'))
+
     list(render = I('{option: contrastOptions, item: contrastItem}'),
-         onInitialize = set_readonly())
+         onInitialize = on_init)
   })
 
   selected_cluster <- reactiveVal()
@@ -3724,4 +3739,3 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-

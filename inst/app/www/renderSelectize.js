@@ -73,8 +73,6 @@ function contrastItem(item, escape) {
     var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
     var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
 
-    console.log(item.testColor == '');
-
     var swatchClass = item.testColor == '' ? '' : 'input-swatch';
 
     // disable when no top_table
