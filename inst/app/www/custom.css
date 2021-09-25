@@ -2,6 +2,25 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+/* less padding on mobile */
+
+.well-form {
+    max-width: 400px !important;
+}
+
+@media (max-width: 460px) {
+  .col-sm-12 {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .well-form {
+    max-width: 435px !important;
+  }
+}
+
 .selectize-info {
     color: #A0A0A0;
     text-align:right;
@@ -187,10 +206,6 @@ ul.nav.navbar-nav {
 
 /* DATATABLES */
 
-.well-form {
-    max-width: 435px !important;
-}
-
 /* filter box */
 td .form-group {
     min-height: unset !important;
@@ -281,7 +296,7 @@ input[type=text] {
     background-color: slategray;
     color: white;
     border-style: dashed;
-    
+
 }
 
 body {
@@ -366,12 +381,12 @@ body {
 @media only screen
 and (min-device-width : 319px)
 and (max-device-width : 1024px) {
-    
+
     /*disable tooltips on mobile*/
     .tooltip {
         display: none !important;
     }
-    
+
     /* a bit less padding on mobile selectize */
     .selectize-dropdown [data-selectable], .selectize-dropdown .optgroup-header {
         padding: 3px 8px;
