@@ -408,6 +408,11 @@ input[type=number]::-webkit-outer-spin-button {
     }
 }
 
+.secondary-navbar {
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
 
 .fast-spin {
     -webkit-animation: fa-spin 1s infinite linear;
