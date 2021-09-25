@@ -18,10 +18,10 @@ scPageUI <- function(id, tab, active) {
                 scFormInput(ns('form'))
             ),
             div(class = 'col-sm-12 col-lg-6 mobile-margin',
-                # scAbundancePlotOutput(ns('abundance_plot')),
                 scClusterPlotOutput(ns('cluster_plot'))
             )
         ),
+
         hr(),
         div(id = ns('comparison_row'),
             # row for cluster comparison
@@ -482,3 +482,4 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
+

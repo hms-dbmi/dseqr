@@ -2,10 +2,8 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
-/* less padding on mobile */
-
 .well-form {
-    max-width: 400px !important;
+    max-width: 435px !important;
 }
 
 @media (max-width: 460px) {
@@ -15,11 +13,7 @@ body {
   }
 }
 
-@media (min-width: 1200px) {
-  .well-form {
-    max-width: 435px !important;
-  }
-}
+/* bottom align cluster plot */
 
 .selectize-info {
     color: #A0A0A0;
@@ -407,7 +401,7 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 /* to allow vertical-align in columns */
-@media (min-width: 768px) {
+@media (min-width: 1200px) {
     .row-fluid {
         display: flex;
         align-items: flex-end;
