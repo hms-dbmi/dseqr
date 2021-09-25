@@ -48,6 +48,12 @@ body {
     }
 }
 
+@media (min-width: 992px) {
+    .mobile-margin-medium {
+        margin-top: 0px;
+    }
+}
+
 .selectize-dropdown-content {
     max-height: 450px;
 }

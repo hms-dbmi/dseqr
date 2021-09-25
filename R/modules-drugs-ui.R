@@ -12,10 +12,10 @@ drugsPageUI <- function(id, tab, active) {
     tabPane(tab, active,
             rightClickMenu(),
             div(class = 'row',
-                div(class = 'col-lg-5',
+                div(class = 'col-sm-12 col-md-5',
                     drugsFormInput(ns('form'))
                 ),
-                div(class = 'col-lg-7 mobile-margin',
+                div(class = 'col-sm-12 col-md-7 mobile-margin-md',
                     drugsGenesPlotlyOutput(ns('genes'))
                 )
             ),
