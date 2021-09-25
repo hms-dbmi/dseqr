@@ -9,7 +9,6 @@ bootstrapPage(
   if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),
   useShinyjs(),
   rintrojs::introjsUI(),
-  # scrollspy for docs tab
   includeScript(path = 'www/renderSelectize.js'),
   includeScript(path = 'www/isMobile.js'),
   includeScript(path = 'www/contextMenu.js'),

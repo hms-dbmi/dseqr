@@ -121,7 +121,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
 
   observe({
-    toggle(id = "sample_comparison_row",  condition = scForm$comparison_type() == 'samples')
+    toggleCssClass(id = "sample_comparison_row", 'invisible', condition = scForm$comparison_type() != 'samples')
     toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
   })
 
@@ -3144,7 +3144,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
 
   show_plot <- reactive(!is.null(scseq()))
-  observe(toggle('cluster_plot_container', condition = show_plot()))
+  observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
 
   coords <- reactiveVal()
   observe({
@@ -3179,8 +3179,10 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   deck_props <- reactive({
     deck_props <- list()
+    is_mobile <- is_mobile()
+    if (is.null(is_mobile)) return(deck_props)
 
-    if (is_mobile()) {
+    if (is_mobile) {
       deck_props <- list(
         '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
       )
@@ -3413,8 +3415,8 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
 scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, meta = function()NULL, groups = function()NULL, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
 
 
+  observe(toggleCssClass('marker_plot_container', 'invisible', condition = !(show_plot() && have_colors())))
   have_colors <- reactive(length(colors()))
-  observe(toggle('marker_plot', condition = show_plot() && have_colors()))
 
   coords <- reactive({
     scseq <- scseq()

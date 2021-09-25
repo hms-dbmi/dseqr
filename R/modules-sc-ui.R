@@ -23,9 +23,9 @@ scPageUI <- function(id, tab, active) {
             )
         ),
         hr(),
-        div(id = ns('comparison_row'), style = '',
+        div(id = ns('comparison_row'),
             # row for cluster comparison
-            div(class = 'row', id = ns('cluster_comparison_row'), style = 'display: none;',
+            div(class = 'row', id = ns('cluster_comparison_row'),
                 div(class = "col-sm-12 col-lg-6 col-lg-push-6 mobile-margin",
                     scMarkerPlotOutput(ns('marker_plot_cluster'))
                 ),
@@ -39,7 +39,7 @@ scPageUI <- function(id, tab, active) {
                 )
             ),
             # row for samples comparison (integrated test vs ctrl)
-            div(id = ns('sample_comparison_row'), style = 'display: none;',
+            div(id = ns('sample_comparison_row'), class = 'invisible',
                 div(class = 'row',
                     div(class = "col-sm-12 col-lg-6 mobile-margin", id = ns('col_left'),
                         scMarkerPlotOutput(ns('expr_test')),
@@ -369,7 +369,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
 #' @noRd
 scClusterPlotOutput <- function(id) {
   ns <- NS(id)
-  div(style = 'display: none',
+  div(class = 'invisible',
       id = ns('cluster_plot_container'),
       picker::pickerOutput(ns('cluster_plot'))
   )
@@ -396,7 +396,9 @@ scAbundancePlotOutput <- function(id) {
 #' @noRd
 scMarkerPlotOutput <- function(id) {
   ns <- NS(id)
-  picker::pickerOutput(ns('marker_plot'))
+  div(class = 'invisible', id = ns('marker_plot_container'),
+      picker::pickerOutput(ns('marker_plot'))
+  )
 }
 
 

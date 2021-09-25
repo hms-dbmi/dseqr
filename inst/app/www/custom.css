@@ -2,13 +2,19 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+.selectize-info {
+    color: #A0A0A0;
+    text-align:right;
+    direction: rtl;
+}
+
 /* fix for FixedColumns styling in Datasets tab */
 .DTFC_RightWrapper {
     right: unset !important;
 }
 
 .picker {
-  border: 1px solid #ddd;
+    border: 1px solid #ddd;
 }
 
 /* MDS plots */
@@ -32,6 +38,7 @@ body {
 .selectize-dropdown-content {
     max-height: 450px;
 }
+
 
 
 .dropdown-menu {
@@ -181,20 +188,20 @@ ul.nav.navbar-nav {
 /* DATATABLES */
 
 .well-form {
-  max-width: 420px !important;
+    max-width: 435px !important;
 }
 
 /* filter box */
 td .form-group {
-  min-height: unset !important;
+    min-height: unset !important;
 }
 
 thead tr:nth-child(2) td {
-  padding: 0px 0.5px 10px;
+    padding: 0px 0.5px 10px;
 }
 
 thead tr:nth-child(2) input {
-  border-radius: 0px;
+    border-radius: 0px;
 }
 
 
@@ -227,12 +234,12 @@ td.dt-nopad span {
 }
 
 .normal-header table.dataTable thead th, table.dataTable thead td {
-  font-weight: normal;
+    font-weight: normal;
 }
 
 /* no overflow-y for drugs/bulk */
 .dt-container .dataTables_scrollBody {
-  overflow-y: hidden !important;
+    overflow-y: hidden !important;
 }
 
 
@@ -263,15 +270,6 @@ input[type=text] {
     appearance: none;
 }
 
-
-/* hide tooltips on mobile */
-@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
-    .tooltip {
-        display: none !important;
-    }
-}
-
-
 /* introjs button styling */
 .btn-intro, .btn-intro:focus {
     border: 1px solid #ddd;
@@ -283,11 +281,11 @@ input[type=text] {
     background-color: slategray;
     color: white;
     border-style: dashed;
-
+    
 }
 
 body {
-  padding-right: 0px !important;
+    padding-right: 0px !important;
 }
 
 .btn-intro:hover:not(.disabled) {
@@ -297,46 +295,46 @@ body {
 }
 
 .btn-intro.disabled {
-  opacity: .25;
-  cursor: not-allowed;
+    opacity: .25;
+    cursor: not-allowed;
 }
 
 .btn-intro i {
-  text-align: center;
+    text-align: center;
 }
 
 @media (max-width: 460px) {
-  .hidden-xxs {
-      display: none!important;
-  }
+    .hidden-xxs {
+        display: none!important;
+    }
 }
 
 .secondary-navbar {
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 50px;
-  padding: 15px;
-  background-color: slategray;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 50px;
+    padding: 15px;
+    background-color: slategray;
 }
 
 .secondary-navbar-btn-group {
-  margin-right: 15px;
-  display: inline;
+    margin-right: 15px;
+    display: inline;
 }
 
 /* fixes for shinyWidgets dropdown (feedback button) */
 .caret {
-  display: none;
+    display: none;
 }
 
 #feedback {
-  border-style: dashed;
+    border-style: dashed;
 }
 
 #dropdown-menu-feedback-btn {
-  margin-top: 23px;
-  margin-left: -66px;
-  width: auto;
-  max-width: 360px;
+    margin-top: 23px;
+    margin-left: -66px;
+    width: auto;
+    max-width: 360px;
 }
 
 
@@ -365,14 +363,20 @@ body {
 }
 
 
-/*disable tooltips on mobile*/
 @media only screen
 and (min-device-width : 319px)
 and (max-device-width : 1024px) {
+    
+    /*disable tooltips on mobile*/
     .tooltip {
         display: none !important;
     }
- }
+    
+    /* a bit less padding on mobile selectize */
+    .selectize-dropdown [data-selectable], .selectize-dropdown .optgroup-header {
+        padding: 3px 8px;
+    }
+}
 
 /*disable option for selectize*/
 .disabled-option {
@@ -384,48 +388,48 @@ and (max-device-width : 1024px) {
 /*always show numeric input arrows*/
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
-   opacity: 1;
+    opacity: 1;
 }
 
 /* to allow vertical-align in columns */
 @media (min-width: 768px) {
-  .row-fluid {
-    display: flex;
-    align-items: flex-end;
-  }
+    .row-fluid {
+        display: flex;
+        align-items: flex-end;
+    }
 }
 
 
 .fast-spin {
-  -webkit-animation: fa-spin 1s infinite linear;
-  animation: fa-spin 1s infinite linear;
+    -webkit-animation: fa-spin 1s infinite linear;
+    animation: fa-spin 1s infinite linear;
 }
 
 .modal-dialog.modal-lg {
-  width: 600px;
-  max-width: 600px !important;
-  width: auto;
+    width: 600px;
+    max-width: 600px !important;
+    width: auto;
 }
 
 .modal-dialog.modal-lg .modal-body {
-  height: 100% !important;
+    height: 100% !important;
 }
 
 
 @media (min-width: 768px) {
-  .modal-dialog {
-      width: 400px;
-      margin: 30px auto;
-  }
+    .modal-dialog {
+        width: 400px;
+        margin: 30px auto;
+    }
 }
 
 @media (min-width: 768px) {
-  .modal-sm {
-      width: 300px;
-  }
+    .modal-sm {
+        width: 300px;
+    }
 }
 
 
 .introjs-hint {
-  z-index: 1001;
+    z-index: 1001;
 }
