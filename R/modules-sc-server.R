@@ -141,6 +141,12 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #' @noRd
 scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
 
+  set_readonly <- reactive({
+    mobile <- is_mobile()
+    if (!is.null(mobile) && mobile) return(I(disableMobileKeyboard))
+    return(NULL)
+  })
+
   # updates if new integrated or subset dataset
   new_dataset <- reactiveVal()
   observe(new_dataset(scIntegration()))
@@ -288,6 +294,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
                           sc_dir = sc_dir,
+                          set_readonly = set_readonly,
                           new_dataset = new_dataset,
                           indices_dir = indices_dir,
                           tx2gene_dir = tx2gene_dir,
@@ -303,6 +310,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
+                                set_readonly = set_readonly,
                                 dataset_dir = dataset_dir,
                                 resoln_dir = resoln_dir,
                                 resoln_name = scResolution$resoln_name,
@@ -338,6 +346,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # dataset subset
   scSubset <- callModule(subsetForm, 'subset',
                          sc_dir = sc_dir,
+                         set_readonly = set_readonly,
                          scseq = scseq,
                          annot = annot,
                          datasets = scDataset$datasets,
@@ -355,6 +364,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # the selected cluster for cluster comparison
   scClusterComparison <- callModule(clusterComparison, 'cluster',
                                     sc_dir = sc_dir,
+                                    set_readonly = set_readonly,
                                     dataset_dir = dataset_dir,
                                     dataset_name = scDataset$dataset_name,
                                     resoln_dir = resoln_dir,
@@ -396,6 +406,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # the selected cluster for sample comparison
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
                                  input_scseq = scseq,
+                                 set_readonly = set_readonly,
                                  meta = scSampleGroups$meta,
                                  h5logs = h5logs,
                                  lm_fit = scSampleGroups$lm_fit,
@@ -473,7 +484,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #' @noRd
 #'
 scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, dataset_name, input_scseq = function()NULL, show_pbulk = function()FALSE, counts = function()NULL) {
-  group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'), onInitialize = I(disableMobileKeyboard))
+  group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
   input_ids <- c('click_dl_meta', 'click_up_meta', 'compare_groups')
 
 
@@ -741,13 +752,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 }
 
 
-disableMobileKeyboard <- '
-function(){
-  $(".selectize-input input").attr("readonly", "readonly");
-}
-'
-
-
 #' Logic for single cell sample comparison cluster for Single Cell and Drugs tabs
 #'
 #' IMPORTANT! USED IN DRUGS TAB:
@@ -756,8 +760,12 @@ function(){
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
-  cluster_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+  cluster_options <- reactive({
+    list(render = I('{option: contrastOptions, item: contrastItem}'),
+         onInitialize = set_readonly())
+  })
+
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
   contrast_dir <- reactiveVal()
@@ -854,7 +862,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
                          choices = rbind(NA, cluster_choices()),
-                         options = cluster_options, server = TRUE)
+                         options = cluster_options(), server = TRUE)
   })
 
 
@@ -1294,14 +1302,24 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 }
 
 
+disableMobileKeyboard <- '
+    function(){
+      $(".selectize-input input").attr("readonly", "readonly");
+    }
+    '
+
 #' Logic for selected dataset part of scForm
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
+scSelectedDataset <- function(input, output, session, sc_dir, set_readonly, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
-  options <- list(render = I('{option: scDatasetOptions, item: scDatasetItem}'),
-                  searchField = c('optgroup', 'label'), onInitialize = I(disableMobileKeyboard))
+  options <- reactive({
+    list(
+      render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+      searchField = c('optgroup', 'label'),
+      onInitialize = set_readonly())
+  })
 
   dataset_name <- reactiveVal()
   observe({
@@ -1691,7 +1709,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (removed.curr) sel <- ''
 
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options)
+    updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options())
   })
 
 
@@ -1763,7 +1781,7 @@ detect_import_species <- function(up_df) {
 #' @keywords internal
 #' @noRd
 scLabelsComparison <- function(input, output, session, cluster_choices) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
+  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
 
   observe({
     updateSelectizeInput(session, 'selected_cluster',
@@ -1813,9 +1831,12 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #'
 #' @keywords internal
 #' @noRd
-labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
+labelTransferForm <- function(input, output, session, sc_dir, set_readonly, is_mobile, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
   label_transfer_inputs <- c('transfer_study', 'submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
-  options <- list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = I(disableMobileKeyboard))
+
+  options <-  reactive({
+    list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = set_readonly())
+  })
 
   ref_preds <- reactiveVal()
   new_preds <- reactiveVal()
@@ -1852,7 +1873,7 @@ labelTransferForm <- function(input, output, session, sc_dir, dataset_dir, resol
                          choices = choices,
                          server = TRUE,
                          selected = isolate(new_preds()),
-                         options = options)
+                         options = options())
   })
 
 
@@ -2210,9 +2231,14 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #'
 #' @keywords internal
 #' @noRd
-subsetForm <- function(input, output, session, sc_dir, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
+subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
   type <- name <- NULL
-  contrastOptions <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
+
+  contrastOptions <- reactive({
+    list(render = I('{option: contrastOptions, item: contrastItem}'),
+         onInitialize = set_readonly())
+
+  })
 
   subset_name <- reactive(input$subset_name)
   new_dataset <- reactiveVal()
@@ -2392,7 +2418,7 @@ subsetForm <- function(input, output, session, sc_dir, scseq, annot, datasets, s
     updateSelectizeInput(session, 'subset_clusters',
                          choices = exclude_choices(),
                          selected = isolate(input$subset_clusters),
-                         options = contrastOptions,
+                         options = contrastOptions(),
                          server = TRUE)
   })
 
@@ -2576,10 +2602,14 @@ comparisonType <- function(input, output, session, is_integrated) {
 #'
 #' @keywords internal
 #' @noRd
-clusterComparison <- function(input, output, session, sc_dir, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot, annot_path, ref_preds, clusters, dgclogs) {
+clusterComparison <- function(input, output, session, sc_dir, set_readonly, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot, annot_path, ref_preds, clusters, dgclogs) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'), onInitialize = I(disableMobileKeyboard))
+  contrast_options <- reactive({
+    list(render = I('{option: contrastOptions, item: contrastItem}'),
+         onInitialize = set_readonly())
+  })
+
   selected_cluster <- reactiveVal()
   markers <- reactiveVal(list())
 
@@ -2717,7 +2747,7 @@ clusterComparison <- function(input, output, session, sc_dir, dataset_dir, datas
     updateSelectizeInput(session, 'selected_cluster',
                          choices = choices,
                          selected = selected,
-                         options = contrast_options, server = TRUE)
+                         options = contrast_options(), server = TRUE)
   })
 
 
@@ -3694,3 +3724,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+
