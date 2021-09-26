@@ -1321,13 +1321,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
 
   options <- list(
-      render = I('{option: scDatasetOptions, item: scDatasetItem}'),
-      searchField = c('optgroup', 'label'))
+    render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+    searchField = c('optgroup', 'label'))
 
   dataset_name <- reactiveVal()
   observe({
-    ds <- datasets()
     sel_idx <- input$selected_dataset
+    req(sel_idx)
+
+    ds <- datasets()
     sel <- ds$name[ds$value == sel_idx]
     if (!length(sel)) sel <- NULL
 

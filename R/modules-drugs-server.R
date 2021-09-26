@@ -8,11 +8,10 @@
 #'   single-cell tab.
 #'
 #' @export
-drugsPage <- function(input, output, session, new_bulk, data_dir, pert_query_dir, pert_signature_dir) {
+drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
-                     new_bulk = new_bulk,
                      data_dir = data_dir,
                      pert_query_dir = pert_query_dir,
                      pert_signature_dir = pert_signature_dir)
@@ -51,8 +50,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
 
   # dataset/analysis choices
   choices <- reactive({
-    # reactive to new datasets, new custom query, or bulk change (e.g. number of SVs)
-    new_bulk()
+    # reactive to new custom query, or bulk change (e.g. number of SVs)
     new_custom()
     scseq_datasets <- load_scseq_datasets(data_dir)
     bulk_datasets <- load_bulk_datasets(data_dir)

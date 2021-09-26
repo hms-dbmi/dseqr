@@ -46,19 +46,22 @@ server <- function(input, output, session) {
     dir.create(bulk_dir, showWarnings = FALSE)
 
     # hide tour button for docs page
-    observe(toggleClass('start_tour', 'invisible', condition = input$tabs == 'Docs'))
+    observe(toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
 
 
     # rintrojs
     observeEvent(input$start_tour, {
-        if (input$tabs == 'Single Cell') {
+        if (input$tab == 'Single Cell') {
             steps <- utils::read.csv('www/sc_intro.csv', stringsAsFactors = FALSE)
-        } else if (input$tabs == 'Bulk Data') {
+
+        } else if (input$tab == 'Bulk Data') {
             steps <- utils::read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
-        } else if (input$tabs == 'Drugs') {
+
+        } else if (input$tab == 'Drugs') {
             steps <- utils::read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
+
         } else {
-            print(input$tabs)
+            print(input$tab)
             return(NULL)
         }
 
@@ -100,8 +103,8 @@ server <- function(input, output, session) {
 
 
     observe({
-        toggle('add_dataset', condition = input$tabs == 'Single Cell')
-        toggle('remove_dataset', condition = input$tabs == 'Single Cell')
+        toggle('add_dataset', condition = input$tab == 'Single Cell')
+        toggle('remove_dataset', condition = input$tab == 'Single Cell')
     })
 
 
@@ -130,28 +133,51 @@ server <- function(input, output, session) {
         suppressPackageStartupMessages(require(SingleCellExperiment))
     })
 
-    scPage <- callModule(scPage, 'sc',
-                         sc_dir = sc_dir,
-                         indices_dir = indices_dir,
-                         tx2gene_dir = tx2gene_dir,
-                         gs_dir = gs_dir,
-                         is_mobile = is_mobile,
-                         add_sc = add_sc,
-                         remove_sc = remove_sc)
+    #  call each page module only on first tab visit
+    pages <- reactiveValues()
+    tabs <- reactiveValues()
+
+    observeEvent(input$tab, {
+        if (input$tab == 'Single Cell') tabs$sc <- TRUE
+        if (input$tab == 'Bulk Data') tabs$bulk <- TRUE
+        if (input$tab == 'Drugs') tabs$drugs <- TRUE
+    })
+
+    observeEvent(tabs$sc, {
+
+        pages$scPage <- callModule(
+            scPage, 'sc',
+            sc_dir = sc_dir,
+            indices_dir = indices_dir,
+            tx2gene_dir = tx2gene_dir,
+            gs_dir = gs_dir,
+            is_mobile = is_mobile,
+            add_sc = add_sc,
+            remove_sc = remove_sc)
+
+    }, once = TRUE)
 
 
-    bulkPage <- callModule(bulkPage, 'bulk',
-                           data_dir = data_dir,
-                           sc_dir = sc_dir,
-                           bulk_dir = bulk_dir,
-                           gs_dir = gs_dir,
-                           indices_dir = indices_dir)
+    observeEvent(tabs$bulk, {
 
-    drugsPage <- callModule(drugsPage, 'drug',
-                            data_dir = data_dir,
-                            new_bulk = bulkPage$new_dataset,
-                            pert_query_dir = pert_query_dir,
-                            pert_signature_dir = pert_signature_dir)
+        pages$bulkPage <- callModule(
+            bulkPage, 'bulk',
+            data_dir = data_dir,
+            sc_dir = sc_dir,
+            bulk_dir = bulk_dir,
+            gs_dir = gs_dir,
+            indices_dir = indices_dir)
 
 
+    }, once = TRUE)
+
+    observeEvent(tabs$drugs, {
+
+        pages$drugsPage <- callModule(
+            drugsPage, 'drug',
+            data_dir = data_dir,
+            pert_query_dir = pert_query_dir,
+            pert_signature_dir = pert_signature_dir)
+
+    }, once = TRUE)
 }

@@ -35,7 +35,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
                    )
                ),
                div(id = 'bs-navbar', class = 'collapse navbar-collapse',
-                   tags$ul(class = 'nav navbar-nav shiny-tab-input shiny-bound-input', `data-tabsetid` = 'tabset', id = 'tabs',
+                   tags$ul(class = 'nav navbar-nav shiny-tab-input shiny-bound-input', `data-tabsetid` = 'tabset', id = 'tab',
                            lapply(seq_along(tabs), function(i) {
                              tab <- tabs[i]
                              is.active <- tab == active

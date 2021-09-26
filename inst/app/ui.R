@@ -25,7 +25,7 @@ bootstrapPage(
 
   fluidPage(
     tags$div(
-      class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tabs",
+      class = "tab-content shiny-bound-input", `data-tabsetid` = "tabset", id = "tab",
 
       # tabs
       scPageUI("sc", tab = 'Single Cell', active),
