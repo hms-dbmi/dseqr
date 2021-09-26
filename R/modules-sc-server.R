@@ -293,7 +293,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # the dataset and options
   scDataset <- callModule(scSelectedDataset, 'dataset',
                           sc_dir = sc_dir,
-                          set_readonly = set_readonly,
                           new_dataset = new_dataset,
                           indices_dir = indices_dir,
                           tx2gene_dir = tx2gene_dir,
@@ -1318,18 +1317,12 @@ disableMobileKeyboard <- function(id) {
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, set_readonly, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
   dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
 
-  options <- reactive({
-    on_init <- NULL
-    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('selected_dataset'))
-
-    list(
+  options <- list(
       render = I('{option: scDatasetOptions, item: scDatasetItem}'),
-      searchField = c('optgroup', 'label'),
-      onInitialize = on_init)
-  })
+      searchField = c('optgroup', 'label'))
 
   dataset_name <- reactiveVal()
   observe({
@@ -1719,7 +1712,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, set_readonly, new_
     if (removed.curr) sel <- ''
 
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options())
+    updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options)
   })
 
 
