@@ -19,6 +19,7 @@ bootstrapPage(
   tags$head(HTML("<title>Dseqr</title>"),
             tags$link(rel = "icon", type = "image/png", href = "https://raw.githubusercontent.com/hms-dbmi/dseqr.sp/master/favicon.png")),
 
+
   navbarUI(tabs, active, logout_url),
   navbar2UI(is_example),
 
