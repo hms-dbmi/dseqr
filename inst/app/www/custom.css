@@ -279,7 +279,7 @@ td.dt-nopad span {
     margin-right: 0px !important;
 }
 
-input[type=text], input[type=textarea] {
+input[type=text], textarea {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
