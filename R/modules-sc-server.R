@@ -265,7 +265,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   observe({
     toggle(id = "cluster_comparison_inputs",  condition = comparisonType() == 'clusters')
     toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
-    toggle(id = "labels_comparison_inputs",  condition = comparisonType() == 'labels')
   })
 
   # hide sample cluster/feature inputs if not two groups
@@ -282,8 +281,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     old <- isolate(selected_cluster())
     new <- switch(type,
                   'clusters' = scClusterComparison$selected_cluster(),
-                  'samples' = scSampleClusters$selected_cluster(),
-                  'labels' = scLabelsComparison$selected_cluster())
+                  'samples' = scSampleClusters$selected_cluster())
 
     if (is.null(new)) new <- ''
     if (new != old) selected_cluster(new)
@@ -439,12 +437,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              ambient = scSampleClusters$ambient)
 
 
-
-  scLabelsComparison <- callModule(scLabelsComparison, 'labels',
-                                   cluster_choices = scSampleClusters$cluster_choices)
-
-
-
   return(list(
     scseq = scDataset$scseq,
     annot = annot,
@@ -460,7 +452,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     grid_expression_fun = scSampleClusters$grid_expression_fun,
     clusters_cluster = scClusterComparison$selected_cluster,
     samples_cluster = scSampleClusters$selected_cluster,
-    labels_cluster = scLabelsComparison$selected_cluster,
     selected_cluster = selected_cluster,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name,
@@ -1780,24 +1771,6 @@ detect_import_species <- function(up_df) {
   get_species(genes)
 }
 
-
-#' Logic for selecting cluster to plot label origin for integrated dataset
-#'
-#' @keywords internal
-#' @noRd
-scLabelsComparison <- function(input, output, session, cluster_choices) {
-  contrast_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-
-  observe({
-    updateSelectizeInput(session, 'selected_cluster',
-                         choices = rbind(NA, cluster_choices()),
-                         options = contrast_options, server = TRUE)
-  })
-
-  return(list(
-    selected_cluster = reactive(input$selected_cluster)
-  ))
-}
 
 
 #' Logic for single-cell sample comparison plots
