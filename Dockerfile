@@ -69,10 +69,10 @@ ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
     apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev && \
+    libxml2-dev libhdf5-dev && \
     rm -rf /var/lib/apt/lists/* && \
     R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr@0.20.29', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.20.30', dependencies = FALSE, upgrade = FALSE)" && \
     R -e "remove.packages('remotes')"
 
 # add source files

@@ -4,8 +4,16 @@ logout_url <- getShinyOption('logout_url')
 is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
-deps <- list()
+remoteDeps <- list()
 if (!is.null(logout_url)) {
+
+  selectizeDep <- htmltools::htmlDependency(
+    'selectize', '0.12.4',
+    src = c(href = 'https://d174upwcmdw9dj.cloudfront.net/'),
+    stylesheet = 'selectize.bootstrap3.min.css',
+    script = c('selectize.min.js', 'selectize-plugin-a11y.js')
+  )
+
   shinypanelDep <- htmltools::htmlDependency(
     'shinypanel', '0.1.5',
     src = c(href = 'https://d174upwcmdw9dj.cloudfront.net/'),
@@ -18,16 +26,21 @@ if (!is.null(logout_url)) {
     stylesheet = c('custom.css')
   )
 
+  htmlwidgetsDep <- htmltools::htmlDependency(
+    'htmlwidgets', '1.5.3',
+    src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
+    script = c("htmlwidgets.js")
+  )
   pickerDep <- htmltools::htmlDependency(
     'picker', '0.2.5',
     src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
-    script = c("htmlwidgets.js", "picker.min.js")
+    script = c("picker.min.js")
   )
 
   bootstrapDep <- htmltools::htmlDependency(
     "bootstrap", "3.4.1",
-    src = c(href = "https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/"),
-    script = "js/bootstrap.min.js", stylesheet = "css/bootstrap.min.css"
+    src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
+    script = "bootstrap.min.js", stylesheet = "bootstrap.min.css"
   )
 
   fontawesomeDep <- htmltools::htmlDependency(
@@ -35,17 +48,19 @@ if (!is.null(logout_url)) {
     src = c(href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/"),
     stylesheet = c("all.min.css", "v4-shims.min.css")
   )
-  deps <- list(
+  remoteDeps <- list(
+    selectizeDep,
     bootstrapDep,
     fontawesomeDep,
     shinypanelDep,
     dseqrDep,
+    htmlwidgetsDep,
     pickerDep
   )
 }
 
 bootstrapPage(
-  deps,
+  remoteDeps,
   if (!is.null(logout_url)) includeHTML("www/gtm.html"),
   if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),
   useShinyjs(),
