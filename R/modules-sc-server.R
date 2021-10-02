@@ -516,12 +516,22 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
                check.names = FALSE, stringsAsFactors = FALSE)
   })
 
+  # download previous up if available so that can inspect groups
+  dl_meta <- reactive({
+    dl_meta <- up_meta()
+    if (!is.null(dl_meta)) colnames(dl_meta) <- c('Group name', 'Pair')
+    else dl_meta <- ref_meta()
+
+    return(dl_meta)
+  })
+
+
   fname <- reactive(paste0(dataset_name(), '_meta.csv'))
 
   output$dl_meta <- downloadHandler(
     filename = fname,
     content = function(con) {
-      utils::write.csv(ref_meta(), con, row.names = TRUE)
+      utils::write.csv(dl_meta(), con, row.names = TRUE)
     }
   )
 
