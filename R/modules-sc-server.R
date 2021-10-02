@@ -1619,10 +1619,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     for (dataset_name in uniq_samples) {
       upi <- up[samples %in% dataset_name,, drop = FALSE]
 
-      fastq_dir <- file.path(sc_dir, dataset_name)
-      unlink(fastq_dir, recursive = TRUE)
-      dir.create(fastq_dir)
-      file.move(upi$datapath, file.path(fastq_dir, upi$name))
+      uploaded_data_dir <- file.path(sc_dir, dataset_name)
+      unlink(uploaded_data_dir, recursive = TRUE)
+      dir.create(uploaded_data_dir)
+      file.move(upi$datapath, file.path(uploaded_data_dir, upi$name))
 
       if (metrics[1] == 'all and none') {
         opts <- list(
@@ -1647,7 +1647,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       # allows to run n at a time
       qargs[[dataset_name]] <- list(
         opts = opts,
-        fastq_dir = fastq_dir,
+        uploaded_data_dir = uploaded_data_dir,
         sc_dir = sc_dir,
         indices_dir = indices_dir,
         tx2gene_dir = tx2gene_dir,

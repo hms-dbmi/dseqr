@@ -1,7 +1,7 @@
 #' Import raw single cell fastq or cellranger files for app
 #'
 #' @param dataset_name Name of dataset
-#' @param fastq_dir Directory with fastq or cellranger files
+#' @param uploaded_data_dir Directory with fastq or cellranger files
 #' @param sc_dir Single cell directory for app. Will store results in \code{dataset_name} subdirectory
 #' @param progress Optional shiny \code{Progress} object. Default will print progress.
 #' @param value Integer indicating step of pipeline.
@@ -13,23 +13,23 @@
 #' @keywords internal
 #'
 import_scseq <- function(dataset_name,
-                           fastq_dir,
-                           sc_dir,
-                           indices_dir,
-                           tx2gene_dir,
-                           progress = NULL,
-                           recount = FALSE,
-                           value = 0,
-                           founder = dataset_name,
-                           npcs = 30,
-                           cluster_alg = 'leiden',
-                           resoln = 1,
-                           azimuth_ref = NULL,
-                           metrics = c('low_lib_size',
-                                       'low_n_features',
-                                       'high_subsets_mito_percent',
-                                       'low_subsets_ribo_percent',
-                                       'high_doublet_score')) {
+                         uploaded_data_dir,
+                         sc_dir,
+                         indices_dir,
+                         tx2gene_dir,
+                         progress = NULL,
+                         recount = FALSE,
+                         value = 0,
+                         founder = dataset_name,
+                         npcs = 30,
+                         cluster_alg = 'leiden',
+                         resoln = 1,
+                         azimuth_ref = NULL,
+                         metrics = c('low_lib_size',
+                                     'low_n_features',
+                                     'high_subsets_mito_percent',
+                                     'low_subsets_ribo_percent',
+                                     'high_doublet_score')) {
 
   if (!is.null(metrics) && metrics[1] == 'none') metrics <- NULL
   if (is.null(progress)) {
@@ -39,14 +39,14 @@ import_scseq <- function(dataset_name,
   }
 
   # standardize cellranger files
-  is.cellranger <- check_is_cellranger(fastq_dir)
+  is.cellranger <- check_is_cellranger(uploaded_data_dir)
 
   progress$set(message = "quantifying files", value = value + 1)
-  if (!is.cellranger) run_kallisto_scseq(indices_dir, fastq_dir, recount = recount)
+  if (!is.cellranger) run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
 
   progress$set(message = "loading", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-  scseq <- create_scseq(fastq_dir, tx2gene_dir, dataset_name, type)
+  scseq <- create_scseq(uploaded_data_dir, tx2gene_dir, dataset_name, type)
   gc()
 
   progress$set(message = "running QC", value = value + 3)
@@ -74,17 +74,17 @@ import_scseq <- function(dataset_name,
 #'
 #' @keywords internal
 #' @noRd
-run_import_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
+run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
 
   for (opt in opts) {
     import_scseq(opt$dataset_name,
-                   fastq_dir,
-                   sc_dir,
-                   indices_dir,
-                   tx2gene_dir,
-                   metrics = opt$metrics,
-                   founder = opt$founder,
-                   azimuth_ref = azimuth_ref)
+                 uploaded_data_dir,
+                 sc_dir,
+                 indices_dir,
+                 tx2gene_dir,
+                 metrics = opt$metrics,
+                 founder = opt$founder,
+                 azimuth_ref = azimuth_ref)
 
   }
 

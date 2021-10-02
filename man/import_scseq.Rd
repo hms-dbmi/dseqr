@@ -6,7 +6,7 @@
 \usage{
 import_scseq(
   dataset_name,
-  fastq_dir,
+  uploaded_data_dir,
   sc_dir,
   indices_dir,
   tx2gene_dir,
@@ -25,7 +25,7 @@ import_scseq(
 \arguments{
 \item{dataset_name}{Name of dataset}
 
-\item{fastq_dir}{Directory with fastq or cellranger files}
+\item{uploaded_data_dir}{Directory with fastq or cellranger files}
 
 \item{sc_dir}{Single cell directory for app. Will store results in \code{dataset_name} subdirectory}
 
