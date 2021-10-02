@@ -995,6 +995,7 @@ run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NUL
   scseq_sample <- downsample_clusters(scseq)
 
   progress$set(value+1, detail = 'pseudobulk')
+
   summed <-  aggregate_across_cells(scseq)
 
   anal <- list(scseq_sample = scseq_sample,

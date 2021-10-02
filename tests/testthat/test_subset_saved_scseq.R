@@ -1,30 +1,41 @@
 context("subsetting single cell datasets works")
 
-mock_counts <- function(...) {
+mock_scseq_files <- function(sc_dir, dataset_name, sample_names = 'a') {
+    dataset_dir <- file.path(sc_dir, dataset_name)
+    dir.create(dataset_dir, recursive = TRUE)
+
+    sce <- scuttle::mockSCE()
+    sce <- scuttle::logNormCounts(sce)
+
+    # add clusters and batch (sample)
+    sce$cluster <- factor(scran::quickCluster(sce, min.size=50))
+    sce$batch <- sample(sample_names, size = ncol(sce), replace = TRUE)
+
+    # add some doublets
     set.seed(0)
-    sce <- scDblFinder::mockDoubletSCE(...)
-    counts <- sce@assays@data$counts
-    row.names(counts) <- paste0('gene', seq_len(nrow(counts)))
-    colnames(counts) <- paste0('cell', seq_len(ncol(counts)))
+    doublet_idx <- sample(ncol(sce), size = ncol(sce)*0.1)
+    sce$high_doublet_score <- FALSE
+    sce$high_doublet_score[doublet_idx] <- TRUE
 
-    counts <- Matrix::Matrix(counts, sparse = TRUE)
-    return(counts)
+    # save clusters
+    anal <- list(clusters = sce$cluster)
+    dataset_subname <- file.path(dataset_name, 'snn1')
+    save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
+
+    # save scseq
+    split_save_scseq(sce, dataset_dir)
+
+    return(sce)
 }
 
-mock_mtx_files <- function(counts, features, uploaded_data_dir) {
-    DropletUtils::write10xCounts(uploaded_data_dir, counts, gene.id = features$id, gene.symbol = features$name)
-}
+mock_integration_files <- function(dataset_name, sc_dir, integration_type = 'harmony') {
 
-mock_uploaded_data <- function(dataset_name, sc_dir, uploaded_data_dir) {
-    dir.create(sc_dir)
+    # need args with previous integration type
+    args <- list(integration_type = integration_type)
+    save_scseq_args(args, dataset_name, sc_dir)
 
-    counts <- mock_counts(ncells = c(200, 300, 400, 200, 500, 300), ngenes = 1000)
-
-    features <- data.frame(id = paste0('ENSG', seq_len(nrow(counts))),
-                           name = row.names(counts))
-
-    mock_mtx_files(counts, features, uploaded_data_dir)
-
+    # need integrated.qs
+    qs::qsave(dataset_name, file.path(sc_dir, 'integrated.qs'))
 }
 
 
@@ -32,17 +43,7 @@ test_that("a uni-sample dataset can be subsetted", {
     # setup
     from_dataset <- 'test'
     sc_dir <- file.path(tempdir(), 'single-cell')
-    uploaded_data_dir <- file.path(tempdir(), 'uploads')
-
-    tx2gene_dir <- file.path(tempdir(), 'tx2gene')
-    dir.create(tx2gene_dir)
-
-    mock_uploaded_data(from_dataset, sc_dir, uploaded_data_dir)
-
-    # import and keep all cells
-    suppressWarnings(
-        import_scseq(from_dataset, uploaded_data_dir, sc_dir, tx2gene_dir, metrics = NULL)
-    )
+    scseq <- mock_scseq_files(sc_dir, from_dataset)
 
     # remove doublets
     dataset_name <- paste0(from_dataset, '_QC1')
@@ -55,13 +56,45 @@ test_that("a uni-sample dataset can be subsetted", {
                            subset_metrics = 'high_doublet_score')
     ))
 
-    # check that removed doublet and nothing else
-    from_scseq <- load_scseq_qs(file.path(sc_dir, from_dataset))
-    expected_cells <- colnames(from_scseq[, from_scseq$doublet_class == 'singlet'])
+    # check that removed doublets and nothing else
+    expected_cells <- colnames(scseq)[!scseq$high_doublet_score]
 
-    scseq <- load_scseq_qs(file.path(sc_dir, dataset_name))
-    expect_setequal(colnames(scseq), expected_cells)
+    subset_scseq <- load_scseq_qs(file.path(sc_dir, dataset_name))
+    expect_setequal(colnames(subset_scseq), expected_cells)
 
     # cleanup
-    unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
+    unlink(sc_dir, recursive = TRUE)
+})
+
+
+
+test_that("an integrated dataset can be subsetted", {
+    # setup
+    from_dataset <- 'test'
+    sc_dir <- file.path(tempdir(), 'single-cell')
+    scseq <- mock_scseq_files(sc_dir, from_dataset, sample_names = c('a', 'b'))
+
+    integration_type <- 'harmony'
+    mock_integration_files(from_dataset, sc_dir, integration_type)
+
+    # remove doublets
+    dataset_name <- paste0(from_dataset, '_QC1')
+
+    expect_true(suppressWarnings(
+        subset_saved_scseq(sc_dir,
+                           founder = from_dataset,
+                           from_dataset = from_dataset,
+                           dataset_name = dataset_name,
+                           subset_metrics = 'high_doublet_score',
+                           is_integrated = TRUE)
+    ))
+
+    # check that removed doublets and nothing else
+    expected_cells <- colnames(scseq)[!scseq$high_doublet_score]
+
+    subset_scseq <- load_scseq_qs(file.path(sc_dir, paste0(dataset_name, '_harmony')))
+    expect_setequal(colnames(subset_scseq), expected_cells)
+
+    # cleanup
+    unlink(sc_dir, recursive = TRUE)
 })
