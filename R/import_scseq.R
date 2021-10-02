@@ -1050,6 +1050,8 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
 
   # get counts for pseudobulk
   counts <- do.call(no_correct('counts'), scseqs)
+  dimnames(counts) <- dimnames(cor.out)
+
   SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
   rm(counts, scseqs); gc()
 
