@@ -1678,7 +1678,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       qargs[[dataset_name]] <- NULL
 
       quants[[dataset_name]] <- callr::r_bg(
-        func = run_load_raw_scseq,
+        func = run_import_scseq,
         package = 'dseqr',
         args = args
       )

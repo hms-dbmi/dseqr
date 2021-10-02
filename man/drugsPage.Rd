@@ -4,15 +4,7 @@
 \alias{drugsPage}
 \title{Logic for Drugs Tab}
 \usage{
-drugsPage(
-  input,
-  output,
-  session,
-  new_bulk,
-  data_dir,
-  pert_query_dir,
-  pert_signature_dir
-)
+drugsPage(input, output, session, data_dir, pert_query_dir, pert_signature_dir)
 }
 \arguments{
 \item{input}{standard shiny module boilerplate}
@@ -21,13 +13,13 @@ drugsPage(
 
 \item{session}{standard shiny module boilerplate}
 
-\item{new_bulk}{reactive triggers when a new bulk dataset is added}
-
 \item{data_dir}{path to folder with application name}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 
 \item{pert_signature_dir}{Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.}
+
+\item{new_bulk}{reactive triggers when a new bulk dataset is added}
 }
 \value{
 Called with \link[shiny]{callModule} to generate logic for

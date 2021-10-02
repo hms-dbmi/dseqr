@@ -23,8 +23,14 @@ run_post_cluster(
 
 \item{value}{value}
 
+\item{reset_annot}{if \code{TRUE} then overwrites saved annotation with cluster indices.
+Set to \code{FALSE} when Azimuth is used as cluster annotation is defined.}
+
 \item{integrated}{is \code{scseq} integrated?}
 }
 \description{
-Post-Cluster Processing of SingleCellExperiment
+Performs the following:
+- downsampling (used for label transfer)
+- pseudobulk
+- saving data
 }

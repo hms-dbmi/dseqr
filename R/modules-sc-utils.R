@@ -968,11 +968,18 @@ integrate_saved_scseqs <- function(
 
 #' Post-Cluster Processing of SingleCellExperiment
 #'
+#' Performs the following:
+#' - downsampling (used for label transfer)
+#' - pseudobulk
+#' - saving data
+#'
 #' @param scseq SingleCellExperiment
 #' @param resoln resolution parameter
 #' @param integrated is \code{scseq} integrated?
 #' @param progress progress
 #' @param value value
+#' @param reset_annot if \code{TRUE} then overwrites saved annotation with cluster indices.
+#'   Set to \code{FALSE} when Azimuth is used as cluster annotation is defined.
 #'
 #' @return NULL
 #'

@@ -1,4 +1,4 @@
-#' Process raw single cell fastq or cellranger files for app
+#' Import raw single cell fastq or cellranger files for app
 #'
 #' @param dataset_name Name of dataset
 #' @param fastq_dir Directory with fastq or cellranger files
@@ -12,7 +12,7 @@
 #' @return NULL
 #' @keywords internal
 #'
-load_raw_scseq <- function(dataset_name,
+import_scseq <- function(dataset_name,
                            fastq_dir,
                            sc_dir,
                            indices_dir,
@@ -68,14 +68,16 @@ load_raw_scseq <- function(dataset_name,
 }
 
 
-#' Convenience utility to run load_raw_scseq in background
-
+#' Convenience utility to run import_scseq in background by callr::r_bg
+#'
+#' Calls import_scseq
+#'
 #' @keywords internal
 #' @noRd
-run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
+run_import_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
 
   for (opt in opts) {
-    load_raw_scseq(opt$dataset_name,
+    import_scseq(opt$dataset_name,
                    fastq_dir,
                    sc_dir,
                    indices_dir,
@@ -91,6 +93,14 @@ run_load_raw_scseq <- function(opts, fastq_dir, sc_dir, indices_dir, tx2gene_dir
 
 
 #' Process Count Data for App
+#'
+#' Performs the following:
+#' - normalization
+#' - adds HVGs
+#' - dimensionality reduction
+#' - clustering
+#'
+#' Then calls run_post_cluster
 #'
 #' @param scseq \code{SingleCellExperiment}
 #' @param dataset_name Name of dataset to save
@@ -122,7 +132,10 @@ process_raw_scseq <- function(scseq,
   progress$set(message = "normalizing", value = value)
   scseq@metadata$npcs <- npcs
   scseq <- normalize_scseq(scseq)
-  scseq <- add_hvgs(scseq, hvgs = hvgs)
+
+  # add HVGs
+  if (is.null(hvgs)) hvgs <- get_hvgs(scseq)
+  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
 
   species <- scseq@metadata$species
 
@@ -138,7 +151,7 @@ process_raw_scseq <- function(scseq,
     scseq$cluster <- get_clusters(snn_graph, cluster_alg, resoln)
     gc()
 
-    # save independent of resolution
+    # save items that are independent of resolution
     anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
 
@@ -149,8 +162,6 @@ process_raw_scseq <- function(scseq,
     azres <- run_azimuth(list(one = scseq), azimuth_ref)
     scseq <- transfer_azimuth(azres, scseq, resoln)
     rm(azres); gc()
-
-    # because e.g. default resoln is celltype.l2 for human pbmc
 
     anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
@@ -366,9 +377,6 @@ save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
 }
 
 
-
-
-
 #' Load kallisto/bustools quantification into a SingleCellExperiment object.
 #'
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
@@ -448,7 +456,6 @@ load_tx2gene <- function(species, tx2gene_dir) {
 
   return(tx2gene)
 }
-
 
 
 attach_clusters <- function(scseq, resoln_dir) {
@@ -564,9 +571,9 @@ load_cellranger_counts <- function(data_dir) {
   # read the data in using ENSG features
   h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
   if (length(h5file)) {
-    counts <- Read10X_h5(h5file, use.names = FALSE)
+    counts <- Seurat::Read10X_h5(h5file, use.names = FALSE)
   } else {
-    counts <- Read10X(data_dir, gene.column = 1)
+    counts <- Seurat::Read10X(data_dir, gene.column = 1)
   }
 
   if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
@@ -611,243 +618,6 @@ get_species <- function(counts) {
 
 }
 
-#' Load in data from 10X
-#'
-#' Enables easy loading of sparse data matrices provided by 10X genomics.
-#'
-#' @param data.dir Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
-#' files provided by 10X. A vector or named vector can be given in order to load
-#' several data directories. If a named vector is given, the cell barcode names
-#' will be prefixed with the name.
-#' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
-#' @param unique.features Make feature names unique (default TRUE)
-#'
-#' @return If features.csv indicates the data has multiple data types, a list
-#'   containing a sparse matrix of the data from each type will be returned.
-#'   Otherwise a sparse matrix containing the expression data will be returned.
-#'
-#' @keywords internal
-#'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
-  full.data <- list()
-  for (i in seq_along(along.with = data.dir)) {
-    run <- data.dir[i]
-    if (!dir.exists(paths = run)) {
-      stop("Directory provided does not exist")
-    }
-    barcode.loc <- file.path(run, 'barcodes.tsv')
-    gene.loc <- file.path(run, 'genes.tsv')
-    features.loc <- file.path(run, 'features.tsv.gz')
-    matrix.loc <- file.path(run, 'matrix.mtx')
-    # Flag to indicate if this data is from CellRanger >= 3.0
-    pre_ver_3 <- file.exists(gene.loc)
-    if (!pre_ver_3) {
-      addgz <- function(s) {
-        return(paste0(s, ".gz"))
-      }
-      barcode.loc <- addgz(s = barcode.loc)
-      matrix.loc <- addgz(s = matrix.loc)
-    }
-    if (!file.exists(barcode.loc)) {
-      stop("Barcode file missing")
-    }
-    if (!pre_ver_3 && !file.exists(features.loc) ) {
-      stop("Gene name or features file missing")
-    }
-    if (!file.exists(matrix.loc)) {
-      stop("Expression matrix file missing")
-    }
-    data <- Matrix::readMM(file = matrix.loc)
-    cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
-      cell.names <- as.vector(x = as.character(x = sapply(
-        X = cell.names,
-        FUN = ExtractField,
-        field = 1,
-        delim = "-"
-      )))
-    }
-    if (is.null(x = names(x = data.dir))) {
-      if (i < 2) {
-        colnames(x = data) <- cell.names
-      } else {
-        colnames(x = data) <- paste0(i, "_", cell.names)
-      }
-    } else {
-      colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
-    }
-    feature.names <- utils::read.delim(
-      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
-      header = FALSE,
-      stringsAsFactors = FALSE
-    )
-    if (any(is.na(x = feature.names[, gene.column]))) {
-      warning(
-        'Some features names are NA. Replacing NA names with ID from the opposite column requested',
-        call. = FALSE,
-        immediate. = TRUE
-      )
-      na.features <- which(x = is.na(x = feature.names[, gene.column]))
-      replacement.column <- ifelse(test = gene.column == 2, yes = 1, no = 2)
-      feature.names[na.features, gene.column] <- feature.names[na.features, replacement.column]
-    }
-    if (unique.features) {
-      fcols = ncol(x = feature.names)
-      if (fcols < gene.column) {
-        stop(paste0("gene.column was set to ", gene.column,
-                    " but feature.tsv.gz (or genes.tsv) only has ", fcols, " columns.",
-                    " Try setting the gene.column argument to a value <= to ", fcols, "."))
-      }
-      rownames(x = data) <- make.unique(names = feature.names[, gene.column])
-    }
-    # In cell ranger 3.0, a third column specifying the type of data was added
-    # and we will return each type of data as a separate matrix
-    if (ncol(x = feature.names) > 2) {
-      data_types <- factor(x = feature.names$V3)
-      lvls <- levels(x = data_types)
-      if (length(x = lvls) > 1 && length(x = full.data) == 0) {
-        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
-      }
-      expr_name <- "Gene Expression"
-      if (expr_name %in% lvls) { # Return Gene Expression first
-        lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
-      }
-      data <- lapply(
-        X = lvls,
-        FUN = function(l) {
-          return(data[data_types == l, ])
-        }
-      )
-      names(x = data) <- lvls
-    } else{
-      data <- list(data)
-    }
-    full.data[[length(x = full.data) + 1]] <- data
-  }
-  # Combine all the data from different directories into one big matrix, note this
-  # assumes that all data directories essentially have the same features files
-  list_of_data <- list()
-  for (j in 1:length(x = full.data[[1]])) {
-    list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
-    # Fix for Issue #913
-    list_of_data[[j]] <- methods::as(object = list_of_data[[j]], Class = "dgCMatrix")
-  }
-  names(x = list_of_data) <- names(x = full.data[[1]])
-  # If multiple features, will return a list, otherwise
-  # a matrix.
-  if (length(x = list_of_data) == 1) {
-    return(list_of_data[[1]])
-  } else {
-    return(list_of_data)
-  }
-}
-
-# Extract delimiter information from a string.
-#
-# Parses a string (usually a cell name) and extracts fields based on a delimiter
-#
-# @param string String to parse.
-# @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
-# @param delim Delimiter to use, set to underscore by default.
-#
-# @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
-#
-# @export
-#
-# @examples
-# ExtractField(string = 'Hello World', field = 1, delim = '_')
-#
-ExtractField <- function(string, field = 1, delim = "_") {
-  fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
-  if (length(x = fields) == 1) {
-    return(strsplit(x = string, split = delim)[[1]][field])
-  }
-  return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
-}
-
-#' Read 10X hdf5 file
-#'
-#' Read count matrix from 10X CellRanger hdf5 file.
-#' This can be used to read both scATAC-seq and scRNA-seq matrices.
-#'
-#' @param filename Path to h5 file
-#' @param use.names Label row names with feature names rather than ID numbers.
-#' @param unique.features Make feature names unique (default TRUE)
-#'
-#' @return Returns a sparse matrix with rows and columns labeled. If multiple
-#' genomes are present, returns a list of sparse matrices (one per genome).
-#'
-#' @keywords internal
-#'
-Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
-  if (!requireNamespace('hdf5r', quietly = TRUE)) {
-    stop("Please install hdf5r to read HDF5 files")
-  }
-  if (!file.exists(filename)) {
-    stop("File not found")
-  }
-  infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
-  genomes <- names(x = infile)
-  output <- list()
-  if (!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
-    # cellranger version 3
-    if (use.names) {
-      feature_slot <- 'features/name'
-    } else {
-      feature_slot <- 'features/id'
-    }
-  } else {
-    if (use.names) {
-      feature_slot <- 'gene_names'
-    } else {
-      feature_slot <- 'genes'
-    }
-  }
-  for (genome in genomes) {
-    counts <- infile[[paste0(genome, '/data')]]
-    indices <- infile[[paste0(genome, '/indices')]]
-    indptr <- infile[[paste0(genome, '/indptr')]]
-    shp <- infile[[paste0(genome, '/shape')]]
-    features <- infile[[paste0(genome, '/', feature_slot)]][]
-    barcodes <- infile[[paste0(genome, '/barcodes')]]
-    sparse.mat <- Matrix::sparseMatrix(
-      i = indices[] + 1,
-      p = indptr[],
-      x = as.numeric(x = counts[]),
-      dims = shp[],
-      repr = "T"
-    )
-    if (unique.features) {
-      features <- make.unique(names = features)
-    }
-    rownames(x = sparse.mat) <- features
-    colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- methods::as(object = sparse.mat, Class = 'dgCMatrix')
-    # Split v3 multimodal
-    if (infile$exists(name = paste0(genome, '/features'))) {
-      types <- infile[[paste0(genome, '/features/feature_type')]][]
-      types.unique <- unique(x = types)
-      if (length(x = types.unique) > 1) {
-        message("Genome ", genome, " has multiple modalities, returning a list of matrices for this genome")
-        sparse.mat <- sapply(
-          X = types.unique,
-          FUN = function(x) {
-            return(sparse.mat[which(x = types == x), ])
-          },
-          simplify = FALSE,
-          USE.NAMES = TRUE
-        )
-      }
-    }
-    output[[genome]] <- sparse.mat
-  }
-  infile$close_all()
-  if (length(x = output) == 1) {
-    return(output[[genome]])
-  } else{
-    return(output)
-  }
-}
 
 #' Determine if the selected folder has CellRanger files
 #'
@@ -893,9 +663,6 @@ standardize_cellranger <- function(data_dir) {
   file.rename(file.path(data_dir, c(mtx.file, genes.file, barcodes.file)),
               file.path(data_dir, c('matrix.mtx', 'genes.tsv', 'barcodes.tsv')))
 }
-
-
-
 
 
 
@@ -948,16 +715,12 @@ normalize_scseq <- function(scseq) {
 #' @param sce \code{SingleCellExperiment} object
 #'
 #' @export
-add_hvgs <- function(sce, hvgs = NULL) {
+get_hvgs <- function(sce) {
+  dec <- scran::modelGeneVar(sce)
+  SummarizedExperiment::rowData(sce)$bio <- dec$bio
+  hvgs <- scran::getTopHVGs(dec, prop=0.1)
 
-  if (is.null(hvgs)) {
-    dec <- scran::modelGeneVar(sce)
-    SummarizedExperiment::rowData(sce)$bio <- dec$bio
-    hvgs <- scran::getTopHVGs(dec, prop=0.1)
-  }
-
-  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
-  return(sce)
+  return(hvgs)
 }
 
 
@@ -986,9 +749,6 @@ run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA')
   colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, 1:2)
   return(sce)
 }
-
-
-
 
 
 #' Get number of clusters different number of PCs
