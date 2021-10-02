@@ -1095,10 +1095,10 @@ subset_saved_scseq <- function(sc_dir,
                                founder,
                                from_dataset,
                                dataset_name,
-                               exclude_clusters,
-                               subset_metrics,
-                               is_integrated,
-                               is_include = NULL,
+                               exclude_clusters = NULL,
+                               subset_metrics = NULL,
+                               is_integrated = FALSE,
+                               is_include = FALSE,
                                progress = NULL,
                                hvgs = NULL,
                                azimuth_ref = NULL) {
@@ -1109,6 +1109,7 @@ subset_saved_scseq <- function(sc_dir,
     })
   }
 
+  # load scseq and subset using metrics
   progress$set(1, detail = 'loading')
   scseq <- load_scseq_subsets(from_dataset, sc_dir, subset_metrics, is_include,
                               with_counts = TRUE, with_logs = TRUE)[[1]]
@@ -1121,6 +1122,12 @@ subset_saved_scseq <- function(sc_dir,
 
   # exclude clusters
   scseq <- scseq[, !scseq$cluster %in% exclude_clusters]
+
+  # make repeated subsets order independent:
+  # ------
+  #
+  # for an integrated dataset: re-integrate
+  # for a unisample dataset: re-process
 
   if (is_integrated) {
     args <- load_args(sc_dir, from_dataset)
@@ -1135,18 +1142,18 @@ subset_saved_scseq <- function(sc_dir,
     scseqs <- split_scseq(scseq)
     rm(scseq); gc()
 
-    res <- integrate_saved_scseqs(sc_dir,
-                                  scseqs = scseqs,
-                                  integration_name = dataset_name,
-                                  integration_type = itype,
-                                  exclude_clusters = exclude_clusters,
-                                  subset_metrics = subset_metrics,
-                                  founder = founder,
-                                  hvgs = hvgs,
-                                  azimuth_ref = azimuth_ref,
-                                  progress = progress,
-                                  value = 1)
-    return(res)
+    integrate_saved_scseqs(
+      sc_dir,
+      scseqs = scseqs,
+      integration_name = dataset_name,
+      integration_type = itype,
+      exclude_clusters = exclude_clusters,
+      subset_metrics = subset_metrics,
+      founder = founder,
+      hvgs = hvgs,
+      azimuth_ref = azimuth_ref,
+      progress = progress,
+      value = 1)
 
   } else {
 
@@ -1158,19 +1165,20 @@ subset_saved_scseq <- function(sc_dir,
     # remove previous reduction
     SingleCellExperiment::reducedDims(scseq) <- NULL
 
-
-    process_raw_scseq(scseq,
-                      dataset_name,
-                      sc_dir,
-                      hvgs = hvgs,
-                      progress = progress,
-                      value = 1,
-                      founder = founder,
-                      azimuth_ref = azimuth_ref)
+    process_raw_scseq(
+      scseq,
+      dataset_name,
+      sc_dir,
+      hvgs = hvgs,
+      progress = progress,
+      value = 1,
+      founder = founder,
+      azimuth_ref = azimuth_ref)
 
     save_scseq_args(args, dataset_name, sc_dir)
-    return(TRUE)
   }
+
+  return(TRUE)
 }
 
 load_args <- function(sc_dir, dataset_name) {

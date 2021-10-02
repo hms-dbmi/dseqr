@@ -22,22 +22,29 @@ mock_h5_file <- function(counts, features, uploaded_data_dir) {
     DropletUtils::write10xCounts(fpath, counts, gene.id = features$id, gene.symbol = features$name)
 }
 
-test_that("cellranger matrix.mtx, features.tsv, and barcodes.tsv files can be imported", {
-    # setup
-    dataset_name <- 'test'
-    sc_dir <- file.path(tempdir(), 'single-cell')
-    uploaded_data_dir <- file.path(tempdir(), 'uploads')
-    tx2gene_dir <- file.path(tempdir(), 'tx2gene')
-
+mock_uploaded_data <- function(dataset_name, sc_dir, uploaded_data_dir, type = 'mtx') {
     dir.create(sc_dir)
-    dir.create(tx2gene_dir)
 
     counts <- mock_counts(ncells = c(200, 300, 400, 200, 500, 300), ngenes = 1000)
 
     features <- data.frame(id = paste0('ENSG', seq_len(nrow(counts))),
                            name = row.names(counts))
 
-    mock_mtx_files(counts, features, uploaded_data_dir)
+    if (type == 'mtx') mock_mtx_files(counts, features, uploaded_data_dir)
+    else if (type == 'h5') mock_h5_file(counts, features, uploaded_data_dir)
+
+}
+
+test_that("cellranger matrix.mtx, features.tsv, and barcodes.tsv files can be imported", {
+    # setup
+    dataset_name <- 'test'
+    sc_dir <- file.path(tempdir(), 'single-cell')
+    uploaded_data_dir <- file.path(tempdir(), 'uploads')
+
+    tx2gene_dir <- file.path(tempdir(), 'tx2gene')
+    dir.create(tx2gene_dir)
+
+    mock_uploaded_data(dataset_name, sc_dir, uploaded_data_dir)
 
     expect_error(
         suppressWarnings(
@@ -54,16 +61,11 @@ test_that("cellranger .h5 files can be imported", {
     dataset_name <- 'test'
     sc_dir <- file.path(tempdir(), 'single-cell')
     uploaded_data_dir <- file.path(tempdir(), 'uploads')
-    tx2gene_dir <- file.path(tempdir(), 'tx2gene')
 
-    dir.create(sc_dir)
+    tx2gene_dir <- file.path(tempdir(), 'tx2gene')
     dir.create(tx2gene_dir)
 
-    counts <- mock_counts(ncells = c(200, 300, 400, 200, 500, 300), ngenes = 1000)
-    features <- data.frame(id = paste0('ENSG', seq_len(nrow(counts))),
-                           name = row.names(counts))
-
-    mock_h5_file(counts, features, uploaded_data_dir)
+    mock_uploaded_data(dataset_name, sc_dir, uploaded_data_dir, type = 'h5')
 
     expect_error(
         suppressWarnings(import_scseq(dataset_name, uploaded_data_dir, sc_dir, tx2gene_dir)),
