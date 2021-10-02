@@ -15,8 +15,8 @@
 import_scseq <- function(dataset_name,
                          uploaded_data_dir,
                          sc_dir,
-                         indices_dir,
                          tx2gene_dir,
+                         indices_dir = NULL,
                          progress = NULL,
                          recount = FALSE,
                          value = 0,
@@ -74,14 +74,14 @@ import_scseq <- function(dataset_name,
 #'
 #' @keywords internal
 #' @noRd
-run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, indices_dir, tx2gene_dir, azimuth_ref = NULL) {
+run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, azimuth_ref = NULL) {
 
   for (opt in opts) {
     import_scseq(opt$dataset_name,
                  uploaded_data_dir,
                  sc_dir,
-                 indices_dir,
                  tx2gene_dir,
+                 indices_dir,
                  metrics = opt$metrics,
                  founder = opt$founder,
                  azimuth_ref = azimuth_ref)
@@ -135,7 +135,7 @@ process_raw_scseq <- function(scseq,
 
   # add HVGs
   if (is.null(hvgs)) hvgs <- get_hvgs(scseq)
-  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
+  SummarizedExperiment::rowData(scseq)$hvg <- row.names(scseq) %in% hvgs
 
   species <- scseq@metadata$species
 
