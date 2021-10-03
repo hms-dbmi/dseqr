@@ -2,19 +2,23 @@
 #'
 #' Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 #'
-#' @inheritParams init_dseqr
-#' @inheritParams shiny::runApp
-#' @param data_dir Directory containing folders \code{'bulk'}, \code{'single-cell'}, and \code{'custom_queries'}.
-#'  Ignored if \code{test_data} is \code{TRUE}.
-#' @param app_dir Directory containing shiny app files. Can be 'inst/app' if working from source code.
-#' @param data_dir Directory containing folder \code{app_name} with saved analyses.
+#' @param project_name Name of project folder in \code{data_dir}. Will be created if doesn't exist.
+#' @param data_dir Directory containing project sub-folders. By default also will contain sub-folders
+#'  \code{pert_query_dir}, \code{pert_signature_dir}, and \code{indices_dir}.
+#' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
 #' @param indices_dir Path to directory containing \code{kallisto} indices and whitelists.
-#' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
+#' @param app_dir Directory containing shiny app files. Default is to use 'app' directory of
+#'  installed dseqr package. Can be 'inst/app' if working from source code.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 #'  If \code{TRUE} test data will be used.
-#' @param test_data Boolean indicating if test data should be used. Default is \code{TRUE}
+#' @param logout_url URL used to log users out. Default is \code{NULL} for local use.
+#' @param is_local Is dseqr running locally? If \code{FALSE}, uses CDNs for
+#'  some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
+#'  if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.
+#' @inheritParams init_dseqr
+#' @inheritParams shiny::runApp
 #'
 #' @import rintrojs
 #' @import shiny
@@ -25,33 +29,38 @@
 #'
 #' @examples
 #'
-#' # create directory structure for new datasets
-#' data_dir <- tempdir()
-#' app_name <- 'example'
-#' init_dseqr(app_name, data_dir)
+#' if (interactive()) {
 #'
+#'   data_dir <- tempdir()
+#'   project_name <- 'example'
+#'   run_dseqr(project_name, data_dir)
+#' }
 #'
-#' # run app
-#' # run_dseqr(app_name, data_dir)
-#'
-run_dseqr <- function(app_name,
-                      data_dir = '/srv/dseqr',
-                      app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
-                      pert_query_dir = file.path(data_dir, 'pert_query_dir'),
-                      pert_signature_dir = file.path(data_dir, 'pert_signature_dir'),
-                      gs_dir = file.path(data_dir, 'gs_dir'),
-                      indices_dir = file.path(data_dir, 'indices'),
-                      tx2gene_dir = file.path(data_dir, 'tx2gene'),
+run_dseqr <- function(project_name,
+                      data_dir,
                       tabs = c('Single Cell', 'Bulk Data', 'Drugs'),
+                      pert_query_dir = file.path(data_dir, '.pert_query_dir'),
+                      pert_signature_dir = file.path(data_dir, '.pert_signature_dir'),
+                      gs_dir = file.path(data_dir, '.gs_dir'),
+                      indices_dir = file.path(data_dir, '.indices_dir'),
+                      tx2gene_dir = file.path(data_dir, '.tx2gene_dir'),
+                      app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
                       test = FALSE,
-                      test_data = FALSE,
                       host = '0.0.0.0',
                       port = 3838,
                       logout_url = NULL,
+                      is_local = is.null(logout_url),
                       is_example = FALSE) {
 
-  user_dir <- file.path(data_dir, app_name)
-  if (!dir.exists(user_dir)) init_dseqr(app_name, data_dir)
+  if (missing(data_dir) & !is_local) {
+    message('Setting data_dir to /srv/dseqr for hosted application.')
+    data_dir <- '/srv/dseqr'
+  }
+
+  if (missing(data_dir)) stop('data_dir not specified.')
+
+  user_dir <- file.path(data_dir, project_name)
+  if (!dir.exists(user_dir)) init_dseqr(project_name, data_dir)
 
   # pass arguments to app through options then run
   shiny::shinyOptions(
@@ -63,6 +72,7 @@ run_dseqr <- function(app_name,
     tx2gene_dir = normalizePath(tx2gene_dir),
     tabs = tabs,
     logout_url = logout_url,
+    is_local = is_local,
     is_example = is_example)
 
 
@@ -93,8 +103,8 @@ run_dseqr <- function(app_name,
 #'
 #' Creates necessary folders/files for a new dseqr app inside of /srv/shiny-server/dseqr.
 #'
-#' @param app_name Name for new dseqr app.
-#' @param data_dir Path to put \code{app_name} directory where app will be
+#' @param anal_name Name for new dseqr app.
+#' @param data_dir Path to put \code{anal_name} directory where app will be
 #' initialized. Default is \code{'/srv/dseqr'} (for hosting app on server).
 #'
 #' @return NULL
@@ -105,9 +115,9 @@ run_dseqr <- function(app_name,
 #' data_dir <- tempdir()
 #' init_dseqr('example', data_dir)
 #'
-init_dseqr <- function(app_name, data_dir = '/srv/dseqr') {
+init_dseqr <- function(project_name, data_dir = '/srv/dseqr') {
 
-  user_dir <- file.path(data_dir, app_name)
+  user_dir <- file.path(data_dir, project_name)
   dir.create(user_dir, recursive = TRUE)
   dir.create(file.path(user_dir, 'bulk'))
   dir.create(file.path(user_dir, 'single-cell'))

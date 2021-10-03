@@ -5,29 +5,30 @@
 \title{Run dseqr app}
 \usage{
 run_dseqr(
-  app_name,
-  data_dir = "/srv/dseqr",
-  app_dir = system.file("app", package = "dseqr", mustWork = TRUE),
-  pert_query_dir = file.path(data_dir, "pert_query_dir"),
-  pert_signature_dir = file.path(data_dir, "pert_signature_dir"),
-  gs_dir = file.path(data_dir, "gs_dir"),
-  indices_dir = file.path(data_dir, "indices"),
-  tx2gene_dir = file.path(data_dir, "tx2gene"),
+  project_name,
+  data_dir,
   tabs = c("Single Cell", "Bulk Data", "Drugs"),
+  pert_query_dir = file.path(data_dir, ".pert_query_dir"),
+  pert_signature_dir = file.path(data_dir, ".pert_signature_dir"),
+  gs_dir = file.path(data_dir, ".gs_dir"),
+  indices_dir = file.path(data_dir, ".indices_dir"),
+  tx2gene_dir = file.path(data_dir, ".tx2gene_dir"),
+  app_dir = system.file("app", package = "dseqr", mustWork = TRUE),
   test = FALSE,
-  test_data = FALSE,
   host = "0.0.0.0",
   port = 3838,
   logout_url = NULL,
+  is_local = is.null(logout_url),
   is_example = FALSE
 )
 }
 \arguments{
-\item{app_name}{Name for new dseqr app.}
+\item{project_name}{Name of project folder in \code{data_dir}. Will be created if doesn't exist.}
 
-\item{data_dir}{Directory containing folder \code{app_name} with saved analyses.}
+\item{data_dir}{Directory containing project sub-folders. By default also will contain sub-folders
+\code{pert_query_dir}, \code{pert_signature_dir}, and \code{indices_dir}.}
 
-\item{app_dir}{Directory containing shiny app files. Can be 'inst/app' if working from source code.}
+\item{tabs}{Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 
@@ -35,12 +36,11 @@ run_dseqr(
 
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
 
-\item{tabs}{Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.}
+\item{app_dir}{Directory containing shiny app files. Default is to use 'app' directory of
+installed dseqr package. Can be 'inst/app' if working from source code.}
 
 \item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
 If \code{TRUE} test data will be used.}
-
-\item{test_data}{Boolean indicating if test data should be used. Default is \code{TRUE}}
 
 \item{host}{The IPv4 address that the application should listen on. Defaults
 to the \code{shiny.host} option, if set, or \code{"127.0.0.1"} if not. See
@@ -50,6 +50,12 @@ Details.}
 \code{port} is not specified, and the \code{shiny.port} option is set (with
 \code{options(shiny.port = XX)}), then that port will be used. Otherwise,
 use a random port.}
+
+\item{logout_url}{URL used to log users out. Default is \code{NULL} for local use.}
+
+\item{is_local}{Is dseqr running locally? If \code{FALSE}, uses CDNs for
+some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
+if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.}
 }
 \value{
 Runs dseqr app
@@ -59,13 +65,11 @@ Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 }
 \examples{
 
-# create directory structure for new datasets
-data_dir <- tempdir()
-app_name <- 'example'
-init_dseqr(app_name, data_dir)
+if (interactive()) {
 
-
-# run app
-# run_dseqr(app_name, data_dir)
+  data_dir <- tempdir()
+  project_name <- 'example'
+  run_dseqr(project_name, data_dir)
+}
 
 }
