@@ -52,6 +52,12 @@ test_that("cellranger matrix.mtx, features.tsv, and barcodes.tsv files can be im
         NA
     )
 
+    # have bio
+    scseq <- load_scseq_qs(file.path(sc_dir, dataset_name))
+    bio <- SingleCellExperiment::rowData(scseq)$bio
+
+    expect_true(!is.null(bio))
+
     # cleanup
     unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
 })

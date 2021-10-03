@@ -71,7 +71,9 @@ test_that("multiple scseq datasets can be integrated with Azimuth", {
     dataset_dirs <- file.path(sc_dir, from_datasets)
 
     # two saved datasets to integrate
-    scseq <- mock_scseq_files(sc_dir, from_datasets[1], sce = sce)
+    scseq <- suppressWarnings(
+        mock_scseq_files(sc_dir, from_datasets[1], sce = sce)
+    )
     fs::dir_copy(dataset_dirs[1], dataset_dirs[2])
 
     # need integrated.qs to store name of new integrated dataset

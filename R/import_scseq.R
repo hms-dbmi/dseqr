@@ -134,9 +134,7 @@ process_raw_scseq <- function(scseq,
   scseq <- normalize_scseq(scseq)
 
   # add HVGs
-  if (is.null(hvgs)) hvgs <- get_hvgs(scseq)
-  SummarizedExperiment::rowData(scseq)$hvg <- row.names(scseq) %in% hvgs
-
+  scseq <- add_hvgs(scseq, hvgs)
   species <- scseq@metadata$species
 
   is.azimuth <- !is.null(azimuth_ref)
@@ -715,12 +713,18 @@ normalize_scseq <- function(scseq) {
 #' @param sce \code{SingleCellExperiment} object
 #'
 #' @export
-get_hvgs <- function(sce) {
+add_hvgs <- function(sce, hvgs = NULL) {
+
+  # always add bio even if supplied hvgs
   dec <- scran::modelGeneVar(sce)
   SummarizedExperiment::rowData(sce)$bio <- dec$bio
-  hvgs <- scran::getTopHVGs(dec, prop=0.1)
 
-  return(hvgs)
+  if (is.null(hvgs)) {
+    hvgs <- scran::getTopHVGs(dec, prop=0.1)
+  }
+
+  SummarizedExperiment::rowData(sce)$hvg <- row.names(sce) %in% hvgs
+  return(sce)
 }
 
 
@@ -842,14 +846,30 @@ add_doublet_score <- function(scseq) {
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
   hvgs <- row.names(scseq)[hvgs]
 
-  # TODO: make sure > 200 counts
-  scseq <- scDblFinder::scDblFinder(scseq)
-  scseq$doublet_score <- scseq$scDblFinder.score
-  scseq$doublet_class <- scseq$scDblFinder.class
+  # make sure > 200 counts to dodge errors
+  counts <- SingleCellExperiment::counts(scseq)
+  pass.check <- Matrix::colSums(counts) > 200
+  counts <- counts[, pass.check]
 
-  # cleanup
-  cdata <- scseq@colData
-  scseq@colData <- cdata[, !grepl('^scDblFinder', colnames(cdata))]
+  # is error prone
+  res <- tryCatch(
+    scDblFinder::scDblFinder(counts)@colData,
+
+    error = function(e) {
+      message('scDblFinder failed. Proceeding anyway.')
+
+      res <- data.frame(row.names = colnames(counts))
+      res$scDblFinder.class <- factor('singlet', levels = c('singlet', 'doublet'))
+      res$scDblFinder.score <- 0
+      return(res)
+    })
+
+  # assume droplets with <= 200 counts are singlets
+  scseq$doublet_score <- 0
+  scseq$doublet_class <- factor('singlet', levels = c('singlet', 'doublet'))
+
+  scseq$doublet_score[pass.check] <- res$scDblFinder.score
+  scseq$doublet_class[pass.check] <- res$scDblFinder.class
 
   return(scseq)
 }
