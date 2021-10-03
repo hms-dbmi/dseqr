@@ -3,16 +3,16 @@ load('R/sysdata.rda')
 
 args <- commandArgs(trailingOnly = TRUE)
 
-app_name <- args[1]
-is_example <- app_name == 'example'
-if (app_name == 'private') app_name <- Sys.getenv('SHINYPROXY_USERNAME')
+project_name <- args[1]
+is_example <- project_name == 'example'
+if (project_name == 'private') project_name <- Sys.getenv('SHINYPROXY_USERNAME')
 
 logout_url <- sprintf('https://%s/logout', args[2])
 
-message('app_name: ', app_name)
+message('project_name: ', project_name)
 message('is_example: ', is_example)
 message('logout_url: ', logout_url)
 
-run_dseqr(app_name,
+run_dseqr(project_name,
           logout_url = logout_url,
           is_example = is_example)
