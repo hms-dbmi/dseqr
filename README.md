@@ -38,9 +38,9 @@ rkal::build_kallisto_index(indices_dir)
 docker pull alexvpickering/dseqr
 
 # run at http://0.0.0.0:3838/ and keep data on exit
-docker run -v path/to/app_dir:/srv/dseqr \
+docker run -v /full/path/to/data_dir:/srv/dseqr \
 -p 3838:3838 \
-alexvpickering/dseqr R -e 'dseqr::run_dseqr("example")'
+alexvpickering/dseqr R -e 'library(dseqr); run_dseqr("example", "/srv/dseqr")'
 ```
 
 
