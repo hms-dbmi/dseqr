@@ -8,7 +8,7 @@ Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq a
 
 <h2></h2>
   <a href="https://docs.dseqr.com">
-    <img src="https://user-images.githubusercontent.com/15719520/136054436-77ba2a23-1b0c-475e-a1d5-da5983edf2fd.gif" width="100%"/>
+    <img src="https://user-images.githubusercontent.com/15719520/136054436-77ba2a23-1b0c-475e-a1d5-da5983edf2fd.gif"/>
   </a>
 <h2></h2>
   
