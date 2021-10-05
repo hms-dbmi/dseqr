@@ -3,7 +3,7 @@
 
 Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq analyses from fastq → pathways → drug candidates.
 
-💡 [Read the Docs and Get Started →](https://docs.dseqr.com)
+💡 [Read the Docs and Open Dseqr →](https://docs.dseqr.com)
 
 
 <h2></h2>
