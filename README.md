@@ -5,11 +5,11 @@ Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq a
 
 💡 [Read the Docs and Deploy →](https://docs.dseqr.com)
 
-<table><tr><td>
+<table><td>
   <a href="https://docs.dseqr.com">
-    <img src="https://user-images.githubusercontent.com/15719520/136054436-77ba2a23-1b0c-475e-a1d5-da5983edf2fd.gif" style="border:1px solid #ddd"/>
+    <img src="https://user-images.githubusercontent.com/15719520/136054436-77ba2a23-1b0c-475e-a1d5-da5983edf2fd.gif" width="100%"/>
   </a>
-</td></tr></table>
+</td></table>
 
 ### Local setup
 
