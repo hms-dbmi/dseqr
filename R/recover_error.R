@@ -1,4 +1,5 @@
 send_slack_error <- function(project) {
+
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     project <- ifelse(project == user, 'private', project)
     error <- recover_error()
@@ -12,6 +13,7 @@ send_slack_error <- function(project) {
                    '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s 🙎"}',
                    error$message,
                    stack,
+                   project,
                    user
                ))
 
