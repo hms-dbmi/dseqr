@@ -23,6 +23,8 @@ server <- function(input, output, session) {
 
     is_example <- getShinyOption('is_example', FALSE)
 
+    is_local <- getShinyOption('is_local', TRUE)
+
     if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
     if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
     if (!dir.exists(indices_dir)) dir.create(indices_dir)
@@ -137,6 +139,19 @@ server <- function(input, output, session) {
         req(values$finished.init)
         message("loading SingleCellExperiment")
         suppressPackageStartupMessages(require(SingleCellExperiment))
+    })
+
+    # login notification
+    observe({
+        req(values$finished.init & !is_local)
+        user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+        slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+
+        httr::POST(
+            url = slack$logins,
+            httr::add_headers('Content-Type' = 'application/json'),
+            body = sprintf('{"text": "⭐⭐⭐ \n\n *user*: %s 🧑"}', user)
+        )
     })
 
     #  call each page module only on first tab visit
