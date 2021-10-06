@@ -146,11 +146,13 @@ server <- function(input, output, session) {
         req(values$finished.init & !is_local)
         user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
         slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+        params <- rev(strsplit(data_dir, '/')[[1]])
+        project <- params[1]
 
         httr::POST(
             url = slack$logins,
             httr::add_headers('Content-Type' = 'application/json'),
-            body = sprintf('{"text": "⭐⭐⭐ \n\n *user*: %s 🧑"}', user)
+            body = sprintf('{"text": "⭐⭐⭐ \n\n *project*: %s \n *user*: %s 🧑"}', project, user)
         )
     })
 

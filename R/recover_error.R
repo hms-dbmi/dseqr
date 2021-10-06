@@ -1,4 +1,4 @@
-send_slack_error <- function() {
+send_slack_error <- function(project) {
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     error <- recover_error()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
@@ -8,7 +8,7 @@ send_slack_error <- function() {
     httr::POST(url = slack$errors,
                httr::add_headers('Content-Type' = 'application/json'),
                body = sprintf(
-                   '{"text": "`%s` \n%s \n\n *user*: %s 🙎"}',
+                   '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s 🙎"}',
                    error$message,
                    stack,
                    user
