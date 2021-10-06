@@ -1,12 +1,11 @@
 send_slack_error <- function() {
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     error <- recover_error()
-
-    url <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+    slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
     stack <- slackify_stack(error$stack)
 
-    httr::POST(url = url,
+    httr::POST(url = slack$errors,
                httr::add_headers('Content-Type' = 'application/json'),
                body = sprintf(
                    '{"text": "`%s` \n%s \n\n *user*: %s 🙎"}',
@@ -33,13 +32,14 @@ slackify_stack <- function(stack) {
     paste('>', res, collapse='\n')
 }
 
+# adapted from utils::recover
 recover_error <- function ()  {
 
     # get calls
     calls <- sys.calls()
     from <- 0L
 
-    # get up one frame from last stop() call
+    # get frame previous to last stop() call
     n <- length(calls)
     for (i in rev(seq_len(n))) {
 

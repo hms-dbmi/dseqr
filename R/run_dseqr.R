@@ -86,7 +86,17 @@ run_dseqr <- function(project_name,
     options(shiny.testmode = FALSE)
   }
 
-  if (!is_local) options(shiny.error = send_slack_error)
+  # on remote: send logins errors to slack
+  if (!is_local) {
+    options(shiny.error = send_slack_error)
+    user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+
+    httr::POST(
+      url = slack$logins,
+      httr::add_headers('Content-Type' = 'application/json'),
+      body = sprintf('{"text": "⭐⭐⭐ \n\n *user*: %s 🧑"}', user)
+    )
+  }
 
   # allow up to 30GB uploads
   options(shiny.maxRequestSize=30*1024*1024^2)
