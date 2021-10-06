@@ -89,9 +89,10 @@ server <- function(input, output, session) {
     feedback_counter <- reactiveVal(0)
     observeEvent(input$submit_feedback, {
 
-        params <- rev(strsplit(data_dir, '/')[[1]])
-        project <- params[1]
         user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+
+        project <- rev(strsplit(data_dir, '/')[[1]])[1]
+        project <- ifelse(project == user, 'private', project)
 
         slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
@@ -145,9 +146,11 @@ server <- function(input, output, session) {
     observe({
         req(values$finished.init & !is_local)
         user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+
+        project <- rev(strsplit(data_dir, '/')[[1]])[1]
+        project <- ifelse(project == user, 'private', project)
+
         slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
-        params <- rev(strsplit(data_dir, '/')[[1]])
-        project <- params[1]
 
         httr::POST(
             url = slack$logins,

@@ -1,5 +1,6 @@
 send_slack_error <- function(project) {
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+    project <- ifelse(project == user, 'private', project)
     error <- recover_error()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
