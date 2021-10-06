@@ -5,7 +5,21 @@ is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
 remoteDeps <- list()
-if (!is.null(logout_url)) {
+if (is.null(logout_url)) {
+
+  dtCoreDeps <- htmltools::htmlDependency(
+    'dt-core', '1.10.20',
+    src = c(href = 'https://cdn.datatables.net/1.10.20/'),
+    stylesheet = c('css/jquery.dataTables.min.css', 'css/jquery.dataTables.extra.css'),
+    script = c('js/jquery.dataTables.min.js')
+  )
+
+  dtScrollerDeps <- htmltools::htmlDependency(
+    'dt-ext-scroller', '1.10.20',
+    src = c(href = 'https://cdn.datatables.net/scroller/2.0.1'),
+    stylesheet = c('css/scroller.dataTables.min.css'),
+    script = c('js/dataTables.scroller.min.js')
+  )
 
   selectizeDep <- htmltools::htmlDependency(
     'selectize', '0.12.4',
@@ -55,7 +69,9 @@ if (!is.null(logout_url)) {
     shinypanelDep,
     dseqrDep,
     htmlwidgetsDep,
-    pickerDep
+    pickerDep,
+    dtCoreDeps,
+    dtScrollerDeps
   )
 }
 
