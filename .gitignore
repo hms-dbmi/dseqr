@@ -13,5 +13,7 @@ filter.txt
 user_data.sh
 example_data.tar.gz
 
+dseqr.gif
+
 # shinytest data
 inst/app/tests/*

@@ -86,6 +86,8 @@ run_dseqr <- function(project_name,
     options(shiny.testmode = FALSE)
   }
 
+  if (!is_local) options(shiny.error = send_slack_error)
+
   # allow up to 30GB uploads
   options(shiny.maxRequestSize=30*1024*1024^2)
 
