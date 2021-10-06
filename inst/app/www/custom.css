@@ -6,6 +6,11 @@ body {
     max-width: 435px !important;
 }
 
+.invisible-height {
+  visibility: hidden;
+  height: 0;
+}
+
 @media (max-width: 460px) {
   .col-sm-12 {
     padding-left: 2px;

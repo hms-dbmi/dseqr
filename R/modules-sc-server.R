@@ -1440,26 +1440,43 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(df)
   })
 
+  empty_table <- data.frame(Sample = character(0), File = character(0), Size = character(0))
   output$up_table <- DT::renderDataTable({
 
-    table <- up_table()
-    if (is.null(table)) return(NULL)
-    samples <- up_samples()
-    if (!is.null(samples)) table$Sample <- samples
-
-    DT::datatable(table,
+    DT::datatable(empty_table,
                   class = 'cell-border',
                   rownames = FALSE,
                   escape = FALSE, # to allow HTML in table
                   selection = 'multiple',
-                  extensions = 'Scroller',
                   options = list(
                     scrollX = TRUE,
                     ordering = FALSE,
                     dom = 't',
-                    scroller = TRUE,
-                    scrollY = min(250, length(samples)*38)
+                    paging = FALSE
                   )) %>%  DT::formatStyle('Size', `text-align` = 'right')
+  })
+
+  proxy <- DT::dataTableProxy('up_table')
+
+  observeEvent(input$cancel_import, {
+
+    shiny::removeModal()
+    # clear uploaded
+    up_all(NULL)
+    up_samples(NULL)
+
+  })
+  observe({
+    shinyjs::toggleCssClass('up_table_container', 'invisible-height', condition = is.null(up_table()))
+
+  })
+
+  observe({
+    table <- up_table()
+    samples <- up_samples()
+    if (!is.null(samples)) table$Sample <- samples
+
+    DT::replaceData(proxy, table, rownames = FALSE)
   })
 
 
@@ -1535,9 +1552,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
-  observeEvent(input$up_raw_progress, {
-    # TODO: show table
-  })
 
   # move uploaded to destination
   observeEvent(input$up_raw, {
@@ -1664,6 +1678,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         azimuth_ref = azimuth_ref
       )
     }
+
+    # clear uploaded
+    up_all(NULL)
+    up_samples(NULL)
   })
 
   # restrict to two imports at a time

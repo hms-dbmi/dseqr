@@ -62,6 +62,14 @@ if (is.null(logout_url)) {
     src = c(href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/"),
     stylesheet = c("all.min.css", "v4-shims.min.css")
   )
+
+  bootstrapSelectDep <- htmltools::htmlDependency(
+    'bootstrap-select', '1.13.18',
+    src = c(href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.18/"),
+    stylesheet = c("css/bootstrap-select.min.css"),
+    script = c("js/bootstrap-select.min.js")
+  )
+
   remoteDeps <- list(
     selectizeDep,
     bootstrapDep,
@@ -71,7 +79,8 @@ if (is.null(logout_url)) {
     htmlwidgetsDep,
     pickerDep,
     dtCoreDeps,
-    dtScrollerDeps
+    dtScrollerDeps,
+    bootstrapSelectDep
   )
 }
 

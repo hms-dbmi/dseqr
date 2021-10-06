@@ -1989,14 +1989,16 @@ uploadModal <- function(session, show_init) {
              ),
              hr()
     ),
-    DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    div(id=session$ns('up_table_container'), class='invisible-height',
+        DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    ),
     title = 'Upload Single Cell Datasets',
     size = 'l',
     footer = tagList(
       actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
-      tags$div(class='pull-left', modalButton("Cancel"))
+      tags$div(class='pull-left', actionButton(session$ns("cancel_import"), 'Cancel'))
     ),
-    easyClose = TRUE,
+    easyClose = FALSE,
   )
 }
 
