@@ -90,6 +90,7 @@ run_dseqr <- function(project_name,
   if (!is_local) {
     options(shiny.error = send_slack_error)
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+    slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
     httr::POST(
       url = slack$logins,
