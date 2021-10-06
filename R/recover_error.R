@@ -1,5 +1,4 @@
 send_slack_error <- function() {
-    browser()
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     error <- recover_error()
 
