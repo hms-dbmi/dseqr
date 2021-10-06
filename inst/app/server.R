@@ -86,15 +86,21 @@ server <- function(input, output, session) {
 
     feedback_counter <- reactiveVal(0)
     observeEvent(input$submit_feedback, {
+
         params <- rev(strsplit(data_dir, '/')[[1]])
-        dataset <- params[1]
-        user <- params[2]
+        project <- params[1]
+        user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
 
         url <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
         httr::POST(url = url,
                    httr::add_headers('Content-Type' = 'application/json'),
-                   body = sprintf('{"text": "%s \n user: %s, app: %s"}', input$feedback, user, dataset))
+                   body = sprintf(
+                       '{"text": "🧑 💬 \n\n>_%s_ \n\n *project*: %s \n *user*: %s"}',
+                       input$feedback,
+                       project,
+                       user
+                   ))
 
         updateTextAreaInput(session, 'feedback', value = '', placeholder = 'Thank you!')
         shinyjs::delay(3000, updateTextAreaInput(session, 'feedback', placeholder = ''))

@@ -1,32 +1,37 @@
 send_slack_error <- function() {
-    user <- Sys.getenv('SHINYPROXY_USERNAME')
+    browser()
+    user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     error <- recover_error()
 
     url <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
-    stack <- stack_to_string(error$stack)
+    stack <- slackify_stack(error$stack)
 
     httr::POST(url = url,
                httr::add_headers('Content-Type' = 'application/json'),
                body = sprintf(
-                   '{"text": " ERROR! \n user: %s \n %s \n stack: %s"}',
-                   user,
+                   '{"text": "`%s` \n%s \n\n *user*: %s 🙎"}',
                    error$message,
-                   stack
+                   stack,
+                   user
                ))
 
-    shinyjs::alert('Sorry about that! Error reported - working on it ... (ﾉ´ｰ`)ﾉ')
+    shinyjs::alert('Sorry about that! \n\n Error has been reported and will be fixed promptly. \n\n (ﾉ´ｰ`)ﾉ')
 }
 
-stack_to_string <- function(stack) {
+slackify_stack <- function(stack) {
+
+    is.user <- stack$category == 'user'
 
     res <- stack %>%
         dplyr::select(-category) %>%
-        dplyr::mutate(num = paste0(num, ':')) %>%
+        dplyr::mutate(num = paste0('`', num, ':`')) %>%
         tidyr::unite(col = res, sep=' ') %>%
         dplyr::pull(res)
 
-    paste(res, collapse='\n')
+    res[is.user] <- paste0('*', res[is.user], '*')
+
+    paste('>', res, collapse='\n')
 }
 
 recover_error <- function ()  {
@@ -59,7 +64,7 @@ getError <- function (cond,
                       offset = getOption("shiny.stacktraceoffset", TRUE)) {
 
     error_msg <- sprintf(
-        "Error in %s: %s\n",
+        "Error in %s: %s",
         shiny:::getCallNames(list(conditionCall(cond))),
         conditionMessage(cond)
     )
