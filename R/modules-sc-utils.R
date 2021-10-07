@@ -1368,7 +1368,7 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
   if (add_integrated) {
     # add to integrated if new
     int_path <- file.path(sc_dir, 'integrated.qs')
-    int_options <- c(qs::qread(int_path), dataset_name)
+    int_options <- c(qread.safe(int_path), dataset_name)
     qs::qsave(unique(int_options), int_path)
   }
 
