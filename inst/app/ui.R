@@ -5,7 +5,7 @@ is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
 remoteDeps <- list()
-if (is.null(logout_url)) {
+if (!is.null(logout_url)) {
 
   dtCoreDeps <- htmltools::htmlDependency(
     'dt-core', '1.10.20',
