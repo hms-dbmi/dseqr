@@ -502,17 +502,28 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     shinyjs::click('dl_meta')
   })
 
-  observeEvent(input$click_up_meta, {
-    req(scseq())
-    shinyjs::click('up_meta')
+  # empty_table <- data.frame('Group name' = character(0), 'Pairs' = character(0))
+  empty_table <- data.frame('Group name' = rep(c('blah1', 'blah2'), 100), 'Pairs' = NA_character_, check.names = FALSE)
+
+  output$groups_table <- rhandsontable::renderRHandsontable({
+    rhandsontable::rhandsontable(data = dl_meta(), width = '100%', stretchH = "all", rowHeaderWidth=100, contextMenu = FALSE,
+                                 afterGetRowHeader =  htmlwidgets::JS("function(col, TH) {
+                                         TH.className = 'left'
+                                     }"))
+  })
+
+
+  show_groups_table <- reactive(input$edit_groups %% 2 == 1)
+  observe({
+    toggle('groups_table_container', condition = show_groups_table())
   })
 
   ref_meta <- reactive({
     scseq <- scseq()
     samples <- unique(scseq$batch)
-    data.frame('Group name' = rep(NA, length(samples)),
-               'Pair' = NA,
-               row.names = samples,
+    data.frame('Group name' = rep(NA_character_, length(samples)),
+               'Pair' = NA_character_,
+               row.names = paste0('<span title="blah">',samples, '</span>'),
                check.names = FALSE, stringsAsFactors = FALSE)
   })
 
@@ -3735,3 +3746,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+

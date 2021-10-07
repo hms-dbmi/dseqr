@@ -1,3 +1,4 @@
+
 tabs <- getShinyOption('tabs', c('Single Cell', 'Bulk Data', 'Drugs'))
 data_dir <- getShinyOption('data_dir')
 logout_url <- getShinyOption('logout_url')
@@ -5,7 +6,7 @@ is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
 remoteDeps <- list()
-if (is.null(logout_url)) {
+if (!is.null(logout_url)) {
 
   dtCoreDeps <- htmltools::htmlDependency(
     'dt-core', '1.10.20',
