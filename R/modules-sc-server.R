@@ -1601,8 +1601,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     up_df <- up_all()
     samples <- up_samples()
+
     msg <- validate_import_samples(up_df, samples)
-    species <- detect_import_species(up_df)
+    species <- tryCatch(
+      detect_import_species(up_df),
+      error = function(e) NULL)
 
     html('error_msg', html = msg)
     toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
@@ -1624,6 +1627,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   quants <- reactiveValues()
   pquants <- reactiveValues()
   deselect_dataset <- reactiveVal(0)
+
   observeEvent(input$confirm_quant, {
 
     metrics <- input$qc_metrics

@@ -2107,7 +2107,10 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
       multiple = TRUE)
 
     azi <- NULL
-    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
+    if (is.null(species))
+      species_refs <- unname(azimuth_refs)
+    else
+      species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
 
     if (length(species_refs)) azi <- selectizeInput(
       session$ns('azimuth_ref'),
