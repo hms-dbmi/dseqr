@@ -6,7 +6,7 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
+scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc) {
 
   # the analysis and options
   scForm <- callModule(
@@ -17,7 +17,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     gs_dir = gs_dir,
     is_mobile = is_mobile,
     add_sc = add_sc,
-    remove_sc = remove_sc)
+    remove_sc = remove_sc,
+    integrate_sc = integrate_sc)
 
   # prevent grid differential expression on contrast change
   observeEvent(scForm$groups(), scForm$show_pbulk(FALSE))
@@ -139,7 +140,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc) {
+scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc) {
 
   set_readonly <- reactive({
     mobile <- is_mobile()
@@ -337,7 +338,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                               sc_dir = sc_dir,
                               datasets = scDataset$datasets,
                               selected_dataset = scDataset$dataset_name,
-                              show_integration = scDataset$show_integration)
+                              integrate_sc = integrate_sc)
 
   # dataset subset
   scSubset <- callModule(subsetForm, 'subset',
@@ -524,8 +525,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   observe({
     toggle('groups_table_container', condition = show_groups_table())
+    toggleCssClass('edit_groups', 'btn-primary',  condition = show_groups_table())
   })
-
 
   output$groups_table <- rhandsontable::renderRHandsontable({
 
@@ -1320,7 +1321,7 @@ disableMobileKeyboard <- function(id) {
 #' @keywords internal
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
-  dataset_inputs <- c('selected_dataset', 'show_integration', 'show_label_resoln')
+  dataset_inputs <- c('selected_dataset', 'show_label_resoln')
 
   options <- list(
     render = I('{option: scDatasetOptions, item: scDatasetItem}'),
@@ -1740,16 +1741,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # show/hide integration/label-transfer forms
-  show_integration <- reactive(input$show_integration %% 3 == 2)
-  show_subset <- reactive(input$show_integration %% 3 == 1)
+  show_subset <- reactive(input$show_subset %% 2 == 1)
   show_label_resoln <- reactive(input$show_label_resoln %% 2 == 1)
-
-  observe({
-    icon <- icon('object-ungroup', 'far fa-fw')
-    if (show_integration()) icon <- icon('object-group', 'far fa-fw')
-
-    updateActionButton(session, 'show_integration', icon = icon)
-  })
 
   # hide integration/label-transfer buttons no dataset
   observe({
@@ -1762,7 +1755,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observe({
-    toggleClass('show_integration', 'btn-primary', condition = show_integration() | show_subset())
+    toggleClass('show_subset', 'btn-primary', condition = show_subset())
   })
 
 
@@ -1771,7 +1764,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     scseq = scseq,
     snn_graph = snn_graph,
     datasets = datasets,
-    show_integration = show_integration,
     show_subset = show_subset,
     show_label_resoln = show_label_resoln,
     is_integrated = is_integrated,
@@ -2439,7 +2431,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
 #'
 #' @keywords internal
 #' @noRd
-integrationForm <- function(input, output, session, sc_dir, datasets, show_integration, selected_dataset) {
+integrationForm <- function(input, output, session, sc_dir, datasets, integrate_sc, selected_dataset) {
   type <- name <- NULL
 
   integration_inputs <- c('integration_datasets',
@@ -2477,10 +2469,10 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
   allow_integration <- reactive(length(input$integration_datasets) > 1)
 
-
   # show/hide integration forms
-  observe({
-    toggle(id = "integration-form", anim = TRUE, condition = show_integration())
+  observeEvent(integrate_sc(), {
+    # browser()
+    showModal(integrationModal(session, choices = integration_choices()))
   })
 
   # update selected datasets
@@ -2501,7 +2493,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, show_integ
 
 
   # show name box only if something selected
-  # observe(toggle(id = 'name-container', condition = allow_integration()))
+  observe(toggle(id = 'name-container', condition = allow_integration()))
 
   # set azimuth refs based on species
   species <- reactive({
@@ -3738,3 +3730,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+

@@ -114,6 +114,7 @@ server <- function(input, output, session) {
     observe({
         toggle('add_dataset', condition = input$tab == 'Single Cell')
         toggle('remove_dataset', condition = input$tab == 'Single Cell')
+        toggle('integrate_dataset', condition = input$tab == 'Single Cell')
     })
 
 
@@ -123,10 +124,12 @@ server <- function(input, output, session) {
     if (is_example) {
         add_sc <- reactiveVal()
         remove_sc <- reactiveVal()
+        integrate_sc <- reactiveVal()
 
     } else {
         add_sc <- reactive(input$add_dataset)
         remove_sc <- reactive(input$remove_dataset)
+        integrate_sc <- reactive(input$integrate_dataset)
     }
 
     values <- reactiveValues(finished.init = FALSE)
@@ -179,7 +182,8 @@ server <- function(input, output, session) {
             gs_dir = gs_dir,
             is_mobile = is_mobile,
             add_sc = add_sc,
-            remove_sc = remove_sc)
+            remove_sc = remove_sc,
+            integrate_sc = integrate_sc)
 
     }, once = TRUE)
 

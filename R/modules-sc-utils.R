@@ -1961,6 +1961,62 @@ detect_import_species <- function(up_df) {
   get_species(genes)
 }
 
+# modal to integrate datasets
+integrationModal <- function(session, choices) {
+  ns <- session$ns
+
+  modalDialog(
+    withTags({
+      div(id = ns('integration-form'),
+          shinyWidgets::pickerInput(
+            inputId = ns('integration_datasets'),
+            label = 'Select datasets to integrate:',
+            choices = choices,
+            width = '100%',
+            options = shinyWidgets::pickerOptions(
+              `selected-text-format` = "count > 0",
+              actionsBox = TRUE,
+              liveSearch = TRUE,
+              size=14),
+            multiple = TRUE),
+          shinyWidgets::checkboxGroupButtons(
+            ns('integration_types'),
+            'Integration types:',
+            choices = c('harmony', 'fastMNN', 'Azimuth'),
+            justified = TRUE,
+            selected = 'harmony',
+            checkIcon = list(
+              yes = icon("ok", lib = "glyphicon"),
+              no = icon("remove", lib = "glyphicon", style="color: transparent;"))
+          ),
+          div(id=ns('azimuth_ref_container'), style='display: none;',
+              selectizeInput(
+                ns('azimuth_ref'),
+                HTML('Select Azimuth reference:'),
+                choices = c('', unname(azimuth_refs)), width = '100%')
+          ),
+          shinypanel::textInputWithValidation(
+            ns('integration_name'),
+            container_id = ns('name-container'),
+            label = 'Name for integrated dataset:',
+            help_id = ns('error_msg')
+          ),
+          div(style = 'display: none',
+              fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+          ),
+          downloadLink(ns('dl_samples'), '')
+      )
+    }),
+    title = 'Integrate Single Cell Datasets',
+    size = 'm',
+    footer = tagList(
+      actionButton(ns("submit_integration"), "Integrate Datasets", class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    ),
+    easyClose = FALSE
+  )
+}
+
 
 
 # modal to upload dataset

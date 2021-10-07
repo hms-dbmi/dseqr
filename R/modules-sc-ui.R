@@ -78,7 +78,6 @@ scFormInput <- function(id) {
                 hr(),
                 resolutionFormInput(ns('resolution'))
             ),
-            integrationFormInput(ns('integration')),
             subsetFormInput(ns('subset'))
         ),
         div(id = ns('form_container'), style = 'display: none;',
@@ -140,9 +139,9 @@ scSelectedDatasetInput <- function(id) {
             `parent-style`='display: none;'
           ),
           actionButton(
-            ns('show_integration'), '',
+            ns('show_subset'), '',
             icon = icon('object-ungroup', 'far fa-fw'),
-            title = 'Toggle <b>once</b> to subset or <b>twice</b> to integrate datasets'
+            title = 'Toggle to subset current dataset'
           )
         )
     ),
@@ -194,49 +193,6 @@ resolutionFormInput <- function(id) {
   })
 }
 
-
-#' Input form for integrating single cell datasets
-#'
-#' @keywords internal
-#' @noRd
-integrationFormInput <- function(id) {
-  ns <- NS(id)
-
-  withTags({
-    div(id = ns('integration-form'), class = 'hidden-form', style = 'display: none;',
-        shinyWidgets::pickerInput(
-          inputId = ns('integration_datasets'),
-          label = 'Select datasets to integrate:',
-          choices = '',
-          width = '100%',
-          options = shinyWidgets::pickerOptions(
-            `selected-text-format` = "count > 0",
-            actionsBox = TRUE,
-            liveSearch = TRUE,
-            size=14),
-          multiple = TRUE),
-        shinyWidgets::checkboxGroupButtons(ns('integration_types'), 'Integration types:', choices = c('harmony', 'fastMNN', 'Azimuth'), justified = TRUE, selected = 'harmony'),
-        div(id=ns('azimuth_ref_container'), style='display: none;',
-            selectizeInput(
-              ns('azimuth_ref'),
-              HTML('Select Azimuth reference:'),
-              choices = c('', unname(azimuth_refs)), width = '100%')
-        ),
-        shinypanel::textInputWithButtons(
-          ns('integration_name'),
-          container_id = ns('name-container'),
-          label = 'Name for integrated dataset:',
-          actionButton(ns('submit_integration'), '', icon = icon('plus', 'fa-fw'), title = 'Integrate datasets'),
-          help_id = ns('error_msg'),
-          placeholder = 'Prepended to integration type(s)'),
-
-        div(style = 'display: none',
-            fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-        ),
-        downloadLink(ns('dl_samples'), '')
-    )
-  })
-}
 
 
 #' Input form for subsetting single cell datasets
@@ -480,7 +436,7 @@ scSampleGroupsInput <- function(id) {
     div(id=ns('groups_table_container'), class='handsontable-container',
         rhandsontable::rHandsontableOutput(ns('groups_table'), width='100%'),
         br(),
-        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle'), ' collapse to save changes.', style='color: grey; font-style: italic;'),
+        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' collapse to save changes.', style='color: grey; font-style: italic;'),
         hr()
     )
   )

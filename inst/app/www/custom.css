@@ -19,7 +19,9 @@ body {
   text-overflow: ellipsis;
 }
 
-
+.modal-body .form-group {
+  min-height: 100px;
+}
 
 .selectize-with-ht .selectize-fh {
   min-height: unset;
