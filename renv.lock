@@ -1541,6 +1541,13 @@
       "Repository": "CRAN",
       "Hash": "30ab0ea8c8d3dd16a3fa06903449bbfb"
     },
+    "rhandsontable": {
+      "Package": "rhandsontable",
+      "Version": "0.3.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "cc9b9fd1376181e84c88621711454676"
+    },
     "rhdf5": {
       "Package": "rhdf5",
       "Version": "2.34.0",
