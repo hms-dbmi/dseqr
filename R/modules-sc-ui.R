@@ -472,14 +472,16 @@ scSampleGroupsInput <- function(id) {
     shinypanel::selectizeInputWithButtons(
       inputId = ns('compare_groups'),
       label = 'Groups to compare:',
-      actionButton(ns('edit_groups'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'edit sample groups and pairs (optional)'),
+      actionButton(ns('edit_groups'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'edit sample groups'),
       options = list(maxItems = 2, placeholder = 'Select test then control group'),
       container_id = ns('validate-up'),
       help_id = ns('error_msg')
     ),
     div(id=ns('groups_table_container'), class='handsontable-container',
-        rhandsontable::rHandsontableOutput(ns('groups_table'), width='100%')
-    ),
-    hr()
+        rhandsontable::rHandsontableOutput(ns('groups_table'), width='100%'),
+        br(),
+        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle'), ' collapse to save changes.', style='color: grey; font-style: italic;'),
+        hr()
+    )
   )
 }
