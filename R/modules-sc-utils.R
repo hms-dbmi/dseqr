@@ -817,7 +817,7 @@ construct_top_markers <- function(markers, scseq) {
 
 validate_up_meta <- function(res, ref) {
   msg <- NULL
-  groups <- na.exclude(res$`Group name`)
+  groups <- na.exclude(res$group)
 
   if (!all(row.names(res) %in% row.names(ref))) {
     msg <- "Do not change row names"

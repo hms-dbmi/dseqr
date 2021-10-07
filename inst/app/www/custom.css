@@ -11,6 +11,40 @@ body {
   height: 0;
 }
 
+/* handsontable stuff */
+
+.handsontable td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+
+.selectize-with-ht .selectize-fh {
+  min-height: unset;
+}
+
+.htCore thead th:first-of-type {
+  border-top-left-radius: 4px !important;
+}
+
+.htCore thead th:last-of-type {
+  border-top-right-radius: 4px !important;
+}
+
+
+.selectize-with-ht {
+  min-height: 100px;
+  margin-bottom: 15px;
+}
+
+.handsontable-container {
+  margin-bottom: 50px;
+}
+
+/* end handsontable */
+
 @media (max-width: 460px) {
   .col-sm-12 {
     padding-left: 2px;

@@ -474,7 +474,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #'
 scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, dataset_name, input_scseq = function()NULL, show_pbulk = function()FALSE, counts = function()NULL) {
   group_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
-  input_ids <- c('click_dl_meta', 'click_up_meta', 'compare_groups')
+  input_ids <- c('compare_groups', 'edit_groups')
 
 
   # need for drugs tab
@@ -496,52 +496,80 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   meta_path <- reactive(file.path(dataset_dir(), 'meta.qs'))
 
-  # download/upload metadata
-  observeEvent(input$click_dl_meta, {
-    req(scseq())
-    shinyjs::click('dl_meta')
+
+  show_groups_table <- reactiveVal(FALSE)
+  observeEvent(input$edit_groups, {
+
+    showing <- show_groups_table()
+    if (!showing) {
+      show_groups_table(TRUE)
+      return()
+    }
+
+    res <- rhandsontable::hot_to_r(input$groups_table)
+    res <- data.frame(group = res$`Group name`, pair = NA, row.names = res$Sample)
+
+    msg <- validate_up_meta(res, ref_meta())
+    prev <- prev_meta()
+
+    valid <- is.null(msg)
+    if (valid) show_groups_table(FALSE)
+    error_msg(msg)
+
+    if (valid && !identical(res, prev)) {
+      prev_meta(res)
+      qs::qsave(res, meta_path())
+    }
   })
 
-  observeEvent(input$click_up_meta, {
-    req(scseq())
-    shinyjs::click('up_meta')
+  observe({
+    toggle('groups_table_container', condition = show_groups_table())
   })
+
+
+  output$groups_table <- rhandsontable::renderRHandsontable({
+
+    # force re-render on show to avoid disappearing issues
+    req(show_groups_table())
+
+    meta <- prev_meta()
+    if (is.null(meta)) meta <- ref_meta()
+
+    meta <- data.frame('Sample' = row.names(meta),
+                       'Group name' = meta$group, check.names = FALSE)
+
+    rhandsontable::rhandsontable(data = meta,
+                                 width = '100%',
+                                 height = '200px',
+                                 stretchH = "all",
+                                 colWidths = c('50%', '50%'),
+                                 rowHeaders = FALSE,
+                                 contextMenu = FALSE,
+                                 manualColumnResize = TRUE) %>%
+      rhandsontable::hot_col("Sample", readOnly = TRUE)
+  })
+
+
 
   ref_meta <- reactive({
     scseq <- scseq()
     samples <- unique(scseq$batch)
-    data.frame('Group name' = rep(NA, length(samples)),
-               'Pair' = NA,
-               row.names = samples,
-               check.names = FALSE, stringsAsFactors = FALSE)
-  })
-
-  # download previous up if available so that can inspect groups
-  dl_meta <- reactive({
-    dl_meta <- up_meta()
-    if (!is.null(dl_meta)) colnames(dl_meta) <- c('Group name', 'Pair')
-    else dl_meta <- ref_meta()
-
-    return(dl_meta)
+    data.frame(
+      group = rep(NA_character_, length(samples)),
+      pair = NA_character_,
+      check.names = FALSE,
+      row.names = samples,
+      stringsAsFactors = FALSE)
   })
 
 
-  fname <- reactive(paste0(dataset_name(), '_meta.csv'))
-
-  output$dl_meta <- downloadHandler(
-    filename = fname,
-    content = function(con) {
-      utils::write.csv(dl_meta(), con, row.names = TRUE)
-    }
-  )
-
-  # uploaded annotation
-  up_meta <- reactiveVal()
+  # previous annotation
+  prev_meta <- reactiveVal()
   error_msg <- reactiveVal()
 
   # reset when change dataset
   observe({
-    up_meta(qread.safe(meta_path()))
+    prev_meta(qread.safe(meta_path()))
   })
 
   observe({
@@ -551,35 +579,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   })
 
 
-  #TODO: convert contrasts to fixed ids based on samples
-  observeEvent(input$up_meta, {
-    ref <- ref_meta()
-    req(ref)
-
-    infile <- input$up_meta
-    if (!isTruthy(infile)){
-      res <- msg <- NULL
-
-    } else {
-      res <- utils::read.csv(infile$datapath, check.names = FALSE, row.names = 1, stringsAsFactors = FALSE)
-      msg <- validate_up_meta(res, ref)
-
-      if (is.null(msg)) {
-        colnames(res) <- c('group', 'pair')
-        qs::qsave(res, meta_path())
-
-      } else {
-        res <- NULL
-      }
-    }
-
-    error_msg(msg)
-    up_meta(res)
-  })
-
-
   group_choices <- reactive({
-    meta <- up_meta()
+    meta <- prev_meta()
     if (is.null(meta)) return(NULL)
     groups <- unique(na.exclude(meta$group))
     data.frame(name = groups,
@@ -660,7 +661,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     if (length(groups) != 2) return(NULL)
 
     # make sure meta is current
-    meta <- up_meta()
+    meta <- prev_meta()
     if (!all(groups %in% meta$group)) return(NULL)
 
     # add hash using uploaded metadata to detect changes
@@ -701,7 +702,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   lm_fit_grid <- reactive({
     if (!show_pbulk()) return(NULL)
-    meta <- up_meta()
+    meta <- prev_meta()
     if (max(table(meta$group)) < 2) return(NULL)
 
     # add hash using uploaded metadata to detect changes
@@ -746,7 +747,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     lm_fit = lm_fit,
     lm_fit_grid = lm_fit_grid,
     groups = groups,
-    meta = up_meta
+    meta = prev_meta
   ))
 }
 

@@ -459,27 +459,29 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
     # hidden dl/upload buttons
     downloadLink(ns('dl_anal'), '')
   )
-
 }
+
+
 
 
 scSampleGroupsInput <- function(id) {
   ns <- NS(id)
 
   tags$div(
+    class = 'selectize-with-ht',
     shinypanel::selectizeInputWithButtons(
       inputId = ns('compare_groups'),
       label = 'Groups to compare:',
-      actionButton(ns('click_dl_meta'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)'),
-      actionButton(ns('click_up_meta'), label = NULL, icon = icon('upload', 'fa-fw'), title = 'Upload filled metadata'),
+      actionButton(ns('edit_groups'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'edit sample groups'),
       options = list(maxItems = 2, placeholder = 'Select test then control group'),
       container_id = ns('validate-up'),
       help_id = ns('error_msg')
     ),
-    downloadLink(ns('dl_meta'), ''),
-    div(style = 'display: none',
-        fileInput(ns('up_meta'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
+    div(id=ns('groups_table_container'), class='handsontable-container',
+        rhandsontable::rHandsontableOutput(ns('groups_table'), width='100%'),
+        br(),
+        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle'), ' collapse to save changes.', style='color: grey; font-style: italic;'),
+        hr()
     )
   )
 }
-
