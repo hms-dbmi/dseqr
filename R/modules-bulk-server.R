@@ -419,7 +419,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   datasets <- reactive({
     new_dataset()
-    browser()
     load_bulk_datasets(data_dir)
   })
 
@@ -870,7 +869,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
     svobj <- crossmeta::run_sva(mods, eset)
 
     # add row names so that can check sync during dataset switch
-    row.names(svobj$sv) <- colnames(eset)
+    if (!is.null(svobj$sv)) row.names(svobj$sv) <- colnames(eset)
 
     # save current pdata_explore  so that can tell if changed
     file.copy(pdata_path, prev_path, overwrite = TRUE)
@@ -1756,7 +1755,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     svobj <- svobj()
 
     # can lose sync when switching datasets
-    if (!is.null(svobj)) {
+    if (!is.null(svobj$sv)) {
       req(numsv <= svobj$n.sv)
       req(identical(row.names(svobj$sv), colnames(eset)))
     }
@@ -1771,4 +1770,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-
