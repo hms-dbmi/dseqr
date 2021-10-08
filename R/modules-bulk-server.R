@@ -419,6 +419,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
   datasets <- reactive({
     new_dataset()
+    browser()
     load_bulk_datasets(data_dir)
   })
 
@@ -786,7 +787,8 @@ run_kallisto_bulk_bg <- function(indices_dir, data_dir, quant_meta, paired) {
 
   rkal::run_kallisto_bulk(indices_dir, data_dir, quant_meta, paired)
   cat('Annotating dataset')
-  eset <- rkal::load_seq(data_dir)
+  eset <- rkal::load_seq(data_dir, save_eset = FALSE)
+  qs::qsave(eset, file.path(data_dir, 'eset.qs'))
 
   return(TRUE)
 }
@@ -1769,3 +1771,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+

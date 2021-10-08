@@ -126,11 +126,4 @@ init_dseqr <- function(project_name, data_dir = '/srv/dseqr') {
   dir.create(file.path(user_dir, 'single-cell'))
   dir.create(file.path(user_dir, 'custom_queries'))
 
-  anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
-  colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
-  qs::qsave(anals, file.path(user_dir, 'bulk', 'anals.qs'))
-
-  datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
-  colnames(datasets) <- c("dataset_name", "dataset_dir")
-  qs::qsave(datasets, file.path(user_dir, 'bulk', 'datasets.qs'))
 }

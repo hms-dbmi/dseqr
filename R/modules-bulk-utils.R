@@ -242,68 +242,6 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 
 
 
-#' Load previous bulk anals dataframe
-#'
-#' used for determining available anals for download
-#'
-#' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
-#' @return data.frame with columns "dataset_name" "dataset_dir" and "anal_name".
-#'
-#' @keywords internal
-load_bulk_anals <- function(data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
-
-  if (file.exists(anals_path)) {
-    anals <- qs::qread(anals_path)
-
-  } else {
-    anals <- data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = FALSE)
-    colnames(anals) <- c("dataset_name", "dataset_dir", "anal_name")
-    qs::qsave(anals, anals_path)
-  }
-
-  anals$label <- anals$anal_name
-  anals$value <- seq_len(nrow(anals))
-
-
-  return(anals)
-}
-
-#' Save new analysis info to anals dataframe
-#'
-#' @param dataset_name Name of dataset
-#' @param dataset_dir Folder name for dataset
-#' @param anal_name Name of new analysis
-#' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
-#' @return NULL
-#'
-#' @keywords internal
-save_bulk_anals <- function(dataset_name, dataset_dir, anal_name, data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
-  anals <- qs::qread(anals_path)
-
-  anals[nrow(anals)+1, ] <- c(dataset_name, dataset_dir, anal_name)
-  anals <- anals[!duplicated(anals), ]
-  qs::qsave(anals, anals_path)
-}
-
-#' Remove analysis info from anals dataframe
-#'
-#' Used to clear previous analysis when groupings change
-#'
-#' @inheritParams save_bulk_anals
-#'
-#' @return NULL
-#'
-#' @keywords internal
-remove_bulk_anals <- function(dataset_name, data_dir) {
-  anals_path <- file.path(data_dir, 'bulk', 'anals.qs')
-  anals <- qs::qread(anals_path)
-  is.ds <- anals$dataset_name %in% dataset_name
-  anals <- anals[!is.ds, ]
-  qs::qsave(anals, anals_path)
-}
-
 #' Load previous bulk datasets dataframe
 #'
 #' @param data_dir Path to folder container \code{'bulk'} and \code{'single-cell'} directories
@@ -311,7 +249,6 @@ remove_bulk_anals <- function(dataset_name, data_dir) {
 #'
 #' @keywords internal
 load_bulk_datasets <-function(data_dir) {
-  datasets_path <- file.path(data_dir, 'bulk', 'datasets.qs')
 
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")

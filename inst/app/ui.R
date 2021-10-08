@@ -1,13 +1,14 @@
 tabs <- getShinyOption('tabs', c('Single Cell', 'Bulk Data', 'Drugs'))
 data_dir <- getShinyOption('data_dir')
 logout_url <- getShinyOption('logout_url')
+is_local <- getShinyOption('is_local')
 is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
 
 
 remoteDeps <- list()
-if (!is.null(logout_url)) {
+if (!is_local) {
 
   dtCoreDeps <- htmltools::htmlDependency(
     'dt-core', '1.10.20',
@@ -88,8 +89,8 @@ if (!is.null(logout_url)) {
 
 bootstrapPage(
   remoteDeps,
-  if (!is.null(logout_url)) includeHTML("www/gtm.html"),
-  if (!is.null(logout_url)) tags$head(includeHTML("www/gtag.html")),
+  if (!is_local) includeHTML("www/gtm.html"),
+  if (!is_local) tags$head(includeHTML("www/gtag.html")),
   useShinyjs(),
   rintrojs::introjsUI(),
   includeScript(path = 'www/renderSelectize.js'),
