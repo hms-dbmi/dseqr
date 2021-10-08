@@ -289,6 +289,10 @@ td.dt-nopad span {
     overflow-x: hidden;
 }
 
+.dt-btn {
+  padding: 0px;
+}
+
 .normal-header table.dataTable thead th, table.dataTable thead td {
     font-weight: normal;
 }

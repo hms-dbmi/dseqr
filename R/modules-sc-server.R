@@ -1425,7 +1425,25 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(input$up_raw, {
     prev <- up_all()
     new <- input$up_raw
+    new <- new[file.exists(new$datapath), ]
+
     up_all(rbind.data.frame(prev, new))
+  })
+
+
+  observeEvent(input$delete_row, {
+    selected_row <- as.numeric(strsplit(input$delete_row, "_")[[1]][2])
+    df <- up_all()
+    samples <- up_samples()
+
+    unlink(df$datapath[selected_row])
+    df <- df[-selected_row, ]
+    samples <- samples[-selected_row]
+    if (!nrow(df)) df <- NULL
+
+    up_all(df)
+    up_samples(samples)
+    removeClass('validate-up', 'has-error')
   })
 
   up_table <- reactive({
@@ -1436,13 +1454,16 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     df$size <- sapply(df$size, utils:::format.object_size, units = 'auto')
     colnames(df) <- c('File', 'Size')
 
-    df <- dplyr::mutate(df, Sample = NA, .before = 1)
+    df <- dplyr::mutate(df, ' ' = NA, Sample = NA, .before = 1)
+    df$` ` <- getDeleteRowButtons(session, nrow(df))
+
     samples <- isolate(up_samples())
     if (!is.null(samples)) df$Sample <- samples
     return(df)
   })
 
-  empty_table <- data.frame(Sample = character(0), File = character(0), Size = character(0))
+
+  empty_table <- data.frame(' ' = character(0), Sample = character(0), File = character(0), Size = character(0), check.names = FALSE)
   output$up_table <- DT::renderDataTable({
 
     DT::datatable(empty_table,
@@ -1455,22 +1476,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                     ordering = FALSE,
                     dom = 't',
                     paging = FALSE
-                  )) %>%  DT::formatStyle('Size', `text-align` = 'right')
+                  )) %>%
+      DT::formatStyle('Size', `text-align` = 'right') %>%
+      DT::formatStyle(c('File', 'Size'), color = 'gray')
   })
 
   proxy <- DT::dataTableProxy('up_table')
 
-  observeEvent(input$cancel_import, {
-
-    shiny::removeModal()
-    # clear uploaded
-    up_all(NULL)
-    up_samples(NULL)
-
-  })
   observe({
     shinyjs::toggleCssClass('up_table_container', 'invisible-height', condition = is.null(up_table()))
-
   })
 
   observe({
@@ -1553,11 +1567,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     showModal(deleteModal(session, choices))
   })
 
-
-
-  # move uploaded to destination
+  # get auto sample names
   observeEvent(input$up_raw, {
     new <- input$up_raw
+    new <- new[file.exists(new$datapath), ]
+
     prev <- up_samples()
 
     # initialize names using file prefixes
@@ -1583,17 +1597,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     shinyjs::click('new_dataset_dir')
   })
 
-  validate_import_samples <- function(up_df, samples) {
-    msg <- NULL
-    nsamp <- sum(!is.na(samples))
-    neach <- table(samples)
-
-    if (nsamp == 0) {
-      msg <- 'Specify samples for some files'
-    }
-
-    return(msg)
-  }
 
 
   # ask for confirmation
@@ -1602,7 +1605,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     up_df <- up_all()
     samples <- up_samples()
 
-    msg <- validate_import_samples(up_df, samples)
+    msg <- validate_import_scseq(up_df, samples)
     species <- tryCatch(
       detect_import_species(up_df),
       error = function(e) NULL)
@@ -1795,7 +1798,6 @@ detect_import_species <- function(up_df) {
 
   get_species(genes)
 }
-
 
 
 #' Logic for single-cell sample comparison plots

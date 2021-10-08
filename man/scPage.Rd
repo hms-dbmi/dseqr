@@ -14,7 +14,8 @@ scPage(
   gs_dir,
   is_mobile,
   add_sc,
-  remove_sc
+  remove_sc,
+  integrate_sc
 )
 }
 \arguments{

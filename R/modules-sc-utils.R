@@ -1940,6 +1940,82 @@ keep_curr_selected <- function(datasets, prev, curr) {
 
 }
 
+h5_format_msg <- sprintf(
+  paste0(
+    'H5 file must be in feature barcode matrix format. ',
+    '<a href="%s" target="_blank"><i class="fas fa-external-link-alt"></i></a>'
+  ),
+  'https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices')
+
+
+validate_import_scseq <- function(up_df, samples) {
+
+  msg <- NULL
+
+  if (sum(is.na(samples))) {
+    msg <- 'Specify sample for all files'
+    return(msg)
+  }
+
+  uniq_samples <- unique(samples)
+  for (sample in uniq_samples) {
+
+    upi <- up_df[samples %in% sample,, drop = FALSE]
+    files <- upi$name
+
+    # matrix files
+    mtx.file <- grep('.mtx', files, fixed = TRUE, value = TRUE)
+    genes.file <- grep('features.tsv|genes.tsv', files, value = TRUE)
+    barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
+
+    # if have matrix files, have exactly one of each type
+    neach <- c(length(mtx.file), length(genes.file), length(barcodes.file))
+    if (any(neach == 1)) {
+      if (!all(neach == 1) | length(files) != 3) {
+        msg <- 'Need exactly one .mtx, genes.tsv, and barcodes.tsv files'
+        return(msg)
+      }
+      next()
+    }
+
+    # no more than one H5 file per sample
+    is_h5 <- grepl('.h5', files, fixed = TRUE)
+    if (sum(is_h5) > 1) {
+      msg <- 'Specify only one sample per H5 file'
+      return(msg)
+    }
+
+    # correct format for H5 file
+    if (sum(is_h5) == 1) {
+      infile <- hdf5r::H5File$new(upi$datapath[is_h5], 'r')
+
+      if (!'matrix' %in% names(infile))
+        return(h5_format_msg)
+
+      infile$close()
+      next()
+    }
+  }
+
+  return(msg)
+}
+
+
+# Auxiliary function
+getDeleteRowButtons <- function(session, len) {
+
+  inputs <- character(len)
+  for (i in seq_len(len)) {
+    inputs[i] <- sprintf(
+      '<span class="btn dt-btn" id="%s" onclick="Shiny.onInputChange(\'%s\', this.id, {priority: \'event\'})"><icon class="%s"></icon></span>',
+      paste0(session$ns('delete_'), i),
+      session$ns('delete_row'),
+      'far fa-trash-alt'
+    )
+  }
+  inputs
+}
+
 
 # detects species from cellranger h5 or features.tsv
 detect_import_species <- function(up_df) {
@@ -2045,14 +2121,14 @@ uploadModal <- function(session, show_init) {
              ),
              hr()
     ),
-    div(id=session$ns('up_table_container'), class='invisible-height',
+    div(id=session$ns('up_table_container'), class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
         DT::dataTableOutput(session$ns('up_table'), width = '100%'),
     ),
     title = 'Upload Single Cell Datasets',
     size = 'l',
     footer = tagList(
       actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
-      tags$div(class='pull-left', actionButton(session$ns("cancel_import"), 'Cancel'))
+      tags$div(class='pull-left', modalButton('Cancel'))
     ),
     easyClose = FALSE,
   )
@@ -2088,7 +2164,7 @@ deleteModal <- function(session, choices) {
       actionButton(session$ns("delete_dataset"), "Delete Datasets"),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
-    easyClose = TRUE,
+    easyClose = FALSE,
   )
 }
 
@@ -2131,8 +2207,8 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
     title = 'Create new single-cell dataset?',
     size = 's',
     footer = tagList(
-      modalButton("Cancel"),
-      actionButton(session$ns(id), label, class = 'pull-left btn-warning')
+      actionButton(session$ns(id), label, class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
     )
   )
 }
