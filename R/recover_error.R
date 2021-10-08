@@ -9,15 +9,16 @@ send_slack_error <- function(project) {
     stack <- slackify_stack(error$stack)
     message <- gsub('"', '', error$message)
 
-    httr::POST(url = slack$errors,
-               httr::add_headers('Content-Type' = 'application/json'),
-               body = sprintf(
-                   '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s 🙎"}',
-                   message,
-                   stack,
-                   project,
-                   user
-               ))
+    httr::POST(
+        url = slack$errors,
+        httr::add_headers('Content-Type' = 'application/json'),
+        body = sprintf(
+            '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s 🙎"}',
+            message,
+            stack,
+            project,
+            user)
+    )
 
     shinyjs::alert('Sorry about that! \n\n Error has been reported and will be fixed promptly. \n\n (ﾉ´ｰ`)ﾉ')
 }

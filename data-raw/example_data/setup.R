@@ -1,16 +1,25 @@
-#create example app
-dseqr::init_dseqr(app_name = 'example', data_dir = 'data-raw/patient_data')
-
 # data for example app was downloaded into example app folder:
 
 # single-cell: cellranger files
 # Bulk: used GEOfastq to get progress and healthy from GSE93624
-data_dir <- 'data-raw/patient_data/example/bulk'
+data_dir <- '/mnt/12tb/Data/dseqr/example/bulk/GSE93624'
 gse_name <- 'GSE93624'
-srp_meta <- GEOfastq::get_srp_meta(gse_name, data_dir)
-srp_meta <- srp_meta[grepl('complication: yes', srp_meta$characteristics)
-                     | srp_meta$source_name == 'Non-IBD control_Ileal biopsy', ]
-GEOfastq::get_fastqs(gse_name, srp_meta, data_dir)
+meta_path <- file.path(data_dir, 'srp_meta.rds')
+# gse_text <- GEOfastq::crawl_gse(gse_name)
+# gsm_names <- GEOfastq::extract_gsms(gse_text)
+# srp_meta <- GEOfastq::crawl_gsms(gsm_names)
+# saveRDS(srp_meta, meta_path)
+srp_meta <- readRDS(meta_path)
+
+is.ctrl <- srp_meta$source_name == 'Non-IBD control_Ileal biopsy'
+is.test <- grepl('complication: yes', srp_meta$characteristics_ch1.5)
+
+# just two each
+srp_meta <- srp_meta[c(which(is.ctrl)[1:2], which(is.test)[1:2]), ]
+# srp_meta <- srp_meta[is.ctrl | is.test, ]
+
+
+GEOfastq::get_fastqs(srp_meta[3:4,], data_dir)
 
 
 # just eight single-cell samples for example purposes

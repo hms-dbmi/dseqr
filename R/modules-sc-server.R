@@ -2475,7 +2475,6 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
 
   # show/hide integration forms
   observeEvent(integrate_sc(), {
-    # browser()
     showModal(integrationModal(session, choices = integration_choices()))
   })
 
