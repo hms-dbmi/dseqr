@@ -254,8 +254,8 @@ load_bulk_datasets <-function(data_dir) {
   colnames(datasets) <- c("dataset_name", "dataset_dir")
 
   dataset_names <- list.dirs(file.path(data_dir, 'bulk'), full.names = FALSE, recursive = FALSE)
-  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
-  dataset_names <- dataset_names[has.eset]
+  # has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
+  # dataset_names <- dataset_names[has.eset]
 
   datasets <- data.frame(dataset_name = dataset_names,
                          dataset_dir = file.path('bulk', dataset_names), stringsAsFactors = FALSE)

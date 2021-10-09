@@ -143,8 +143,7 @@ bulkFormQuantInput <- function(id) {
                actionButton(ns('rep'), 'Replicate'),
                actionButton(ns('reset'), 'Reset')
              )
-    ),
-    actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-warning')
+    )
   )
 }
 

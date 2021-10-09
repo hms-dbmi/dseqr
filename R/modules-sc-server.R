@@ -1604,6 +1604,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     up_df <- up_all()
     samples <- up_samples()
+    req(up_df)
 
     msg <- validate_import_scseq(up_df, samples)
     species <- tryCatch(
@@ -2494,11 +2495,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
 
 
   # show cluster type choices if enough datasets
-  observe(toggle(id = 'integration_types', condition = allow_integration()))
-
-
-  # show name box only if something selected
-  observe(toggle(id = 'name-container', condition = allow_integration()))
+  observe(toggle(id = 'integration_options_container', condition = allow_integration()))
 
   # set azimuth refs based on species
   species <- reactive({

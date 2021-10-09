@@ -2001,7 +2001,6 @@ validate_import_scseq <- function(up_df, samples) {
 }
 
 
-# Auxiliary function
 getDeleteRowButtons <- function(session, len) {
 
   inputs <- character(len)
@@ -2055,32 +2054,30 @@ integrationModal <- function(session, choices) {
               liveSearch = TRUE,
               size=14),
             multiple = TRUE),
-          shinyWidgets::checkboxGroupButtons(
-            ns('integration_types'),
-            'Integration types:',
-            choices = c('harmony', 'fastMNN', 'Azimuth'),
-            justified = TRUE,
-            selected = 'harmony',
-            checkIcon = list(
-              yes = icon("ok", lib = "glyphicon"),
-              no = icon("remove", lib = "glyphicon", style="color: transparent;"))
-          ),
-          div(id=ns('azimuth_ref_container'), style='display: none;',
-              selectizeInput(
-                ns('azimuth_ref'),
-                HTML('Select Azimuth reference:'),
-                choices = c('', unname(azimuth_refs)), width = '100%')
-          ),
-          shinypanel::textInputWithValidation(
-            ns('integration_name'),
-            container_id = ns('name-container'),
-            label = 'Name for integrated dataset:',
-            help_id = ns('error_msg')
-          ),
-          div(style = 'display: none',
-              fileInput(ns('up_pairs'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-          ),
-          downloadLink(ns('dl_samples'), '')
+          tags$div(style='display: none', id=ns('integration_options_container'),
+                   shinyWidgets::checkboxGroupButtons(
+                     ns('integration_types'),
+                     'Integration types:',
+                     choices = c('harmony', 'fastMNN', 'Azimuth'),
+                     justified = TRUE,
+                     selected = 'harmony',
+                     checkIcon = list(
+                       yes = icon("ok", lib = "glyphicon"),
+                       no = icon("remove", lib = "glyphicon", style="color: transparent;"))
+                   ),
+                   div(id=ns('azimuth_ref_container'), style='display: none;',
+                       selectizeInput(
+                         ns('azimuth_ref'),
+                         HTML('Select Azimuth reference:'),
+                         choices = c('', unname(azimuth_refs)), width = '100%')
+                   ),
+                   shinypanel::textInputWithValidation(
+                     ns('integration_name'),
+                     container_id = ns('name-container'),
+                     label = 'Name for integrated dataset:',
+                     help_id = ns('error_msg')
+                   )
+          )
       )
     }),
     title = 'Integrate Single Cell Datasets',
@@ -2095,39 +2092,56 @@ integrationModal <- function(session, choices) {
 
 
 
-# modal to upload dataset
+
+# modal to upload single-cell dataset
 uploadModal <- function(session, show_init) {
   label <- "Click upload or drag files:"
 
   modalDialog(
-    fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', width = '100%', accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'), multiple = TRUE),
-    tags$div(class='alert alert-warning', role = 'alert',
-             tags$div(tags$b("For each sample upload files:")),
-             tags$br(),
-             tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), " or"),
-             tags$br(),
-             tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv")),
-             hr(),
-             '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
-             tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
-    tags$div(id = session$ns('sample_name_container'), style = ifelse(show_init, '', 'display: none;'),
-             hr(),
-             shinypanel::textInputWithButtons(
-               session$ns('sample_name'),
-               'Sample name for selected rows:',
-               actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
-               container_id = session$ns('validate-up'),
-               help_id = session$ns('error_msg')
-             ),
-             hr()
+    fileInput(
+      session$ns('up_raw'),
+      label = label,
+      buttonLabel = 'upload',
+      width = '100%',
+      accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'),
+      multiple = TRUE
     ),
-    div(id=session$ns('up_table_container'), class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
+    tags$div(
+      class='alert alert-warning', role = 'alert',
+      tags$div(tags$b("For each sample upload files:")),
+      tags$br(),
+      tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), " or"),
+      tags$br(),
+      tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv")),
+      hr(),
+      '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
+      tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
+    tags$div(
+      id = session$ns('sample_name_container'),
+      style = ifelse(show_init, '', 'display: none;'),
+      hr(),
+      shinypanel::textInputWithButtons(
+        session$ns('sample_name'),
+        'Sample name for selected rows:',
+        actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
+        container_id = session$ns('validate-up'),
+        help_id = session$ns('error_msg')
+      ),
+      hr()
+    ),
+    div(
+      id = session$ns('up_table_container'),
+      class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
         DT::dataTableOutput(session$ns('up_table'), width = '100%'),
     ),
     title = 'Upload Single Cell Datasets',
     size = 'l',
     footer = tagList(
-      actionButton(session$ns("import_samples"), "Import Datasets", class = 'btn-warning'),
+      actionButton(
+        inputId = session$ns("import_samples"),
+        label = "Import Datasets",
+        class = ifelse(show_init, 'btn-warning', 'btn-warning disabled')
+        ),
       tags$div(class='pull-left', modalButton('Cancel'))
     ),
     easyClose = FALSE,
