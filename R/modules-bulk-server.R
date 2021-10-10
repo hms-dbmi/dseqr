@@ -12,7 +12,7 @@
 #'   bulk dataset is added.
 #'
 #' @export
-bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir, gs_dir) {
+bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   msg_quant <- reactiveVal()
 
@@ -33,8 +33,9 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          gs_dir = gs_dir,
                          msg_quant = msg_quant,
                          explore_eset = explore_eset,
-                         pdata = dsQuantTable$pdata,
-                         indices_dir = indices_dir)
+                         indices_dir = indices_dir,
+                         add_bulk = add_bulk,
+                         remove_bulk = remove_bulk)
 
   # mds plotly with different orientations for mobile/desktop
 
@@ -63,7 +64,6 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
 
   # toggle tables
   observe({
-    toggle('quant_table_container', condition = bulkForm$show_quant())
     toggle('anal_table_container', condition = bulkForm$show_anal())
   })
 
@@ -76,10 +76,6 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
     toggle('cells_plotly_container', condition = bulkForm$show_dtangle())
   })
 
-  dsQuantTable <- callModule(bulkQuantTable, 'quant',
-                             fastq_dir = bulkForm$fastq_dir,
-                             labels = bulkForm$quant_labels,
-                             paired = bulkForm$paired)
 
   up_annot <- callModule(bulkAnnot, 'anal',
                          dataset_name = bulkForm$dataset_name,
@@ -106,9 +102,6 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
              pdata = dsExploreTable$pdata,
              dataset_name = bulkForm$dataset_name)
 
-  observe({
-    msg_quant(dsQuantTable$valid_msg())
-  })
 
 
 
@@ -328,38 +321,21 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, pdata, indices_dir, gs_dir) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
-                        new_dataset = quant$new_dataset,
-                        deselect_dataset = quant$deselect_dataset,
-                        explore_eset = explore_eset)
+                        indices_dir = indices_dir,
+                        explore_eset = explore_eset,
+                        add_bulk = add_bulk,
+                        remove_bulk = remove_bulk)
 
 
-  # show quant, anals or neither
-  show_quant <- reactive({
-    dataset$dataset_name() != '' && dataset$is.create() && isTruthy(dataset$fastq_dir())
-  })
+  show_anal <- reactive(dataset$dataset_name() != '')
 
-  show_anal <- reactive({
-    dataset$dataset_name() != '' && !dataset$is.create()
-  })
-
-  observe({
-    toggle('quant_dataset_panel', condition = show_quant())
-    toggle('anal_dataset_panel', condition = show_anal())
-  })
-
-  quant <- callModule(bulkFormQuant, 'quant_form',
-                      data_dir = data_dir,
-                      error_msg = msg_quant,
-                      dataset_name = dataset$dataset_name,
-                      pdata = pdata,
-                      fastq_dir = dataset$fastq_dir,
-                      indices_dir = indices_dir)
+  observe(toggle('anal_dataset_panel', condition = show_anal()))
 
 
   anal <- callModule(bulkFormAnal, 'anal_form',
@@ -375,14 +351,10 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 
   return(list(
     fastq_dir = dataset$fastq_dir,
-    paired = quant$paired,
-    quant_labels = quant$labels,
-    new_dataset = quant$new_dataset,
     anal_labels = anal$labels,
     explore_genes = anal$explore_genes,
     dataset_name = dataset$dataset_name,
     dataset_dir = dataset$dataset_dir,
-    show_quant = show_quant,
     show_anal = show_anal,
     is.explore = anal$is.explore,
     dtangle_est = dataset$dtangle_est,
@@ -398,16 +370,13 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #'
 #' @keywords internal
 #' @noRd
-bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_dataset, explore_eset, deselect_dataset) {
+bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indices_dir, explore_eset, add_bulk, remove_bulk) {
 
-  options <- list(create = TRUE,
-                  placeholder = 'Type name to add new bulk dataset',
-                  optgroupField = 'type',
+  new_dataset <- reactiveVal()
+  options <- list(optgroupField = 'type',
                   render = I('{option: bulkDatasetOptions, item: bulkDatasetItem}'))
 
-  # get directory with fastqs
-  roots <- c('bulk' = bulk_dir)
-  shinyFiles::shinyDirChoose(input, "new_dataset_dir", roots = roots)
+
 
   # only show nsv/dtangle toggle if existing dataset
   observe({
@@ -422,18 +391,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     load_bulk_datasets(data_dir)
   })
 
-  # is the dataset a quantified one?
-  is.create <- reactive({
-    dataset_name <- input$dataset_name
-    datasets <- datasets()
-
-    req(dataset_name)
-    if (!isTruthy(dataset_name)) return(FALSE)
-
-    !dataset_name %in% datasets$dataset_name
-  })
-
-  dataset_exists <- reactive(isTruthy(input$dataset_name) & !is.create())
+  dataset_exists <- reactive(isTruthy(input$dataset_name))
 
   observe({
     datasets <- datasets()
@@ -442,81 +400,472 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     updateSelectizeInput(session, 'dataset_name', selected = isolate(input$dataset_name), choices = c("", datasets), options = options)
   })
 
-  observeEvent(deselect_dataset(), {
-    req(deselect_dataset())
-    datasets <- datasets()
-    req(datasets)
-    datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dataset_name', choices = c('', datasets), options = options)
+
+  # Delete Bulk Dataset
+  # ---
+
+  # show remove bulk datasets modal
+  observeEvent(remove_bulk(), {
+    ds <- datasets()
+    ds <- tibble::as_tibble(ds)
+
+    choices <- ds$dataset_name
+    showModal(deleteModal(session, choices))
   })
 
+  allow_delete <- reactive(isTruthy(input$remove_datasets) & input$confirm_delete == 'delete')
 
-
-
-  uploadBulkModal <- function() {
-    label <- "Click upload or drag files:"
-    label_title <- "Accepts *.fastq.gz or eset.qs"
-    label <- tags$span(label,
-                       title = label_title,
-                       span(class = "hover-info",
-                            icon("info", "fa-fw")))
-
-    modalDialog(
-      fileInput(session$ns('up_raw'), label=label, buttonLabel = 'upload', accept = c('.qs', '.fastq.gz'), multiple = TRUE),
-      title = 'Upload or Select Existing?',
-      size = 's',
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("click_existing"), "Select Existing", class = 'pull-left btn-warning')
-      ),
-      easyClose = FALSE,
-    )
-  }
-
-  # open modal if creating
   observe({
-    req(is.create())
-    showModal(uploadBulkModal())
+    toggleState('delete_dataset', condition = allow_delete())
+    toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
   })
 
-  # move uploaded to destination
-  observeEvent(input$up_raw, {
-    df <- input$up_raw
-    sel <- input$dataset_name
-    req(df, sel)
+  observe({
+    toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
+  })
 
-    dataset_dir <- file.path(bulk_dir, input$dataset_name)
-    dir.create(dataset_dir, showWarnings = FALSE)
+  observeEvent(input$delete_dataset, {
+    remove_datasets <- input$remove_datasets
+    unlink(file.path(bulk_dir, remove_datasets), recursive = TRUE)
+    updateTextInput(session, 'confirm_delete', value = '')
+    removeModal()
+    new_dataset(paste0(remove_datasets, '_deleted'))
+  })
 
-    for (i in 1:nrow(df)) {
-      dpath <- df$datapath[i]
-      fpath <- file.path(dataset_dir, df$name[i])
-      file.move(from = dpath, to = fpath)
+
+  # Add Bulk Dataset
+  # ---
+
+  uploads_table <- reactiveVal()
+  pairs <- reactiveVal()
+  reps <- reactiveVal()
+
+  error_msg_fastq <- reactiveVal()
+  error_msg_labels <- reactiveVal()
+
+
+  # initial uploads DT
+  # updates in order to remove/add Pair column
+  empty_table <- reactiveVal()
+
+  observe({
+    prev <- empty_table()
+    df <- isolate(uploads_table_html())
+
+    if (is.null(df)) {
+      df <- data.frame(
+        ' ' = character(0),
+        Pair = character(0),
+        Replicate = character(0),
+        File = character(0),
+        Size = character(0),
+        `MD5 Checksum` = character(0),
+        check.names = FALSE)
     }
 
-    removeModal()
-    Sys.sleep(1)
-    is.fastq <- grepl('fastq.gz', df$name[1])
+    prev_paired <- !is.null(prev$Pair)
+    curr_paired <- detected_paired()
+    if (!curr_paired) df$Pair <- NULL
 
-    if (is.fastq) fastq_dir(dataset_dir)
-    else new_dataset(sel)
-
-  })
-
-  observeEvent(input$click_existing, {
-    removeModal()
-    Sys.sleep(1)
-    shinyjs::click('new_dataset_dir')
+    if (prev_paired != curr_paired) empty_table(df)
   })
 
 
-  # directory with fastq files for quantificant
-  fastq_dir <- reactiveVal()
+  # render upload DT
+  output$uploads_table <- DT::renderDataTable({
+
+    df <- empty_table()
+    if (is.null(df)) return(NULL)
+    targets <- 1
+    if ('Pair' %in% colnames(df)) targets <- c(1, 2)
+    DT::datatable(df,
+                  class = 'cell-border dt-fake-height',
+                  rownames = FALSE,
+                  escape = FALSE, # to allow HTML in table
+                  selection = 'multiple',
+                  options = list(
+                    columnDefs = list(list(className = 'dt-nopad', targets = targets)),
+                    scrollX = TRUE,
+                    dom = 't',
+                    paging = FALSE
+                  )) %>%
+      DT::formatStyle('Size', `text-align` = 'right') %>%
+      DT::formatStyle(c('File', 'Size', 'MD5 Checksum'), color = 'gray')
+  })
+
+  # update rendered uploads table using proxy
+  proxy <- DT::dataTableProxy('uploads_table')
+
   observe({
-    req(!methods::is(input$new_dataset_dir, 'integer'))
-    dir <- shinyFiles::parseDirPath(roots, input$new_dataset_dir)
-    fastq_dir(as.character(dir))
+    table <- uploads_table_html()
+    if (!detected_paired()) table$Pair <- NULL
+    DT::replaceData(proxy, table, rownames = FALSE)
   })
+
+
+  # open add dataset modal
+  observeEvent(add_bulk(), {
+
+    showModal(uploadBulkModal(
+      session,
+      have_uploads(),
+      error_msg_fastq(),
+      input$import_dataset_name
+    ))
+  })
+
+
+  # set message if tried to upload anything but fastq.gz
+  observeEvent(input$up_raw_errors, {
+    msg <- 'Only fastq.gz files can be uploaded.'
+    error_msg_fastq(msg)
+  })
+
+  # validate uploaded files
+  observeEvent(uploads_table(), {
+    up_df <- uploads_table()
+    msg <- validate_bulk_uploads(up_df)
+    error_msg_fastq(msg)
+  })
+
+  # show any errors with uploads
+  observe({
+    msg <- error_msg_fastq()
+    html('error_msg_fastq', html = msg)
+    toggleClass('validate-up-fastq', 'has-error', condition = isTruthy(msg))
+  })
+
+  # append to uploads table
+  # also add placeholder for pairs and replicates
+  observeEvent(input$up_raw, {
+    prev <- uploads_table()
+    new <- input$up_raw
+    new <- new[file.exists(new$datapath), ]
+    new$md5sum <- tools::md5sum(new$datapath)
+
+    # extend reps/pairs
+    placeholder <- rep(NA, nrow(new))
+    reps(c(reps(), placeholder))
+    pairs(c(pairs(), placeholder))
+
+    uploads_table(rbind.data.frame(prev, new))
+  })
+
+  # handle delete row button
+  observeEvent(input$delete_row, {
+    selected_row <- as.numeric(strsplit(input$delete_row, "_")[[1]][3])
+    reps <- reps()
+    pairs <- pairs()
+    uploads <- uploads_table()
+
+    unlink(uploads$datapath[selected_row])
+
+    # clear any associated replicate/apir
+    rep <- reps[selected_row]
+    pair <- pairs[selected_row]
+    reps[reps == rep] <- NA
+    pairs[pairs == pair] <- NA
+
+    # remove selected row
+    reps <- reps[-selected_row]
+    pairs <- pairs[-selected_row]
+    uploads <- uploads[-selected_row, ]
+
+    if (!nrow(uploads))
+      reps <- pairs <- uploads <- NULL
+
+    reps(reps)
+    pairs(pairs)
+    uploads_table(uploads)
+  })
+
+  # update/initialize uploads table with html
+  uploads_table_html <- reactiveVal()
+
+  observe({
+    df <- uploads_table()
+    if (is.null(df)) {
+      uploads_table_html(NULL)
+      return()
+    }
+
+    df <- df[, c('name', 'size', 'md5sum')]
+    df$size <- sapply(df$size, utils:::format.object_size, units = 'auto')
+    colnames(df) <- c('File', 'Size', 'MD5 Checksum')
+
+    df <- dplyr::mutate(df, ' ' = NA, Pair = NA, Replicate = NA,  .before = 1)
+    df$` ` <- getDeleteRowButtons(session, nrow(df))
+
+    uploads_table_html(df)
+  })
+
+
+  # auto detected if paired
+  detected_paired <- reactive({
+    up_df <- uploads_table()
+    fastqs <- up_df$datapath
+
+    # auto-detect if paired
+    fastq_id1s <- rkal::get_fastq_id1s(fastqs)
+    try(return(rkal::detect_paired(fastq_id1s)))
+    return(FALSE)
+  })
+
+
+  # insert/remove 'Paired' button based on type of fastq files
+  observe({
+    paired <- detected_paired()
+    toggleState('pair', condition = paired)
+  })
+
+
+  # dashed lines for 'Pair' html
+  background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
+
+
+  # update Pair/Replicate html
+  observe({
+
+    # things that trigger update
+    pdata <- uploads_table_html()
+    req(pdata)
+
+    reps <- reps()
+    pairs <- pairs()
+
+    # update pdata Replicate column
+    rep_nums <- sort(unique(setdiff(reps, NA)))
+    rep_nums <- as.numeric(rep_nums)
+    rep_colors <- get_palette(reps)
+    if (!length(rep_nums)) pdata$Replicate <- NA
+
+    for (rep_num in rep_nums) {
+      color <- rep_colors[rep_num]
+      rows <- which(reps == rep_num)
+      pdata[rows, 'Replicate'] <- paste('<div style="background-color:', color, ';"></div>')
+    }
+
+    # update pdata Pair column
+    if (detected_paired()) {
+      pair_nums <- sort(unique(setdiff(pairs, NA)))
+      pair_nums <- as.numeric(pair_nums)
+      pair_colors <- get_palette(pairs)
+      if (!length(pair_nums)) pdata$Pair <- NA
+
+      for (pair_num in pair_nums) {
+        color <- pair_colors[pair_num]
+        rows <- which(pairs == pair_num)
+        pdata[rows, 'Pair'] <- paste('<div style="background:', color, background, ';"></div>')
+      }
+    } else {
+      pdata[1:nrow(pdata), 'Pair'] <- NA
+    }
+
+    uploads_table_html(pdata)
+  })
+
+
+  # click 'Paired'
+  shiny::observeEvent(input$pair, {
+
+    reps <- reps()
+    pairs <- pairs()
+
+    # get rows
+    rows  <- input$uploads_table_rows_selected
+
+    # check for incomplete/wrong input
+    msg <- rkal::validate_pairs(pairs, rows, reps)
+    error_msg_labels(msg)
+
+    if (is.null(msg)) {
+      # add rows as a pair
+      pairs[rows] <- get_next_number(pairs)
+      pairs(pairs)
+    }
+  })
+
+  get_next_number <- function(x) {
+    numbers <- unique(setdiff(x, NA))
+    if (!length(numbers)) return(1)
+
+    setdiff(seq_len(max(numbers)+1), numbers)[1]
+  }
+
+  # click 'Replicate'
+  shiny::observeEvent(input$rep, {
+
+    reps <- reps()
+    pairs <- pairs()
+
+    # get rows
+    rows  <- input$uploads_table_rows_selected
+    msg <- rkal::validate_reps(pairs, rows, reps)
+    error_msg_labels(msg)
+
+    if (is.null(msg)) {
+      # add rows as replicates
+      reps[rows] <- get_next_number(reps)
+      reps(reps)
+    }
+  })
+
+  # click 'Reset'
+  shiny::observeEvent(input$reset, {
+
+    rows  <- input$uploads_table_rows_selected
+
+    new_reps <- reps()
+    new_pairs <- pairs()
+    new_reps[rows] <- NA
+    new_pairs[rows] <- NA
+
+    reps(new_reps)
+    pairs(new_pairs)
+  })
+
+
+  # show any errors with Pair/Replicate labels
+  observe({
+    msg <- error_msg_labels()
+    html('error_msg_labels', html = msg)
+    toggleClass('fastq_labels_container', 'has-error', condition = isTruthy(msg))
+  })
+
+  # hide/show inputs based on user selections
+  have_uploads <- reactive(!is.null(uploads_table()))
+
+  observe({
+    shinyjs::toggleCssClass('uploads_table_container', 'invisible-height', condition = !have_uploads())
+  })
+
+  observe({
+    shinyjs::toggle('fastq_labels_container', condition = is.null(error_msg_fastq()) & have_uploads())
+  })
+
+  observe({
+    shinyjs::toggle('import_name_container', condition = have_uploads())
+  })
+
+  observe({
+    shinyjs::toggleState('import_bulk_dataset', condition = have_uploads())
+  })
+
+
+  # Run Import
+  # ---
+
+
+  # show missing name error
+  error_msg_name <- reactiveVal()
+
+  observe({
+    msg <- error_msg_name()
+    html('error_msg_name', html = msg)
+    toggleClass('validate-up-name', 'has-error', condition = isTruthy(msg))
+  })
+
+
+  # move uploaded to destination
+  observeEvent(input$import_bulk_dataset, {
+
+    # validate that can import
+    reps <- reps()
+    pairs <- pairs()
+    up_df <- uploads_table()
+    paired <- detected_paired()
+    import_dataset_name <- input$import_dataset_name
+
+    msg <- validate_import_bulk(up_df, import_dataset_name, reps, pairs, paired)
+    error_msg_name(msg)
+
+    if (is.null(msg)) {
+      dataset_dir <- file.path(bulk_dir, import_dataset_name)
+      unlink(dataset_dir, recursive = TRUE)
+      dir.create(dataset_dir, showWarnings = FALSE)
+
+      for (i in 1:nrow(up_df)) {
+        dpath <- up_df$datapath[i]
+        fpath <- file.path(dataset_dir, up_df$name[i])
+        file.move(from = dpath, to = fpath)
+      }
+
+      removeModal()
+      Sys.sleep(1)
+
+      showModal(confirmImportBulkModal(session))
+    }
+  })
+
+
+
+  # pdata used for quantification
+  pdata <- reactive({
+    up_df <- uploads_table()
+
+    pdata <- tibble::tibble(
+      'Pair' = pairs(),
+      'Replicate' = reps(),
+      'File Name' = up_df$name
+    )
+
+    return(pdata)
+  })
+
+
+  # run quantification upon confirmation
+  quants <- reactiveValues()
+  pquants <- reactiveValues()
+
+  observeEvent(input$confirm, {
+
+    removeModal()
+
+    # check for index
+    index_path <- rkal::get_kallisto_index(indices_dir)
+    if(!length(index_path)) {
+      shinyjs::alert('No kallisto index. See github README.')
+      return(NULL)
+    }
+
+    # setup
+    pdata <- pdata()
+    paired <- detected_paired()
+    dataset_name <- input$import_dataset_name
+    fastq_dir <- file.path(bulk_dir, dataset_name)
+
+
+    quants[[dataset_name]] <- callr::r_bg(
+      func = run_kallisto_bulk_bg,
+      package = 'dseqr',
+      args = list(
+        indices_dir = indices_dir,
+        data_dir = fastq_dir,
+        quant_meta = pdata,
+        paired = paired
+      )
+    )
+
+    # Create a Progress object
+    progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
+    progress$set(message = "Quantifying files", value = 1)
+    pquants[[dataset_name]] <- progress
+
+    # clear upload inputs
+    uploads_table(NULL)
+    pairs(NULL)
+    reps(NULL)
+  })
+
+  observe({
+    invalidateLater(5000, session)
+    handle_bulk_progress(quants, pquants, new_dataset)
+  })
+
+
+
+  # Selected Existing Dataset
+  # ---
 
   # directory to existing dataset for exploration
   dataset_dir <- reactive({
@@ -524,6 +873,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     dataset_name <- input$dataset_name
     datasets <- datasets()
     req(dataset_name, datasets)
+    req(dataset_name %in% datasets$dataset_name)
     dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
     file.path(data_dir, dir)
   })
@@ -587,20 +937,18 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
     toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
   })
 
-  dtangleForm <- callModule(dtangleForm, 'dtangle',
-                            show_dtangle = show_dtangle,
-                            new_dataset = new_dataset,
-                            sc_dir = sc_dir,
-                            bulk_dir = bulk_dir,
-                            dataset_name = dataset_name,
-                            explore_eset = explore_eset,
-                            dataset_dir = dataset_dir)
+  dtangleForm <- callModule(
+    dtangleForm, 'dtangle',
+    show_dtangle = show_dtangle,
+    new_dataset = new_dataset,
+    sc_dir = sc_dir,
+    bulk_dir = bulk_dir,
+    explore_eset = explore_eset,
+    dataset_dir = dataset_dir)
 
   return(list(
-    fastq_dir = fastq_dir,
     dataset_name = reactive(input$dataset_name),
     dataset_dir = dataset_dir,
-    is.create = is.create,
     dtangle_est = dtangleForm$dtangle_est,
     show_dtangle = show_dtangle,
     selected_nsv = reactive(input$selected_nsv),
@@ -610,227 +958,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, new_
 
 }
 
-
-#' Logic for dataset quantification part of bulkForm
-#'
-#' @keywords internal
-#' @noRd
-bulkFormQuant <- function(input, output, session, error_msg, dataset_name, pdata, fastq_dir, data_dir, indices_dir) {
-  quant_inputs <- c('end_type', 'pair', 'rep', 'reset', 'run_quant')
-
-  paired <- bulkEndType(input, output, session, fastq_dir)
-
-  observe(shinyjs::toggleClass("pair", 'disabled', condition = !paired()))
-
-
-  reset <- reactive(input$reset)
-  rep <- reactive(input$rep)
-  pair <- reactive(input$pair)
-
-
-  observe({
-    error_msg <- error_msg()
-    toggleClass('quant_labels', 'has-error', condition = !is.null(error_msg))
-    html('error_msg', html = error_msg)
-
-  })
-
-  quantModal <- function(paired) {
-    end_type <- ifelse(paired, 'pair ended', 'single ended')
-
-    UI <- withTags({
-      tags$dl(
-        tags$dt('Are you sure?'),
-        tags$dd('This will take a while.')
-      )
-    })
-
-    modalDialog(
-      UI,
-      title = 'Double check:',
-      size = 's',
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("confirm"), "Quantify", class = 'pull-left btn-warning')
-      )
-    )
-  }
-
-  # Show confirm modal when click Run Qunatification
-  observeEvent(input$run_quant, {
-    showModal(quantModal(paired()))
-  })
-
-  new_dataset <- reactiveVal()
-  deselect_dataset <- reactiveVal(0)
-
-  # run quantification upon confirmation
-  quants <- reactiveValues()
-  pquants <- reactiveValues()
-  observeEvent(input$confirm, {
-    removeModal()
-
-    # check for index
-    index_path <- rkal::get_kallisto_index(indices_dir)
-    if(!length(index_path)) {
-      error_msg('No kallisto index. See github README.')
-      return(NULL)
-    }
-
-    # disable inputs
-    disableAll(quant_inputs)
-
-    # setup
-    pdata <- pdata()
-    paired <- paired()
-    dataset_name <- dataset_name()
-    fastq_dir <- fastq_dir()
-
-
-    ##
-    quants[[dataset_name]] <- callr::r_bg(
-      func = run_kallisto_bulk_bg,
-      package = 'dseqr',
-      args = list(
-        indices_dir = indices_dir,
-        data_dir = fastq_dir,
-        quant_meta = pdata,
-        paired = paired
-      )
-    )
-
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
-    progress$set(message = "Quantifying files", value = 1)
-    pquants[[dataset_name]] <- progress
-
-    enableAll(quant_inputs)
-
-    # trigger deselection and reset fastq_dir
-    deselect_dataset(deselect_dataset()+1)
-    fastq_dir(NULL)
-  })
-
-  observe({
-    invalidateLater(5000, session)
-    handle_bulk_progress(quants, pquants, new_dataset)
-  })
-
-  return(list(
-    new_dataset = new_dataset,
-    deselect_dataset = deselect_dataset,
-    paired = paired,
-    labels = list(
-      reset = reset,
-      pair = pair,
-      rep = rep
-    )
-  ))
-}
-
-handle_bulk_progress <- function(bgs, progs, new_dataset) {
-
-  bg_names <- names(bgs)
-  if (!length(bg_names)) return(NULL)
-
-  todel <- c()
-  for (name in bg_names) {
-    bg <- bgs[[name]]
-    progress <- progs[[name]]
-    if(is.null(bg)) next
-
-    msgs <- bg$read_output_lines()
-    if (length(msgs)) print(msgs)
-
-    # for some reason this un-stalls bg process for integration
-    # also nice to see things printed to stderr
-    errs <- bg$read_error_lines()
-    if (length(errs)) print(errs)
-
-    started <- any(grepl('pseudoaligned', errs))
-    if (started) {
-      progress$set(value = progress$getValue() + 1)
-    }
-
-    # for "Annotating dataset"
-    if (length(msgs)) {
-      progress$set(value = progress$getValue() + 1, message = msgs)
-    }
-
-    if (!bg$is_alive()) {
-      res <- bg$get_result()
-      progress$close()
-      if (res) new_dataset(name)
-      todel <- c(todel, name)
-    }
-  }
-  for (name in todel) {
-    bgs[[name]] <- NULL
-    progs[[name]] <- NULL
-  }
-}
-
-file.move <- function(from, to) {
-  if (any(file.exists(to))) unlink(to)
-  tryCatch(
-    file.rename(from, to),
-    warning = function(w) {
-      if (grepl('Invalid cross-device link', w$message)) {
-        file.copy(from, to)
-        unlink(from)
-      }
-    })
-}
-
-run_kallisto_bulk_bg <- function(indices_dir, data_dir, quant_meta, paired) {
-
-  rkal::run_kallisto_bulk(indices_dir, data_dir, quant_meta, paired)
-  cat('Annotating dataset')
-  eset <- rkal::load_seq(data_dir, save_eset = FALSE)
-  qs::qsave(eset, file.path(data_dir, 'eset.qs'))
-
-  return(TRUE)
-}
-
-#' Logic for end type selection is bulkFormQuant
-#'
-#' @keywords internal
-#' @noRd
-bulkEndType <- function(input, output, session, fastq_dir) {
-
-
-  # get fastq files in directory
-  fastq_files <- reactive({
-    fastq_dir <- fastq_dir()
-    req(fastq_dir)
-
-    list.files(fastq_dir, '.fastq.gz$')
-  })
-
-  # auto detected if paired
-  detected_paired <- reactive({
-    fastqs <- fastq_files()
-    fastq_dir <- fastq_dir()
-    req(fastqs, fastq_dir)
-
-    # auto-detect if paired
-    fastq_id1s <- rkal::get_fastq_id1s(file.path(fastq_dir, fastqs))
-    rkal::detect_paired(fastq_id1s)
-  })
-
-
-
-  observe({
-    # label the end type choices with auto detected
-    end_types <- c('single-ended' = 'single-ended', 'pair-ended' = 'pair-ended')
-    if (detected_paired()) end_types <- end_types[c(2, 1)]
-    names(end_types)[1] <- paste(names(end_types)[1], '(detected)')
-
-    updateSelectizeInput(session, 'end_type', choices = end_types)
-  })
-
-  return(paired = reactive(input$end_type == 'pair-ended'))
-}
 
 
 #' Logic for differential expression analysis part of bulkForm
@@ -921,7 +1048,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 #'
 #' @keywords internal
 #' @noRd
-dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir, dataset_name) {
+dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
 
@@ -1079,191 +1206,6 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
   return(list(
     dtangle_est = dtangle_est
-  ))
-}
-
-
-#' Logic for dataset quantification table
-#'
-#' @keywords internal
-#' @noRd
-bulkQuantTable <- function(input, output, session, fastq_dir, labels, paired) {
-
-  # things user will update and return
-  pdata_r <- reactiveVal()
-  pairs_r <- reactiveVal()
-  reps_r <- reactiveVal()
-  valid_msg <- reactiveVal()
-  is_rendered <- reactiveVal(FALSE)
-
-
-  # colors
-  background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
-
-  # reset everything when quant fastq_dir
-  observeEvent(fastq_dir(), {
-    fastq_dir <- fastq_dir()
-    req(fastq_dir)
-
-    pdata_path <- file.path(fastq_dir, 'pdata.qs')
-
-    # initial creation of saved pdata
-    if (!file.exists(pdata_path)) {
-
-      fastqs <- list.files(fastq_dir, '.fastq.gz$')
-      if (!length(fastqs)) fastqs <- NA
-      pdata <- tibble::tibble('File Name' = fastqs)
-      pdata <- tibble::add_column(pdata, Pair = NA, Replicate = NA, .before = 1)
-      qs::qsave(pdata, pdata_path)
-    }
-
-    pdata <- qs::qread(pdata_path)
-    pairs_r(pdata$Pair)
-    reps_r(pdata$Replicate)
-
-    pdata$Pair <- pdata$Replicate <- NA_character_
-    pdata_r(pdata)
-  })
-
-  # redraw table when quant pdata (otherwise update data using proxy)
-  output$pdata <- DT::renderDataTable({
-    dummy_pdata <- tibble::tibble(Pair = NA, Replicate = NA, 'File Name' = NA)
-    is_rendered(TRUE)
-
-    DT::datatable(
-      dummy_pdata,
-      class = 'cell-border dt-fake-height',
-      rownames = FALSE,
-      escape = FALSE, # to allow HTML in table
-      options = list(
-        columnDefs = list(list(className = 'dt-nopad', targets = c(0, 1))),
-        scrollY = FALSE,
-        paging = FALSE,
-        bInfo = 0
-      )
-    )
-  })
-
-
-  # pdata that gets returned with reps and pairs
-  returned_pdata <- reactive({
-    pdata <- pdata_r()
-    pdata$Replicate <- reps_r()
-    pdata$Pair <- pairs_r()
-
-    return(pdata)
-  })
-
-
-  # save returned pdata so that don't lose work
-  observe({
-    pdata <- returned_pdata()
-    req(pdata)
-
-    pdata_path <- file.path(isolate(fastq_dir()), 'pdata.qs')
-    qs::qsave(pdata, pdata_path)
-  })
-
-
-  # pdata to update Pair/Replicate column in proxy (uses html)
-  html_pata <- reactive({
-
-    # things that trigger update
-    pdata <- pdata_r()
-    req(pdata)
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # update pdata Replicate column
-    rep_nums <- sort(unique(setdiff(reps, NA)))
-    rep_nums <- as.numeric(rep_nums)
-    rep_colors <- get_palette(rep_nums)
-    for (rep_num in rep_nums) {
-      color <- rep_colors[rep_num]
-      rows <- which(reps == rep_num)
-      pdata[rows, 'Replicate'] <- paste('<div style="background-color:', color, ';"></div>')
-    }
-
-    # update pdata Pair column
-    if (paired()) {
-      pair_nums <- sort(unique(setdiff(pairs, NA)))
-      pair_nums <- as.numeric(pair_nums)
-      pair_colors <- get_palette(pair_nums)
-      for (pair_num in pair_nums) {
-        color <- pair_colors[pair_num]
-        rows <- which(pairs == pair_num)
-        pdata[rows, 'Pair'] <- paste('<div style="background:', color, background, ';"></div>')
-      }
-    } else {
-      pdata[1:nrow(pdata), 'Pair'] <- NA
-    }
-
-    return(pdata)
-  })
-
-  # proxy used to replace data
-  proxy <- DT::dataTableProxy("pdata")
-  shiny::observe({
-    req(is_rendered())
-    DT::replaceData(proxy, html_pata(), rownames = FALSE)
-  })
-
-
-  # click 'Paired'
-  shiny::observeEvent(labels$pair(), {
-    req(labels$pair())
-
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # get rows
-    rows  <- input$pdata_rows_selected
-
-    # check for incomplete/wrong input
-    msg <- rkal::validate_pairs(pairs, rows, reps)
-    valid_msg(msg)
-
-    if (is.null(msg)) {
-
-      # add rows as a pair
-      pair_num <- length(unique(setdiff(pairs, NA))) + 1
-      pairs[rows] <- pair_num
-      pairs_r(pairs)
-    }
-  })
-
-  # click 'Replicate'
-  shiny::observeEvent(labels$rep(), {
-    req(labels$rep())
-
-    reps <- reps_r()
-    pairs <- pairs_r()
-
-    # get rows
-    rows  <- input$pdata_rows_selected
-    msg <- rkal::validate_reps(pairs, rows, reps)
-    valid_msg(msg)
-
-    if (is.null(msg)) {
-      # add rows as replicates
-      rep_num <- length(unique(setdiff(reps, NA))) + 1
-      reps[rows] <- rep_num
-      reps_r(reps)
-    }
-  })
-
-
-  # click 'Reset'
-  shiny::observeEvent(labels$reset(), {
-    pdata <- pdata_r()
-    clear <- rep(NA, nrow(pdata))
-    reps_r(clear)
-    pairs_r(clear)
-  })
-
-  return(list(
-    pdata = returned_pdata,
-    valid_msg = valid_msg
   ))
 }
 

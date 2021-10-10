@@ -144,9 +144,7 @@ scSelectedDatasetInput <- function(id) {
             title = 'Toggle to subset current dataset'
           )
         )
-    ),
-
-    shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with single cell fastq or cell ranger files')
+    )
   )
 
 }

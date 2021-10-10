@@ -743,8 +743,7 @@ iqr_replicates <- function(eset, keep_path, annot = "SYMBOL", rm.dup = FALSE) {
 }
 
 
-
-
+# used to validate fastq.gz files before uploading
 attrib_replace <- function(x, cond, ...) {
   if (all(names(cond) %in% names(x)) && identical(cond, x[names(cond)])) x <- c(x, list(...))
   if ("attribs" %in% names(x)) x$attribs <- attrib_replace(x$attribs, cond = cond, ...)
@@ -752,7 +751,8 @@ attrib_replace <- function(x, cond, ...) {
   x
 }
 
-uploadBulkModal <- function(session, show_init, valid_fastq) {
+# modal to upload bulk fastq.gz files
+uploadBulkModal <- function(session, show_init, error_msg_fastq, import_dataset_name) {
   label <- "Click upload or drag files:"
   label_title <- "Accepts *.fastq.gz or eset.qs"
   label <- tags$span(label,
@@ -780,7 +780,7 @@ uploadBulkModal <- function(session, show_init, valid_fastq) {
     ),
     tags$div(
       id = session$ns('validate-up-fastq'),
-      tags$span(class = 'help-block', id = session$ns('error_msg_fastq'))
+      tags$span(class = 'help-block upload', id = session$ns('error_msg_fastq'))
     ),
     tags$div(
       id = session$ns('import_name_container'),
@@ -789,26 +789,29 @@ uploadBulkModal <- function(session, show_init, valid_fastq) {
       shinypanel::textInputWithValidation(
         session$ns('import_dataset_name'),
         'Name for new dataset:',
+        value = import_dataset_name,
         container_id = session$ns('validate-up-name'),
         help_id = session$ns('error_msg_name')
       )
     ),
     tags$div(
-      id = session$ns('quant_labels_container'),
-      style = ifelse(show_init & valid_fastq, '', 'display: none;'),
+      id = session$ns('fastq_labels_container'),
+      style = ifelse(show_init & is.null(error_msg_fastq), '', 'display: none;'),
       justifiedButtonGroup(
-        container_id = session$ns('quant_labels'),
+        container_id = session$ns('fastq_labels'),
         label = 'Label selected rows as:',
-        help_id = session$ns('error_msg'),
-        actionButton(session$ns('pair'), 'Pair'),
-        actionButton(session$ns('rep'), 'Replicate'),
-        actionButton(session$ns('reset'), 'Reset All Labels')
+        help_id = session$ns('error_msg_labels'),
+        actionButton(session$ns('pair'), 'Pairs'),
+        actionButton(session$ns('rep'), 'Replicates'),
+        actionButton(session$ns('reset'), 'Clear Selected')
       )
     ),
-    div(id=session$ns('up_table_container'),
+    div(id=session$ns('uploads_table_container'),
         class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
+        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' make sure file sizes/md5 checksums match before importing.', style='color: grey; font-style: italic;'),
         hr(),
-        DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+        br(),
+        DT::dataTableOutput(session$ns('uploads_table'), width = '100%')
     ),
     title = 'Upload Bulk Dataset',
     size = 'l',
@@ -822,4 +825,161 @@ uploadBulkModal <- function(session, show_init, valid_fastq) {
     ),
     easyClose = FALSE
   )
+}
+
+# modal to confirm import and run quantification
+confirmImportBulkModal <- function(session) {
+
+  UI <- tags$div(
+    tags$dl(
+      style='font-style: italic;',
+      tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' md5 checksums / file sizes match your local files.'),
+      br(),
+      tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' all samples were uploaded.'),
+      tags$br(),
+      tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' any replicate or pair-ended files are labeled correctly.'),
+    ),
+    tags$span(
+      tags$i(class = 'fas fa-exclamation-triangle', style='color: red;'),
+      'This will take a while. If unsure, click ',
+      tags$b('Cancel'),
+      ' and re-open Add Datasets modal.')
+  )
+
+  modalDialog(
+    UI,
+    title = 'Double check:',
+    size = 'l',
+    footer = tagList(
+      tags$div(class = 'pull-left', modalButton("Cancel")),
+      actionButton(session$ns("confirm"), "Quantify", class = 'btn-warning')
+    )
+  )
+}
+
+# validation when upload bulk files
+validate_bulk_uploads <- function(up_df) {
+  msg <- NULL
+
+  sizes <- up_df$size
+  if (any(sizes == 0)) {
+    msg <- 'Files with 0 bytes. Remove and re-upload.'
+    return(msg)
+  }
+
+  md5s <- up_df$md5sum
+  if (any(duplicated(md5s))) {
+    msg <- 'Remove files with identical MD5 checksums.'
+  }
+
+  # try to get a line from fastq files
+  id1s <- rkal::get_fastq_id1s(up_df$datapath)
+  not.fastqs <- id1s == ''
+
+  if (any(not.fastqs)) {
+    msg <- paste('Invalid files:', paste(up_df$name[not.fastqs], collapse = ', '))
+    return(msg)
+  }
+
+  if (length(up_df$name) != length(unique(up_df$name))) {
+    msg <- 'Files must have unique names.'
+    return(msg)
+  }
+
+  return(msg)
+}
+
+# validation run after click "Import"
+validate_import_bulk <- function(up_df, import_dataset_name, reps, pairs, paired) {
+  msg <- NULL
+
+  # need a name
+  if (!isTruthy(import_dataset_name)) {
+    msg <- 'Provide dataset name.'
+    return(msg)
+  }
+
+  # if paired, all must be in a pair
+  na.pairs <- is.na(pairs)
+
+  if (paired & any(na.pairs)) {
+    msg <- 'All files must belong to a pair.'
+    return(msg)
+  }
+
+  # need at least 3 samples
+  nsample <- ifelse(
+    paired,
+    length(unique(pairs)),
+    nrow(up_df)
+  )
+
+  if (nsample < 3) {
+    msg <- 'At least 3 samples required.'
+    return(msg)
+  }
+
+}
+
+handle_bulk_progress <- function(bgs, progs, new_dataset) {
+
+  bg_names <- names(bgs)
+  if (!length(bg_names)) return(NULL)
+
+  todel <- c()
+  for (name in bg_names) {
+    bg <- bgs[[name]]
+    progress <- progs[[name]]
+    if(is.null(bg)) next
+
+    msgs <- bg$read_output_lines()
+    if (length(msgs)) print(msgs)
+
+    # for some reason this un-stalls bg process for integration
+    # also nice to see things printed to stderr
+    errs <- bg$read_error_lines()
+    if (length(errs)) print(errs)
+
+    started <- any(grepl('pseudoaligned', errs))
+    if (started) {
+      progress$set(value = progress$getValue() + 1)
+    }
+
+    # for "Annotating dataset"
+    if (length(msgs)) {
+      progress$set(value = progress$getValue() + 1, message = msgs)
+    }
+
+    if (!bg$is_alive()) {
+      res <- bg$get_result()
+      progress$close()
+      if (res) new_dataset(name)
+      todel <- c(todel, name)
+    }
+  }
+  for (name in todel) {
+    bgs[[name]] <- NULL
+    progs[[name]] <- NULL
+  }
+}
+
+file.move <- function(from, to) {
+  if (any(file.exists(to))) unlink(to)
+  tryCatch(
+    file.rename(from, to),
+    warning = function(w) {
+      if (grepl('Invalid cross-device link', w$message)) {
+        file.copy(from, to)
+        unlink(from)
+      }
+    })
+}
+
+run_kallisto_bulk_bg <- function(indices_dir, data_dir, quant_meta, paired) {
+
+  rkal::run_kallisto_bulk(indices_dir, data_dir, quant_meta, paired)
+  cat('Annotating dataset')
+  eset <- rkal::load_seq(data_dir, save_eset = FALSE)
+  qs::qsave(eset, file.path(data_dir, 'eset.qs'))
+  return(TRUE)
 }

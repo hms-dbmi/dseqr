@@ -12,7 +12,9 @@ bulkPage(
   sc_dir,
   bulk_dir,
   indices_dir,
-  gs_dir
+  gs_dir,
+  add_bulk,
+  remove_bulk
 )
 }
 \arguments{

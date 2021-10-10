@@ -2006,7 +2006,7 @@ getDeleteRowButtons <- function(session, len) {
   inputs <- character(len)
   for (i in seq_len(len)) {
     inputs[i] <- sprintf(
-      '<span class="btn dt-btn" id="%s" onclick="Shiny.onInputChange(\'%s\', this.id, {priority: \'event\'})"><icon class="%s"></icon></span>',
+      '<span title="Delete file" class="btn dt-btn" id="%s" onclick="Shiny.onInputChange(\'%s\', this.id, {priority: \'event\'})"><icon class="%s"></icon></span>',
       paste0(session$ns('delete_'), i),
       session$ns('delete_row'),
       'far fa-trash-alt'

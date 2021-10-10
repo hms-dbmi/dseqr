@@ -86,9 +86,6 @@ bulkFormInput <- function(id) {
   withTags({
     div(class = "well-form well-bg",
         bulkDatasetInput(ns('selected_dataset')),
-        div(id = ns('quant_dataset_panel'), style = 'display: none;',
-            bulkFormQuantInput(ns('quant_form'))
-        ),
         div(id = ns('anal_dataset_panel'), style = 'display: none;',
             bulkFormAnalInput(ns('anal_form'))
         )
@@ -109,42 +106,16 @@ bulkDatasetInput <- function(id) {
         shinypanel::selectizeInputWithButtons(
           ns('dataset_name'), 'Select a bulk dataset:',
           container_id = 'dataset_name_container',
-          options = list(create = TRUE, placeholder = 'Type name to add new bulk dataset', optgroupField = 'type'),
+          options = list(optgroupField = 'type'),
           svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
           actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
           hide_btns = TRUE
         ),
-        shinyFiles::shinyDirLink(ns('new_dataset_dir'), '', 'Select folder with fastq.gz files'),
         div(class = 'hidden-forms',
             dtangleFormInput(ns('dtangle'))
         )
     )
   })
-}
-
-
-#' Dataset quantification inputs for bulkFormInput
-#'
-#' @keywords internal
-#' @noRd
-bulkFormQuantInput <- function(id) {
-  ns <- NS(id)
-
-  tagList(
-    tags$div(id = ns('bulk_controls'),
-             selectizeInput(ns('end_type'),
-                            'Confirm end-type:',
-                            choices = NULL, width = '100%'),
-             justifiedButtonGroup(
-               container_id = ns('quant_labels'),
-               label = 'Label selected rows:',
-               help_id = ns('error_msg'),
-               actionButton(ns('pair'), 'Paired'),
-               actionButton(ns('rep'), 'Replicate'),
-               actionButton(ns('reset'), 'Reset')
-             )
-    )
-  )
 }
 
 
