@@ -87,8 +87,8 @@ navbar2UI <- function(hide) {
       )
     ),
     tags$button(id = 'add_dataset', class=paste(class, add), icon('plus', 'fa-fw'), tags$span(class='hidden-xxs', 'Add Datasets')),
-    tags$button(id = 'integrate_dataset', class=paste(class, add), tags$i(class= 'far fa-object-group fa-fw'), tags$span(class = 'hidden-xxs', 'Integrate Datasets')),
     tags$button(id = 'remove_dataset', class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), tags$span(class = 'hidden-xxs', 'Delete Datasets')),
+    tags$button(id = 'integrate_dataset', class=paste(class, add), tags$i(class= 'far fa-object-group fa-fw'), tags$span(class = 'hidden-xxs', 'Integrate Datasets')),
     tags$span(icon('', 'fa-fw'))
   )
 
@@ -132,11 +132,15 @@ id_from_tab <- function(tab) {
 #'
 #' @keywords internal
 justifiedButtonGroup <- function(..., label, container_id = NULL, help_id = NULL) {
+  btns <- list(...)
+
   tags$div(class = 'form-group selectize-fh', id = container_id,
            tags$label(class = 'control-label',  label),
            tags$div(class = 'btn-group btn-group-justified', role = 'group',
-                    lapply(list(...), function(btn) {
-                      tags$div(class = 'btn-group', role = 'group', btn)
+                    lapply(seq_along(btns), function(i) {
+                      if (is.null(btns[[i]])) return(NULL)
+
+                      tags$div(class = 'btn-group', role = 'group', id = paste0(container_id, '-', i), btns[[i]])
                     })
            ),
            span(id = help_id, class = 'help-block')

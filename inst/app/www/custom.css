@@ -282,6 +282,11 @@ td.dt-nopad span {
     color: white;
 }
 
+.help-block.upload {
+  margin-bottom: 50px;
+  margin-top: -28px;
+}
+
 
 /* table text on 1 line */
 .dt-container {

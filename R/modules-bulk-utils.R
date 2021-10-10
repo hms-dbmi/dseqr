@@ -254,8 +254,10 @@ load_bulk_datasets <-function(data_dir) {
   colnames(datasets) <- c("dataset_name", "dataset_dir")
 
   dataset_names <- list.dirs(file.path(data_dir, 'bulk'), full.names = FALSE, recursive = FALSE)
-  # has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
-  # dataset_names <- dataset_names[has.eset]
+
+  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
+  dataset_names <- dataset_names[has.eset]
+
 
   datasets <- data.frame(dataset_name = dataset_names,
                          dataset_dir = file.path('bulk', dataset_names), stringsAsFactors = FALSE)
@@ -738,4 +740,86 @@ iqr_replicates <- function(eset, keep_path, annot = "SYMBOL", rm.dup = FALSE) {
   }
 
   return(eset)
+}
+
+
+
+
+attrib_replace <- function(x, cond, ...) {
+  if (all(names(cond) %in% names(x)) && identical(cond, x[names(cond)])) x <- c(x, list(...))
+  if ("attribs" %in% names(x)) x$attribs <- attrib_replace(x$attribs, cond = cond, ...)
+  if ("children" %in% names(x)) x$children <- lapply(x$children, function(ch) attrib_replace(ch, cond = cond, ...))
+  x
+}
+
+uploadBulkModal <- function(session, show_init, valid_fastq) {
+  label <- "Click upload or drag files:"
+  label_title <- "Accepts *.fastq.gz or eset.qs"
+  label <- tags$span(label,
+                     title = label_title,
+                     span(class = "hover-info",
+                          icon("info", "fa-fw")))
+
+  modalDialog(
+    tags$div(
+      class='alert alert-warning', role = 'alert',
+      tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.'))
+    ),
+
+    attrib_replace(
+      fileInput(
+        session$ns('up_raw'),
+        label=label,
+        width='100%',
+        buttonLabel = 'upload',
+        accept = c('.qs', '.fastq.gz'),
+        multiple = TRUE
+      ),
+      list(id = session$ns("up_raw"), type = "file"),
+      onchange = sprintf("checkFileName(this, '%s');", session$ns("up_raw_errors"))
+    ),
+    tags$div(
+      id = session$ns('validate-up-fastq'),
+      tags$span(class = 'help-block', id = session$ns('error_msg_fastq'))
+    ),
+    tags$div(
+      id = session$ns('import_name_container'),
+      style = ifelse(show_init, '', 'display: none;'),
+      hr(),
+      shinypanel::textInputWithValidation(
+        session$ns('import_dataset_name'),
+        'Name for new dataset:',
+        container_id = session$ns('validate-up-name'),
+        help_id = session$ns('error_msg_name')
+      )
+    ),
+    tags$div(
+      id = session$ns('quant_labels_container'),
+      style = ifelse(show_init & valid_fastq, '', 'display: none;'),
+      justifiedButtonGroup(
+        container_id = session$ns('quant_labels'),
+        label = 'Label selected rows as:',
+        help_id = session$ns('error_msg'),
+        actionButton(session$ns('pair'), 'Pair'),
+        actionButton(session$ns('rep'), 'Replicate'),
+        actionButton(session$ns('reset'), 'Reset All Labels')
+      )
+    ),
+    div(id=session$ns('up_table_container'),
+        class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
+        hr(),
+        DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    ),
+    title = 'Upload Bulk Dataset',
+    size = 'l',
+    footer = tagList(
+      actionButton(
+        session$ns("import_bulk_dataset"),
+        "Import Dataset",
+        class = ifelse(show_init, 'btn-warning', 'btn-warning disabled'),
+      ),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE
+  )
 }

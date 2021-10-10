@@ -1548,7 +1548,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # open modal selectors
   observeEvent(add_sc(), {
-    showModal(uploadModal(session, isTruthy(up_table())))
+    showModal(uploadSingleCellModal(session, isTruthy(up_table())))
   })
 
   observeEvent(remove_sc(), {

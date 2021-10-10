@@ -132,9 +132,6 @@ bulkFormQuantInput <- function(id) {
 
   tagList(
     tags$div(id = ns('bulk_controls'),
-             selectizeInput(ns('end_type'),
-                            'Confirm end-type:',
-                            choices = NULL, width = '100%'),
              justifiedButtonGroup(
                container_id = ns('quant_labels'),
                label = 'Label selected rows:',
@@ -144,7 +141,6 @@ bulkFormQuantInput <- function(id) {
                actionButton(ns('reset'), 'Reset')
              )
     ),
-    actionButton(ns('run_quant'), 'Run Quantification', width = '100%', class = 'btn-warning')
   )
 }
 
@@ -349,6 +345,18 @@ if (!is_local) {
   )
 }
 
+checkjs <- 'function checkFileName(fieldObj, shinyId) {
+    var fileName  = fieldObj.value;
+    var fileBase = fileName.split(/[\\\\/]/).pop();
+
+    if (!fileBase.endsWith(".fastq.gz")) {
+        fieldObj.value = "";
+        Shiny.setInputValue(shinyId, "", {priority: "event"})
+        return false;
+    }
+    return true;
+}'
+
 
 bootstrapPage(
   remoteDeps,
@@ -359,6 +367,7 @@ bootstrapPage(
   includeScript(path = 'www/renderSelectize.js'),
   includeScript(path = 'www/isMobile.js'),
   includeScript(path = 'www/contextMenu.js'),
+  tags$script(checkjs),
   includeCSS(path = 'www/custom.css'),
   includeCSS(path = 'www/drugs.css'),
   includeCSS(path = 'www/pathways.css'),

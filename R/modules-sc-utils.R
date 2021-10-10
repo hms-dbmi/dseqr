@@ -2094,18 +2094,10 @@ integrationModal <- function(session, choices) {
 
 
 # modal to upload single-cell dataset
-uploadModal <- function(session, show_init) {
+uploadSingleCellModal <- function(session, show_init) {
   label <- "Click upload or drag files:"
 
   modalDialog(
-    fileInput(
-      session$ns('up_raw'),
-      label = label,
-      buttonLabel = 'upload',
-      width = '100%',
-      accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'),
-      multiple = TRUE
-    ),
     tags$div(
       class='alert alert-warning', role = 'alert',
       tags$div(tags$b("For each sample upload files:")),
@@ -2115,7 +2107,16 @@ uploadModal <- function(session, show_init) {
       tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv")),
       hr(),
       '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
-      tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')),
+      tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
+      ),
+    fileInput(
+      session$ns('up_raw'),
+      label = label,
+      buttonLabel = 'upload',
+      width = '100%',
+      accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'),
+      multiple = TRUE
+    ),
     tags$div(
       id = session$ns('sample_name_container'),
       style = ifelse(show_init, '', 'display: none;'),
