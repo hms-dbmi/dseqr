@@ -86,11 +86,14 @@ run_dseqr <- function(project_name,
     options(shiny.testmode = FALSE)
   }
 
+  # partial stack sometimes obscures errors
+  options(shiny.fullstacktrace = TRUE)
+
   # on remote: send errors to slack
   if (!is_local) options(shiny.error = function() send_slack_error(project_name))
 
   # if developing
-  options(shiny.error = browser, shiny.fullstacktrace = TRUE)
+  # options(shiny.error = browser)
 
   # allow up to 30GB uploads
   options(shiny.maxRequestSize=30*1024*1024^2)
