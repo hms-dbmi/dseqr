@@ -1681,7 +1681,7 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     # filter rows by expression
     if (rna_seq) eset <- rkal::filter_genes(eset)
 
-    # rlog normalize
+    # cpm normalize
     eset <- add_vsd(eset, vsd_path(), rna_seq)
     return(eset)
   })
