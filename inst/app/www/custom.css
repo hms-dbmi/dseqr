@@ -409,29 +409,9 @@ body {
     }
 }
 
-
-/*shinyFiles TODO: fix in shinypanel.css */
-.sF-textChoice > .btn {
-    min-height: inherit;
-}
-
-.sF-breadcrumps {
-    width: calc(100% - 350px);
-}
-
-
 /*button focus */
 .btn {
     outline: 0px !important;
-}
-
-.sF-breadcrumps {
-    width: calc(100% - 350px);
-}
-
-/* stop progress from blocking */
-.sF-modalContainer {
-    z-index: 99999;
 }
 
 
