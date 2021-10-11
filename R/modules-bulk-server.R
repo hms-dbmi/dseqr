@@ -467,7 +467,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     curr_paired <- detected_paired()
     if (!curr_paired) df$Pair <- NULL
 
-    if (prev_paired != curr_paired) empty_table(df)
+    if (is.null(prev) || prev_paired != curr_paired) empty_table(df)
   })
 
 
@@ -1712,3 +1712,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
