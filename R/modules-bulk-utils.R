@@ -763,7 +763,9 @@ uploadBulkModal <- function(session, show_init, import_dataset_name) {
   modalDialog(
     tags$div(
       class='alert alert-warning', role = 'alert',
-      tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.'))
+      tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.')),
+      tags$hr(),
+      tags$div('🌱 Only human fastq.gz files are currently supported.')
     ),
 
     attrib_replace(
