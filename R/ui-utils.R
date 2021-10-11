@@ -86,9 +86,9 @@ navbar2UI <- function(hide) {
         inputId = 'feedback-btn'
       )
     ),
-    tags$button(id = 'add_dataset', class=paste(class, add), icon('plus', 'fa-fw'), tags$span(class='hidden-xxs', 'Add Datasets')),
-    tags$button(id = 'remove_dataset', class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), tags$span(class = 'hidden-xxs', 'Delete Datasets')),
-    tags$button(id = 'integrate_dataset', class=paste(class, add), tags$i(class= 'far fa-object-group fa-fw'), tags$span(class = 'hidden-xxs', 'Integrate Datasets')),
+    tags$button(id = 'add_dataset', class=paste(class, add), icon('plus', 'fa-fw'), tags$span(class='hidden-xs', 'Add Datasets')),
+    tags$button(id = 'remove_dataset', class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), tags$span(class = 'hidden-xs', 'Delete Datasets')),
+    tags$button(id = 'integrate_dataset', class=paste(class, add), tags$i(class= 'far fa-object-group fa-fw'), tags$span(class = 'hidden-xs', 'Integrate Datasets')),
     tags$span(icon('', 'fa-fw'))
   )
 
