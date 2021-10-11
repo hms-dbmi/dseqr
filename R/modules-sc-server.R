@@ -1619,6 +1619,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     }
   })
 
+  observe({
+    toggleState('import_samples', condition = !is.null(up_all()))
+  })
+
 
   metric_choices <- c('low_lib_size',
                       'low_n_features',
