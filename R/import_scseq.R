@@ -41,7 +41,7 @@ import_scseq <- function(dataset_name,
   # standardize cellranger files
   is.cellranger <- check_is_cellranger(uploaded_data_dir)
 
-  progress$set(message = "quantifying files", value = value + 1)
+  progress$set(message = "running pseudoalignment", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
 
   progress$set(message = "loading", value + 2)

@@ -1948,7 +1948,7 @@ h5_format_msg <- sprintf(
   'https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/advanced/h5_matrices')
 
 
-validate_import_scseq <- function(up_df, samples) {
+validate_scseq_import <- function(up_df, samples) {
 
   msg <- NULL
 

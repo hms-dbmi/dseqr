@@ -508,7 +508,8 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     showModal(uploadBulkModal(
       session,
       have_uploads(),
-      input$import_dataset_name
+      input$import_dataset_name,
+      detected_paired()
     ))
   })
 
@@ -620,7 +621,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   # dashed lines for 'Pair' html
   background <- 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAPklEQVQoU43Myw0AIAgEUbdAq7VADCQaPyww55dBKyQiHZkzBIwQLqQzCk9E4Ytc6KEPMnTBCG2YIYMVpHAC84EnVbOkv3wAAAAASUVORK5CYII=) repeat'
 
-
   # update Pair/Replicate html
   observe({
 
@@ -631,11 +631,13 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     reps <- reps()
     pairs <- pairs()
 
+    # clear previous html
+    pdata$Replicate <- pdata$Pair <- NA
+
     # update pdata Replicate column
     rep_nums <- sort(unique(setdiff(reps, NA)))
     rep_nums <- as.numeric(rep_nums)
     rep_colors <- get_palette(reps)
-    if (!length(rep_nums)) pdata$Replicate <- NA
 
     for (rep_num in rep_nums) {
       color <- rep_colors[rep_num]
@@ -648,15 +650,12 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
       pair_nums <- sort(unique(setdiff(pairs, NA)))
       pair_nums <- as.numeric(pair_nums)
       pair_colors <- get_palette(pairs)
-      if (!length(pair_nums)) pdata$Pair <- NA
 
       for (pair_num in pair_nums) {
         color <- pair_colors[pair_num]
         rows <- which(pairs == pair_num)
         pdata[rows, 'Pair'] <- paste('<div style="background:', color, background, ';"></div>')
       }
-    } else {
-      pdata[1:nrow(pdata), 'Pair'] <- NA
     }
 
     uploads_table_html(pdata)
@@ -734,6 +733,18 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   have_uploads <- reactive(!is.null(uploads_table()))
 
   observe({
+    shinyjs::toggleCssClass('fastq_labels-1', class = 'hidden', condition = !detected_paired())
+    shinyjs::toggleCssClass('rep', class = 'radius-left', condition = !detected_paired())
+  })
+
+  # clear name error msg if type
+  observe({
+    req(error_msg_name())
+    if (isTruthy(input$import_dataset_name)) error_msg_name(NULL)
+  })
+
+
+  observe({
     shinyjs::toggleCssClass('uploads_table_container', 'invisible-height', condition = !have_uploads())
   })
 
@@ -764,20 +775,27 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   })
 
 
-  # move uploaded to destination
+  # validate that can import
   observeEvent(input$import_bulk_dataset, {
 
-    # validate that can import
     reps <- reps()
     pairs <- pairs()
     up_df <- uploads_table()
     paired <- detected_paired()
-    import_dataset_name <- input$import_dataset_name
+    import_name <- input$import_dataset_name
 
-    msg <- validate_import_bulk(up_df, import_dataset_name, reps, pairs, paired)
-    error_msg_name(msg)
+    # need a name
+    msg_name <- NULL
+    if (!isTruthy(import_name)) msg_name <- 'Provide dataset name.'
 
-    if (is.null(msg)) {
+    msg_labels <- validate_bulk_labels(up_df, reps, pairs, paired)
+    msg_fastq <- validate_bulk_uploads(up_df)
+
+    error_msg_name(msg_name)
+    error_msg_labels(msg_labels)
+    error_msg_fastq(msg_fastq)
+
+    if (is.null(msg_name) && is.null(msg_labels) && is.null(msg_fastq)) {
 
       removeModal()
       Sys.sleep(1)
@@ -791,6 +809,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   # pdata used for quantification
   pdata <- reactive({
     up_df <- uploads_table()
+    paired <- detected_paired()
 
     pdata <- tibble::tibble(
       'Pair' = pairs(),
@@ -848,7 +867,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
 
     # Create a Progress object
     progress <- Progress$new(session, min=0, max = nrow(pdata)+2)
-    progress$set(message = "Quantifying files", value = 1)
+    progress$set(message = "Running pseudoalignment", value = 1)
     pquants[[dataset_name]] <- progress
 
     # clear upload inputs
@@ -1712,3 +1731,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+

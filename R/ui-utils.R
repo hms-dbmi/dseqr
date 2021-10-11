@@ -129,10 +129,13 @@ id_from_tab <- function(tab) {
 #' @param label Character vector. Label above button group.
 #' @param container_id id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.
 #' @param help_id id of help block. Used to show help message in change shinyjs::html
+#' @param class classes to add to btn-group divs.
 #'
 #' @keywords internal
-justifiedButtonGroup <- function(..., label, container_id = NULL, help_id = NULL) {
+justifiedButtonGroup <- function(..., label, container_id = NULL, help_id = NULL, class = '') {
   btns <- list(...)
+
+  if (length(class) == 1) class <- rep(class, length(btns))
 
   tags$div(class = 'form-group selectize-fh', id = container_id,
            tags$label(class = 'control-label',  label),
@@ -140,7 +143,12 @@ justifiedButtonGroup <- function(..., label, container_id = NULL, help_id = NULL
                     lapply(seq_along(btns), function(i) {
                       if (is.null(btns[[i]])) return(NULL)
 
-                      tags$div(class = 'btn-group', role = 'group', id = paste0(container_id, '-', i), btns[[i]])
+                      tags$div(
+                        class = paste('btn-group', class[i]),
+                        role = 'group',
+                        id = paste0(container_id, '-', i),
+                        btns[[i]]
+                      )
                     })
            ),
            span(id = help_id, class = 'help-block')

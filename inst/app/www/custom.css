@@ -2,6 +2,11 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+.btn-group > .btn.btn-default.radius-left {
+    border-top-left-radius: 4px!important;
+    border-bottom-left-radius: 4px!important;
+}
+
 .well-form {
     max-width: 435px !important;
 }
@@ -282,9 +287,17 @@ td.dt-nopad span {
     color: white;
 }
 
-.help-block.upload {
-  margin-bottom: 50px;
-  margin-top: -28px;
+.upload-validation .form-group {
+  min-height: unset;
+  margin-bottom: 0px;
+}
+
+.upload-validation {
+  min-height: 100px;
+}
+
+.upload-validation .help-block {
+  margin-top: -15px;
 }
 
 

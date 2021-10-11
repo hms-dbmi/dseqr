@@ -1606,7 +1606,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     samples <- up_samples()
     req(up_df)
 
-    msg <- validate_import_scseq(up_df, samples)
+    msg <- validate_scseq_import(up_df, samples)
     species <- tryCatch(
       detect_import_species(up_df),
       error = function(e) NULL)

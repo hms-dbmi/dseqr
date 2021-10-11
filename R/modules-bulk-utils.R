@@ -752,7 +752,7 @@ attrib_replace <- function(x, cond, ...) {
 }
 
 # modal to upload bulk fastq.gz files
-uploadBulkModal <- function(session, show_init, import_dataset_name) {
+uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
   label <- "Click upload or drag files:"
   label_title <- "Accepts *.fastq.gz or eset.qs"
   label <- tags$span(label,
@@ -768,21 +768,23 @@ uploadBulkModal <- function(session, show_init, import_dataset_name) {
       tags$div('🌱 Only human fastq.gz files are currently supported.')
     ),
 
-    attrib_replace(
-      fileInput(
-        session$ns('up_raw'),
-        label=label,
-        width='100%',
-        buttonLabel = 'upload',
-        accept = c('.qs', '.fastq.gz'),
-        multiple = TRUE
-      ),
-      list(id = session$ns("up_raw"), type = "file"),
-      onchange = sprintf("checkFileName(this, '%s');", session$ns("up_raw_errors"))
-    ),
-    tags$div(
-      id = session$ns('validate-up-fastq'),
-      tags$span(class = 'help-block upload', id = session$ns('error_msg_fastq'))
+    div(class='upload-validation',
+        attrib_replace(
+          fileInput(
+            session$ns('up_raw'),
+            label=label,
+            width='100%',
+            buttonLabel = 'upload',
+            accept = c('.qs', '.fastq.gz'),
+            multiple = TRUE
+          ),
+          list(id = session$ns("up_raw"), type = "file"),
+          onchange = sprintf("checkFileName(this, '%s');", session$ns("up_raw_errors"))
+        ),
+        tags$div(
+          id = session$ns('validate-up-fastq'),
+          tags$span(class = 'help-block', id = session$ns('error_msg_fastq'))
+        )
     ),
     tags$div(
       id = session$ns('import_name_container'),
@@ -804,8 +806,9 @@ uploadBulkModal <- function(session, show_init, import_dataset_name) {
         label = 'Label selected rows as:',
         help_id = session$ns('error_msg_labels'),
         actionButton(session$ns('pair'), 'Pairs'),
-        actionButton(session$ns('rep'), 'Replicates'),
-        actionButton(session$ns('reset'), 'Clear Selected')
+        actionButton(session$ns('rep'), 'Replicates', class = ifelse(paired, '', 'radius-left')),
+        actionButton(session$ns('reset'), 'Clear Selected'),
+        class = if (paired) '' else c('hidden', '', '')
       )
     ),
     div(id=session$ns('uploads_table_container'),
@@ -828,6 +831,7 @@ uploadBulkModal <- function(session, show_init, import_dataset_name) {
     easyClose = FALSE
   )
 }
+
 
 # modal to confirm import and run quantification
 confirmImportBulkModal <- function(session) {
@@ -900,14 +904,8 @@ validate_bulk_uploads <- function(up_df) {
 }
 
 # validation run after click "Import"
-validate_import_bulk <- function(up_df, import_dataset_name, reps, pairs, paired) {
+validate_bulk_labels <- function(up_df, reps, pairs, paired) {
   msg <- NULL
-
-  # need a name
-  if (!isTruthy(import_dataset_name)) {
-    msg <- 'Provide dataset name.'
-    return(msg)
-  }
 
   # if paired, all must be in a pair
   na.pairs <- is.na(pairs)
