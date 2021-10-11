@@ -459,7 +459,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
         Replicate = character(0),
         File = character(0),
         Size = character(0),
-        `MD5 Checksum` = character(0),
         check.names = FALSE)
     }
 
@@ -490,7 +489,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
                     paging = FALSE
                   )) %>%
       DT::formatStyle('Size', `text-align` = 'right') %>%
-      DT::formatStyle(c('File', 'Size', 'MD5 Checksum'), color = 'gray')
+      DT::formatStyle(c('File', 'Size'), color = 'gray')
   })
 
   # update rendered uploads table using proxy
@@ -509,7 +508,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     showModal(uploadBulkModal(
       session,
       have_uploads(),
-      error_msg_fastq(),
       input$import_dataset_name
     ))
   })
@@ -541,7 +539,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     prev <- uploads_table()
     new <- input$up_raw
     new <- new[file.exists(new$datapath), ]
-    new$md5sum <- tools::md5sum(new$datapath)
 
     # extend reps/pairs
     placeholder <- rep(NA, nrow(new))
@@ -589,9 +586,9 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
       return()
     }
 
-    df <- df[, c('name', 'size', 'md5sum')]
+    df <- df[, c('name', 'size')]
     df$size <- sapply(df$size, utils:::format.object_size, units = 'auto')
-    colnames(df) <- c('File', 'Size', 'MD5 Checksum')
+    colnames(df) <- c('File', 'Size')
 
     df <- dplyr::mutate(df, ' ' = NA, Pair = NA, Replicate = NA,  .before = 1)
     df$` ` <- getDeleteRowButtons(session, nrow(df))
@@ -603,20 +600,21 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   # auto detected if paired
   detected_paired <- reactive({
     up_df <- uploads_table()
+    if (is.null(up_df)) return(FALSE)
+
     fastqs <- up_df$datapath
+    fastqs <- fastqs[file.exists(fastqs)]
 
     # auto-detect if paired
     fastq_id1s <- rkal::get_fastq_id1s(fastqs)
-    try(return(rkal::detect_paired(fastq_id1s)))
-    return(FALSE)
+    if (!length(fastq_id1s)) return(FALSE)
+
+    pairs <- rkal::get_fastq_pairs(fastq_id1s)
+    uniq.pairs <- unique(pairs)
+    paired <- setequal(c("1", "2"), uniq.pairs) || uniq.pairs != '1'
+    return(paired)
   })
 
-
-  # insert/remove 'Paired' button based on type of fastq files
-  observe({
-    paired <- detected_paired()
-    toggleState('pair', condition = paired)
-  })
 
 
   # dashed lines for 'Pair' html
@@ -740,7 +738,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
   })
 
   observe({
-    shinyjs::toggle('fastq_labels_container', condition = is.null(error_msg_fastq()) & have_uploads())
+    shinyjs::toggle('fastq_labels_container', condition = have_uploads())
   })
 
   observe({
@@ -780,15 +778,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     error_msg_name(msg)
 
     if (is.null(msg)) {
-      dataset_dir <- file.path(bulk_dir, import_dataset_name)
-      unlink(dataset_dir, recursive = TRUE)
-      dir.create(dataset_dir, showWarnings = FALSE)
-
-      for (i in 1:nrow(up_df)) {
-        dpath <- up_df$datapath[i]
-        fpath <- file.path(dataset_dir, up_df$name[i])
-        file.move(from = dpath, to = fpath)
-      }
 
       removeModal()
       Sys.sleep(1)
@@ -834,6 +823,17 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     dataset_name <- input$import_dataset_name
     fastq_dir <- file.path(bulk_dir, dataset_name)
 
+
+    # move files
+    up_df <- uploads_table()
+    unlink(fastq_dir, recursive = TRUE)
+    dir.create(fastq_dir, showWarnings = FALSE)
+
+    for (i in 1:nrow(up_df)) {
+      dpath <- up_df$datapath[i]
+      fpath <- file.path(fastq_dir, up_df$name[i])
+      file.move(from = dpath, to = fpath)
+    }
 
     quants[[dataset_name]] <- callr::r_bg(
       func = run_kallisto_bulk_bg,
@@ -1712,4 +1712,3 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-

@@ -752,7 +752,7 @@ attrib_replace <- function(x, cond, ...) {
 }
 
 # modal to upload bulk fastq.gz files
-uploadBulkModal <- function(session, show_init, error_msg_fastq, import_dataset_name) {
+uploadBulkModal <- function(session, show_init, import_dataset_name) {
   label <- "Click upload or drag files:"
   label_title <- "Accepts *.fastq.gz or eset.qs"
   label <- tags$span(label,
@@ -796,7 +796,7 @@ uploadBulkModal <- function(session, show_init, error_msg_fastq, import_dataset_
     ),
     tags$div(
       id = session$ns('fastq_labels_container'),
-      style = ifelse(show_init & is.null(error_msg_fastq), '', 'display: none;'),
+      style = ifelse(show_init, '', 'display: none;'),
       justifiedButtonGroup(
         container_id = session$ns('fastq_labels'),
         label = 'Label selected rows as:',
@@ -808,7 +808,7 @@ uploadBulkModal <- function(session, show_init, error_msg_fastq, import_dataset_
     ),
     div(id=session$ns('uploads_table_container'),
         class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
-        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' make sure file sizes/md5 checksums match before importing.', style='color: grey; font-style: italic;'),
+        span(class='pull-left', tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' make sure file sizes are correct before importing.', style='color: grey; font-style: italic;'),
         hr(),
         br(),
         DT::dataTableOutput(session$ns('uploads_table'), width = '100%')
@@ -833,7 +833,7 @@ confirmImportBulkModal <- function(session) {
   UI <- tags$div(
     tags$dl(
       style='font-style: italic;',
-      tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' md5 checksums / file sizes match your local files.'),
+      tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' file sizes match your local files.'),
       br(),
       tags$dd(tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;'), ' all samples were uploaded.'),
       tags$br(),
@@ -867,11 +867,6 @@ validate_bulk_uploads <- function(up_df) {
     return(msg)
   }
 
-  md5s <- up_df$md5sum
-  if (any(duplicated(md5s))) {
-    msg <- 'Remove files with identical MD5 checksums.'
-  }
-
   # try to get a line from fastq files
   id1s <- rkal::get_fastq_id1s(up_df$datapath)
   not.fastqs <- id1s == ''
@@ -879,6 +874,19 @@ validate_bulk_uploads <- function(up_df) {
   if (any(not.fastqs)) {
     msg <- paste('Invalid files:', paste(up_df$name[not.fastqs], collapse = ', '))
     return(msg)
+  }
+
+  # check pairs
+  pairs <- rkal::get_fastq_pairs(id1s)
+  if (is.null(pairs)) {
+    msg <- "Format of fastq.gz files must be from older/newer Illumina software."
+    return(msg)
+  }
+
+  paired <- '2' %in% unique(pairs)
+  each.paired <- sum(pairs == '1') == sum(pairs == '2')
+  if (paired && !each.paired) {
+    msg <- "Upload both files for pair-ended fastq.gz files."
   }
 
   if (length(up_df$name) != length(unique(up_df$name))) {
