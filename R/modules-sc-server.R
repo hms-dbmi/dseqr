@@ -1350,6 +1350,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_name <- dataset_name()
     if (!isTruthy(dataset_name)) return(NULL)
     dataset_dir <- dataset_dir()
+    require(SingleCellExperiment)
     load_scseq_qs(dataset_dir)
   })
 
@@ -2779,6 +2780,8 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     if (!file.exists(markers_path)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
+      levs <- levels(scseq$cluster)
+      if (length(levs) < 2) return(NULL)
 
       dataset_name <- dataset_name()
 
@@ -2790,7 +2793,8 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
       progress$set(message = "Getting markers", value = 1)
       on.exit(progress$close())
 
-      levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
+      levels(scseq$cluster) <- seq_along(levs)
+
       markers <- get_presto_markers(scseq)
       resoln_name <- paste0(dataset_name, '/', get_resoln_dir(resoln()))
 

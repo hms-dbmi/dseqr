@@ -651,7 +651,13 @@ get_contrast_choices <- function(clusters, test) {
                                  testColor = colours[test_name],
                                  ctrlColor = c('white', colours[ctrl_names]), row.names = NULL, stringsAsFactors = FALSE)
 
+
+
   contrast_choices$title <- paste(test_name, 'vs', c('all', ctrl_names))
+
+  # handle single cluster
+  if (!length(ctrls))
+    contrast_choices <- contrast_choices[1, ]
 
   return(contrast_choices)
 
