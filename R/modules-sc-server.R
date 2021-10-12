@@ -29,7 +29,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq = scForm$scseq,
     annot = scForm$annot,
     clusters = scForm$clusters,
-    dataset_name = scForm$dataset_name,
+    dataset_index = scForm$dataset_index,
     is_mobile = is_mobile,
     clusters_marker_view = clusters_marker_view,
     grid_abundance = grid_abundance,
@@ -456,6 +456,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_cluster = selected_cluster,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name,
+    dataset_index = scDataset$dataset_index,
     species = scDataset$species,
     plots_dir = plots_dir,
     dplots_dir = dplots_dir,
@@ -1773,6 +1774,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   return(list(
     dataset_name = dataset_name,
+    dataset_index = reactive(input$selected_dataset),
     scseq = scseq,
     snn_graph = snn_graph,
     datasets = datasets,
@@ -3187,7 +3189,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
+scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_index, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
@@ -3339,7 +3341,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   update_colors_proxy <- reactiveVal(FALSE)
   update_label_coords_proxy <- reactiveVal(FALSE)
-  observeEvent(dataset_name(), {
+
+  observeEvent(dataset_index(), {
     update_colors_proxy(FALSE)
     update_label_coords_proxy(FALSE)
   }, priority = 100)
