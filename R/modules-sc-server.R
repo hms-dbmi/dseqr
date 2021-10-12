@@ -29,7 +29,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq = scForm$scseq,
     annot = scForm$annot,
     clusters = scForm$clusters,
-    dataset_index = scForm$dataset_index,
+    dataset_name = scForm$dataset_name,
     is_mobile = is_mobile,
     clusters_marker_view = clusters_marker_view,
     grid_abundance = grid_abundance,
@@ -456,7 +456,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     selected_cluster = selected_cluster,
     comparison_type = comparisonType,
     dataset_name = scDataset$dataset_name,
-    dataset_index = scDataset$dataset_index,
     species = scDataset$species,
     plots_dir = plots_dir,
     dplots_dir = dplots_dir,
@@ -1775,7 +1774,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   return(list(
     dataset_name = dataset_name,
-    dataset_index = reactive(input$selected_dataset),
     scseq = scseq,
     snn_graph = snn_graph,
     datasets = datasets,
@@ -3193,7 +3191,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_index, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
+scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
@@ -3331,6 +3329,10 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   colors <- reactive({
     labels <- labels()
     if (is.null(labels)) return(NULL)
+    rendered_dataset <- rendered_dataset()
+    if (is.null(rendered_dataset)) return(NULL)
+
+    if (rendered_dataset != dataset_name()) return(NULL)
 
     annot <- levels(labels)
     pal <- get_palette(annot, with_all = TRUE)
@@ -3343,10 +3345,11 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   # don't understand magic but mostly stops intermediate color/label change
   # when dataset changes
 
+  rendered_dataset <- reactiveVal()
   update_colors_proxy <- reactiveVal(FALSE)
   update_label_coords_proxy <- reactiveVal(FALSE)
 
-  observeEvent(dataset_index(), {
+  observeEvent(dataset_name(), {
     update_colors_proxy(FALSE)
     update_label_coords_proxy(FALSE)
   }, priority = 100)
@@ -3356,9 +3359,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     deck_props <- deck_props()
 
     if (!isTruthyAll(coords, deck_props)) return(NULL)
+    rendered_dataset(dataset_name())
 
     scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
-
 
     picker::picker(coords,
                    colors = isolate(colors()),
