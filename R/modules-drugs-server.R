@@ -53,7 +53,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
     # reactive to new custom query, or bulk change (e.g. number of SVs)
     new_custom()
     scseq_datasets <- load_scseq_datasets(data_dir)
-    bulk_datasets <- load_bulk_datasets(data_dir)
+    bulk_datasets <- load_bulk_datasets(data_dir, with.explore = TRUE)
     custom_anals <- load_custom_anals(data_dir)
     pert_anals <- load_pert_anals()
 

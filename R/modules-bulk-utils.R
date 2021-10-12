@@ -248,7 +248,7 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
 #' @return data.frame with columns "dataset_name" and "dataset_dir"
 #'
 #' @keywords internal
-load_bulk_datasets <-function(data_dir) {
+load_bulk_datasets <-function(data_dir, with.explore = FALSE) {
 
   datasets <- data.frame(matrix(ncol = 2, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir")
@@ -257,6 +257,12 @@ load_bulk_datasets <-function(data_dir) {
 
   has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
   dataset_names <- dataset_names[has.eset]
+
+  # for excluding datasets without a contrast
+  if (with.explore) {
+    has.explore <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'pdata_explore.qs'))
+    dataset_names <- dataset_names[has.explore]
+  }
 
 
   datasets <- data.frame(dataset_name = dataset_names,
