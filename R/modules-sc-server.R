@@ -3327,9 +3327,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (is.null(labels)) return(NULL)
 
     annot <- levels(labels)
-    pal <- get_palette(annot)
-    names(pal) <- annot
-    colors <- unname(pal[labels])
+    pal <- get_palette(annot, with_all = TRUE)
+    colors <- pal[as.numeric(labels)]
 
     return(colors)
   })
@@ -3736,4 +3735,3 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
