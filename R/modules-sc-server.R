@@ -1513,7 +1513,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     unlink(file.path(sc_dir, remove_datasets), recursive = TRUE)
     updateTextInput(session, 'confirm_delete', value = '')
     removeModal()
-    new_dataset(remove_datasets)
+    new_dataset(paste0(remove_datasets, '_delete'))
   })
 
   observe({

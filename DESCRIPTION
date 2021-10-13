@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.21.41
+Version: 0.21.42
 Author: Alex Pickering
 Maintainer: Alex Pickering <alexvpickering@gmail.com>
 Description: GUI to import and explore single-cell and bulk RNA-seq datasets 
