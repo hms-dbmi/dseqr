@@ -448,7 +448,7 @@ load_tx2gene <- function(species, tx2gene_dir) {
   if (file.exists(fpath)) {
     tx2gene <- readRDS(fpath)
   } else {
-    tx2gene <- dseqr.data::load_tx2gene(species, with_hgnc = TRUE)
+    tx2gene <- dseqr.data::load_tx2gene(species, release = NULL, with_hgnc = TRUE)
     saveRDS(tx2gene, fpath)
   }
 
