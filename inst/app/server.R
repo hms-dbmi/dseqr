@@ -216,7 +216,8 @@ server <- function(input, output, session) {
             drugsPage, 'drug',
             data_dir = data_dir,
             pert_query_dir = pert_query_dir,
-            pert_signature_dir = pert_signature_dir)
+            pert_signature_dir = pert_signature_dir,
+            tx2gene_dir = tx2gene_dir)
 
     }, once = TRUE)
 }

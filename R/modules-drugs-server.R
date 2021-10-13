@@ -8,13 +8,14 @@
 #'   single-cell tab.
 #'
 #' @export
-drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir) {
+drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
                      data_dir = data_dir,
                      pert_query_dir = pert_query_dir,
-                     pert_signature_dir = pert_signature_dir)
+                     pert_signature_dir = pert_signature_dir,
+                     tx2gene_dir = tx2gene_dir)
 
   callModule(drugsGenesPlotly, 'genes',
              data_dir = data_dir,
@@ -44,7 +45,7 @@ drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_sig
 #'
 #' @keywords internal
 #' @noRd
-drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir) {
+drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir, tx2gene_dir) {
 
   new_custom <- reactiveVal()
 
@@ -70,6 +71,7 @@ drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir
   selectedAnal <- callModule(selectedAnal, 'drugs',
                              choices = choices,
                              data_dir = data_dir,
+                             tx2gene_dir = tx2gene_dir,
                              new_custom = new_custom,
                              pert_query_dir = pert_query_dir)
 
@@ -616,7 +618,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #'
 #' @keywords internal
 #' @noRd
-selectedAnal <- function(input, output, session, data_dir, choices, new_custom, pert_query_dir = NULL) {
+selectedAnal <- function(input, output, session, data_dir, choices, new_custom, tx2gene_dir, pert_query_dir = NULL) {
   options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'),
                   searchField = c('dataset_name', 'label'))
 
@@ -754,6 +756,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
                                  groups = scSampleGroups$groups,
                                  dataset_dir = dataset_dir,
                                  resoln_dir = resoln_dir,
+                                 tx2gene_dir = tx2gene_dir,
                                  resoln = resoln,
                                  dataset_name = dataset_name,
                                  page = 'drugs')
