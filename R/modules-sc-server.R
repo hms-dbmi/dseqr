@@ -307,6 +307,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
                                 sc_dir = sc_dir,
+                                tx2gene_dir = tx2gene_dir,
                                 set_readonly = set_readonly,
                                 dataset_dir = dataset_dir,
                                 resoln_dir = resoln_dir,
@@ -417,6 +418,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                  dataset_name = scDataset$dataset_name,
                                  sc_dir = sc_dir,
                                  gs_dir = gs_dir,
+                                 tx2gene_dir = tx2gene_dir,
                                  is_integrated = scDataset$is_integrated,
                                  comparison_type = comparisonType,
                                  exclude_ambient = scSampleGene$exclude_ambient,
@@ -761,7 +763,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, tx2gene_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
   cluster_options <- reactive({
@@ -1153,7 +1155,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         cluster <- names(tts)[i]
         tt <- tts[[cluster]]
         paths <- get_drug_paths(contrast_dir(), cluster)
-        run_drug_queries(tt, paths, es, species)
+        run_drug_queries(tt, paths, es, tx2gene_dir, species)
       }
 
       progress$inc(1)
@@ -1806,7 +1808,9 @@ detect_import_species <- function(up_df) {
 
   if (!is.na(h5.file)) {
     infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
-    genes <- infile[['matrix/features/id']][]
+    slot <- ifelse(hdf5r::existsGroup(infile, "matrix"), 'matrix/features/id', 'genes')
+
+    genes <- infile[[slot]][]
     genes <- data.frame(row.names = genes)
   } else {
     genes <- read.table(up_df$datapath[gene.file], row.names = 1)
@@ -1852,7 +1856,7 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #'
 #' @keywords internal
 #' @noRd
-labelTransferForm <- function(input, output, session, sc_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
+labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
   label_transfer_inputs <- c('submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
 
   options <-  reactive({
@@ -1866,16 +1870,22 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
   new_preds <- reactiveVal()
   new_annot <- reactiveVal()
 
-  preds_path <- reactive(file.path(resoln_dir(), 'preds.qs'))
+  preds_dir <- reactive(file.path(resoln_dir(), 'preds'))
 
 
   # saved label transfer predictions
   preds <- reactive({
     new_preds()
 
-    # load previously saved reference preds
-    preds_path <- preds_path()
-    preds <- if (file.exists(preds_path)) qs::qread(preds_path) else list()
+    preds_dir <- preds_dir()
+    pred_files <- list.files(preds_dir)
+
+    preds <- list()
+    for (pred_file in pred_files) {
+      pred_name <- tools::file_path_sans_ext(pred_file)
+      preds[[pred_name]] <- qs::qread(file.path(preds_dir, pred_file))
+    }
+
     preds <- validate_preds(preds, sc_dir)
     return(preds)
   })
@@ -1888,15 +1898,17 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
 
     datasets <- datasets()
     dataset_name <- dataset_name()
-    species <- species()
-    req(preds, datasets, species)
+    req(preds, datasets)
 
-    choices <- get_label_transfer_choices(datasets, dataset_name, preds, species)
+    transfer_name <- new_preds()
+    selected <- get_selected_from_transfer_name(transfer_name, dataset_name)
+
+    choices <- get_label_transfer_choices(datasets, dataset_name, preds)
     updateSelectizeInput(session,
                          'ref_name',
                          choices = choices,
                          server = TRUE,
-                         selected = isolate(new_preds()),
+                         selected = selected,
                          options = options())
   })
 
@@ -1909,11 +1921,15 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
     qs::qread(query_path)
   })
 
+  transfers <- reactiveValues()
+  ptransfers <- reactiveValues()
+
   # submit annotation transfer
   observeEvent(input$ref_name, {
 
     query_name <- dataset_name()
     ref_name <- input$ref_name
+    resoln_name <- resoln_name()
     preds <- preds()
 
     req(ref_name != 'reset')
@@ -1921,90 +1937,41 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
     req(!ref_name %in% names(preds))
     req(show_label_resoln())
 
-    query <- query()
+    transfer_name <- paste0(ref_name, ' → ', query_name)
+
     disableAll(label_transfer_inputs)
 
-    # Create a Progress object
-    progress <- Progress$new()
-    progress$set(message = "Transfering labels", value = 0)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
+    transfers[[transfer_name]] <- callr::r_bg(
+      func = run_label_transfer,
+      package = 'dseqr',
+      args = list(
+        sc_dir = sc_dir,
+        tx2gene_dir = tx2gene_dir,
+        resoln_name = resoln_name,
+        query_name = query_name,
+        ref_name = ref_name
+      )
+    )
 
-    # Create a callback function to update progress.
-    updateProgress <- function(value = NULL, detail = NULL) {
-      if (is.null(value)) {
-        value <- progress$getValue()
-        value <- value + (progress$getMax() - value) / 3
-      }
-      progress$set(value = value, detail = detail)
-    }
-    n = 3
+    progress <- Progress$new(max=3)
+    progress$set(message = paste0(transfer_name, ':'), value = 0)
+    ptransfers[[transfer_name]] <- progress
 
-    # get arguments for SingleR
-    tab <- NULL
-    senv <- loadNamespace('celldex')
-    updateProgress(1/n)
+  })
 
-    if (ref_name %in% ls(senv)) {
-      ref <- get(ref_name, envir = senv)()
-      labels <- ref$label.main
-      genes <- 'de'
+  # enable when complete (only one transfer at a time)
+  observe({
+    invalidateLater(1000, session)
+    doing <- reactiveValuesToList(transfers)
+    doing <- names(doing)[!sapply(doing, is.null)]
 
+    if (!length(doing)) enableAll(label_transfer_inputs)
 
-    } else {
-      ref_subname <- get_resoln_name(sc_dir, ref_name)
-      ref_path <- scseq_part_path(sc_dir, ref_subname, 'scseq_sample')
-      ref_date <- file.info(ref_path)$ctime
-      ref <- qs::qread(ref_path)
+  })
 
-      # check if ref and query have the same founder
-      rfound <- qs::qread(scseq_part_path(sc_dir, ref_name, 'founder'))
-      qfound <- qs::qread(scseq_part_path(sc_dir, query_name, 'founder'))
-
-      # use common cells to transfer labels if so
-      cells <- intersect(colnames(ref), colnames(query))
-
-      if (identical(qfound, rfound) && length(cells)) {
-
-        ref_cluster <- ref[, cells]$cluster
-        query_cluster <- query[, cells]$cluster
-        tab <- table(assigned = ref_cluster, cluster = query_cluster)
-
-      } else {
-        # use aggregated reference for speed
-        ref_path <- scseq_part_path(sc_dir, ref_subname, 'aggr_ref')
-        if (file.exists(ref_path)) {
-          ref <- qs::qread(ref_path)
-
-        } else {
-          set.seed(100)
-          ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
-          qs::qsave(ref, ref_path)
-        }
-        labels <- ref$label
-      }
-    }
-
-    updateProgress(2/n)
-    if (is.null(tab)) {
-      # take best label for each cluster
-      pred <- SingleR::SingleR(test = query, ref = ref, labels = labels)
-      tab <- table(assigned = pred$pruned.labels, cluster = query$cluster)
-    }
-
-    pred <- row.names(tab)[apply(tab, 2, which.max)]
-
-    # keep track of date that reference was used so that can invalidate if overwritten
-    if (exists('ref_date')) names(pred) <- ref_date
-
-    preds_path <- preds_path()
-    preds[[ref_name]] <- pred
-    qs::qsave(preds, preds_path)
-
-    new_preds(ref_name)
-    ref_preds(preds[[ref_name]])
-
-    enableAll(label_transfer_inputs)
+  observe({
+    invalidateLater(5000, session)
+    handle_sc_progress(transfers, ptransfers, new_preds)
   })
 
 
@@ -2013,10 +1980,7 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
     query_name <- resoln_name()
     ref_name <- input$ref_name
     req(query_name)
-
-    # load previously saved reference preds
-    preds_path <- scseq_part_path(sc_dir, query_name, 'preds')
-    preds <- if (file.exists(preds_path)) qs::qread(preds_path) else list()
+    preds <- preds()
 
     # append reset labels
     clusters <- clusters()
@@ -2103,6 +2067,97 @@ labelTransferForm <- function(input, output, session, sc_dir, set_readonly, data
     pred_annot = pred_annot
   ))
 }
+
+run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref_name, progress = NULL, value = 0) {
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
+
+  query_path <- scseq_part_path(sc_dir, resoln_name, 'scseq_sample')
+  preds_dir <- file.path(sc_dir, resoln_name, 'preds')
+  dir.create(preds_dir, showWarnings = FALSE)
+
+  preds_path <- file.path(preds_dir, paste0(ref_name, '.qs'))
+  query <- qs::qread(query_path)
+
+  # get arguments for SingleR
+  tab <- NULL
+  ref_date <- NULL
+  senv <- loadNamespace('celldex')
+
+  progress$set(value+1, detail = 'getting reference')
+
+  if (ref_name %in% ls(senv)) {
+    ref <- get(ref_name, envir = senv)()
+    ref@metadata$species <- get_celldex_species(ref_name)
+    labels <- ref$label.fine
+
+  } else {
+    ref_subname <- get_resoln_name(sc_dir, ref_name)
+    ref_path <- scseq_part_path(sc_dir, ref_subname, 'scseq_sample')
+    ref_date <- file.info(ref_path)$ctime
+    ref <- qs::qread(ref_path)
+
+    # check if ref and query have the same founder
+    rfound <- qs::qread(scseq_part_path(sc_dir, ref_name, 'founder'))
+    qfound <- qs::qread(scseq_part_path(sc_dir, query_name, 'founder'))
+
+    # use common cells to transfer labels if so
+    cells <- intersect(colnames(ref), colnames(query))
+
+    if (identical(qfound, rfound) && length(cells)) {
+
+      ref_cluster <- ref[, cells]$cluster
+      query_cluster <- query[, cells]$cluster
+      tab <- table(assigned = ref_cluster, cluster = query_cluster)
+
+    } else {
+      # use aggregated reference for speed
+      ref_path <- scseq_part_path(sc_dir, ref_subname, 'aggr_ref')
+
+      # aggregation removes metadata
+      ref_species <- ref@metadata$species
+
+      if (file.exists(ref_path)) {
+        ref <- qs::qread(ref_path)
+
+      } else {
+        set.seed(100)
+        ref <- SingleR::aggregateReference(ref, labels=ref$cluster)
+        qs::qsave(ref, ref_path)
+      }
+      labels <- ref$label
+      ref@metadata$species <- ref_species
+    }
+  }
+
+  progress$set(value+2, detail = 'predicting')
+
+  if (is.null(tab)) {
+
+    # use homologous hgnc symbols if not the same species
+    if (query@metadata$species != ref@metadata$species) {
+      ref <- scseq_to_hgnc(ref, tx2gene_dir)
+      query <- scseq_to_hgnc(query, tx2gene_dir)
+    }
+
+    # take best label for each cluster
+    preds <- SingleR::SingleR(test = query, ref = ref, labels = labels)
+    tab <- table(assigned = preds$pruned.labels, cluster = query$cluster)
+  }
+
+  preds <- row.names(tab)[apply(tab, 2, which.max)]
+
+  # keep track of date that reference was used so that can invalidate if overwritten
+  attr(preds, 'ref_date') <- as.numeric(ref_date)
+
+  qs::qsave(preds, preds_path)
+  return(TRUE)
+}
+
 
 
 #' Logic for leiden resolution slider
@@ -3254,9 +3309,12 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   label_repels <- reactive({
     coords <- coords()
-    labels <- as.character(labels())
+    labels <- labels()
     if (!isTruthyAll(coords, labels)) return(NULL)
     if (nrow(coords) != length(labels)) return(NULL)
+
+    levels(labels) <- stringr::str_trunc(levels(labels), width = 20, side = 'center')
+    labels <- as.character(labels)
 
     # show nums if too many labels/mobile
     label_coords <- get_label_coords(coords, labels)

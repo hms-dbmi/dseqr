@@ -44,19 +44,21 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 #'
 #' @keywords internal
 validate_preds <- function(preds, sc_dir) {
-  senv <- loadNamespace('SingleR')
+  senv <- loadNamespace('celldex')
+  external <- ls(senv)
 
   ref_names <- names(preds)
   dated <- c()
 
   dated <- sapply(ref_names, function(ref_name) {
-    if (ref_name %in% ls(senv)) return(FALSE)
+    if (ref_name %in% external) return(FALSE)
     resoln_name <- get_resoln_name(sc_dir, ref_name)
 
     ref_path <- scseq_part_path(sc_dir, resoln_name, 'scseq_sample')
     ref_date <- file.info(ref_path)$ctime
-    ref_date <- as.character(ref_date)
-    res_date <- names(preds[[ref_name]])[1]
+    ref_date <- as.numeric(ref_date)
+    res_date <- attr(preds[[ref_name]], 'ref_date')
+
     dated <- !identical(res_date, ref_date)
 
     return(dated)
@@ -140,7 +142,7 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
 #' @return data.frame with columns \code{value}, \code{label}, \code{type}, and \code{preds}.
 #'
 #' @keywords internal
-get_label_transfer_choices <- function(anal_options, selected_anal, preds, species) {
+get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
 
   # omit previous and current
   is.recent <- anal_options$type == 'Previous Session'
@@ -151,23 +153,41 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds, speci
   anal_options <- anal_options[!is.sel & !is.recent, ]
 
 
-  if (species == 'Homo sapiens') external <- 'Blueprint Encode Data'
-  else if (species == 'Mus musculus') external <- 'Mouse RNAseq Data'
-  else external <- ''
+  external <- c('BlueprintEncodeData',
+                'DatabaseImmuneCellExpressionData',
+                'HumanPrimaryCellAtlasData',
+                'MonacoImmuneData',
+                'MouseRNAseqData',
+                'NovershternHematopoieticData')
+
+  external_type <- rep('External Reference', length(external))
 
   choices <- data.frame(
     label = c('Reset Labels', external, anal_options$name),
     value = c('reset', gsub(' ', '', external), anal_options$name),
     optionLabel = c('Reset Labels', external, anal_options$optionLabel),
-    type = factor(c(type, 'External Reference', anal_options$type), ordered = TRUE),
+    type = factor(c(type, external_type, anal_options$type), ordered = TRUE),
     stringsAsFactors = FALSE
   )
-
 
   choices$preds <- choices$value %in% names(preds)
   choices <- rbind(NA, choices)
 
   return(choices)
+}
+
+
+# used to set selected annotation reference safely when switch datasets
+get_selected_from_transfer_name <- function(transfer_name, dataset_name) {
+  if (is.null(transfer_name)) return(NULL)
+
+  transfer_datasets <- strsplit(transfer_name, ' → ')[[1]]
+  ref_name <- transfer_datasets[1]
+  query_name <- transfer_datasets[2]
+
+  if (query_name != dataset_name) return(NULL)
+
+  return(ref_name)
 }
 
 
@@ -1512,13 +1532,15 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #'
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, es, species = NULL, ngenes = 200) {
+run_drug_queries <- function(top_table, drug_paths, es, tx2gene_dir = NULL, species = 'Homo sapiens', ngenes = 200) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
 
-  if (isTRUE(species == 'Mus musculus')) {
-    names(dprimes) <- toupper(names(dprimes))
+  # map to human hgnc
+  if (species != 'Homo sapiens') {
+    tx2gene <- load_tx2gene(species, tx2gene_dir)
+    names(dprimes) <- species_symbols_to_hgnc(species, symbols, tx2gene_dir)
   }
 
   # get correlations between query and drug signatures
@@ -1533,6 +1555,59 @@ run_drug_queries <- function(top_table, drug_paths, es, species = NULL, ngenes =
   qs::qsave(res$l1000_genes, drug_paths$l1000_genes)
 
   return(res)
+}
+
+get_celldex_species <- function(ref_name) {
+  ifelse(ref_name %in% c('ImmGenData', 'MouseRNAseqData'), 'Mus musculus', 'Homo sapiens')
+}
+
+scseq_to_hgnc <- function(scseq, tx2gene_dir) {
+  species <- scseq@metadata$species
+  if (species == 'Homo sapiens') return(scseq)
+
+  hgnc <- species_symbols_to_hgnc(
+    species = species,
+    symbols = row.names(scseq),
+    tx2gene_dir)
+
+  na.hgnc <- is.na(hgnc)
+  scseq <- scseq[!na.hgnc, ]
+  row.names(scseq) <- hgnc[!na.hgnc]
+
+  return(scseq)
+}
+
+species_symbols_to_hgnc <- function(species, symbols, tx2gene_dir) {
+  species_tx2gene <- load_tx2gene(species, tx2gene_dir)
+  hsapien_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+
+  # df with species gene name and hgnc homologous ensemble id
+  species_tx2gene <-
+    species_tx2gene %>%
+    dplyr::filter(gene_name %in% symbols) %>%
+    dplyr::select(gene_name, hsapiens_homolog_ensembl_gene) %>%
+    na.omit %>%
+    dplyr::filter(!duplicated(gene_name))
+
+  # ensure rows have same order as symbols
+  species_tx2gene <-
+    data.frame(gene_name = symbols) %>%
+    dplyr::left_join(species_tx2gene) %>%
+    dplyr::rename('species_symbol' = 'gene_name')
+
+  # df with hgnc symbol and ensemble id
+  hsapien_tx2gene <- hsapien_tx2gene %>%
+    dplyr::select(gene_name, gene_id) %>%
+    dplyr::distinct() %>%
+    dplyr::rename('hgnc_symbol' = 'gene_name')
+
+  map <- dplyr::left_join(species_tx2gene,
+                          hsapien_tx2gene,
+                          by = c('hsapiens_homolog_ensembl_gene' = 'gene_id'))
+
+  return(map$hgnc_symbol)
+
+
 }
 
 #' Load drug effect size matrices for drug queries
