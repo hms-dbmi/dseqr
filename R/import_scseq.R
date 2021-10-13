@@ -398,9 +398,11 @@ create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'c
     counts <- load_cellranger_counts(data_dir)
     species <- get_species(counts)
 
-    # TODO: save tx2gene for other species
+    # use supplied names as alternative
+    alt_genes <- load_cellranger_genes(data_dir)
+
     tx2gene <- load_tx2gene(species, tx2gene_dir)
-    counts <- process_cellranger_counts(counts, tx2gene)
+    counts <- process_cellranger_counts(counts, tx2gene, alt_genes)
   }
 
   # get ambience expression profile/determine outlier genes
@@ -442,14 +444,14 @@ load_tx2gene <- function(species, tx2gene_dir) {
   ensdb_species <- paste(ensdb_species, collapse = '')
 
   # load if previously saved otherwise save
-  fname <- paste0(ensdb_species, '_tx2gene.rds')
+  fname <- paste0(ensdb_species, '_tx2gene.qs')
   fpath <- file.path(tx2gene_dir,  fname)
 
   if (file.exists(fpath)) {
-    tx2gene <- readRDS(fpath)
+    tx2gene <- qs::qread(fpath)
   } else {
     tx2gene <- dseqr.data::load_tx2gene(species, release = NULL, with_hgnc = TRUE)
-    saveRDS(tx2gene, fpath)
+    qs::qsave(tx2gene, fpath)
   }
 
   return(tx2gene)
@@ -578,7 +580,25 @@ load_cellranger_counts <- function(data_dir) {
   return(counts)
 }
 
-process_cellranger_counts <- function(counts, tx2gene) {
+
+load_cellranger_genes <- function(data_dir) {
+  # read the data in using ENSG features
+  h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+  gene.file <- list.files(data_dir, 'features.tsv|genes.tsv', full.names = TRUE)[1]
+
+  if (length(h5file)) {
+    infile <- hdf5r::H5File$new(h5file, 'r')
+    slot <- ifelse(hdf5r::existsGroup(infile, "matrix"), 'matrix/features/name', 'gene_names')
+    genes <- infile[[slot]][]
+
+  } else {
+    genes <- read.table(gene.file)[[2]]
+  }
+
+  return(genes)
+}
+
+process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
   gene_id <- gene_name <- NULL
 
   # name genes by tx2gene so that best match with cmap/l1000 data
@@ -589,6 +609,10 @@ process_cellranger_counts <- function(counts, tx2gene) {
 
   idx <- match(map$gene_id, row.names(counts))
   row.names(counts)[idx] <- map$gene_name
+
+  # use supplied gene names where no match
+  no.match <- setdiff(seq_len(nrow(counts)), idx)
+  row.names(counts)[no.match] <- alt_genes[no.match]
 
   # remove non-expressed genes
   counts <- counts[Matrix::rowSums(counts) > 0, ]
