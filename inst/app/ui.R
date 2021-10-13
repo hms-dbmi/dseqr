@@ -9,20 +9,6 @@ active <- tabs[1]
 remoteDeps <- list()
 if (!is_local) {
 
-  dtCoreDeps <- htmltools::htmlDependency(
-    'dt-core', '1.10.20',
-    src = c(href = 'https://cdn.datatables.net/1.10.20/'),
-    stylesheet = c('css/jquery.dataTables.min.css', 'css/jquery.dataTables.extra.css'),
-    script = c('js/jquery.dataTables.min.js')
-  )
-
-  dtScrollerDeps <- htmltools::htmlDependency(
-    'dt-ext-scroller', '1.10.20',
-    src = c(href = 'https://cdn.datatables.net/scroller/2.0.1'),
-    stylesheet = c('css/scroller.dataTables.min.css'),
-    script = c('js/dataTables.scroller.min.js')
-  )
-
   selectizeDep <- htmltools::htmlDependency(
     'selectize', '0.12.4',
     src = c(href = 'https://d174upwcmdw9dj.cloudfront.net/'),
@@ -80,8 +66,6 @@ if (!is_local) {
     dseqrDep,
     htmlwidgetsDep,
     pickerDep,
-    dtCoreDeps,
-    dtScrollerDeps,
     bootstrapSelectDep
   )
 }
