@@ -1521,8 +1521,18 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   validate_add_sample <- function(sample, rows) {
-    # TODO
     msg <- NULL
+
+    if (is.null(rows)) {
+      msg <- 'No rows selected.'
+      return(msg)
+    }
+
+    if (!isTruthy(sample)) {
+      msg <- 'No sample name provided'
+      return(msg)
+    }
+
     return(msg)
   }
 

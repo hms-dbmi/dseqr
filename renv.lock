@@ -794,8 +794,8 @@
       "RemoteRepo": "dseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "b8fe6255267342ff5b4f2440c651bbd0b1cf5a57",
-      "Hash": "1a3b433ac542c2f481462056d48bb4fc"
+      "RemoteSha": "7a0f77d6e71966fdf1dda595ae8f9af3fca0a5ec",
+      "Hash": "a2b0e7a0ae88e606f17113bd207afb25"
     },
     "dtangle": {
       "Package": "dtangle",
