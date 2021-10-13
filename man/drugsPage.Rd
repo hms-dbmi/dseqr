@@ -4,7 +4,15 @@
 \alias{drugsPage}
 \title{Logic for Drugs Tab}
 \usage{
-drugsPage(input, output, session, data_dir, pert_query_dir, pert_signature_dir)
+drugsPage(
+  input,
+  output,
+  session,
+  data_dir,
+  pert_query_dir,
+  pert_signature_dir,
+  tx2gene_dir
+)
 }
 \arguments{
 \item{input}{standard shiny module boilerplate}

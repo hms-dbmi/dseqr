@@ -4,7 +4,14 @@
 \alias{run_drug_queries}
 \title{Run drug queries}
 \usage{
-run_drug_queries(top_table, drug_paths, es, species = NULL, ngenes = 200)
+run_drug_queries(
+  top_table,
+  drug_paths,
+  es,
+  tx2gene_dir = NULL,
+  species = "Homo sapiens",
+  ngenes = 200
+)
 }
 \arguments{
 \item{res_paths}{List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to

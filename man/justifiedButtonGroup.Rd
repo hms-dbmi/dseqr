@@ -4,7 +4,13 @@
 \alias{justifiedButtonGroup}
 \title{Full width button group with validation}
 \usage{
-justifiedButtonGroup(..., label, container_id = NULL, help_id = NULL)
+justifiedButtonGroup(
+  ...,
+  label,
+  container_id = NULL,
+  help_id = NULL,
+  class = ""
+)
 }
 \arguments{
 \item{...}{actionButtons}
@@ -14,6 +20,8 @@ justifiedButtonGroup(..., label, container_id = NULL, help_id = NULL)
 \item{container_id}{id of container. Used to toggle 'has-error' class with shinyjs::toggleClass.}
 
 \item{help_id}{id of help block. Used to show help message in change shinyjs::html}
+
+\item{class}{classes to add to btn-group divs.}
 }
 \description{
 Full width button group with validation

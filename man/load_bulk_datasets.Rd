@@ -4,7 +4,7 @@
 \alias{load_bulk_datasets}
 \title{Load previous bulk datasets dataframe}
 \usage{
-load_bulk_datasets(data_dir)
+load_bulk_datasets(data_dir, with.explore = FALSE)
 }
 \arguments{
 \item{data_dir}{Path to folder container \code{'bulk'} and \code{'single-cell'} directories}
