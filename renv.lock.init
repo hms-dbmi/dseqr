@@ -637,10 +637,10 @@
     },
     "cli": {
       "Package": "cli",
-      "Version": "2.5.0",
+      "Version": "3.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "a94ba44cee3ea571e813721e64184172"
+      "Hash": "e3ae5d68dea0c55a12ea12a9fda02e61"
     },
     "clipr": {
       "Package": "clipr",
@@ -771,13 +771,6 @@
       "Repository": "CRAN",
       "Hash": "a0cbe758a531d054b537d16dff4d58a1"
     },
-    "doParallel": {
-      "Package": "doParallel",
-      "Version": "1.0.16",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "2dc413572eb42475179bfe0afabd2adf"
-    },
     "dplyr": {
       "Package": "dplyr",
       "Version": "1.0.6",
@@ -801,8 +794,8 @@
       "RemoteRepo": "dseqr.data",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "17a9891d1b6a65f9a244b545a3d1910dba14d3a8",
-      "Hash": "efc0bebc02db2257a1a1eee692431f63"
+      "RemoteSha": "d46e6cf9f206b0c227c6fc41ab65f589af174967",
+      "Hash": "c50f27a50895006301cba4008166cc27"
     },
     "dtangle": {
       "Package": "dtangle",
@@ -1303,18 +1296,6 @@
       "Repository": "CRAN",
       "Hash": "f4dbc5a47fd93d3415249884d31d6791"
     },
-    "org.Hs.eg.db": {
-      "Package": "org.Hs.eg.db",
-      "Version": "3.12.0",
-      "Source": "Bioconductor",
-      "Hash": "3d2aea7762e91aa3d5b7c267c56d9055"
-    },
-    "org.Mm.eg.db": {
-      "Package": "org.Mm.eg.db",
-      "Version": "3.12.0",
-      "Source": "Bioconductor",
-      "Hash": "4e4ee144dea09b789a4269a68306c0b5"
-    },
     "parallelly": {
       "Package": "parallelly",
       "Version": "1.26.0",
@@ -1335,6 +1316,18 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "52f8028b028076bc3b7ee5d6251abf0d"
+    },
+    "picker": {
+      "Package": "picker",
+      "Version": "0.2.3",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "picker",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "0907b604bc1ba0c1a2ea521190c866b4f22d5fa0",
+      "Hash": "dceefaa7cb6aed7511449e1da514b5b0"
     },
     "pillar": {
       "Package": "pillar",
@@ -1522,6 +1515,18 @@
       "Repository": "CRAN",
       "Hash": "30e5eba91b67f7f4d75d31de14bbfbdc"
     },
+    "repel": {
+      "Package": "repel",
+      "Version": "0.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "repel",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "77394b17ba902d6b73d15d120557e43183c91527",
+      "Hash": "c50167cbdc7a00815cc7ad905df143dd"
+    },
     "reshape2": {
       "Package": "reshape2",
       "Version": "1.4.4",
@@ -1535,6 +1540,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "30ab0ea8c8d3dd16a3fa06903449bbfb"
+    },
+    "rhandsontable": {
+      "Package": "rhandsontable",
+      "Version": "0.3.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "cc9b9fd1376181e84c88621711454676"
     },
     "rhdf5": {
       "Package": "rhdf5",
@@ -1564,8 +1576,8 @@
       "RemoteRepo": "rkal",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "5b9ddd004d87a99406e9c32772c4c2c619232b67",
-      "Hash": "e94f7a07fc4cc3825d396da54f5bfecf"
+      "RemoteSha": "e5262de4f94ed5b1baba3e2174055253f04a9ac1",
+      "Hash": "80694ef2a9b0a934062d437340708c5d"
     },
     "rlang": {
       "Package": "rlang",
@@ -1680,13 +1692,6 @@
       "Repository": "CRAN",
       "Hash": "f895dafd39733c4a70d425f605a832e7"
     },
-    "shinyFiles": {
-      "Package": "shinyFiles",
-      "Version": "0.9.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "b89af8b86b622bf54a81012e44352804"
-    },
     "shinyWidgets": {
       "Package": "shinyWidgets",
       "Version": "0.6.0",
@@ -1722,8 +1727,8 @@
       "RemoteRepo": "shinypanel",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "df703923215b1d2cc004d257d862e8262cf2def3",
-      "Hash": "75724afbfafb0410f6c5d66275e98d4f"
+      "RemoteSha": "51a285825519991283b166147374435c34e38f11",
+      "Hash": "2249011e51e501bd78a39ba63a075003"
     },
     "sitmo": {
       "Package": "sitmo",
