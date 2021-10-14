@@ -12,7 +12,7 @@
 #'   bulk dataset is added.
 #'
 #' @export
-bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices_dir, gs_dir, add_bulk, remove_bulk) {
+bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene_dir, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   msg_quant <- reactiveVal()
 
@@ -30,6 +30,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, indices
                          data_dir = data_dir,
                          sc_dir = sc_dir,
                          bulk_dir = bulk_dir,
+                         tx2gene_dir = tx2gene_dir,
                          gs_dir = gs_dir,
                          msg_quant = msg_quant,
                          explore_eset = explore_eset,
@@ -321,12 +322,13 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_quant, explore_eset, indices_dir, gs_dir, add_bulk, remove_bulk) {
+bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene_dir, msg_quant, explore_eset, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
                         data_dir = data_dir,
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
+                        tx2gene_dir = tx2gene_dir,
                         indices_dir = indices_dir,
                         explore_eset = explore_eset,
                         add_bulk = add_bulk,
@@ -370,7 +372,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, msg_qua
 #'
 #' @keywords internal
 #' @noRd
-bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indices_dir, explore_eset, add_bulk, remove_bulk) {
+bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, data_dir, indices_dir, explore_eset, add_bulk, remove_bulk) {
 
   new_dataset <- reactiveVal()
   options <- list(optgroupField = 'type',
@@ -962,6 +964,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, data_dir, indi
     new_dataset = new_dataset,
     sc_dir = sc_dir,
     bulk_dir = bulk_dir,
+    tx2gene_dir = tx2gene_dir,
     explore_eset = explore_eset,
     dataset_dir = dataset_dir)
 
@@ -1067,7 +1070,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 #'
 #' @keywords internal
 #' @noRd
-dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, explore_eset, dataset_dir) {
+dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, tx2gene_dir, explore_eset, dataset_dir) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
   input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
 
@@ -1135,7 +1138,12 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   scseq <- reactive({
     dataset_name <- input$dtangle_dataset
     dataset_dir <- file.path(sc_dir, dataset_name)
-    load_scseq_qs(dataset_dir, with_logs = TRUE)
+    scseq <- load_scseq_qs(dataset_dir, with_logs = TRUE)
+
+    if (scseq@metadata$species != 'Homo sapiens')
+      scseq <- scseq_to_hgnc(scseq, tx2gene_dir)
+
+    return(scseq)
   })
 
   observeEvent(input$submit_dtangle, {
