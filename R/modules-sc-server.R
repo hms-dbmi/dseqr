@@ -1151,11 +1151,36 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       tts <- top_tables()
       species <- species()
 
+
+      if (species != 'Homo sapiens') {
+        # map from species symbols to hgnc
+        species_tx2gene <- load_tx2gene(species, tx2gene_dir)
+        hsapiens_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+
+        symbols <- unique(unlist(lapply(tts, row.names)))
+
+        map <- data.frame(
+          row.names = symbols,
+          hgnc = species_symbols_to_hgnc(species, symbols, species_tx2gene, hsapiens_tx2gene)
+        )
+
+        # convert row names of top tables to hgnc
+        tts <- lapply(tts, function(tt) {
+          hgnc <- map[row.names(tt), 'hgnc']
+
+          valid <- !is.na(hgnc) & !duplicated(hgnc)
+          tt <- tt[valid, ]
+          row.names(tt) <- hgnc[valid]
+          return(tt)
+        })
+
+      }
+
       for (i in seq_along(tts)) {
         cluster <- names(tts)[i]
         tt <- tts[[cluster]]
         paths <- get_drug_paths(contrast_dir(), cluster)
-        run_drug_queries(tt, paths, es, tx2gene_dir, species)
+        run_drug_queries(tt, paths, es)
       }
 
       progress$inc(1)

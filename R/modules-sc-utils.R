@@ -1532,16 +1532,10 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #'
 #' @keywords internal
-run_drug_queries <- function(top_table, drug_paths, es, tx2gene_dir = NULL, species = 'Homo sapiens', ngenes = 200) {
+run_drug_queries <- function(top_table, drug_paths, es, ngenes = 200) {
 
   # get dprime effect size values for analysis
   dprimes <- get_dprimes(top_table)
-
-  # map to human hgnc
-  if (species != 'Homo sapiens') {
-    tx2gene <- load_tx2gene(species, tx2gene_dir)
-    names(dprimes) <- species_symbols_to_hgnc(species, symbols, tx2gene_dir)
-  }
 
   # get correlations between query and drug signatures
   res <- list(
@@ -1565,10 +1559,14 @@ scseq_to_hgnc <- function(scseq, tx2gene_dir) {
   species <- scseq@metadata$species
   if (species == 'Homo sapiens') return(scseq)
 
+  species_tx2gene <- load_tx2gene(species, tx2gene_dir)
+  hsapiens_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+
   hgnc <- species_symbols_to_hgnc(
     species = species,
     symbols = row.names(scseq),
-    tx2gene_dir)
+    species_tx2gene = species_tx2gene,
+    hsapiens_tx2gene = hsapiens_tx2gene)
 
   na.hgnc <- is.na(hgnc)
   scseq <- scseq[!na.hgnc, ]
@@ -1577,9 +1575,7 @@ scseq_to_hgnc <- function(scseq, tx2gene_dir) {
   return(scseq)
 }
 
-species_symbols_to_hgnc <- function(species, symbols, tx2gene_dir) {
-  species_tx2gene <- load_tx2gene(species, tx2gene_dir)
-  hsapien_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+species_symbols_to_hgnc <- function(species, symbols, species_tx2gene, hsapiens_tx2gene) {
 
   # df with species gene name and hgnc homologous ensemble id
   species_tx2gene <-
@@ -1596,13 +1592,13 @@ species_symbols_to_hgnc <- function(species, symbols, tx2gene_dir) {
     dplyr::rename('species_symbol' = 'gene_name')
 
   # df with hgnc symbol and ensemble id
-  hsapien_tx2gene <- hsapien_tx2gene %>%
+  hsapiens_tx2gene <- hsapiens_tx2gene %>%
     dplyr::select(gene_name, gene_id) %>%
     dplyr::distinct() %>%
     dplyr::rename('hgnc_symbol' = 'gene_name')
 
   map <- dplyr::left_join(species_tx2gene,
-                          hsapien_tx2gene,
+                          hsapiens_tx2gene,
                           by = c('hsapiens_homolog_ensembl_gene' = 'gene_id'))
 
   return(map$hgnc_symbol)
