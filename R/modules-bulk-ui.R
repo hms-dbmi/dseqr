@@ -128,7 +128,7 @@ bulkFormAnalInput <- function(id) {
 
   tagList(
     bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
-    div(id = 'bulk-intro-genes',
+    div(id = ns('explore_genes_container'),
         selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
                        'Show expression for genes:',
                        options = list(maxItems = 6, multiple = TRUE))

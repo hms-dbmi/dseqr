@@ -206,7 +206,7 @@ selectedAnalInput <- function(id, label = 'Select a dataset or query signature:'
     div(id='drugs-intro-query',
         shinypanel::selectizeInputWithButtons(
           inputId = ns('query'), label = label,
-          shiny::actionButton(ns('show_custom'), '', icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom signature'),
+          shiny::actionButton(ns('show_custom'), '', icon = tags$i(class ='far fa-fw fa-file-alt'), title = 'Toggle custom signature'),
           options = list(optgroupField = 'type'))
     ),
     tags$div(id='drugs-intro-comparison',

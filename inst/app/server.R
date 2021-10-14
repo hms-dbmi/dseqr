@@ -202,9 +202,9 @@ server <- function(input, output, session) {
             data_dir = data_dir,
             sc_dir = sc_dir,
             bulk_dir = bulk_dir,
+            tx2gene_dir = tx2gene_dir,
             gs_dir = gs_dir,
             indices_dir = indices_dir,
-            tx2gene_dir = tx2gene_dir,
             add_bulk = add_bulk,
             remove_bulk = remove_bulk)
 

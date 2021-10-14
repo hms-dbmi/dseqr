@@ -845,11 +845,8 @@ validate_up_meta <- function(res, ref) {
   msg <- NULL
   groups <- na.exclude(res$group)
 
-  if (!all(row.names(res) %in% row.names(ref))) {
-    msg <- "Do not change row names"
-
-  } else if (length(unique(groups)) < 2) {
-    msg <- 'Specify at least two groups'
+   if (length(unique(groups)) < 2) {
+    msg <- 'At least two group names needed.'
   }
 
   return(msg)

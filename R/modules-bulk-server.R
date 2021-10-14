@@ -120,6 +120,7 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
 
   group <- reactive({
     eset <- explore_eset()
+    if (is.null(eset)) return(NULL)
     pdata <- Biobase::pData(eset)
 
     # setup group factor and colors
@@ -141,6 +142,7 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
 
   mds <- reactive({
     eset <- explore_eset()
+    req(eset)
 
     mds_path <- isolate(mds_path())
     if (file.exists(mds_path)) {
@@ -380,11 +382,13 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
 
 
 
-  # only show nsv/dtangle toggle if existing dataset
+  # only show nsv/dtangle toggle if dataset with groups
+  have_groups <- reactive(isTruthy(explore_eset()))
+
   observe({
     shinypanel::toggleSelectizeButtons('dataset_name',
                                        button_ids = c('show_nsv', 'show_dtangle'),
-                                       condition = dataset_exists())
+                                       condition = have_groups())
   })
 
 
@@ -393,7 +397,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
     load_bulk_datasets(data_dir)
   })
 
-  dataset_exists <- reactive(isTruthy(input$dataset_name))
 
   observe({
     datasets <- datasets()
@@ -890,8 +893,9 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
 
   # directory to existing dataset for exploration
   dataset_dir <- reactive({
-    req(dataset_exists())
     dataset_name <- input$dataset_name
+    if (is.null(dataset_name)) return(NULL)
+
     datasets <- datasets()
     req(dataset_name, datasets)
     req(dataset_name %in% datasets$dataset_name)
@@ -994,7 +998,7 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
     eset <- explore_eset()
     pdata <- Biobase::pData(eset)
-    req(eset)
+    if (is.null(eset)) return(NULL)
 
     prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.qs')
     pdata_path <- file.path(dataset_dir(), 'pdata_explore.qs')
@@ -1036,15 +1040,34 @@ bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset
 
   # Gene choices
   # ---
-  observe({
-    dataset_name()
-    eset <- explore_eset()
-    choices <- c(NA, row.names(eset))
-    updateSelectizeInput(session, 'explore_genes', choices = choices, server = TRUE)
+
+  have_groups <- reactive(!is.null(explore_eset()))
+  observe(toggle('explore_genes_container', condition = have_groups()))
+
+
+  # order by top table if have
+  gene_choices <- reactive({
+    tt <- bulkAnal$top_table()
+
+    if (!is.null(tt)) {
+      choices <- c(NA, row.names(tt))
+
+    } else {
+      eset <- explore_eset()
+      choices <- c(NA, row.names(eset))
+    }
+
+    return(choices)
   })
 
-  # Bulk anal
+  observe({
+    dataset_name()
+    updateSelectizeInput(session, 'explore_genes', choices = gene_choices(), server = TRUE)
+  })
+
+  # Comparison Groups and Differential Analyses
   # ---
+
   pdata <- reactive({
     req(explore_eset())
     Biobase::pData(explore_eset())
@@ -1075,6 +1098,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
 
   dtangle_est <- reactiveVal()
+  observeEvent(dataset_dir(), dtangle_est(NULL))
 
   # show deconvolution form toggle
   observe({
@@ -1148,6 +1172,10 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
   observeEvent(input$submit_dtangle, {
 
+    eset <- explore_eset()
+    dtangle_dataset <- input$dtangle_dataset
+    if (!isTruthyAll(eset, dtangle_dataset)) return(NULL)
+
     # disable inputs
     disableAll(input_ids)
 
@@ -1159,7 +1187,6 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     progress$set(message = "Deconvoluting", value = 0)
     progress$set(value = 1)
 
-    dtangle_dataset <- input$dtangle_dataset
 
     # get names of clusters
     include_clusters <- input$include_clusters
@@ -1171,7 +1198,6 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     include_names <- include_choices$name[as.numeric(include_clusters)]
 
-    eset <- explore_eset()
     pdata <- Biobase::pData(eset)
 
     # subset to selected clusters
@@ -1443,6 +1469,10 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   contrast_options <- list(render = I('{option: bulkContrastOptions, item: bulkContrastItem}'))
   input_ids <- c('click_dl', 'contrast_groups')
 
+  # hide group selector if no groups
+  have_groups <- reactive(!is.null(eset()))
+  observe(toggle('run_anal_container', condition = have_groups()))
+
 
   # group levels used for selecting test and control groups
   group_levels <- reactive({
@@ -1461,15 +1491,46 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     )
   })
 
-  observe({
-    updateSelectizeInput(session, 'contrast_groups', choices = group_choices(), server = TRUE, options = contrast_options)
+  # re-select previous group choices
+  contrast_groups <- reactiveVal()
+  prev_path <- reactive(file.path(dataset_dir(), 'prev_groups.qs'))
+
+
+  observe(contrast_groups(qread.safe(prev_path())))
+
+  observeEvent(input$contrast_groups, {
+    groups <- input$contrast_groups
+    if (is.null(groups)) return(NULL)
+
+    attr(groups, 'dataset_name') <- dataset_name()
+    prev <- contrast_groups()
+
+    if (!identical(prev, groups)) {
+      qs::qsave(groups, prev_path())
+      contrast_groups(groups)
+    }
+
   })
 
-  full_contrast <- reactive(length(input$contrast_groups) == 2)
+  observe({
+    prev <- qread.safe(prev_path())
+    updateSelectizeInput(session,
+                         'contrast_groups',
+                         choices = group_choices(),
+                         selected = prev,
+                         server = TRUE,
+                         options = contrast_options)
+  })
+
+  valid_contrast <- reactive({
+    groups <- contrast_groups()
+    dataset <- attr(groups, 'dataset_name')
+    length(groups) == 2 && !is.null(dataset) && dataset == dataset_name()
+  })
 
   anal_name <- reactive({
-    req(full_contrast())
-    groups <- input$contrast_groups
+    req(valid_contrast())
+    groups <- contrast_groups()
     return(paste0(groups[1], '_vs_', groups[2]))
   })
 
@@ -1540,7 +1601,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   drug_queries <- reactive({
 
-    if (!full_contrast()) {
+    if (!valid_contrast()) {
       res <- NULL
 
     } else if (saved_drugs()) {
@@ -1567,9 +1628,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   # differential expression top table
   top_table <- reactive({
-    if (!full_contrast()) return(NULL)
+    if (!valid_contrast()) return(NULL)
     lm_fit <- lm_fit()
-    groups <- input$contrast_groups
+    groups <- contrast_groups()
 
     # loses sync when groups selected and change dataset
     if (!all(groups %in% colnames(lm_fit$mod))) return(NULL)
@@ -1579,7 +1640,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   # go/kegg pathway result
   path_res <- reactive({
-    req(full_contrast())
+    req(valid_contrast())
     goana_path <- goana_path()
 
     if (file.exists(goana_path)) {
@@ -1593,7 +1654,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       progress <- Progress$new(session, min=0, max = 2)
       on.exit(progress$close())
       progress$set(message = "Running pathway analysis", value = 1)
-      groups <- input$contrast_groups
+      groups <- contrast_groups()
 
       # loses sync when groups selected and change dataset
       req(all(groups %in% colnames(lm_fit$mod)))
@@ -1616,7 +1677,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   # enable download
   observe({
-    toggleState('download', condition = full_contrast())
+    toggleState('download', condition = valid_contrast())
   })
 
   dl_fname <- reactive({
@@ -1660,7 +1721,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   return(list(
     name = anal_name,
-    contrast_groups = reactive(input$contrast_groups),
+    contrast_groups = contrast_groups,
     lm_fit = lm_fit,
     top_table = top_table,
     drug_queries = drug_queries,
@@ -1685,13 +1746,13 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     eset <- eset()
     pdata <- explore_pdata()
     in.sync <- identical(colnames(eset), row.names(pdata))
-    req(in.sync)
+    if (!in.sync) return(NULL)
 
     # need that pdata_explore has more than two groups
     keep <- row.names(pdata)[!is.na(pdata$Group)]
     pdata <- pdata[keep, ]
-    req(length(unique(pdata$Group)) > 1)
-    req(length(keep) > 2)
+    if (!length(unique(pdata$Group)) > 1) return(NULL)
+    if (!length(keep) > 2) return(NULL)
 
     # determine if this is rna seq data
     rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
@@ -1718,6 +1779,8 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   # explore_eset used for all plots
   explore_eset <- reactive({
     eset <- norm_eset()
+    if (is.null(eset)) return(NULL)
+
     numsv <- numsv()
 
     # adjust for pairs/surrogate variables

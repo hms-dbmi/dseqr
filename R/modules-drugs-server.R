@@ -695,9 +695,9 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
   # Bulk analysis
   # ---
-  eset  <- reactive(qs::qread(file.path(dataset_dir(), 'eset.qs')))
-  pdata <- reactive(qs::qread(file.path(dataset_dir(), 'pdata_explore.qs')))
-  svobj <- reactive(qs::qread(file.path(dataset_dir(), 'svobj.qs')))
+  eset  <- reactive(qread.safe(file.path(dataset_dir(), 'eset.qs')))
+  pdata <- reactive(qread.safe(file.path(dataset_dir(), 'pdata_explore.qs')))
+  svobj <- reactive(qread.safe(file.path(dataset_dir(), 'svobj.qs')))
 
   numsv_path <- reactive(file.path(dataset_dir(), 'numsv.qs'))
   numsv <- reactive({
@@ -718,6 +718,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
                          svobj = svobj,
                          numsv = numsv,
                          dataset_dir = dataset_dir,
+                         dataset_name = dataset_name,
                          is_bulk = is_bulk)
 
 
