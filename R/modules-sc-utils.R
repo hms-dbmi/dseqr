@@ -845,7 +845,7 @@ validate_up_meta <- function(res, ref) {
   msg <- NULL
   groups <- na.exclude(res$group)
 
-   if (length(unique(groups)) < 2) {
+  if (length(unique(groups)) < 2) {
     msg <- 'At least two group names needed.'
   }
 
@@ -2151,7 +2151,8 @@ integrationModal <- function(session, choices) {
                      label = 'Name for integrated dataset:',
                      help_id = ns('error_msg')
                    )
-          )
+          ),
+          div(tags$i(class = 'fas fa-exclamation-triangle', style='color: red;'), ' Need 3 or more samples for p-values and grid plots.', style='color: grey; font-style: italic;')
       )
     }),
     title = 'Integrate Single Cell Datasets',
@@ -2182,7 +2183,7 @@ uploadSingleCellModal <- function(session, show_init) {
       hr(),
       '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
       tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
-      ),
+    ),
     fileInput(
       session$ns('up_raw'),
       label = label,
@@ -2207,7 +2208,7 @@ uploadSingleCellModal <- function(session, show_init) {
     div(
       id = session$ns('up_table_container'),
       class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
-        DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+      DT::dataTableOutput(session$ns('up_table'), width = '100%'),
     ),
     title = 'Upload Single Cell Datasets',
     size = 'l',
@@ -2216,7 +2217,7 @@ uploadSingleCellModal <- function(session, show_init) {
         inputId = session$ns("import_samples"),
         label = "Import Datasets",
         class = ifelse(show_init, 'btn-warning', 'btn-warning disabled')
-        ),
+      ),
       tags$div(class='pull-left', modalButton('Cancel'))
     ),
     easyClose = FALSE,
