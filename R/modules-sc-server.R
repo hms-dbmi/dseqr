@@ -425,6 +425,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                  applied = scResolution$applied,
                                  is_mobile = is_mobile)
 
+
+
   # the selected gene for sample comparison
   scSampleGene <- callModule(selectedGene, 'gene_samples',
                              scseq = scDataset$scseq,
@@ -434,10 +436,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              resoln_dir = resoln_dir,
                              tx2gene_dir = tx2gene_dir,
                              is_integrated = scDataset$is_integrated,
+                             can_statistic = scSampleGroups$can_statistic,
                              selected_markers = scSampleClusters$top_table,
                              selected_cluster = scSampleClusters$selected_cluster,
                              type = 'samples',
                              ambient = scSampleClusters$ambient)
+
 
 
   return(list(
@@ -746,11 +750,21 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     return(lm_fit)
   })
 
+
+  can_statistic <- reactive({
+    groups <- groups()
+    meta <- prev_meta()
+
+    sum(meta$group %in% groups) > 2
+  })
+
+
   return(list(
     lm_fit = lm_fit,
     lm_fit_grid = lm_fit_grid,
     groups = groups,
-    meta = prev_meta
+    meta = prev_meta,
+    can_statistic = can_statistic
   ))
 }
 
@@ -1408,6 +1422,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
     return(dataset_name %in% integrated)
   })
+
 
   species <- reactive({
     scseq <- scseq()
@@ -2951,7 +2966,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
 #'
 #' @keywords internal
 #' @noRd
-selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, can_statistic = function()FALSE, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
 
@@ -3011,10 +3026,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
 
   # disable buttons when not valid
-  observe({
-    toggleState('show_pbulk', condition = is_integrated())
-    toggleState('show_biogps', condition = have_biogps())
-  })
+  observe(toggleState('show_pbulk', condition = can_statistic()))
+  observe(toggleState('show_biogps', condition = have_biogps()))
 
   saved_metrics <- reactiveVal()
   custom_metrics <- reactiveVal()
