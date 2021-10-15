@@ -11,6 +11,7 @@ bulkPage(
   data_dir,
   sc_dir,
   bulk_dir,
+  tx2gene_dir,
   indices_dir,
   gs_dir,
   add_bulk,

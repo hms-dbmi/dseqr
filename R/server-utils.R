@@ -23,8 +23,8 @@ qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
 #' @param ids Character vector of ids to disable
 #'
 #' @keywords internal
-disableAll <- function(ids){
-  for (id in ids) shinyjs::disable(id)
+disableAll <- function(ids, asis = rep(FALSE, length(ids))){
+  for (i in seq_along(ids)) shinyjs::disable(ids[i], asis = asis[i])
   shinyjs::runjs("$(\".tooltip\").tooltip(\"hide\");")
 }
 
@@ -34,8 +34,8 @@ disableAll <- function(ids){
 #' @param ids Character vector of ids to enable
 #'
 #' @keywords internal
-enableAll <- function(ids) {
-  for (id in ids) shinyjs::enable(id)
+enableAll <- function(ids, asis = rep(FALSE, length(ids))) {
+  for (i in seq_along(ids)) shinyjs::enable(ids[i], asis = asis[i])
 }
 
 #' Check truthiness of multiple objects

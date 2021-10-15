@@ -1882,7 +1882,8 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #' @keywords internal
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
-  label_transfer_inputs <- c('submit_transfer', 'overwrite_annot', 'ref_name', 'resoln')
+  label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_azi')
+  asis <- c(FALSE, FALSE, TRUE, TRUE)
 
   options <-  reactive({
     on_init <- NULL
@@ -1948,6 +1949,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
 
   transfers <- reactiveValues()
   ptransfers <- reactiveValues()
+  is_disabled <- reactiveVal(FALSE)
 
   # submit annotation transfer
   observeEvent(input$ref_name, {
@@ -1964,7 +1966,8 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
 
     transfer_name <- paste0(ref_name, ' → ', query_name)
 
-    disableAll(label_transfer_inputs)
+    disableAll(label_transfer_inputs, asis)
+    is_disabled(TRUE)
 
     transfers[[transfer_name]] <- callr::r_bg(
       func = run_label_transfer,
@@ -1990,7 +1993,10 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     doing <- reactiveValuesToList(transfers)
     doing <- names(doing)[!sapply(doing, is.null)]
 
-    if (!length(doing)) enableAll(label_transfer_inputs)
+    if (!length(doing) && is_disabled()) {
+      enableAll(label_transfer_inputs, asis)
+      is_disabled(FALSE)
+    }
 
   })
 
@@ -2093,6 +2099,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   ))
 }
 
+# TODO: save SingleR result as resolution independent and perform table on demand
 run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref_name, progress = NULL, value = 0) {
 
   if (is.null(progress)) {
@@ -2190,7 +2197,7 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 #' @keywords internal
 #' @noRd
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups) {
-  resolution_inputs <- c('resoln')
+  resolution_inputs <- c('resoln', 'resoln_azi')
 
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()

@@ -11,6 +11,11 @@ body {
     max-width: 435px !important;
 }
 
+.progress-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .invisible-height {
   visibility: hidden;
   height: 0;
