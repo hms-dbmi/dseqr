@@ -3467,6 +3467,13 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     update_label_coords_proxy(FALSE)
   }, priority = 100)
 
+  grid_legend_items = list(
+    list(color = '#FF0000', label = '↑'),
+    list(color = '#0000FF', label = '↓'),
+    list(color = '#989898', label = 'p < .05'),
+    list(color = '#EAEAEA', label = 'p ≥ .05')
+  )
+
   output$cluster_plot <- picker::renderPicker({
     coords <- coords()
     deck_props <- deck_props()
@@ -3483,6 +3490,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
                    polygons = isolate(polygons()),
                    point_color_polygons = "white",
                    show_controls = FALSE,
+                   grid_legend_items = grid_legend_items,
                    deck_props = deck_props,
                    text_props = text_props,
                    scatter_props = scatter_props)
