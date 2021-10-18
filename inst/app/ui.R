@@ -33,10 +33,17 @@ if (!is_local) {
     src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
     script = c("htmlwidgets.js")
   )
+
   pickerDep <- htmltools::htmlDependency(
     'picker', '0.2.5',
     src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
-    script = c("picker.min.js")
+    script = c("picker2.min.js")
+  )
+
+  deckglDep <- htmltools::htmlDependency(
+    'deck.gl', '8.1.4',
+    src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
+    script = c("deckgl.min.js")
   )
 
   bootstrapDep <- htmltools::htmlDependency(
@@ -65,6 +72,7 @@ if (!is_local) {
     shinypanelDep,
     dseqrDep,
     htmlwidgetsDep,
+    deckglDep,
     pickerDep,
     bootstrapSelectDep
   )
