@@ -7,7 +7,7 @@ active <- tabs[1]
 
 
 remoteDeps <- list()
-if (!is_local) {
+if (is_local) {
 
   selectizeDep <- htmltools::htmlDependency(
     'selectize', '0.12.4',
@@ -36,8 +36,8 @@ if (!is_local) {
 
   pickerDep <- htmltools::htmlDependency(
     'picker', '0.2.5',
-    src = c(href = "https://d174upwcmdw9dj.cloudfront.net/"),
-    script = c("picker2.min.js")
+    src = c(href = "https://d174upwcmdw9dj.cloudfront.net"),
+    script = c("picker3.min.js")
   )
 
   deckglDep <- htmltools::htmlDependency(

@@ -1319,15 +1319,15 @@
     },
     "picker": {
       "Package": "picker",
-      "Version": "0.2.3",
+      "Version": "0.2.4",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "picker",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "23e9f0cd9507143a0e3529a709f8a7f1ee8464d1",
-      "Hash": "829ecf5c08c35e09725bff08ecb953b7"
+      "RemoteSha": "65d139149476821e216edb52db4067c911952b8f",
+      "Hash": "e85e4a6bd5e27044608642ce9dce7a69"
     },
     "pillar": {
       "Package": "pillar",

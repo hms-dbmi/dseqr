@@ -1362,7 +1362,7 @@ disableMobileKeyboard <- function(id) {
 #' @keywords internal
 #' @noRd
 scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
-  dataset_inputs <- c('selected_dataset', 'show_label_resoln')
+  dataset_inputs <- c('selected_dataset', 'show_label_resoln', 'show_subset')
 
   options <- list(
     render = I('{option: scDatasetOptions, item: scDatasetItem}'),
@@ -1390,8 +1390,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_name <- dataset_name()
     if (!isTruthy(dataset_name)) return(NULL)
     dataset_dir <- dataset_dir()
+
+    disableAll(dataset_inputs)
     require(SingleCellExperiment)
-    load_scseq_qs(dataset_dir)
+    scseq <- load_scseq_qs(dataset_dir)
+    enableAll(dataset_inputs)
+
+    return(scseq)
   })
 
   # load snn graph
@@ -3383,27 +3388,21 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   label_coords <- reactive({
     label_repels <- label_repels()
-    title <- title()
     coords <- coords()
     show_grid <- show_grid()
 
-    if (!isTruthyAll(label_repels, title, coords)) return(NULL)
+    if (!isTruthyAll(label_repels, coords)) return(NULL)
 
     nlab <- nrow(label_repels)
-    title <- ifelse(show_grid, title, '')
     label_size <- ifelse(nlab > 15, 14, 18)
 
-    label_repels <- rbind(
-      c(min(coords[,1]), max(coords[,2]), title),
-      label_repels)
+    label_repels$anchor <- rep('middle', nlab)
+    label_repels$baseline <- rep('center', nlab)
+    label_repels$size <- rep(label_size, nlab)
 
-    label_repels$anchor <- c('start', rep('middle', nlab))
-    label_repels$baseline <- c('top', rep('center', nlab))
-    label_repels$size <- c(18, rep(label_size, nlab))
-
-    # only title label if showing grid
+    # hide cluster labels if showing grid
     if (show_grid)
-      label_repels <- label_repels[1, ]
+      label_repels <- NULL
 
     return(label_repels)
   })
@@ -3500,6 +3499,12 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   observe(picker::update_picker(proxy, clusters_marker_view()))
   observe(picker::update_picker(proxy, polygons = polygons()))
   observe(picker::update_picker(proxy, labels = labels()))
+
+  observe({
+    title <- title()
+    title <- ifelse(show_grid(), title, '')
+    picker::update_picker(proxy, title = title)
+  })
 
   observe({
     label_coords <- label_coords()
@@ -3634,7 +3639,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scseq <- scseq()
     coords <- coords()
     cells <- cells()
-    title <- title()
 
     if (!isTruthyAll(cells, scseq, coords)) return(NULL)
 
@@ -3652,11 +3656,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     # show group name as plot label
     label_coords <- NULL
 
-    if (isTruthy(title)) {
-      label_coords <- data.frame(x = xrange[1],
-                                 y = yrange[2],
-                                 label = title)
-    }
 
     deck_props <- list()
     if (is_mobile()) {
@@ -3669,6 +3668,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     picker::picker(coords,
                    colors = isolate(colors()),
                    labels = isolate(labels()),
+                   title = isolate(title()),
                    xrange = xrange,
                    yrange = yrange,
                    # show_controls = show_controls,
@@ -3788,6 +3788,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
   observe(picker::update_picker(proxy, clusters_view()))
   observe(picker::update_picker(proxy, markers_view()))
   observe(picker::update_picker(proxy, labels = labels()))
+  observe(picker::update_picker(proxy, title = title()))
 
   observe({
     if (!update_colors_proxy()) return(NULL)
