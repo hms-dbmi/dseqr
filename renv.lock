@@ -1326,8 +1326,8 @@
       "RemoteRepo": "picker",
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
-      "RemoteSha": "2aedbe43390add38c64b1d60a636e73bd9f79c22",
-      "Hash": "2c43d050524d96e02ede7540768589bc"
+      "RemoteSha": "23e9f0cd9507143a0e3529a709f8a7f1ee8464d1",
+      "Hash": "829ecf5c08c35e09725bff08ecb953b7"
     },
     "pillar": {
       "Package": "pillar",
