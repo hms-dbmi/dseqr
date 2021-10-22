@@ -1752,6 +1752,7 @@ transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
   annot[is.num] <- annot_nums[is.num]
 
   qs::qsave(annot, file.path(sc_dir, query_resoln_name, 'annot.qs'))
+  return(annot)
 }
 
 #' Get the applied resolution dataset name

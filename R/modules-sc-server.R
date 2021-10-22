@@ -332,7 +332,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              snn_graph = scDataset$snn_graph,
                              annot_path = annot_path,
                              show_label_resoln = scDataset$show_label_resoln,
-                             compare_groups = scSampleGroups$groups)
+                             compare_groups = scSampleGroups$groups,
+                             annot = annot)
 
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
@@ -2216,7 +2217,7 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 #'
 #' @keywords internal
 #' @noRd
-resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups) {
+resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups, annot) {
   resolution_inputs <- c('resoln', 'resoln_azi')
 
   prev_resoln <- reactiveVal()
@@ -2307,6 +2308,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
       disableAll(resolution_inputs)
       progress <- Progress$new(session, min = 0, max = 2)
       progress$set(message = "Updating:", detail = 'clusters', value = 1)
+      on.exit(progress$close())
 
     } else {
 
@@ -2316,22 +2318,23 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
       # stop resolution calc when change to dataset with different resolution
       prev_resoln <- prev_resoln()
       if (prev_resoln == resoln) return(NULL)
-
       qs::qsave(resoln, resoln_path())
+
       disableAll(resolution_inputs)
       progress <- Progress$new(session, min = 0, max = 2)
       progress$set(message = "Updating:", detail = 'clusters', value = 1)
+      on.exit(progress$close())
 
       clusters <- get_clusters(g, resolution = resoln)
       qs::qsave(clusters, clusters_path)
 
       # transfer annotation from prev clusters to new
       qs::qsave(levels(clusters), annot_path())
-      transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
+      annot <- transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
+      annot(annot)
     }
 
 
-    on.exit(progress$close())
     scseq <- scseq()
     # need counts for pseudobulk
     # need dgclogs for scseq sample (for label transfer)
