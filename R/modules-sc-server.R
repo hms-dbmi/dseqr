@@ -2672,6 +2672,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
     error_msg <- validate_integration(types, name, azimuth_ref, dataset_names, sc_dir)
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
+      removeModal()
 
       integs[[name]] <- callr::r_bg(
         func = run_integrate_saved_scseqs,
@@ -3363,7 +3364,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (!isTruthyAll(coords, labels)) return(NULL)
     if (nrow(coords) != length(labels)) return(NULL)
 
-    levels(labels) <- stringr::str_trunc(levels(labels), width = 20, side = 'center')
+    levels(labels) <- stringr::str_trunc(levels(labels), width = 25, side = 'center')
     labels <- as.character(labels)
 
     # show nums if too many labels/mobile
@@ -3383,6 +3384,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       fontsize = fontsize,
       direction = 'y')
 
+
     return(label_repels)
   })
 
@@ -3393,16 +3395,15 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     if (!isTruthyAll(label_repels, coords)) return(NULL)
 
-    nlab <- nrow(label_repels)
-    label_size <- ifelse(nlab > 15, 14, 18)
+    label_size <- ifelse(nrow(label_repels) > 15, 14, 18)
 
-    label_repels$anchor <- rep('middle', nlab)
-    label_repels$baseline <- rep('center', nlab)
-    label_repels$size <- rep(label_size, nlab)
+    label_repels$anchor <- 'middle'
+    label_repels$baseline <- 'center'
+    label_repels$size <- label_size
 
     # hide cluster labels if showing grid
     if (show_grid)
-      label_repels <- NULL
+      label_repels$label <- ''
 
     return(label_repels)
   })

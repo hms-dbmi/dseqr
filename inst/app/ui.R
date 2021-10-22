@@ -7,7 +7,7 @@ active <- tabs[1]
 
 
 remoteDeps <- list()
-if (is_local) {
+if (!is_local) {
 
   selectizeDep <- htmltools::htmlDependency(
     'selectize', '0.12.4',
