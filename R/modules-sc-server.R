@@ -619,10 +619,12 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   observe({
     # group_choices may not change with dataset_name change
     dataset_name()
+    choices <- group_choices()
+    if (is.null(choices)) return(NULL)
 
     updateSelectizeInput(session,
                          'compare_groups',
-                         choices = group_choices(),
+                         choices = choices,
                          selected = prev_choices(),
                          server = TRUE,
                          options = group_options)
