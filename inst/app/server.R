@@ -86,7 +86,12 @@ server <- function(input, output, session) {
                                                 hintPosition = 'middle-middle')))
     })
 
-    feedback_counter <- reactiveVal(0)
+    # open modal selectors
+    observeEvent(input$feedback, {
+        showModal(feedbackModal(session))
+    })
+
+
     observeEvent(input$submit_feedback, {
 
         user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
@@ -100,21 +105,21 @@ server <- function(input, output, session) {
                    httr::add_headers('Content-Type' = 'application/json'),
                    body = sprintf(
                        '{"text": "🧑 💬 \n\n>_%s_ \n\n *project*: %s \n *user*: %s"}',
-                       input$feedback,
+                       input$feedback_text,
                        project,
                        user
                    ))
 
-        updateTextAreaInput(session, 'feedback', value = '', placeholder = 'Thank you!')
-        shinyjs::delay(3000, updateTextAreaInput(session, 'feedback', placeholder = ''))
+        updateTextAreaInput(session, 'feedback_text', value = '', placeholder = 'Thank you!')
+        shinyjs::delay(1000, {updateTextAreaInput(session, 'feedback', placeholder = ''); removeModal()})
     })
 
 
 
     observe({
-        toggle('add_dataset', condition = input$tab != 'Drugs')
-        toggle('remove_dataset', condition = input$tab != 'Drugs')
+        toggle('datasets_dropdown', condition = input$tab != 'Drugs')
         toggle('integrate_dataset', condition = input$tab == 'Single Cell')
+        toggle('download_dataset', condition = input$tab == 'Single Cell')
     })
 
 
@@ -124,6 +129,7 @@ server <- function(input, output, session) {
     add_sc <- reactiveVal(NULL)
     remove_sc <- reactiveVal(NULL)
     integrate_sc <- reactiveVal(NULL)
+    export_sc <- reactiveVal(NULL)
 
     add_bulk <- reactiveVal(NULL)
     remove_bulk <- reactiveVal(NULL)
@@ -149,6 +155,10 @@ server <- function(input, output, session) {
     observeEvent(input$integrate_dataset, {
         req(!is_example)
         if (input$tab == 'Single Cell') increment(integrate_sc)
+    })
+
+    observeEvent(input$export_dataset, {
+        if (input$tab == 'Single Cell') increment(export_sc)
     })
 
 
@@ -190,7 +200,8 @@ server <- function(input, output, session) {
             is_mobile = is_mobile,
             add_sc = add_sc,
             remove_sc = remove_sc,
-            integrate_sc = integrate_sc)
+            integrate_sc = integrate_sc,
+            export_sc = export_sc)
 
     }, once = TRUE)
 

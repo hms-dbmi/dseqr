@@ -8,6 +8,14 @@ body {
     border-bottom-left-radius: 4px!important;
 }
 
+.navbar-non-responsive li {
+  display: inline-block;
+}
+
+.dropdown-menu li {
+  display: block;
+}
+
 .well-form {
     max-width: 435px !important;
 }
@@ -108,12 +116,6 @@ body {
 
 .selectize-dropdown-content {
     max-height: 450px;
-}
-
-
-
-.dropdown-menu {
-    width: 100%;
 }
 
 
@@ -393,11 +395,27 @@ body {
     }
 }
 
+
+/*secondary navbar */
+
+@media (max-width: 461px) {
+    .secondary-navbar .dropdown-menu {
+          right: 0;
+          left: auto;
+          float: right !important;
+    }
+}
+
 .secondary-navbar {
     border-bottom: 1px solid #ddd;
     margin-bottom: 50px;
-    padding: 15px;
+    border-radius: 0px;
     background-color: slategray;
+}
+
+.secondary-navbar .navbar-btn {
+  margin-top: 15px;
+  margin-bottom: 15px;
 }
 
 .secondary-navbar-btn-group {
@@ -405,28 +423,6 @@ body {
     display: inline;
 }
 
-/* fixes for shinyWidgets dropdown (feedback button) */
-.caret {
-    display: none;
-}
-
-#feedback {
-    border-style: dashed;
-}
-
-#dropdown-menu-feedback-btn {
-    position: fixed;
-    max-width: 360px;
-    top: 111px;
-    left: 2px;
-    width: 99%%;
-}
-
-@media (min-width: 461px) {
-    #dropdown-menu-feedback-btn {
-          left: 15px;
-    }
-}
 
 /*button focus */
 .btn {
@@ -468,11 +464,6 @@ input[type=number]::-webkit-outer-spin-button {
         display: flex;
         align-items: flex-end;
     }
-}
-
-.secondary-navbar {
-  white-space: nowrap;
-  overflow-x: auto;
 }
 
 

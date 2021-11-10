@@ -143,7 +143,11 @@ scSelectedDatasetInput <- function(id) {
             icon = icon('object-ungroup', 'far fa-fw'),
             title = 'Toggle to subset current dataset'
           )
-        )
+        ),
+        conditionalPanel(
+          "false", # always hide the download button
+          downloadButton(ns("download_dataset"))
+        ),
     )
   )
 
@@ -414,8 +418,6 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
     downloadLink(ns('dl_anal'), '')
   )
 }
-
-
 
 
 scSampleGroupsInput <- function(id) {

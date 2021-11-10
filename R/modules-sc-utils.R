@@ -2226,7 +2226,7 @@ uploadSingleCellModal <- function(session, show_init) {
 }
 
 # modal to delete dataset
-deleteModal <- function(session, choices) {
+deleteModal <- function(session, choices, type) {
 
   modalDialog(
     tags$div(class='selectize-fh',
@@ -2249,7 +2249,7 @@ deleteModal <- function(session, choices) {
                        placeholder = "delete", width = '100%'
              ),
     ),
-    title = 'Delete Single Cell Datasets',
+    title = paste('Delete', type, 'Datasets'),
     size = 'm',
     footer = tagList(
       actionButton(session$ns("delete_dataset"), "Delete Datasets"),
@@ -2303,3 +2303,44 @@ confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = 
     )
   )
 }
+
+
+# modal to submit feedback
+feedbackModal <- function(session) {
+
+  modalDialog(
+    textAreaInput(session$ns('feedback_text'), '', width = '100%', height='200px', resize = 'vertical'),
+    title = "Describe Issue",
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("submit_feedback"), "Submit Feedback", class='btn-success'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE,
+  )
+}
+
+
+# modal to export dataset
+exportModal <- function(session, choices, selected, options) {
+
+  modalDialog(
+    selectizeInput(
+      session$ns('export_dataset'),
+      label = 'Select a single-cell dataset:',
+      choices = c('', choices),
+      options = options,
+      selected = selected,
+      width = '100%'),
+    title = "Export Single Cell Dataset",
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("confirm_export"),
+                   "Download Dataset",
+                   class='btn-success'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE,
+  )
+}
+

@@ -415,7 +415,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
     ds <- tibble::as_tibble(ds)
 
     choices <- ds$dataset_name
-    showModal(deleteModal(session, choices))
+    showModal(deleteModal(session, choices, type = 'Bulk'))
   })
 
   allow_delete <- reactive(isTruthy(input$remove_datasets) & input$confirm_delete == 'delete')

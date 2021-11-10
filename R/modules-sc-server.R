@@ -1,3 +1,4 @@
+
 #' Logic for Single Cell Tab
 #'
 #' @inheritParams bulkPage
@@ -6,7 +7,7 @@
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
 #'
-scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc) {
+scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc, export_sc) {
 
   # the analysis and options
   scForm <- callModule(
@@ -18,7 +19,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     is_mobile = is_mobile,
     add_sc = add_sc,
     remove_sc = remove_sc,
-    integrate_sc = integrate_sc)
+    integrate_sc = integrate_sc,
+    export_sc = export_sc)
 
   # prevent grid differential expression on contrast change
   observeEvent(scForm$groups(), scForm$show_pbulk(FALSE))
@@ -140,7 +142,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 #'
 #' @keywords internal
 #' @noRd
-scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc) {
+scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_dir, is_mobile, add_sc, remove_sc, integrate_sc, export_sc) {
 
   set_readonly <- reactive({
     mobile <- is_mobile()
@@ -296,7 +298,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                           indices_dir = indices_dir,
                           tx2gene_dir = tx2gene_dir,
                           add_sc = add_sc,
-                          remove_sc = remove_sc)
+                          remove_sc = remove_sc,
+                          export_sc = export_sc)
 
 
   # label transfer between datasets
@@ -1364,7 +1367,7 @@ disableMobileKeyboard <- function(id) {
 #'
 #' @keywords internal
 #' @noRd
-scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc) {
+scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indices_dir, tx2gene_dir, add_sc, remove_sc, export_sc) {
   dataset_inputs <- c('selected_dataset', 'show_label_resoln', 'show_subset')
 
   options <- list(
@@ -1625,7 +1628,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     names(choices$names) <- choices$type
     choices <- choices$names
 
-    showModal(deleteModal(session, choices))
+    showModal(deleteModal(session, choices, type = 'Single Cell'))
   })
 
   # get auto sample names
@@ -1811,6 +1814,44 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options)
   })
 
+  # handle dataset export
+  observeEvent(export_sc(), {
+    datasets <- datasets()
+    datasets <- datasets_to_list(datasets)
+
+    sel <- input$selected_dataset
+
+    showModal(exportModal(session, choices = datasets, selected = sel, options = options))
+  })
+
+
+  scseq_export <- reactiveVal()
+
+  export_name <- reactive({
+    ds <- datasets()
+    sel_idx <- input$export_dataset
+    req(sel_idx)
+
+    ds$name[ds$value == sel_idx]
+  })
+
+  observeEvent(input$confirm_export, {
+
+    dataset_dir <- file.path(sc_dir, export_name())
+
+    scseq <- load_scseq_qs(dataset_dir, with_counts = TRUE, with_logs = TRUE)
+    scseq_export(scseq)
+    shinyjs::click('download_dataset')
+  })
+
+  output$download_dataset <- downloadHandler(
+    filename = function() {
+      paste0(export_name(), '.rds')
+    },
+    content = function(file) {
+      saveRDS(scseq_export(), file)
+    }
+  )
 
 
   # show/hide integration/label-transfer forms
@@ -3873,3 +3914,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+

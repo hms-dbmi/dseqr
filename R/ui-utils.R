@@ -1,3 +1,4 @@
+
 #' UI for navbar
 #'
 #' @param tabs Character vector of tab names to display
@@ -66,30 +67,42 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
 #'
 #' @export
 navbar2UI <- function(hide) {
-  class <- 'action-button shiny-bound-input btn-intro btn'
+  class <- 'action-button shiny-bound-input btn-intro btn navbar-btn'
   add <- ifelse(hide, 'disabled', '')
 
-
-  ui <- tags$div(
-    class = 'secondary-navbar',
+  ui <- tags$nav(
+    class = 'navbar navbar-default secondary-navbar navbar-expand',
     tags$div(
-      class = 'secondary-navbar-btn-group',
-      tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour'),
-      shinyWidgets::dropdownButton(
-        textAreaInput('feedback', label = 'Feedback:', resize = 'vertical', width = '360px', height='102px'),
-        actionButton('submit_feedback', 'Submit', class = 'btn-primary pull-right'),
-        circle = FALSE,
-        status = paste(class, 'action-button'),
-        icon = tags$i(class= 'far fa-comment-dots fa-fw'),
-        label = 'Feedback',
-        inline = TRUE,
-        inputId = 'feedback-btn'
+      class = 'container-fluid',
+      tags$div(
+        tags$ul(
+          class = 'nav navbar-non-responsive',
+          tags$div(class = "secondary-navbar-btn-group",
+                   tags$li(tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour')),
+                   tags$li(tags$button(class = 'btn', id = 'feedback', class=class, tags$i(class= 'far fa-comment-dots fa-fw'), 'Report Issue'),),
+          ),
+          tags$div(class='btn-group',
+                   tags$button(
+                     id = 'datasets_dropdown',
+                     class = paste0(class, ' dropdown-toggle'),
+                     `data-toggle` = 'dropdown',
+                     type = 'button',
+                     haspopup = 'true',
+                     `aria-expanded`='false',
+                     tags$i(class= 'far fa-folder-open fa-fw'),
+                     tags$span(class = 'hidden-xs', 'Datasets'),
+                     tags$span(class='caret')),
+                   tags$ul(class="dropdown-menu",
+                           tags$li(tags$a(id = 'add_dataset', role='button', class = 'action-button shiny-bound-input', icon('plus', 'fa-fw'), 'Import')),
+                           tags$li(tags$a(id = 'integrate_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-object-group fa-fw'), 'Integrate')),
+                           tags$li(tags$a(id = 'download_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-save fa-fw'), 'Export', tags$i(class = 'fab fa-r-project'))),
+                           tags$li(role = 'separator', class='divider'),
+                           tags$li(tags$a(id = 'remove_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-trash-alt fa-fw'), 'Delete'))
+                   )
+          )
+        )
       )
-    ),
-    tags$button(id = 'add_dataset', class=paste(class, add), icon('plus', 'fa-fw'), tags$span(class='hidden-xs', 'Add Datasets')),
-    tags$button(id = 'remove_dataset', class=paste(class, add), tags$i(class= 'far fa-trash-alt fa-fw'), tags$span(class = 'hidden-xs', 'Delete Datasets')),
-    tags$button(id = 'integrate_dataset', class=paste(class, add), tags$i(class= 'far fa-object-group fa-fw'), tags$span(class = 'hidden-xs', 'Integrate Datasets')),
-    tags$span(icon('', 'fa-fw'))
+    )
   )
 
 
