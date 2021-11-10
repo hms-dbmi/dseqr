@@ -119,7 +119,7 @@ server <- function(input, output, session) {
     observe({
         toggle('datasets_dropdown', condition = input$tab != 'Drugs')
         toggle('integrate_dataset', condition = input$tab == 'Single Cell')
-        toggle('download_dataset', condition = input$tab == 'Single Cell')
+        toggle('export_dataset', condition = input$tab == 'Single Cell')
     })
 
 
