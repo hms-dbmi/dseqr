@@ -1839,6 +1839,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     dataset_dir <- file.path(sc_dir, export_name())
 
+    progress <- Progress$new(session, min = 0, max = 2)
+    progress$set(message = "Loading:", detail = export_name(), value = 1)
+    on.exit(progress$close())
+
     # load scseq
     scseq <- load_scseq_qs(dataset_dir, with_counts = TRUE, with_logs = TRUE)
 
@@ -1848,6 +1852,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     levels(scseq$cluster) <- annot
 
     scseq_export(scseq)
+
+    progress$set(2)
     shinyjs::click('download_dataset')
   })
 

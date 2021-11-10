@@ -220,7 +220,7 @@ subsetFormInput <- function(id) {
           ns('subset_name'),
           container_id = ns('name-container'),
           label = 'Name for subset dataset:',
-          actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering'),
+          actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering (optional)'),
           actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
           help_id = ns('error_msg'),
           placeholder = 'eg: QC2 (appended to founder name)'),
