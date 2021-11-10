@@ -80,7 +80,7 @@ navbar2UI <- function(hide) {
       tags$div(
         tags$ul(
           class = 'nav navbar-non-responsive',
-          tags$div(class = "secondary-navbar-btn-group",
+          tags$div(class = "secondary-navbar-btn-group pull-right",
                    tags$li(tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour')),
                    tags$li(tags$button(class = 'btn', id = 'feedback', class=class, tags$i(class= 'far fa-comment-dots fa-fw'), 'Report Issue'),),
           ),

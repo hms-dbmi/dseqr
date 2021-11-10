@@ -398,14 +398,6 @@ body {
 
 /*secondary navbar */
 
-@media (max-width: 461px) {
-    .secondary-navbar .dropdown-menu {
-          right: 0;
-          left: auto;
-          float: right !important;
-    }
-}
-
 .secondary-navbar {
     border-bottom: 1px solid #ddd;
     margin-bottom: 50px;
@@ -419,7 +411,6 @@ body {
 }
 
 .secondary-navbar-btn-group {
-    margin-right: 30px;
     display: inline;
 }
 
