@@ -1839,7 +1839,14 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     dataset_dir <- file.path(sc_dir, export_name())
 
+    # load scseq
     scseq <- load_scseq_qs(dataset_dir, with_counts = TRUE, with_logs = TRUE)
+
+    # add cluster annotations
+    resoln_dir <- load_resoln(dataset_dir)
+    annot <- qs::qread(file.path(dataset_dir, resoln_dir, 'annot.qs'))
+    levels(scseq$cluster) <- annot
+
     scseq_export(scseq)
     shinyjs::click('download_dataset')
   })
