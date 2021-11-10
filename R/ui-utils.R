@@ -1,4 +1,7 @@
 
+
+
+
 #' UI for navbar
 #'
 #' @param tabs Character vector of tab names to display
@@ -95,8 +98,8 @@ navbar2UI <- function(hide) {
                    tags$ul(class="dropdown-menu",
                            tags$li(tags$a(id = 'add_dataset', role='button', class = 'action-button shiny-bound-input', icon('plus', 'fa-fw'), 'Import')),
                            tags$li(tags$a(id = 'integrate_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-object-group fa-fw'), 'Integrate')),
-                           tags$li(tags$a(id = 'download_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-save fa-fw'), 'Export', tags$i(class = 'fab fa-r-project'))),
                            tags$li(role = 'separator', class='divider'),
+                           tags$li(tags$a(id = 'export_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class = 'fab fa-r-project'), 'Export')),
                            tags$li(tags$a(id = 'remove_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-trash-alt fa-fw'), 'Delete'))
                    )
           )
