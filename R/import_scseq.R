@@ -139,17 +139,14 @@ import_robject <- function(dataset_name, data_dir, sc_dir, tx2gene_dir, metrics,
   scseq_data <- list(scseq = scseq,
                      snn_graph = snn_graph,
                      species = scseq@metadata$species,
-                     annot = annot,
                      founder = dataset_name,
                      resoln = 1)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
-
   # run what depends on resolution
-  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = FALSE)
-
-
+  run_post_cluster(scseq, dataset_name, sc_dir)
+  qs::qsave(annot, file.path(sc_dir, dataset_name, 'snn1', 'annot.qs'))
 }
 
 
