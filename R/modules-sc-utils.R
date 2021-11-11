@@ -1382,6 +1382,7 @@ get_exclude_cells <- function(scseq, exclude_clusters) {
 #' @param dataset_name The analysis name.
 #' @param sc_dir Path to directory with single-cell datasets.
 #' @param add_integrated Add analysis to integrated.qs file? Default is \code{FALSE}
+#' @param overwrite overwrite \code{dataset_name} sub-directory?
 #'
 #' @return NULL
 #' @keywords internal
@@ -1438,7 +1439,12 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
     SingleCellExperiment::counts(scseq) <- counts
   }
 
-  resoln_name <- load_resoln(dataset_dir)
+  # attach resolution for exports
+  resoln_path <- file.path(dataset_dir, 'resoln.qs')
+  resoln <- qread.safe(resoln_path, .nofile = 1)
+  scseq@metadata$resoln <- resoln
+
+  resoln_name <- get_resoln_dir(resoln)
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
   if (is.null(scseq$batch)) scseq$batch <- scseq$project
