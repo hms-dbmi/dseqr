@@ -520,11 +520,15 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     res <- rhandsontable::hot_to_r(input$groups_table)
     res <- data.frame(group = res$`Group name`, pair = NA, row.names = res$Sample)
 
+    no.group <- all(is.na(res$group))
+
     msg <- validate_up_meta(res, ref_meta())
     prev <- prev_meta()
 
     valid <- is.null(msg)
-    if (valid) show_groups_table(FALSE)
+    if (no.group | valid) show_groups_table(FALSE)
+    if (no.group) return(NULL)
+
     error_msg(msg)
 
     if (valid && !identical(res, prev)) {
@@ -1836,11 +1840,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observeEvent(input$confirm_export, {
+    disable('confirm_export')
 
     dataset_dir <- file.path(sc_dir, export_name())
 
-    progress <- Progress$new(session, min = 0, max = 2)
-    progress$set(message = "Loading:", detail = export_name(), value = 1)
+    progress <- Progress$new(session, min = 0, max = 3)
+    progress$set(message = "Preparing export for:", detail = export_name(), value = 1)
     on.exit(progress$close())
 
     # load scseq
@@ -1851,18 +1856,23 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     annot <- qs::qread(file.path(dataset_dir, resoln_dir, 'annot.qs'))
     levels(scseq$cluster) <- annot
 
-    scseq_export(scseq)
+    # save to disk
+    progress$set(message = "Saving:", detail = paste0(export_name(), '.qs'), value = 2)
+    fpath <- tempfile()
+    qs::qsave(scseq, fpath)
+    scseq_export(fpath)
 
-    progress$set(2)
+    progress$set(3)
     shinyjs::click('download_dataset')
+    enable('confirm_export')
   })
 
   output$download_dataset <- downloadHandler(
     filename = function() {
-      paste0(export_name(), '.rds')
+      paste0(export_name(), '.qs')
     },
     content = function(file) {
-      saveRDS(scseq_export(), file)
+      file.copy(scseq_export(), file)
     }
   )
 
