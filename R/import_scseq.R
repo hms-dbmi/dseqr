@@ -103,7 +103,7 @@ find_robject <- function(uploaded_data_dir, load = FALSE) {
 
 
 
-import_robject <- function(dataset_name, data_dir, sc_dir, tx2gene_dir, metrics, npcs = 30) {
+import_robject <- function(dataset_name, data_dir, sc_dir, tx2gene_dir, metrics) {
 
   # load the file and destructure
   scseq <- find_robject(data_dir, load = TRUE)
@@ -239,6 +239,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
 
   # add mito/ribo genes if adding QC metrics and missing
   if (need_add_qc && is.null(scseq@metadata$mrna)) {
+    message('adding mito/ribo genes ...')
     tx2gene <- load_tx2gene(species, tx2gene_dir)
     qcgenes <- load_scseq_qcgenes(species, tx2gene)
 
@@ -254,15 +255,41 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
     message(sample, ' ...')
     scseqi <- scseq[, scseq$batch == sample]
 
-    if (need_doublets) scseqi <- add_doublet_score(scseqi)
-    if (need_add_qc) scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
-    if (need_run_qc) scseqi <- run_scseq_qc(scseqi, metrics)
-    if (need_normalize) scseqi <- normalize_scseq(scseqi)
+    if (need_doublets) {
+      message('\tdoublets')
+      scseqi <- add_doublet_score(scseqi)
+    }
+
+    if (need_add_qc) {
+      message('\tadd QC')
+      scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
+    }
+
+    if (need_run_qc) {
+      message('\trun QC')
+      scseqi <- run_scseq_qc(scseqi, metrics)
+    }
+
+    if (need_normalize) {
+      message('\tnormalize')
+      scseqi <- normalize_scseq(scseqi)
+    }
 
     # reduction related
-    if (need_hvgs) scseqi <- add_hvgs(scseqi)
-    if (need_run_pca) scseqi <- run_pca(scseqi)
-    if (need_reduction) scseqi <- run_reduction(scseqi)
+    if (need_hvgs) {
+      message('\tadd HVGs')
+      scseqi <- add_hvgs(scseqi)
+    }
+
+    if (need_run_pca) {
+      message('\trun PCA')
+      scseqi <- run_pca(scseqi)
+    }
+
+    if (need_reduction) {
+      message('\trun UMAP/TSNE')
+      scseqi <- run_reduction(scseqi)
+    }
 
     scseqs[[sample]] <- scseqi
   }

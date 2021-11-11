@@ -209,7 +209,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
     progress <- Progress$new(session, min = 0, max = 2)
-    progress$set(message = "Loading logcounts", value = 1)
+    progress$set(message = "Loading:", detail = 'logcounts', value = 1)
     on.exit(progress$close())
     res <- qs::qread(file.path(dataset_dir, 'dgclogs.qs'))
     progress$set(value = 2)
@@ -1845,7 +1845,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_dir <- file.path(sc_dir, export_name())
 
     progress <- Progress$new(session, min = 0, max = 3)
-    progress$set(message = "Preparing export for:", detail = export_name(), value = 1)
+    progress$set(message = "Preparing export:", detail = export_name(), value = 1)
     on.exit(progress$close())
 
     # load scseq
