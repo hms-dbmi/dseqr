@@ -37,9 +37,17 @@ import_scseq <- function(dataset_name,
       cat(value, message, detail, '...\n')
     })
   }
+  # check if saved R object
+  robject <- find_robject(uploaded_data_dir)
 
-  # standardize cellranger files
+  if (length(robject)) {
+    import_robject(dataset_name, uploaded_data_dir, sc_dir, tx2gene_dir, metrics)
+    return(NULL)
+  }
+
+  # check if cellranger and if so standardize file names
   is.cellranger <- check_is_cellranger(uploaded_data_dir)
+
 
   progress$set(message = "running pseudoalignment", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
@@ -67,6 +75,176 @@ import_scseq <- function(dataset_name,
                     value = value + 3)
 }
 
+check_is_robject <- function(uploaded_data_dir) {
+
+}
+
+find_robject <- function(uploaded_data_dir, load = FALSE) {
+
+  files <- list.files(uploaded_data_dir, full.names = TRUE)
+  rds.file <- grep('[.]rds$', files, value = TRUE)
+  qs.file <- grep('[.]qs$', files, value = TRUE)
+
+  if (length(rds.file)) {
+    fpath <- rds.file[1]
+    load_func <- readRDS
+
+  } else if (length(qs.file)) {
+    fpath <- qs.file[1]
+    load_func <- qs::qread
+
+  } else {
+    return(NULL)
+  }
+
+  if (load) return(load_func(fpath))
+  else return(fpath)
+}
+
+
+
+import_robject <- function(dataset_name, data_dir, sc_dir, tx2gene_dir, metrics, npcs = 30) {
+
+  # load the file and destructure
+  scseq <- find_robject(data_dir, load = TRUE)
+  scseq$project <- dataset_name
+
+  samples <- unique(scseq$batch)
+  multisample <- length(samples) > 1
+  red.names <- SingleCellExperiment::reducedDimNames(scseq)
+
+  # process samples if either unisample or need corrected reduction
+  need_process_samples <- !multisample | !'corrected' %in% red.names
+
+  if (need_process_samples) {
+    message('processing samples ...')
+    scseqs <- process_robject_samples(scseq, tx2gene_dir, metrics)
+  }
+
+  if (multisample) {
+    scseq <- process_robject_multisample(scseq, scseqs)
+  } else {
+    scseq <- scseqs[[1]]
+  }
+
+  snn_graph <- get_snn_graph(scseq)
+
+  need_clusters <- is.null(scseq$cluster)
+  if (need_clusters) scseq$cluster <- get_clusters(snn_graph)
+
+  annot <- levels(scseq$cluster)
+  levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
+
+  # store what is stable with resolution change
+  scseq_data <- list(scseq = scseq,
+                     snn_graph = snn_graph,
+                     species = scseq@metadata$species,
+                     annot = annot,
+                     founder = dataset_name,
+                     resoln = 1)
+
+  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
+
+
+  # run what depends on resolution
+  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = FALSE)
+
+
+}
+
+
+process_robject_multisample <- function(scseq, scseqs) {
+
+  species <- scseq@metadata$species
+  project <- scseq$project[1]
+  clusters <- scseq$cluster
+
+  reds <- SingleCellExperiment::reducedDims(scseq)
+  red.names <- names(reds)
+
+  # need corrected for multi-sample reduction and resolution changes
+  need_corrected <- !'corrected' %in% red.names
+
+  # did they supply reduction
+  need_reduction <- !any(c('TSNE', 'UMAP') %in% red.names)
+
+  # run harmony integration to allow cluster resolution changes
+  if (need_corrected) {
+    message('getting corrected ...')
+    scseq <- integrate_scseqs(scseqs)
+
+    scseq$project <- project
+    scseq$cluster <- clusters
+
+    # transfer QC metrics from individual datasets
+    scseq <- add_combined_metrics(scseq, scseqs)
+    scseq@metadata$species <- species
+
+    # restore non-corrected reductions
+    SingleCellExperiment::reducedDims(scseq) <-
+      c(reds, SingleCellExperiment::reducedDims(scseq))
+  }
+
+  if (need_reduction) {
+    message('getting reduction ...')
+    scseq <- run_reduction(scseq, dimred = 'corrected')
+  }
+
+  return(scseq)
+}
+
+
+
+
+process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
+  samples <- unique(scseq$batch)
+  unisample <- length(samples) == 1
+
+  species <- scseq@metadata$species
+  rdata <- SummarizedExperiment::rowData(scseq)
+  reds <- SingleCellExperiment::reducedDimNames(scseq)
+
+  # check required for unisample
+  need_doublets <- unisample & is.null(scseq$doublet_score)
+  need_run_qc <- unisample & !is.null(metrics)
+  need_run_pca <- unisample & !'PCA' %in% reds
+  need_reduction <- unisample & !any(c('TSNE', 'UMAP') %in% reds)
+  need_hvgs <- need_run_pca | (unisample & !'bio' %in% names(rdata))
+
+  # check required for uni/multi-sample
+  need_add_qc <- is.null(scseq$mito_percent)
+  need_normalize <- !'logcounts' %in% names(scseq@assays)
+
+  # add mito/ribo genes if need
+  if (need_add_qc && is.null(scseq@metadata$mrna)) {
+    tx2gene <- load_tx2gene(species, tx2gene_dir)
+    qcgenes <- load_scseq_qcgenes(species, tx2gene)
+
+    scseq@metadata$mrna <- qcgenes$mrna
+    scseq@metadata$rrna <- qcgenes$rrna
+  }
+
+  # get list of scseqs
+  samples <- unique(scseq$batch)
+  scseqs <- list()
+
+  for (sample in samples) {
+    message(sample, ' ...')
+    scseqi <- scseq[, scseq$batch == sample]
+
+    if (need_doublets) scseqi <- add_doublet_score(scseqi)
+    if (need_add_qc) scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
+    if (need_run_qc) scseqi <- run_scseq_qc(scseqi, metrics)
+    if (need_normalize) scseqi <- normalize_scseq(scseqi)
+    if (need_hvgs) scseqi <- add_hvgs(scseqi)
+    if (need_run_pca) scseqi <- run_pca(scseqi)
+    if (need_reduction) scseqi <- run_reduction(scseqi)
+
+    scseqs[[sample]] <- scseqi
+  }
+
+  return(scseqs)
+}
 
 #' Convenience utility to run import_scseq in background by callr::r_bg
 #'
@@ -1062,12 +1240,12 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
   if (!is.null(hvgs)) hvgs <- hvgs %in% universe
   else hvgs <- decs$bio > 0
 
-  # integration
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
   logcounts <- SummarizedExperiment::assay(combined, 'merged')
   gc()
 
+  # integration
   if (type[1] == 'harmony') {
     cor.out <- run_harmony(logcounts, hvgs, combined$batch, pairs = pairs)
 

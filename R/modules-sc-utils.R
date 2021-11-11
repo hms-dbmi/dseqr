@@ -963,7 +963,7 @@ integrate_saved_scseqs <- function(
     save_azimuth_clusters(combined@colData, dataset_name, sc_dir)
 
   } else {
-    # TSNE on corrected reducedDim
+    # UMAP/TSNE on corrected reducedDim
     progress$set(value+3, detail = 'reducing')
     combined <- run_reduction(combined, dimred = 'corrected')
 
@@ -1006,7 +1006,7 @@ integrate_saved_scseqs <- function(
 #'
 #' @return NULL
 #'
-run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln, progress = NULL, value = 0, reset_annot = TRUE) {
+run_post_cluster <- function(scseq, dataset_name, sc_dir, resoln = 1, progress = NULL, value = 0, reset_annot = TRUE) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
