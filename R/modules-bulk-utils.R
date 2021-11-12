@@ -759,12 +759,6 @@ attrib_replace <- function(x, cond, ...) {
 
 # modal to upload bulk fastq.gz files
 uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
-  label <- "Click upload or drag files:"
-  label_title <- "Accepts *.fastq.gz or eset.qs"
-  label <- tags$span(label,
-                     title = label_title,
-                     span(class = "hover-info",
-                          icon("info", "fa-fw")))
 
   modalDialog(
     tags$div(
@@ -774,11 +768,12 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
       tags$div('🌱 Only human fastq.gz files are currently supported.')
     ),
 
-    div(class='upload-validation',
+    div(class='upload-validation dashed-upload',
         attrib_replace(
           fileInput(
+            placeholder = 'drag files here',
             session$ns('up_raw'),
-            label=label,
+            label = '',
             width='100%',
             buttonLabel = 'upload',
             accept = c('.qs', '.fastq.gz'),
