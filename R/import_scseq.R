@@ -115,7 +115,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   }
 
   if (is(scseq, 'Seurat')) {
-    scseq <- seurat_to_sce(scseq, species)
+    scseq <- seurat_to_sce(scseq, species, dataset_name)
   }
 
   if (is.null(scseq@metadata$species)) stop('need species')
@@ -271,44 +271,46 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
   scseqs <- list()
 
   for (sample in samples) {
-    message(sample, ' ...')
+    message('\n=======\nsample: ', sample)
     scseqi <- scseq[, scseq$batch == sample]
 
     if (need_doublets) {
-      message('\tcalculate doublet scores')
+      message('calculating doublet scores')
       scseqi <- add_doublet_score(scseqi)
     }
 
     if (need_add_qc) {
-      message('\tadd QC metrics')
+      message('adding QC metrics')
       scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
     }
 
     if (need_run_qc) {
-      message('\trun QC filters')
+      message('running QC filters')
       scseqi <- run_scseq_qc(scseqi, metrics)
     }
 
     if (need_normalize) {
-      message('\tnormalize')
+      message('normalizing')
       scseqi <- normalize_scseq(scseqi)
     }
 
     # reduction related
     if (need_hvgs) {
-      message('\tadd HVGs')
+      message('adding HVGs')
       scseqi <- add_hvgs(scseqi)
     }
 
     if (need_run_pca) {
-      message('\trun PCA')
+      message('running PCA')
       scseqi <- run_pca(scseqi)
     }
 
     if (need_reduction) {
-      message('\trun UMAP/TSNE')
+      message('running UMAP/TSNE')
       scseqi <- run_reduction(scseqi)
     }
+
+    message('=======\n')
 
     scseqs[[sample]] <- scseqi
   }

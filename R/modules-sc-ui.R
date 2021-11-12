@@ -186,7 +186,7 @@ resolutionFormInput <- function(id) {
             id = ns('provided_warning'),
             style='color: grey; font-style: italic; display: none;',
             tags$i(class = 'fas fa-exclamation-triangle text-warning'),
-            ' for imported clusters set resolution=1.'
+            ' to use imported clusters set resolution=1.'
           )
       ),
       div(id = ns('resoln_azi_container'), style='display: none;',

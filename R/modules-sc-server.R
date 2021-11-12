@@ -254,7 +254,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     names(qc) <- sapply(metrics, class)
 
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted|^nCount_', qc)]
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted|^nCount_|^altexps_', qc)]
     return(qc)
   })
 
@@ -3843,10 +3843,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       ft.scaled <- ft.scaled[ids]
 
       is_qc <- feature %in% const$features$qc
-      reverse_scale <- feature %in% const$features$reverse
 
       cols <- if (is_qc) const$colors$qc else const$colors$ft
-      if (reverse_scale) cols <- rev(cols)
       colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
 
       # title is group
