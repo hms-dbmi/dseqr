@@ -254,8 +254,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     names(qc) <- sapply(metrics, class)
 
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted', qc)]
-  }, )
+    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted|^nCount_', qc)]
+    return(qc)
+  })
 
   # show the toggle if dataset is integrated
   observe({
