@@ -170,6 +170,9 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
+  # use harmony as default for future sub-setting
+  save_scseq_args(args = list(integration_type = 'harmony'), dataset_name, sc_dir)
+
   # run what depends on resolution
   run_post_cluster(scseq, dataset_name, sc_dir)
 
