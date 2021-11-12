@@ -4,7 +4,7 @@
 \alias{disableAll}
 \title{Disable multiple ids}
 \usage{
-disableAll(ids)
+disableAll(ids, asis = rep(FALSE, length(ids)))
 }
 \arguments{
 \item{ids}{Character vector of ids to disable}

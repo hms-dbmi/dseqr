@@ -5,7 +5,6 @@ is_local <- getShinyOption('is_local')
 is_example <- getShinyOption('is_example')
 active <- tabs[1]
 
-
 remoteDeps <- list()
 if (!is_local) {
 

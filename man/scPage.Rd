@@ -15,7 +15,8 @@ scPage(
   is_mobile,
   add_sc,
   remove_sc,
-  integrate_sc
+  integrate_sc,
+  export_sc
 )
 }
 \arguments{

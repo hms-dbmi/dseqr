@@ -4,7 +4,7 @@
 \alias{enableAll}
 \title{Enable multiple ids}
 \usage{
-enableAll(ids)
+enableAll(ids, asis = rep(FALSE, length(ids)))
 }
 \arguments{
 \item{ids}{Character vector of ids to enable}

@@ -17,6 +17,7 @@ import_scseq(
   npcs = 30,
   cluster_alg = "leiden",
   resoln = 1,
+  species = NULL,
   azimuth_ref = NULL,
   metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
     "low_subsets_ribo_percent", "high_doublet_score")
@@ -38,6 +39,8 @@ import_scseq(
 \item{value}{Integer indicating step of pipeline.}
 
 \item{founder}{Name of dataset that \code{dataset_name} originates from.}
+
+\item{species}{The species. Default is \code{'homo_sapiens'}.}
 }
 \description{
 Import raw single cell fastq or cellranger files for app

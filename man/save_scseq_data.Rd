@@ -20,6 +20,8 @@ save_scseq_data(
 \item{sc_dir}{Path to directory with single-cell datasets.}
 
 \item{add_integrated}{Add analysis to integrated.qs file? Default is \code{FALSE}}
+
+\item{overwrite}{overwrite \code{dataset_name} sub-directory?}
 }
 \description{
 Save Single Cell RNA-seq data for app

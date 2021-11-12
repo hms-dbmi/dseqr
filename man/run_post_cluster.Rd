@@ -8,7 +8,7 @@ run_post_cluster(
   scseq,
   dataset_name,
   sc_dir,
-  resoln,
+  resoln = 1,
   progress = NULL,
   value = 0,
   reset_annot = TRUE
