@@ -411,7 +411,7 @@ scSampleClustersInput <- function(id, with_dl = FALSE) {
       dl_btn,
       #TODO: implement logic for multi-cluster differential expression
       options = list(multiple = FALSE),
-      label_title = '(ntest :: nctrl **<b>hover for samples</b>**) [<b>if N>2:</b> #p<0.05 <b>else:</b> #logFC>1]'
+      label_title = 'ntest :: nctrl [<b>if N>2:</b> Σp<0.05 <b>else:</b> ΣlogFC>1]'
     ),
 
     # hidden dl/upload buttons
