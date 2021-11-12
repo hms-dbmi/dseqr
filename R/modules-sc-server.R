@@ -2304,17 +2304,15 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     shinyjs::html(type, nclus)
   })
 
-  first_set <- reactiveVal(TRUE)
   observeEvent(input[[rname()]], {
     set <- input[[rname()]]
-    if (!first_set() && (!is.numstring(set) || set >= 0.1 & set <= 5.1)) {
+    if (!is.numstring(set) || set >= 0.1 & set <= 5.1) {
       resoln(set)
 
       # prevent update to DE results after change resolution
       compare_groups('reset')
     }
 
-    first_set(FALSE)
   }, ignoreInit = TRUE)
 
   rname <- reactiveVal('resoln')
@@ -3943,5 +3941,4 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
 
