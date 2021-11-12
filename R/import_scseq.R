@@ -24,8 +24,8 @@ import_scseq <- function(dataset_name,
                          npcs = 30,
                          cluster_alg = 'leiden',
                          resoln = 1,
-                         azimuth_ref = NULL,
                          species = NULL,
+                         azimuth_ref = NULL,
                          metrics = c('low_lib_size',
                                      'low_n_features',
                                      'high_subsets_mito_percent',
@@ -324,7 +324,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
 #'
 #' @keywords internal
 #' @noRd
-run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, azimuth_ref = NULL) {
+run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, species, azimuth_ref = NULL) {
 
   for (opt in opts) {
     import_scseq(opt$dataset_name,
@@ -334,6 +334,7 @@ run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indic
                  indices_dir,
                  metrics = opt$metrics,
                  founder = opt$founder,
+                 species = species,
                  azimuth_ref = azimuth_ref)
 
   }

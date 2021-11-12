@@ -2097,26 +2097,6 @@ getDeleteRowButtons <- function(session, len) {
 }
 
 
-# detects species from cellranger h5 or features.tsv
-detect_import_species <- function(up_df) {
-
-  gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
-  h5.file <- grep('[.]h5$', up_df$name)[1]
-
-  # support only human if no genes.tsv file
-  if (is.na(gene.file) & is.na(h5.file)) return("Homo sapiens")
-
-  if (!is.na(h5.file)) {
-    infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
-    genes <- infile[['matrix/features/id']][]
-    genes <- data.frame(row.names = genes)
-  } else {
-    genes <- read.table(up_df$datapath[gene.file], row.names = 1)
-  }
-
-  get_species(genes)
-}
-
 # modal to integrate datasets
 integrationModal <- function(session, choices) {
   ns <- session$ns
@@ -2267,44 +2247,44 @@ deleteModal <- function(session, choices, type) {
 
 
 # modal to confirm adding single-cell dataset
-confirmModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = 'Homo sapiens') {
+confirmSubsetModal <- function(session) {
+  modalDialog(
+    title = 'Create new single-cell dataset?',
+    size = 's',
+    footer = tagList(
+      actionButton(session$ns('confirm_subset'), 'Subset', class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    )
+  )
+}
 
-  if (type[1] == 'quant') {
-    label <- 'Quantify'
-    id <- 'confirm_quant'
-    qc <- selectizeInput(
-      session$ns('qc_metrics'),
-      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
-      choices = c('all', 'all and none', 'none', metric_choices),
-      selected = 'all',
-      multiple = TRUE)
+confirmImportModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = NULL) {
 
-    azi <- NULL
-    if (is.null(species))
-      species_refs <- unname(azimuth_refs)
-    else
+    species_refs <- NULL
+    if (!is.null(species))
       species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
 
-    if (length(species_refs)) azi <- selectizeInput(
-      session$ns('azimuth_ref'),
-      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-      choices = c('', species_refs),
-      options = list(placeholder = 'optional'))
+    UI <- div(
+      selectizeInput(
+        session$ns('qc_metrics'),
+        HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
+        choices = c('all', 'all and none', 'none', metric_choices),
+        selected = 'all',
+        multiple = TRUE),
+      selectizeInput(
+        session$ns('azimuth_ref'),
+        HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+        choices = c('', species_refs),
+        options = list(placeholder = 'optional'))
 
-    UI <- div(qc, azi)
-
-  } else if (type[1] == 'subset') {
-    label <- 'Subset'
-    id <- 'confirm_subset'
-    UI <- NULL
-  }
+    )
 
   modalDialog(
     UI,
     title = 'Create new single-cell dataset?',
     size = 's',
     footer = tagList(
-      actionButton(session$ns(id), label, class = 'btn-warning'),
+      actionButton(session$ns('confirm_quant'), 'Import', class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))
     )
   )

@@ -2,6 +2,24 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+.dashed-upload .input-group {
+  border: 2px dashed lightgray;
+  border-radius: 6px;
+}
+
+.dashed-upload label .btn {
+  border: none;
+}
+
+.dashed-upload input[type="text"] {
+  background: white;
+  border: none;
+  border-left: 2px dashed lightgray;
+}
+
+.dashed-upload .progress {
+  margin-top: 10px;
+}
 
 .btn-group > .btn.btn-default.radius-left {
     border-top-left-radius: 4px!important;

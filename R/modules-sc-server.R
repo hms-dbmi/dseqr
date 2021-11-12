@@ -1617,7 +1617,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # open modal selectors
   observeEvent(add_sc(), {
-    showModal(uploadSingleCellModal(session, isTruthy(up_table())))
+    showModal(importSingleCellModal(session, isTruthy(up_table())))
   })
 
   observeEvent(remove_sc(), {
@@ -1650,6 +1650,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         'features[.]tsv(.+)?$',
         'genes[.]tsv(.+)?$',
         'matrix[.]mtx(.+)?$',
+        '[.]rds$',
+        '[.]qs$',
         'filtered_feature_bc_matrix[.]h5$'), collapse = '|')
 
     fnames <- new$name
@@ -1667,29 +1669,72 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
+  # import settings
+  detected_species <- reactive({
+    # otherwise detected
+    up_df <- up_all()
+
+    tryCatch(
+      detect_import_species(up_df),
+      error = function(e) NULL)
+  })
+
+  observe({
+    updateSelectizeInput(session, 'import_species', selected = detected_species())
+  })
+
+  species_refs <- reactive({
+    species <- input$import_species
+    if (is.null(species)) return(NULL)
+
+    # Azimuth not implemented for R object import
+    up_df <- up_all()
+    if (all(grepl('[.]qs$|[.]rds$', up_df$name))) return(NULL)
+
+    unname(azimuth_refs[names(azimuth_refs) == species])
+  })
+
+  robject_import <- reactive(any(grepl('[.]qs$|[.]rds$', up_all()$name)))
+
+  observe({
+    toggleClass('confirm_import_datasets', 'disabled', condition = !isTruthy(input$import_species))
+  })
+
+  observe({
+    have_refs <- length(species_refs()) > 0
+    toggle('azimuth_ref_container', condition = have_refs)
+  })
+
+  observe({
+    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs()))
+  })
+
 
   # ask for confirmation
-  observeEvent(input$import_samples, {
+  observeEvent(input$import_datasets, {
 
     up_df <- up_all()
     samples <- up_samples()
     req(up_df)
 
     msg <- validate_scseq_import(up_df, samples)
-    species <- tryCatch(
-      detect_import_species(up_df),
-      error = function(e) NULL)
 
     html('error_msg', html = msg)
     toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
 
-    if (is.null(msg)) {
-      showModal(confirmModal(session, 'quant', metric_choices, species))
-    }
+    if (!is.null(msg)) return(NULL)
+
+    showModal(confirmImportSingleCellModal(
+      session,
+      metric_choices,
+      detected_species(),
+      species_refs(),
+      warn_robject = robject_import()))
+
   })
 
   observe({
-    toggleState('import_samples', condition = !is.null(up_all()))
+    toggleState('import_datasets', condition = !is.null(up_all()))
   })
 
 
@@ -1705,9 +1750,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   pquants <- reactiveValues()
   deselect_dataset <- reactiveVal(0)
 
-  observeEvent(input$confirm_quant, {
+  observeEvent(input$confirm_import_datasets, {
 
     metrics <- input$qc_metrics
+    species <- input$import_species
     # none, all, all and none: can't combine
     if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
 
@@ -1758,7 +1804,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         sc_dir = sc_dir,
         indices_dir = indices_dir,
         tx2gene_dir = tx2gene_dir,
-        azimuth_ref = azimuth_ref
+        azimuth_ref = azimuth_ref,
+        species = species
       )
     }
 
@@ -1916,8 +1963,8 @@ detect_import_species <- function(up_df) {
   gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
   h5.file <- grep('[.]h5$', up_df$name)[1]
 
-  # support only human if no genes.tsv file
-  if (is.na(gene.file) & is.na(h5.file)) return("Homo sapiens")
+  # get user selection if can't detect
+  if (is.na(gene.file) & is.na(h5.file)) return(NULL)
 
   if (!is.na(h5.file)) {
     infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
@@ -2502,7 +2549,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   })
 
   observe({
-    toggle('azimuth_ref', condition = length(species_refs()) > 0)
+    toggle('azimuth_ref_container', condition = length(species_refs()) > 0)
   })
 
   # change UI of exclude toggle
@@ -2525,7 +2572,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
 
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
-      showModal(confirmModal(session, 'subset'))
+      showModal(confirmSubsetModal(session, 'subset'))
 
     } else {
       # show error message
@@ -3940,3 +3987,154 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
   output$violin_plot <- renderPlot(plot(), height=height)
 }
 
+
+
+# modal to upload single-cell dataset
+importSingleCellModal <- function(session, show_init) {
+
+  modalDialog(
+    tags$div(
+      class='alert alert-warning', role = 'alert',
+      tags$div(tags$b("For each sample upload files:")),
+      tags$br(),
+      tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), "or"),
+      tags$br(),
+      tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv"), 'or'),
+      tags$br(),
+      tags$div("- ", tags$code("*.rds"), "or", tags$code("*.qs"), "with", tags$code("Seurat"), "or", tags$code("SingleCellExperiment"), "objects"),
+      hr(),
+      '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
+      tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
+    ),
+    div(class='dashed-upload',
+        fileInput(placeholder = 'drag files here',
+                  session$ns('up_raw'),
+                  label = '',
+                  buttonLabel = 'Upload',
+                  width = '100%',
+                  accept = c('.h5', '.tsv', '.fastq.gz', '.mtx', '.rds', '.qs'),
+                  multiple = TRUE
+        )
+    ),
+    tags$div(
+      id = session$ns('sample_name_container'),
+      style = ifelse(show_init, '', 'display: none;'),
+      hr(),
+      shinypanel::textInputWithButtons(
+        session$ns('sample_name'),
+        'Sample name for selected rows:',
+        actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
+        container_id = session$ns('validate-up'),
+        help_id = session$ns('error_msg')
+      ),
+      hr()
+    ),
+    div(
+      id = session$ns('up_table_container'),
+      class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
+      DT::dataTableOutput(session$ns('up_table'), width = '100%'),
+    ),
+    title = 'Upload Single Cell Datasets',
+    size = 'l',
+    footer = tagList(
+      actionButton(
+        inputId = session$ns("import_datasets"),
+        label = "Import Datasets",
+        class = ifelse(show_init, 'btn-warning', 'btn-warning disabled')
+      ),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    ),
+    easyClose = FALSE,
+  )
+}
+
+
+# modal to confirm adding single-cell dataset
+confirmSubsetModal <- function(session) {
+  modalDialog(
+    title = 'Create new single-cell dataset?',
+    size = 's',
+    footer = tagList(
+      actionButton(session$ns('confirm_subset'), 'Subset', class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    )
+  )
+}
+
+get_species_choices <- function(detected_species) {
+  is_detected <- !is.null(detected_species)
+  species <- unique(ensmap$species)
+
+  # some common species first
+  first_name <- c('Homo sapiens', 'Mus musculus', 'Rattus norvegicus', 'Canis lupus familiaris',
+                  'Heterocephalus glaber', 'Macaca mulatta', 'Gorilla gorilla gorilla')
+
+  first_idx <- sapply(first_name, function(x) which(species == x))
+  other_idx <- setdiff(seq_along(species), first_idx)
+  species <- species[c(first_idx, other_idx)]
+
+
+  if (is_detected) {
+    names(species) <- species
+    names(species)[species == detected_species] <- paste(detected_species, '(detected)')
+  }
+
+  return(species)
+}
+
+confirmImportSingleCellModal <- function(session, metric_choices, detected_species, species_refs, warn_robject) {
+
+  # indicate detected species
+  is_detected <- !is.null(detected_species)
+  have_refs <- !is.null(species_refs)
+  species <- get_species_choices(detected_species)
+
+  triangle <- tags$i(class = 'fas fa-exclamation-triangle', style='color: orange;')
+
+  UI <- div(
+    selectizeInput(
+      session$ns('import_species'),
+      'Select species:',
+      width = '100%',
+      choices = c('', species),
+      selected = detected_species,
+    ),
+    selectizeInput(
+      session$ns('qc_metrics'),
+      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
+      width = '100%',
+      choices = c('all', 'all and none', 'none', metric_choices),
+      selected = 'all',
+      multiple = TRUE),
+    div(
+      id = session$ns('azimuth_ref_container'),
+      style = ifelse(have_refs, '', 'display: none;'),
+      selectizeInput(
+        session$ns('azimuth_ref'),
+        HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+        width = '100%',
+        choices = c('', species_refs),
+        options = list(placeholder = 'optional'))
+    ),
+    div(
+      style = ifelse(warn_robject, '', 'display: none;'),
+      style='color: grey; font-style: italic;',
+      tags$p(triangle, tags$b(' for R object import:')),
+      tags$div(' - QC is skipped if multi-sample'),
+      tags$div(' - Azimuth is not yet implemented'))
+
+  )
+
+  modalDialog(
+    UI,
+    title = 'Import settings',
+    size = 'm',
+    footer = tagList(
+      actionButton(
+        session$ns('confirm_import_datasets'),
+        'Import',
+        class = ifelse(is_detected, 'btn-warning', 'btn-warning disabled')),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    )
+  )
+}
