@@ -76,12 +76,12 @@ scFormInput <- function(id) {
             div(id = ns('label-resolution-form'), class = 'hidden-form', style = 'display: none;',
                 labelTransferFormInput(ns('transfer')),
                 hr(),
-                resolutionFormInput(ns('resolution'))
+                resolutionFormInput(ns('resolution')),
             ),
             subsetFormInput(ns('subset'))
         ),
         div(id = ns('form_container'), style = 'display: none;',
-            div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
+            div(style = 'display: none;', id = ns('comparion_toggle_container'), class = 'selectize-fh form-group',
                 comparisonTypeToggle(ns('comparison'))
             ),
             # inputs for comparing clusters
@@ -144,10 +144,7 @@ scSelectedDatasetInput <- function(id) {
             title = 'Toggle to subset and recluster current dataset'
           )
         ),
-        conditionalPanel(
-          "false", # always hide the download button
-          downloadButton(ns("download_dataset"))
-        ),
+        downloadLink(ns("download_dataset"), '')
     )
   )
 
@@ -181,10 +178,16 @@ resolutionFormInput <- function(id) {
   withTags({
     div(
       div(id=ns('resoln_container'),
-          numericInput(
+          sliderInput(
             ns('resoln'),
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
-            min=0.1, value=1, max=5.1, step = 0.1, width = '100%')
+            min=0.1, value=1, max=5.1, step = 0.1, width = '100%'),
+          span(
+            id = ns('provided_warning'),
+            style='color: grey; font-style: italic; display: none;',
+            tags$i(class = 'fas fa-exclamation-triangle text-warning'),
+            ' resolution=1 shows provided clustering.'
+          )
       ),
       div(id = ns('resoln_azi_container'), style='display: none;',
           selectizeInput(

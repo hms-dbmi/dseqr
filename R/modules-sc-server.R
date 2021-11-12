@@ -2325,6 +2325,11 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     shinyjs::toggle('resoln_azi_container', condition=is_azimuth())
   })
 
+  observeEvent(dataset_dir(), {
+    fpath <- file.path(dataset_dir(), 'snn1', 'provided_clusters.qs')
+    shinyjs::toggle('provided_warning', condition = file.exists(fpath))
+  })
+
   observeEvent(dataset_dir(),  {
     dataset_dir <- dataset_dir()
     req(dataset_dir)
@@ -2347,7 +2352,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     } else {
       rname('resoln')
-      updateNumericInput(session, 'resoln', value = init)
+      updateSliderInput(session, 'resoln', value = init)
     }
 
   }, priority = 1)
@@ -3938,4 +3943,5 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
+
 
