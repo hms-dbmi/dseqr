@@ -25,6 +25,7 @@ import_scseq <- function(dataset_name,
                          cluster_alg = 'leiden',
                          resoln = 1,
                          azimuth_ref = NULL,
+                         species = NULL,
                          metrics = c('low_lib_size',
                                      'low_n_features',
                                      'high_subsets_mito_percent',
@@ -41,7 +42,7 @@ import_scseq <- function(dataset_name,
   robject <- find_robject(uploaded_data_dir)
 
   if (length(robject)) {
-    import_robject(dataset_name, uploaded_data_dir, sc_dir, tx2gene_dir, metrics)
+    import_robject(dataset_name, uploaded_data_dir, sc_dir, species, tx2gene_dir, metrics)
     return(NULL)
   }
 
@@ -103,10 +104,23 @@ find_robject <- function(uploaded_data_dir, load = FALSE) {
 
 
 
-import_robject <- function(dataset_name, data_dir, sc_dir, tx2gene_dir, metrics) {
+import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2gene_dir, metrics) {
 
-  # load the file and destructure
-  scseq <- find_robject(data_dir, load = TRUE)
+  # load the R object
+  scseq <- find_robject(uploaded_data_dir, load = TRUE)
+
+  # add species if suplied
+  if (is(scseq, 'SingleCellExperiment') & !is.null(species)) {
+    scseq@metadata$species <- species
+  }
+
+  if (is(scseq, 'Seurat')) {
+    scseq <- seurat_to_sce(scseq, species)
+  }
+
+  if (is.null(scseq@metadata$species)) stop('need species')
+
+
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
   scseq$project <- dataset_name
 
@@ -188,11 +202,11 @@ process_robject_multisample <- function(scseq, scseqs) {
 
     scseq <- integrate_scseqs(scseqs)
     scseq$project <- project
-
-    # transfer QC metrics from individual datasets
-    scseq <- add_combined_metrics(scseq, scseqs)
-    scseq@metadata$species <- species
   }
+
+  # transfer QC metrics from individual datasets
+  scseq <- add_combined_metrics(scseq, scseqs)
+  scseq@metadata$species <- species
 
   if (need_reduction) {
     message('getting UMAP/TSNE ...')
@@ -213,7 +227,8 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
   rdata <- SummarizedExperiment::rowData(scseq)
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
 
-  ## checks required for unisample
+  ## checks required for unisample ---
+
   # get doublet scores if unisample and missing
   need_doublets <- unisample & is.null(scseq$doublet_score)
 
@@ -229,7 +244,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
   # get HVGs and BIO if need run PCA or unisample and BIO missing
   need_hvgs <- need_run_pca | (unisample & !'bio' %in% names(rdata))
 
-  ## checks required for uni/multi-sample
+  ## checks required for uni/multi-sample ---
 
   # add QC metrics if they are missing
   need_add_qc <- is.null(scseq$mito_percent)
@@ -256,17 +271,17 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
     scseqi <- scseq[, scseq$batch == sample]
 
     if (need_doublets) {
-      message('\tdoublets')
+      message('\tcalculate doublet scores')
       scseqi <- add_doublet_score(scseqi)
     }
 
     if (need_add_qc) {
-      message('\tadd QC')
+      message('\tadd QC metrics')
       scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
     }
 
     if (need_run_qc) {
-      message('\trun QC')
+      message('\trun QC filters')
       scseqi <- run_scseq_qc(scseqi, metrics)
     }
 

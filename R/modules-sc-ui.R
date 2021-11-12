@@ -141,7 +141,7 @@ scSelectedDatasetInput <- function(id) {
           actionButton(
             ns('show_subset'), '',
             icon = icon('object-ungroup', 'far fa-fw'),
-            title = 'Toggle to subset current dataset'
+            title = 'Toggle to subset and recluster current dataset'
           )
         ),
         conditionalPanel(
@@ -219,7 +219,7 @@ subsetFormInput <- function(id) {
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),
-          label = 'Name for subset dataset:',
+          label = 'Name for new dataset:',
           actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering (optional)'),
           actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
           help_id = ns('error_msg'),
