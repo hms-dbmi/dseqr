@@ -76,12 +76,12 @@ scFormInput <- function(id) {
             div(id = ns('label-resolution-form'), class = 'hidden-form', style = 'display: none;',
                 labelTransferFormInput(ns('transfer')),
                 hr(),
-                resolutionFormInput(ns('resolution')),
+                resolutionFormInput(ns('resolution'))
             ),
             subsetFormInput(ns('subset'))
         ),
         div(id = ns('form_container'), style = 'display: none;',
-            div(style = 'display: none;', id = ns('comparion_toggle_container'), class = 'selectize-fh form-group',
+            div(style = 'display: none;', id = ns('comparison_toggle_container'), class = 'selectize-fh form-group',
                 comparisonTypeToggle(ns('comparison'))
             ),
             # inputs for comparing clusters
