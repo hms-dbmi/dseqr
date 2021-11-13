@@ -183,10 +183,10 @@ resolutionFormInput <- function(id) {
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
             min=0.1, value=1, max=5.1, step = 0.1, width = '100%'),
           span(
-            id = ns('provided_warning'),
+            id = ns('provided_clusters_warning'),
             style='color: grey; font-style: italic; display: none;',
             tags$i(class = 'fas fa-exclamation-triangle text-warning'),
-            ' to use imported clusters set resolution=1.'
+            ' using provided clusters.'
           )
       ),
       div(id = ns('resoln_azi_container'), style='display: none;',

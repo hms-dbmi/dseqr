@@ -106,11 +106,11 @@ seurat_to_sce <- function(sdata, dataset_name) {
         # get corrected and UMAP/TSNE reductions from integrated assay
         sce.int <- Seurat::as.SingleCellExperiment(sdata, assay = 'integrated')
 
-        reducedDims(sce) <- reducedDims(sce.int)
+        SingleCellExperiment::reducedDims(sce) <- SingleCellExperiment::reducedDims(sce.int)
 
         # Seurat integrated 'PCA' or 'HARMONY' equivalent to SingleCellExperiment 'corrected'
         # (used to run UMAP/TSNE)
-        red.names <- reducedDimNames(sce)
+        red.names <- SingleCellExperiment::reducedDimNames(sce)
 
         # prefer harmony over PCA as 'corrected'
         cor.ind <- lapply(c('HARMONY', 'PCA'), grep, red.names)
@@ -119,7 +119,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
 
         if (length(cor.ind)) {
             red.names[cor.ind] <- 'corrected'
-            reducedDimNames(sce) <- red.names
+            SingleCellExperiment::reducedDimNames(sce) <- red.names
         }
 
         # Seurat HVGs are ordered - use to mock biological variance component

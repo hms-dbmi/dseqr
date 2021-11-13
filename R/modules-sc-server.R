@@ -2393,8 +2393,9 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     shinyjs::toggle('resoln_azi_container', condition=is_azimuth())
   })
 
-  observeEvent(dataset_dir(), {
-    fpath <- file.path(dataset_dir(), 'snn1', 'provided_clusters.qs')
+  observeEvent(resoln_dir(), {
+
+    fpath <- file.path(resoln_dir(), 'provided_clusters.qs')
     shinyjs::toggle('provided_warning', condition = file.exists(fpath))
   })
 

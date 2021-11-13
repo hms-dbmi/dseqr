@@ -121,7 +121,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
     })
   }
 
-  # load the R object
+  ## load the R object
   progress$set(message = "loading R object", value = value + 1)
   scseq <- find_robject(uploaded_data_dir, load = TRUE)
 
@@ -135,6 +135,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   samples <- unique(scseq$batch)
   multisample <- length(samples) > 1
 
+  ## process the R object
   progress$set(message = "processing R object", value = value + 2)
   scseqs <- process_robject_samples(scseq, tx2gene_dir, metrics)
 
