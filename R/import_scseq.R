@@ -42,13 +42,22 @@ import_scseq <- function(dataset_name,
   robject <- find_robject(uploaded_data_dir)
 
   if (length(robject)) {
-    import_robject(dataset_name, uploaded_data_dir, sc_dir, species, tx2gene_dir, metrics)
+
+    import_robject(
+      dataset_name,
+      uploaded_data_dir,
+      sc_dir,
+      species,
+      tx2gene_dir,
+      metrics,
+      progress = progress,
+      value = value)
+
     return(NULL)
   }
 
   # check if cellranger and if so standardize file names
   is.cellranger <- check_is_cellranger(uploaded_data_dir)
-
 
   progress$set(message = "running pseudoalignment", value = value + 1)
   if (!is.cellranger) run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
@@ -104,9 +113,16 @@ find_robject <- function(uploaded_data_dir, load = FALSE) {
 
 
 
-import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2gene_dir, metrics) {
+import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2gene_dir, metrics, progress = NULL, value = 0) {
+
+  if (is.null(progress)) {
+    progress <- list(set = function(value, message = '', detail = '') {
+      cat(value, message, detail, '...\n')
+    })
+  }
 
   # load the R object
+  progress$set(message = "loading R object", value = value + 1)
   scseq <- find_robject(uploaded_data_dir, load = TRUE)
 
   # add species if suplied
@@ -127,7 +143,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   samples <- unique(scseq$batch)
   multisample <- length(samples) > 1
 
-  message('processing ', length(samples), ' samples ...')
+  progress$set(message = "processing samples", value = value + 2)
   scseqs <- process_robject_samples(scseq, tx2gene_dir, metrics)
 
   if (multisample) {
@@ -160,6 +176,8 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   annot <- levels(scseq$cluster)
   levels(scseq$cluster) <- seq_along(levels(scseq$cluster))
+
+  progress$set(message = "saving", value = value + 3)
 
   # store what is stable with resolution change
   scseq_data <- list(scseq = scseq,
