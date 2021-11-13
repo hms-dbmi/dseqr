@@ -1751,9 +1751,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   deselect_dataset <- reactiveVal(0)
 
   observeEvent(input$confirm_import_datasets, {
+    species <- input$import_species
+    if (is.null(species)) return(NULL)
 
     metrics <- input$qc_metrics
-    species <- input$import_species
     # none, all, all and none: can't combine
     if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
 
