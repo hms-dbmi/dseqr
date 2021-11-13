@@ -152,9 +152,16 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
     scseq <- scseqs[[1]]
   }
 
-  provided_clusters <- !is.null(scseq$cluster)
 
-  if (!provided_clusters) {
+  # get snn graph and initial resoltion
+  provided_clusters <- !is.null(scseq$cluster)
+  is_azimuth <- !is.null(scseq@metadata$azimuth_ref)
+
+  if (is_azimuth) {
+    snn_graph <- NULL
+    resoln <- scseq@metadata$resoln
+
+  } else if (!provided_clusters) {
     # clusters needed if clusters or UMAP/TSNE not supplied
     snn_graph <- get_snn_graph(scseq)
     scseq$cluster <- get_clusters(snn_graph)
@@ -186,22 +193,37 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
                      founder = dataset_name,
                      resoln = resoln,
 
-                     # samples metadata to reproduce export
+                     # metadata to reproduce exports
                      meta = scseq@metadata$meta,
-                     prev_groups = scseq@metadata$prev_groups)
+                     prev_groups = scseq@metadata$prev_groups,
+                     azimuth_ref = scseq@metadata$azimuth_ref)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
-  # use harmony as default if subset/re-cluster
-  if (multisample)
-    save_scseq_args(args = list(integration_type = 'harmony'), dataset_name, sc_dir)
+  # save multi-sample specific data
+  if (multisample) {
+
+    args <- list()
+    if (is_azimuth) {
+      args$integration_type <- 'Azimuth'
+      save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
+
+    } else {
+      args$integration_type <- 'harmony'
+    }
+
+    save_scseq_args(args = args, dataset_name, sc_dir)
+  }
 
   # run what depends on resolution
-  run_post_cluster(scseq, dataset_name, sc_dir)
+  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = !is_azimuth)
+
 
   # save things in resolution sub-directory
   dataset_subname <- file.path(dataset_name, get_resoln_dir(resoln))
   scseq_subdata <- list(annot = annot)
+
+  # flag to indicate resolution of provided clusters
   if (provided_clusters) scseq_subdata$provided_clusters <- TRUE
 
   save_scseq_data(scseq_subdata, dataset_subname, sc_dir, overwrite = FALSE)

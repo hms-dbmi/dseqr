@@ -1959,6 +1959,10 @@ prep_scseq_export <- function(scseq, dataset_dir) {
   resoln_path <- file.path(dataset_dir, 'resoln.qs')
   scseq@metadata$resoln <- qread.safe(resoln_path)
 
+  # store azimuth reference
+  azi_path <- file.path(dataset_dir, 'azimuth_ref.qs')
+  scseq@metadata$azimuth_ref <- qread.safe(azi_path)
+
   # store group metadata
   meta_path <- file.path(dataset_dir, 'meta.qs')
   scseq@metadata$meta <- qread.safe(meta_path)
