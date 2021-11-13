@@ -155,7 +155,8 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   # get snn graph and initial resoltion
   provided_clusters <- !is.null(scseq$cluster)
-  is_azimuth <- !is.null(scseq@metadata$azimuth_ref)
+  azimuth_ref <- scseq@metadata$azimuth_ref
+  is_azimuth <- !is.null(azimuth_ref)
 
   if (is_azimuth) {
     snn_graph <- NULL
@@ -194,9 +195,9 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
                      resoln = resoln,
 
                      # metadata to reproduce exports
+                     azimuth_ref = azimuth_ref,
                      meta = scseq@metadata$meta,
-                     prev_groups = scseq@metadata$prev_groups,
-                     azimuth_ref = scseq@metadata$azimuth_ref)
+                     prev_groups = scseq@metadata$prev_groups)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
@@ -205,6 +206,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
     args <- list()
     if (is_azimuth) {
+      args$azimuth_ref <- azimuth_ref
       args$integration_type <- 'Azimuth'
       save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
 
