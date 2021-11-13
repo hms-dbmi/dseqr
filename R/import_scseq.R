@@ -125,17 +125,9 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   progress$set(message = "loading R object", value = value + 1)
   scseq <- find_robject(uploaded_data_dir, load = TRUE)
 
-  # add species if suplied
-  if (is(scseq, 'SingleCellExperiment') & !is.null(species)) {
-    scseq@metadata$species <- species
-  }
-
   if (is(scseq, 'Seurat')) {
-    scseq <- seurat_to_sce(scseq, species, dataset_name)
+    scseq <- seurat_to_sce(scseq, dataset_name)
   }
-
-  if (is.null(scseq@metadata$species)) stop('need species')
-
 
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
   scseq$project <- dataset_name
@@ -143,7 +135,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   samples <- unique(scseq$batch)
   multisample <- length(samples) > 1
 
-  progress$set(message = "processing samples", value = value + 2)
+  progress$set(message = "processing R object", value = value + 2)
   scseqs <- process_robject_samples(scseq, tx2gene_dir, metrics)
 
   if (multisample) {
@@ -152,34 +144,41 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
     scseq <- scseqs[[1]]
   }
 
+  # add species
+  scseq@metadata$species <- species
 
-  # get snn graph and initial resoltion
-  provided_clusters <- !is.null(scseq$cluster)
+  # get snn graph and initial resolution
   azimuth_ref <- scseq@metadata$azimuth_ref
   is_azimuth <- !is.null(azimuth_ref)
 
+  snn_possible <-
+    (!multisample & 'PCA' %in% red.names) |
+    ( multisample & 'corrected' %in% red.names)
+
   if (is_azimuth) {
-    snn_graph <- NULL
+    # will grab other azimuth resolutions from scseq@colData
     resoln <- scseq@metadata$resoln
+    snn_graph <- NULL
 
-  } else if (!provided_clusters) {
-    # clusters needed if clusters or UMAP/TSNE not supplied
-    snn_graph <- get_snn_graph(scseq)
-    scseq$cluster <- get_clusters(snn_graph)
-    resoln <- 1
-
-  } else if ('corrected' %in% red.names) {
-    # allow resolution changes if supplied corrected and clusters
-    snn_graph <- get_snn_graph(scseq)
-
-    # put provided clusters in snn1 if resolution not indicated
+  } else if (snn_possible) {
+    # allow resolution changes if supplied corrected
     resoln <- scseq@metadata$resoln
     if (is.null(resoln)) resoln <- 1
+    snn_graph <- get_snn_graph(scseq)
 
   } else {
-    # prevent resolution changes when supplied clusters but not corrected
+    # prevent resolution changes when provided UMAP/TSNE and clusters
+    # but not corrected for multi-sample or PCA for uni-sample
     snn_graph <- NULL
     resoln <- 'provided.clusters'
+  }
+
+  # provided clusters were removed if not provided:
+  # corrected for multi-sample or PCA for uni-sample
+  use_provided_clusters <- !is.null(scseq$cluster)
+  if (!use_provided_clusters) {
+    resoln <- 1
+    scseq$cluster <- get_clusters(snn_graph, resolution = resoln)
   }
 
   annot <- levels(scseq$cluster)
@@ -190,7 +189,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   # store what is stable with resolution change
   scseq_data <- list(scseq = scseq,
                      snn_graph = snn_graph,
-                     species = scseq@metadata$species,
+                     species = species,
                      founder = dataset_name,
                      resoln = resoln,
 
@@ -226,7 +225,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   scseq_subdata <- list(annot = annot)
 
   # flag to indicate resolution of provided clusters
-  if (provided_clusters) scseq_subdata$provided_clusters <- TRUE
+  if (use_provided_clusters) scseq_subdata$provided_clusters <- TRUE
 
   save_scseq_data(scseq_subdata, dataset_subname, sc_dir, overwrite = FALSE)
 }
@@ -234,7 +233,6 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
 process_robject_multisample <- function(scseq, scseqs) {
 
-  species <- scseq@metadata$species
   project <- scseq$project[1]
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
 
@@ -242,13 +240,14 @@ process_robject_multisample <- function(scseq, scseqs) {
   # will remove supplied clusters
   need_reduction <- !any(c('TSNE', 'UMAP') %in% red.names)
 
-  # need corrected to get reduction
-  need_corrected <- need_reduction & !'corrected' %in% red.names
+  # need corrected to get reduction and clusters
+  no_clusters <- is.null(scseq$cluster)
+  need_corrected <- !'corrected' %in% red.names & (need_reduction | no_clusters)
 
   # use harmony if need corrected to get UMAP/TSNE
   if (need_corrected) {
     message('getting corrected ...')
-    if (!is.null(scseq$cluster)) message('supplied clusters will be replaced')
+    message('supplied clusters will be replaced')
 
     scseq <- integrate_scseqs(scseqs)
     scseq$project <- project
@@ -256,7 +255,6 @@ process_robject_multisample <- function(scseq, scseqs) {
 
   # transfer QC metrics from individual datasets
   scseq <- add_combined_metrics(scseq, scseqs)
-  scseq@metadata$species <- species
 
   if (need_reduction) {
     message('getting UMAP/TSNE ...')
@@ -288,19 +286,21 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
   # get reduction if unisample and missing
   need_reduction <- unisample & !any(c('TSNE', 'UMAP') %in% red.names)
 
-  # run PCA if need reduction and missing
-  need_run_pca <- need_reduction & !'PCA' %in% red.names
+  # get PCA if unisample, missing, and need UMAP or no clusters
+  no_clusters <- is.null(scseq$cluster)
+  need_run_pca <- unisample & !'PCA' %in% red.names & (need_reduction | no_clusters)
+  if (need_run_pca) scseq$cluster <- NULL
 
   # get HVGs and BIO if need run PCA or unisample and BIO missing
   need_hvgs <- need_run_pca | (unisample & !'bio' %in% names(rdata))
 
   ## checks required for uni/multi-sample ---
 
-  # add QC metrics if they are missing
-  need_add_qc <- is.null(scseq$mito_percent)
-
   # normalize to get logcounts if missing
   need_normalize <- !'logcounts' %in% names(scseq@assays)
+
+  # add QC metrics if they are missing
+  need_add_qc <- is.null(scseq$mito_percent)
 
   # add mito/ribo genes if adding QC metrics and missing
   if (need_add_qc && is.null(scseq@metadata$mrna)) {
@@ -317,46 +317,17 @@ process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
   scseqs <- list()
 
   for (sample in samples) {
-    message('\n=======\nsample: ', sample)
     scseqi <- scseq[, scseq$batch == sample]
 
-    if (need_doublets) {
-      message('calculating doublet scores')
-      scseqi <- add_doublet_score(scseqi)
-    }
-
-    if (need_add_qc) {
-      message('adding QC metrics')
-      scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
-    }
-
-    if (need_run_qc) {
-      message('running QC filters')
-      scseqi <- run_scseq_qc(scseqi, metrics)
-    }
-
-    if (need_normalize) {
-      message('normalizing')
-      scseqi <- normalize_scseq(scseqi)
-    }
+    if (need_doublets) scseqi <- add_doublet_score(scseqi)
+    if (need_add_qc) scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
+    if (need_run_qc) scseqi <- run_scseq_qc(scseqi, metrics)
+    if (need_normalize) scseqi <- normalize_scseq(scseqi)
 
     # reduction related
-    if (need_hvgs) {
-      message('adding HVGs')
-      scseqi <- add_hvgs(scseqi)
-    }
-
-    if (need_run_pca) {
-      message('running PCA')
-      scseqi <- run_pca(scseqi)
-    }
-
-    if (need_reduction) {
-      message('running UMAP/TSNE')
-      scseqi <- run_reduction(scseqi)
-    }
-
-    message('=======\n')
+    if (need_hvgs) scseqi <- add_hvgs(scseqi)
+    if (need_run_pca) scseqi <- run_pca(scseqi)
+    if (need_reduction) scseqi <- run_reduction(scseqi)
 
     scseqs[[sample]] <- scseqi
   }

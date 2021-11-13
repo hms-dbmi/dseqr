@@ -81,7 +81,7 @@
 # immune.combined.sct$seurat_clusters <- factor(immune.combined.sct$seurat_annotations)
 # immune.combined.sct <-NormalizeData(immune.combined.sct, assay = 'RNA')
 
-seurat_to_sce <- function(sdata, species, dataset_name) {
+seurat_to_sce <- function(sdata, dataset_name) {
 
     # get the counts and logcounts from RNA assay
     # normalize if need to
@@ -93,7 +93,6 @@ seurat_to_sce <- function(sdata, species, dataset_name) {
     }
 
     sce <- Seurat::as.SingleCellExperiment(sdata, assay = 'RNA')
-    sce@metadata$species <- species
     is.integrated <- 'integrated' %in% Seurat::Assays(sdata)
 
     if (!is.integrated) {
