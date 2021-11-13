@@ -1898,11 +1898,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     # load scseq
     scseq <- load_scseq_qs(dataset_dir, with_counts = TRUE, with_logs = TRUE)
-
-    # add cluster annotations
-    resoln_dir <- load_resoln(dataset_dir)
-    annot <- qs::qread(file.path(dataset_dir, resoln_dir, 'annot.qs'))
-    levels(scseq$cluster) <- annot
+    scseq <- prep_scseq_export(scseq, dataset_dir)
 
     # save to disk
     progress$set(message = "Saving:", detail = paste0(export_name(), '.qs'), value = 2)
@@ -1955,6 +1951,28 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+prep_scseq_export <- function(scseq, dataset_dir) {
+
+  # store selected resolution
+  resoln_path <- file.path(dataset_dir, 'resoln.qs')
+  scseq@metadata$resoln <- qread.safe(resoln_path)
+
+  # store group metadata
+  meta_path <- file.path(dataset_dir, 'meta.qs')
+  scseq@metadata$meta <- qread.safe(meta_path)
+
+  # store contrast groups
+  group_path <- file.path(dataset_dir, 'prev_groups.qs')
+  scseq@metadata$prev_groups <- qread.safe(group_path)
+
+  # add cluster annotations
+  resoln_dir <- load_resoln(dataset_dir)
+  annot <- qs::qread(file.path(dataset_dir, resoln_dir, 'annot.qs'))
+  levels(scseq$cluster) <- annot
+
+  return(scseq)
 }
 
 

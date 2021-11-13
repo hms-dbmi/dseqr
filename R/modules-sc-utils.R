@@ -1439,12 +1439,7 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
     SingleCellExperiment::counts(scseq) <- counts
   }
 
-  # attach resolution for exports
-  resoln_path <- file.path(dataset_dir, 'resoln.qs')
-  resoln <- qread.safe(resoln_path, .nofile = 1)
-  scseq@metadata$resoln <- resoln
-
-  resoln_name <- get_resoln_dir(resoln)
+  resoln_name <- load_resoln(dataset_dir)
   scseq <- attach_clusters(scseq, file.path(dataset_dir, resoln_name))
   scseq <- attach_meta(scseq, dataset_dir, meta, groups)
   if (is.null(scseq$batch)) scseq$batch <- scseq$project

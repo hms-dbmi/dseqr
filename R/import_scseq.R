@@ -166,7 +166,11 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
                      snn_graph = snn_graph,
                      species = scseq@metadata$species,
                      founder = dataset_name,
-                     resoln = resoln)
+                     resoln = resoln,
+
+                     # samples metadata to reproduce export
+                     meta = scseq@metadata$meta,
+                     prev_groups = scseq@metadata$prev_groups)
 
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
