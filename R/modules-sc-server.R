@@ -2353,6 +2353,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   observeEvent(input[[rname()]], {
     set <- input[[rname()]]
+    if (set == '') return(NULL)
     if (!is.numstring(set) || set >= 0.1 & set <= 5.1) {
       resoln(set)
 
