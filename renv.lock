@@ -1327,7 +1327,7 @@
       "RemoteUsername": "hms-dbmi",
       "RemoteRef": "HEAD",
       "RemoteSha": "65d139149476821e216edb52db4067c911952b8f",
-      "Hash": "e85e4a6bd5e27044608642ce9dce7a69"
+      "Hash": "d93a603719625cdee7f074c3aefeaf6f"
     },
     "pillar": {
       "Package": "pillar",
@@ -1727,8 +1727,8 @@
       "RemoteRepo": "shinypanel",
       "RemoteUsername": "alexvpickering",
       "RemoteRef": "HEAD",
-      "RemoteSha": "51a285825519991283b166147374435c34e38f11",
-      "Hash": "2249011e51e501bd78a39ba63a075003"
+      "RemoteSha": "b977ec47de17d9806e2862ca5ee8aa50e84e824b",
+      "Hash": "e709a92bee9e4cd02a49de12b4229c6b"
     },
     "sitmo": {
       "Package": "sitmo",
