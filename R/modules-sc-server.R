@@ -2396,7 +2396,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   observeEvent(resoln_dir(), {
 
     fpath <- file.path(resoln_dir(), 'provided_clusters.qs')
-    shinyjs::toggle('provided_warning', condition = file.exists(fpath))
+    shinyjs::toggle('provided_clusters_warning', condition = file.exists(fpath))
   })
 
   observeEvent(dataset_dir(),  {
@@ -3890,22 +3890,24 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     update_colors_proxy(!changed.ids)
 
-    # get colors
+
+    # get title and colors
     ft.ids <- ft[ids]
     all.zero <- all(ft.ids == 0)
+    ntot <- length(ft.ids)
 
-    if (bool.ft || all.zero) {
-      cols <- const$colors$ft
-      ntot <- length(ft.ids)
-
-      colors <- rep(cols[1], ntot)
-      colors[ft.ids] <- cols[2]
-
+    if (bool.ft) {
       # title is info
       ncells <- sum(ft.ids)
       pcells <- round(ncells/ntot*100, 1)
-
       title(sprintf("%s (%s cells :: %s%%)", feature, ncells, pcells))
+    }
+
+    if (bool.ft || all.zero) {
+      cols <- const$colors$ft
+
+      colors <- rep(cols[1], ntot)
+      colors[ft.ids] <- cols[2]
 
     } else {
 

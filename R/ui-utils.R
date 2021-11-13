@@ -93,7 +93,7 @@ navbar2UI <- function(hide) {
                      haspopup = 'true',
                      `aria-expanded`='false',
                      tags$i(class= 'far fa-folder-open fa-fw'),
-                     tags$span(class = 'hidden-xs', 'Datasets'),
+                     tags$span(class = 'hidden-xs', 'Dataset Management'),
                      tags$span(class='caret')),
                    tags$ul(class="dropdown-menu",
                            tags$li(tags$a(id = 'add_dataset', role='button', class = 'action-button shiny-bound-input', icon('plus', 'fa-fw'), 'Import')),

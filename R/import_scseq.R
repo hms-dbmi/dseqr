@@ -199,6 +199,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
                      meta = scseq@metadata$meta,
                      prev_groups = scseq@metadata$prev_groups)
 
+  # remove NULLs
   scseq_data <- scseq_data[!sapply(scseq_data, is.null)]
   save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
 
