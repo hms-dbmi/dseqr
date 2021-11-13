@@ -137,7 +137,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   ## process the R object
   progress$set(message = "processing R object", value = value + 2)
-  scseqs <- process_robject_samples(scseq, tx2gene_dir, metrics)
+  scseqs <- process_robject_samples(scseq, tx2gene_dir, species, metrics)
 
   if (multisample) {
     scseq <- process_robject_multisample(scseq, scseqs)
@@ -266,13 +266,10 @@ process_robject_multisample <- function(scseq, scseqs) {
 }
 
 
-
-
-process_robject_samples <- function(scseq, tx2gene_dir, metrics) {
+process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
   samples <- unique(scseq$batch)
   unisample <- length(samples) == 1
 
-  species <- scseq@metadata$species
   rdata <- SummarizedExperiment::rowData(scseq)
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
 
