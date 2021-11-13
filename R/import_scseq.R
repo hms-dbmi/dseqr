@@ -129,9 +129,6 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
     scseq <- seurat_to_sce(scseq, dataset_name)
   }
 
-  red.names <- SingleCellExperiment::reducedDimNames(scseq)
-  scseq$project <- dataset_name
-
   samples <- unique(scseq$batch)
   multisample <- length(samples) > 1
 
@@ -145,7 +142,10 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
     scseq <- scseqs[[1]]
   }
 
+  red.names <- SingleCellExperiment::reducedDimNames(scseq)
+
   # add species
+  scseq$project <- dataset_name
   scseq@metadata$species <- species
 
   # get snn graph and initial resolution
