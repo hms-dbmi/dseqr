@@ -2,6 +2,10 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+.dropdown-menu {
+  width: 100%;
+}
+
 .dashed-upload .input-group {
   border: 2px dashed lightgray;
   border-radius: 6px;

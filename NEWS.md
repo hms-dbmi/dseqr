@@ -1,5 +1,5 @@
 # dseqr 0.22.0
-* initialize import of R objects
+* initialize import and export of R objects
 
 # dseqr 0.20.0
 * switch to `picker` for grid plots
