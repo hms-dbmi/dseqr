@@ -2255,24 +2255,24 @@ confirmSubsetModal <- function(session) {
 
 confirmImportModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = NULL) {
 
-    species_refs <- NULL
-    if (!is.null(species))
-      species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
+  species_refs <- NULL
+  if (!is.null(species))
+    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
 
-    UI <- div(
-      selectizeInput(
-        session$ns('qc_metrics'),
-        HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
-        choices = c('all', 'all and none', 'none', metric_choices),
-        selected = 'all',
-        multiple = TRUE),
-      selectizeInput(
-        session$ns('azimuth_ref'),
-        HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-        choices = c('', species_refs),
-        options = list(placeholder = 'optional'))
+  UI <- div(
+    selectizeInput(
+      session$ns('qc_metrics'),
+      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
+      choices = c('all', 'all and none', 'none', metric_choices),
+      selected = 'all',
+      multiple = TRUE),
+    selectizeInput(
+      session$ns('azimuth_ref'),
+      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+      choices = c('', species_refs),
+      options = list(placeholder = 'optional'))
 
-    )
+  )
 
   modalDialog(
     UI,
@@ -2306,6 +2306,18 @@ feedbackModal <- function(session) {
 exportModal <- function(session, choices, selected, options) {
 
   modalDialog(
+    tags$div(
+      class='alert alert-warning', role = 'alert',
+      tags$div(tags$b("Download format:")),
+      tags$br(),
+      tags$div(tags$code("file.qs"), "with", tags$code("SingleCellExperiment"), "object."),
+      hr(),
+      tags$div(tags$b('🌱 To load:')),
+      br(),
+      tags$code("install.packages('qs')"),
+      br(),
+      tags$code("scseq <- qs::qread('file.qs')")
+    ),
     selectizeInput(
       session$ns('export_dataset'),
       label = 'Select a single-cell dataset:',
