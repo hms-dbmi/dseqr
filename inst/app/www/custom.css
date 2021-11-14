@@ -3,7 +3,7 @@ body {
 }
 
 .dropdown-menu {
-  width: 100%;
+  min-width: 100%;
 }
 
 .dashed-upload .input-group {

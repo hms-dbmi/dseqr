@@ -63,6 +63,7 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
   )
 }
 
+
 #' UI for secondary navbar
 #'
 #' @param hide should delete and add be disabled (for demo)
@@ -81,9 +82,57 @@ navbar2UI <- function(hide) {
         tags$ul(
           class = 'nav navbar-non-responsive',
           tags$div(class = "secondary-navbar-btn-group pull-right",
-                   tags$li(tags$button(class = 'btn', id = 'start_tour', class=class, icon('info', 'fa-fw'), 'Tour')),
-                   tags$li(tags$button(class = 'btn', id = 'feedback', class=class, tags$i(class= 'far fa-comment-dots fa-fw'), 'Report Issue'),),
+
+
+                   # Tour Dropdown for Single Cell Tab
+                   tags$div(class='btn-group',
+                            tags$button(
+                              id = 'tour_dropdown',
+                              class = paste0(class, ' dropdown-toggle'),
+                              `data-toggle` = 'dropdown',
+                              type = 'button',
+                              haspopup = 'true',
+                              `aria-expanded`='false',
+                              icon('info', 'fa-fw'),
+                              'Tour',
+                              tags$span(class='caret')),
+                            tags$ul(class="dropdown-menu",
+                                    tags$li(class = 'dropdown-header', 'Tour Comparison Between:'),
+                                    tags$li(tags$a(
+                                      id = 'tour_sc_clusters',
+                                      role='button',
+                                      class = 'action-button shiny-bound-input',
+                                      'Clusters')
+                                    ),
+                                    tags$li(tags$a(
+                                      id = 'tour_sc_samples',
+                                      role='button',
+                                      class = 'action-button shiny-bound-input',
+                                      'Samples')
+                                    )
+                            )
+                   ),
+
+                   # Tour Button
+                   tags$li(id = 'start_tour_container',
+                           style = 'display: none',
+                           tags$button(class = 'btn',
+                                       id = 'start_tour',
+                                       class=class,
+                                       icon('info', 'fa-fw'),
+                                       'Tour')
+                   ),
+
+                   # Feedback Button
+                   tags$li(tags$button(class = 'btn',
+                                       id = 'feedback',
+                                       class=class,
+                                       tags$i(class= 'far fa-comment-dots fa-fw'),
+                                       'Report Issue')
+                   ),
           ),
+
+          # Dataset Management dropdown
           tags$div(class='btn-group',
                    tags$button(
                      id = 'datasets_dropdown',
@@ -96,11 +145,34 @@ navbar2UI <- function(hide) {
                      tags$span(class = 'hidden-xs', 'Dataset Management'),
                      tags$span(class='caret')),
                    tags$ul(class="dropdown-menu",
-                           tags$li(tags$a(id = 'add_dataset', role='button', class = 'action-button shiny-bound-input', icon('plus', 'fa-fw'), 'Import')),
-                           tags$li(tags$a(id = 'integrate_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-object-group fa-fw'), 'Integrate')),
+                           tags$li(class=add,
+                                   tags$a(id = 'add_dataset',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          icon('plus', 'fa-fw'),
+                                          'Import')
+                           ),
+                           tags$li(class=add,
+                                   tags$a(id = 'integrate_dataset',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          tags$i(class= 'far fa-object-group fa-fw'),
+                                          'Integrate')
+                           ),
                            tags$li(role = 'separator', class='divider'),
-                           tags$li(tags$a(id = 'export_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class = 'fab fa-r-project'), 'Export')),
-                           tags$li(tags$a(id = 'remove_dataset', role='button', class = 'action-button shiny-bound-input', tags$i(class= 'far fa-trash-alt fa-fw'), 'Delete'))
+                           tags$li(tags$a(id = 'export_dataset',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          tags$i(class = 'fab fa-r-project'),
+                                          'Export')
+                           ),
+                           tags$li(class=add,
+                                   tags$a(id = 'remove_dataset',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          tags$i(class= 'far fa-trash-alt fa-fw'),
+                                          'Delete')
+                           )
                    )
           )
         )

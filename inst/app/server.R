@@ -53,25 +53,22 @@ server <- function(input, output, session) {
 
     # rintrojs
     observeEvent(input$start_tour, {
-        if (input$tab == 'Single Cell') {
-            steps <- utils::read.csv('www/sc_intro.csv', stringsAsFactors = FALSE)
-
-        } else if (input$tab == 'Bulk Data') {
+        if (input$tab == 'Bulk Data')
             steps <- utils::read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
-
-        } else if (input$tab == 'Drugs') {
+        else if (input$tab == 'Drugs')
             steps <- utils::read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
 
-        } else {
-            print(input$tab)
-            return(NULL)
-        }
+        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+    })
 
-        rintrojs::introjs(session,
-                          options = list(
-                              showStepNumbers = 'false',
-                              steps = steps))
+    observeEvent(input$tour_sc_clusters, {
+            steps <- utils::read.csv('www/sc_intro_clusters.csv', stringsAsFactors = FALSE)
+            rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+    })
 
+    observeEvent(input$tour_sc_samples, {
+            steps <- utils::read.csv('www/sc_intro_samples.csv', stringsAsFactors = FALSE)
+            rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
     })
 
     observe({
@@ -117,6 +114,8 @@ server <- function(input, output, session) {
 
 
     observe({
+        toggle('tour_dropdown', condition = input$tab == 'Single Cell')
+        toggle('start_tour_container', condition = input$tab != 'Single Cell')
         toggle('datasets_dropdown', condition = input$tab != 'Drugs')
         toggle('integrate_dataset', condition = input$tab == 'Single Cell')
         toggle('export_dataset', condition = input$tab == 'Single Cell')
