@@ -389,7 +389,11 @@ input[type=text], textarea {
     background-color: slategray;
     color: white;
     border-style: dashed;
+}
 
+.btn-tour {
+  border: 1px solid #ddd;
+  padding: 5px;
 }
 
 body {

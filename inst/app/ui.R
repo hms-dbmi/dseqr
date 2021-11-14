@@ -89,7 +89,6 @@ checkjs <- 'function checkFileName(fieldObj, shinyId) {
     return true;
 }'
 
-
 bootstrapPage(
   remoteDeps,
   if (!is_local) includeHTML("www/gtm.html"),

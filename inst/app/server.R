@@ -62,13 +62,14 @@ server <- function(input, output, session) {
     })
 
     observeEvent(input$tour_sc_clusters, {
-            steps <- utils::read.csv('www/sc_intro_clusters.csv', stringsAsFactors = FALSE)
-            rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+        steps <- utils::read.csv('www/sc_intro_clusters.csv', stringsAsFactors = FALSE)
+        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
     })
 
     observeEvent(input$tour_sc_samples, {
-            steps <- utils::read.csv('www/sc_intro_samples.csv', stringsAsFactors = FALSE)
-            rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+        steps <- utils::read.csv('www/sc_intro_samples.csv', stringsAsFactors = FALSE)
+        steps$step <- seq_len(nrow(steps))
+        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
     })
 
     observe({

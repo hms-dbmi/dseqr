@@ -977,7 +977,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       on.exit(progress$close())
-      progress$set(message = paste("Detecting ambient genes: cluster", sel), value = 1)
+      progress$set(message = "Detecting ambient genes", detail = paste('cluster', sel), value = 1)
 
       amb <- calc_cluster_ambience(summed, amb, sel)
       qs::qsave(amb, ambience_path)
