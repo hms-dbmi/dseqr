@@ -10,6 +10,12 @@ seurat_to_sce <- function(sdata, dataset_name) {
         sdata <- Seurat::NormalizeData(sdata, assay = 'RNA')
     }
 
+    # transfer QC features
+    sdata$mito_percent <- sdata$percent.mt
+    sdata$ribo_percent <- sdata$percent.ribo
+    sdata$log10_sum <- log10(sdata$nCount_RNA)
+    sdata$log10_detected <- log10(sdata$nFeature_RNA)
+
     sce <- Seurat::as.SingleCellExperiment(sdata, assay = 'RNA')
     is.integrated <- 'integrated' %in% Seurat::Assays(sdata)
 
