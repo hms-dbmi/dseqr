@@ -282,6 +282,8 @@ process_robject_multisample <- function(scseq, scseqs, need) {
   # transfer QC metrics from individual datasets
   if (need$integrate | need$add_qc)
     scseq <- add_combined_metrics(scseq, scseqs)
+  else
+    scseq <- add_sample_metrics(scseq)
 
   if (need$reduction) {
     message('getting UMAP/TSNE ...')

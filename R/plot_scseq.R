@@ -328,9 +328,16 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
 
   } else {
     pal <- grDevices::colors(distinct = TRUE)
+
+    # remove shades of white
     pal <- pal[grep('gr(a|e)y|white|ivory|beige|seashell|snow',
                     pal,
                     invert = TRUE)]
+
+
+    # keep first instance of e.g. c('rosybrown', 'rosybrown1')
+    pal.base <- gsub('\\d+$', '', pal)
+    pal <- pal[!duplicated(pal.base)]
     pal <- sample(pal, nlevs)
     values <- col2hex(pal, dark)
   }

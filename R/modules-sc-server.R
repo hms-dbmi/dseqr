@@ -249,12 +249,13 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
     metrics <- scseq@colData
+
+    samples <- unique(scseq$batch)
+    metrics <- metrics[, colnames(metrics) %in% c(samples, const$features$qc)]
     qc <- colnames(metrics)
-
     names(qc) <- sapply(metrics, class)
-
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
-    qc <- qc[!grepl('^sum$|^total$|^subsets|^percent|^sizeFactor|^mapping|^predicted|^nCount_|^altexps_', qc)]
+
     return(qc)
   })
 
@@ -1423,6 +1424,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       is.azi <- file.exists(file.path(dataset_dir(), 'azimuth_ref.qs'))
       if (is.azi) return(NULL)
 
+      types <- SingleCellExperiment::reducedDimNames(scseq)
+      if (!any(c('corrected', 'PCA') %in% types)) return(NULL)
+
       disableAll(dataset_inputs)
       snn_graph <- get_snn_graph(scseq)
       qs::qsave(snn_graph, snn_path)
@@ -2386,7 +2390,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   }, ignoreInit = TRUE)
 
-  rname <- reactiveVal('resoln')
+  rname <- reactiveVal('fixed')
   is_azimuth <- reactiveVal(FALSE)
 
   observe({
@@ -2401,6 +2405,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   observeEvent(dataset_dir(),  {
+
     dataset_dir <- dataset_dir()
     req(dataset_dir)
 
@@ -2412,9 +2417,14 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     rpath <- file.path(dataset_dir(), 'resoln.qs')
     resoln_path(rpath)
     init <- qread.safe(rpath, 1)
-    resoln(init)
 
-    if (isazi) {
+    resoln(init)
+    resoln_fixed <- init == 'provided.clusters'
+
+    if (resoln_fixed) {
+      rname('fixed')
+
+    } else if (isazi) {
       rname('resoln_azi')
       cols <- colnames(scseq()@colData)
       choices <- get_azimuth_cols(cols, 'cluster')
@@ -3695,6 +3705,7 @@ get_scatter_props <- function(is_mobile, ncells) {
 
   scatter_props <- list(
     radiusMinPixels = pt.size,
+    radiusMaxPixels = pt.size*2,
     stroked = pt.size >= 3
   )
 
@@ -4165,3 +4176,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
