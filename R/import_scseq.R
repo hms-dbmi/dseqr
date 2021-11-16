@@ -127,6 +127,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   if (is(scseq, 'Seurat')) {
     scseq <- seurat_to_sce(scseq, dataset_name)
+    gc()
   }
 
   samples <- unique(scseq$batch)
@@ -134,10 +135,15 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   ## process the R object
   progress$set(message = "processing R object", value = value + 2)
-  scseqs <- process_robject_samples(scseq, tx2gene_dir, species, metrics)
+
+  scseqs <- list()
+  need <- get_need_multisample(scseq)
+
+  if (!multisample | need$process_samples)
+    scseqs <- process_robject_samples(scseq, tx2gene_dir, species, metrics)
 
   if (multisample) {
-    scseq <- process_robject_multisample(scseq, scseqs)
+    scseq <- process_robject_multisample(scseq, scseqs, need)
   } else {
     scseq <- scseqs[[1]]
   }
@@ -233,10 +239,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   save_scseq_data(scseq_subdata, dataset_subname, sc_dir, overwrite = FALSE)
 }
 
-
-process_robject_multisample <- function(scseq, scseqs) {
-
-  project <- scseq$project[1]
+get_need_multisample <- function(scseq) {
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
 
   # get reduction if missing
@@ -248,8 +251,27 @@ process_robject_multisample <- function(scseq, scseqs) {
   no_clusters <- is.null(scseq$cluster)
   need_corrected <- !'corrected' %in% red.names & (need_reduction | no_clusters)
 
-  # use harmony if need corrected to get UMAP/TSNE
-  if (need_corrected) {
+  # normalize to get logcounts if missing
+  need_normalize <- !'logcounts' %in% names(scseq@assays)
+
+  need_add_qc <- is.null(scseq$mito_percent)
+
+  need_integrate <- need_corrected | need_normalize
+
+  return(list(
+    reduction = need_reduction,
+    integrate = need_integrate,
+    add_qc = need_add_qc,
+    process_samples = need_integrate | need_add_qc
+  ))
+}
+
+
+process_robject_multisample <- function(scseq, scseqs, need) {
+
+  # use harmony if had to get logcounts per sample or need corrected to get UMAP/TSNE
+  if (need$integrate) {
+    project <- scseq$project[1]
     message('getting corrected ...')
     message('supplied clusters will be replaced')
 
@@ -258,9 +280,10 @@ process_robject_multisample <- function(scseq, scseqs) {
   }
 
   # transfer QC metrics from individual datasets
-  scseq <- add_combined_metrics(scseq, scseqs)
+  if (need$integrate | need$add_qc)
+    scseq <- add_combined_metrics(scseq, scseqs)
 
-  if (need_reduction) {
+  if (need$reduction) {
     message('getting UMAP/TSNE ...')
     scseq <- run_reduction(scseq, dimred = 'corrected')
   }

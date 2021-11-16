@@ -17,15 +17,16 @@ seurat_to_sce <- function(sdata, dataset_name) {
     sdata@meta.data$log10_detected <- log10(sdata$nFeature_RNA)
 
     sce <- Seurat::as.SingleCellExperiment(sdata)
-    is.integrated <- length(unique(sce$orig.ident)) >1
+
+    samples <- sce$sample
+    if (is.null(samples)) samples <- sce$orig.ident
+    is.integrated <- length(unique(samples)) >1
 
     if (!is.integrated) {
         sce$batch <- dataset_name
 
-    } else if (is.integrated) {
-        # treat orig.ident as sample identifier
-        sce$batch <- sce$orig.ident
-        if (length(unique(sce$batch)) < 2) stop("indicate samples in 'orig.ident'")
+    } else {
+        sce$batch <- samples
 
         # get HVGs and transfer reductions from integrated assay if present
         alt.names <- SingleCellExperiment::altExpNames(sce)
@@ -38,6 +39,8 @@ seurat_to_sce <- function(sdata, dataset_name) {
             SingleCellExperiment::reducedDims(sce) <-
             SingleCellExperiment::reducedDims(SingleCellExperiment::altExp(sce, 'integrated'))
         }
+
+        SingleCellExperiment::altExps(sce) <- NULL
 
         # Seurat integrated 'PCA' or 'HARMONY' equivalent to SingleCellExperiment 'corrected'
         # (used to run UMAP/TSNE)
@@ -62,12 +65,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
     }
 
     # transfer clusters
-    # prefer ident as may have annotations
-    ident_is_cluster <- identical(as.numeric(sce$ident),
-                                  as.numeric(sce$seurat_clusters))
-
-    if (ident_is_cluster) sce$cluster <-sce$ident
-    else sce$cluster <- sce$seurat_clusters
+    sce$cluster <- sce$seurat_clusters
 
     return(sce)
 }
