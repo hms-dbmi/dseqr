@@ -244,6 +244,7 @@ process_robject_multisample <- function(scseq, scseqs) {
   need_reduction <- !any(c('TSNE', 'UMAP') %in% red.names)
 
   # need corrected to get reduction and clusters
+  # if have clusters/reduction but not corrected will disable resolution changes
   no_clusters <- is.null(scseq$cluster)
   need_corrected <- !'corrected' %in% red.names & (need_reduction | no_clusters)
 
@@ -252,7 +253,7 @@ process_robject_multisample <- function(scseq, scseqs) {
     message('getting corrected ...')
     message('supplied clusters will be replaced')
 
-    scseq <- integrate_scseqs(scseqs)
+    scseq <- integrate_scseqs(scseqs, type='harmony')
     scseq$project <- project
   }
 

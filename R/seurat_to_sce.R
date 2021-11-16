@@ -11,13 +11,13 @@ seurat_to_sce <- function(sdata, dataset_name) {
     }
 
     # transfer QC features
-    sdata$mito_percent <- sdata$percent.mt
-    sdata$ribo_percent <- sdata$percent.ribo
-    sdata$log10_sum <- log10(sdata$nCount_RNA)
-    sdata$log10_detected <- log10(sdata$nFeature_RNA)
+    sdata@meta.data$mito_percent <- sdata@meta.data$percent.mt
+    sdata@meta.data$ribo_percent <- sdata@meta.data$percent.ribo
+    sdata@meta.data$log10_sum <- log10(sdata@meta.data$nCount_RNA)
+    sdata@meta.data$log10_detected <- log10(sdata$nFeature_RNA)
 
-    sce <- Seurat::as.SingleCellExperiment(sdata, assay = 'RNA')
-    is.integrated <- 'integrated' %in% Seurat::Assays(sdata)
+    sce <- Seurat::as.SingleCellExperiment(sdata)
+    is.integrated <- length(unique(sce$orig.ident)) >1
 
     if (!is.integrated) {
         sce$batch <- dataset_name
@@ -27,10 +27,17 @@ seurat_to_sce <- function(sdata, dataset_name) {
         sce$batch <- sce$orig.ident
         if (length(unique(sce$batch)) < 2) stop("indicate samples in 'orig.ident'")
 
-        # get corrected and UMAP/TSNE reductions from integrated assay
-        sce.int <- Seurat::as.SingleCellExperiment(sdata, assay = 'integrated')
+        # get HVGs and transfer reductions from integrated assay if present
+        alt.names <- SingleCellExperiment::altExpNames(sce)
+        if (!'integrated' %in% alt.names) {
+            hvgs <- sdata[['RNA']]@var.features
 
-        SingleCellExperiment::reducedDims(sce) <- SingleCellExperiment::reducedDims(sce.int)
+        } else {
+            hvgs <- sdata[['integrated']]@var.features
+
+            SingleCellExperiment::reducedDims(sce) <-
+            SingleCellExperiment::reducedDims(SingleCellExperiment::altExp(sce, 'integrated'))
+        }
 
         # Seurat integrated 'PCA' or 'HARMONY' equivalent to SingleCellExperiment 'corrected'
         # (used to run UMAP/TSNE)
@@ -46,8 +53,6 @@ seurat_to_sce <- function(sdata, dataset_name) {
             SingleCellExperiment::reducedDimNames(sce) <- red.names
         }
 
-        # Seurat HVGs are ordered - use to mock biological variance component
-        hvgs <- sdata[['integrated']]@var.features
         rdata <- SummarizedExperiment::rowData(sce)
 
         rdata$bio <- 0
