@@ -6,10 +6,10 @@
 \usage{
 integrate_scseqs(
   scseqs,
-  type = c("harmony", "fastMNN", "Azimuth"),
+  type = c("harmony", "fastMNN", "Azimuth", "symphony"),
   pairs = NULL,
   hvgs = NULL,
-  azimuth_ref = NULL
+  ref_name = NULL
 )
 }
 \arguments{

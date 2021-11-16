@@ -189,10 +189,10 @@ resolutionFormInput <- function(id) {
             ' using provided clusters.'
           )
       ),
-      div(id = ns('resoln_azi_container'), style='display: none;',
+      div(id = ns('resoln_ref_container'), style='display: none;',
           selectizeInput(
-            ns('resoln_azi'),
-            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_azi'),'">0</span>]:')), choices = '', width = '100%')
+            ns('resoln_ref'),
+            label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus_ref'),'">0</span>]:')), choices = '', width = '100%')
       )
     )
   })
@@ -218,7 +218,7 @@ subsetFormInput <- function(id) {
           options = list(multiple = TRUE,
                          optgroupField = 'type',
                          placeholder = 'Select none to recluster')),
-        shiny::selectizeInput(ns('azimuth_ref'), 'Azimuth reference:', choices = c('', unname(azimuth_refs)), width = '100%', options = list(placeholder = 'optional')),
+        shiny::selectizeInput(ns('ref_name'), 'Reference:', choices = NULL, width = '100%', options = list(placeholder = 'optional')),
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),

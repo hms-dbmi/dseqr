@@ -879,7 +879,7 @@ integrate_saved_scseqs <- function(
   integration_name,
   dataset_names = NULL,
   scseqs = NULL,
-  integration_type = c('harmony', 'fastMNN', 'Azimuth'),
+  integration_type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'),
   exclude_clusters = NULL,
   exclude_cells = NULL,
   subset_metrics = NULL,
@@ -887,7 +887,7 @@ integrate_saved_scseqs <- function(
   founder = integration_name,
   pairs = NULL,
   hvgs = NULL,
-  azimuth_ref = NULL,
+  ref_name = NULL,
   npcs = 30,
   cluster_alg = 'leiden',
   resoln = 1,
@@ -931,7 +931,7 @@ integrate_saved_scseqs <- function(
   if(length(species) > 1) stop('Multi-species integration not supported.')
 
   progress$set(value+2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type, hvgs = hvgs, azimuth_ref = azimuth_ref)
+  combined <- integrate_scseqs(scseqs, type = integration_type, hvgs = hvgs, ref_name = ref_name)
   combined$project <- dataset_name
 
   # retain original QC metrics
@@ -950,17 +950,17 @@ integrate_saved_scseqs <- function(
                      founder = founder,
                      resoln = resoln)
 
-  is_azimuth <- integration_type == 'Azimuth'
-  if (is_azimuth) {
-    # default resoln for each azimuth ref
-    resoln <- get_azimuth_resoln(azimuth_ref)
+  is_ref <- integration_type %in% c('Azimuth', 'symphony')
+  if (is_ref) {
+    # default resoln for each azimuth/symphony ref
+    resoln <- get_ref_resoln(ref_name)
 
     scseq_data$resoln <- resoln
-    scseq_data$azimuth_ref <- azimuth_ref
+    scseq_data$ref_name <- ref_name
     scseq_data$scseq <- combined
 
     save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
-    save_azimuth_clusters(combined@colData, dataset_name, sc_dir)
+    save_ref_clusters(combined@colData, dataset_name, sc_dir)
 
   } else {
     # UMAP/TSNE on corrected reducedDim
@@ -982,7 +982,7 @@ integrate_saved_scseqs <- function(
                    resoln,
                    progress,
                    value+4,
-                   reset_annot = !is_azimuth)
+                   reset_annot = !is_ref)
 
   save_scseq_args(args, dataset_name, sc_dir)
 
@@ -1078,25 +1078,33 @@ run_integrate_saved_scseqs <- function( sc_dir,
                                         dataset_names,
                                         integration_name,
                                         integration_types,
-                                        azimuth_ref) {
+                                        ref_name) {
 
   for (i in seq_along(integration_types)) {
+
     type <- integration_types[i]
     ref <- NULL
-    if (type == 'Azimuth') ref <- azimuth_ref
+    if (type == 'reference') {
+      ref <- ref_name
+      type <- get_ref_type(ref)
+    }
 
     # run integration
     res <- integrate_saved_scseqs(sc_dir,
                                   dataset_names,
                                   integration_name = integration_name,
                                   integration_type = type,
-                                  azimuth_ref = ref,
+                                  ref_name = ref,
                                   value = i*8-8)
 
     # stop subsequent integration types if error
     if (!res) return(FALSE)
   }
   return(TRUE)
+}
+
+get_ref_type <- function(ref_name) {
+  refs[refs$name == ref_name, 'type']
 }
 
 
@@ -1125,7 +1133,7 @@ subset_saved_scseq <- function(sc_dir,
                                is_include = FALSE,
                                progress = NULL,
                                hvgs = NULL,
-                               azimuth_ref = NULL) {
+                               ref_name = NULL) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -1156,12 +1164,12 @@ subset_saved_scseq <- function(sc_dir,
   if (is_integrated) {
     args <- load_args(sc_dir, from_dataset)
 
-    # use same integration type as previously unless azimuth_ref given
+    # use same integration type as previously unless reference given
     itype <- args$integration_type
-    if (!is.null(azimuth_ref)) itype <- 'Azimuth'
+    if (!is.null(ref_name)) itype <- get_ref_type(ref_name)
 
-    # use harmony if previous was azimuth and no ref specified
-    if (itype == 'Azimuth' & is.null(azimuth_ref)) itype <- 'harmony'
+    # use harmony if previous was azimuth/symphony and no ref specified
+    if (itype %in% c('Azimuth', 'symphony') & is.null(ref_name)) itype <- 'harmony'
 
     scseqs <- split_scseq(scseq)
     rm(scseq); gc()
@@ -1175,7 +1183,7 @@ subset_saved_scseq <- function(sc_dir,
       subset_metrics = subset_metrics,
       founder = founder,
       hvgs = hvgs,
-      azimuth_ref = azimuth_ref,
+      ref_name = ref_name,
       progress = progress,
       value = 1)
 
@@ -1197,7 +1205,7 @@ subset_saved_scseq <- function(sc_dir,
       progress = progress,
       value = 1,
       founder = founder,
-      azimuth_ref = azimuth_ref)
+      ref_name = ref_name)
 
     save_scseq_args(args, dataset_name, sc_dir)
   }
@@ -1459,14 +1467,14 @@ load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = F
 #' @return \code{NULL} if valid, otherwise an error message
 #'
 #' @keywords internal
-validate_integration <- function(types, name, azimuth_ref, dataset_names, sc_dir) {
+validate_integration <- function(types, name, ref_name, dataset_names, sc_dir) {
   msg <- NULL
 
   species <- get_integration_species(dataset_names, sc_dir)
 
 
-  if ('Azimuth' %in% types & !isTruthy(azimuth_ref)) {
-    msg <- 'Select azimuth reference'
+  if ('reference' %in% types & !isTruthy(ref_name)) {
+    msg <- 'Select reference'
   } else if (is.null(types)) {
     msg <- 'Select one or more integration types'
   } else if (name == '') {
@@ -2120,18 +2128,18 @@ integrationModal <- function(session, choices) {
                    shinyWidgets::checkboxGroupButtons(
                      ns('integration_types'),
                      'Integration types:',
-                     choices = c('harmony', 'fastMNN', 'Azimuth'),
+                     choices = c('harmony', 'fastMNN', 'reference'),
                      justified = TRUE,
                      selected = 'harmony',
                      checkIcon = list(
                        yes = icon("ok", lib = "glyphicon"),
                        no = icon("remove", lib = "glyphicon", style="color: transparent;"))
                    ),
-                   div(id=ns('azimuth_ref_container'), style='display: none;',
+                   div(id=ns('ref_name_container'), style='display: none;',
                        selectizeInput(
-                         ns('azimuth_ref'),
-                         HTML('Select Azimuth reference:'),
-                         choices = c('', unname(azimuth_refs)), width = '100%')
+                         ns('ref_name'),
+                         HTML('Select reference:'),
+                         choices = refs, width = '100%')
                    ),
                    shinypanel::textInputWithValidation(
                      ns('integration_name'),
@@ -2258,39 +2266,6 @@ confirmSubsetModal <- function(session) {
     )
   )
 }
-
-confirmImportModal <- function(session, type = c('quant', 'subset'), metric_choices = NULL, species = NULL) {
-
-  species_refs <- NULL
-  if (!is.null(species))
-    species_refs <- unname(azimuth_refs[names(azimuth_refs) == species])
-
-  UI <- div(
-    selectizeInput(
-      session$ns('qc_metrics'),
-      HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
-      choices = c('all', 'all and none', 'none', metric_choices),
-      selected = 'all',
-      multiple = TRUE),
-    selectizeInput(
-      session$ns('azimuth_ref'),
-      HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
-      choices = c('', species_refs),
-      options = list(placeholder = 'optional'))
-
-  )
-
-  modalDialog(
-    UI,
-    title = 'Create new single-cell dataset?',
-    size = 's',
-    footer = tagList(
-      actionButton(session$ns('confirm_quant'), 'Import', class = 'btn-warning'),
-      tags$div(class='pull-left', modalButton('Cancel'))
-    )
-  )
-}
-
 
 # modal to submit feedback
 feedbackModal <- function(session) {

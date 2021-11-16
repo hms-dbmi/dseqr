@@ -9,7 +9,7 @@ run_integrate_saved_scseqs(
   dataset_names,
   integration_name,
   integration_types,
-  azimuth_ref
+  ref_name
 )
 }
 \arguments{

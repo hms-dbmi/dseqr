@@ -1421,8 +1421,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     } else {
       scseq <- scseq()
       if (!isTruthy(scseq)) return(NULL)
-      is.azi <- file.exists(file.path(dataset_dir(), 'azimuth_ref.qs'))
-      if (is.azi) return(NULL)
+      is.ref <- file.exists(file.path(dataset_dir(), 'ref_name.qs'))
+      if (is.ref) return(NULL)
 
       types <- SingleCellExperiment::reducedDimNames(scseq)
       if (!any(c('corrected', 'PCA') %in% types)) return(NULL)
@@ -1691,11 +1691,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     species <- input$import_species
     if (is.null(species)) return(NULL)
 
-    # Azimuth not implemented for R object import
+    # reference based not implemented for R object import
     up_df <- up_all()
     if (all(grepl('[.]qs$|[.]rds$', up_df$name))) return(NULL)
 
-    unname(azimuth_refs[names(azimuth_refs) == species])
+    get_refs_list(species)
   })
 
   robject_import <- reactive(any(grepl('[.]qs$|[.]rds$', up_all()$name)))
@@ -1706,11 +1706,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observe({
     have_refs <- length(species_refs()) > 0
-    toggle('azimuth_ref_container', condition = have_refs)
+    toggle('ref_name_container', condition = have_refs)
   })
 
   observe({
-    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs()))
+    updateSelectizeInput(session, 'ref_name', choices = species_refs())
   })
 
 
@@ -1771,8 +1771,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     samples <- up_samples()
     uniq_samples <- unique(na.omit(samples))
 
-    azimuth_ref <- input$azimuth_ref
-    if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
+    ref_name <- input$ref_name
+    if (!isTruthy(ref_name)) ref_name <- NULL
 
     for (dataset_name in uniq_samples) {
       upi <- up[samples %in% dataset_name,, drop = FALSE]
@@ -1809,7 +1809,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         sc_dir = sc_dir,
         indices_dir = indices_dir,
         tx2gene_dir = tx2gene_dir,
-        azimuth_ref = azimuth_ref,
+        ref_name = ref_name,
         species = species
       )
     }
@@ -1958,15 +1958,23 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   ))
 }
 
+get_refs_list <- function(species) {
+
+  refs <- refs[refs$species == species, ]
+  ref_names <- refs$name
+  names(ref_names) <- ref_names
+  split(ref_names, refs$type)
+}
+
 prep_scseq_export <- function(scseq, dataset_dir) {
 
   # store selected resolution
   resoln_path <- file.path(dataset_dir, 'resoln.qs')
   scseq@metadata$resoln <- qread.safe(resoln_path)
 
-  # store azimuth reference
-  azi_path <- file.path(dataset_dir, 'azimuth_ref.qs')
-  scseq@metadata$azimuth_ref <- qread.safe(azi_path)
+  # store reference name
+  ref_path <- file.path(dataset_dir, 'ref_name.qs')
+  scseq@metadata$ref_name <- qread.safe(ref_path)
 
   # store group metadata
   meta_path <- file.path(dataset_dir, 'meta.qs')
@@ -2044,7 +2052,7 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #' @keywords internal
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
-  label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_azi')
+  label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_ref')
   asis <- c(FALSE, FALSE, TRUE, TRUE)
 
   options <-  reactive({
@@ -2359,7 +2367,7 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 #' @keywords internal
 #' @noRd
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups, annot) {
-  resolution_inputs <- c('resoln', 'resoln_azi')
+  resolution_inputs <- c('resoln', 'resoln_ref')
 
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()
@@ -2374,7 +2382,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   observe({
     clusters <- clusters()
     nclus <- length(levels(clusters))
-    type <- ifelse(is_azimuth(), 'nclus_azi', 'nclus')
+    type <- ifelse(is_reference(), 'nclus_ref', 'nclus')
     shinyjs::html(type, nclus)
   })
 
@@ -2391,11 +2399,11 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   }, ignoreInit = TRUE)
 
   rname <- reactiveVal('fixed')
-  is_azimuth <- reactiveVal(FALSE)
+  is_reference <- reactiveVal(FALSE)
 
   observe({
-    shinyjs::toggle('resoln_container', condition=!is_azimuth())
-    shinyjs::toggle('resoln_azi_container', condition=is_azimuth())
+    shinyjs::toggle('resoln_container', condition=!is_reference())
+    shinyjs::toggle('resoln_ref_container', condition=is_reference())
   })
 
   observeEvent(resoln_dir(), {
@@ -2409,10 +2417,10 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     dataset_dir <- dataset_dir()
     req(dataset_dir)
 
-    # restrict resolutions if azimuth
-    apath <- file.path(dataset_dir(), 'azimuth_ref.qs')
-    isazi <- file.exists(apath)
-    is_azimuth(isazi)
+    # restrict resolutions if reference
+    ref_path <- file.path(dataset_dir(), 'ref_name.qs')
+    is.ref <- file.exists(ref_path)
+    is_reference(is.ref)
 
     rpath <- file.path(dataset_dir(), 'resoln.qs')
     resoln_path(rpath)
@@ -2424,11 +2432,11 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     if (resoln_fixed) {
       rname('fixed')
 
-    } else if (isazi) {
-      rname('resoln_azi')
+    } else if (is.ref) {
+      rname('resoln_ref')
       cols <- colnames(scseq()@colData)
-      choices <- get_azimuth_cols(cols, 'cluster')
-      updateSelectizeInput(session, 'resoln_azi', choices = choices, selected = init)
+      choices <- get_reference_cols(cols, 'cluster')
+      updateSelectizeInput(session, 'resoln_ref', choices = choices, selected = init)
 
     } else {
       rname('resoln')
@@ -2569,22 +2577,21 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
     return(choices)
   })
 
-  # set azimuth refs
-
+  # set reference names
   species_refs <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
     species <- scseq@metadata$species
-    unname(azimuth_refs[names(azimuth_refs) == species])
+    get_refs_list(species)
   })
 
   observe({
     species_refs <- species_refs()
-    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs))
+    updateSelectizeInput(session, 'ref_name', choices = c('', species_refs))
   })
 
   observe({
-    toggle('azimuth_ref_container', condition = length(species_refs()) > 0)
+    toggle('ref_name_container', condition = length(species_refs()) > 0)
   })
 
   # change UI of exclude toggle
@@ -2599,6 +2606,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
+    browser()
     error_msg <- validate_subset(selected_dataset(),
                                  input$subset_name,
                                  input$subset_clusters,
@@ -2607,7 +2615,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
 
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
-      showModal(confirmSubsetModal(session, 'subset'))
+      showModal(confirmSubsetModal(session))
 
     } else {
       # show error message
@@ -2617,6 +2625,8 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   })
 
   observeEvent(input$confirm_subset, {
+
+    browser()
     removeModal()
 
     subset_clusters <- input$subset_clusters
@@ -2628,8 +2638,8 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
     is_integrated <- is_integrated()
     hvgs <- hvgs()
 
-    azimuth_ref <- input$azimuth_ref
-    if (!isTruthy(azimuth_ref)) azimuth_ref <- NULL
+    ref_name <- input$ref_name
+    if (!isTruthy(ref_name)) ref_name <- NULL
 
     exclude_clusters <- intersect(cluster_choices$value, subset_clusters)
     subset_metrics <- intersect(metric_choices$value, subset_clusters)
@@ -2654,7 +2664,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
         is_integrated = is_integrated,
         is_include = is_include,
         hvgs = hvgs,
-        azimuth_ref = azimuth_ref
+        ref_name = ref_name
       )
     )
 
@@ -2722,7 +2732,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
                           'integration_name',
                           'submit_integration',
                           'integration_types',
-                          'azimuth_ref')
+                          'ref_name')
 
 
   integration_name <- reactive(input$integration_name)
@@ -2774,22 +2784,22 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
   # show cluster type choices if enough datasets
   observe(toggle(id = 'integration_options_container', condition = allow_integration()))
 
-  # set azimuth refs based on species
+  # set references based on species
   species <- reactive({
     get_integration_species(input$integration_datasets, sc_dir)
   })
 
   species_refs <- reactive({
     species <- species()
-    unname(azimuth_refs[names(azimuth_refs) == species])
+    get_refs_list(species)
   })
 
-  enable_azi <- reactive(length(species_refs()) > 0)
+  enable_ref <- reactive(length(species_refs()) > 0)
 
-  observe(toggle('azimuth_ref', condition = enable_azi()))
+  observe(toggle('ref_name', condition = enable_ref()))
   observe({
     disabledChoices <- NULL
-    if (!enable_azi()) disabledChoices <- 'Azimuth'
+    if (!enable_ref()) disabledChoices <- 'reference'
 
     updateCheckboxGroupButtons(session,
                                'integration_types',
@@ -2797,7 +2807,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
   })
 
   observe({
-    updateSelectizeInput(session, 'azimuth_ref', choices = c('', species_refs()))
+    updateSelectizeInput(session, 'ref_name', choices = c('', species_refs()))
   })
 
 
@@ -2805,14 +2815,14 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
   pintegs <- reactiveValues()
   integs <- reactiveValues()
 
-  use_azimuth <- reactive({
-    'Azimuth' %in% input$integration_types &&
-      enable_azi() &&
+  use_reference <- reactive({
+    'reference' %in% input$integration_types &&
+      enable_ref() &&
       allow_integration()
   })
 
   observe({
-    toggle('azimuth_ref_container', condition = use_azimuth())
+    toggle('ref_name_container', condition = use_reference())
   })
 
   observeEvent(input$submit_integration, {
@@ -2821,10 +2831,10 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
     types <- input$integration_types
     name <- input$integration_name
 
-    azimuth_ref <- input$azimuth_ref
-    if (!use_azimuth()) azimuth_ref <- NULL
+    ref_name <- input$ref_name
+    if (!use_reference()) ref_name <- NULL
 
-    error_msg <- validate_integration(types, name, azimuth_ref, dataset_names, sc_dir)
+    error_msg <- validate_integration(types, name, ref_name, dataset_names, sc_dir)
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
       removeModal()
@@ -2837,7 +2847,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
           dataset_names = dataset_names,
           integration_name = name,
           integration_types = types,
-          azimuth_ref = azimuth_ref
+          ref_name = ref_name
         )
       )
 
@@ -4145,11 +4155,11 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
       selected = 'all',
       multiple = TRUE),
     div(
-      id = session$ns('azimuth_ref_container'),
+      id = session$ns('ref_name_container'),
       style = ifelse(have_refs, '', 'display: none;'),
       selectizeInput(
-        session$ns('azimuth_ref'),
-        HTML('Select <a href="https://azimuth.hubmapconsortium.org/" target="_blank">Azimuth</a> reference:'),
+        session$ns('ref_name'),
+        HTML('Select reference:'),
         width = '100%',
         choices = c('', species_refs),
         options = list(placeholder = 'optional'))
@@ -4159,7 +4169,7 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
       style='color: grey; font-style: italic;',
       tags$p(triangle, tags$b(' for R object import:')),
       tags$div(' - QC is skipped if multi-sample'),
-      tags$div(' - Azimuth is not yet implemented'))
+      tags$div(' - Reference based not yet implemented'))
 
   )
 
@@ -4175,5 +4185,14 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
       tags$div(class='pull-left', modalButton('Cancel'))
     )
   )
+}
+
+
+get_refs_list <- function(species) {
+
+  refs <- refs[refs$species == species, ]
+  ref_names <- refs$name
+  names(ref_names) <- refs$label
+  split(ref_names, refs$type)
 }
 

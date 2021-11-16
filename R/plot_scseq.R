@@ -335,9 +335,6 @@ get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
                     invert = TRUE)]
 
 
-    # keep first instance of e.g. c('rosybrown', 'rosybrown1')
-    pal.base <- gsub('\\d+$', '', pal)
-    pal <- pal[!duplicated(pal.base)]
     pal <- sample(pal, nlevs)
     values <- col2hex(pal, dark)
   }

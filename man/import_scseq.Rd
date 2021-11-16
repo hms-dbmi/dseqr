@@ -18,7 +18,7 @@ import_scseq(
   cluster_alg = "leiden",
   resoln = 1,
   species = NULL,
-  azimuth_ref = NULL,
+  ref_name = NULL,
   metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
     "low_subsets_ribo_percent", "high_doublet_score")
 )

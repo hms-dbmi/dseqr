@@ -25,7 +25,7 @@ import_scseq <- function(dataset_name,
                          cluster_alg = 'leiden',
                          resoln = 1,
                          species = NULL,
-                         azimuth_ref = NULL,
+                         ref_name = NULL,
                          metrics = c('low_lib_size',
                                      'low_n_features',
                                      'high_subsets_mito_percent',
@@ -79,7 +79,7 @@ import_scseq <- function(dataset_name,
                     cluster_alg = cluster_alg,
                     npcs = npcs,
                     resoln = resoln,
-                    azimuth_ref = azimuth_ref,
+                    ref_name = ref_name,
                     founder = founder,
                     progress = progress,
                     value = value + 3)
@@ -155,15 +155,15 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   scseq@metadata$species <- species
 
   # get snn graph and initial resolution
-  azimuth_ref <- scseq@metadata$azimuth_ref
-  is_azimuth <- !is.null(azimuth_ref)
+  ref_name <- scseq@metadata$ref_name
+  is_ref <- !is.null(ref_name)
 
   snn_possible <-
     (!multisample & 'PCA' %in% red.names) |
     ( multisample & 'corrected' %in% red.names)
 
-  if (is_azimuth) {
-    # will grab other azimuth resolutions from scseq@colData
+  if (is_ref) {
+    # will grab other resolutions from scseq@colData
     resoln <- scseq@metadata$resoln
     snn_graph <- NULL
 
@@ -201,7 +201,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
                      resoln = resoln,
 
                      # metadata to reproduce exports
-                     azimuth_ref = azimuth_ref,
+                     ref_name = ref_name,
                      meta = scseq@metadata$meta,
                      prev_groups = scseq@metadata$prev_groups)
 
@@ -213,10 +213,10 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   if (multisample) {
 
     args <- list()
-    if (is_azimuth) {
-      args$azimuth_ref <- azimuth_ref
-      args$integration_type <- 'Azimuth'
-      save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
+    if (is_ref) {
+      args$ref_name <- ref_name
+      args$integration_type <- get_ref_type(ref_name)
+      save_ref_clusters(scseq@colData, dataset_name, sc_dir)
 
     } else {
       args$integration_type <- 'harmony'
@@ -226,7 +226,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   }
 
   # run what depends on resolution
-  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = !is_azimuth)
+  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = !is_ref)
 
 
   # save things in resolution sub-directory
@@ -367,7 +367,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
 #'
 #' @keywords internal
 #' @noRd
-run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, species, azimuth_ref = NULL) {
+run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, species, ref_name = NULL) {
 
   for (opt in opts) {
     import_scseq(opt$dataset_name,
@@ -378,7 +378,7 @@ run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indic
                  metrics = opt$metrics,
                  founder = opt$founder,
                  species = species,
-                 azimuth_ref = azimuth_ref)
+                 ref_name = ref_name)
 
   }
 
@@ -412,7 +412,7 @@ process_raw_scseq <- function(scseq,
                               npcs = 30,
                               resoln = 1,
                               hvgs = NULL,
-                              azimuth_ref = NULL,
+                              ref_name = NULL,
                               founder = NULL,
                               progress = NULL,
                               value = 0) {
@@ -431,8 +431,10 @@ process_raw_scseq <- function(scseq,
   scseq <- add_hvgs(scseq, hvgs)
   species <- scseq@metadata$species
 
-  is.azimuth <- !is.null(azimuth_ref)
-  if (!is.azimuth) {
+  is_ref <- !is.null(ref_name)
+  if (is_ref) ref_type <- get_ref_type(ref_name)
+
+  if (!is_ref) {
     progress$set(message = "reducing", value = value + 1)
     scseq <- run_pca(scseq)
     scseq <- run_reduction(scseq)
@@ -447,17 +449,33 @@ process_raw_scseq <- function(scseq,
     anal <- list(scseq = scseq, snn_graph = snn_graph, founder = founder, resoln = resoln, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
 
-  } else {
+  } else if (ref_type == 'Azimuth') {
     progress$set(message = "running Azimuth", detail = '', value = value + 2)
 
-    resoln <- get_azimuth_resoln(azimuth_ref)
-    azres <- run_azimuth(list(one = scseq), azimuth_ref)
+    resoln <- get_ref_resoln(ref_name)
+    azres <- run_azimuth(list(one = scseq), ref_name)
     scseq <- transfer_azimuth(azres, scseq, resoln)
     rm(azres); gc()
 
-    anal <- list(scseq = scseq, founder = founder, resoln = resoln, azimuth_ref = azimuth_ref, species = species)
+    anal <- list(scseq = scseq, founder = founder, resoln = resoln, ref_name = ref_name, species = species)
     save_scseq_data(anal, dataset_name, sc_dir)
-    save_azimuth_clusters(scseq@colData, dataset_name, sc_dir)
+    save_ref_clusters(scseq@colData, dataset_name, sc_dir)
+
+  } else if (ref_type == 'symphony') {
+    progress$set(message = "running symphony", detail = '', value = value + 2)
+
+    resoln <- get_ref_resoln(ref_name)
+    counts <- SingleCellExperiment::counts(scseq)
+    logcounts <- SingleCellExperiment::logcounts(scseq)
+
+    symres <- run_symphony(counts, logcounts, ref_name, scseq$project)
+    scseq <- transfer_symphony(symres, scseq)
+    rm(symres); gc()
+
+    anal <- list(scseq = scseq, founder = founder, resoln = resoln, ref_name = ref_name, species = species)
+    save_scseq_data(anal, dataset_name, sc_dir)
+    save_ref_clusters(scseq@colData, dataset_name, sc_dir)
+
   }
 
   # run what depends on resolution
@@ -467,9 +485,22 @@ process_raw_scseq <- function(scseq,
                    resoln,
                    progress,
                    value + 3,
-                   reset_annot = !is.azimuth)
+                   reset_annot = !is_ref)
 
   progress$set(value = value + 7)
+}
+
+transfer_symphony <- function(symres, scseq) {
+
+  scseq$cluster <- symres$cluster
+  scseq$predicted.celltype <- symres$predicted.celltype
+  scseq$predicted.celltype.score <- symres$predicted.celltype.score
+
+
+  SingleCellExperiment::reducedDim(scseq, 'UMAP') <-
+    SingleCellExperiment::reducedDim(symres, 'UMAP')
+
+  return(scseq)
 }
 
 transfer_azimuth <- function(azres, scseq, resoln) {
@@ -489,7 +520,7 @@ transfer_azimuth <- function(azres, scseq, resoln) {
   scseq$mapping.score <- get_meta(azres, 'mapping.score')
 
   cols <- colnames(azres[[1]]@meta.data)
-  azi_cols <- get_azimuth_cols(cols)
+  azi_cols <- get_ref_cols(cols)
   for (col in azi_cols) scseq[[col]] <- get_meta(azres, col)
 
   clus <- factor(scseq[[resoln]])
@@ -506,7 +537,7 @@ get_resoln_dir <- function(resoln) {
 
 is.numstring <- function(x) !is.na(suppressWarnings(as.numeric(x)))
 
-get_azimuth_cols <- function(cols, type = c('both', 'score', 'cluster')) {
+get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 
   score_cols <- grep('^predicted[.].+?[.]score$', cols, value = TRUE)
   if (type[1] == 'score') return(score_cols)
@@ -649,10 +680,10 @@ run_azimuth <- function(scseqs, azimuth_ref) {
   return(queries)
 }
 
-save_azimuth_clusters <- function(meta, dataset_name, sc_dir) {
+save_ref_clusters <- function(meta, dataset_name, sc_dir) {
 
   # cluster columns
-  cols <- get_azimuth_cols(colnames(meta), 'cluster')
+  cols <- get_ref_cols(colnames(meta), 'cluster')
 
   # save annotation and clusters for each
   for (col in cols) {
@@ -1336,7 +1367,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), pairs = NULL, hvgs = NULL, azimuth_ref = NULL) {
+integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'), pairs = NULL, hvgs = NULL, ref_name = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -1369,8 +1400,8 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
     cor.out <- run_fastmnn(logcounts, hvgs, scseqs)
 
   } else if (type[1] == 'Azimuth') {
-    azres <- run_azimuth(scseqs, azimuth_ref)
-    resoln <- get_azimuth_resoln(azimuth_ref)
+    azres <- run_azimuth(scseqs, ref_name)
+    resoln <- get_ref_resoln(ref_name)
     cor.out <- transfer_azimuth(azres, combined, resoln)
     rm(azres); gc()
 
@@ -1379,6 +1410,11 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
 
     # corrected is used to check if integrated
     SingleCellExperiment::reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
+
+  } else if (type[1] == 'symphony') {
+    counts <- do.call(no_correct('counts'), scseqs)
+    counts <- SummarizedExperiment::assay(counts, 'merged')
+    cor.out <- run_symphony(counts, logcounts, ref_name, combined$batch)
   }
 
   # bio is used for sorting markers when no cluster selected
@@ -1387,21 +1423,90 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth'), 
   rm(combined); gc()
 
   # get counts for pseudobulk
-  counts <- do.call(no_correct('counts'), scseqs)
-  dimnames(counts) <- dimnames(cor.out)
+  if (!exists('counts')) {
+    counts <- do.call(no_correct('counts'), scseqs)
+    dimnames(counts) <- dimnames(cor.out)
+    SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
+  }
 
-  SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
   rm(counts, scseqs); gc()
+  return(cor.out)
+}
+
+run_symphony <- function(counts, logcounts, ref_name, batch) {
+
+  meta_data <- data.frame(batch = batch)
+  vars <- 'batch'
+
+  # load reference
+  reference <- dseqr.data::load_data(paste0(ref_name, '_reference.qs'))
+
+  # get uwot model
+  uwot_name <- paste0(ref_name, '_uwot_model')
+  dl_dir <- system.file(package = "dseqr.data", mustWork = TRUE)
+  uwot_path <- file.path(dl_dir, 'extdata', uwot_name)
+  if (!file.exists(uwot_path)) dseqr.data::dl_data(uwot_name)
+
+  # indicate model path for mapQuery
+  reference$save_uwot_path <- uwot_path
+
+  # map query
+  query <- symphony::mapQuery(counts,
+                              meta_data,
+                              reference,
+                              vars = vars,
+                              do_normalize = TRUE)
+
+  query <- knn_predict(query, reference, reference$meta_data$cell_type)
+  meta <- query$meta_data
+
+  cor.out <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = counts, logcounts = logcounts),
+    reducedDims = list(corrected = t(query$Z), UMAP = query$umap),
+    colData =  S4Vectors::DataFrame(
+      batch = batch,
+      cluster = meta$predicted.celltype,
+      predicted.celltype = meta$predicted.celltype,
+      predicted.celltype.score = meta$predicted.celltype.score))
+
+
 
   return(cor.out)
 }
 
-get_azimuth_resoln <- function(azimuth_ref) {
-  switch(azimuth_ref,
+
+knn_predict <- function(query_obj, ref_obj, train_labels, k = 5, save_as = "predicted.celltype",
+                        confidence = TRUE, seed = 0) {
+
+  na.label <- is.na(train_labels)
+
+  ref_obj$Z_corr <- ref_obj$Z_corr[, !na.label]
+  train_labels <- train_labels[!na.label]
+
+  set.seed(seed)
+  if (confidence) {
+    knn_pred = FNN::knn(t(ref_obj$Z_corr), t(query_obj$Z),
+                        train_labels, k = k, prob = TRUE)
+    knn_prob = attributes(knn_pred)$prob
+    query_obj$meta_data[save_as] = knn_pred
+    query_obj$meta_data[paste0(save_as, ".score")] = knn_prob
+  }
+  else {
+    knn_pred = FNN::knn(t(ref_obj$Z_corr), t(query_obj$Z),
+                        train_labels, k = k, prob = FALSE)
+    query_obj$meta_data[save_as] = knn_pred
+  }
+  return(query_obj)
+}
+
+
+get_ref_resoln <- function(ref_name) {
+  switch(ref_name,
          'human_pbmc' = 'predicted.celltype.l2',
          'human_lung' = 'predicted.annotation.l2',
          'human_motorcortex' = 'predicted.subclass',
-         'mouse_motorcortex' = 'predicted.subclass'
+         'mouse_motorcortex' = 'predicted.subclass',
+         'predicted.celltype'
   )
 }
 
