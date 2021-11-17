@@ -7,11 +7,11 @@ ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 azimuth_refs <- c('human_pbmc', 'human_lung', 'human_motorcortex', 'mouse_motorcortex')
 azimuth_species <- c(rep('Homo sapiens', 3), 'Mus musculus')
-azimuth_labels <- azimuth_refs
+azimuth_labels <- c('Human - PBMC', 'Human - Lung', 'Human - Motor Cortex', 'Mouse - Motor Cortex')
 
-symphony_refs <- c('zhang', 'pbmcs_10x')
-symphony_species <- rep('Homo sapiens', 2)
-symphony_labels <- c('Cross-tissue Inflammatory Immune Atlas', '10x PBMCs Atlas')
+symphony_refs <- c('pbmcs_10x')
+symphony_species <- rep('Homo sapiens', 1)
+symphony_labels <- c('10x PBMCs Atlas')
 
 refs <- data.frame(
     name = c(azimuth_refs, symphony_refs),
