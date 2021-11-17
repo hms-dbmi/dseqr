@@ -18,9 +18,16 @@ seurat_to_sce <- function(sdata, dataset_name) {
 
     sce <- Seurat::as.SingleCellExperiment(sdata)
 
+    # transfer samples
     samples <- sce$sample
     if (is.null(samples)) samples <- sce$orig.ident
     is.integrated <- length(unique(samples)) >1
+
+    # transfer clusters
+    sce$cluster <- Seurat::Idents(sdata)
+
+    # default HVGs unless integrated assay
+    hvgs <- sdata[['RNA']]@var.features
 
     if (!is.integrated) {
         sce$batch <- dataset_name
@@ -30,17 +37,14 @@ seurat_to_sce <- function(sdata, dataset_name) {
 
         # get HVGs and transfer reductions from integrated assay if present
         alt.names <- SingleCellExperiment::altExpNames(sce)
-        if (!'integrated' %in% alt.names) {
-            hvgs <- sdata[['RNA']]@var.features
-
-        } else {
+        if ('integrated' %in% alt.names) {
             hvgs <- sdata[['integrated']]@var.features
-
             SingleCellExperiment::reducedDims(sce) <-
             SingleCellExperiment::reducedDims(SingleCellExperiment::altExp(sce, 'integrated'))
         }
 
         SingleCellExperiment::altExps(sce) <- NULL
+        rm(sdata); gc()
 
         # Seurat integrated 'PCA' or 'HARMONY' equivalent to SingleCellExperiment 'corrected'
         # (used to run UMAP/TSNE)
@@ -55,17 +59,26 @@ seurat_to_sce <- function(sdata, dataset_name) {
             red.names[cor.ind] <- 'corrected'
             SingleCellExperiment::reducedDimNames(sce) <- red.names
         }
-
-        rdata <- SummarizedExperiment::rowData(sce)
-
-        rdata$bio <- 0
-        rdata[hvgs, 'bio'] <- rev(seq_along(hvgs))
-        rdata$hvg <- row.names(sce) %in% hvgs
-        SummarizedExperiment::rowData(sce) <- rdata
     }
 
-    # transfer clusters
-    sce$cluster <- sce$seurat_clusters
+
+    # HVG order indicates biological variance
+    rdata <- SummarizedExperiment::rowData(sce)
+
+    rdata$bio <- 0
+    rdata[hvgs, 'bio'] <- rev(seq_along(hvgs))
+    rdata$hvg <- row.names(sce) %in% hvgs
+    SummarizedExperiment::rowData(sce) <- rdata
+
+    # remove reductions that won't use
+    reds <- SingleCellExperiment::reducedDims(sce)
+    reds.keep <- c('corrected', 'PCA', 'UMAP', 'TSNE')
+
+    # no PCA if have corrected
+    if ('corrected' %in% names(reds)) reds.keep <- reds.keep[-2]
+    reds <- reds[names(reds) %in% reds.keep]
+
+    SingleCellExperiment::reducedDims(sce) <- reds
 
     return(sce)
 }
