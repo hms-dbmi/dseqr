@@ -688,6 +688,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     # make sure meta is current
     meta <- prev_meta()
     if (!all(groups %in% meta$group)) return(NULL)
+    meta <- meta[meta$group %in% groups, ]
 
     # add hash using uploaded metadata to detect changes
     tohash <- list(meta = meta)
@@ -702,6 +703,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       # make sure summed is current
       summed <- summed()
       if (!all(row.names(meta) %in% summed$batch)) return(NULL)
+      summed <- summed[, summed$batch %in% row.names(meta)]
 
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 4)
@@ -1412,6 +1414,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     disableAll(dataset_inputs)
     require(SingleCellExperiment)
     scseq <- load_scseq_qs(dataset_dir)
+    gc()
     enableAll(dataset_inputs)
 
     return(scseq)
@@ -3722,7 +3725,7 @@ get_scatter_props <- function(is_mobile, ncells) {
 
   scatter_props <- list(
     radiusMinPixels = pt.size,
-    radiusMaxPixels = pt.size*2,
+    radiusMaxPixels = max(6, pt.size*2),
     stroked = pt.size >= 3
   )
 
@@ -3910,7 +3913,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     # get group
     ids <- colnames(scseq)
-    if (!is.null(group)) ids <- ids[scseq$orig.ident == group]
+    if (!is.null(group)) ids <- ids[which(scseq$orig.ident == group)]
 
     # order cell ids if logical
     bool.ft <- is.logical(ft)
@@ -4208,5 +4211,3 @@ get_refs_list <- function(species) {
   names(ref_names) <- refs$label
   split(ref_names, refs$type)
 }
-
-
