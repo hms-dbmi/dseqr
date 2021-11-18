@@ -160,7 +160,8 @@ navbar2UI <- function(hide) {
                                           'Integrate')
                            ),
                            tags$li(role = 'separator', class='divider'),
-                           tags$li(tags$a(id = 'export_dataset',
+                           tags$li(class=add,
+                                   tags$a(id = 'export_dataset',
                                           role='button',
                                           class = 'action-button shiny-bound-input',
                                           tags$i(class = 'fab fa-r-project'),

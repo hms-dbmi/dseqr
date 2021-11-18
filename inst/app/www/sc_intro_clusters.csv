@@ -1,5 +1,5 @@
 "element","position","intro"
-"#datasets_dropdown","bottom","Menu to import, export, integrate, and delete datasets.</br></br><i class=""fas fa-exclamation-triangle text-info""></i> Integration is needed for differential expression analysis across conditions, pathway analysis, and drug queries.</br></br><i class=""fas fa-exclamation-triangle text-info""></i> Only export enabled for demo."
+"#datasets_dropdown","bottom","Menu to import, export, integrate, and delete datasets.</br></br><i class=""fas fa-exclamation-triangle text-info""></i> Integration is needed for differential expression analysis across conditions, pathway analysis, and drug queries.</br></br><i class=""fas fa-exclamation-triangle text-info""></i> Disabled for demo."
 "#sc-intro-dataset","right","Select an individual or integrated single cell dataset to explore.</br></br><i class=""fas fa-exclamation-triangle text-danger""></i> Selection required for tour."
 "#sc-form-dataset-show_label_resoln","auto","Click to show inputs for transferring labels from another dataset to the selected dataset and for changing cluster resolution."
 "#sc-form-dataset-show_subset","bottom-left-aligned","Click to show inputs to create a new dataset by subseting the currently selected dataset.</br></br>For removing low quality cells or for subclustering."

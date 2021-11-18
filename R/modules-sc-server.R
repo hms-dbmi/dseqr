@@ -2064,6 +2064,9 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_ref')
   asis <- c(FALSE, FALSE, TRUE, TRUE)
 
+  # is_example <- getShinyOption('is_example', FALSE)
+  # observe(if (is_example) disable('overwrite_annot'))
+
   options <-  reactive({
     on_init <- NULL
     if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('ref_name'))
@@ -2378,6 +2381,9 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups, annot) {
   resolution_inputs <- c('resoln', 'resoln_ref')
 
+  # is_example <- getShinyOption('is_example', FALSE)
+  # observe(if (is_example) {disable('resoln'); disable('resoln_ref')})
+
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()
   resoln <- reactiveVal()
@@ -2444,7 +2450,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
     } else if (is.ref) {
       rname('resoln_ref')
       cols <- colnames(scseq()@colData)
-      choices <- get_reference_cols(cols, 'cluster')
+      choices <- get_ref_cols(cols, 'cluster')
       updateSelectizeInput(session, 'resoln_ref', choices = choices, selected = init)
 
     } else {
@@ -2537,6 +2543,9 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
   subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
   type <- name <- NULL
+
+  # is_example <- getShinyOption('is_example', FALSE)
+  # observe(if (is_example) disable('submit_subset'))
 
   contrastOptions <- reactive({
     on_init <- NULL
@@ -2902,6 +2911,9 @@ comparisonType <- function(input, output, session, is_integrated) {
 #' @noRd
 clusterComparison <- function(input, output, session, sc_dir, set_readonly, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot, annot_path, ref_preds, clusters, dgclogs) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
+
+  # is_example <- getShinyOption('is_example', FALSE)
+  # observe(if (is_example) disable('show_rename'))
 
   contrast_options <- reactive({
     on_init <- NULL
@@ -4211,3 +4223,4 @@ get_refs_list <- function(species) {
   names(ref_names) <- refs$label
   split(ref_names, refs$type)
 }
+
