@@ -42,6 +42,17 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_data()"
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2-dev \
+    libxt-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # lockfile: use this until slow
 COPY ./renv.lock .
 RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
@@ -72,7 +83,7 @@ RUN mkdir -p $TMP_DIR && \
     libxml2-dev libhdf5-dev && \
     rm -rf /var/lib/apt/lists/* && \
     R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr@0.23.0', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.23.1', dependencies = FALSE, upgrade = FALSE)" && \
     R -e "remove.packages('remotes')"
 
 # add source files

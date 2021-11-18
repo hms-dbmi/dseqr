@@ -455,7 +455,7 @@ process_raw_scseq <- function(scseq,
     progress$set(message = "running Azimuth", detail = '', value = value + 2)
 
     resoln <- get_ref_resoln(ref_name)
-    azres <- run_azimuth(list(one = scseq), ref_name)
+    azres <- run_azimuth(list(one = scseq), ref_name, species, tx2gene_dir)
     scseq <- transfer_azimuth(azres, scseq, resoln)
     rm(azres); gc()
 
@@ -551,8 +551,9 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 
 
 #TODO: allow cross-species for Azimuth
-run_azimuth <- function(scseqs, azimuth_ref) {
+run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
 
+  ref_species <- refs$species[refs$name == azimuth_ref]
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
 
   pat <- '^celltype|^annotation|^class$|^cluster$|^subclass$|^cross_species_cluster$'
@@ -576,6 +577,12 @@ run_azimuth <- function(scseqs, azimuth_ref) {
 
     scseq <- scseqs[[ds]]
     counts <- SingleCellExperiment::counts(scseq)
+
+    # convert to reference species gene names
+    if (species != ref_species)
+      counts <- convert_species(counts, tx2gene_dir, species, ref_species)
+
+
     query <- Seurat::CreateSeuratObject(counts = counts,
                                         min.cells = 1, min.features = 1)
 
@@ -1403,7 +1410,7 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
     cor.out <- run_fastmnn(logcounts, hvgs, scseqs)
 
   } else if (type[1] == 'Azimuth') {
-    azres <- run_azimuth(scseqs, ref_name)
+    azres <- run_azimuth(scseqs, ref_name, species, tx2gene_dir)
     resoln <- get_ref_resoln(ref_name)
     cor.out <- transfer_azimuth(azres, combined, resoln)
     rm(azres); gc()

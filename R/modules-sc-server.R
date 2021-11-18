@@ -1985,8 +1985,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 get_refs_list <- function(species) {
 
-  #TODO: allow cross-species for Azimuth
-  refs <- refs[refs$species == species | refs$type == 'symphony', ]
   ref_names <- refs$name
   names(ref_names) <- refs$label
   split(ref_names, refs$type)
