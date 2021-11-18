@@ -1472,7 +1472,7 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
   reference$save_uwot_path <- uwot_path
 
   # map query
-  query <- symphony::mapQuery(counts_use,
+  query <- mapQuery(counts_use,
                               meta_data,
                               reference,
                               vars = vars,
