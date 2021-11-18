@@ -2926,15 +2926,16 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   # update data.frame for cluster/contrast choices
   choices <- reactive({
     clusters <- annot()
-    req(clusters)
-    req(scseq())
+    scseq <- scseq()
+    if (is.null(clusters)) return(NULL)
+    if (is.null(scseq)) return(NULL)
 
     if (show_contrasts()) {
       test <- isolate(test_cluster())
       choices <- get_contrast_choices(clusters, test)
 
     } else {
-      choices <- get_cluster_choices(clusters, with_all=TRUE, scseq = scseq())
+      choices <- get_cluster_choices(clusters, with_all = TRUE, scseq = scseq)
     }
 
     return(choices)
