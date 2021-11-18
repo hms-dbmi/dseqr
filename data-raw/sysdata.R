@@ -7,11 +7,14 @@ ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 azimuth_refs <- c('human_pbmc', 'human_lung', 'human_motorcortex', 'mouse_motorcortex')
 azimuth_species <- c(rep('Homo sapiens', 3), 'Mus musculus')
-azimuth_labels <- c('Human - PBMC', 'Human - Lung', 'Human - Motor Cortex', 'Mouse - Motor Cortex')
+azimuth_labels <- c('PBMC - Human',
+                    'Lung - Human',
+                    'Motor Cortex - Human', '
+                    Motor Cortex - Mouse')
 
-symphony_refs <- c('pbmcs_10x')
-symphony_species <- rep('Homo sapiens', 1)
-symphony_labels <- c('10x PBMCs Atlas')
+symphony_refs <- c('pbmcs_10x', 'scmuscle')
+symphony_species <- c('Homo sapiens', 'Mus musculus')
+symphony_labels <- c('10x PBMCs Atlas - Human', 'Cornell scMuscle - Mouse')
 
 refs <- data.frame(
     name = c(azimuth_refs, symphony_refs),
@@ -36,3 +39,4 @@ const <- list(
 )
 
 usethis::use_data(biogps, cell_info, genes, pert_names, refs, ensmap, const, internal = TRUE, overwrite = TRUE)
+
