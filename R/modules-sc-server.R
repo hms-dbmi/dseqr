@@ -37,7 +37,8 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     grid_abundance = grid_abundance,
     grid_expression_fun = scForm$grid_expression_fun,
     selected_gene = scForm$samples_gene,
-    show_pbulk = scForm$show_pbulk)
+    show_pbulk = scForm$show_pbulk,
+    dataset_dir = scForm$dataset_dir)
 
   # cluster comparison plots ---
 
@@ -2964,7 +2965,6 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   choices <- reactive({
     clusters <- annot()
     scseq <- scseq()
-    if (is.null(clusters)) return(NULL)
     if (is.null(scseq)) return(NULL)
 
     if (show_contrasts()) {
@@ -3515,7 +3515,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk) {
+scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk, dataset_dir) {
 
   show_plot <- reactive(!is.null(scseq()))
   observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
@@ -3543,7 +3543,17 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     annot <- annot()
     clusters <- clusters()
 
+
     scseq <- safe_set_clusters(scseq, clusters)
+    if (is.null(scseq)) return(NULL)
+
+    # fixes issue where no cluster plot after selecting newly imported dataset
+    if (is.null(annot)) {
+      dataset_dir <- dataset_dir()
+      resoln <- load_resoln(dataset_dir)
+      annot <- qread.safe(file.path(dataset_dir, resoln, 'annot.qs'))
+    }
+
     scseq <- safe_set_annot(scseq, annot)
     if (is.null(scseq)) return(NULL)
 
@@ -3651,10 +3661,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   colors <- reactive({
     labels <- labels()
     if (is.null(labels)) return(NULL)
-    rendered_dataset <- rendered_dataset()
-    if (is.null(rendered_dataset)) return(NULL)
+    have <- rendered_dataset()
 
-    if (rendered_dataset != dataset_name()) return(NULL)
+    if (!is.null(have) && have != dataset_name()) return(NULL)
 
     annot <- levels(labels)
     pal <- get_palette(annot, with_all = TRUE)
@@ -4220,7 +4229,7 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
       style='color: grey; font-style: italic;',
       tags$p(triangle, tags$b(' for R object import:')),
       tags$div(' - QC is skipped if multi-sample'),
-      tags$div(' - Reference based not yet implemented'))
+      tags$div(' - Reference based analyses available after import'))
 
   )
 
@@ -4246,4 +4255,3 @@ get_refs_list <- function(species) {
   names(ref_names) <- refs$label
   split(ref_names, refs$type)
 }
-

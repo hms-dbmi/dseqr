@@ -1046,7 +1046,7 @@ aggregate_across_cells <- function(scseq) {
 
   agg <- presto::sumGroups(counts_mat, factor(y, levs), 1); gc()
   agg <- Matrix::Matrix(agg, sparse = TRUE); gc()
-  agg <- t(agg); gc()
+  agg <- Matrix::t(agg); gc()
   row.names(agg) <- row.names(counts_mat)
   colnames(agg) <- levs
 
