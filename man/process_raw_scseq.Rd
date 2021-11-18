@@ -8,6 +8,7 @@ process_raw_scseq(
   scseq,
   dataset_name,
   sc_dir,
+  tx2gene_dir,
   cluster_alg = "leiden",
   npcs = 30,
   resoln = 1,

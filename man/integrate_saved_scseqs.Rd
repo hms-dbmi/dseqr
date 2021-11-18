@@ -22,7 +22,8 @@ integrate_saved_scseqs(
   cluster_alg = "leiden",
   resoln = 1,
   progress = NULL,
-  value = 0
+  value = 0,
+  tx2gene_dir = NULL
 )
 }
 \arguments{

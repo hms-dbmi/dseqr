@@ -350,6 +350,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
                               sc_dir = sc_dir,
+                              tx2gene_dir = tx2gene_dir,
                               datasets = scDataset$datasets,
                               selected_dataset = scDataset$dataset_name,
                               integrate_sc = integrate_sc)
@@ -363,7 +364,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                          datasets = scDataset$datasets,
                          selected_dataset = scDataset$dataset_name,
                          show_subset = scDataset$show_subset,
-                         is_integrated = scDataset$is_integrated)
+                         is_integrated = scDataset$is_integrated,
+                         tx2gene_dir = tx2gene_dir)
 
 
   # comparison type
@@ -1209,7 +1211,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
         map <- data.frame(
           row.names = symbols,
-          hgnc = species_symbols_to_hgnc(species, symbols, species_tx2gene, hsapiens_tx2gene)
+          hgnc = species_symbols_to_other(symbols, species_tx2gene, hsapiens_tx2gene)
         )
 
         # convert row names of top tables to hgnc
@@ -1733,7 +1735,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observe({
-    updateSelectizeInput(session, 'ref_name', choices = species_refs())
+    updateSelectizeInput(session, 'ref_name', choices = c('', species_refs()))
   })
 
 
@@ -1983,9 +1985,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 get_refs_list <- function(species) {
 
-  refs <- refs[refs$species == species, ]
+  #TODO: allow cross-species for Azimuth
+  refs <- refs[refs$species == species | refs$type == 'symphony', ]
   ref_names <- refs$name
-  names(ref_names) <- ref_names
+  names(ref_names) <- refs$label
   split(ref_names, refs$type)
 }
 
@@ -2369,8 +2372,8 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 
     # use homologous hgnc symbols if not the same species
     if (query@metadata$species != ref@metadata$species) {
-      ref <- scseq_to_hgnc(ref, tx2gene_dir)
-      query <- scseq_to_hgnc(query, tx2gene_dir)
+      ref <- convert_species(ref, tx2gene_dir)
+      query <- convert_species(query, tx2gene_dir)
     }
 
     # take best label for each cluster
@@ -2558,7 +2561,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #'
 #' @keywords internal
 #' @noRd
-subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated) {
+subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated, tx2gene_dir) {
   subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
   type <- name <- NULL
 
@@ -2703,7 +2706,8 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
         is_integrated = is_integrated,
         is_include = is_include,
         hvgs = hvgs,
-        ref_name = ref_name
+        ref_name = ref_name,
+        tx2gene_dir = tx2gene_dir
       )
     )
 
@@ -2764,7 +2768,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
 #'
 #' @keywords internal
 #' @noRd
-integrationForm <- function(input, output, session, sc_dir, datasets, integrate_sc, selected_dataset) {
+integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, datasets, integrate_sc, selected_dataset) {
   type <- name <- NULL
 
   integration_inputs <- c('integration_datasets',
@@ -2883,6 +2887,7 @@ integrationForm <- function(input, output, session, sc_dir, datasets, integrate_
         package = 'dseqr',
         args = list(
           sc_dir = sc_dir,
+          tx2gene_dir = tx2gene_dir,
           dataset_names = dataset_names,
           integration_name = name,
           integration_types = types,
@@ -4247,11 +4252,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
   )
 }
 
-
-get_refs_list <- function(species) {
-
-  refs <- refs[refs$species == species, ]
-  ref_names <- refs$name
-  names(ref_names) <- refs$label
-  split(ref_names, refs$type)
-}

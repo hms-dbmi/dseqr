@@ -6,6 +6,7 @@
 \usage{
 run_integrate_saved_scseqs(
   sc_dir,
+  tx2gene_dir,
   dataset_names,
   integration_name,
   integration_types,

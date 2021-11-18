@@ -15,7 +15,8 @@ subset_saved_scseq(
   is_include = FALSE,
   progress = NULL,
   hvgs = NULL,
-  ref_name = NULL
+  ref_name = NULL,
+  tx2gene_dir = NULL
 )
 }
 \arguments{

@@ -82,7 +82,8 @@ import_scseq <- function(dataset_name,
                     ref_name = ref_name,
                     founder = founder,
                     progress = progress,
-                    value = value + 3)
+                    value = value + 3,
+                    tx2gene_dir = tx2gene_dir)
 }
 
 check_is_robject <- function(uploaded_data_dir) {
@@ -408,6 +409,7 @@ run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indic
 process_raw_scseq <- function(scseq,
                               dataset_name,
                               sc_dir,
+                              tx2gene_dir,
                               cluster_alg = 'leiden',
                               npcs = 30,
                               resoln = 1,
@@ -468,7 +470,7 @@ process_raw_scseq <- function(scseq,
     counts <- SingleCellExperiment::counts(scseq)
     logcounts <- SingleCellExperiment::logcounts(scseq)
 
-    symres <- run_symphony(counts, logcounts, ref_name, scseq$project)
+    symres <- run_symphony(counts, logcounts, ref_name, scseq$project, species, tx2gene_dir)
     scseq <- transfer_symphony(symres, scseq)
     rm(symres); gc()
 
@@ -548,6 +550,7 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 }
 
 
+#TODO: allow cross-species for Azimuth
 run_azimuth <- function(scseqs, azimuth_ref) {
 
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
@@ -1367,7 +1370,7 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
 #'
 #' @return Integrated \code{SingleCellExperiment} object.
 #' @keywords internal
-integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'), pairs = NULL, hvgs = NULL, ref_name = NULL) {
+integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'), pairs = NULL, hvgs = NULL, ref_name = NULL) {
 
   # all common genes
   universe <- Reduce(intersect, lapply(scseqs, row.names))
@@ -1414,7 +1417,7 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth', '
   } else if (type[1] == 'symphony') {
     counts <- do.call(no_correct('counts'), scseqs)
     counts <- SummarizedExperiment::assay(counts, 'merged')
-    cor.out <- run_symphony(counts, logcounts, ref_name, combined$batch)
+    cor.out <- run_symphony(counts, logcounts, ref_name, combined$batch, species, tx2gene_dir)
   }
 
   # bio is used for sorting markers when no cluster selected
@@ -1433,13 +1436,24 @@ integrate_scseqs <- function(scseqs, type = c('harmony', 'fastMNN', 'Azimuth', '
   return(cor.out)
 }
 
-run_symphony <- function(counts, logcounts, ref_name, batch) {
+run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_dir) {
 
   meta_data <- data.frame(batch = batch)
   vars <- 'batch'
 
   # load reference
   reference <- dseqr.data::load_data(paste0(ref_name, '_reference.qs'))
+
+  # convert to reference species if need to
+  counts_use <- counts
+  ref_species <- refs[refs$name == ref_name, 'species']
+  if (species != ref_species) {
+    counts_use <- convert_species(
+      counts,
+      tx2gene_dir,
+      species,
+      other_species = ref_species)
+  }
 
   # get uwot model
   uwot_name <- paste0(ref_name, '_uwot_model')
@@ -1451,7 +1465,7 @@ run_symphony <- function(counts, logcounts, ref_name, batch) {
   reference$save_uwot_path <- uwot_path
 
   # map query
-  query <- symphony::mapQuery(counts,
+  query <- symphony::mapQuery(counts_use,
                               meta_data,
                               reference,
                               vars = vars,

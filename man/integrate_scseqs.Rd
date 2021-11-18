@@ -6,6 +6,8 @@
 \usage{
 integrate_scseqs(
   scseqs,
+  species,
+  tx2gene_dir,
   type = c("harmony", "fastMNN", "Azimuth", "symphony"),
   pairs = NULL,
   hvgs = NULL,

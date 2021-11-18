@@ -892,7 +892,8 @@ integrate_saved_scseqs <- function(
   cluster_alg = 'leiden',
   resoln = 1,
   progress = NULL,
-  value = 0) {
+  value = 0,
+  tx2gene_dir = NULL) {
 
   # for save_scseq_args
   args <- c(as.list(environment()))
@@ -931,7 +932,13 @@ integrate_saved_scseqs <- function(
   if(length(species) > 1) stop('Multi-species integration not supported.')
 
   progress$set(value+2, detail = 'integrating')
-  combined <- integrate_scseqs(scseqs, type = integration_type, hvgs = hvgs, ref_name = ref_name)
+  combined <- integrate_scseqs(scseqs,
+                               type = integration_type,
+                               hvgs = hvgs,
+                               ref_name = ref_name,
+                               species = species,
+                               tx2gene_dir = tx2gene_dir)
+
   combined$project <- dataset_name
 
   # retain original QC metrics
@@ -1076,11 +1083,12 @@ aggregate_across_cells <- function(scseq) {
 #' @return TRUE is successful, otherwise FALSE
 #' @keywords internal
 #'
-run_integrate_saved_scseqs <- function( sc_dir,
-                                        dataset_names,
-                                        integration_name,
-                                        integration_types,
-                                        ref_name) {
+run_integrate_saved_scseqs <- function(sc_dir,
+                                       tx2gene_dir,
+                                       dataset_names,
+                                       integration_name,
+                                       integration_types,
+                                       ref_name) {
 
   for (i in seq_along(integration_types)) {
 
@@ -1097,7 +1105,8 @@ run_integrate_saved_scseqs <- function( sc_dir,
                                   integration_name = integration_name,
                                   integration_type = type,
                                   ref_name = ref,
-                                  value = i*8-8)
+                                  value = i*8-8,
+                                  tx2gene_dir = tx2gene_dir)
 
     # stop subsequent integration types if error
     if (!res) return(FALSE)
@@ -1135,7 +1144,8 @@ subset_saved_scseq <- function(sc_dir,
                                is_include = FALSE,
                                progress = NULL,
                                hvgs = NULL,
-                               ref_name = NULL) {
+                               ref_name = NULL,
+                               tx2gene_dir = NULL) {
 
   if (is.null(progress)) {
     progress <- list(set = function(value, message = '', detail = '') {
@@ -1187,7 +1197,8 @@ subset_saved_scseq <- function(sc_dir,
       hvgs = hvgs,
       ref_name = ref_name,
       progress = progress,
-      value = 1)
+      value = 1,
+      tx2gene_dir = tx2gene_dir)
 
   } else {
 
@@ -1207,7 +1218,8 @@ subset_saved_scseq <- function(sc_dir,
       progress = progress,
       value = 1,
       founder = founder,
-      ref_name = ref_name)
+      ref_name = ref_name,
+      tx2gene_dir = tx2gene_dir)
 
     save_scseq_args(args, dataset_name, sc_dir)
   }
@@ -1558,27 +1570,26 @@ get_celldex_species <- function(ref_name) {
   ifelse(ref_name %in% c('ImmGenData', 'MouseRNAseqData'), 'Mus musculus', 'Homo sapiens')
 }
 
-scseq_to_hgnc <- function(scseq, tx2gene_dir) {
-  species <- scseq@metadata$species
-  if (species == 'Homo sapiens') return(scseq)
+convert_species <- function(x, tx2gene_dir, species = NULL, other_species = 'Homo sapiens') {
+  if (methods::is(x, 'SingleCellExperiment')) species <- x@metadata$species
+  if (species == other_species) return(x)
 
   species_tx2gene <- load_tx2gene(species, tx2gene_dir)
-  hsapiens_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+  other_tx2gene <- load_tx2gene(other_species, tx2gene_dir)
 
-  hgnc <- species_symbols_to_hgnc(
-    species = species,
-    symbols = row.names(scseq),
+  other <- species_symbols_to_other(
+    symbols = row.names(x),
     species_tx2gene = species_tx2gene,
-    hsapiens_tx2gene = hsapiens_tx2gene)
+    other_tx2gene = other_tx2gene)
 
-  na.hgnc <- is.na(hgnc)
-  scseq <- scseq[!na.hgnc, ]
-  row.names(scseq) <- hgnc[!na.hgnc]
+  na.other <- is.na(other)
+  x <- x[!na.other, ]
+  row.names(x) <- other[!na.other]
 
-  return(scseq)
+  return(x)
 }
 
-species_symbols_to_hgnc <- function(species, symbols, species_tx2gene, hsapiens_tx2gene) {
+species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
 
   # df with species gene name and hgnc homologous ensemble id
   species_tx2gene <-
@@ -1594,17 +1605,18 @@ species_symbols_to_hgnc <- function(species, symbols, species_tx2gene, hsapiens_
     dplyr::left_join(species_tx2gene) %>%
     dplyr::rename('species_symbol' = 'gene_name')
 
-  # df with hgnc symbol and ensemble id
-  hsapiens_tx2gene <- hsapiens_tx2gene %>%
+
+  # df with other symbol and ensemble id
+  other_tx2gene <- other_tx2gene %>%
     dplyr::select(gene_name, gene_id) %>%
     dplyr::distinct() %>%
-    dplyr::rename('hgnc_symbol' = 'gene_name')
+    dplyr::rename('other_symbol' = 'gene_name')
 
   map <- dplyr::left_join(species_tx2gene,
-                          hsapiens_tx2gene,
+                          other_tx2gene,
                           by = c('hsapiens_homolog_ensembl_gene' = 'gene_id'))
 
-  return(map$hgnc_symbol)
+  return(map$other_symbol)
 
 
 }
