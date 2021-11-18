@@ -2606,7 +2606,6 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
-    browser()
     error_msg <- validate_subset(selected_dataset(),
                                  input$subset_name,
                                  input$subset_clusters,
@@ -2626,7 +2625,6 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
 
   observeEvent(input$confirm_subset, {
 
-    browser()
     removeModal()
 
     subset_clusters <- input$subset_clusters
@@ -3505,7 +3503,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (is.null(scseq)) return(NULL)
 
     levels(scseq$cluster) <- format_violin_annot(annot)
-    return(scseq$cluster)
+
+    return(unname(scseq$cluster))
   })
 
   deck_props <- reactive({
@@ -3640,6 +3639,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   )
 
   output$cluster_plot <- picker::renderPicker({
+
     coords <- coords()
     deck_props <- deck_props()
 
@@ -3794,8 +3794,9 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     cell.idx <- match(cells, colnames(scseq))
     scseq <- scseq[, cell.idx]
 
-    labels <- scseq$cluster
+    labels <- unname(scseq$cluster)
     levels(labels) <- format_violin_annot(annot)
+    labels <- labels
     return(labels)
   })
 
@@ -4195,4 +4196,5 @@ get_refs_list <- function(species) {
   names(ref_names) <- refs$label
   split(ref_names, refs$type)
 }
+
 

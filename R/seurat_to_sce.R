@@ -24,7 +24,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
     is.integrated <- length(unique(samples)) >1
 
     # transfer clusters
-    sce$cluster <- Seurat::Idents(sdata)
+    sce$cluster <- unname(Seurat::Idents(sdata))
 
     # default HVGs unless integrated assay
     hvgs <- sdata[['RNA']]@var.features
