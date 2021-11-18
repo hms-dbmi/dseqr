@@ -1287,18 +1287,7 @@ add_combined_metrics <- function(combined, scseqs) {
   metrics <- c('log10_sum', 'log10_detected', 'mito_percent', 'ribo_percent', 'doublet_score')
   for (metric in metrics) combined[[metric]] <- unlist(sapply(scseqs, `[[`, metric), use.names = FALSE)
 
-  combined <- add_sample_metrics(combined)
   return(combined)
-}
-
-add_sample_metrics <- function(combined) {
-  # add sample origin metric
-  samples <- unique(combined$batch)
-  for (sample in samples)
-    combined[[sample]] <- combined$batch == sample
-
-  return(combined)
-
 }
 
 add_combined_ambience <- function(combined, scseqs) {

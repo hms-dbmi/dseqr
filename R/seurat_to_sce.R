@@ -80,5 +80,9 @@ seurat_to_sce <- function(sdata, dataset_name) {
 
     SingleCellExperiment::reducedDims(sce) <- reds
 
+    # remove cdata that won't use
+    keep_cols <- c('cluster', 'batch', const$features$qc)
+    sce@colData <- sce@colData[, colnames(sce@colData) %in% keep_cols]
+
     return(sce)
 }

@@ -248,13 +248,19 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   qc_metrics <- reactive({
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
-    metrics <- scseq@colData
 
-    samples <- unique(scseq$batch)
-    metrics <- metrics[, colnames(metrics) %in% c(samples, const$features$qc)]
+    metrics <- scseq@colData
+    metrics <- metrics[, colnames(metrics) %in% const$features$qc]
     qc <- colnames(metrics)
     names(qc) <- sapply(metrics, class)
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
+
+    samples <- unique(scseq$batch)
+    nsamp <- length(samples)
+    if (nsamp > 1) {
+      names(samples) <- rep('logical', length(samples))
+      qc <- c(qc, samples)
+    }
 
     return(qc)
   })
@@ -3872,6 +3878,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
   cells <- reactiveVal()
   update_colors_proxy <- reactiveVal(TRUE)
 
+  samples <- reactive(unique(scseq()$batch))
+
   colors <- reactive({
     scseq <- scseq()
     if (!is.null(group)) scseq <- safe_set_meta(scseq, meta(), groups())
@@ -3882,7 +3890,10 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     is_gene <- feature %in% row.names(scseq)
     is_feature <- feature %in% colnames(cdata)
-    if (!is_gene && !is_feature) return(NULL)
+    is_sample <- feature %in% samples()
+    if (!is_gene && !is_feature && !is_sample) return(NULL)
+
+    if (is_sample) cdata[[feature]] <- scseq$batch == feature
 
     # get feature
     if (is_gene) {
