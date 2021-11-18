@@ -635,6 +635,13 @@
       "Repository": "CRAN",
       "Hash": "f61dbaec772ccd2e17705c1e872e9e7c"
     },
+    "class": {
+      "Package": "class",
+      "Version": "7.3-18",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "15ef288688a6919417ade6251deea2b3"
+    },
     "cli": {
       "Package": "cli",
       "Version": "3.0.1",
@@ -1466,6 +1473,13 @@
       "Repository": "CRAN",
       "Hash": "ae3d3cf661d0357973e8d24076efe937"
     },
+    "ragg": {
+      "Package": "ragg",
+      "Version": "1.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5755f91f5fb68fb8cb8a3cf78808222e"
+    },
     "rappdirs": {
       "Package": "rappdirs",
       "Version": "0.3.3",
@@ -1833,12 +1847,31 @@
       "Source": "Bioconductor",
       "Hash": "e8ceff9fff082fd05284ccb6d4769ec2"
     },
+    "symphony": {
+      "Package": "symphony",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "symphony",
+      "RemoteUsername": "immunogenomics",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "feb96b3a1152c4034c760973b2a5a638a1d097d5",
+      "Hash": "869d354ac909b5702424d49f735aa275"
+    },
     "sys": {
       "Package": "sys",
       "Version": "3.4",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "b227d13e29222b4574486cfcbde077fa"
+    },
+    "systemfonts": {
+      "Package": "systemfonts",
+      "Version": "1.0.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5be9fcf8ef6763e8cb13ab009e273a1d"
     },
     "tensor": {
       "Package": "tensor",
@@ -1853,6 +1886,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "495e0434d9305716b6a87031570ce109"
+    },
+    "textshaping": {
+      "Package": "textshaping",
+      "Version": "0.3.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1ab6223d3670fac7143202cb6a2d43d5"
     },
     "tibble": {
       "Package": "tibble",
