@@ -160,7 +160,12 @@ labelTransferFormInput <- function(id) {
   withTags({
     shinypanel::selectizeInputWithButtons(
       ns('ref_name'), 'Transfer labels from:',
-      actionButton(ns('overwrite_annot'), '', icon = icon('plus', 'fa-fw'), title = 'Overwrite previous labels'),
+      actionButton(
+        ns('overwrite_annot'),
+        '',
+        icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')),
+        title = 'Overwrite previous labels'
+      ),
       options = list(optgroupField = 'type',
                      render = I('{option: transferLabelOption, item: scDatasetItemDF}'))
     )
@@ -224,7 +229,8 @@ subsetFormInput <- function(id) {
           container_id = ns('name-container'),
           label = 'Name for new dataset:',
           actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering (optional)'),
-          actionButton(ns('submit_subset'), '', icon = icon('plus', 'fa-fw'), title = 'Subset dataset'),
+          actionButton(ns('submit_subset'), '',
+                       icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')), title = 'Subset dataset'),
           help_id = ns('error_msg'),
           placeholder = 'eg: QC2 (appended to founder name)'),
 
@@ -233,8 +239,8 @@ subsetFormInput <- function(id) {
         )
     )
   })
-
 }
+
 
 
 #' Input form and buttons to select a cluster or contrast and rename a cluster
@@ -253,7 +259,7 @@ clusterComparisonInput <- function(id) {
                   label = 'Sort marker genes for:',
                   label_title = 'Cluster (n cells :: % of total)',
                   actionButton(ns('show_rename'), '',
-                               icon = icon('tag', 'fa-fw'),
+                               icon = tags$i(class = 'fa fa-tag fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')),
                                title = 'Toggle rename cluster'
                   ),
                   actionButton(ns('show_contrasts'), '',
@@ -444,3 +450,4 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
+

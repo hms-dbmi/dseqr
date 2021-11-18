@@ -2,6 +2,9 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
+
+
+
 .dropdown-menu {
   min-width: 100%;
 }
@@ -51,6 +54,25 @@ body {
   visibility: hidden;
   height: 0;
 }
+
+/* ban over icon */
+.fa-disabled i {
+  position: relative
+}
+
+.fa-hide {
+  display: none;
+}
+
+.fa-disabled .fa-hide {
+  opacity: 0.15;
+  display: inline-block;
+  font-size: 2em;
+  position: absolute;
+  top: -7px;
+  left: -8.5px;
+}
+
 
 /* handsontable stuff */
 

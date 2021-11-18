@@ -236,6 +236,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
 construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 
   y <- SingleCellExperiment::counts(summed)
+  if (methods::is(y, 'dgCMatrix')) y <- as.matrix(y)
 
   # use groups from meta
   groups <- summed$orig.ident
@@ -246,6 +247,7 @@ construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 
   subsets <- list()
   for (clust in levels(clusters)) {
+    cat('working on', clust, '...\n')
     is.clust <- idx[[clust]]
 
     # skip if only one group
@@ -277,6 +279,8 @@ construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
       yik = yik
     )
   }
+
+  rm(y); gc()
 
   return(subsets)
 }

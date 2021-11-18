@@ -659,7 +659,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
 
   summed_grid <- reactive({
-    summed_path <- file.path(resoln_dir(), 'summed_grid.qs')
+    # grid sum is cluster (aka resolution) independent
+    summed_path <- file.path(dataset_dir(), 'summed_grid.qs')
 
     if (!file.exists(summed_path)){
       # need counts to aggregate
@@ -729,7 +730,16 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
   lm_fit_grid <- reactive({
     if (!show_pbulk()) return(NULL)
+
+    groups <- input$compare_groups
+    if (is.null(groups)) return(NULL)
+    if (length(groups) != 2) return(NULL)
+
+    # make sure meta is current
     meta <- prev_meta()
+    if (!all(groups %in% meta$group)) return(NULL)
+    meta <- meta[meta$group %in% groups, ]
+
     if (max(table(meta$group)) < 2) return(NULL)
 
     # add hash using uploaded metadata to detect changes
@@ -749,7 +759,9 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
       progress <- Progress$new(session, min = 0, max = 5)
       on.exit(progress$close())
       progress$set(message = "Pseudobulking:", detail = 'grid', value = 1)
+
       summed <- summed_grid()
+      summed <- summed[, summed$batch %in% row.names(meta)]
 
       lm_fit <- run_limma_scseq(
         summed = summed,
@@ -759,6 +771,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
         method = 'RLE',
         with_fdata = FALSE,
         progress = progress,
+        value = 1,
         min.total.count = 3,
         min.count = 1)
 
@@ -2064,8 +2077,8 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_ref')
   asis <- c(FALSE, FALSE, TRUE, TRUE)
 
-  # is_example <- getShinyOption('is_example', FALSE)
-  # observe(if (is_example) disable('overwrite_annot'))
+  disabled_demo <- getShinyOption('is_example', FALSE)
+  observe(if (disabled_demo) addClass('overwrite_annot', 'disabled fa-disabled'))
 
   options <-  reactive({
     on_init <- NULL
@@ -2246,6 +2259,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
 
   # Show modal when button is clicked.
   observeEvent(input$overwrite_annot, {
+    if (disabled_demo) return(NULL)
     ref_name <- input$ref_name
     ref_preds <- ref_preds()
     resoln_name <- resoln_name()
@@ -2381,8 +2395,11 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
 resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_dir, dataset_name, scseq, counts, dgclogs, snn_graph, annot_path, show_label_resoln, compare_groups, annot) {
   resolution_inputs <- c('resoln', 'resoln_ref')
 
-  # is_example <- getShinyOption('is_example', FALSE)
-  # observe(if (is_example) {disable('resoln'); disable('resoln_ref')})
+  disabled_demo <- getShinyOption('is_example', FALSE)
+  observe(if (disabled_demo) {
+    disable('resoln')
+    disable('resoln_ref')
+  })
 
   prev_resoln <- reactiveVal()
   resoln_path <- reactiveVal()
@@ -2544,8 +2561,10 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
   type <- name <- NULL
 
-  # is_example <- getShinyOption('is_example', FALSE)
-  # observe(if (is_example) disable('submit_subset'))
+  disabled_demo <- getShinyOption('is_example', FALSE)
+  observe(if (disabled_demo){
+    addClass('submit_subset', 'disabled fa-disabled')
+  })
 
   contrastOptions <- reactive({
     on_init <- NULL
@@ -2624,6 +2643,9 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   psubsets <- reactiveValues()
 
   observeEvent(input$submit_subset, {
+    if (disabled_demo) return(NULL)
+
+
     error_msg <- validate_subset(selected_dataset(),
                                  input$subset_name,
                                  input$subset_clusters,
@@ -2912,8 +2934,8 @@ comparisonType <- function(input, output, session, is_integrated) {
 clusterComparison <- function(input, output, session, sc_dir, set_readonly, dataset_dir, dataset_name, resoln_dir, resoln, scseq, annot, annot_path, ref_preds, clusters, dgclogs) {
   cluster_inputs <- c('selected_cluster', 'rename_cluster', 'show_contrasts', 'show_rename')
 
-  # is_example <- getShinyOption('is_example', FALSE)
-  # observe(if (is_example) disable('show_rename'))
+  disabled_demo <- getShinyOption('is_example', FALSE)
+  observe(if (disabled_demo) addClass('show_rename', 'disabled fa-disabled'))
 
   contrast_options <- reactive({
     on_init <- NULL
@@ -2993,6 +3015,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
 
   # show/hide rename and select panel
   observe({
+    if (disabled_demo) return(NULL)
     toggle(id = "rename_panel", condition = show_rename())
     toggle(id = "select_panel", condition = !show_rename())
   })
