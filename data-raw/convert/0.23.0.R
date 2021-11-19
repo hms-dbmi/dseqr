@@ -2,7 +2,6 @@
 # remove sample metrics from cdata
 
 data_dir <- '/srv/dseqr'
-data_dir <- '/home/alex/Documents/Data/dseqr'
 app_dirs <- list.files(data_dir)
 app_dirs <- setdiff(app_dirs,
                     c('indices', 'node_modules', 'pert_signature_dir',

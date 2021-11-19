@@ -98,6 +98,8 @@ run_dseqr <- function(project_name,
   # allow up to 30GB uploads
   options(shiny.maxRequestSize=30*1024*1024^2)
 
+  options(shiny.usecairo = FALSE)
+
   # for moving EFS files out of IA
   is_aws <- !is.null(logout_url)
   if (is_aws) Sys.setenv('EFS_LIFECYCLE'=7)

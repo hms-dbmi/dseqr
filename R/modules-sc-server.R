@@ -3520,6 +3520,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 #' @noRd
 scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk, dataset_dir) {
 
+
   show_plot <- reactive(!is.null(scseq()))
   observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
 
@@ -3546,7 +3547,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     annot <- annot()
     clusters <- clusters()
 
-
     scseq <- safe_set_clusters(scseq, clusters)
     if (is.null(scseq)) return(NULL)
 
@@ -3563,20 +3563,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     levels(scseq$cluster) <- format_violin_annot(annot)
 
     return(unname(scseq$cluster))
-  })
-
-  deck_props <- reactive({
-    deck_props <- list()
-    is_mobile <- is_mobile()
-    if (is.null(is_mobile)) return(deck_props)
-
-    if (is_mobile) {
-      deck_props <- list(
-        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
-      )
-    }
-
-    return(deck_props)
   })
 
 
@@ -3603,6 +3589,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       xrange = range(coords[,1]),
       yrange = range(coords[,2]),
       mar = rep(0, 4),
+      box.padding = 0.3,
       fontsize = fontsize,
       direction = 'y')
 
@@ -3664,9 +3651,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   colors <- reactive({
     labels <- labels()
     if (is.null(labels)) return(NULL)
-    have <- rendered_dataset()
-
-    if (!is.null(have) && have != dataset_name()) return(NULL)
 
     annot <- levels(labels)
     pal <- get_palette(annot, with_all = TRUE)
@@ -3679,7 +3663,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   # don't understand magic but mostly stops intermediate color/label change
   # when dataset changes
 
-  rendered_dataset <- reactiveVal()
   update_colors_proxy <- reactiveVal(FALSE)
   update_label_coords_proxy <- reactiveVal(FALSE)
 
@@ -3698,12 +3681,19 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   output$cluster_plot <- picker::renderPicker({
 
     coords <- coords()
-    deck_props <- deck_props()
+    if (!isTruthy(coords)) return(NULL)
 
-    if (!isTruthyAll(coords, deck_props)) return(NULL)
-    rendered_dataset(dataset_name())
+    is_mobile <- isolate(is_mobile())
+    ncells <- nrow(coords)
 
-    scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
+    deck_props <- list()
+    if (is_mobile) {
+      deck_props <- list(
+        '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
+      )
+    }
+
+    scatter_props <- get_scatter_props(is_mobile, ncells)
 
     picker::picker(coords,
                    colors = isolate(colors()),
@@ -3871,7 +3861,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     xrange <- range(coords[,1])
     yrange <- range(coords[,2])
 
-    scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
+    ncells <- nrow(coords)
+    scatter_props <- get_scatter_props(is_mobile(), ncells)
 
     # now subset
     cell.idx <- match(cells, colnames(scseq))
@@ -3890,13 +3881,13 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       )
     }
 
+
     picker::picker(coords,
                    colors = isolate(colors()),
                    labels = isolate(labels()),
                    title = isolate(title()),
                    xrange = xrange,
                    yrange = yrange,
-                   # show_controls = show_controls,
                    show_controls = FALSE,
                    label_coords = label_coords,
                    deck_props = deck_props,
@@ -4249,3 +4240,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
