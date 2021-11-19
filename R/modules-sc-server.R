@@ -3686,6 +3686,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     is_mobile <- isolate(is_mobile())
     ncells <- nrow(coords)
 
+    scatter_props <- get_scatter_props(is_mobile, ncells)
     deck_props <- list()
     if (is_mobile) {
       deck_props <- list(
@@ -3693,11 +3694,21 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       )
     }
 
-    scatter_props <- get_scatter_props(is_mobile, ncells)
+    colors <- isolate(colors())
+    labels <- isolate(labels())
+
+    if (ncells > 40000) {
+      set.seed(0)
+      keep <- sample(ncells, 40000)
+      coords <- coords[keep,]
+      colors <- colors[keep]
+      labels <- labels[keep]
+    }
+
 
     picker::picker(coords,
-                   colors = isolate(colors()),
-                   labels = isolate(labels()),
+                   colors = colors,
+                   labels = labels,
                    label_coords = isolate(label_coords()),
                    polygons = isolate(polygons()),
                    point_color_polygons = "white",
@@ -3865,13 +3876,10 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scatter_props <- get_scatter_props(is_mobile(), ncells)
 
     # now subset
-    cell.idx <- match(cells, colnames(scseq))
-    scseq <- scseq[, cell.idx]
-    coords <- coords[cell.idx, ]
+    coords <- coords[cells, ]
 
     # show group name as plot label
     label_coords <- NULL
-
 
     deck_props <- list()
     if (is_mobile()) {
@@ -3880,7 +3888,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
         '_typedArrayManagerProps' = list(overAlloc = 1, poolSize = 0)
       )
     }
-
 
     picker::picker(coords,
                    colors = isolate(colors()),
@@ -3960,13 +3967,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     if (bool.ft) ids <- ids[order(ft)]
     else ids <- sample(ids)
 
-    prev <- isolate(cells())
-    changed.ids <- !identical(prev, ids)
-    if (changed.ids) cells(ids)
-
-    update_colors_proxy(!changed.ids)
-
-
     # get title and colors
     ft.ids <- ft[ids]
     all.zero <- all(ft.ids == 0)
@@ -4000,6 +4000,23 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       prev <- isolate(title())
       if (prev != group_title) title(group_title)
     }
+
+    # down-sample after getting titles
+    ncells <- ncol(scseq)
+    if (ncells > 40000) {
+      set.seed(0)
+      idx <- sample(ncells, 40000)
+      idx <- ids %in% colnames(scseq)[idx]
+      ids <- ids[idx]
+      colors <- colors[idx]
+    }
+
+    # update ids
+    prev <- isolate(cells())
+    changed.ids <- !identical(prev, ids)
+    if (changed.ids) cells(ids)
+
+    update_colors_proxy(!changed.ids)
 
     return(colors)
   })
@@ -4240,4 +4257,5 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
 
