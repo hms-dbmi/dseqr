@@ -35,7 +35,8 @@ const <- list(
     features = list(
         qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score'),
         reverse = c('ribo_percent', 'log10_sum', 'log10_detected')
-    )
+    ),
+    max.cells = 80000
 )
 
 usethis::use_data(biogps, cell_info, genes, pert_names, refs, ensmap, const, internal = TRUE, overwrite = TRUE)

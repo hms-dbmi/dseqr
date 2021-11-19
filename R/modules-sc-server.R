@@ -3697,14 +3697,13 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     colors <- isolate(colors())
     labels <- isolate(labels())
 
-    if (ncells > 40000) {
+    if (ncells > const$max.cells) {
       set.seed(0)
-      keep <- sample(ncells, 40000)
+      keep <- sample(ncells, const$max.cells)
       coords <- coords[keep,]
       colors <- colors[keep]
       labels <- labels[keep]
     }
-
 
     picker::picker(coords,
                    colors = colors,
@@ -3872,11 +3871,11 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     xrange <- range(coords[,1])
     yrange <- range(coords[,2])
 
-    ncells <- nrow(coords)
-    scatter_props <- get_scatter_props(is_mobile(), ncells)
+    scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
 
     # now subset
-    coords <- coords[cells, ]
+    cell.idx <- match(cells, colnames(scseq))
+    coords <- coords[cell.idx, ]
 
     # show group name as plot label
     label_coords <- NULL
@@ -4003,12 +4002,13 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     # down-sample after getting titles
     ncells <- ncol(scseq)
-    if (ncells > 40000) {
+    if (ncells > const$max.cells) {
       set.seed(0)
-      idx <- sample(ncells, 40000)
-      idx <- ids %in% colnames(scseq)[idx]
-      ids <- ids[idx]
-      colors <- colors[idx]
+      keep <- sample(ncells, const$max.cells)
+      cells_keep <- colnames(scseq)[keep]
+      is.keep <- ids %in% cells_keep
+      ids <- ids[is.keep]
+      colors <- colors[is.keep]
     }
 
     # update ids
@@ -4257,5 +4257,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-
 
