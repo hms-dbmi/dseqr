@@ -3665,6 +3665,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   update_colors_proxy <- reactiveVal(FALSE)
   update_label_coords_proxy <- reactiveVal(FALSE)
+  rendered_dataset <- reactiveVal()
 
   observeEvent(dataset_name(), {
     update_colors_proxy(FALSE)
@@ -3705,6 +3706,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       labels <- labels[keep]
     }
 
+    rendered_dataset(isolate(dataset_name()))
+
     picker::picker(coords,
                    colors = colors,
                    labels = labels,
@@ -3732,6 +3735,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   observe({
     label_coords <- label_coords()
     if (!is.null(label_coords)) {
+      have <- rendered_dataset()
+      if (!is.null(have) && have != dataset_name()) return(NULL)
+
       allow <- isolate(update_label_coords_proxy())
       if (allow) picker::update_picker(proxy, label_coords = label_coords)
       update_label_coords_proxy(TRUE)
@@ -3742,6 +3748,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     colors <- colors()
     if (!is.null(colors)) {
       allow <- isolate(update_colors_proxy())
+      have <- rendered_dataset()
+      if (!is.null(have) && have != dataset_name()) return(NULL)
+
       if (allow) picker::update_picker(proxy, colors = colors)
       update_colors_proxy(TRUE)
     }
@@ -4257,3 +4266,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
