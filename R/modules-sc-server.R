@@ -1423,11 +1423,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_exists <- reactive(isTruthy(dataset_name()))
 
   scseq <- reactive({
-    dataset_name <- dataset_name()
-    if (!isTruthy(dataset_name)) return(NULL)
+    sel_idx <- input$selected_dataset
+    if (!isTruthy(sel_idx)) return(NULL)
+    disableAll(dataset_inputs)
     dataset_dir <- dataset_dir()
 
-    disableAll(dataset_inputs)
     require(SingleCellExperiment)
     scseq <- load_scseq_qs(dataset_dir)
     gc()
@@ -4257,4 +4257,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-

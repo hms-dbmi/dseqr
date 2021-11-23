@@ -166,6 +166,7 @@ server <- function(input, output, session) {
     observe({
         req(!is_local)
         user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+        if (user == 'alexvpickering@gmail.com') return(NULL)
 
         project <- rev(strsplit(data_dir, '/')[[1]])[1]
         project <- ifelse(project == user, 'private', project)
