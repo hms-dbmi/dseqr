@@ -558,7 +558,7 @@ interpret <- function(expr_str,
 #' @keywords internal
 #'
 html_space <- function(x, justify = 'right') {
-  if (is.null(x)) return(NULL)
+  if (is.null(x) | !length(x)) return(NULL)
   width <- max(nchar(x))*7.64
   sprintf('<span style="width:%spx;display:inline-block;">%s</span>', width, x)
 }
