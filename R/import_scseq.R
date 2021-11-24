@@ -911,6 +911,9 @@ load_cellranger_counts <- function(data_dir) {
     counts <- Seurat::Read10X(data_dir, gene.column = 1)
   }
 
+  enids <- gsub('[.]\\d+', '', row.names(counts))
+  row.names(counts) <- make.unique(enids)
+
   if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
   return(counts)
 }
@@ -959,16 +962,16 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
 
 #' Get species for human or mouse depending on gene ids
 #'
-#' @param counts dgCMatrix where rownames are gene ids
+#' @param x dgCMatrix or data.frame where rownames are gene ids
 #'
 #' @return either 'Homo sapiens' or 'Mus musculus'
 #' @export
 #' @keywords internal
 #'
-get_species <- function(counts) {
+get_species <- function(x) {
 
-  ensid <- grep('^ENS[A-Z]*G[0-9]+$', row.names(counts), value = TRUE)[1]
-  ensid <- gsub('^(ENS[A-Z]*)G[0-9]+$', '\\1', ensid)
+  ensid <- grep('^ENS[A-Z]*G[0-9.]+$', row.names(x), value = TRUE)[1]
+  ensid <- gsub('^(ENS[A-Z]*)G[0-9.]+$', '\\1', ensid)
   if (is.na(ensid)) stop('Need Ensembl IDs')
 
   return(ensmap[ensid, 'species'])

@@ -2039,7 +2039,9 @@ detect_import_species <- function(up_df) {
     genes <- infile[[slot]][]
     genes <- data.frame(row.names = genes)
   } else {
-    genes <- read.table(up_df$datapath[gene.file], row.names = 1)
+    genes <- read.table(up_df$datapath[gene.file])
+    genes <- genes[!is.na(genes$V1), ]
+    row.names(genes) <- genes$V1
   }
 
   get_species(genes)
