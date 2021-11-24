@@ -13,7 +13,7 @@ detect_cells <- function(counts, qcgenes) {
 
   set.seed(100)
   e.out <- DropletUtils::emptyDrops(counts[keep.genes, ], retain = Inf)
-  keep.cells <- which(e.out$FDR <= 0.01)
+  keep.cells <- which(e.out$FDR <= 0.001)
 
   return(keep.cells)
 }

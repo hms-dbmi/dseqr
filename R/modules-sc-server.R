@@ -638,7 +638,6 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     # group_choices may not change with dataset_name change
     dataset_name()
     choices <- group_choices()
-    if (is.null(choices)) return(NULL)
 
     updateSelectizeInput(session,
                          'compare_groups',
@@ -1431,9 +1430,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   scseq <- reactive({
     sel_idx <- input$selected_dataset
-    if (!isTruthy(sel_idx)) return(NULL)
-    disableAll(dataset_inputs)
+    if (isTruthy(sel_idx)) disableAll(dataset_inputs)
+
     dataset_dir <- dataset_dir()
+    if (!isTruthy(dataset_dir)) return(NULL)
 
     require(SingleCellExperiment)
     scseq <- load_scseq_qs(dataset_dir)
