@@ -34,6 +34,7 @@ const <- list(
     ),
     features = list(
         qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score'),
+        metrics = c('low_lib_size', 'low_n_features', 'high_subsets_mito_percent', 'low_subsets_ribo_percent', 'high_doublet_score'),
         reverse = c('ribo_percent', 'log10_sum', 'log10_detected')
     ),
     max.cells = 80000

@@ -251,7 +251,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     if(is.null(scseq)) return(NULL)
 
     metrics <- scseq@colData
-    metrics <- metrics[, colnames(metrics) %in% const$features$qc]
+    metrics <- metrics[, colnames(metrics) %in% c(const$features$qc, const$features$metrics), drop = FALSE]
     qc <- colnames(metrics)
     names(qc) <- sapply(metrics, class)
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
@@ -1774,12 +1774,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
 
-  metric_choices <- c('low_lib_size',
-                      'low_n_features',
-                      'high_subsets_mito_percent',
-                      'low_subsets_ribo_percent',
-                      'high_doublet_score')
-
   # run single-cell quantification
   qargs <- reactiveValues()
   quants <- reactiveValues()
@@ -1792,10 +1786,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     metrics <- input$qc_metrics
     # none, all, all and none: can't combine
-    if (length(metrics) > 1 && !all(metrics %in% metric_choices)) return(NULL)
+    if (length(metrics) > 1 && !all(metrics %in% const$features$metrics)) return(NULL)
 
     if (!isTruthy(metrics)) metrics <- 'none'
-    if (metrics[1] == 'all') metrics <- metric_choices
+    if (metrics[1] == 'all') metrics <- const$features$metrics
 
     removeModal()
 
@@ -1820,7 +1814,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
                metrics = NULL,
                founder = dataset_name),
           list(dataset_name = paste0(dataset_name, '_QC1'),
-               metrics = metric_choices,
+               metrics = const$features$metrics,
                founder = dataset_name))
 
 
