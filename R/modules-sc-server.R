@@ -1149,7 +1149,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     tt <- top_tables()[[sel]]
     if (is.null(tt)) return(NULL)
-    if (page == 'drugs') return(list(tt))
+    if (page == 'drugs') {
+      tt <- top_tables_hs()[[sel]]
+      return(list(tt))
+    }
 
     ambient <- cluster_ambient()
     tt$ambient <- row.names(tt) %in% ambient
@@ -1171,6 +1174,36 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # indicating if 'All Clusters' selected
   is.meta <- reactive(input$selected_cluster == tail(names(top_tables()), 1))
+
+  top_tables_hs <- reactive({
+    tts <- top_tables()
+    species <- species()
+
+    if (species != 'Homo sapiens') {
+      # map from species symbols to hgnc
+      species_tx2gene <- load_tx2gene(species, tx2gene_dir)
+      hsapiens_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
+
+      symbols <- unique(unlist(lapply(tts, row.names)))
+
+      map <- data.frame(
+        row.names = symbols,
+        hgnc = species_symbols_to_other(symbols, species_tx2gene, hsapiens_tx2gene)
+      )
+
+      # convert row names of top tables to hgnc
+      tts <- lapply(tts, function(tt) {
+        hgnc <- map[row.names(tt), 'hgnc']
+
+        valid <- !is.na(hgnc) & !duplicated(hgnc)
+        tt <- tt[valid, ]
+        row.names(tt) <- hgnc[valid]
+        return(tt)
+      })
+    }
+
+    return(tts)
+  })
 
   # drug query results
   drug_queries <- reactive({
@@ -1198,33 +1231,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
       es <- load_drug_es()
       progress$inc(1)
-      tts <- top_tables()
-      species <- species()
-
-
-      if (species != 'Homo sapiens') {
-        # map from species symbols to hgnc
-        species_tx2gene <- load_tx2gene(species, tx2gene_dir)
-        hsapiens_tx2gene <- load_tx2gene('Homo sapiens', tx2gene_dir)
-
-        symbols <- unique(unlist(lapply(tts, row.names)))
-
-        map <- data.frame(
-          row.names = symbols,
-          hgnc = species_symbols_to_other(symbols, species_tx2gene, hsapiens_tx2gene)
-        )
-
-        # convert row names of top tables to hgnc
-        tts <- lapply(tts, function(tt) {
-          hgnc <- map[row.names(tt), 'hgnc']
-
-          valid <- !is.na(hgnc) & !duplicated(hgnc)
-          tt <- tt[valid, ]
-          row.names(tt) <- hgnc[valid]
-          return(tt)
-        })
-
-      }
+      tts <- top_tables_hs()
 
       for (i in seq_along(tts)) {
         cluster <- names(tts)[i]

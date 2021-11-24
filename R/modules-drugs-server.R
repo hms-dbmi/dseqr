@@ -590,10 +590,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
     top_table <- top_table()
     ambient <- ambient()
     path_id <- path_id()
-
     if (is.null(path_id) | is.null(top_table)) return(NULL)
-    # hack for mouse
-    row.names(top_table) <- toupper(row.names(top_table))
 
     pert_signature <- pert_signature()
     path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
