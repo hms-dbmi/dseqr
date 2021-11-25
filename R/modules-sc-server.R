@@ -3556,6 +3556,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     new <- SingleCellExperiment::reducedDim(scseq, red)
     new <- as.data.frame(new)
+    new <- new[keep(), ]
     prev <- isolate(coords())
     if (is.null(prev) || !identical(prev, new)) coords(new)
   })
@@ -3579,8 +3580,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (is.null(scseq)) return(NULL)
 
     levels(scseq$cluster) <- format_violin_annot(annot)
+    labels <- unname(scseq$cluster)[keep()]
 
-    return(unname(scseq$cluster))
+    return(labels)
   })
 
 
@@ -3677,6 +3679,21 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     return(colors)
   })
 
+  keep <- reactive({
+    scseq <- scseq()
+    if (is.null(scseq)) return(NULL)
+
+    set.seed(0)
+    ncells <- ncol(scseq)
+    if (ncells > const$max.cells) {
+      keep <- sample(ncells, const$max.cells)
+    } else {
+      keep <- seq_len(ncells)
+    }
+    return(keep)
+  })
+
+
 
   # don't understand magic but mostly stops intermediate color/label change
   # when dataset changes
@@ -3714,16 +3731,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     }
 
     colors <- isolate(colors())
+    if (is.null(colors)) return(NULL)
+
     labels <- isolate(labels())
-
-    if (ncells > const$max.cells) {
-      set.seed(0)
-      keep <- sample(ncells, const$max.cells)
-      coords <- coords[keep,]
-      colors <- colors[keep]
-      labels <- labels[keep]
-    }
-
     rendered_dataset(isolate(dataset_name()))
 
     picker::picker(coords,
@@ -3885,7 +3895,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     labels <- unname(scseq$cluster)
     levels(labels) <- format_violin_annot(annot)
-    labels <- labels
     return(labels)
   })
 
