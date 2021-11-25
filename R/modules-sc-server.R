@@ -530,6 +530,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 
     res <- rhandsontable::hot_to_r(input$groups_table)
     res <- data.frame(group = res$`Group name`, pair = NA, row.names = res$Sample)
+    res[res == ''] <- NA
 
     no.group <- all(is.na(res$group))
 
@@ -654,6 +655,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   # save groups as previous
   observe({
     groups <- groups()
+    if (!is.null(groups) && groups == 'reset') return(NULL)
     prev_path <- isolate(prev_path())
     if (is.null(prev_path)) return(NULL)
     qs::qsave(groups, prev_path)
@@ -694,8 +696,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     meta <- meta[meta$group %in% groups, ]
 
     # add hash using uploaded metadata to detect changes
-    tohash <- list(meta = meta)
-    meta_hash <- digest::digest(tohash, algo = 'murmur32')
+    # can re-use fit with change to contrast if groups the same
+    meta_hash <- digest::digest(list(meta = meta), algo = 'murmur32')
     fit_file <- paste0('lm_fit_0svs_', meta_hash, '.qs')
     fit_path <- file.path(resoln_dir, fit_file)
 
@@ -834,7 +836,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     if (length(groups) != 2) {
       cdir <- NULL
     } else {
+
+      # hash meta/groups to detect changed samples for contrast
+      meta_hash <- hash_meta(meta(), groups)
+
       contrast <- paste0(groups, collapse = '_vs_')
+      contrast <- paste0(contrast, '_', meta_hash)
       resoln <- resoln()
       cdir <- file.path(dataset_dir, get_resoln_dir(resoln), contrast)
     }
@@ -856,8 +863,14 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       return()
     }
 
+    # hash meta/groups to get directory
+    meta <- qs::qread(file.path(dataset_dir, 'meta.qs'))
+    meta_hash <- hash_meta(meta, groups)
+
     contrast <- paste0(groups, collapse = '_vs_')
+    contrast <- paste0(contrast, '_', meta_hash)
     resoln_name <- load_resoln(dataset_dir)
+
     contrast_dir(file.path(dataset_dir, resoln_name, contrast))
   })
 
@@ -1429,11 +1442,9 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_exists <- reactive(isTruthy(dataset_name()))
 
   scseq <- reactive({
-    sel_idx <- input$selected_dataset
-    if (isTruthy(sel_idx)) disableAll(dataset_inputs)
-
     dataset_dir <- dataset_dir()
     if (!isTruthy(dataset_dir)) return(NULL)
+    disableAll(dataset_inputs)
 
     require(SingleCellExperiment)
     scseq <- load_scseq_qs(dataset_dir)
@@ -1688,7 +1699,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         'matrix[.]mtx(.+)?$',
         '[.]rds$',
         '[.]qs$',
-        'filtered_feature_bc_matrix[.]h5$'), collapse = '|')
+        'filtered_feature_bc_matrix(.+)?[.]h5$',
+        'filtered_gene_bc_matrices(.+)?[.]h5$',
+        'raw_gene_bc_matrices(.+)?[.]h5$'
+      ), collapse = '|')
 
     fnames <- new$name
     new <- gsub(pat, '', fnames)
@@ -3793,6 +3807,12 @@ get_scatter_props <- function(is_mobile, ncells) {
 }
 
 
+hash_meta <- function(meta, groups) {
+  meta <- meta[meta$group %in% groups, ]
+  tohash <- list(meta = meta, groups = groups)
+  digest::digest(tohash, algo = 'murmur32')
+}
+
 # get grid abundance data
 scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplots_dir, meta) {
 
@@ -3807,8 +3827,7 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
     scseq <- subset_contrast(scseq)
 
     # add hash for if change groups
-    tohash <- list(meta = meta, groups = groups)
-    meta_hash <- digest::digest(tohash, algo = 'murmur32')
+    meta_hash <- hash_meta(meta, groups)
 
     apath <- file.path(dplots_dir(), paste0('grid_abundance_', meta_hash, '.qs'))
     if (file.exists(apath)) {
@@ -4270,5 +4289,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-
 
