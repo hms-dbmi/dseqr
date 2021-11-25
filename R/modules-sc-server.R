@@ -1762,7 +1762,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     showModal(confirmImportSingleCellModal(
       session,
-      metric_choices,
+      const$features$metrics,
       detected_species(),
       species_refs(),
       warn_robject = robject_import()))
@@ -4269,4 +4269,5 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
 

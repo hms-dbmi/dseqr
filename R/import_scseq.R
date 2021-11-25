@@ -1527,7 +1527,8 @@ knn_predict <- function(query_obj, ref_obj, train_labels, k = 5, save_as = "pred
 get_ref_resoln <- function(ref_name) {
   switch(ref_name,
          'human_pbmc' = 'predicted.celltype.l2',
-         'human_lung' = 'predicted.annotation.l2',
+         'human_lung' = 'predicted.annotation.l1',
+         'human_bonemarrow' = 'predicted.celltype.l2',
          'human_motorcortex' = 'predicted.subclass',
          'mouse_motorcortex' = 'predicted.subclass',
          'predicted.celltype'

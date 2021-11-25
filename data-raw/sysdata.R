@@ -5,12 +5,13 @@ pert_names <- readRDS('data-raw/drug_gene_queries/pert_names.rds')
 ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 
-azimuth_refs <- c('human_pbmc', 'human_lung', 'human_motorcortex', 'mouse_motorcortex')
-azimuth_species <- c(rep('Homo sapiens', 3), 'Mus musculus')
+azimuth_refs <- c('human_pbmc', 'human_lung', 'human_bonemarrow', 'human_motorcortex', 'mouse_motorcortex')
+azimuth_species <- c(rep('Homo sapiens', 4), 'Mus musculus')
 azimuth_labels <- c('PBMC - Human',
                     'Lung - Human',
-                    'Motor Cortex - Human', '
-                    Motor Cortex - Mouse')
+                    'Bone Marrow - Human',
+                    'Motor Cortex - Human',
+                    'Motor Cortex - Mouse')
 
 symphony_refs <- c('pbmcs_10x', 'scmuscle')
 symphony_species <- c('Homo sapiens', 'Mus musculus')
