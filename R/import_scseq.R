@@ -926,8 +926,9 @@ load_cellranger_genes <- function(data_dir) {
 
   if (length(h5file)) {
     infile <- hdf5r::H5File$new(h5file, 'r')
-    slot <- ifelse(hdf5r::existsGroup(infile, "matrix"), 'matrix/features/name', 'gene_names')
-    genes <- infile[[slot]][]
+    genomes <- names(infile)
+    slot <- ifelse('matrix' %in% genomes, 'features/name', 'gene_names')
+    genes <- infile[[file.path(genomes[1], slot)]][]
 
   } else {
     genes <- read.table(gene.file)[[2]]

@@ -2076,11 +2076,18 @@ validate_scseq_import <- function(up_df, samples) {
     }
 
     # correct format for H5 file
+    expect_h5 <- c('data', 'indices', 'indptr', 'shape', 'barcodes', 'gene_names', 'genes')
     if (sum(is_h5) == 1) {
       infile <- hdf5r::H5File$new(upi$datapath[is_h5], 'r')
+      genomes <- names(infile)
+      if ('matrix' %in% genomes) next()
 
-      if (!'matrix' %in% names(infile))
-        return(h5_format_msg)
+      for (genome in genomes) {
+        genome.names <- names(infile[[genome]])
+
+        if (!all(expect_h5 %in% genome.names))
+          return(h5_format_msg)
+      }
 
       infile$close()
       next()

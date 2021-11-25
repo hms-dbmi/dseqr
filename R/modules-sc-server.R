@@ -2028,9 +2028,10 @@ detect_import_species <- function(up_df) {
 
   if (!is.na(h5.file)) {
     infile <- hdf5r::H5File$new(up_df$datapath[h5.file], 'r')
-    slot <- ifelse(hdf5r::existsGroup(infile, "matrix"), 'matrix/features/id', 'genes')
+    genomes <- names(infile)
+    slot <- ifelse(hdf5r::existsGroup(infile, "matrix"), 'features/id', 'genes')
 
-    genes <- infile[[slot]][]
+    genes <- infile[[file.path(genomes[1], slot)]][]
     genes <- data.frame(row.names = genes)
   } else {
     genes <- read.table(up_df$datapath[gene.file])
