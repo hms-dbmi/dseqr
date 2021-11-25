@@ -550,8 +550,11 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 }
 
 
-#TODO: allow cross-species for Azimuth
 run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
+
+  # prevents error about it being 500MB
+  old <- options(future.globals.maxSize = 30*1024*1024^2)
+  on.exit(options(old), add = TRUE)
 
   ref_species <- refs$species[refs$name == azimuth_ref]
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
