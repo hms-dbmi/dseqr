@@ -4139,7 +4139,6 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     if (all(violin_data$df$x == 0)) return(NULL)
 
     height(max(length(levels(violin_data$df$y))*38, 420))
-
     plot_violin(violin_data = violin_data, is_mobile = is_mobile())
   })
 
@@ -4298,4 +4297,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-

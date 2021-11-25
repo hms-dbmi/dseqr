@@ -207,6 +207,17 @@ plot_violin <- function(feature = NULL,
   height <- max(235, length(ncells) * 45)
   if (is_mobile) ncells <- NULL
 
+  # will color violins for all if not enough in highlight group
+  n1.hl <- table(df$hl)
+  n1.hl <- n1.hl[names(n1.hl) != 'out'] <= 1
+  if (any(n1.hl)) {
+    n1.names <- names(n1.hl)[n1.hl]
+    df$hl[df$hl %in% n1.names] <- 'out'
+    color <- color[!n1.hl]
+    color_dark <- color_dark[!n1.hl]
+    nsel <- max(0, nsel - sum(n1.hl))
+  }
+
   pl <- SingleExIPlot(data,
                       idents = df$y,
                       hl = df$hl,
