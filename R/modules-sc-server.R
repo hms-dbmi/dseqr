@@ -3734,6 +3734,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (is.null(colors)) return(NULL)
 
     labels <- isolate(labels())
+    if (is.null(labels)) return(NULL)
+
     rendered_dataset(isolate(dataset_name()))
 
     picker::picker(coords,
@@ -3751,8 +3753,13 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   proxy <- picker::picker_proxy('cluster_plot')
   observe(picker::update_picker(proxy, clusters_marker_view()))
-  observe(picker::update_picker(proxy, polygons = polygons()))
   observe(picker::update_picker(proxy, labels = labels()))
+
+  observe({
+    have <- rendered_dataset()
+    if (!is.null(have) && have != dataset_name()) return(NULL)
+    picker::update_picker(proxy, polygons = polygons())
+  })
 
   observe({
     title <- title()
@@ -4297,3 +4304,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
