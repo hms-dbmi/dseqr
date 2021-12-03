@@ -628,8 +628,9 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     groups <- groups()
     if (is.null(groups) || groups != 'reset') return(NULL)
     first <- isolate(first_set())
-    if (!first)
+    if (!first) {
       updateSelectizeInput(session, 'compare_groups', selected = '')
+    }
 
 
     first_set(FALSE)
@@ -929,6 +930,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
   observe({
+    choices <- cluster_choices()
+    if (is.null(choices)) return(NULL)
     updateSelectizeInput(session, 'selected_cluster',
                          choices = rbind(NA, cluster_choices()),
                          options = cluster_options(), server = TRUE)
@@ -2769,6 +2772,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   # update exclude clusters
   observe({
 
+    # source of selectize.min.js javascript error seems to be in contrastOptions()
     updateSelectizeInput(session, 'subset_clusters',
                          choices = exclude_choices(),
                          selected = isolate(input$subset_clusters),
@@ -3481,8 +3485,14 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # keep search gene table changes
     regex <- input$gene_search
     if (grepl(', ', regex)) regex <- format_comma_regex(regex)
-
     DT::updateSearch(DTproxy, keywords = list('global' = regex))
+  })
+
+  # fixes bug where changing dataset didn't update genes table until play with scrollbar
+  observe({
+    gene_table <- gene_table()
+    if (is.null(gene_table)) return(NULL)
+    DT::replaceData(DTproxy, gene_table, rownames = FALSE)
   })
 
   observe({
@@ -3914,6 +3924,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     cells <- cells()
 
     if (!isTruthyAll(cells, scseq, coords)) return(NULL)
+    if (!all(cells %in% colnames(scseq))) return(NULL)
 
     # use xrange and yrange for all data
     xrange <- range(coords[,1])
