@@ -48,7 +48,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq = scForm$scseq,
     annot = scForm$annot,
     clusters = scForm$clusters,
-    custom_metrics = scForm$custom_metrics,
+    added_metrics = scForm$added_metrics,
     selected_feature = scForm$clusters_gene,
     h5logs = scForm$h5logs,
     show_controls = TRUE,
@@ -91,7 +91,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     meta = scForm$meta,
     groups = scForm$groups,
     clusters = scForm$clusters,
-    custom_metrics = scForm$custom_metrics,
+    added_metrics = scForm$added_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'test',
@@ -107,7 +107,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     meta = scForm$meta,
     groups = scForm$groups,
     clusters = scForm$clusters,
-    custom_metrics = scForm$custom_metrics,
+    added_metrics = scForm$added_metrics,
     selected_feature = scForm$samples_gene,
     h5logs = scForm$h5logs,
     group = 'ctrl',
@@ -235,11 +235,22 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     return(scseq)
   })
 
-  # update scseq with new custom metrics
+  added_metrics <- reactive({
+    saved_metrics <- scClusterGene$saved_metrics()
+    custom_metrics <- scClusterGene$custom_metrics()
+    if (is.null(saved_metrics)) return(custom_metrics)
+    if (is.null(custom_metrics)) return(saved_metrics)
+    cbind(saved_metrics, custom_metrics)
+  })
+
+
+  # update scseq with added metrics
   scseq <- reactive({
     scseq <- scseq_clusts()
-    metrics <- scClusterGene$saved_metrics()
+    metrics <- added_metrics()
+
     if (!isTruthy(scseq)) return(NULL)
+    cdata <- scseq@colData
     if (!is.null(metrics)) try(scseq@colData <- cbind(scseq@colData, metrics), silent = TRUE)
 
     return(scseq)
@@ -467,7 +478,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     clusters = scResolution$clusters,
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
-    custom_metrics = scClusterGene$custom_metrics,
+    added_metrics = added_metrics,
     show_biogps = scClusterGene$show_biogps,
     show_pbulk = scSampleGene$show_pbulk,
     samples_violin_pfun = scSampleClusters$violin_pfun,
@@ -3290,6 +3301,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
 
+
     SingleCellExperiment::logcounts(scseq) <- h5logs()
 
     if (metric %in% exist_metric_names()) {
@@ -3878,7 +3890,7 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
 #'
 #' @keywords internal
 #' @noRd
-scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, meta = function()NULL, groups = function()NULL, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, custom_metrics = function()NULL) {
+scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, meta = function()NULL, groups = function()NULL, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, added_metrics = function()NULL) {
 
 
   observe(toggleCssClass('marker_plot_container', 'invisible', condition = !(show_plot() && have_colors())))
@@ -3967,13 +3979,15 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
 
     if (!isTruthy(scseq)) return(NULL)
 
-    metrics <- custom_metrics()
+    metrics <- added_metrics()
     cdata <- scseq@colData
+
 
     if (!is.null(metrics) && nrow(cdata) != nrow(metrics)) return(NULL)
     if (!is.null(metrics)) {
       cdata <- cbind(cdata, metrics)
     }
+
 
     return(cdata)
   })
@@ -4315,4 +4329,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-
