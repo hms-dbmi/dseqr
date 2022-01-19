@@ -64,6 +64,7 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              selected_gene = scForm$clusters_gene,
              selected_cluster = scForm$clusters_cluster,
              scseq = scForm$scseq,
+             de_metrics = scForm$de_metrics,
              annot = scForm$annot,
              clusters = scForm$clusters,
              plots_dir =scForm$plots_dir,
@@ -236,11 +237,20 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   })
 
   added_metrics <- reactive({
-    saved_metrics <- scClusterGene$saved_metrics()
-    custom_metrics <- scClusterGene$custom_metrics()
-    if (is.null(saved_metrics)) return(custom_metrics)
-    if (is.null(custom_metrics)) return(saved_metrics)
-    cbind(saved_metrics, custom_metrics)
+
+    metrics <- list(
+      scClusterGene$saved_metrics(),
+      scClusterGene$custom_metrics(),
+      scSampleClusters$de_metrics()
+    )
+
+    metrics <- metrics[!sapply(metrics, is.null)]
+
+    # to avoid sync issues when switch datasets
+    nrows <- sapply(metrics, nrow)
+    if (length(unique(nrows)) > 1) return(NULL)
+
+    do.call(cbind, metrics)
   })
 
 
@@ -258,6 +268,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
 
   qc_metrics <- reactive({
+
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
 
@@ -479,6 +490,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
     added_metrics = added_metrics,
+    de_metrics = scSampleClusters$de_metrics,
     show_biogps = scClusterGene$show_biogps,
     show_pbulk = scSampleGene$show_pbulk,
     samples_violin_pfun = scSampleClusters$violin_pfun,
@@ -1085,6 +1097,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         tts[[cluster]] <- tt
       }
 
+
       # add 'All Clusters' result
       progress$set(detail='all clusters', value = nmax)
       annot <-  qs::qread(file.path(resoln_dir, 'annot.qs'))
@@ -1113,8 +1126,22 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       qs::qsave(tts, tts_path)
       enableAll(input_ids)
     }
+
     return(tts)
   })
+
+  de_metrics <- reactive({
+    tts <- top_tables()
+    if (is.null(tts)) return(NULL)
+    scseq <- load_scseq_qs(dataset_dir())
+
+    num_sig <- sapply(tts, function(tt) sum(tt$adj.P.Val < 0.05))
+    num_sig <- num_sig[as.character(scseq$cluster)]
+    num_sig[is.na(num_sig)] <- 0
+
+    return(data.frame(num_significant = num_sig))
+  })
+
 
   # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
@@ -1412,7 +1439,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     annot_clusters = annot_clusters,
     grid_expression_fun = grid_expression_fun,
     violin_pfun = violin_pfun,
-    is_integrated = is_integrated
+    is_integrated = is_integrated,
+    de_metrics = de_metrics
   ))
 }
 
@@ -3976,7 +4004,6 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
   cdata <- reactive({
     scseq <- scseq()
     if (!is.null(group)) scseq <- safe_set_meta(scseq, meta(), groups())
-
     if (!isTruthy(scseq)) return(NULL)
 
     metrics <- added_metrics()
@@ -4134,7 +4161,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #'
 #' @keywords internal
 #' @noRd
-scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, clusters, plots_dir, h5logs, is_mobile) {
+scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, de_metrics, annot, clusters, plots_dir, h5logs, is_mobile) {
 
   show_plot <- reactive(!is.null(plot()))
   observe(toggle('violin_plot', condition = show_plot()))
@@ -4153,6 +4180,8 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     if (is.null(scseq)) return(NULL)
 
     is.gene <- gene %in% row.names(scseq)
+    de_metrics <- de_metrics()
+    if (!is.null(de_metrics)) scseq@colData <- cbind(scseq@colData, de_metrics)
     is.num <- is.gene || is.numeric(scseq@colData[[gene]])
     if (!is.num) return(NULL)
 
