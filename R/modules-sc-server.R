@@ -236,6 +236,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     return(scseq)
   })
 
+
+  # added metrics (custom and previously saved) needed for violin/marker plots
   added_metrics <- reactive({
 
     metrics <- list(
@@ -253,31 +255,18 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   })
 
 
-  # update scseq with added metrics
-  scseq <- reactive({
-    scseq <- scseq_clusts()
-    metrics <- added_metrics()
-    if (!isTruthy(scseq)) return(NULL)
-
-    cdata <- scseq@colData
-    unique_metrics <- setdiff(colnames(metrics), colnames(cdata))
-
-    metrics <- metrics[, unique_metrics, drop = FALSE]
-    if (!is.null(metrics)) try(scseq@colData <- cbind(cdata, metrics), silent = TRUE)
-
-    return(scseq)
-  })
-
-
+  # metrics to add to DT feature table (constant metrics and saved metrics)
   qc_metrics <- reactive({
 
-    scseq <- scseq()
+    scseq <- scDataset$scseq()
     if(is.null(scseq)) return(NULL)
 
-    saved_metrics <- colnames(scClusterGene$saved_metrics())
-    allowed_metrics <- c(const$features$qc, const$features$metrics, saved_metrics)
-    metrics <- scseq@colData
-    metrics <- metrics[, colnames(metrics) %in% allowed_metrics, drop = FALSE]
+    cdata <- scseq@colData
+    metrics <- cdata[, colnames(cdata) %in% c(const$features$qc, const$features$metrics)]
+
+    saved_metrics <- scClusterGene$saved_metrics()
+    if (!is.null(saved_metrics)) metrics <- cbind(metrics, saved_metrics)
+
     qc <- colnames(metrics)
     names(qc) <- sapply(metrics, class)
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
@@ -296,7 +285,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   observe({
     toggle(id = "comparison_toggle_container",  condition = scDataset$is_integrated())
   })
-
 
 
   # show appropriate inputs based on comparison type
@@ -385,7 +373,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   scSubset <- callModule(subsetForm, 'subset',
                          sc_dir = sc_dir,
                          set_readonly = set_readonly,
-                         scseq = scseq,
+                         scseq = scseq_clusts,
+                         saved_metrics = scClusterGene$saved_metrics,
                          annot = annot,
                          datasets = scDataset$datasets,
                          selected_dataset = scDataset$dataset_name,
@@ -408,7 +397,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                     dataset_name = scDataset$dataset_name,
                                     resoln_dir = resoln_dir,
                                     resoln = resoln,
-                                    scseq = scseq,
+                                    scseq = scseq_clusts,
                                     annot = annot,
                                     annot_path = annot_path,
                                     ref_preds = scLabelTransfer$pred_annot,
@@ -436,7 +425,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   scSampleGroups <- callModule(scSampleGroups, 'sample_groups',
                                dataset_dir = dataset_dir,
                                resoln_dir = resoln_dir,
-                               input_scseq = scseq,
+                               input_scseq = scseq_clusts,
                                counts = counts,
                                dataset_name = scDataset$dataset_name,
                                show_pbulk = scSampleGene$show_pbulk)
@@ -444,7 +433,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   # the selected cluster for sample comparison
   scSampleClusters <- callModule(scSampleClusters, 'sample_clusters',
-                                 input_scseq = scseq,
+                                 input_scseq = scseq_clusts,
                                  set_readonly = set_readonly,
                                  meta = scSampleGroups$meta,
                                  h5logs = h5logs,
@@ -2609,7 +2598,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #'
 #' @keywords internal
 #' @noRd
-subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated, tx2gene_dir) {
+subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, saved_metrics, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated, tx2gene_dir) {
   subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
   type <- name <- NULL
 
@@ -2648,6 +2637,9 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, anno
   metric_choices <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
+
+    saved_metrics <- saved_metrics()
+    if (!is.null(saved_metrics)) scseq@colData <- cbind(scseq@colData, saved_metrics)
     get_metric_choices(scseq)
   })
 
