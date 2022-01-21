@@ -64,7 +64,6 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
              selected_gene = scForm$clusters_gene,
              selected_cluster = scForm$clusters_cluster,
              scseq = scForm$scseq,
-             de_metrics = scForm$de_metrics,
              annot = scForm$annot,
              clusters = scForm$clusters,
              plots_dir =scForm$plots_dir,
@@ -233,6 +232,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
     clusters <- scResolution$clusters()
     if (!is.null(clusters)) scseq$cluster <- clusters
+
     return(scseq)
   })
 
@@ -240,8 +240,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
     metrics <- list(
       scClusterGene$saved_metrics(),
-      scClusterGene$custom_metrics(),
-      scSampleClusters$de_metrics()
+      scClusterGene$custom_metrics()
     )
 
     metrics <- metrics[!sapply(metrics, is.null)]
@@ -258,10 +257,13 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   scseq <- reactive({
     scseq <- scseq_clusts()
     metrics <- added_metrics()
-
     if (!isTruthy(scseq)) return(NULL)
+
     cdata <- scseq@colData
-    if (!is.null(metrics)) try(scseq@colData <- cbind(scseq@colData, metrics), silent = TRUE)
+    unique_metrics <- setdiff(colnames(metrics), colnames(cdata))
+
+    metrics <- metrics[, unique_metrics, drop = FALSE]
+    if (!is.null(metrics)) try(scseq@colData <- cbind(cdata, metrics), silent = TRUE)
 
     return(scseq)
   })
@@ -272,8 +274,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     scseq <- scseq()
     if(is.null(scseq)) return(NULL)
 
+    saved_metrics <- colnames(scClusterGene$saved_metrics())
+    allowed_metrics <- c(const$features$qc, const$features$metrics, saved_metrics)
     metrics <- scseq@colData
-    metrics <- metrics[, colnames(metrics) %in% c(const$features$qc, const$features$metrics), drop = FALSE]
+    metrics <- metrics[, colnames(metrics) %in% allowed_metrics, drop = FALSE]
     qc <- colnames(metrics)
     names(qc) <- sapply(metrics, class)
     qc <- qc[names(qc) %in% c('numeric', 'logical')]
@@ -490,7 +494,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     samples_gene = scSampleGene$selected_gene,
     clusters_gene = scClusterGene$selected_gene,
     added_metrics = added_metrics,
-    de_metrics = scSampleClusters$de_metrics,
     show_biogps = scClusterGene$show_biogps,
     show_pbulk = scSampleGene$show_pbulk,
     samples_violin_pfun = scSampleClusters$violin_pfun,
@@ -1130,18 +1133,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     return(tts)
   })
 
-  de_metrics <- reactive({
-    tts <- top_tables()
-    if (is.null(tts)) return(NULL)
-    scseq <- load_scseq_qs(dataset_dir())
-
-    num_sig <- sapply(tts, function(tt) sum(tt$adj.P.Val < 0.05))
-    num_sig <- num_sig[as.character(scseq$cluster)]
-    num_sig[is.na(num_sig)] <- 0
-
-    return(data.frame(num_significant = num_sig))
-  })
-
 
   # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
@@ -1439,8 +1430,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     annot_clusters = annot_clusters,
     grid_expression_fun = grid_expression_fun,
     violin_pfun = violin_pfun,
-    is_integrated = is_integrated,
-    de_metrics = de_metrics
+    is_integrated = is_integrated
   ))
 }
 
@@ -3329,7 +3319,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     scseq <- scseq()
     req(metric, scseq, show_custom_metric())
 
-
     SingleCellExperiment::logcounts(scseq) <- h5logs()
 
     if (metric %in% exist_metric_names()) {
@@ -3361,9 +3350,14 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   observe(saved_metrics(qread.safe(metrics_path())))
 
   observeEvent(input$save_custom_metric, {
+
     metric <- input$custom_metric
     prev <- saved_metrics()
     custom_metrics <- custom_metrics()
+
+    if (metric %in% exist_metric_names()) {
+      return(NULL)
+    }
 
     # can remove custom metric by selecting as feature and saving empty
     if (!isTruthy(metric)) {
@@ -4161,7 +4155,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 #'
 #' @keywords internal
 #' @noRd
-scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, de_metrics, annot, clusters, plots_dir, h5logs, is_mobile) {
+scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, clusters, plots_dir, h5logs, is_mobile) {
 
   show_plot <- reactive(!is.null(plot()))
   observe(toggle('violin_plot', condition = show_plot()))
@@ -4180,8 +4174,6 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     if (is.null(scseq)) return(NULL)
 
     is.gene <- gene %in% row.names(scseq)
-    de_metrics <- de_metrics()
-    if (!is.null(de_metrics)) scseq@colData <- cbind(scseq@colData, de_metrics)
     is.num <- is.gene || is.numeric(scseq@colData[[gene]])
     if (!is.num) return(NULL)
 
@@ -4358,3 +4350,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
