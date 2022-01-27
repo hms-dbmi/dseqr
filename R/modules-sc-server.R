@@ -265,7 +265,10 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     metrics <- cdata[, colnames(cdata) %in% c(const$features$qc, const$features$metrics)]
 
     saved_metrics <- scClusterGene$saved_metrics()
-    if (!is.null(saved_metrics)) metrics <- cbind(metrics, saved_metrics)
+    if (!is.null(saved_metrics)) {
+      if (!identical(row.names(metrics), row.names(saved_metrics))) return(NULL)
+      metrics <- cbind(metrics, saved_metrics)
+    }
 
     qc <- colnames(metrics)
     names(qc) <- sapply(metrics, class)
@@ -2639,7 +2642,10 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
     if (is.null(scseq)) return(NULL)
 
     saved_metrics <- saved_metrics()
-    if (!is.null(saved_metrics)) scseq@colData <- cbind(scseq@colData, saved_metrics)
+    if (!is.null(saved_metrics)) {
+      if (!identical(row.names(saved_metrics), colnames(scseq))) return(NULL)
+      scseq@colData <- cbind(scseq@colData, saved_metrics)
+    }
     get_metric_choices(scseq)
   })
 
