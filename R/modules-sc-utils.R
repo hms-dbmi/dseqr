@@ -387,7 +387,7 @@ get_exclude_dirs <- function(sc_dir) {
   for (dir in dirs) {
     full_dir <- file.path(sc_dir, dir)
     files <- list.files(full_dir)
-    if (!any(grepl('fastq.gz$|.mtx$|.h5$', files))) {
+    if (!any(grepl('fastq.gz$|.mtx$|.h5$|.hdf5$', files))) {
       exclude <- c(exclude, dir)
     }
   }
@@ -2069,7 +2069,7 @@ validate_scseq_import <- function(up_df, samples) {
     }
 
     # no more than one H5 file per sample
-    is_h5 <- grepl('.h5', files, fixed = TRUE)
+    is_h5 <- grepl('.h5|.hdf5', files, fixed = TRUE)
     if (sum(is_h5) > 1) {
       msg <- 'Specify only one sample per H5 file'
       return(msg)
@@ -2192,7 +2192,7 @@ uploadSingleCellModal <- function(session, show_init) {
       label = label,
       buttonLabel = 'upload',
       width = '100%',
-      accept = c('.h5', '.tsv', '.fastq.gz', '.mtx'),
+      accept = c('.h5', '.hdf5', '.tsv', '.fastq.gz', '.mtx'),
       multiple = TRUE
     ),
     tags$div(

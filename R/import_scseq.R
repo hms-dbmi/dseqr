@@ -907,7 +907,7 @@ load_kallisto_counts <- function(data_dir) {
 #' @return dgCMatrix
 load_cellranger_counts <- function(data_dir) {
   # read the data in using ENSG features
-  h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+  h5file <- list.files(data_dir, '.h5$|.hdf5$', full.names = TRUE)
   if (length(h5file)) {
     counts <- Seurat::Read10X_h5(h5file, use.names = FALSE)
   } else {
@@ -924,7 +924,7 @@ load_cellranger_counts <- function(data_dir) {
 
 load_cellranger_genes <- function(data_dir) {
   # read the data in using ENSG features
-  h5file <- list.files(data_dir, '.h5$', full.names = TRUE)
+  h5file <- list.files(data_dir, '.h5$|.hdf5$', full.names = TRUE)
   gene.file <- list.files(data_dir, 'features.tsv|genes.tsv', full.names = TRUE)[1]
 
   if (length(h5file)) {
@@ -998,7 +998,7 @@ check_is_cellranger <- function(data_dir) {
   barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
 
   # h5 file
-  h5.file <- grepl('.h5', files, fixed = TRUE)
+  h5.file <- grepl('.h5|.hdf5', files, fixed = TRUE)
 
   if (length(mtx.file) & length(genes.file) & length(barcodes.file)) {
     standardize_cellranger(data_dir)

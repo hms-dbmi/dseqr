@@ -4222,7 +4222,7 @@ importSingleCellModal <- function(session, show_init) {
                   label = '',
                   buttonLabel = 'Upload',
                   width = '100%',
-                  accept = c('.h5', '.tsv', '.fastq.gz', '.mtx', '.rds', '.qs'),
+                  accept = c('.h5', '.hdf5', '.tsv', '.fastq.gz', '.mtx', '.rds', '.qs'),
                   multiple = TRUE
         )
     ),
