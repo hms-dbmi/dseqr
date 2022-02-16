@@ -4,10 +4,10 @@
 \alias{get_species}
 \title{Get species for human or mouse depending on gene ids}
 \usage{
-get_species(counts)
+get_species(x)
 }
 \arguments{
-\item{counts}{dgCMatrix where rownames are gene ids}
+\item{x}{dgCMatrix or data.frame where rownames are gene ids}
 }
 \value{
 either 'Homo sapiens' or 'Mus musculus'

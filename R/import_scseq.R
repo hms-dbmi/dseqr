@@ -907,14 +907,17 @@ load_kallisto_counts <- function(data_dir) {
 #' @return dgCMatrix
 load_cellranger_counts <- function(data_dir) {
   # read the data in using ENSG features
-  h5file <- list.files(data_dir, '.h5$|.hdf5$', full.names = TRUE)
+  h5file <- list.files(data_dir, '[.]h5$|[.]hdf5$', full.names = TRUE)
   if (length(h5file)) {
     counts <- Seurat::Read10X_h5(h5file, use.names = FALSE)
   } else {
     counts <- Seurat::Read10X(data_dir, gene.column = 1)
   }
 
-  enids <- gsub('[.]\\d+', '', row.names(counts))
+  # remove species prefix from ensembl ids
+  ensids <- gsub('^[^_]+[_]+(ENS.+?)$', '\\1', row.names(counts))
+
+  enids <- gsub('[.]\\d+', '', ensids)
   row.names(counts) <- make.unique(enids)
 
   if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
@@ -924,7 +927,7 @@ load_cellranger_counts <- function(data_dir) {
 
 load_cellranger_genes <- function(data_dir) {
   # read the data in using ENSG features
-  h5file <- list.files(data_dir, '.h5$|.hdf5$', full.names = TRUE)
+  h5file <- list.files(data_dir, '[.]h5$|[.]hdf5$', full.names = TRUE)
   gene.file <- list.files(data_dir, 'features.tsv|genes.tsv', full.names = TRUE)[1]
 
   if (length(h5file)) {
@@ -957,7 +960,7 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
   row.names(counts)[no.match] <- alt_genes[no.match]
 
   # remove non-expressed genes
-  counts <- counts[Matrix::rowSums(counts) > 0, ]
+  # counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   # sum counts in rows with same gene
   counts <- Matrix.utils::aggregate.Matrix(counts, row.names(counts), fun = 'sum')
@@ -974,7 +977,10 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
 #'
 get_species <- function(x) {
 
-  ensid <- grep('^ENS[A-Z]*G[0-9.]+$', row.names(x), value = TRUE)[1]
+  # remove species prefix
+  ensid <- gsub('^[^_]+[_]+(ENS.+?)$', '\\1', row.names(x))
+
+  ensid <- grep('^ENS[A-Z]*G[0-9.]+$', ensid, value = TRUE)[1]
   ensid <- gsub('^(ENS[A-Z]*)G[0-9.]+$', '\\1', ensid)
   if (is.na(ensid)) stop('Need Ensembl IDs')
 
@@ -998,7 +1004,7 @@ check_is_cellranger <- function(data_dir) {
   barcodes.file <-  grep('barcodes.tsv', files, fixed = TRUE, value = TRUE)
 
   # h5 file
-  h5.file <- grepl('.h5|.hdf5', files, fixed = TRUE)
+  h5.file <- grepl('[.]h5$|[.]hdf5$', files)
 
   if (length(mtx.file) & length(genes.file) & length(barcodes.file)) {
     standardize_cellranger(data_dir)

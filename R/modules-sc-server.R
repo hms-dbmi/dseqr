@@ -2059,7 +2059,7 @@ prep_scseq_export <- function(scseq, dataset_dir) {
 detect_import_species <- function(up_df) {
 
   gene.file <- grep('features.tsv|genes.tsv', up_df$name)[1]
-  h5.file <- grep('[.]h5$', up_df$name)[1]
+  h5.file <- grep('[.]h5$|[.]hdf5$', up_df$name)[1]
 
   # get user selection if can't detect
   if (is.na(gene.file) & is.na(h5.file)) return(NULL)

@@ -2069,7 +2069,7 @@ validate_scseq_import <- function(up_df, samples) {
     }
 
     # no more than one H5 file per sample
-    is_h5 <- grepl('.h5|.hdf5', files, fixed = TRUE)
+    is_h5 <- grepl('[.]h5$|[.]hdf5$', files)
     if (sum(is_h5) > 1) {
       msg <- 'Specify only one sample per H5 file'
       return(msg)
