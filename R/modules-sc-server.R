@@ -883,7 +883,11 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     }
 
     # hash meta/groups to get directory
-    meta <- qs::qread(file.path(dataset_dir, 'meta.qs'))
+    meta <- qread.safe(file.path(dataset_dir, 'meta.qs'))
+    if (is.null(meta)) {
+      contrast_dir(NULL)
+      return()
+    }
     meta_hash <- hash_meta(meta, groups)
 
     contrast <- paste0(groups, collapse = '_vs_')
