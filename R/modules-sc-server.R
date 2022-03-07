@@ -1460,7 +1460,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     sel <- ds$name[ds$value == sel_idx]
     if (!length(sel)) sel <- NULL
 
+    # catch deleted datasets
     prev <- isolate(dataset_name())
+    if (!is.null(prev) && !prev %in% ds$name) sel <- NULL
+
     if (is.null(prev) || is.null(sel) || sel != prev) dataset_name(sel)
   })
 
@@ -3803,7 +3806,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   observe({
     have <- rendered_dataset()
-    if (!is.null(have) && have != dataset_name()) return(NULL)
+    sel <- dataset_name()
+    if (!is.null(have) && !is.null(sel) && have != sel) return(NULL)
     picker::update_picker(proxy, polygons = polygons())
   })
 

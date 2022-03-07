@@ -5,11 +5,12 @@ pert_names <- readRDS('data-raw/drug_gene_queries/pert_names.rds')
 ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 
-azimuth_refs <- c('human_pbmc', 'human_lung', 'human_bonemarrow', 'human_motorcortex', 'mouse_motorcortex')
-azimuth_species <- c(rep('Homo sapiens', 4), 'Mus musculus')
+azimuth_refs <- c('human_pbmc', 'human_lung', 'human_bonemarrow', 'human_differentiated_tcell', 'human_motorcortex', 'mouse_motorcortex')
+azimuth_species <- c(rep('Homo sapiens', 5), 'Mus musculus')
 azimuth_labels <- c('PBMC - Human',
                     'Lung - Human',
                     'Bone Marrow - Human',
+                    'Differentiated CD4 T-cells - Human',
                     'Motor Cortex - Human',
                     'Motor Cortex - Mouse')
 

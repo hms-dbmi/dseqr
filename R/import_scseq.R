@@ -59,8 +59,10 @@ import_scseq <- function(dataset_name,
   # check if cellranger and if so standardize file names
   is.cellranger <- check_is_cellranger(uploaded_data_dir)
 
-  progress$set(message = "running pseudoalignment", value = value + 1)
-  if (!is.cellranger) run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
+  if (!is.cellranger) {
+    progress$set(message = "running pseudoalignment", value = value + 1)
+    run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
+  }
 
   progress$set(message = "loading", value + 2)
   type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
@@ -589,21 +591,31 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
     query <- Seurat::CreateSeuratObject(counts = counts,
                                         min.cells = 1, min.features = 1)
 
-    # Preprocess with SCTransform
-    query <- Seurat::SCTransform(
-      object = query,
-      assay = "RNA",
-      new.assay.name = "refAssay",
-      residual.features = rownames(reference$map),
-      reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
-      method = 'glmGamPoi',
-      ncells = 2000,
-      n_genes = 2000,
-      do.correct.umi = FALSE,
-      do.scale = FALSE,
-      do.center = TRUE,
-      verbose = FALSE
-    )
+    is.sct <- 'SCTModel.list' %in% slotNames(reference$map[['refAssay']])
+
+    if (is.sct) {
+      # Preprocess with SCTransform
+      query <- Seurat::SCTransform(
+        object = query,
+        assay = "RNA",
+        new.assay.name = "refAssay",
+        residual.features = rownames(reference$map),
+        reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
+        method = 'glmGamPoi',
+        ncells = 2000,
+        n_genes = 2000,
+        do.correct.umi = FALSE,
+        do.scale = FALSE,
+        do.center = TRUE,
+        verbose = FALSE
+      )
+    } else {
+      # log normalize
+      query <- Seurat::NormalizeData(object = query)
+      query <- Seurat::FindVariableFeatures(query)
+      query <- SeuratObject::RenameAssays(query, 'RNA' = 'refAssay')
+    }
+
 
     # error if more than ncells
     k <- min(100, round(ncol(scseq)/4))
@@ -617,12 +629,12 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
       reference.assay = "refAssay",
       query.assay = "refAssay",
       reference.reduction = "refDR",
-      normalization.method = "SCT",
+      normalization.method = ifelse(is.sct, 'SCT', 'LogNormalize'),
       features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
       dims = 1:50,
       n.trees = 20,
       mapping.score.k = k,
-      verbose = FALSE
+      verbose = TRUE
     )
 
     # Transfer cell type labels and impute protein expression
@@ -667,10 +679,13 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
     # The reference used in the app is downsampled compared to the reference on which
     # the UMAP model was computed. This step, using the helper function NNTransform,
     # corrects the Neighbors to account for the downsampling.
-    query <- NNTransform(
-      object = query,
-      meta.data = reference$map[[]]
-    )
+    meta.data <- reference$map[[]]
+    if ("ori.index" %in% colnames(meta.data)) {
+      query <- NNTransform(
+        object = query,
+        meta.data = reference$map[[]]
+      )
+    }
 
     # Project the query to the reference UMAP.
     query[["proj.umap"]] <- Seurat::RunUMAP(
@@ -1539,6 +1554,7 @@ get_ref_resoln <- function(ref_name) {
          'human_pbmc' = 'predicted.celltype.l2',
          'human_lung' = 'predicted.annotation.l1',
          'human_bonemarrow' = 'predicted.celltype.l2',
+         'human_differentiated_tcell' = 'predicted.celltype.cytokines',
          'human_motorcortex' = 'predicted.subclass',
          'mouse_motorcortex' = 'predicted.subclass',
          'predicted.celltype'
