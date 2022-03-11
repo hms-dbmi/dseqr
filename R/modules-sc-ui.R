@@ -216,7 +216,7 @@ subsetFormInput <- function(id) {
   withTags({
     div(id = ns('subset-form'), class = 'hidden-form', style = 'display: none;',
         shinypanel::selectizeInputWithButtons(
-          ns('subset_clusters'),
+          ns('subset_features'),
           container_id = ns('exclude-container'),
           label = 'Features to subset on:',
           actionButton(ns('toggle_exclude'), '', icon = tags$i(id =ns('toggle_icon'), class = 'fa fa-minus fa-fw text-warning'), title = 'Toggle to <span class="text-warning">exclude</span> or <span class="text-success">include</span> selected features'),
@@ -227,7 +227,7 @@ subsetFormInput <- function(id) {
         shinypanel::textInputWithButtons(
           ns('subset_name'),
           container_id = ns('name-container'),
-          label = 'Name for new dataset:',
+          label = 'Suffix for new dataset:',
           actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering (optional)'),
           actionButton(ns('submit_subset'), '',
                        icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')), title = 'Submit'),

@@ -492,14 +492,14 @@ evaluate_custom_metric <- function(metric, scseq) {
     expr <- t(as.matrix(expr))
 
   } else {
-    expr <- data.frame(expr=NA)
+    expr <- S4Vectors::DataFrame(expr = rep(NA, ncol(scseq)),
+                                 row.names = colnames(scseq))
   }
 
   qcs <- scseq@colData
   qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
 
-  dat <- cbind(expr, qcs)
-  dat <- as.data.frame(cbind(expr, qcs))
+  dat <- cbind.safe(expr, qcs)
   colnames(dat) <- c(colnames(expr), colnames(qcs))
   ft <- ft[ft %in% colnames(dat)]
 
@@ -517,6 +517,12 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- dat[, 'metric', drop = FALSE]
   colnames(dat) <- metric
   return(dat)
+}
+
+cbind.safe <- function(prev, res) {
+  res <- cbind(prev, res)
+  row.names(res) <- row.names(prev)
+  return(res)
 }
 
 
@@ -936,6 +942,9 @@ integrate_saved_scseqs <- function(
                                species = species,
                                tx2gene_dir = tx2gene_dir)
 
+  # keep successfully combined
+  scseqs <- scseqs[unique(combined$batch)]
+
   combined$project <- dataset_name
 
   # retain original QC metrics
@@ -1349,7 +1358,7 @@ load_scseq_subsets <- function(dataset_names, sc_dir, subset_metrics = NULL, is_
       cdata <- scseq@colData
       metrics <- lapply(subset_metrics, evaluate_custom_metric, scseq)
       metrics <- do.call(cbind, metrics)
-      if (!is.null(metrics)) cdata <- cbind(cdata, metrics)
+      if (!is.null(metrics)) cdata <- cbind.safe(cdata, metrics)
 
       exclude <- cdata[, subset_metrics, drop = FALSE]
 
@@ -1494,13 +1503,12 @@ get_integration_species <- function(integration_datasets, sc_dir) {
   unique(unlist(species))
 }
 
-validate_subset <- function(from_dataset, subset_name, subset_clusters, is_include, hvgs) {
+validate_subset <- function(from_dataset, subset_name, subset_features, is_include, hvgs) {
   msg <- NULL
 
   have.dataset <- isTruthy(from_dataset)
   have.name <- isTruthy(subset_name)
-  all.excluded <- is_include & !isTruthy(subset_clusters)
-  all.included <- !isTruthy(subset_clusters) & !is_include
+  all.excluded <- is_include & !isTruthy(subset_features)
   no.hvgs <- !isTruthy(hvgs)
 
   if (!have.dataset) {
@@ -2263,10 +2271,60 @@ deleteModal <- function(session, choices, type) {
 
 
 # modal to confirm adding single-cell dataset
-confirmSubsetModal <- function(session) {
+confirmSubsetModal <- function(session,
+                               new_dataset_name,
+                               ref_name,
+                               subset_metrics,
+                               subset_clusters,
+                               is_include) {
+
+  metrics_ui <- ref_ui <- clusters_ui <- NULL
+  direction <- ifelse(is_include, 'Include', 'Exclude')
+
+  if (length(subset_metrics)) {
+    metrics_ui <- tags$div(
+      tags$br(),
+      tags$div(tags$b(paste(direction, "cells with:"))),
+      tags$div(lapply(subset_metrics, function(m) tags$div(tags$code(m))))
+    )
+  }
+
+  if (length(subset_clusters)) {
+    clusters_ui <- tags$div(
+      tags$br(),
+      tags$div(tags$b(paste(direction, "clusters:"))),
+      tags$div(paste(subset_clusters, collapse = ', '))
+    )
+  }
+
+  if (!is.null(ref_name)) {
+    is.ref <- refs$name == ref_name
+
+    ref_ui <- tags$div(
+      tags$br(),
+      tags$div(tags$b("Reference dataset:")),
+      tags$div(refs$label[is.ref])
+    )
+
+    new_dataset_name <- paste0(new_dataset_name, '_', refs$type[is.ref])
+  }
+
+
+  UI <- tags$div(
+    class='alert alert-info', role = 'alert',
+    tags$div(tags$b("New dataset name:")),
+    tags$div(new_dataset_name),
+    ref_ui,
+    clusters_ui,
+    metrics_ui,
+    hr(),
+    '🌱 Click cancel to change settings'
+  )
+
   modalDialog(
+    UI,
     title = 'Create new single-cell dataset?',
-    size = 's',
+    size = 'm',
     footer = tagList(
       actionButton(session$ns('confirm_subset'), 'Subset', class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))

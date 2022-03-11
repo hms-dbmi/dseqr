@@ -267,7 +267,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     saved_metrics <- scClusterGene$saved_metrics()
     if (!is.null(saved_metrics)) {
       if (!identical(row.names(metrics), row.names(saved_metrics))) return(NULL)
-      metrics <- cbind(metrics, saved_metrics)
+      metrics <- cbind.safe(metrics, saved_metrics)
     }
 
     qc <- colnames(metrics)
@@ -2609,7 +2609,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 #' @keywords internal
 #' @noRd
 subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, saved_metrics, annot, datasets, show_subset, selected_dataset, cluster_choices, is_integrated, tx2gene_dir) {
-  subset_inputs <- c('subset_name', 'submit_subset', 'subset_clusters', 'toggle_exclude', 'click_up')
+  subset_inputs <- c('subset_name', 'submit_subset', 'subset_features', 'toggle_exclude', 'click_up')
   type <- name <- NULL
 
   disabled_demo <- getShinyOption('is_example', FALSE)
@@ -2619,7 +2619,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
 
   contrastOptions <- reactive({
     on_init <- NULL
-    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('subset_clusters'))
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('subset_features'))
 
     list(render = I('{option: contrastOptions, item: contrastItem}'),
          onInitialize = on_init)
@@ -2699,19 +2699,42 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
   subsets <- reactiveValues()
   psubsets <- reactiveValues()
 
+  new_dataset_name <- reactive({
+    paste(founder(), input$subset_name, sep = '_')
+  })
+
+  founder <- reactive({
+    from_dataset <- selected_dataset()
+    get_founder(sc_dir, from_dataset)
+  })
+
+  subset_clusters <- reactive({
+    intersect(cluster_choices()$value, input$subset_features)
+  })
+
+  subset_metrics <-  reactive({
+    intersect(metric_choices()$value, input$subset_features)
+  })
   observeEvent(input$submit_subset, {
     if (disabled_demo) return(NULL)
 
 
     error_msg <- validate_subset(selected_dataset(),
                                  input$subset_name,
-                                 input$subset_clusters,
+                                 input$subset_features,
                                  is_include(),
                                  hvgs())
 
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
-      showModal(confirmSubsetModal(session))
+      showModal(
+        confirmSubsetModal(session,
+                           new_dataset_name(),
+                           input$ref_name,
+                           subset_metrics(),
+                           subset_clusters(),
+                           is_include())
+      )
 
     } else {
       # show error message
@@ -2724,27 +2747,22 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
 
     removeModal()
 
-    subset_clusters <- input$subset_clusters
-    subset_name <- input$subset_name
-    cluster_choices <- cluster_choices()
-    metric_choices <- metric_choices()
     is_include <- is_include()
     from_dataset <- selected_dataset()
+    founder <- founder()
+    dataset_name <- new_dataset_name()
     is_integrated <- is_integrated()
     hvgs <- hvgs()
+    subset_metrics <- subset_metrics()
 
     ref_name <- input$ref_name
     if (!isTruthy(ref_name)) ref_name <- NULL
 
-    exclude_clusters <- intersect(cluster_choices$value, subset_clusters)
-    subset_metrics <- intersect(metric_choices$value, subset_clusters)
 
+    exclude_clusters <- subset_clusters()
     if (is_include && length(exclude_clusters)) {
-      exclude_clusters <- setdiff(cluster_choices$value, exclude_clusters)
+      exclude_clusters <- setdiff(cluster_choices()$value, exclude_clusters)
     }
-
-    founder <- get_founder(sc_dir, from_dataset)
-    dataset_name <- subsets_name <- paste(founder, subset_name, sep = '_')
 
     subsets[[dataset_name]] <- callr::r_bg(
       func = subset_saved_scseq,
@@ -2807,9 +2825,9 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
   observe({
 
     # source of selectize.min.js javascript error seems to be in contrastOptions()
-    updateSelectizeInput(session, 'subset_clusters',
+    updateSelectizeInput(session, 'subset_features',
                          choices = exclude_choices(),
-                         selected = isolate(input$subset_clusters),
+                         selected = isolate(input$subset_features),
                          options = contrastOptions(),
                          server = TRUE)
   })
@@ -3335,7 +3353,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     res.na <- all(is.na(res[[1]]))
     req(!res.na)
 
-    if (methods::is(res, 'data.frame')) {
+    if (methods::is(res, 'DFrame')) {
 
       prev <- custom_metrics()
       if (!is.null(prev) && nrow(prev) != nrow(res)) {
@@ -3343,7 +3361,10 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         return(NULL)
       }
 
-      if (!is.null(prev)) res <- cbind(prev, res)
+      if (!is.null(prev)) {
+        res <- cbind(prev, res)
+        row.names(res) <- colnames(scseq)
+      }
       res <- res[, unique(colnames(res)), drop = FALSE]
       custom_metrics(res)
       selected_gene(metric)
@@ -3373,7 +3394,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
     } else {
       res <- custom_metrics[, metric, drop = FALSE]
-      if (!is.null(prev)) res <- cbind(prev, res)
+      if (!is.null(prev)) res <- cbind.safe(prev, res)
     }
 
     qs::qsave(res, metrics_path())
@@ -4267,17 +4288,6 @@ importSingleCellModal <- function(session, show_init) {
 }
 
 
-# modal to confirm adding single-cell dataset
-confirmSubsetModal <- function(session) {
-  modalDialog(
-    title = 'Create new single-cell dataset?',
-    size = 's',
-    footer = tagList(
-      actionButton(session$ns('confirm_subset'), 'Subset', class = 'btn-warning'),
-      tags$div(class='pull-left', modalButton('Cancel'))
-    )
-  )
-}
 
 get_species_choices <- function(detected_species) {
   is_detected <- !is.null(detected_species)

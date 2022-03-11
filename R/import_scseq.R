@@ -508,6 +508,7 @@ transfer_symphony <- function(symres, scseq) {
 }
 
 transfer_azimuth <- function(azres, scseq, resoln) {
+
   # add new data back to scseq
   projs <- lapply(azres, function(x) {
     proj <- x@reductions$proj.umap@cell.embeddings
@@ -618,7 +619,9 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
 
 
     # error if more than ncells
-    k <- min(100, round(ncol(scseq)/4))
+    ncells <- ncol(scseq)
+    k.map <- min(100, round(ncells/4))
+    k.score <- min(30, ncells-1)
 
     # Find anchors between query and reference
     anchors <- Seurat::FindTransferAnchors(
@@ -633,7 +636,8 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
       features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
       dims = 1:50,
       n.trees = 20,
-      mapping.score.k = k,
+      k.score = k.score,
+      mapping.score.k = k.map,
       verbose = TRUE
     )
 
@@ -643,17 +647,20 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
     # The maximum prediction score is in a metadata column named "predicted.*.score"
     # The prediction scores for each class are in an assay named "prediction.score.*"
     # The imputed assay is named "impADT" if computed
-    query <- Seurat::TransferData(
+    query <- tryCatch(Seurat::TransferData(
       reference = reference$map,
       query = query,
       dims = 1:50,
       anchorset = anchors,
       refdata = refdata,
       n.trees = 20,
-      k.weight = round(k/2),
+      k.weight = round(k.map/2),
       store.weights = TRUE,
       verbose = FALSE
-    )
+    ),
+    error = function(e) return(NULL))
+
+    if (is.null(query)) next()
 
     # Calculate the embeddings of the query data on the reference SPCA
     query <- Seurat::IntegrateEmbeddings(
@@ -698,7 +705,7 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
     # Calculate mapping score and add to metadata
     query <- Seurat::AddMetaData(
       object = query,
-      metadata = Seurat::MappingScore(anchors = anchors, ksmooth = k, kanchors = round(k/2)),
+      metadata = Seurat::MappingScore(anchors = anchors, ksmooth = k.map, kanchors = round(k.map/2)),
       col.name = "mapping.score"
     )
 
@@ -1438,7 +1445,13 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
     cor.out <- run_fastmnn(logcounts, hvgs, scseqs)
 
   } else if (type[1] == 'Azimuth') {
+
     azres <- run_azimuth(scseqs, ref_name, species, tx2gene_dir)
+
+    # exclude unsuccessful samples
+    combined <- combined[, combined$batch %in% names(azres)]
+    scseqs <- scseqs[names(azres)]
+
     resoln <- get_ref_resoln(ref_name)
     cor.out <- transfer_azimuth(azres, combined, resoln)
     rm(azres); gc()
@@ -1450,9 +1463,9 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
     SingleCellExperiment::reducedDim(cor.out, 'corrected') <- matrix(nrow = ncol(cor.out))
 
   } else if (type[1] == 'symphony') {
-    counts <- do.call(no_correct('counts'), scseqs)
-    counts <- SummarizedExperiment::assay(counts, 'merged')
-    cor.out <- run_symphony(counts, logcounts, ref_name, combined$batch, species, tx2gene_dir)
+    all.counts <- do.call(no_correct('counts'), scseqs)
+    all.counts <- SummarizedExperiment::assay(all.counts, 'merged')
+    cor.out <- run_symphony(all.counts, logcounts, ref_name, combined$batch, species, tx2gene_dir)
   }
 
   # bio is used for sorting markers when no cluster selected
@@ -1461,13 +1474,13 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
   rm(combined); gc()
 
   # get counts for pseudobulk
-  if (!exists('counts')) {
-    counts <- do.call(no_correct('counts'), scseqs)
-    dimnames(counts) <- dimnames(cor.out)
-    SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(counts, 'merged')
+  if (!exists('all.counts')) {
+    all.counts <- do.call(no_correct('counts'), scseqs)
+    dimnames(all.counts) <- dimnames(cor.out)
+    SummarizedExperiment::assay(cor.out, 'counts') <- SummarizedExperiment::assay(all.counts, 'merged')
   }
 
-  rm(counts, scseqs); gc()
+  rm(all.counts, scseqs); gc()
   return(cor.out)
 }
 
