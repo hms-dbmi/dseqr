@@ -590,7 +590,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
                                  colWidths = c('50%', '50%'),
                                  rowHeaders = FALSE,
                                  contextMenu = FALSE,
-                                 manualColumnResize = TRUE) %>%
+                                 manualColumnResize = TRUE,
+                                 maxRows = nrow(meta)) %>%
       rhandsontable::hot_col("Sample", readOnly = TRUE)
   })
 
