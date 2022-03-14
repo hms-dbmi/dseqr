@@ -11,7 +11,7 @@
 qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
   res <- .nofile
   if (isTruthy(file) && file.exists(file))
-    res <- qs::qread(file)
+    res <- tryCatch(qs::qread(file), error = function(e) NULL)
 
   if (is.null(res)) return(.nullfile)
   return(res)
