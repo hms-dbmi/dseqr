@@ -758,7 +758,7 @@ get_gene_table <- function(markers,
   html_features <- sprintf('<span title="%s"><a target="_blank" href="%s%s">%s</a></span>',
                            desc,
                            'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
-                           features, features)
+                           features, stringr::str_trunc(features, width=14))
 
   # swatch indicates group that is marker for
   group <- markers$group
