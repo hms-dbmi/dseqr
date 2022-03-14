@@ -1271,7 +1271,7 @@ get_founder <- function(sc_dir, dataset_name) {
 
   # check for founder of parent
   fpath <- file.path(sc_dir, dataset_name, 'founder.qs')
-  founder <- qs::qread(fpath)
+  founder <- qread.safe(fpath)
   if (is.null(founder)) founder <- dataset_name
   return(founder)
 }
