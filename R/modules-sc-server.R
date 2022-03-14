@@ -1730,9 +1730,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         'matrix[.]mtx(.+)?$',
         '[.]rds$',
         '[.]qs$',
-        'filtered_feature_bc_matrix(.+)?[.]h5$',
-        'filtered_gene_bc_matrices(.+)?[.]h5$',
-        'raw_gene_bc_matrices(.+)?[.]h5$'
+        'filtered_feature_bc_matrix(.+)?[.]h(df)?5$',
+        'filtered_gene_bc_matrices(.+)?[.]h(df)?5$',
+        'raw_gene_bc_matrices(.+)?[.]h(df)?5$',
+        '[.]h(df)?5$'
       ), collapse = '|')
 
     fnames <- new$name
