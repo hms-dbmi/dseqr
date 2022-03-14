@@ -770,7 +770,10 @@ create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'c
   ncount <- Matrix::colSums(counts)
   qcgenes <- load_scseq_qcgenes(species, tx2gene)
 
-  if (min(ncount) > 10) {
+  # will be ~98% of drops if filtered
+  pct.lt10 <- sum(ncount < 10)/length(ncount)
+
+  if (pct.lt10 < 0.20) {
     keep_cells <- seq_len(ncol(counts))
     rowData <- NULL
 
