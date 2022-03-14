@@ -2419,9 +2419,11 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
   if (is.null(tab)) {
 
     # use homologous hgnc symbols if not the same species
-    if (query@metadata$species != ref@metadata$species) {
-      ref <- convert_species(ref, tx2gene_dir)
-      query <- convert_species(query, tx2gene_dir)
+    query_species <- query@metadata$species
+    ref_species <- ref@metadata$species
+    if (query_species != ref_species) {
+      ref <- convert_species(ref, tx2gene_dir, ref_species)
+      query <- convert_species(query, tx2gene_dir, query_species)
     }
 
     # take best label for each cluster

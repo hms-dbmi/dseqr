@@ -1164,8 +1164,9 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     dataset_dir <- file.path(sc_dir, dataset_name)
     scseq <- load_scseq_qs(dataset_dir, with_logs = TRUE)
 
-    if (scseq@metadata$species != 'Homo sapiens')
-      scseq <- convert_species(scseq, tx2gene_dir)
+    species <- scseq@metadata$species
+    if (species != 'Homo sapiens')
+      scseq <- convert_species(scseq, tx2gene_dir, species)
 
     return(scseq)
   })

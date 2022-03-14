@@ -1575,7 +1575,7 @@ get_celldex_species <- function(ref_name) {
   ifelse(ref_name %in% c('ImmGenData', 'MouseRNAseqData'), 'Mus musculus', 'Homo sapiens')
 }
 
-convert_species <- function(x, tx2gene_dir, species = NULL, other_species = 'Homo sapiens') {
+convert_species <- function(x, tx2gene_dir, species, other_species = 'Homo sapiens') {
   if (methods::is(x, 'SingleCellExperiment')) species <- x@metadata$species
   if (species == other_species) return(x)
 
