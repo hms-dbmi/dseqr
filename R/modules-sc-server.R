@@ -1699,6 +1699,26 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     showModal(importSingleCellModal(session, isTruthy(up_table())))
   })
 
+  error_msg_filetype <- reactiveVal()
+
+  # set message if tried to upload wrong file types
+  observeEvent(input$up_raw_errors, {
+    msg <- 'Unsupported file type.'
+    error_msg_filetype(msg)
+  })
+
+  # show any errors with uploads
+  observe({
+    msg <- error_msg_filetype()
+    html('error_msg_filetype', html = msg)
+    toggleClass('validate-up-filetype', 'has-error', condition = isTruthy(msg))
+  })
+
+  # clear error message
+  observeEvent(input$up_raw, {
+    error_msg_filetype(NULL)
+  })
+
   observeEvent(remove_sc(), {
     ds <- datasets()
     ds <- ds[!ds$type %in% 'Previous Session', ]
@@ -4229,68 +4249,6 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
   output$violin_plot <- renderPlot(plot(), height=height)
 }
-
-
-
-# modal to upload single-cell dataset
-importSingleCellModal <- function(session, show_init) {
-
-  modalDialog(
-    tags$div(
-      class='alert alert-warning', role = 'alert',
-      tags$div(tags$b("For each sample upload files:")),
-      tags$br(),
-      tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), "or"),
-      tags$br(),
-      tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv"), 'or'),
-      tags$br(),
-      tags$div("- ", tags$code("*.rds"), "or", tags$code("*.qs"), "with", tags$code("Seurat"), "or", tags$code("SingleCellExperiment"), "objects"),
-      hr(),
-      '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
-      tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
-    ),
-    div(class='dashed-upload',
-        fileInput(placeholder = 'drag files here',
-                  session$ns('up_raw'),
-                  label = '',
-                  buttonLabel = 'Upload',
-                  width = '100%',
-                  accept = c('.h5', '.hdf5', '.tsv', '.fastq.gz', '.mtx', '.rds', '.qs'),
-                  multiple = TRUE
-        )
-    ),
-    tags$div(
-      id = session$ns('sample_name_container'),
-      style = ifelse(show_init, '', 'display: none;'),
-      hr(),
-      shinypanel::textInputWithButtons(
-        session$ns('sample_name'),
-        'Sample name for selected rows:',
-        actionButton(session$ns('add_sample'), '', icon('plus', class='fa-fw')),
-        container_id = session$ns('validate-up'),
-        help_id = session$ns('error_msg')
-      ),
-      hr()
-    ),
-    div(
-      id = session$ns('up_table_container'),
-      class= ifelse(show_init, 'dt-container', 'invisible-height dt-container'),
-      DT::dataTableOutput(session$ns('up_table'), width = '100%'),
-    ),
-    title = 'Upload Single Cell Datasets',
-    size = 'l',
-    footer = tagList(
-      actionButton(
-        inputId = session$ns("import_datasets"),
-        label = "Import Datasets",
-        class = ifelse(show_init, 'btn-warning', 'btn-warning disabled')
-      ),
-      tags$div(class='pull-left', modalButton('Cancel'))
-    ),
-    easyClose = FALSE,
-  )
-}
-
 
 
 get_species_choices <- function(detected_species) {

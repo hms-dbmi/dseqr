@@ -780,7 +780,7 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
             multiple = TRUE
           ),
           list(id = session$ns("up_raw"), type = "file"),
-          onchange = sprintf("checkFileName(this, '%s');", session$ns("up_raw_errors"))
+          onchange = sprintf("checkBulkFileName(this, '%s');", session$ns("up_raw_errors"))
         ),
         tags$div(
           id = session$ns('validate-up-fastq'),

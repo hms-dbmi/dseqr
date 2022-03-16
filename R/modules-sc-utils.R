@@ -2177,31 +2177,41 @@ integrationModal <- function(session, choices) {
 }
 
 
-
-
 # modal to upload single-cell dataset
-uploadSingleCellModal <- function(session, show_init) {
-  label <- "Click upload or drag files:"
+importSingleCellModal <- function(session, show_init) {
 
   modalDialog(
     tags$div(
       class='alert alert-warning', role = 'alert',
       tags$div(tags$b("For each sample upload files:")),
       tags$br(),
-      tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), " or"),
+      tags$div("- ", tags$code("filtered_feature_bc_matrix.h5"), "or"),
       tags$br(),
-      tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv")),
+      tags$div("- ", tags$code("matrix.mtx"), ", ", tags$code("barcodes.tsv"), ", and", tags$code("features.tsv"), 'or'),
+      tags$br(),
+      tags$div("- ", tags$code("*.rds"), "or", tags$code("*.qs"), "with", tags$code("Seurat"), "or", tags$code("SingleCellExperiment"), "objects"),
       hr(),
       '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
       tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
     ),
-    fileInput(
-      session$ns('up_raw'),
-      label = label,
-      buttonLabel = 'upload',
-      width = '100%',
-      accept = c('.h5', '.hdf5', '.tsv', '.fastq.gz', '.mtx'),
-      multiple = TRUE
+    div(class='upload-validation dashed-upload',
+        attrib_replace(
+          fileInput(
+            placeholder = 'drag files here',
+            session$ns('up_raw'),
+            label = '',
+            buttonLabel = 'Upload',
+            width = '100%',
+            accept = c('.h5', '.hdf5', '.tsv', '.fastq.gz', '.mtx', '.rds', '.qs'),
+            multiple = TRUE
+          ),
+          list(id = session$ns("up_raw"), type = "file"),
+          onchange = sprintf("checkSingleCellFileName(this, '%s');", session$ns("up_raw_errors"))
+        ),
+        tags$div(
+          id = session$ns('validate-up-filetype'),
+          tags$span(class = 'help-block', id = session$ns('error_msg_filetype'))
+        )
     ),
     tags$div(
       id = session$ns('sample_name_container'),
@@ -2225,7 +2235,7 @@ uploadSingleCellModal <- function(session, show_init) {
     size = 'l',
     footer = tagList(
       actionButton(
-        inputId = session$ns("import_samples"),
+        inputId = session$ns("import_datasets"),
         label = "Import Datasets",
         class = ifelse(show_init, 'btn-warning', 'btn-warning disabled')
       ),
@@ -2234,6 +2244,7 @@ uploadSingleCellModal <- function(session, show_init) {
     easyClose = FALSE,
   )
 }
+
 
 # modal to delete dataset
 deleteModal <- function(session, choices, type) {

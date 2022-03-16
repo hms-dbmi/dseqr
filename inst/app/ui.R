@@ -77,11 +77,23 @@ if (!is_local) {
   )
 }
 
-checkjs <- 'function checkFileName(fieldObj, shinyId) {
+checkBulkFileName <- 'function checkBulkFileName(fieldObj, shinyId) {
     var fileName  = fieldObj.value;
     var fileBase = fileName.split(/[\\\\/]/).pop();
 
     if (!fileBase.endsWith(".fastq.gz")) {
+        fieldObj.value = "";
+        Shiny.setInputValue(shinyId, "", {priority: "event"})
+        return false;
+    }
+    return true;
+}'
+
+checkSingleCellFileName <- 'function checkSingleCellFileName(fieldObj, shinyId) {
+    var fileName  = fieldObj.value;
+    var fileBase = fileName.split(/[\\\\/]/).pop();
+
+    if (!/[.]h(df)?5(.gz)?$|[.]tsv(.gz)?$|[.]mtx(.gz)?$|[.]rds$|[.]qs$/.test(fileBase)) {
         fieldObj.value = "";
         Shiny.setInputValue(shinyId, "", {priority: "event"})
         return false;
@@ -98,7 +110,8 @@ bootstrapPage(
   includeScript(path = 'www/renderSelectize.js'),
   includeScript(path = 'www/isMobile.js'),
   includeScript(path = 'www/contextMenu.js'),
-  tags$script(checkjs),
+  tags$script(checkBulkFileName),
+  tags$script(checkSingleCellFileName),
   includeCSS(path = 'www/custom.css'),
   includeCSS(path = 'www/drugs.css'),
   includeCSS(path = 'www/pathways.css'),
