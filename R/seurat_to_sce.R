@@ -10,6 +10,13 @@ seurat_to_sce <- function(sdata, dataset_name) {
         sdata <- Seurat::NormalizeData(sdata, assay = 'RNA')
     }
 
+    # meta.features need to have same row.names as assay
+    for (assay_name in Seurat::Assays(scdata)) {
+        assay <- sdata[[assay_name]]
+        assay@meta.features <- assay@meta.features[row.names(assay), ]
+        sdata[[assay_name]] <- assay
+    }
+
     # transfer QC features
     sdata@meta.data$mito_percent <- sdata@meta.data$percent.mt
     sdata@meta.data$ribo_percent <- sdata@meta.data$percent.ribo

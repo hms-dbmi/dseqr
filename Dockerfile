@@ -83,7 +83,7 @@ RUN mkdir -p $TMP_DIR && \
     libxml2-dev libhdf5-dev && \
     rm -rf /var/lib/apt/lists/* && \
     R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr@0.27.0', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.28.0', dependencies = FALSE, upgrade = FALSE)" && \
     R -e "remove.packages('remotes')"
 
 # add source files

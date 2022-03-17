@@ -11,14 +11,16 @@ azimuth_refs <- c('human_pbmc',
                   'human_differentiated_tcell',
                   'mouse_til_tcells',
                   'mouse_virus_cd8_tcells',
+                  'mouse_virus_cd4_tcells',
                   'human_motorcortex',
                   'mouse_motorcortex')
 azimuth_labels <- c('PBMC - Human',
                     'Lung - Human',
                     'Bone Marrow - Human',
                     'Differentiated CD4 T-cells - Human',
-                    'TIL T-cell Atlas - Mouse',
-                    'CD8 Virus T-cell Atlas - Mouse',
+                    'Tumor-Infiltrating T-cells - Mouse',
+                    'Virus-Specific CD8 T-cells - Mouse',
+                    'Virus-Specific CD4 T-cells - Mouse',
                     'Motor Cortex - Human',
                     'Motor Cortex - Mouse')
 azimuth_species <- ifelse(grepl('human_', azimuth_refs), 'Homo sapiens', 'Mus musculus')
