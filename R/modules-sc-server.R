@@ -262,7 +262,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     if(is.null(scseq)) return(NULL)
 
     cdata <- scseq@colData
-    metrics <- cdata[, colnames(cdata) %in% c(const$features$qc, const$features$metrics)]
+    keep <- colnames(cdata) %in% c(const$features$qc, const$features$metrics) |
+      grepl('predicted[.].+?[.]score', colnames(cdata))
+    metrics <- cdata[, keep]
 
     saved_metrics <- scClusterGene$saved_metrics()
     if (!is.null(saved_metrics)) {
@@ -4135,7 +4137,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       ft.scaled <- scales::rescale(ft, c(0, 1))
       ft.scaled <- ft.scaled[ids]
 
-      is_qc <- feature %in% const$features$qc
+      is_qc <- feature %in% const$features$qc |
+        grepl('predicted[.].+?[.]score', feature)
 
       cols <- if (is_qc) const$colors$qc else const$colors$ft
       colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)

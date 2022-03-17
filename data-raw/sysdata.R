@@ -5,14 +5,23 @@ pert_names <- readRDS('data-raw/drug_gene_queries/pert_names.rds')
 ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 
-azimuth_refs <- c('human_pbmc', 'human_lung', 'human_bonemarrow', 'human_differentiated_tcell', 'human_motorcortex', 'mouse_motorcortex')
-azimuth_species <- c(rep('Homo sapiens', 5), 'Mus musculus')
+azimuth_refs <- c('human_pbmc',
+                  'human_lung',
+                  'human_bonemarrow',
+                  'human_differentiated_tcell',
+                  'mouse_til_tcells',
+                  'mouse_virus_cd8_tcells',
+                  'human_motorcortex',
+                  'mouse_motorcortex')
 azimuth_labels <- c('PBMC - Human',
                     'Lung - Human',
                     'Bone Marrow - Human',
                     'Differentiated CD4 T-cells - Human',
+                    'TIL T-cell Atlas - Mouse',
+                    'CD8 Virus T-cell Atlas - Mouse',
                     'Motor Cortex - Human',
                     'Motor Cortex - Mouse')
+azimuth_species <- ifelse(grepl('human_', azimuth_refs), 'Homo sapiens', 'Mus musculus')
 
 symphony_refs <- c('pbmcs_10x', 'scmuscle')
 symphony_species <- c('Homo sapiens', 'Mus musculus')
@@ -35,7 +44,7 @@ const <- list(
         qc = c(gray, 'red')
     ),
     features = list(
-        qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score', 'num_significant'),
+        qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score', 'mapping.score'),
         metrics = c('low_lib_size', 'low_n_features', 'high_subsets_mito_percent', 'low_subsets_ribo_percent', 'high_doublet_score'),
         reverse = c('ribo_percent', 'log10_sum', 'log10_detected')
     ),

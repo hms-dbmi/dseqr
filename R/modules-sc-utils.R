@@ -1611,19 +1611,17 @@ species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
     dplyr::rename('species_symbol' = 'gene_name')
 
 
-  # df with other symbol and ensemble id
+  # df with other symbol and hgnc homologous ensemble id
   other_tx2gene <- other_tx2gene %>%
-    dplyr::select(gene_name, gene_id) %>%
-    dplyr::distinct() %>%
-    dplyr::rename('other_symbol' = 'gene_name')
+    dplyr::select(gene_name, hsapiens_homolog_ensembl_gene) %>%
+    dplyr::filter(!duplicated(hsapiens_homolog_ensembl_gene)) %>%
+    dplyr::rename('other_symbol' = 'gene_name') %>%
+    na.omit
 
-  map <- dplyr::left_join(species_tx2gene,
-                          other_tx2gene,
-                          by = c('hsapiens_homolog_ensembl_gene' = 'gene_id'))
+  # join the two
+  map <- dplyr::left_join(species_tx2gene, other_tx2gene)
 
   return(map$other_symbol)
-
-
 }
 
 #' Load drug effect size matrices for drug queries

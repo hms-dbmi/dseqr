@@ -346,7 +346,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
   scseqs <- list()
 
   for (sample in samples) {
-    scseqi <- scseq[, scseq$batch == sample]
+    scseqi <- scseq[, scseq$batch %in% sample]
 
     if (need_doublets) scseqi <- add_doublet_score(scseqi)
     if (need_add_qc) scseqi <- add_scseq_qc_metrics(scseqi, for_qcplots = TRUE)
