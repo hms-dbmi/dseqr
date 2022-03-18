@@ -214,8 +214,8 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   # save multi-sample specific data
   if (multisample) {
-
     args <- list()
+
     if (is_ref) {
       args$ref_name <- ref_name
       args$integration_type <- get_ref_type(ref_name)
@@ -229,7 +229,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   }
 
   # run what depends on resolution
-  run_post_cluster(scseq, dataset_name, sc_dir, reset_annot = !is_ref)
+  run_post_cluster(scseq, dataset_name, sc_dir, resoln = resoln)
 
 
   # save things in resolution sub-directory
@@ -285,8 +285,6 @@ process_robject_multisample <- function(scseq, scseqs, need) {
   # transfer QC metrics from individual datasets
   if (need$integrate | need$add_qc)
     scseq <- add_combined_metrics(scseq, scseqs)
-  else
-    scseq <- add_sample_metrics(scseq)
 
   if (need$reduction) {
     message('getting UMAP/TSNE ...')
@@ -547,7 +545,9 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
   score_cols <- grep('^predicted[.].+?[.]score$', cols, value = TRUE)
   if (type[1] == 'score') return(score_cols)
 
-  clust_cols <- gsub('^(predicted[.].+?)[.]score$', '\\1', score_cols)
+  if (length(score_cols)) clust_cols <- gsub('^(predicted[.].+?)[.]score$', '\\1', score_cols)
+  else clust_cols <- grep('^predicted[.].+?$', cols, value = TRUE)
+
   if (type[1] == 'cluster') return(clust_cols)
   return(c(score_cols, clust_cols))
 }
@@ -588,6 +588,9 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
     if (species != ref_species)
       counts <- convert_species(counts, tx2gene_dir, species, ref_species)
 
+    # error if query and ref have identical cell names
+    orig.cells <- colnames(counts)
+    colnames(counts) <- paste0('query-', orig.cells)
 
     query <- Seurat::CreateSeuratObject(counts = counts,
                                         min.cells = 1, min.features = 1)
@@ -709,6 +712,8 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
       col.name = "mapping.score"
     )
 
+    # restore cell names
+    query <- Seurat::RenameCells(query, new.names = gsub('^query-', '', colnames(query)))
     queries[[ds]] <- query
   }
 
@@ -1569,6 +1574,7 @@ get_ref_resoln <- function(ref_name) {
   switch(ref_name,
          'human_pbmc' = 'predicted.celltype.l2',
          'human_lung' = 'predicted.annotation.l1',
+         'human_lung_v2' = 'predicted.ann_level_4',
          'human_bonemarrow' = 'predicted.celltype.l2',
          'human_differentiated_tcell' = 'predicted.celltype.cytokines',
          'human_motorcortex' = 'predicted.subclass',

@@ -7,6 +7,7 @@ ensmap <- readRDS('data-raw/ensmap/ensmap.rds')
 
 azimuth_refs <- c('human_pbmc',
                   'human_lung',
+                  'human_lung_v2',
                   'human_bonemarrow',
                   'human_differentiated_tcell',
                   'mouse_til_tcells',
@@ -14,8 +15,10 @@ azimuth_refs <- c('human_pbmc',
                   'mouse_virus_cd4_tcells',
                   'human_motorcortex',
                   'mouse_motorcortex')
+
 azimuth_labels <- c('PBMC - Human',
-                    'Lung - Human',
+                    'Lung V1 - Human',
+                    'Lung V2 - Human',
                     'Bone Marrow - Human',
                     'Differentiated CD4 T-cells - Human',
                     'Tumor-Infiltrating T-cells - Mouse',
@@ -23,6 +26,7 @@ azimuth_labels <- c('PBMC - Human',
                     'Virus-Specific CD4 T-cells - Mouse',
                     'Motor Cortex - Human',
                     'Motor Cortex - Mouse')
+
 azimuth_species <- ifelse(grepl('human_', azimuth_refs), 'Homo sapiens', 'Mus musculus')
 
 symphony_refs <- c('pbmcs_10x', 'scmuscle')

@@ -11,7 +11,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
     }
 
     # meta.features need to have same row.names as assay
-    for (assay_name in Seurat::Assays(scdata)) {
+    for (assay_name in Seurat::Assays(sdata)) {
         assay <- sdata[[assay_name]]
         assay@meta.features <- assay@meta.features[row.names(assay), ]
         sdata[[assay_name]] <- assay
@@ -24,6 +24,10 @@ seurat_to_sce <- function(sdata, dataset_name) {
     sdata@meta.data$log10_detected <- log10(sdata$nFeature_RNA)
 
     sce <- Seurat::as.SingleCellExperiment(sdata)
+
+    # transfer reference info
+    sce@metadata$ref_name <- sdata@misc$ref_name
+    sce@metadata$resoln <- sdata@misc$resoln
 
     # transfer samples
     samples <- sce$sample
@@ -89,6 +93,12 @@ seurat_to_sce <- function(sdata, dataset_name) {
 
     # remove cdata that won't use
     keep_cols <- c('cluster', 'batch', const$features$qc)
+    is.ref <- !is.null(sce@metadata$ref_name)
+    if (is.ref) {
+        cluster_cols <- get_ref_cols(colnames(sce@colData), type = 'cluster')
+        keep_cols <- c(keep_cols, cluster_cols)
+    }
+
     sce@colData <- sce@colData[, colnames(sce@colData) %in% keep_cols]
 
     return(sce)
