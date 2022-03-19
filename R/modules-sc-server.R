@@ -2476,7 +2476,6 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   disabled_demo <- getShinyOption('is_example', FALSE)
   observe(if (disabled_demo) {
     disable('resoln')
-    disable('resoln_ref')
   })
 
   prev_resoln <- reactiveVal()
