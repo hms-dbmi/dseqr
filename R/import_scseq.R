@@ -562,7 +562,7 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
   ref_species <- refs$species[refs$name == azimuth_ref]
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
 
-  pat <- '^celltype|^annotation|^class$|^cluster$|^subclass$|^cross_species_cluster$'
+  pat <- '^celltype|^annotation|^class$|^cluster$|^subclass$|^cross_species_cluster$|^ann_level_[0-9]$|^ann_finest_level$'
   refnames <- grep(pat, colnames(reference$map@meta.data), value = TRUE)
 
   refdata <- lapply(refnames, function(x) {
@@ -582,142 +582,158 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
   for (ds in names(scseqs)) {
 
     scseq <- scseqs[[ds]]
-    counts <- SingleCellExperiment::counts(scseq)
 
-    # convert to reference species gene names
-    if (species != ref_species)
-      counts <- convert_species(counts, tx2gene_dir, species, ref_species)
+    query <- tryCatch(
+      run_azimuth_sample(
+        scseq,
+        species,
+        ref_species,
+        tx2gene_dir,
+        reference,
+        refdata
+      ), error = function(e) {
+        message("reference mapping failed for: ", ds)
+        return(NULL)
+      })
 
-    # error if query and ref have identical cell names
-    orig.cells <- colnames(counts)
-    colnames(counts) <- paste0('query-', orig.cells)
-
-    query <- Seurat::CreateSeuratObject(counts = counts,
-                                        min.cells = 1, min.features = 1)
-
-    is.sct <- 'SCTModel.list' %in% slotNames(reference$map[['refAssay']])
-
-    if (is.sct) {
-      # Preprocess with SCTransform
-      query <- Seurat::SCTransform(
-        object = query,
-        assay = "RNA",
-        new.assay.name = "refAssay",
-        residual.features = rownames(reference$map),
-        reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
-        method = 'glmGamPoi',
-        ncells = 2000,
-        n_genes = 2000,
-        do.correct.umi = FALSE,
-        do.scale = FALSE,
-        do.center = TRUE,
-        verbose = FALSE
-      )
-    } else {
-      # log normalize
-      query <- Seurat::NormalizeData(object = query)
-      query <- Seurat::FindVariableFeatures(query)
-      query <- SeuratObject::RenameAssays(query, 'RNA' = 'refAssay')
-    }
-
-
-    # error if more than ncells
-    ncells <- ncol(scseq)
-    k.map <- min(100, round(ncells/4))
-    k.score <- min(30, ncells-1)
-
-    # Find anchors between query and reference
-    anchors <- Seurat::FindTransferAnchors(
-      reference = reference$map,
-      query = query,
-      k.filter = NA,
-      reference.neighbors = "refdr.annoy.neighbors",
-      reference.assay = "refAssay",
-      query.assay = "refAssay",
-      reference.reduction = "refDR",
-      normalization.method = ifelse(is.sct, 'SCT', 'LogNormalize'),
-      features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
-      dims = 1:50,
-      n.trees = 20,
-      k.score = k.score,
-      mapping.score.k = k.map,
-      verbose = TRUE
-    )
-
-    # Transfer cell type labels and impute protein expression
-    #
-    # Transferred labels are in metadata columns named "predicted.*"
-    # The maximum prediction score is in a metadata column named "predicted.*.score"
-    # The prediction scores for each class are in an assay named "prediction.score.*"
-    # The imputed assay is named "impADT" if computed
-    query <- tryCatch(Seurat::TransferData(
-      reference = reference$map,
-      query = query,
-      dims = 1:50,
-      anchorset = anchors,
-      refdata = refdata,
-      n.trees = 20,
-      k.weight = round(k.map/2),
-      store.weights = TRUE,
-      verbose = FALSE
-    ),
-    error = function(e) return(NULL))
-
-    if (is.null(query)) next()
-
-    # Calculate the embeddings of the query data on the reference SPCA
-    query <- Seurat::IntegrateEmbeddings(
-      anchorset = anchors,
-      reference = reference$map,
-      query = query,
-      reductions = "pcaproject",
-      reuse.weights.matrix = TRUE,
-      verbose = FALSE
-    )
-
-    # Calculate the query neighbors in the reference
-    # with respect to the integrated embeddings
-    query[["query_ref.nn"]] <- Seurat::FindNeighbors(
-      object = Seurat::Embeddings(reference$map[["refDR"]]),
-      query = Seurat::Embeddings(query[["integrated_dr"]]),
-      return.neighbor = TRUE,
-      l2.norm = TRUE,
-      verbose = FALSE
-    )
-
-
-    # The reference used in the app is downsampled compared to the reference on which
-    # the UMAP model was computed. This step, using the helper function NNTransform,
-    # corrects the Neighbors to account for the downsampling.
-    meta.data <- reference$map[[]]
-    if ("ori.index" %in% colnames(meta.data)) {
-      query <- NNTransform(
-        object = query,
-        meta.data = reference$map[[]]
-      )
-    }
-
-    # Project the query to the reference UMAP.
-    query[["proj.umap"]] <- Seurat::RunUMAP(
-      object = query[["query_ref.nn"]],
-      reduction.model = reference$map[["refUMAP"]],
-      reduction.key = 'UMAP_',
-      verbose = FALSE
-    )
-
-    # Calculate mapping score and add to metadata
-    query <- Seurat::AddMetaData(
-      object = query,
-      metadata = Seurat::MappingScore(anchors = anchors, ksmooth = k.map, kanchors = round(k.map/2)),
-      col.name = "mapping.score"
-    )
-
-    # restore cell names
-    query <- Seurat::RenameCells(query, new.names = gsub('^query-', '', colnames(query)))
     queries[[ds]] <- query
   }
 
   return(queries)
+}
+
+run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, reference, refdata) {
+
+  counts <- SingleCellExperiment::counts(scseq)
+
+  # convert to reference species gene names
+  if (species != ref_species)
+    counts <- convert_species(counts, tx2gene_dir, species, ref_species)
+
+  # error if query and ref have identical cell names
+  orig.cells <- colnames(counts)
+  colnames(counts) <- paste0('query-', orig.cells)
+
+  query <- Seurat::CreateSeuratObject(counts = counts,
+                                      min.cells = 1, min.features = 1)
+
+  is.sct <- 'SCTModel.list' %in% slotNames(reference$map[['refAssay']])
+
+  if (is.sct) {
+    # Preprocess with SCTransform
+    query <- Seurat::SCTransform(
+      object = query,
+      assay = "RNA",
+      new.assay.name = "refAssay",
+      residual.features = rownames(reference$map),
+      reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
+      method = 'glmGamPoi',
+      ncells = 2000,
+      n_genes = 2000,
+      do.correct.umi = FALSE,
+      do.scale = FALSE,
+      do.center = TRUE,
+      verbose = FALSE
+    )
+  } else {
+    # log normalize
+    query <- Seurat::NormalizeData(object = query)
+    query <- Seurat::FindVariableFeatures(query)
+    query <- SeuratObject::RenameAssays(query, 'RNA' = 'refAssay')
+  }
+
+
+  # error if more than ncells
+  ncells <- ncol(scseq)
+  k.map <- min(100, round(ncells/4))
+  k.score <- min(30, ncells-1)
+
+  # Find anchors between query and reference
+  anchors <- Seurat::FindTransferAnchors(
+    reference = reference$map,
+    query = query,
+    k.filter = NA,
+    reference.neighbors = "refdr.annoy.neighbors",
+    reference.assay = "refAssay",
+    query.assay = "refAssay",
+    reference.reduction = "refDR",
+    normalization.method = ifelse(is.sct, 'SCT', 'LogNormalize'),
+    features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
+    dims = 1:50,
+    n.trees = 20,
+    k.score = k.score,
+    mapping.score.k = k.map,
+    verbose = TRUE
+  )
+
+  # Transfer cell type labels and impute protein expression
+  #
+  # Transferred labels are in metadata columns named "predicted.*"
+  # The maximum prediction score is in a metadata column named "predicted.*.score"
+  # The prediction scores for each class are in an assay named "prediction.score.*"
+  # The imputed assay is named "impADT" if computed
+  query <- Seurat::TransferData(
+    reference = reference$map,
+    query = query,
+    dims = 1:50,
+    anchorset = anchors,
+    refdata = refdata,
+    n.trees = 20,
+    k.weight = round(k.map/2),
+    store.weights = TRUE,
+    verbose = FALSE
+  )
+
+  # Calculate the embeddings of the query data on the reference SPCA
+  query <- Seurat::IntegrateEmbeddings(
+    anchorset = anchors,
+    reference = reference$map,
+    query = query,
+    reductions = "pcaproject",
+    reuse.weights.matrix = TRUE,
+    verbose = FALSE
+  )
+
+  # Calculate the query neighbors in the reference
+  # with respect to the integrated embeddings
+  query[["query_ref.nn"]] <- Seurat::FindNeighbors(
+    object = Seurat::Embeddings(reference$map[["refDR"]]),
+    query = Seurat::Embeddings(query[["integrated_dr"]]),
+    return.neighbor = TRUE,
+    l2.norm = TRUE,
+    verbose = FALSE
+  )
+
+
+  # The reference used in the app is downsampled compared to the reference on which
+  # the UMAP model was computed. This step, using the helper function NNTransform,
+  # corrects the Neighbors to account for the downsampling.
+  meta.data <- reference$map[[]]
+  if ("ori.index" %in% colnames(meta.data)) {
+    query <- NNTransform(
+      object = query,
+      meta.data = reference$map[[]]
+    )
+  }
+
+  # Project the query to the reference UMAP.
+  query[["proj.umap"]] <- Seurat::RunUMAP(
+    object = query[["query_ref.nn"]],
+    reduction.model = reference$map[["refUMAP"]],
+    reduction.key = 'UMAP_',
+    verbose = FALSE
+  )
+
+  # Calculate mapping score and add to metadata
+  query <- Seurat::AddMetaData(
+    object = query,
+    metadata = Seurat::MappingScore(anchors = anchors, ksmooth = k.map, kanchors = round(k.map/2)),
+    col.name = "mapping.score"
+  )
+
+  # restore cell names
+  query <- Seurat::RenameCells(query, new.names = gsub('^query-', '', colnames(query)))
+  return(query)
 }
 
 save_ref_clusters <- function(meta, dataset_name, sc_dir) {
@@ -1522,10 +1538,10 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
 
   # map query
   query <- mapQuery(counts_use,
-                              meta_data,
-                              reference,
-                              vars = vars,
-                              do_normalize = TRUE)
+                    meta_data,
+                    reference,
+                    vars = vars,
+                    do_normalize = TRUE)
 
   query <- knn_predict(query, reference, reference$meta_data$cell_type)
   meta <- query$meta_data
