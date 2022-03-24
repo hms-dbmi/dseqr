@@ -1701,6 +1701,11 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     showModal(importSingleCellModal(session, isTruthy(up_table())))
   })
 
+  observeEvent(input$sample_name, {
+    is.text <- nchar(input$sample_name) > 0
+    toggleClass(id = "add_sample", 'btn-success', condition = is.text)
+  })
+
   error_msg_filetype <- reactiveVal()
 
   # set message if tried to upload wrong file types

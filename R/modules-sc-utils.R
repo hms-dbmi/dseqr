@@ -2322,7 +2322,7 @@ confirmSubsetModal <- function(session,
   UI <- tags$div(
     class='alert alert-info', role = 'alert',
     tags$div(tags$b("New dataset name:")),
-    tags$div(new_dataset_name),
+    tags$div(title = new_dataset_name, style = "text-overflow: ellipsis; overflow: hidden", new_dataset_name),
     ref_ui,
     clusters_ui,
     metrics_ui,
