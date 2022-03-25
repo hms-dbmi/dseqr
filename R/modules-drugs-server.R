@@ -492,6 +492,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 
   # query table for downloading
   query_table_dl <- reactive({
+
     q <- sorted_query()
     if (is.null(q)) return(NULL)
     data.frame(correlation = q, signature = names(q), row.names = NULL)
@@ -679,7 +680,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
     toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
   })
 
-  sel_name <- reactive(sel()$label)
+  sel_name <- reactive(sel()$dataset_name)
 
   dataset_dir <- reactive({
     if (!isTruthy(input$query)) return(NULL)
