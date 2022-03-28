@@ -79,9 +79,9 @@ Suggests:
 Depends: 
     R (>= 4.0)
 Remotes: 
+    hms-dbmi/picker,
     hms-dbmi/dseqr.data,
     alexvpickering/rkal,
     alexvpickering/shinypanel,
     alexvpickering/crossmeta,
-    immunogenomics/harmony,
     immunogenomics/presto

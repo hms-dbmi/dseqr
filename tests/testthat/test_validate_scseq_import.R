@@ -74,7 +74,7 @@ test_that("an h5 file with matrix slot is valid", {
 })
 
 
-test_that("an h5 file without matrix slot is invalid", {
+test_that("an h5 file without matrix slot is valid", {
     sc_dir <- file.path(tempdir(), 'single-cell')
     uploaded_data_dir <- file.path(tempdir(), 'uploads')
     mock_uploaded_data(sc_dir, uploaded_data_dir, 'other')
@@ -84,7 +84,7 @@ test_that("an h5 file without matrix slot is invalid", {
         datapath = file.path(uploaded_data_dir, 'feature_barcode_matrix.h5'))
 
     samples <- 'a'
-    expect_type(validate_scseq_import(up_df, samples), 'character')
+    expect_null(validate_scseq_import(up_df, samples))
 
     # cleanup
     unlink(c(sc_dir, uploaded_data_dir), recursive = TRUE)
@@ -137,50 +137,6 @@ test_that("one sample in MEX format and one in h5 is valid", {
 
     samples <- c('a', rep('b', 3))
     expect_null(validate_scseq_import(up_df, samples))
-
-    # cleanup
-    unlink(c(sc_dir, uploaded_data_dir), recursive = TRUE)
-})
-
-
-test_that("one sample in MEX format and one in h5 is invalid if one of them is invalid", {
-
-    # create one H5 file
-    sc_dir <- file.path(tempdir(), 'single-cell')
-    uploaded_data_dir <- file.path(tempdir(), 'uploads')
-    mock_uploaded_data(sc_dir, uploaded_data_dir, 'matrix')
-
-    up_df <- data.frame(
-        name = c('a.h5', 'matrix.mtx', 'features.tsv', 'barcodes.tsv'),
-        datapath = c(file.path(uploaded_data_dir, 'feature_barcode_matrix.h5'), rep(NA, 3)))
-
-    samples <- c('a', rep('b', 3))
-
-    # currently valid
-    expect_null(validate_scseq_import(up_df, samples))
-
-    # make invalid by incorrect h5 format
-    unlink(up_df$datapath[1])
-    mock_uploaded_data(sc_dir, uploaded_data_dir, 'other')
-    expect_type(validate_scseq_import(up_df, samples), 'character')
-
-    # fix
-    unlink(up_df$datapath[1])
-    mock_uploaded_data(sc_dir, uploaded_data_dir, 'matrix')
-    expect_null(validate_scseq_import(up_df, samples))
-
-    # make invalid by missing sample name
-    expect_type(validate_scseq_import(up_df, replace(samples, 2, NA)), 'character')
-    expect_type(validate_scseq_import(up_df, replace(samples, 1, NA)), 'character')
-
-    # make invalid by missing file
-    expect_type(validate_scseq_import(up_df[-2, ], samples[-2]), 'character')
-    expect_type(validate_scseq_import(up_df[-3, ], samples[-3]), 'character')
-    expect_type(validate_scseq_import(up_df[-4, ], samples[-4]), 'character')
-
-    # if remove all files for sample then valid again
-    expect_null(validate_scseq_import(up_df[-1, ], samples[-1]))
-    expect_null(validate_scseq_import(up_df[-c(2,3,4), ], samples[-c(2,3,4)]))
 
     # cleanup
     unlink(c(sc_dir, uploaded_data_dir), recursive = TRUE)

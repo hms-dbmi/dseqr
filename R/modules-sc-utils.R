@@ -492,8 +492,7 @@ evaluate_custom_metric <- function(metric, scseq) {
     expr <- t(as.matrix(expr))
 
   } else {
-    expr <- S4Vectors::DataFrame(expr = rep(NA, ncol(scseq)),
-                                 row.names = colnames(scseq))
+    expr <- data.frame(expr = rep(NA, ncol(scseq)), row.names = colnames(scseq))
   }
 
   qcs <- scseq@colData
@@ -514,6 +513,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   for (i in seq) metric.num <- gsub(paste0('\\b', ft[i], '\\b'), ft.num[i], metric.num)
 
   dat <- within(dat, metric <- eval(rlang::parse_expr(metric.num)))
+  dat <- S4Vectors::DataFrame(dat)
   dat <- dat[, 'metric', drop = FALSE]
   colnames(dat) <- metric
   return(dat)

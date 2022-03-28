@@ -960,13 +960,14 @@ load_cellranger_counts <- function(data_dir) {
     counts <- Seurat::Read10X(data_dir, gene.column = 1)
   }
 
+  if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
+
   # remove species prefix from ensembl ids
   ensids <- gsub('^[^_]+[_]+(ENS.+?)$', '\\1', row.names(counts))
 
   enids <- gsub('[.]\\d+', '', ensids)
   row.names(counts) <- make.unique(enids)
 
-  if (methods::is(counts, 'list')) counts <- counts$`Gene Expression`
   return(counts)
 }
 

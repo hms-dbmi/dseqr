@@ -10,6 +10,7 @@ mock_scseq_files <- function(sc_dir, dataset_name, sample_names = 'a', sce = NUL
     # add clusters and batch (sample)
     sce$cluster <- factor(scran::quickCluster(sce, min.size=50))
     sce$batch <- sample(sample_names, size = ncol(sce), replace = TRUE)
+    sce@metadata$species <- 'Homo sapiens'
 
     # save clusters
     anal <- list(clusters = sce$cluster)
@@ -88,7 +89,7 @@ test_that("multiple scseq datasets can be integrated with Azimuth", {
                                integration_name = integration_name,
                                dataset_names = from_datasets,
                                integration_type = integration_type,
-                               azimuth_ref = 'human_pbmc')
+                               ref_name = 'human_pbmc')
     ))
 
     # check that twice as many cells in new dataset

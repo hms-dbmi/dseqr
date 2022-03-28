@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.0.5
+FROM rocker/r-ver:4.1.3
 
 # install Ubuntu packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
