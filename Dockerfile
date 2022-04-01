@@ -13,6 +13,12 @@ libhdf5-dev \
 zlib1g-dev \
 libpng-dev \
 libjpeg-dev \
+libcairo2-dev \
+libxt-dev \
+libharfbuzz-dev \
+libfribidi-dev \
+libfreetype6-dev \
+libtiff5-dev \
 git \
 wget && rm -rf /var/lib/apt/lists/*
 
@@ -42,29 +48,18 @@ conda install -c bioconda bustools=0.39.3 -y
 # download drug effect size data
 RUN R -e "dseqr.data::dl_data()"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcairo2-dev \
-    libxt-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libfreetype6-dev \
-    libpng-dev \
-    libtiff5-dev \
-    libjpeg-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 # lockfile: use this until slow
 COPY ./renv.lock .
 RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
 
 # move library and delete renv
-RUN mv /src/dseqr/renv/library/R-4.0/x86_64-pc-linux-gnu /src/library && \
+RUN mv /src/dseqr/renv/library/R-4.1/x86_64-pc-linux-gnu /src/library && \
     rm -rf /src/dseqr && \
     mkdir /src/dseqr && \
     echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
 
 # -------
-FROM rocker/r-ver:4.0.5
+FROM rocker/r-ver:4.1.3
 WORKDIR /src/dseqr
 
 # get source code and R packages
@@ -80,10 +75,10 @@ ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
     apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev libhdf5-dev && \
+    libxml2-dev libhdf5-dev libcairo2-dev && \
     rm -rf /var/lib/apt/lists/* && \
     R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr@0.28.5', dependencies = FALSE, upgrade = FALSE)" && \
+    R -e "remotes::install_github('hms-dbmi/dseqr@0.28.6', dependencies = FALSE, upgrade = FALSE)" && \
     R -e "remove.packages('remotes')"
 
 # add source files

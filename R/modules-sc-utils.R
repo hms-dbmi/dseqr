@@ -490,15 +490,17 @@ evaluate_custom_metric <- function(metric, scseq) {
   if (length(genes)) {
     expr <- expr[genes,, drop = FALSE]
     expr <- t(as.matrix(expr))
+    row.names(expr) <- NULL
 
   } else {
-    expr <- data.frame(expr = rep(NA, ncol(scseq)), row.names = colnames(scseq))
+    expr <- data.frame(expr = rep(NA, ncol(scseq)))
   }
 
   qcs <- scseq@colData
+  row.names(qcs) <- NULL
   qcs <- qcs[, colnames(qcs) %in% ft, drop = FALSE]
 
-  dat <- cbind.safe(expr, qcs)
+  dat <- cbind(expr, qcs)
   colnames(dat) <- c(colnames(expr), colnames(qcs))
   ft <- ft[ft %in% colnames(dat)]
 
@@ -512,8 +514,9 @@ evaluate_custom_metric <- function(metric, scseq) {
   metric.num <- metric
   for (i in seq) metric.num <- gsub(paste0('\\b', ft[i], '\\b'), ft.num[i], metric.num)
 
+  dat <- as.data.frame(dat)
   dat <- within(dat, metric <- eval(rlang::parse_expr(metric.num)))
-  dat <- S4Vectors::DataFrame(dat)
+  dat <- S4Vectors::DataFrame(dat, row.names = colnames(scseq))
   dat <- dat[, 'metric', drop = FALSE]
   colnames(dat) <- metric
   return(dat)
@@ -2306,7 +2309,7 @@ confirmSubsetModal <- function(session,
     )
   }
 
-  if (!is.null(ref_name)) {
+  if (isTruthy(ref_name)) {
     is.ref <- refs$name == ref_name
 
     ref_ui <- tags$div(
