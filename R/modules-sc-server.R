@@ -3680,7 +3680,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     scseq <- safe_set_annot(scseq, annot)
     if (is.null(scseq)) return(NULL)
 
-    levels(scseq$cluster) <- format_violin_annot(annot)
+    levels(scseq$cluster) <- add_cluster_numbers(annot)
     labels <- unname(scseq$cluster)[keep()]
 
     return(labels)
@@ -4003,7 +4003,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scseq <- scseq[, cell.idx]
 
     labels <- unname(scseq$cluster)
-    levels(labels) <- format_violin_annot(annot)
+    levels(labels) <- add_cluster_numbers(annot)
     return(labels)
   })
 

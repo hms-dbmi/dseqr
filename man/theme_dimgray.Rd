@@ -15,4 +15,3 @@ theme_dimgray(with_nums = TRUE)
 \description{
 Make ggplot axes and text dimgray
 }
-\keyword{internal}

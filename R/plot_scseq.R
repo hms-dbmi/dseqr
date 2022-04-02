@@ -147,9 +147,9 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 #' @param annot Character vector of cluster names
 #'
 #' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
-#' @keywords internal
+#' @export
 #'
-format_violin_annot <- function(annot, pad_left = FALSE) {
+add_cluster_numbers <- function(annot, pad_left = FALSE) {
 
   nums <- seq_along(annot)
   if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = ' ')
@@ -190,7 +190,7 @@ plot_violin <- function(feature = NULL,
 
   } else {
     if (is_mobile) clus_levs <- seq_along(clus_levs)
-    annot <- format_violin_annot(clus_levs, pad_left = TRUE)
+    annot <- add_cluster_numbers(clus_levs, pad_left = TRUE)
     levels(df$y) <- annot[clus_ord]
     if (seli[1]) levels(df$hl) <- c(annot[seli], 'out')
   }
@@ -297,10 +297,13 @@ plot_biogps <- function(gene) {
 #' Get a pallete for cluster plots
 #'
 #' @param levs Character vector of levels to get colour pallete for.
+#' @param dark Use dark palettes? Default is \code{FALSE}.
+#' @param with_all if \code{TRUE}, adds an additional level to get colors for.
+#'  Default is \code{FALSE}
 #'
 #' @return Character vector with colour codes of \code{length(levs)}.
 #'
-#' @keywords internal
+#' @export
 get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
   if (with_all) levs <- c(levs, 'All Clusters')
 

@@ -12,4 +12,3 @@ theme_no_xaxis()
 \description{
 Remove ggplot xaxis title, text, and ticks
 }
-\keyword{internal}

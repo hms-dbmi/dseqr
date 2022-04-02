@@ -8,6 +8,11 @@ get_palette(levs, dark = FALSE, with_all = FALSE)
 }
 \arguments{
 \item{levs}{Character vector of levels to get colour pallete for.}
+
+\item{dark}{Use dark palettes? Default is \code{FALSE}.}
+
+\item{with_all}{if \code{TRUE}, adds an additional level to get colors for.
+Default is \code{FALSE}}
 }
 \value{
 Character vector with colour codes of \code{length(levs)}.
@@ -15,4 +20,3 @@ Character vector with colour codes of \code{length(levs)}.
 \description{
 Get a pallete for cluster plots
 }
-\keyword{internal}

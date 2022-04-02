@@ -842,10 +842,10 @@
     },
     "evaluate": {
       "Package": "evaluate",
-      "Version": "0.14",
+      "Version": "0.15",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "ec8ca05cffcc70569eaaad8469d2a3a7"
+      "Hash": "699a7a93d08c962d9f8950b2d7a227f1"
     },
     "fansi": {
       "Package": "fansi",
@@ -1346,15 +1346,10 @@
     },
     "picker": {
       "Package": "picker",
-      "Version": "0.2.4",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "picker",
-      "RemoteUsername": "hms-dbmi",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "65d139149476821e216edb52db4067c911952b8f",
-      "Hash": "d93a603719625cdee7f074c3aefeaf6f"
+      "Version": "0.2.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0b61270842cbb349406cff8ca4473bc5"
     },
     "pillar": {
       "Package": "pillar",
@@ -1769,14 +1764,9 @@
     "shinypanel": {
       "Package": "shinypanel",
       "Version": "0.1.5",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "shinypanel",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "b977ec47de17d9806e2862ca5ee8aa50e84e824b",
-      "Hash": "e709a92bee9e4cd02a49de12b4229c6b"
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "433a3d71ce87d3b5ba11334dc94546db"
     },
     "sitmo": {
       "Package": "sitmo",
