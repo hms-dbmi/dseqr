@@ -198,7 +198,10 @@ SingleExIPlot <- function(
 
   # bars to indicate fraction
   xmin <- diff(range(data$x))*0.1
-  hl.idx <- match(levels(hl)[seq_along(color)], levels(idents))
+  hl.levels <- levels(hl)[seq_along(color)]
+  data <- data[order(hl), ]
+  hl.idents <- unique(data$ident[data$hl %in% hl.levels])
+  hl.idx <- match(hl.idents, levels(idents))
   col.bars <- rep('dimgray', nlabs)
   col.bars[hl.idx] <- color_dark
 

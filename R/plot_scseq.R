@@ -220,7 +220,7 @@ plot_violin <- function(feature = NULL,
 
   data <- as.data.frame(df[,'x'])
 
-  height <- max(235, length(ncells) * 45)
+  height <- max(235, length(clus_levs) * 45)
   if (is_mobile) ncells <- pct.cells <- NULL
 
   # will color violins for all if not enough in highlight group
