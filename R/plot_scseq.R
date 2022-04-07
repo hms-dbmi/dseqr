@@ -75,6 +75,9 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
   colors_dark <- get_palette(clus_levs, dark=TRUE, with_all=with_all)
   color_dark  <- colors_dark[seli]
 
+  is.gene <- feature %in% row.names(scseq)
+
+  title.type <- ifelse(is.gene, 'Expression', 'Value')
 
   # either highlight test group or selected cluster
   if (by.sample) {
@@ -83,18 +86,18 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
     hl <- scseq$orig.ident[keep]
 
     # cluster name get's appended by VlnPlot
-    title <- paste('Expression by Sample:', feature, 'in')
+    title <- paste(title.type, 'by Sample:', feature, 'in')
 
   } else {
     hl <- as.integer(scseq$cluster)
     y <- factor(hl)
     hl[!hl %in% seli] <- 'out'
     hl <- factor(hl, levels = c(seli, 'out'))
-    title <- paste('Expression by Cluster:', feature)
+    title <- paste(title.type, 'by Cluster:', feature)
   }
 
 
-  if (feature %in% row.names(scseq)) {
+  if (is.gene) {
     if (!is.null(h5logs)) {
       x <- h5logs[feature, ]
       x <- x[colnames(scseq)]
@@ -107,14 +110,26 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
     x <- scseq[[feature]]
   }
 
-  m <- tapply(x, y, mean)
-  clus_ord <- order(m, decreasing = decreasing)
+  mean.x <- tapply(x, y, mean)
+  clus_ord <- order(mean.x, decreasing = decreasing)
   y <- factor(y, levels = levels(y)[clus_ord])
+
   df <- data.frame(x, hl, y) %>%
     dplyr::add_count(y)
 
-  ncells <- tapply(df$x, as.character(df$y), length)
-  ncells <- ncells[levels(df$y)]
+  ncells <- pct.cells <- NULL
+
+  # show percent > 0 for genes
+  # show number of cells in cluster otherwise
+  if (is.gene) {
+    get.pct <- function(x) round(sum(x > 0) / length(x) * 100)
+    pct.cells <- tapply(df$x, as.character(df$y), get.pct)
+    pct.cells <- pct.cells[levels(df$y)]
+  } else {
+    ncells <- tapply(df$x, as.character(df$y), length)
+    ncells <- ncells[levels(df$y)]
+  }
+
 
   # down sample to reduce plot size
   df <- df %>%
@@ -129,6 +144,7 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
     color = color,
     color_dark = color_dark,
     ncells = ncells,
+    pct.cells = pct.cells,
     clus_ord = clus_ord,
     clus_levs = clus_levs,
     title = title,
@@ -205,7 +221,7 @@ plot_violin <- function(feature = NULL,
   data <- as.data.frame(df[,'x'])
 
   height <- max(235, length(ncells) * 45)
-  if (is_mobile) ncells <- NULL
+  if (is_mobile) ncells <- pct.cells <- NULL
 
   # will color violins for all if not enough in highlight group
   n1.hl <- table(df$hl)
@@ -226,7 +242,8 @@ plot_violin <- function(feature = NULL,
                       color = color,
                       color_dark = color_dark,
                       nsel = nsel,
-                      ncells = ncells)
+                      ncells = ncells,
+                      pct.cells = pct.cells)
 
 
   if (with.height) pl <- list(plot = pl, height = height)

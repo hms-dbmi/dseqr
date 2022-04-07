@@ -30,7 +30,8 @@ SingleExIPlot <- function(
   color = NULL,
   color_dark = NULL,
   nsel = 1,
-  ncells = NULL
+  ncells = NULL,
+  pct.cells = NULL
 ) {
   if (!is.null(seed.use)) {
     set.seed(seed.use)
@@ -122,8 +123,8 @@ SingleExIPlot <- function(
     data = data,
     mapping = ggplot2::aes_string(x = x, y = y, fill = fill, alpha=fill, color=fill)
   ) +
-    ggplot2::labs(x = xlab, y = ylab, title = title, fill = NULL) +
-    cowplot::theme_cowplot())
+      ggplot2::labs(x = xlab, y = ylab, title = title, fill = NULL) +
+      cowplot::theme_cowplot())
   (plot <- do.call(what = '+', args = list(plot, geom)))
   plot <- plot + if (log) {
     log.scale
@@ -166,17 +167,63 @@ SingleExIPlot <- function(
     plot <- plot + ggplot2::scale_fill_manual(values = cols, labels = labels)
   }
 
-  # add n cells
+  # add ncells/pct.cells labels
   lim <- max(data$x)
   lim <- lim+lim*0.2
-  plot <- plot + ggplot2::ylim(c(NA, lim)) +
+
+  if (!is.null(ncells)) {
+    fraction.rect <- ncells/max(ncells)
+    labels <- formatC(ncells, format="d", big.mark=",")
+    subtitle <- 'Number of Cells'
+  }
+
+  if (!is.null(pct.cells)) {
+    fraction.rect <- pct.cells/max(pct.cells)
+    labels <- pct.cells
+    subtitle <- 'Percent Expressed'
+  }
+
+  # numbers
+  nlabs <- length(labels)
+  plot <- plot +
+    ggplot2::ylim(c(NA, lim)) +
     ggplot2::annotate('text',
-                      label=paste(ncells, 'cells'),
-                      y=rep(lim, length(ncells)),
-                      x=seq_along(ncells),
-                      vjust = -0.3,
+                      label=labels,
+                      y=rep(lim, nlabs),
+                      x=seq_len(nlabs),
+                      vjust = -0.5,
                       hjust = 'right',
-                      color = 'dimgray',
-                      size = 5)
+                      color = '#ACACAC',
+                      size = 4)
+
+  # bars to indicate fraction
+  xmin <- diff(range(data$x))*0.1
+  hl.idx <- match(levels(hl)[seq_along(color)], levels(idents))
+  col.bars <- rep('dimgray', nlabs)
+  col.bars[hl.idx] <- color_dark
+
+  plot <- plot +
+    ggplot2::annotate('rect',
+                      ymin=lim-(fraction.rect*xmin),
+                      ymax=rep(lim, nlabs),
+                      xmin=seq_len(nlabs),
+                      xmax=seq_len(nlabs)+0.07,
+                      color = col.bars,
+                      fill = col.bars)
+
+  # use subtitle to indicate what numbers are
+  plot <- plot +
+    ggplot2::labs(subtitle = subtitle) +
+    ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust = 1, color = 'dimgray', size = 14))
+
+  # add mean value
+  plot <- plot +
+    ggplot2::stat_summary(
+      fun = "mean",
+      geom = "crossbar",
+      width = 0.3,
+      colour = "dimgray",
+      size = .3)
+
   return(plot)
 }
