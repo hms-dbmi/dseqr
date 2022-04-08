@@ -980,14 +980,21 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   sel <- reactive(input$selected_cluster)
 
   violin_pfun <- reactive({
-    pfun <- function(gene) {
+    pfun <- function(feature) {
       sel <- sel()
       scseq <- scseq()
       annot <- annot()
-      if(!isTruthyAll(sel, gene, scseq, annot)) return(NULL)
+      if(!isTruthyAll(sel, feature, scseq, annot)) return(NULL)
 
       levels(scseq$cluster) <- annot
-      violin_data <- get_violin_data(gene, scseq, sel, by.sample = TRUE, with_all = TRUE, h5logs=h5logs())
+
+      violin_data <- get_violin_data(
+        feature,
+        scseq,
+        sel,
+        by.sample = TRUE,
+        with_all = TRUE,
+        h5logs = h5logs())
 
       if (all(violin_data$df$x == 0)) return(NULL)
       plot <- plot_violin(violin_data = violin_data, with.height = TRUE, is_mobile = is_mobile())
@@ -4251,7 +4258,7 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     if (is.null(violin_data)) return(NULL)
     if (all(violin_data$df$x == 0)) return(NULL)
 
-    height(max(length(levels(violin_data$df$y))*38, 420))
+    height(length(levels(violin_data$df$y))*38 + 150)
     plot_violin(violin_data = violin_data, is_mobile = is_mobile())
   })
 

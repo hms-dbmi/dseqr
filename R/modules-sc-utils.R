@@ -1881,14 +1881,14 @@ run_limma_scseq <- function(summed, meta, species, trend = FALSE, method = 'TMMw
     progress$set(detail = clust)
     progress$inc(inc)
     subset <- subsets[[i]]
-    fit[[clust]] <- fit_lm(subset, fdata, trend)
+    fit[[clust]] <- fit_lm(subset, fdata, clust, trend)
   }
 
   progress$set(value = value+4)
   return(fit)
 }
 
-fit_lm <- function(subset, fdata, trend = FALSE) {
+fit_lm <- function(subset, fdata, clust, trend = FALSE) {
   pdata <- subset$pdata
   group <- pdata$group
   mod <- stats::model.matrix(~0 + group)
@@ -1902,16 +1902,19 @@ fit_lm <- function(subset, fdata, trend = FALSE) {
     v <- t(log2(t(yik + 0.5)/(lib.size + 1) * 1e+06))
     aw <- limma::arrayWeights(v, mod, method = "reml")
     fit <- limma::lmFit(v, mod, weights = aw)
+    E <- NULL
 
   } else {
     v <- quickVoomWithQualityWeights(yik, mod, lib.size)
     fit <- limma::lmFit(v, mod)
+    E <- v$E
+    colnames(E) <- gsub(paste0('^', clust, '_'), '', colnames(E))
   }
 
   if (!is.null(fdata)) {
     fit$genes <- data.frame(fdata[row.names(fit), 'ENTREZID', drop = FALSE])
   }
-  return(list(fit=fit, mod=mod))
+  return(list(fit=fit, mod=mod, E=E))
 }
 
 quickVoomWithQualityWeights <- function (y, mod, lib.size) {

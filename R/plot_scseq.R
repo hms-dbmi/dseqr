@@ -24,7 +24,7 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 }
 
 
-#' Get data for single-cell violinline plots
+#' Get data for single-cell violin plots
 #'
 #' @param feature Feature name to generate violin plot for. Either a row or \code{colData} of \code{scseq}.
 #' @param scseq \code{SingleCellExperiment}.
@@ -220,7 +220,7 @@ plot_violin <- function(feature = NULL,
 
   data <- as.data.frame(df[,'x'])
 
-  height <- max(235, length(clus_levs) * 45)
+  height <- length(levels(df$y)) * 38  + 150
   if (is_mobile) ncells <- pct.cells <- NULL
 
   # will color violins for all if not enough in highlight group
