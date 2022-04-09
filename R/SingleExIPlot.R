@@ -106,6 +106,7 @@ SingleExIPlot <- function(
     jitter <- ggplot2::geom_jitter(height = 0,
                                    size = pt.size,
                                    shape = pt.shape,
+                                   width = 0.1,
                                    color = jitter_color,
                                    alpha = ifelse(pt.size < 0.1, 0.3, 0.5),
                                    show.legend = FALSE)
@@ -226,7 +227,7 @@ SingleExIPlot <- function(
       fun = "mean",
       geom = "crossbar",
       width = 0.3,
-      colour = "dimgray",
+      colour = "black",
       size = .3)
 
   return(plot)

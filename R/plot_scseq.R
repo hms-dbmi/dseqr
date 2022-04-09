@@ -237,7 +237,7 @@ plot_violin <- function(feature = NULL,
   pt.size <- df |>
     dplyr::group_by(y) |>
     dplyr::mutate(ngt0 = sum(x > 0)) |>
-    dplyr::mutate(pt.size = ifelse(ngt0 > 100, 0.0001, 1)) |>
+    dplyr::mutate(pt.size = ifelse(ngt0 > 100, 0.01, 1)) |>
     dplyr::pull(pt.size)
 
   pl <- SingleExIPlot(data,
