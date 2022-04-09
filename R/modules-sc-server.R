@@ -4153,8 +4153,16 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       is_qc <- feature %in% const$features$qc |
         grepl('predicted[.].+?[.]score', feature)
 
-      cols <- if (is_qc) const$colors$qc else const$colors$ft
-      colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
+      if (is_qc) {
+        cols <- const$colors$qc
+        colors <- scales::seq_gradient_pal(cols[1], cols[2])(ft.scaled)
+      } else {
+        cols <- viridis::plasma(10, direction = -1)[-1]
+        colors <- scales::gradient_n_pal(cols)(ft.scaled)
+      }
+
+      # zero expression is white
+      colors[ft.scaled == 0] <- '#FFFFFFCC'
 
       # title is group
       prev <- isolate(title())

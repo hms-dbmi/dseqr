@@ -23,7 +23,8 @@ SingleExIPlot <- function(
   sort = FALSE,
   y.max = NULL,
   adjust = 1,
-  pt.size = 0.05,
+  pt.size = 1,
+  pt.shape = 20,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
@@ -104,9 +105,9 @@ SingleExIPlot <- function(
     jitter_color <- c(color_dark, 'dimgray')[as.numeric(droplevels(hl))]
     jitter <- ggplot2::geom_jitter(height = 0,
                                    size = pt.size,
-                                   shape = '.',
+                                   shape = pt.shape,
                                    color = jitter_color,
-                                   alpha = 0.5,
+                                   alpha = ifelse(pt.size < 0.1, 0.3, 0.5),
                                    show.legend = FALSE)
   } else {
     jitter <- ggplot2::geom_jitter(
@@ -131,7 +132,7 @@ SingleExIPlot <- function(
   } else {
     axis.scale(min(data[, feature]), y.max)
   }
-  if (pt.size > 0) {
+  if (pt.size[1] > 0) {
     plot <- plot + jitter
   }
   if (!is.null(cols)) {

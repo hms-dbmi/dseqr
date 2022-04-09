@@ -234,10 +234,16 @@ plot_violin <- function(feature = NULL,
     nsel <- max(0, nsel - sum(n1.hl))
   }
 
+  pt.size <- df |>
+    dplyr::group_by(y) |>
+    dplyr::mutate(ngt0 = sum(x > 0)) |>
+    dplyr::mutate(pt.size = ifelse(ngt0 > 100, 0.0001, 1)) |>
+    dplyr::pull(pt.size)
+
   pl <- SingleExIPlot(data,
                       idents = df$y,
                       hl = df$hl,
-                      pt.size = 0.001,
+                      pt.size = pt.size,
                       title = title,
                       color = color,
                       color_dark = color_dark,
