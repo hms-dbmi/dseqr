@@ -3717,10 +3717,10 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       label_coords,
       xrange = range(coords[,1]),
       yrange = range(coords[,2]),
-      mar = rep(0, 4),
-      box.padding = 0.3,
       fontsize = fontsize,
-      direction = 'y')
+      point.size = 0,
+      point.padding = 0,
+      direction = 'both')
 
 
     return(label_repels)
