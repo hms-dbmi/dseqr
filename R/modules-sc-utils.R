@@ -1939,7 +1939,6 @@ get_grid <- function(scseq) {
   grid_size <- get_grid_size(red.mat)
   nx <- grid_size[1]
   ny <- grid_size[2]
-  message('nx: ', nx, 'ny: ', ny)
 
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
 

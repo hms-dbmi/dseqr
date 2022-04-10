@@ -460,7 +460,6 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   grid_size <- get_grid_size(red.mat)
   nx <- grid_size[1]
   ny <- grid_size[2]
-  message('nx: ', nx, 'ny: ', ny)
 
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
 
@@ -560,6 +559,9 @@ add_grid_colors <- function(data) {
   alpha <- rep(0.1, nrow(data))
   is.sig <- data$pval < 0.05
   alpha[is.sig] <- range02(-log10(data$pval)[is.sig])
+
+  # for pval = 0
+  alpha[is.infinite(alpha)] <- 1
 
   data$color <- '#FFFFFF'
   data$color[data$diff > 0] <- 'red'
