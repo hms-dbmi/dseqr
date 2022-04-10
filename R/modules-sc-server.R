@@ -1043,10 +1043,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       disabled <- cluster_choices()[sel, 'disabled']
       if (is.null(disabled) || disabled) return(NULL)
 
-      amb <- get_ambience(scseq())
-      if (ncol(amb) != ncol(summed))
+      scseq <- scseq()
+      if (is.null(scseq)) return(NULL)
+      amb <- get_ambience(scseq)
+      if (ncol(amb) != ncol(summed)) return(NULL)
 
-        disableAll(input_ids)
+      disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       on.exit(progress$close())
       progress$set(message = "Detecting ambient genes", detail = paste('cluster', sel), value = 1)
