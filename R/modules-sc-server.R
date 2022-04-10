@@ -4266,7 +4266,7 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
     if (is.null(violin_data)) return(NULL)
     if (all(violin_data$df$x == 0)) return(NULL)
 
-    height(length(levels(violin_data$df$y))*38 + 150)
+    height(length(levels(violin_data$df$y))*38 + 130)
     plot_violin(violin_data = violin_data, is_mobile = is_mobile())
   })
 

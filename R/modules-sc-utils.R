@@ -1935,10 +1935,12 @@ get_grid <- function(scseq) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
-  if (red == 'UMAP') nx=120; ny=60
-  if (red == 'TSNE') nx=100; ny=50
-
   red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+  grid_size <- get_grid_size(red.mat)
+  nx <- grid_size[1]
+  ny <- grid_size[2]
+  message('nx: ', nx, 'ny: ', ny)
+
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2])
 
   # create grid

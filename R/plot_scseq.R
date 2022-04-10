@@ -220,7 +220,7 @@ plot_violin <- function(feature = NULL,
 
   data <- as.data.frame(df[,'x'])
 
-  height <- length(levels(df$y)) * 38  + 150
+  height <- length(levels(df$y)) * 38  + 130
   if (is_mobile) ncells <- pct.cells <- NULL
 
   # will color violins for all if not enough in highlight group
@@ -410,14 +410,57 @@ get_grid_expression <- function(gene, tts, grid) {
   return(pt.dat)
 }
 
+# checks multiple grid sizes and picks the one closest to have an average of
+# 40 cells in non-empty cells
+get_grid_size <- function(red.mat) {
+
+  # grid sizes to check
+  dims <- list(
+    c(120, 60),
+    c(100, 50),
+    c(80, 40),
+    c(60, 30),
+    c(40, 20)
+  )
+
+  xrange <- range(red.mat[,1])
+  yrange <- range(red.mat[,2])
+
+  df <- data.frame(x = red.mat[,1], y = red.mat[,2])
+  avgs <- c()
+
+  for (dim in dims) {
+    nx <- dim[1]
+    ny <- dim[2]
+
+    # get number of cells in each non-empty box of grid
+    counts <- df %>% dplyr::mutate(
+      cut_x = cut(x, breaks = seq(xrange[1], xrange[2], length.out = nx), include.lowest = TRUE),
+      cut_y = cut(y, breaks = seq(yrange[1], yrange[2], length.out = ny), include.lowest = TRUE)
+    ) %>%
+      dplyr::count(cut_x, cut_y) %>%
+      dplyr::filter(n > 0) %>%
+      dplyr::pull(n)
+
+
+    avgs <- c(avgs, mean(counts))
+  }
+
+  # pick grid with closest to 40 as average
+  chosen <- which.min(abs(avgs - 40))
+  return(dims[[chosen]])
+}
+
+
 get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$batch) {
   reds <- SingleCellExperiment::reducedDimNames(scseq)
   red <- reds[reds %in% c('UMAP', 'TSNE')]
 
-  if (red == 'UMAP') nx=120; ny=60
-  if (red == 'TSNE') nx=100; ny=50
-
   red.mat <- SingleCellExperiment::reducedDim(scseq, red)
+  grid_size <- get_grid_size(red.mat)
+  nx <- grid_size[1]
+  ny <- grid_size[2]
+  message('nx: ', nx, 'ny: ', ny)
 
   dat <- data.frame(x=red.mat[,1], y=red.mat[,2], group=group, sample=sample)
 
