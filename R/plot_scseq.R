@@ -411,8 +411,8 @@ get_grid_expression <- function(gene, tts, grid) {
 }
 
 # checks multiple grid sizes and picks the one closest to have an average of
-# 40 cells in non-empty cells
-get_grid_size <- function(red.mat) {
+# target cells in non-empty cells
+get_grid_size <- function(red.mat, target = 20) {
 
   # grid sizes to check
   dims <- list(
@@ -446,8 +446,8 @@ get_grid_size <- function(red.mat) {
     avgs <- c(avgs, mean(counts))
   }
 
-  # pick grid with closest to 40 as average
-  chosen <- which.min(abs(avgs - 40))
+  # pick grid with closest to target as average
+  chosen <- which.min(abs(avgs - target))
   return(dims[[chosen]])
 }
 
