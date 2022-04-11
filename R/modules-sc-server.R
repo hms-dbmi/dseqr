@@ -3717,6 +3717,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     label_repels <- repel::repel_text(
       label_coords,
+      mar = rep(0, 4),
       xrange = range(coords[,1]),
       yrange = range(coords[,2]),
       fontsize = fontsize,
