@@ -27,7 +27,16 @@ bulkPage(
 
 \item{bulk_dir}{sub folder of \code{data_dir} where bulk data is stored}
 
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
+
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+
+\item{gs_dir}{Path to directory where gene to Gene Ontology maps produced by \link{get_genego} are saved.}
+
+\item{add_bulk}{reactive that triggers modal to upload a bulk dataset}
+
+\item{remove_bulk}{reactive that triggers modal for deleting bulk datasets}
 }
 \value{
 list with reactive \code{new_dataset} that is triggered with a new

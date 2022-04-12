@@ -16,9 +16,9 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 
   set.seed(0)
   keep <- cells %>%
-    dplyr::group_by(cluster) %>%
+    dplyr::group_by(.data$cluster) %>%
     dplyr::sample_n(min(max.cells, dplyr::n())) %>%
-    dplyr::pull(id)
+    dplyr::pull(.data$id)
 
   scseq[, keep]
 }
@@ -39,7 +39,6 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #'
 #' @keywords internal
 get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE, decreasing = feature %in% c('ribo_percent', 'log10_sum', 'log10_detected'), with_all = FALSE, h5logs = NULL) {
-  n <- NULL
 
   if (isTruthy(selected_cluster)) {
     # for one vs one comparisons
@@ -115,7 +114,7 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
   y <- factor(y, levels = levels(y)[clus_ord])
 
   df <- data.frame(x, hl, y) %>%
-    dplyr::add_count(y)
+    dplyr::add_count(.data$y)
 
   ncells <- pct.cells <- NULL
 
@@ -133,9 +132,9 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 
   # down sample to reduce plot size
   df <- df %>%
-    dplyr::group_by(y) %>%
-    dplyr::mutate(nsamp = min(n, 1000)) %>%
-    dplyr::sample_n(nsamp)
+    dplyr::group_by(.data$y) %>%
+    dplyr::mutate(nsamp = min(.data$n, 1000)) %>%
+    dplyr::sample_n(.data$nsamp)
 
   res <- list(
     df = df,
@@ -161,6 +160,8 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 #' \code{annot = c('1: Monocytes', '2')} is returned
 #'
 #' @param annot Character vector of cluster names
+#' @param pad_left Should cluster numbers be padded on the left? Used to align
+#' numbers for violin plot.
 #'
 #' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
 #' @export
@@ -168,7 +169,8 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 add_cluster_numbers <- function(annot, pad_left = FALSE) {
 
   nums <- seq_along(annot)
-  if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = ' ')
+  # use figure space
+  if (pad_left) nums <- stringr::str_pad(nums, max(nchar(nums)), pad = '\U2007')
 
   is.char <- suppressWarnings(is.na(as.numeric(annot)))
   if (any(is.char)) {
@@ -192,6 +194,9 @@ plot_violin <- function(feature = NULL,
                         decreasing = feature %in% c('ribo_percent',
                                                     'log10_sum',
                                                     'log10_detected')) {
+
+  # global variable bindings created by list2env
+  df = nsel = seli = color = color_dark = ncells = pct.cells = clus_ord = clus_levs = title = by.sample = NULL
 
   if (is.null(violin_data)) {
     violin_data <- get_violin_data(
@@ -235,21 +240,22 @@ plot_violin <- function(feature = NULL,
   }
 
   pt.size <- df |>
-    dplyr::group_by(y) |>
-    dplyr::mutate(ngt0 = sum(x > 0)) |>
-    dplyr::mutate(pt.size = ifelse(ngt0 > 100, 0.01, 1)) |>
-    dplyr::pull(pt.size)
+    dplyr::group_by(.data$y) |>
+    dplyr::mutate(ngt0 = sum(.data$x > 0)) |>
+    dplyr::mutate(pt.size = ifelse(.data$ngt0 > 100, 0.01, 1)) |>
+    dplyr::pull(.data$pt.size)
 
-  pl <- SingleExIPlot(data,
-                      idents = df$y,
-                      hl = df$hl,
-                      pt.size = pt.size,
-                      title = title,
-                      color = color,
-                      color_dark = color_dark,
-                      nsel = nsel,
-                      ncells = ncells,
-                      pct.cells = pct.cells)
+  pl <- SingleViolinIPlot(
+    data,
+    idents = df$y,
+    hl = df$hl,
+    pt.size = pt.size,
+    title = title,
+    color = color,
+    color_dark = color_dark,
+    nsel = nsel,
+    ncells = ncells,
+    pct.cells = pct.cells)
 
 
   if (with.height) pl <- list(plot = pl, height = height)
@@ -260,11 +266,11 @@ plot_violin <- function(feature = NULL,
 # shorten labels for sample violin plot on mobile
 shorten_y <- function(df) {
   short <- df %>%
-    dplyr::group_by(y) %>%
+    dplyr::group_by(.data$y) %>%
     dplyr::slice(1) %>%
-    dplyr::group_by(hl) %>%
-    dplyr::arrange(as.character(y)) %>%
-    dplyr::mutate(new = paste0(toupper(hl), seq_along(hl))) %>%
+    dplyr::group_by(.data$hl) %>%
+    dplyr::arrange(as.character(.data$y)) %>%
+    dplyr::mutate(new = paste0(toupper(.data$hl), seq_along(.data$hl))) %>%
     as.data.frame()
 
   row.names(short) <- short$y
@@ -399,13 +405,13 @@ get_grid_expression <- function(gene, tts, grid) {
 
   # get points in grid with cells
   pt.dat <- grid %>%
-    dplyr::add_count(xi, yi) %>%
+    dplyr::add_count(.data$xi, .data$yi) %>%
     dplyr::left_join(tt) %>%
     dplyr::distinct() %>%
-    dplyr::filter(n > 3) %>% # at least n cells
-    dplyr::mutate(logFC = ifelse(is.na(logFC), 0, logFC)) %>%
-    dplyr::rename(pval = P.Value, diff = logFC) %>%
-    dplyr::mutate(pval = replace(pval, is.na(pval), 1))
+    dplyr::filter(.data$n > 3) %>% # at least n cells
+    dplyr::mutate(logFC = ifelse(is.na(.data$logFC), 0, .data$logFC)) %>%
+    dplyr::rename(pval = .data$P.Value, diff = .data$logFC) %>%
+    dplyr::mutate(pval = replace(.data$pval, is.na(.data$pval), 1))
 
   return(pt.dat)
 }
@@ -435,12 +441,16 @@ get_grid_size <- function(red.mat, target = 20) {
 
     # get number of cells in each non-empty box of grid
     counts <- df %>% dplyr::mutate(
-      cut_x = cut(x, breaks = seq(xrange[1], xrange[2], length.out = nx), include.lowest = TRUE),
-      cut_y = cut(y, breaks = seq(yrange[1], yrange[2], length.out = ny), include.lowest = TRUE)
+      cut_x = cut(.data$x,
+                  breaks = seq(xrange[1], xrange[2], length.out = nx),
+                  include.lowest = TRUE),
+      cut_y = cut(.data$y,
+                  breaks = seq(yrange[1], yrange[2], length.out = ny),
+                  include.lowest = TRUE)
     ) %>%
-      dplyr::count(cut_x, cut_y) %>%
-      dplyr::filter(n > 0) %>%
-      dplyr::pull(n)
+      dplyr::count(.data$cut_x, .data$cut_y) %>%
+      dplyr::filter(.data$n > 0) %>%
+      dplyr::pull(.data$n)
 
 
     avgs <- c(avgs, mean(counts))
@@ -465,18 +475,18 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
 
   # downsample within group so that each sample has same number of cells
   dsamp <- dat %>%
-    dplyr::add_count(sample) %>%
-    dplyr::group_by(group) %>%
-    dplyr::mutate(nmin=min(n)) %>%
-    dplyr::group_by(sample) %>%
-    dplyr::sample_n(nmin) %>%
+    dplyr::add_count(.data$sample) %>%
+    dplyr::group_by(.data$group) %>%
+    dplyr::mutate(nmin=min(.data$n)) %>%
+    dplyr::group_by(.data$sample) %>%
+    dplyr::sample_n(.data$nmin) %>%
     dplyr::ungroup() %>%
-    dplyr::select(-n, -nmin)
+    dplyr::select(-.data$n, -.data$nmin)
 
   # downsample so that each group has same number of cells
   nmin <- min(table(dsamp$group))
   dsamp <- dsamp %>%
-    dplyr::group_by(group) %>%
+    dplyr::group_by(.data$group) %>%
     dplyr::sample_n(nmin) %>%
     dplyr::ungroup()
 
@@ -510,7 +520,7 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   stab <- table(binxy)
   stab <- as.data.frame.table(stab)
 
-  stab <- tidyr::pivot_wider(stab, names_from=group, values_from=Freq)
+  stab <- tidyr::pivot_wider(stab, names_from = .data$group, values_from = .data$Freq)
   rns <- paste(stab$x, stab$y, sep='-')
   stab$x <- stab$y <- NULL
   stab <- as.matrix(stab)
@@ -573,7 +583,7 @@ add_grid_colors <- function(data) {
 
 add_alpha <- function(colors, alpha){
   if(missing(alpha)) stop("provide a value for alpha between 0 and 1")
-  rgb <- col2rgb(colors, alpha=TRUE)
+  rgb <- grDevices::col2rgb(colors, alpha=TRUE)
   rgb[4,] <- round(rgb[4,]*alpha)
   new.colors <- rgb(rgb[1,], rgb[2,], rgb[3,], rgb[4,], maxColorValue = 255)
   return(new.colors)

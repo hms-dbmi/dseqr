@@ -2,7 +2,7 @@
 % Please edit documentation in R/modules-sc-utils.R
 \name{get_cluster_stats}
 \alias{get_cluster_stats}
-\title{Get/Save cluster stats for single-cell related selectizeInputs}
+\title{Get and save cluster stats for single-cell related selectizeInputs}
 \usage{
 get_cluster_stats(
   resoln_dir = NULL,
@@ -27,12 +27,11 @@ to persist results to disk.}
 
 \item{sample_comparison}{is this for test vs control comparion? Default is \code{FALSE}.}
 
-\item{has_replicates}{Boolean indicating if integrated dataset has multiple
-samples in at least one group. Used by scSampleComparison.}
+\item{contrast_dir}{Sub directory with single cell dataset info specific to contrast.}
 }
 \value{
 List with cluster stats
 }
 \description{
-Get/Save cluster stats for single-cell related selectizeInputs
+Get and save cluster stats for single-cell related selectizeInputs
 }

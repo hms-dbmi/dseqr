@@ -14,6 +14,9 @@ create_scseq(
 \arguments{
 \item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
 
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
+
 \item{project}{String identifying sample.}
 
 \item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.}

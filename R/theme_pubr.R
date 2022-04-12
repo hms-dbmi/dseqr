@@ -54,7 +54,7 @@ theme_pubr <- function(base_size = 12, base_family = "",
   if (margin) {
     plot.margin <- ggplot2::margin(half_line, half_line, half_line,half_line)
   } else {
-    plot.margin <- unit(c(0.5,0.3,0.3,0.3),"mm")
+    plot.margin <- grid::unit(c(0.5,0.3,0.3,0.3),"mm")
   }
 
   .theme <- ggplot2::`%+replace%`(

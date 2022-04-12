@@ -8,6 +8,9 @@ add_cluster_numbers(annot, pad_left = FALSE)
 }
 \arguments{
 \item{annot}{Character vector of cluster names}
+
+\item{pad_left}{Should cluster numbers be padded on the left? Used to align
+numbers for violin plot.}
 }
 \value{
 \code{annot} with cluster numbers pre-pended to non-numeric values.

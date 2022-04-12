@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_scseq.R
 \name{get_violin_data}
 \alias{get_violin_data}
-\title{Get data for single-cell violinline plots}
+\title{Get data for single-cell violin plots}
 \usage{
 get_violin_data(
   feature,
@@ -33,6 +33,6 @@ Used to show features where smaller values indicate potential QC issues.}
 list used by \link{VlnPlot}
 }
 \description{
-Get data for single-cell violinline plots
+Get data for single-cell violin plots
 }
 \keyword{internal}

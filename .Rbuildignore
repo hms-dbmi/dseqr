@@ -10,3 +10,5 @@
 ^renv\.lock$
 ^LICENSE\.md$
 ^inst/app/tests$
+^\.renvignore$
+^\.dockerignore$

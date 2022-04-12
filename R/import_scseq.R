@@ -128,7 +128,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   progress$set(message = "loading R object", value = value + 1)
   scseq <- find_robject(uploaded_data_dir, load = TRUE)
 
-  if (is(scseq, 'Seurat')) {
+  if (methods::is(scseq, 'Seurat')) {
     scseq <- seurat_to_sce(scseq, dataset_name)
     gc()
   }
@@ -400,9 +400,17 @@ run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indic
 #' @param scseq \code{SingleCellExperiment}
 #' @param dataset_name Name of dataset to save
 #' @param sc_dir Directory to save dataset to
+#' @param cluster_alg Cluster algorith. Either \code{'leiden'} (default) or \code{'walktrap'}.
+#' @param npcs Number of principal components to use. Default is 30.
+#' @param resoln \code{resolution_parameter} used by \link[igraph]{cluster_leiden} if
+#' \code{cluster_alg = 'leiden'}.
+#' @param hvgs Character vector of a priori genes to use for PCA. If \code{NULL} (default),
+#' highly variable genes are calulated by \link[scran]{getTopHVGs}.
+#' @param ref_name Name of symphony or Azimuth reference to use for reference-based analysis.
 #' @param progress Shiny progress object. Default (\code{NULL}) prints to stdout.
 #' @param value Initial value of progress.
 #' @inheritParams subset_saved_scseq
+#' @inheritParams run_dseqr
 #'
 #' @return NULL
 #' @export
@@ -617,7 +625,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   query <- Seurat::CreateSeuratObject(counts = counts,
                                       min.cells = 1, min.features = 1)
 
-  is.sct <- 'SCTModel.list' %in% slotNames(reference$map[['refAssay']])
+  is.sct <- 'SCTModel.list' %in% methods::slotNames(reference$map[['refAssay']])
 
   if (is.sct) {
     # Preprocess with SCTransform
@@ -761,6 +769,7 @@ save_ref_clusters <- function(meta, dataset_name, sc_dir) {
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
 #' @param project String identifying sample.
 #' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.
+#' @inheritParams run_dseqr
 #'
 #' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @export
@@ -984,7 +993,7 @@ load_cellranger_genes <- function(data_dir) {
     genes <- infile[[file.path(genomes[1], slot)]][]
 
   } else {
-    genes <- read.table(gene.file)[[2]]
+    genes <- utils::read.table(gene.file)[[2]]
   }
 
   return(genes)
@@ -1130,6 +1139,8 @@ normalize_scseq <- function(scseq) {
 #' Runs after \code{preprocess_scseq}
 #'
 #' @param sce \code{SingleCellExperiment} object
+#' @param hvgs Character vector of genes to use. Used to specify a priori
+#' set of genes to use for clustering.
 #'
 #' @export
 add_hvgs <- function(sce, hvgs = NULL) {
@@ -1150,6 +1161,8 @@ add_hvgs <- function(sce, hvgs = NULL) {
 #' Run TSNE or UMAP
 #'
 #' @param sce \code{SingleCellExperiment}
+#' @param type One of \code{c('auto', 'TSNE', 'UMAP')}. If \code{'auto'} (default),
+#'  runs UMAP is more than 5000 cells, otherwise TSNE.
 #' @param dimred reducedDim to run TSNE or UMAP on
 #'
 #' @return \code{sce} with \code{'TSNE'} or \code{'UMAP'} \code{reducedDim}
@@ -1299,7 +1312,7 @@ add_doublet_score <- function(scseq) {
 #'
 #' @param sce \code{SingleCellExperiment}
 #' @param for_qcplots Are the QC metrics being added for QC plots? Used by
-#' \link{load_raw_scseq}.
+#' \link{import_scseq}.
 #'
 #' @return \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}
 add_scseq_qc_metrics <- function(sce, for_qcplots = FALSE) {
@@ -1342,8 +1355,8 @@ add_scseq_qcplot_metrics <- function(sce) {
 get_presto_markers <- function(scseq) {
   markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts', verbose = TRUE)
   markers <- markers %>%
-    dplyr::group_by(group) %>%
-    dplyr::arrange(-auc) %>%
+    dplyr::group_by(.data$group) %>%
+    dplyr::arrange(-.data$auc) %>%
     dplyr::group_split() %>%
     as.list()
 
@@ -1538,11 +1551,11 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
   reference$save_uwot_path <- uwot_path
 
   # map query
-  query <- mapQuery(counts_use,
-                    meta_data,
-                    reference,
-                    vars = vars,
-                    do_normalize = TRUE)
+  query <- symphony::mapQuery(counts_use,
+                              meta_data,
+                              reference,
+                              vars = vars,
+                              do_normalize = TRUE)
 
   query <- knn_predict(query, reference, reference$meta_data$cell_type)
   meta <- query$meta_data
@@ -1647,18 +1660,5 @@ add_integrated_ambient <- function(combined, ambient) {
   SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
 
   return(combined)
-}
-
-
-#' Test is there is at lest two clusters
-#'
-#' Used by \code{\link{get_scseq_markers}} to prevent getting markers if there are no clusters to compare
-#'
-#' @param scseq
-#'
-#' @return TRUE if more than one cluster exists
-#' @keywords internal
-exist_clusters <- function(scseq) {
-  length(unique(scseq$cluster)) > 1
 }
 

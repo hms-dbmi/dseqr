@@ -421,7 +421,7 @@ is_invertible <- function(pdata) {
 #' @keywords internal
 get_path_res <- function(de, goana_path, gs_dir, species = 'Hs', genego = NULL, gonames = NULL, coef = ncol(de), nmin = 50, cutoff = 0.05) {
 
-  is.marray <- is(de, 'MArrayLM')
+  is.marray <- methods::is(de, 'MArrayLM')
   if (!is.marray) {
     universe <- de$ENTREZID
     is.up <- de$logFC > 0
@@ -433,7 +433,7 @@ get_path_res <- function(de, goana_path, gs_dir, species = 'Hs', genego = NULL, 
 
     universe <- de$genes$ENTREZID
     is.up <- de$coefficients[, coef] > 0
-    is.sig <- p.adjust(de$p.value[,coef], method = "BH") < 0.05
+    is.sig <- stats::p.adjust(de$p.value[,coef], method = "BH") < 0.05
   }
 
   names(universe) <- row.names(de)
@@ -442,8 +442,8 @@ get_path_res <- function(de, goana_path, gs_dir, species = 'Hs', genego = NULL, 
   nsig.up <- sum(is.sig & is.up)
   nsig.dn <- sum(is.sig & !is.up)
 
-  up <- head(universe[is.up], max(nmin, nsig.up))
-  dn <- head(universe[!is.up], max(nmin, nsig.dn))
+  up <- utils::head(universe[is.up], max(nmin, nsig.up))
+  dn <- utils::head(universe[!is.up], max(nmin, nsig.dn))
 
   de <- list(Up = up, Down = dn)
 
@@ -489,11 +489,12 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
 
   gids <- tibble::tibble(cbind(genego, X))
   gids <- gids %>%
-    dplyr::filter(Up|Down) %>%
-    dplyr::mutate(gene_name = gnames[gene_id]) %>%
-    dplyr::group_by(go_id) %>%
-    dplyr::summarise(Up.Genes = name_list(gene_name[Up > 0], go_id[1]),
-                     Down.Genes = name_list(gene_name[Down > 0], go_id[1]))
+    dplyr::filter(.data$Up | .data$Down) %>%
+    dplyr::mutate(gene_name = gnames[.data$gene_id]) %>%
+    dplyr::group_by(.data$go_id) %>%
+    dplyr::summarise(
+      Up.Genes = name_list(.data$gene_name[.data$Up > 0], .data$go_id[1]),
+      Down.Genes = name_list(.data$gene_name[.data$Down > 0], .data$go_id[1]))
 
   # Overlap tests
   PValue <- matrix(0, nrow=nrow(S), ncol=nsets)
@@ -502,7 +503,7 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
 
   #	Fisher's exact test
   for (j in seq_len(nsets))
-    PValue[,j] <- phyper(S[,1L+j]-0.5, nde[j], NGenes-nde[j], S[,"N"], lower.tail=FALSE)
+    PValue[,j] <- stats::phyper(S[,1L+j]-0.5, nde[j], NGenes-nde[j], S[,"N"], lower.tail=FALSE)
 
   # Assemble output
   GOID <- rownames(S)
@@ -531,14 +532,14 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
   go_dn <- go_dn[ndiff_dn > nmin_dn, ]
 
   # adjust
-  go_up$FDR <- p.adjust(go_up$P.Value, 'BH')
-  go_dn$FDR <- p.adjust(go_dn$P.Value, 'BH')
+  go_up$FDR <- stats::p.adjust(go_up$P.Value, 'BH')
+  go_dn$FDR <- stats::p.adjust(go_dn$P.Value, 'BH')
 
   # filter by cutoff/min.go
   nsig.up <- sum(go_up$FDR < 0.05)
   nsig.dn <- sum(go_dn$FDR < 0.05)
-  go_up <- head(go_up, nsig.up)
-  go_dn <- head(go_dn, nsig.dn)
+  go_up <- utils::head(go_up, nsig.up)
+  go_dn <- utils::head(go_dn, nsig.dn)
 
   # filter terms both up and down
   both <- intersect(row.names(go_up), row.names(go_dn))
@@ -548,22 +549,22 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
 
   # for adding gene names
   up_genes <- gids %>%
-    dplyr::filter(go_id %in% row.names(go_up)) %>%
-    dplyr::mutate(idx = match(go_id, row.names(go_up))) %>%
-    dplyr::arrange(idx) %>%
-    dplyr::pull(Up.Genes)
+    dplyr::filter(.data$go_id %in% row.names(go_up)) %>%
+    dplyr::mutate(idx = match(.data$go_id, row.names(go_up))) %>%
+    dplyr::arrange(.data$idx) %>%
+    dplyr::pull(.data$Up.Genes)
 
   dn_genes <- gids %>%
-    dplyr::filter(go_id %in% row.names(go_dn)) %>%
-    dplyr::mutate(idx = match(go_id, row.names(go_dn))) %>%
-    dplyr::arrange(idx) %>%
-    dplyr::pull(Down.Genes)
+    dplyr::filter(.data$go_id %in% row.names(go_dn)) %>%
+    dplyr::mutate(idx = match(.data$go_id, row.names(go_dn))) %>%
+    dplyr::arrange(.data$idx) %>%
+    dplyr::pull(.data$Down.Genes)
 
 
   # simplify using similarity
   # also formats FDRs and adds gene names
-  go_up <- simplify(go_up, up_genes) %>% dplyr::rename(Genes = genes)
-  go_dn <- simplify(go_dn, dn_genes) %>% dplyr::rename(Genes = genes)
+  go_up <- simplify(go_up, up_genes) %>% dplyr::rename(Genes = .data$genes)
+  go_dn <- simplify(go_dn, dn_genes) %>% dplyr::rename(Genes = .data$genes)
 
   return(list(up=go_up, dn=go_dn))
 }
@@ -587,16 +588,17 @@ jaccard <- function (regmat) {
 
 
 simplify <- function(go_res, genes, cutoff = 0.7, by = 'FDR') {
+  # for R CMD check
+  go1 <- go2 <- similarity <- NULL
+
   go_res$genes <- rep(NA, nrow(go_res))
   if (nrow(go_res) == 0) return(go_res)
 
   genes <- genes[row.names(go_res)]
   go_res$ID <- row.names(go_res)
 
-  x <- table(stack(genes))
+  x <- table(utils::stack(genes))
   sim <- jaccard(x)
-
-  go1 <- go2 <- similarity <- NULL
 
   sim.df <- as.data.frame(sim)
   sim.df$go1 <- row.names(sim.df)
@@ -641,14 +643,14 @@ simplify <- function(go_res, genes, cutoff = 0.7, by = 'FDR') {
   go_res$genes[no.grp] <- unlist(lapply(genes[no.grp], function(gs) paste(gs, collapse=', ')))
 
   go_res <- go_res %>%
-    dplyr::group_by(group) %>%
-    dplyr::mutate(gmin = min(FDR)) %>%
-    dplyr::arrange(FDR) %>%
-    dplyr::mutate(Term = group_terms(Term)) %>%
-    dplyr::mutate(FDR = format.pval(FDR, eps = 0.0001, digits = 1)) %>%
+    dplyr::group_by(.data$group) %>%
+    dplyr::mutate(gmin = min(.data$FDR)) %>%
+    dplyr::arrange(.data$FDR) %>%
+    dplyr::mutate(Term = group_terms(.data$Term)) %>%
+    dplyr::mutate(FDR = format.pval(.data$FDR, eps = 0.0001, digits = 1)) %>%
     dplyr::ungroup() %>%
-    dplyr::arrange(gmin, group) %>%
-    dplyr::select(-gmin, -group) %>%
+    dplyr::arrange(.data$gmin, .data$group) %>%
+    dplyr::select(-.data$gmin, -.data$group) %>%
     as.data.frame()
 
   row.names(go_res) <- go_res$ID
@@ -657,14 +659,15 @@ simplify <- function(go_res, genes, cutoff = 0.7, by = 'FDR') {
   return(go_res)
 }
 
+# U+00B0 is the degree symbol
 group_terms <- function(terms) {
   nterms <- length(terms)
   if (nterms == 1) return(terms)
-  if (nterms == 2) return(c(terms[1], paste0('      ° -- ', terms[2])))
+  if (nterms == 2) return(c(terms[1], paste0('      \U00B0 -- ', terms[2])))
 
   c(terms[1],
-    paste0('      ¦ -- ', terms[2:(nterms-1)]),
-    paste0('      ° -- ', terms[nterms]))
+    paste0('      \U00A6 -- ', terms[2:(nterms-1)]),
+    paste0('      \U00B0 -- ', terms[nterms]))
 }
 
 
@@ -765,7 +768,7 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
       class='alert alert-warning', role = 'alert',
       tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.')),
       tags$hr(),
-      tags$div('🌱 Only human fastq.gz files are currently supported.')
+      tags$div('\U1F331 Only human fastq.gz files are currently supported.')
     ),
 
     div(class='upload-validation dashed-upload',

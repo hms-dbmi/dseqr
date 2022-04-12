@@ -2,7 +2,6 @@
 #'
 #' @inheritParams bulkPage
 #' @inheritParams run_dseqr
-#' @param new_bulk reactive triggers when a new bulk dataset is added
 #'
 #' @return Called with \link[shiny]{callModule} to generate logic for
 #'   single-cell tab.
@@ -45,7 +44,7 @@ drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_sig
 #'
 #' @keywords internal
 #' @noRd
-drugsForm <- function(input, output, session, data_dir, new_bulk, pert_query_dir, pert_signature_dir, tx2gene_dir) {
+drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
 
   new_custom <- reactiveVal()
 
@@ -158,7 +157,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
   observe({
     msg <- error_msg()
     html('error_msg', html = msg)
-    toggleClass('validate', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate', 'has-error', condition = isTruthy(msg))
   })
 
   observeEvent(input$click_custom, {
@@ -230,9 +229,9 @@ selectedDrugStudy <- function(input, output, session, drug_queries, is_pert) {
   show_genes <- reactive(input$show_genes %% 2 != 0)
 
   observe({
-    toggleClass('advanced', 'btn-primary', condition = show_advanced())
-    toggleClass('clinical', 'btn-primary', condition = show_clinical())
-    toggleClass('show_genes', 'btn-primary', condition = show_genes())
+    shinyjs::toggleClass('advanced', 'btn-primary', condition = show_advanced())
+    shinyjs::toggleClass('clinical', 'btn-primary', condition = show_clinical())
+    shinyjs::toggleClass('show_genes', 'btn-primary', condition = show_genes())
   })
 
   # show pert study choices
@@ -394,6 +393,7 @@ selectedPertSignature <- function(input, output, session, data_dir, query_res, q
 #' @noRd
 drugsTable <- function(input, output, session, query_res, sorted_query, drug_study, anal_name, cells, show_clinical, sort_by, min_signatures, is_pert, direction, ntop = 1500) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
+  cmap_annot <- l1000_drugs_annot <- l1000_genes_annot <- NULL
 
   dummy_rendered <- reactiveVal(FALSE)
 
@@ -405,15 +405,15 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 
     # update globals when first use
     if (drug_study == 'CMAP02') {
-      if (is.null(cmap_annot)) cmap_annot <<- get_drugs_table('CMAP02')
+      if (is.null(cmap_annot)) cmap_annot <- get_drugs_table('CMAP02')
       return(cmap_annot)
 
     } else if (drug_study == 'L1000 Drugs') {
-      if (is.null(l1000_drugs_annot)) l1000_drugs_annot <<- get_drugs_table('L1000_drugs')
+      if (is.null(l1000_drugs_annot)) l1000_drugs_annot <- get_drugs_table('L1000_drugs')
       return(l1000_drugs_annot)
 
     } else if (drug_study == 'L1000 Genetic') {
-      if (is.null(l1000_genes_annot)) l1000_genes_annot <<- get_drugs_table('L1000_genes')
+      if (is.null(l1000_genes_annot)) l1000_genes_annot <- get_drugs_table('L1000_genes')
       return(l1000_genes_annot)
     }
   })
@@ -677,7 +677,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
   show_custom <- reactive(input$show_custom %% 2 != 0)
 
   observe({
-    toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
+    shinyjs::toggleClass(id = "show_custom", 'btn-primary', condition = show_custom())
   })
 
   sel_name <- reactive(sel()$dataset_name)

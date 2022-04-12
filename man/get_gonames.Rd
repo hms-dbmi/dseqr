@@ -7,9 +7,9 @@
 get_gonames(genego, gs_dir = NULL)
 }
 \arguments{
-\item{gs_dir}{Directory to save results to}
+\item{genego}{result of \code{\link{get_genego}}}
 
-\item{gslist}{result of \code{\link{get_gslist}}}
+\item{gs_dir}{Directory to save results to}
 }
 \value{
 Description of \code{gslist} gene sets

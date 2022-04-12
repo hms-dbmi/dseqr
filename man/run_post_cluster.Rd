@@ -17,6 +17,10 @@ run_post_cluster(
 \arguments{
 \item{scseq}{SingleCellExperiment}
 
+\item{dataset_name}{Name of dataset}
+
+\item{sc_dir}{Directory with single-cell datasets}
+
 \item{resoln}{resolution parameter}
 
 \item{progress}{progress}
@@ -25,8 +29,6 @@ run_post_cluster(
 
 \item{reset_annot}{if \code{TRUE} then overwrites saved annotation with cluster indices.
 Set to \code{FALSE} when Azimuth is used as cluster annotation is defined.}
-
-\item{integrated}{is \code{scseq} integrated?}
 }
 \description{
 Performs the following:

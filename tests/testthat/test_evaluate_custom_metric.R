@@ -16,7 +16,7 @@ mock_scseq <- function() {
 
 test_that("evaluating a custom metric based on colData works", {
     scseq <- mock_scseq()
-    cutoff <- median(scseq$log10_sum)
+    cutoff <- stats::median(scseq$log10_sum)
     metric <- paste0('log10_sum>', cutoff)
 
     res <- evaluate_custom_metric(metric, scseq)
@@ -39,8 +39,8 @@ test_that("evaluating a custom metric based on a single gene works", {
     expr <- SingleCellExperiment::logcounts(scseq)
 
     gene <- row.names(expr)[1]
-    gene_cutoff <- median(expr[gene, ])
-    log10_sum_cutoff <- median(scseq$log10_sum)
+    gene_cutoff <- stats::median(expr[gene, ])
+    log10_sum_cutoff <- stats::median(scseq$log10_sum)
     metric <- paste0('log10_sum>', log10_sum_cutoff, '&', gene, '<', gene_cutoff)
 
     res <- evaluate_custom_metric(metric, scseq)
@@ -67,8 +67,8 @@ test_that("evaluating a custom metric works with duplicate cell ids", {
     expr <- SingleCellExperiment::logcounts(scseq)
 
     gene <- row.names(expr)[1]
-    gene_cutoff <- median(expr[gene, ])
-    log10_sum_cutoff <- median(scseq$log10_sum)
+    gene_cutoff <- stats::median(expr[gene, ])
+    log10_sum_cutoff <- stats::median(scseq$log10_sum)
     metric <- paste0('log10_sum>', log10_sum_cutoff, '&', gene, '<', gene_cutoff)
 
     res <- evaluate_custom_metric(metric, scseq)
@@ -89,7 +89,7 @@ test_that("evaluating a custom metric works with duplicate cell ids", {
 
 test_that("evaluating a nonsensical metric throws an error", {
     scseq <- mock_scseq()
-    cutoff <- median(scseq$log10_sum)
+    cutoff <- stats::median(scseq$log10_sum)
     metric <- paste0('log10_sum>')
 
     expect_error(evaluate_custom_metric(metric, scseq))

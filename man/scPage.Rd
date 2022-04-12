@@ -29,6 +29,22 @@ scPage(
 \item{sc_dir}{sub folder of \code{data_dir} where single-cell data is stored}
 
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
+
+\item{gs_dir}{Path to directory where gene to Gene Ontology maps produced by \link{get_genego} are saved.}
+
+\item{is_mobile}{is the page being shown on a mobile device? If \code{TRUE},
+then various styles are updated accordingly.}
+
+\item{add_sc}{reactive that is used to trigger the modal to import single-cell datasets.}
+
+\item{remove_sc}{reactive that is used to trigger the modal to delete single-cell datasets.}
+
+\item{integrate_sc}{reactive that is used to trigger the modal to integrate single-cell datasets.}
+
+\item{export_sc}{reactive that is used to trigger the modal to export single-cell datasets.}
 }
 \value{
 Called with \link[shiny]{callModule} to generate logic for

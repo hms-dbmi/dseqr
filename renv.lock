@@ -1874,14 +1874,9 @@
     "symphony": {
       "Package": "symphony",
       "Version": "0.1.0",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "symphony",
-      "RemoteUsername": "immunogenomics",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "feb96b3a1152c4034c760973b2a5a638a1d097d5",
-      "Hash": "869d354ac909b5702424d49f735aa275"
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "6b9e1f1d6f67629b0057dc3f9ea6cc15"
     },
     "sys": {
       "Package": "sys",

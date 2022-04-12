@@ -59,7 +59,7 @@ test_that("multiple scseq datasets can be integrated with harmony", {
 
 test_that("multiple scseq datasets can be integrated with Azimuth", {
     # setup
-    counts <- read.table(
+    counts <- utils::read.table(
         file = system.file("extdata", "pbmc_raw.txt", package = "Seurat"),
         as.is = TRUE
     )

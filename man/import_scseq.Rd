@@ -30,6 +30,9 @@ import_scseq(
 
 \item{sc_dir}{Single cell directory for app. Will store results in \code{dataset_name} subdirectory}
 
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
+
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
 
 \item{progress}{Optional shiny \code{Progress} object. Default will print progress.}

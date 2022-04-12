@@ -18,25 +18,29 @@ run_limma_scseq(
 }
 \arguments{
 \item{summed}{pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
-and the call is assumed to originate from \code{callr::r_bg}.}
+and the call is assumed to originate from \link[callr]{r_bg}.}
 
 \item{meta}{data.frame of sample metadata with column \code{group} and \code{row.names}
 set with \code{summed$batch}}
 
 \item{species}{species name used to retrieve feature annotation.}
 
+\item{trend}{Should limma-trend analysis be run (default is \code{FALSE})? Slightly faster than
+limma-voom (default). Used for pseudobulk grid differential expression analyses.}
+
+\item{method}{normalization method to be used.}
+
+\item{with_fdata}{if \code{TRUE}, adds Entrez IDs to fit object which are needed to
+downstream GO pathway analyses.}
+
 \item{progress}{progress object or \code{NULL}.}
 
+\item{value}{Initial value of progress.}
+
 \item{...}{additional arguments to \link[edgeR]{filterByExpr}.}
-
-\item{fit_path}{path to save fit to.}
-
-\item{dataset_name}{name of dataset (default NULL). Used as return value if \code{summed} is \code{NULL}.}
-
-\item{summed_path}{path to read \code{summed} from with \code{qs::qread}.}
 }
 \value{
-\code{dataset_name} if \code{summed} is \code{NULL}. Otherwise, a fit object.
+List with a fit object, model matrix, and normalized expression matrix.
 }
 \description{
 Run limma on pseudobulk experiment

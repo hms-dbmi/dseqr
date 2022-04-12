@@ -5,6 +5,6 @@ NNTransform <- function(object, meta.data, neighbor.slot = "query_ref.nn", key =
     return(meta.data[ind[i, ], key])
   }))
   rownames(x = ori.index) <- rownames(x = ind)
-  slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
+  methods::slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
   return(object)
 }

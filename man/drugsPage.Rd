@@ -27,7 +27,8 @@ drugsPage(
 
 \item{pert_signature_dir}{Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.}
 
-\item{new_bulk}{reactive triggers when a new bulk dataset is added}
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
 }
 \value{
 Called with \link[shiny]{callModule} to generate logic for

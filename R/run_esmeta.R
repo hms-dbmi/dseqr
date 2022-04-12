@@ -60,7 +60,7 @@ run_pmeta <- function(tts) {
 
   pvals$p.meta <- apply(pvals, 1, sumz)
   pvals <- pvals[!is.na(pvals$p.meta),, drop = FALSE]
-  pvals$fdr <- p.adjust(pvals$p.meta, method = 'BH')
+  pvals$fdr <- stats::p.adjust(pvals$p.meta, method = 'BH')
 
   pvals <- pvals[order(pvals$fdr), c('p.meta', 'fdr')]
   return(pvals)
@@ -68,7 +68,7 @@ run_pmeta <- function(tts) {
 
 
 # adapted from metap
-sumz <- function (p, weights = NULL, data = NULL, subset = NULL, na.action = na.fail) {
+sumz <- function (p, weights = NULL, data = NULL, subset = NULL, na.action = stats::na.fail) {
   p <- p[!is.na(p)]
   weights <- rep(1, length(p))
   keep <- (p > 0) & (p < 1)
@@ -80,10 +80,8 @@ sumz <- function (p, weights = NULL, data = NULL, subset = NULL, na.action = na.
     if (sum(1L * keep) != length(p)) {
       warning("Some studies omitted")
       omitw <- weights[!keep]
-      if ((sum(1L * omitw) > 0) & !noweights)
-        warning("Weights omitted too")
     }
-    zp <- (qnorm(p[keep], lower.tail = FALSE) %*% weights[keep])/sqrt(sum(weights[keep]^2))
+    zp <- (stats::qnorm(p[keep], lower.tail = FALSE) %*% weights[keep])/sqrt(sum(weights[keep]^2))
     p.meta <- stats::pnorm(zp, lower.tail = FALSE)
   }
   return(p.meta)

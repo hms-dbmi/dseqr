@@ -76,7 +76,7 @@ validate_preds <- function(preds, sc_dir) {
 #' @keywords internal
 diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, filter = TRUE) {
 
-  if (is(obj, 'SingleCellExperiment')) {
+  if (methods::is(obj, 'SingleCellExperiment')) {
     abundances <- table(obj$cluster, obj$batch)
     abundances <- unclass(abundances)
     row.names(abundances) <- annot
@@ -181,7 +181,7 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
 get_selected_from_transfer_name <- function(transfer_name, dataset_name) {
   if (is.null(transfer_name)) return(NULL)
 
-  transfer_datasets <- strsplit(transfer_name, ' → ')[[1]]
+  transfer_datasets <- strsplit(transfer_name, ' \U2192 ')[[1]]
   ref_name <- transfer_datasets[1]
   query_name <- transfer_datasets[2]
 
@@ -260,7 +260,7 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
     choices$nsigf  <- html_space(cluster_stats$nsig)
     choices$nbigf  <- html_space(cluster_stats$nbig)
 
-    choices <- rbind(tail(choices, 1), head(choices, nrow(choices)-1))
+    choices <- rbind(utils::tail(choices, 1), utils::head(choices, nrow(choices)-1))
 
   } else {
     # cluster stats has 1 too many for cluster comparison (for 'All Clusters')
@@ -572,15 +572,14 @@ html_space <- function(x, justify = 'right') {
   sprintf('<span style="width:%spx;display:inline-block;">%s</span>', width, x)
 }
 
-#' Get/Save cluster stats for single-cell related selectizeInputs
+#' Get and save cluster stats for single-cell related selectizeInputs
 #'
 #' @param resoln_dir Sub directory with single cell dataset info specific to resolution.
+#' @param contrast_dir Sub directory with single cell dataset info specific to contrast.
 #' @param scseq \code{SingleCellExperiment} object to get/save stats for.
 #'   if \code{NULL} (Default), will be loaded.
 #' @param top_tables List of \code{limma::topTable} results used by
 #'   scSampleComparison for integrated datasets.
-#' @param has_replicates Boolean indicating if integrated dataset has multiple
-#'   samples in at least one group. Used by scSampleComparison.
 #' @param use_disk Should results by saved to disk? used by scSampleComparison
 #'   to persist results to disk.
 #' @inheritParams get_cluster_choices
@@ -795,9 +794,9 @@ get_gene_table <- function(markers,
 
     table <- data.table::data.table(
       Feature = html_features,
-      'ΔAUC' = markers$auc_diff,
+      '\U{0394}AUC' = markers$auc_diff,
       'AUC' = markers[['auc']],
-      'Δ%' = markers$pct_diff,
+      '\U{0394}%' = markers$pct_diff,
       '%IN' = markers$pct_in,
       '%OUT' = markers$pct_out,
       feature = features
@@ -835,7 +834,7 @@ get_leftover_table <- function(features, species = 'Homo sapiens', tx2gene = NUL
 construct_top_markers <- function(markers, scseq) {
 
   # top 10 markers per cluster (allow repeats)
-  top <- lapply(markers, head, 10)
+  top <- lapply(markers, utils::head, 10)
   top <- data.table::rbindlist(top)
 
   # rest of genes
@@ -849,7 +848,7 @@ construct_top_markers <- function(markers, scseq) {
 
 validate_up_meta <- function(res, ref) {
   msg <- NULL
-  groups <- na.exclude(res$group)
+  groups <- stats::na.exclude(res$group)
 
   if (length(unique(groups)) < 2) {
     msg <- 'At least two group names needed.'
@@ -1013,8 +1012,9 @@ integrate_saved_scseqs <- function(
 #' - saving data
 #'
 #' @param scseq SingleCellExperiment
+#' @param dataset_name Name of dataset
+#' @param sc_dir Directory with single-cell datasets
 #' @param resoln resolution parameter
-#' @param integrated is \code{scseq} integrated?
 #' @param progress progress
 #' @param value value
 #' @param reset_annot if \code{TRUE} then overwrites saved annotation with cluster indices.
@@ -1084,7 +1084,7 @@ aggregate_across_cells <- function(scseq) {
 
 #' Integration Utility Function for Background Process
 #'
-#' Used as background process via \link{callr::r_bg}
+#' Used as background process via \link[callr]{r_bg}
 #'
 #' @inheritParams integrate_saved_scseqs
 #' @param integration_types Character vector of integration types to run.
@@ -1602,10 +1602,10 @@ species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
   # df with species gene name and hgnc homologous ensemble id
   species_tx2gene <-
     species_tx2gene %>%
-    dplyr::filter(gene_name %in% symbols) %>%
-    dplyr::select(gene_name, hsapiens_homolog_ensembl_gene) %>%
-    na.omit %>%
-    dplyr::filter(!duplicated(gene_name))
+    dplyr::filter(.data$gene_name %in% symbols) %>%
+    dplyr::select(.data$gene_name, .data$hsapiens_homolog_ensembl_gene) %>%
+    stats::na.omit %>%
+    dplyr::filter(!duplicated(.data$gene_name))
 
   # ensure rows have same order as symbols
   species_tx2gene <-
@@ -1616,10 +1616,10 @@ species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
 
   # df with other symbol and hgnc homologous ensemble id
   other_tx2gene <- other_tx2gene %>%
-    dplyr::select(gene_name, hsapiens_homolog_ensembl_gene) %>%
-    dplyr::filter(!duplicated(hsapiens_homolog_ensembl_gene)) %>%
+    dplyr::select(.data$gene_name, .data$hsapiens_homolog_ensembl_gene) %>%
+    dplyr::filter(!duplicated(.data$hsapiens_homolog_ensembl_gene)) %>%
     dplyr::rename('other_symbol' = 'gene_name') %>%
-    na.omit
+    stats::na.omit
 
   # join the two
   map <- dplyr::left_join(species_tx2gene, other_tx2gene)
@@ -1725,7 +1725,7 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
     if (length(errs)) print(errs)
 
     if (length(msgs)) {
-      last <- tail(msgs, 1)
+      last <- utils::tail(msgs, 1)
       progress$set(value = progress$getValue() + length(msgs),
                    detail = gsub('^\\d+ +', '', last))
 
@@ -1819,16 +1819,19 @@ load_resoln <- function(dataset_dir) {
 #'
 #' @param meta data.frame of sample metadata with column \code{group} and \code{row.names}
 #'   set with \code{summed$batch}
-#' @param fit_path path to save fit to.
 #' @param species species name used to retrieve feature annotation.
-#' @param dataset_name name of dataset (default NULL). Used as return value if \code{summed} is \code{NULL}.
-#' @param summed_path path to read \code{summed} from with \code{qs::qread}.
+#' @param trend Should limma-trend analysis be run (default is \code{FALSE})? Slightly faster than
+#'  limma-voom (default). Used for pseudobulk grid differential expression analyses.
 #' @param summed pseudobulk \code{SingleCellExperiment}. If \code{NULL}, \code{summed_path} must be supplied
-#'   and the call is assumed to originate from \code{callr::r_bg}.
+#'   and the call is assumed to originate from \link[callr]{r_bg}.
+#' @param with_fdata if \code{TRUE}, adds Entrez IDs to fit object which are needed to
+#'  downstream GO pathway analyses.
 #' @param progress progress object or \code{NULL}.
+#' @param value Initial value of progress.
 #' @param ... additional arguments to \link[edgeR]{filterByExpr}.
+#' @inheritParams edgeR::calcNormFactors
 #'
-#' @return \code{dataset_name} if \code{summed} is \code{NULL}. Otherwise, a fit object.
+#' @return List with a fit object, model matrix, and normalized expression matrix.
 #' @export
 #'
 run_limma_scseq <- function(summed, meta, species, trend = FALSE, method = 'TMMwsp', with_fdata = FALSE, progress = NULL, value = 0, ...) {
@@ -2006,8 +2009,9 @@ get_label_coords <- function(coords, labels) {
   coords$label <- labels
 
   coords %>%
-    dplyr::group_by(label) %>%
-    dplyr::summarize(x = median(x), y = median(y))
+    dplyr::group_by(.data$label) %>%
+    dplyr::summarize(x = stats::median(.data$x),
+                     y = stats::median(.data$y))
 }
 
 
@@ -2196,7 +2200,7 @@ importSingleCellModal <- function(session, show_init) {
       tags$br(),
       tags$div("- ", tags$code("*.rds"), "or", tags$code("*.qs"), "with", tags$code("Seurat"), "or", tags$code("SingleCellExperiment"), "objects"),
       hr(),
-      '🌱 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
+      '\U1F331 Add prefixes e.g.', tags$i(tags$b('sample_matrix.mtx')), ' to auto-name samples:',
       tags$a(href = 'https://dseqr.s3.amazonaws.com/GSM3972011_involved.zip', target = '_blank', 'example files.')
     ),
     div(class='upload-validation dashed-upload',
@@ -2334,7 +2338,7 @@ confirmSubsetModal <- function(session,
     clusters_ui,
     metrics_ui,
     hr(),
-    '🌱 Click cancel to change settings'
+    '\U1F331 Click cancel to change settings'
   )
 
   modalDialog(
@@ -2374,7 +2378,7 @@ exportModal <- function(session, choices, selected, options) {
       tags$br(),
       tags$div(tags$code("file.qs"), "with", tags$code("SingleCellExperiment"), "object."),
       hr(),
-      tags$div(tags$b('🌱 To load:')),
+      tags$div(tags$b('\U1F331 To load:')),
       br(),
       tags$code("install.packages('qs')"),
       br(),

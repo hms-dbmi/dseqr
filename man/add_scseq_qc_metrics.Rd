@@ -10,7 +10,7 @@ add_scseq_qc_metrics(sce, for_qcplots = FALSE)
 \item{sce}{\code{SingleCellExperiment}}
 
 \item{for_qcplots}{Are the QC metrics being added for QC plots? Used by
-\link{load_raw_scseq}.}
+\link{import_scseq}.}
 }
 \value{
 \code{sce} with qc metrics added by \code{\link[scater]{addPerCellQC}}

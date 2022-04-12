@@ -34,7 +34,12 @@ run_dseqr(
 
 \item{pert_signature_dir}{Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.}
 
+\item{gs_dir}{Path to directory where gene to Gene Ontology maps produced by \link{get_genego} are saved.}
+
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
 
 \item{app_dir}{Directory containing shiny app files. Default is to use 'app' directory of
 installed dseqr package. Can be 'inst/app' if working from source code.}
@@ -56,6 +61,9 @@ use a random port.}
 \item{is_local}{Is dseqr running locally? If \code{FALSE}, uses CDNs for
 some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
 if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.}
+
+\item{is_example}{Is the app for demonstration purposes? If \code{TRUE}, various features
+are disabled to prevent dataset changes.}
 }
 \value{
 Runs dseqr app

@@ -1,31 +1,40 @@
-#' Plot a single expression by identity on a plot
+#' Violin plot by identity
 #'
-#' @param type Make either a 'ridge' or 'violin' plot
 #' @param data Data to plot
 #' @param idents Idents to use
+#' @param hl Factor used to highlight specific \code{idents} via
+#' fill, alpha, and color geoms.
+#' @param title Plot title
 #' @param sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
 #' @param y.max Maximum Y value to plot
 #' @param adjust Adjust parameter for geom_violin
-#' @param cols Colors to use for plotting
+#' @param pt.size size parameter for geom_jitter
+#' @param pt.shape shape parameter for geom_jitter
+#' @param pct.cells Vector specifying percent of cells that express the marker,
+#' once for each {levels(idents)}. If specified, an annotated bar plot is drawn.
+#' @param ncells Vector specifying number of cells in each {levels(idents)}.
+#' If specified, an annotated bar plot is drawn to indicate number of cells.
+#' @param color Colors to use for fill with length equal to one less than
+#' \code{length(levels(hl))}. The last level of \code{hl} is filled with gray.
+#' @param color_dark Darker versions of \code{color} used for points and lines.
+#' @param nsel Number of selected \code{idents}. Default is 1.
 #' @param log plot Y axis on log scale
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #'
-#' @return A ggplot-based Expression-by-Identity plot
+#' @return A ggplot-based Violin-by-Identity plot
+#' @importFrom rlang %||% .data
 #'
-SingleExIPlot <- function(
+SingleViolinIPlot <- function(
   data,
   idents,
   hl = NULL,
   title = NULL,
-  split = NULL,
-  type = 'violin',
   sort = FALSE,
   y.max = NULL,
   adjust = 1,
   pt.size = 1,
   pt.shape = 20,
-  cols = NULL,
   seed.use = 42,
   log = FALSE,
   color = NULL,
@@ -38,7 +47,7 @@ SingleExIPlot <- function(
     set.seed(seed.use)
   }
   if (!is.data.frame(data) || ncol(data) != 1) {
-    stop("'SingleExIPlot requires a data frame with 1 column")
+    stop("'SingleViolinIPlot requires a data frame with 1 column")
   }
   feature <- 'x'
   data$ident <- idents
@@ -69,19 +78,8 @@ SingleExIPlot <- function(
   }
   axis.label <- ''
   y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
-  if (type == 'violin' && !is.null(split)) {
-    data$split <- split
-    vln.geom <- geom_violin
-    fill <- 'split'
-  } else if (type == 'splitViolin' && !is.null(x = split )) {
-    data$split <- split
-    vln.geom <- geom_split_violin
-    fill <- 'split'
-    type <- 'violin'
-  } else {
-    vln.geom <- ggplot2::geom_violin
-    fill <- 'hl'
-  }
+  vln.geom <- ggplot2::geom_violin
+  fill <- 'hl'
 
   x <- 'ident'
   y <- paste0("`", feature, "`")
@@ -101,22 +99,14 @@ SingleExIPlot <- function(
     ggplot2::coord_flip(),
     theme_dimgray()
   )
-  if (is.null(split)) {
-    jitter_color <- c(color_dark, 'dimgray')[as.numeric(droplevels(hl))]
-    jitter <- ggplot2::geom_jitter(height = 0,
-                                   size = pt.size,
-                                   shape = pt.shape,
-                                   width = 0.1,
-                                   color = jitter_color,
-                                   alpha = ifelse(pt.size < 0.1, 0.3, 0.5),
-                                   show.legend = FALSE)
-  } else {
-    jitter <- ggplot2::geom_jitter(
-      position = ggplot2::position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-      size = pt.size,
-      show.legend = FALSE
-    )
-  }
+  jitter_color <- c(color_dark, 'dimgray')[as.numeric(droplevels(hl))]
+  jitter <- ggplot2::geom_jitter(height = 0,
+                                 size = pt.size,
+                                 shape = pt.shape,
+                                 width = 0.1,
+                                 color = jitter_color,
+                                 alpha = ifelse(pt.size < 0.1, 0.3, 0.5),
+                                 show.legend = FALSE)
   log.scale <- ggplot2::scale_y_log10()
   axis.scale <- ggplot2::ylim
 
@@ -135,38 +125,6 @@ SingleExIPlot <- function(
   }
   if (pt.size[1] > 0) {
     plot <- plot + jitter
-  }
-  if (!is.null(cols)) {
-    if (!is.null(x = split)) {
-      idents <- unique(x = as.vector(x = data$ident))
-      splits <- unique(x = as.vector(x = data$split))
-      labels <- if (length(x = splits) == 2) {
-        splits
-      } else {
-        unlist(x = lapply(
-          X = idents,
-          FUN = function(pattern, x) {
-            x.mod <- gsub(
-              pattern = paste0(pattern, '.'),
-              replacement = paste0(pattern, ': '),
-              x = x,
-              fixed = TRUE
-            )
-            x.keep <- grep(pattern = ': ', x = x.mod, fixed = TRUE)
-            x.return <- x.mod[x.keep]
-            names(x = x.return) <- x[x.keep]
-            return(x.return)
-          },
-          x = unique(x = as.vector(x = data$split))
-        ))
-      }
-      if (is.null(x = names(x = labels))) {
-        names(x = labels) <- labels
-      }
-    } else {
-      labels <- levels(x = droplevels(data$ident))
-    }
-    plot <- plot + ggplot2::scale_fill_manual(values = cols, labels = labels)
   }
 
   # add ncells/pct.cells labels
@@ -200,7 +158,7 @@ SingleExIPlot <- function(
 
   # bars to indicate fraction
   xmin <- diff(range(data$x))*0.1
-  hl.levels <- levels(hl)[seq_along(color)]
+  hl.levels <- levels(hl)[seq_along(color_dark)]
   data <- data[order(hl), ]
   hl.idents <- unique(data$ident[data$hl %in% hl.levels])
   hl.idx <- match(hl.idents, levels(idents))

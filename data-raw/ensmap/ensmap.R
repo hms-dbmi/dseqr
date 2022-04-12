@@ -312,7 +312,7 @@ ENSCAR	Carassius auratus (Goldfish)
 ENSDLA	Dicentrarchus labrax (European seabass)
 ENSSMA	Scophthalmus maximus (Turbot)")
 
-head(ensmap)
+utils::head(ensmap)
 ensmap <- ensmap[!duplicated(ensmap$Prefix), ]
 ensmap <- data.frame(row.names = ensmap$Prefix, species = gsub(' \\(.+?\\)|\\)', '', ensmap$`Species name`))
 saveRDS(ensmap, 'data-raw/ensmap/ensmap.rds')

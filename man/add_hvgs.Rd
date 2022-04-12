@@ -8,6 +8,9 @@ add_hvgs(sce, hvgs = NULL)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment} object}
+
+\item{hvgs}{Character vector of genes to use. Used to specify a priori
+set of genes to use for clustering.}
 }
 \description{
 Runs after \code{preprocess_scseq}

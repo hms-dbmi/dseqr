@@ -48,7 +48,7 @@ server <- function(input, output, session) {
     dir.create(bulk_dir, showWarnings = FALSE)
 
     # hide tour button for docs page
-    observe(toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
+    observe(shinyjs::toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
 
 
     # rintrojs

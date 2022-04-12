@@ -1,7 +1,15 @@
+#' @import celldex
+NULL
 
 #' Logic for Single Cell Tab
 #'
 #' @inheritParams bulkPage
+#' @param is_mobile is the page being shown on a mobile device? If \code{TRUE},
+#'  then various styles are updated accordingly.
+#' @param add_sc reactive that is used to trigger the modal to import single-cell datasets.
+#' @param remove_sc reactive that is used to trigger the modal to delete single-cell datasets.
+#' @param integrate_sc reactive that is used to trigger the modal to integrate single-cell datasets.
+#' @param export_sc reactive that is used to trigger the modal to export single-cell datasets.
 #' @export
 #'
 #' @return Called with \link[shiny]{callModule} to generate logic for
@@ -125,14 +133,14 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
 
   observe({
-    toggleCssClass(id = "sample_comparison_row", 'invisible', condition = scForm$comparison_type() != 'samples')
-    toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
+    shinyjs::toggleCssClass(id = "sample_comparison_row", 'invisible', condition = scForm$comparison_type() != 'samples')
+    shinyjs::toggle(id = "cluster_comparison_row", condition = scForm$comparison_type() == 'clusters')
   })
 
 
   observe({
-    toggle(id = 'biogps_container', condition = !scForm$show_biogps())
-    toggle(id = 'violin_container', condition = scForm$show_biogps())
+    shinyjs::toggle(id = 'biogps_container', condition = !scForm$show_biogps())
+    shinyjs::toggle(id = 'violin_container', condition = scForm$show_biogps())
   })
 
   return(NULL)
@@ -193,7 +201,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   observe(annot(qread.safe(annot_path())))
 
-  observe(toggle('form_container', condition = scDataset$dataset_exists()))
+  observe(shinyjs::toggle('form_container', condition = scDataset$dataset_exists()))
 
 
   # read transposed hdf5 logcounts for fast row indexing
@@ -288,21 +296,21 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
 
   # show the toggle if dataset is integrated
   observe({
-    toggle(id = "comparison_toggle_container",  condition = scDataset$is_integrated())
+    shinyjs::toggle(id = "comparison_toggle_container",  condition = scDataset$is_integrated())
   })
 
 
   # show appropriate inputs based on comparison type
   observe({
-    toggle(id = "cluster_comparison_inputs",  condition = comparisonType() == 'clusters')
-    toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
+    shinyjs::toggle(id = "cluster_comparison_inputs",  condition = comparisonType() == 'clusters')
+    shinyjs::toggle(id = "sample_comparison_inputs",  condition = comparisonType() == 'samples')
   })
 
   # hide sample cluster/feature inputs if not two groups
   have_contrast <- reactive(length(scSampleGroups$groups()) == 2)
   have_cluster <- reactive(isTruthy(scSampleClusters$top_table()))
-  observe(toggle(id = "sample_cluster_input",condition = have_contrast()))
-  observe(toggle(id = "sample_gene_input",condition = have_contrast()))
+  observe(shinyjs::toggle(id = "sample_cluster_input",condition = have_contrast()))
+  observe(shinyjs::toggle(id = "sample_gene_input",condition = have_contrast()))
 
   selected_cluster <- reactiveVal('')
   observe({
@@ -333,7 +341,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   # label transfer between datasets
   # show/hide label transfer forms
   observe({
-    toggle(id = "label-resolution-form", anim = TRUE, condition = scDataset$show_label_resoln())
+    shinyjs::toggle(id = "label-resolution-form", anim = TRUE, condition = scDataset$show_label_resoln())
   })
 
   scLabelTransfer <- callModule(labelTransferForm, 'transfer',
@@ -570,8 +578,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   })
 
   observe({
-    toggle('groups_table_container', condition = show_groups_table())
-    toggleCssClass('edit_groups', 'btn-primary',  condition = show_groups_table())
+    shinyjs::toggle('groups_table_container', condition = show_groups_table())
+    shinyjs::toggleCssClass('edit_groups', 'btn-primary',  condition = show_groups_table())
   })
 
   output$groups_table <- rhandsontable::renderRHandsontable({
@@ -623,14 +631,14 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   observe({
     msg <- error_msg()
     html('error_msg', html = msg)
-    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
   })
 
 
   group_choices <- reactive({
     meta <- prev_meta()
     if (is.null(meta)) return(NULL)
-    groups <- unique(na.exclude(meta$group))
+    groups <- unique(stats::na.exclude(meta$group))
     data.frame(name = groups,
                value = groups, stringsAsFactors = FALSE)
   })
@@ -1225,7 +1233,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
   # indicating if 'All Clusters' selected
-  is.meta <- reactive(input$selected_cluster == tail(names(top_tables()), 1))
+  is.meta <- reactive(input$selected_cluster == utils::tail(names(top_tables()), 1))
 
   top_tables_hs <- reactive({
     tts <- top_tables()
@@ -1364,7 +1372,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   # enable download
   observe({
-    toggleState('click_dl_anal', condition = isTruthy(top_table()))
+    shinyjs::toggleState('click_dl_anal', condition = isTruthy(top_table()))
   })
 
   annot_clusters <- reactive({
@@ -1489,7 +1497,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (!isTruthy(dataset_dir)) return(NULL)
     disableAll(dataset_inputs)
 
-    require(SingleCellExperiment)
     scseq <- load_scseq_qs(dataset_dir)
     gc()
     enableAll(dataset_inputs)
@@ -1648,12 +1655,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   allow_delete <- reactive(isTruthy(input$remove_datasets) & input$confirm_delete == 'delete')
 
   observe({
-    toggleState('delete_dataset', condition = allow_delete())
-    toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
+    shinyjs::toggleState('delete_dataset', condition = allow_delete())
+    shinyjs::toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
   })
 
   observe({
-    toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
+    shinyjs::toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
   })
 
   observeEvent(input$delete_dataset, {
@@ -1665,7 +1672,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observe({
-    toggle('sample_name_container', condition = isTruthy(up_table()))
+    shinyjs::toggle('sample_name_container', condition = isTruthy(up_table()))
   })
 
   validate_add_sample <- function(sample, rows) {
@@ -1690,7 +1697,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     msg <- validate_add_sample(sample, rows)
 
     html('error_msg', html = msg)
-    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
 
     if (is.null(msg)) {
       df <- up_all()
@@ -1712,7 +1719,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observeEvent(input$sample_name, {
     is.text <- nchar(input$sample_name) > 0
-    toggleClass(id = "add_sample", 'btn-success', condition = is.text)
+    shinyjs::toggleClass(id = "add_sample", 'btn-success', condition = is.text)
   })
 
   error_msg_filetype <- reactiveVal()
@@ -1727,7 +1734,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observe({
     msg <- error_msg_filetype()
     html('error_msg_filetype', html = msg)
-    toggleClass('validate-up-filetype', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up-filetype', 'has-error', condition = isTruthy(msg))
   })
 
   # clear error message
@@ -1742,8 +1749,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     names(ds$name) <- ds$name
 
     choices <- ds %>%
-      dplyr::group_by(type) %>%
-      dplyr::summarise(names = list(name))
+      dplyr::group_by(.data$type) %>%
+      dplyr::summarise(names = list(.data$name))
 
     names(choices$names) <- choices$type
     choices <- choices$names
@@ -1817,12 +1824,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   robject_import <- reactive(any(grepl('[.]qs$|[.]rds$', up_all()$name)))
 
   observe({
-    toggleClass('confirm_import_datasets', 'disabled', condition = !isTruthy(input$import_species))
+    shinyjs::toggleClass('confirm_import_datasets', 'disabled', condition = !isTruthy(input$import_species))
   })
 
   observe({
     have_refs <- length(species_refs()) > 0
-    toggle('ref_name_container', condition = have_refs)
+    shinyjs::toggle('ref_name_container', condition = have_refs)
   })
 
   observe({
@@ -1840,7 +1847,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     msg <- validate_scseq_import(up_df, samples)
 
     html('error_msg', html = msg)
-    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
 
     if (!is.null(msg)) return(NULL)
 
@@ -1854,7 +1861,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observe({
-    toggleState('import_datasets', condition = !is.null(up_all()))
+    shinyjs::toggleState('import_datasets', condition = !is.null(up_all()))
   })
 
 
@@ -1879,7 +1886,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     up <- up_all()
     samples <- up_samples()
-    uniq_samples <- unique(na.omit(samples))
+    uniq_samples <- unique(stats::na.omit(samples))
 
     ref_name <- input$ref_name
     if (!isTruthy(ref_name)) ref_name <- NULL
@@ -2004,7 +2011,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   observeEvent(input$confirm_export, {
-    disable('confirm_export')
+    shinyjs::disable('confirm_export')
 
     dataset_dir <- file.path(sc_dir, export_name())
 
@@ -2024,7 +2031,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     progress$set(3)
     shinyjs::click('download_dataset')
-    enable('confirm_export')
+    shinyjs::enable('confirm_export')
   })
 
   output$download_dataset <- downloadHandler(
@@ -2043,16 +2050,16 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # hide integration/label-transfer buttons no dataset
   observe({
-    toggle('show_label_resoln-parent', condition = dataset_exists())
+    shinyjs::toggle('show_label_resoln-parent', condition = dataset_exists())
   })
 
   # color label-resoln button when toggled
   observe({
-    toggleClass('show_label_resoln', 'btn-primary', condition = show_label_resoln())
+    shinyjs::toggleClass('show_label_resoln', 'btn-primary', condition = show_label_resoln())
   })
 
   observe({
-    toggleClass('show_subset', 'btn-primary', condition = show_subset())
+    shinyjs::toggleClass('show_subset', 'btn-primary', condition = show_subset())
   })
 
 
@@ -2119,7 +2126,7 @@ detect_import_species <- function(up_df) {
     genes <- infile[[file.path(genomes[1], slot)]][]
     genes <- data.frame(row.names = genes)
   } else {
-    genes <- read.table(up_df$datapath[gene.file])
+    genes <- utils::read.table(up_df$datapath[gene.file])
     genes <- genes[!is.na(genes$V1), ]
     row.names(genes) <- genes$V1
   }
@@ -2250,7 +2257,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     req(!ref_name %in% names(preds))
     req(show_label_resoln())
 
-    transfer_name <- paste0(ref_name, ' → ', query_name)
+    transfer_name <- paste0(ref_name, ' \U2192 ', query_name)
 
     disableAll(label_transfer_inputs, asis)
     is_disabled(TRUE)
@@ -2386,6 +2393,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   ))
 }
 
+
 # TODO: save SingleR result as resolution independent and perform table on demand
 run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref_name, progress = NULL, value = 0) {
 
@@ -2490,7 +2498,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
   disabled_demo <- getShinyOption('is_example', FALSE)
   observe(if (disabled_demo) {
-    disable('resoln')
+    shinyjs::disable('resoln')
   })
 
   prev_resoln <- reactiveVal()
@@ -2673,7 +2681,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
 
   # show/hide integration forms
   observe({
-    toggle(id = "subset-form", anim = TRUE, condition = show_subset())
+    shinyjs::toggle(id = "subset-form", anim = TRUE, condition = show_subset())
   })
 
   is_include <- reactive({ input$toggle_exclude %% 2 != 0 })
@@ -2726,13 +2734,13 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
   })
 
   observe({
-    toggle('ref_name_container', condition = length(species_refs()) > 0)
+    shinyjs::toggle('ref_name_container', condition = length(species_refs()) > 0)
   })
 
   # change UI of exclude toggle
   observe({
-    toggleClass(id = 'toggle_icon', 'fa-plus text-success', condition = is_include())
-    toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
+    shinyjs::toggleClass(id = 'toggle_icon', 'fa-plus text-success', condition = is_include())
+    shinyjs::toggleClass(id = 'toggle_icon', 'fa-minus text-warning', condition = !is_include())
   })
 
 
@@ -2859,7 +2867,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
   })
 
   # make upload green when have data
-  observe(toggleClass(id = "click_up", 'btn-success', condition = isTruthy(hvgs())))
+  observe(shinyjs::toggleClass(id = "click_up", 'btn-success', condition = isTruthy(hvgs())))
 
 
   # update exclude clusters
@@ -2933,12 +2941,12 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
 
   # disable integration if not enough selected
   observe({
-    toggleState(id = 'submit_integration', condition = allow_integration())
+    shinyjs::toggleState(id = 'submit_integration', condition = allow_integration())
   })
 
 
   # show cluster type choices if enough datasets
-  observe(toggle(id = 'integration_options_container', condition = allow_integration()))
+  observe(shinyjs::toggle(id = 'integration_options_container', condition = allow_integration()))
 
   # set references based on species
   species <- reactive({
@@ -2952,14 +2960,15 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
 
   enable_ref <- reactive(length(species_refs()) > 0)
 
-  observe(toggle('ref_name', condition = enable_ref()))
+  observe(shinyjs::toggle('ref_name', condition = enable_ref()))
   observe({
     disabledChoices <- NULL
     if (!enable_ref()) disabledChoices <- 'reference'
 
-    updateCheckboxGroupButtons(session,
-                               'integration_types',
-                               disabledChoices = disabledChoices)
+    shinyWidgets::updateCheckboxGroupButtons(
+      session,
+      'integration_types',
+      disabledChoices = disabledChoices)
   })
 
   observe({
@@ -2978,7 +2987,7 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
   })
 
   observe({
-    toggle('ref_name_container', condition = use_reference())
+    shinyjs::toggle('ref_name_container', condition = use_reference())
   })
 
   observeEvent(input$submit_integration, {
@@ -3134,8 +3143,8 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   # show/hide rename and select panel
   observe({
     if (disabled_demo) return(NULL)
-    toggle(id = "rename_panel", condition = show_rename())
-    toggle(id = "select_panel", condition = !show_rename())
+    shinyjs::toggle(id = "rename_panel", condition = show_rename())
+    shinyjs::toggle(id = "select_panel", condition = !show_rename())
   })
 
   # show/hide contrasts
@@ -3144,7 +3153,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     icon <- ifelse(show_contrasts(), 'chevron-down', 'chevron-right')
 
     updateActionButton(session, 'show_contrasts', icon = shiny::icon(icon, 'fa-fw'))
-    toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
+    shinyjs::toggleClass(id = "show_contrasts", 'btn-primary', condition = show_contrasts())
   })
 
 
@@ -3228,7 +3237,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
       dataset_name <- dataset_name()
 
       # need dgclogs for presto
-      logcounts(scseq) <- dgclogs()
+      SingleCellExperiment::logcounts(scseq) <- dgclogs()
 
       disableAll(cluster_inputs)
       progress <- Progress$new(session, min = 0, max = 3)
@@ -3309,7 +3318,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
   observe({
-    toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
+    shinyjs::toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
   })
 
   feature <- reactive({
@@ -3329,23 +3338,23 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # toggle for violin plot
   have_biogps <- reactive({
-    toupper(feature()) %in% biogps[, SYMBOL]
+    toupper(feature()) %in% biogps$SYMBOL
   })
 
   sel_violin <- reactive(input$show_biogps %% 2 != 1)
   show_biogps <- reactive(sel_violin() | !have_biogps())
-  observe(toggleClass(id = "show_biogps", 'btn-primary', condition = !sel_violin()))
+  observe(shinyjs::toggleClass(id = "show_biogps", 'btn-primary', condition = !sel_violin()))
 
   # toggle for showing custom metric
   show_custom_metric <- reactive(type != 'samples' && (input$show_custom_metric %%2 != 0))
 
   observe({
-    toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric())
+    shinyjs::toggle('custom_metric_panel', anim = TRUE, condition = show_custom_metric())
     if (show_custom_metric() & have_metric()) selected_gene(input$custom_metric)
   })
 
   observe(if (!show_custom_metric()) selected_gene(isolate(feature())))
-  observe(toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
+  observe(shinyjs::toggleClass('show_custom_metric', class = 'btn-primary', condition = show_custom_metric()))
 
   # toggle for showing pseudobulk grid layer
   show_pbulk <- reactiveVal(FALSE)
@@ -3354,12 +3363,12 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   # prevent grid differential expression on dataset change
   observeEvent(dataset_name(), show_pbulk(FALSE))
 
-  observe(toggleClass(id = "show_pbulk", 'btn-primary', condition = show_pbulk()))
+  observe(shinyjs::toggleClass(id = "show_pbulk", 'btn-primary', condition = show_pbulk()))
 
 
   # disable buttons when not valid
-  observe(toggleState('show_pbulk', condition = can_statistic()))
-  observe(toggleState('show_biogps', condition = have_biogps()))
+  observe(shinyjs::toggleState('show_pbulk', condition = can_statistic()))
+  observe(shinyjs::toggleState('show_biogps', condition = have_biogps()))
 
   saved_metrics <- reactiveVal()
   custom_metrics <- reactiveVal()
@@ -3372,7 +3381,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   have_metric <- reactive(input$custom_metric %in% colnames(custom_metrics()))
   allow_save <- reactive(try(!input$custom_metric %in% row.names(scseq())))
 
-  observe(toggleState('save_custom_metric', condition = allow_save()))
+  observe(shinyjs::toggleState('save_custom_metric', condition = allow_save()))
 
   # for updating plot of current custom metric
   observe({
@@ -3513,13 +3522,15 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     cols <- colnames(tables[[1]])
     if (qc_first) tables <- tables[c(2,1,3)]
 
-    res <- data.table::rbindlist(tables, fill = TRUE)[, ..cols]
+    res <- data.table::rbindlist(tables, fill = TRUE)[, cols, with=FALSE]
 
     prev <- isolate(gene_table())
     if (!identical(res, prev)) gene_table(res)
   })
 
   output$gene_table <- DT::renderDataTable({
+    # CRAN check fix
+    .SD <- NULL
 
     gene_table <- gene_table()
     if (is.null(gene_table)) return(NULL)
@@ -3597,7 +3608,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
   })
 
   observe({
-    toggle('gene_search_input', condition = !is.null(gene_table()))
+    shinyjs::toggle('gene_search_input', condition = !is.null(gene_table()))
   })
 
 
@@ -3651,7 +3662,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
 
   show_plot <- reactive(!is.null(scseq()))
-  observe(toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
+  observe(shinyjs::toggleCssClass('cluster_plot_container', class = 'invisible', condition = !show_plot()))
 
   coords <- reactiveVal()
   observe({
@@ -3769,11 +3780,11 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       if (is.null(polygons)) return(NULL)
 
       polygons <- add_grid_colors(polygons)
-      title(paste0('Δ EXPRESSION: ', gene))
+      title(paste0('\U0394 EXPRESSION: ', gene))
 
     } else {
       polygons <- grid_abundance()
-      title('Δ CELLS')
+      title('\U0394 CELLS')
     }
 
     return(polygons)
@@ -3820,10 +3831,10 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   }, priority = 100)
 
   grid_legend_items = list(
-    list(color = '#FF0000', label = '↑'),
-    list(color = '#0000FF', label = '↓'),
-    list(color = '#989898', label = 'p < .05'),
-    list(color = '#EAEAEA', label = 'p ≥ .05')
+    list(color = '#FF0000', label = '\U2191'), # up-arrow
+    list(color = '#0000FF', label = '\U2193'), # down-arrow
+    list(color = '#989898', label = 'p \U003C .05'),# lt
+    list(color = '#EAEAEA', label = 'p \U2265 .05') # gte
   )
 
   output$cluster_plot <- picker::renderPicker({
@@ -3984,7 +3995,7 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
 scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selected_feature, h5logs, clusters_view, is_mobile, meta = function()NULL, groups = function()NULL, show_plot = function()TRUE, markers_view = function()NULL, group = NULL, show_controls = FALSE, deck_props = NULL, added_metrics = function()NULL) {
 
 
-  observe(toggleCssClass('marker_plot_container', 'invisible', condition = !(show_plot() && have_colors())))
+  observe(shinyjs::toggleCssClass('marker_plot_container', 'invisible', condition = !(show_plot() && have_colors())))
   have_colors <- reactive(length(colors()))
 
   coords <- reactive({
@@ -4236,7 +4247,7 @@ scBioGpsPlot <- function(input, output, session, selected_gene, species) {
 scViolinPlot <- function(input, output, session, selected_gene, selected_cluster, scseq, annot, clusters, plots_dir, h5logs, is_mobile) {
 
   show_plot <- reactive(!is.null(plot()))
-  observe(toggle('violin_plot', condition = show_plot()))
+  observe(shinyjs::toggle('violin_plot', condition = show_plot()))
 
 
   violin_data <- reactive({

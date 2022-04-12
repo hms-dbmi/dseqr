@@ -348,7 +348,7 @@ get_genego <- function(species = 'Hs', gs_dir = NULL) {
 
 #' Get names of gene set
 #'
-#' @param gslist result of \code{\link{get_gslist}}
+#' @param genego result of \code{\link{get_genego}}
 #' @param gs_dir Directory to save results to
 #'
 #' @return Description of \code{gslist} gene sets

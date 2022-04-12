@@ -9,6 +9,9 @@ run_reduction(sce, type = c("auto", "TSNE", "UMAP"), dimred = "PCA")
 \arguments{
 \item{sce}{\code{SingleCellExperiment}}
 
+\item{type}{One of \code{c('auto', 'TSNE', 'UMAP')}. If \code{'auto'} (default),
+runs UMAP is more than 5000 cells, otherwise TSNE.}
+
 \item{dimred}{reducedDim to run TSNE or UMAP on}
 }
 \value{

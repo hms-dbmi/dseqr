@@ -8,7 +8,10 @@
 #' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
+#' @param gs_dir Path to directory where gene to Gene Ontology maps produced by \link{get_genego} are saved.
 #' @param indices_dir Path to directory containing \code{kallisto} indices and whitelists.
+#' @param tx2gene_dir Path to directory containing transcript to gene maps
+#'  produced by \link[dseqr.data]{load_tx2gene}.
 #' @param app_dir Directory containing shiny app files. Default is to use 'app' directory of
 #'  installed dseqr package. Can be 'inst/app' if working from source code.
 #' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
@@ -17,6 +20,8 @@
 #' @param is_local Is dseqr running locally? If \code{FALSE}, uses CDNs for
 #'  some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
 #'  if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.
+#' @param is_example Is the app for demonstration purposes? If \code{TRUE}, various features
+#'  are disabled to prevent dataset changes.
 #' @inheritParams init_dseqr
 #' @inheritParams shiny::runApp
 #'
@@ -77,6 +82,9 @@ run_dseqr <- function(project_name,
 
 
   if (test) {
+    if (!requireNamespace('shinytest'))
+      stop("package 'shinytest' required to record tests")
+
     # TODO: run test and return
     shinytest::recordTest(app_dir, seed = 0, loadTimeout = 100000)
     options(shiny.testmode = TRUE)
@@ -114,7 +122,7 @@ run_dseqr <- function(project_name,
 #'
 #' Creates necessary folders/files for a new dseqr app inside of /srv/shiny-server/dseqr.
 #'
-#' @param anal_name Name for new dseqr app.
+#' @param project_name Name for new dseqr app.
 #' @param data_dir Path to put \code{anal_name} directory where app will be
 #' initialized. Default is \code{'/srv/dseqr'} (for hosting app on server).
 #'

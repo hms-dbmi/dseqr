@@ -24,6 +24,6 @@ run_integrate_saved_scseqs(
 TRUE is successful, otherwise FALSE
 }
 \description{
-Used as background process via \link{callr::r_bg}
+Used as background process via \link[callr]{r_bg}
 }
 \keyword{internal}

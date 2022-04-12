@@ -9,9 +9,3 @@ suppressPackageStartupMessages({
   library(shinypanel)
   library(magrittr)
 })
-
-# setup Drugs table annotation
-# variable get updated when they are first needed
-cmap_annot <- NULL
-l1000_drugs_annot <- NULL
-l1000_genes_annot <- NULL

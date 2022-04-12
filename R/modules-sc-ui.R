@@ -292,7 +292,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
   gene_btn   <- actionButton(ns('genecards'), label = NULL, icon = icon('external-link-alt', 'fa-fw'), title = 'Go to GeneCards')
   custom_btn <- actionButton(ns('show_custom_metric'), label = NULL, icon = tags$i(class ='far fa-fw fa-edit'), title = 'Toggle custom metric')
   biogps_btn  <- actionButton(ns('show_biogps'), label = NULL, icon = icon('chart-line', 'fa-fw'), title = 'Toggle BioGPS plot')
-  pbulk_btn  <- actionButton(ns('show_pbulk'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle between Δ EXPRESSION and Δ CELLS layer')
+  pbulk_btn  <- actionButton(ns('show_pbulk'), label = NULL, icon = icon('chart-bar', 'fa-fw'), title = 'Toggle between \U0394 EXPRESSION and \U0394 CELLS layer')
 
   if (sample_comparison) {
     btn1 <- NULL
@@ -320,7 +320,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
           shinypanel::textAreaInputWithButtons(
             inputId = ns('custom_metric'),
             label = 'Custom metric:',
-            placeholder = 'e.g: PF4>2.2',
+            placeholder = 'e.g: PF4\u{003E}2.2',
             actionButton(ns('save_custom_metric'), '',
                          icon = icon('plus', 'fa-fw'),
                          title = 'Save custom metric'))

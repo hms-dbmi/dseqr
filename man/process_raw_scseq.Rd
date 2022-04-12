@@ -26,6 +26,21 @@ process_raw_scseq(
 
 \item{sc_dir}{Directory to save dataset to}
 
+\item{tx2gene_dir}{Path to directory containing transcript to gene maps
+produced by \link[dseqr.data]{load_tx2gene}.}
+
+\item{cluster_alg}{Cluster algorith. Either \code{'leiden'} (default) or \code{'walktrap'}.}
+
+\item{npcs}{Number of principal components to use. Default is 30.}
+
+\item{resoln}{\code{resolution_parameter} used by \link[igraph]{cluster_leiden} if
+\code{cluster_alg = 'leiden'}.}
+
+\item{hvgs}{Character vector of a priori genes to use for PCA. If \code{NULL} (default),
+highly variable genes are calulated by \link[scran]{getTopHVGs}.}
+
+\item{ref_name}{Name of symphony or Azimuth reference to use for reference-based analysis.}
+
 \item{founder}{Name of original founding dataset (may be ancestor of \code{from_dataset}).}
 
 \item{progress}{Shiny progress object. Default (\code{NULL}) prints to stdout.}

@@ -13,14 +13,15 @@ send_slack_error <- function(project) {
         url = slack$errors,
         httr::add_headers('Content-Type' = 'application/json'),
         body = sprintf(
-            '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s 🙎"}',
+            '{"text": "`%s` \n%s \n\n *project*: %s \n *user*: %s \U1F64E"}',
             message,
             stack,
             project,
             user)
     )
 
-    shinyjs::alert('Sorry about that! \n\n Error has been reported and will be fixed promptly. \n\n (ﾉ´ｰ`)ﾉ')
+    # sorry text-moji
+    shinyjs::alert('Sorry about that! \n\n Error has been reported and will be fixed promptly. \n\n (\u{FF89}\u{B4}\u{FF70}`)\u{FF89}')
 }
 
 slackify_stack <- function(stack) {
@@ -28,10 +29,10 @@ slackify_stack <- function(stack) {
     is.user <- stack$category == 'user'
 
     res <- stack %>%
-        dplyr::select(-category) %>%
-        dplyr::mutate(num = paste0('`', num, ':`')) %>%
+        dplyr::select(-.data$category) %>%
+        dplyr::mutate(num = paste0('`', .data$num, ':`')) %>%
         tidyr::unite(col = res, sep=' ') %>%
-        dplyr::pull(res)
+        dplyr::pull(.data$res)
 
     res[is.user] <- paste0('*', res[is.user], '*')
 

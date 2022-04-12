@@ -6,6 +6,8 @@
 #' @param data_dir path to folder with application name
 #' @param sc_dir sub folder of \code{data_dir} where single-cell data is stored
 #' @param bulk_dir sub folder of \code{data_dir} where bulk data is stored
+#' @param add_bulk reactive that triggers modal to upload a bulk dataset
+#' @param remove_bulk reactive that triggers modal for deleting bulk datasets
 #' @inheritParams run_dseqr
 #'
 #' @return list with reactive \code{new_dataset} that is triggered with a new
@@ -421,12 +423,12 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
   allow_delete <- reactive(isTruthy(input$remove_datasets) & input$confirm_delete == 'delete')
 
   observe({
-    toggleState('delete_dataset', condition = allow_delete())
-    toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
+    shinyjs::toggleState('delete_dataset', condition = allow_delete())
+    shinyjs::toggleClass('delete_dataset', class = 'btn-danger', condition = allow_delete())
   })
 
   observe({
-    toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
+    shinyjs::toggle('confirm_delete_container', condition = isTruthy(input$remove_datasets))
   })
 
   observeEvent(input$delete_dataset, {
@@ -536,7 +538,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
   observe({
     msg <- error_msg_fastq()
     html('error_msg_fastq', html = msg)
-    toggleClass('validate-up-fastq', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up-fastq', 'has-error', condition = isTruthy(msg))
   })
 
   # append to uploads table
@@ -731,7 +733,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
   observe({
     msg <- error_msg_labels()
     html('error_msg_labels', html = msg)
-    toggleClass('fastq_labels_container', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('fastq_labels_container', 'has-error', condition = isTruthy(msg))
   })
 
   # hide/show inputs based on user selections
@@ -959,7 +961,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
   show_dtangle <- reactive(input$show_dtangle %% 2 != 0)
 
   observe({
-    toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
+    shinyjs::toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
   })
 
   dtangleForm <- callModule(
@@ -1234,7 +1236,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     # use markers in top 10th quantile with a minimum of 3
     q = 0.1
-    quantiles = lapply(marker_list$V,function(x) quantile(x,1-q))
+    quantiles = lapply(marker_list$V,function(x) stats::quantile(x,1-q))
     K = length(pure_samples)
     n_markers = sapply(seq_len(K),function(i){
       min(
@@ -1435,7 +1437,7 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
   observe({
     msg <- error_msg()
     html('error_msg', html = msg)
-    toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
+    shinyjs::toggleClass('validate-up', 'has-error', condition = isTruthy(msg))
   })
 
   observeEvent(input$up_annot, {
@@ -1678,7 +1680,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   # enable download
   observe({
-    toggleState('download', condition = valid_contrast())
+    shinyjs::toggleState('download', condition = valid_contrast())
   })
 
   dl_fname <- reactive({
