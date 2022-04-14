@@ -188,6 +188,26 @@ add_cluster_numbers <- function(annot, pad_left = FALSE) {
   return(annot)
 }
 
+#' Violin Plot
+#'
+#' @param feature Character, gene name.
+#' @param scseq \code{SingleCellExperiment} object.
+#' @param selected_cluster Integer indicating which \code{level(scseq$cluster)} to highlight
+#' (if \code{by.sample} is \code{FALSE}) or to subset data to (if \code{by.sample} is \code{TRUE}).
+#' To plot by sample without subsetting to a cluster, set to \code{nlevels(scseq$cluster) + 1}.
+#' @param by.sample Boolean indicating if violin plots should be by sample or by cluster (default).
+#' @param with_all Set to \code{TRUE} if plotting by sample to get same colors as Shiny app.
+#' @param with.height if \code{TRUE} returns a list object with plot and appropriate height.
+#' @param violin_data Used for Shiny app. Result of \code{get_violin_data}.
+#' Used when logcounts are seperate from \code{SingleCellExperiment} as in the Shiny app.
+#' @param is_mobile If \code{TRUE} shortens up y-axis labels to fit mobile better.
+#' @param hide_pct If \code{TRUE}, barplots indicating number of cells are hidden.
+#' @param hide_ncells If \code{TRUE}, barplots indicating percent expression are hidden.
+#' @param decreasing if \code{FALSE} (default) violins are ordered, bottom to top,
+#' by increasing mean expression.
+#'
+#' @return \code{ggplot} or list
+#'
 plot_violin <- function(feature = NULL,
                         scseq = NULL,
                         selected_cluster = NULL,
@@ -196,9 +216,13 @@ plot_violin <- function(feature = NULL,
                         with.height = FALSE,
                         violin_data = NULL,
                         is_mobile = FALSE,
+                        hide_pct = is_mobile,
+                        hide_ncells = is_mobile,
                         decreasing = feature %in% c('ribo_percent',
                                                     'log10_sum',
                                                     'log10_detected')) {
+
+  selected_cluster <- as.character(selected_cluster)
 
   # global variable bindings created by list2env
   df = nsel = seli = color = color_dark = ncells = pct.cells = clus_ord = clus_levs = title = NULL
@@ -229,9 +253,10 @@ plot_violin <- function(feature = NULL,
   }
 
   data <- as.data.frame(df[,'x'])
-
   height <- length(levels(df$y)) * 38  + 130
-  if (is_mobile) ncells <- pct.cells <- NULL
+
+  if (hide_pct) pct.cells <- NULL
+  if (hide_ncells) ncells <- NULL
 
   # will color violins for all if not enough in highlight group
   n1.hl <- table(df$hl)
