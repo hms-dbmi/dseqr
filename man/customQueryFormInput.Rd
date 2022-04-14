@@ -6,6 +6,9 @@
 \usage{
 customQueryFormInput(id)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 Input form for custom query on Drugs page
 }

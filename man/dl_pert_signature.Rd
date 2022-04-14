@@ -11,6 +11,9 @@ dl_pert_signature(sig_path, pert_type)
 
 \item{pert_type}{One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.}
 }
+\value{
+\code{NULL}. Called for side effects.
+}
 \description{
 Download CMAP02/L1000 pert signature from S3
 }

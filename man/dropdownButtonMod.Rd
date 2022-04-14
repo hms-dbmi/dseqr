@@ -54,6 +54,9 @@ and you can use the id to toggle the dropdown menu server-side with \code{\link[
 
 \item{title}{title attribute for button}
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 Button is wrapped in input-group-btn class to allow inline with forms. Also includes title parameter.
 }

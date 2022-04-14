@@ -26,7 +26,7 @@ load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FAL
 #' @param pert_type One of \code{'cmap'}, \code{'l1000_drugs'}, or \code{'l1000_genes'}.
 #' @keywords internal
 #'
-#' @return NULL
+#' @return \code{NULL}. Called for side effects.
 #'
 #' @examples
 #' data_dir <- tempdir()
@@ -48,6 +48,7 @@ dl_pert_signature <- function(sig_path, pert_type) {
 #'
 #' @param top_table Filtered result of \code{\link[limma]{toptable}}
 #' to limit number of plotted genes.
+#' @return \code{data.frame} used for plotting query genes in Drugs tab
 #'
 #' @keywords internal
 construct_path_df <- function(top_table) {

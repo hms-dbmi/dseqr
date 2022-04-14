@@ -188,7 +188,7 @@ get_10x_whitepath <- function(indices_dir, bus_args) {
 #'
 #' @inheritParams run_kallisto_scseq
 #'
-#' @return NULL
+#' @return \code{NULL}. Called for side effects.
 #'
 #' @keywords internal
 dl_10x_whitelists <- function(indices_dir) {

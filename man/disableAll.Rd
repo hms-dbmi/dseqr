@@ -9,6 +9,9 @@ disableAll(ids, asis = rep(FALSE, length(ids)))
 \arguments{
 \item{ids}{Character vector of ids to disable}
 }
+\value{
+called for side effects
+}
 \description{
 Disable multiple ids
 }

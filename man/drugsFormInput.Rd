@@ -6,6 +6,9 @@
 \usage{
 drugsFormInput(id)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 Input form for Drugs page
 }

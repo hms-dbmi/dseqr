@@ -10,6 +10,9 @@ construct_path_df(top_table)
 \item{top_table}{Filtered result of \code{\link[limma]{toptable}}
 to limit number of plotted genes.}
 }
+\value{
+\code{data.frame} used for plotting query genes in Drugs tab
+}
 \description{
 Used by get_path_df to construct the return result
 }

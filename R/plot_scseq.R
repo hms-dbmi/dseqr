@@ -166,6 +166,11 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 #' @return \code{annot} with cluster numbers pre-pended to non-numeric values.
 #' @export
 #'
+#' @examples
+#'
+#' annot <- c('Monocytes', '2')
+#' add_cluster_numbers(annot)
+#'
 add_cluster_numbers <- function(annot, pad_left = FALSE) {
 
   nums <- seq_along(annot)
@@ -196,7 +201,7 @@ plot_violin <- function(feature = NULL,
                                                     'log10_detected')) {
 
   # global variable bindings created by list2env
-  df = nsel = seli = color = color_dark = ncells = pct.cells = clus_ord = clus_levs = title = by.sample = NULL
+  df = nsel = seli = color = color_dark = ncells = pct.cells = clus_ord = clus_levs = title = NULL
 
   if (is.null(violin_data)) {
     violin_data <- get_violin_data(
@@ -299,7 +304,7 @@ theme_no_axis_vals <- function() {
 plot_biogps <- function(gene) {
 
   gene_dat <- unlist(biogps[gene, -c('ENTREZID', 'SYMBOL')])
-  gene_dat <- sort(gene_dat, decreasing = TRUE)[1:15]
+  gene_dat <- sort(gene_dat, decreasing = TRUE)[seq(15)]
   gene_dat <- tibble::tibble(mean = gene_dat,
                              source = factor(names(gene_dat), levels = rev(names(gene_dat))))
 
@@ -333,6 +338,10 @@ plot_biogps <- function(gene) {
 #' @return Character vector with colour codes of \code{length(levs)}.
 #'
 #' @export
+#' @examples
+#' levs <- c('CD14 Mono', 'CD16 Mono', 'NK Cells')
+#' get_palette(levs)
+#'
 get_palette <- function(levs, dark = FALSE, with_all = FALSE) {
   if (with_all) levs <- c(levs, 'All Clusters')
 
@@ -499,8 +508,8 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   binxy <- data.frame(x = findInterval(points[,1], x),
                       y = findInterval(points[,2], y))
 
-  binxy$x <- factor(binxy$x, levels = 1:nx)
-  binxy$y <- factor(binxy$y, levels = 1:ny)
+  binxy$x <- factor(binxy$x, levels = seq_len(nx))
+  binxy$y <- factor(binxy$y, levels = seq_len(ny))
 
   # bin by group for color (logFC sign)
   binxy$group <- factor(dsamp$group)
@@ -512,8 +521,8 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   binxy <- data.frame(x = findInterval(points[,1], x),
                       y = findInterval(points[,2], y))
 
-  binxy$x <- factor(binxy$x, levels = 1:nx)
-  binxy$y <- factor(binxy$y, levels = 1:ny)
+  binxy$x <- factor(binxy$x, levels = seq_len(nx))
+  binxy$y <- factor(binxy$y, levels = seq_len(ny))
 
   # bin by sample for alpha (pvals)
   binxy$group <- factor(dat$sample)
@@ -547,8 +556,8 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
   d$diff[not.zero] <- d$diff[not.zero]/d$tots[not.zero]
 
   # get xy coords that define polygons in grid
-  diff.x <- diff(x[1:2])
-  diff.y <- diff(y[1:2])
+  diff.x <- diff(x[c(1, 2)])
+  diff.y <- diff(y[c(1, 2)])
 
   x2 <- x + diff.x
   d$x1 <- x[d$x]

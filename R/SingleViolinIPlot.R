@@ -72,7 +72,7 @@ SingleViolinIPlot <- function(
     noise <- stats::rnorm(n = length(data[, feature])) / 100000
   }
   if (all(data[, feature] == data[, feature][1])) {
-    warning(paste0("All cells have the same value of ", feature, "."))
+    warning("All cells have the same value of ", feature, ".")
   } else{
     data[, feature] <- data[, feature] + noise
   }

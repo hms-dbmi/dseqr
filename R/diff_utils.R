@@ -239,7 +239,7 @@ plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '
         xaxis = xaxis,
         yaxis = yaxis,
         annotations = list(
-          list(x = 0.5 , y = 1.055, text = "Not Adjusted", showarrow = F, xref='paper', yref='paper'))
+          list(x = 0.5 , y = 1.055, text = "Not Adjusted", showarrow = FALSE, xref='paper', yref='paper'))
         ) %>%
       plotly::config(displaylogo = FALSE, displayModeBar = FALSE)
 
@@ -263,7 +263,7 @@ plotlyMDS <- function(scaling, scaling_adj = NULL, group_colors = c('#337ab7', '
         xaxis = xaxis,
         yaxis = yaxis,
         annotations = list(
-          list(x = 0.5 , y = 1.055, text = "Adjusted", showarrow = F, xref='paper', yref='paper'))
+          list(x = 0.5 , y = 1.055, text = "Adjusted", showarrow = FALSE, xref='paper', yref='paper'))
       ) %>%
       plotly::config(displaylogo = FALSE,
                      displayModeBar = 'hover',

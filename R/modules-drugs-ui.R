@@ -5,6 +5,10 @@
 #' @return shiny.tag with html for drugs tab
 #'
 #' @export
+#' @examples
+#'
+#' drugsPageUI("drug", tab = 'Drugs', active = 'Single Cell')
+#'
 drugsPageUI <- function(id, tab, active) {
   ns <- NS(id)
 
@@ -37,6 +41,7 @@ drugsPageUI <- function(id, tab, active) {
 
 #' Input form for Drugs page
 #'
+#' @return \code{shiny.tag}
 #' @keywords internal
 drugsFormInput <- function(id) {
   ns <- NS(id)
@@ -62,6 +67,7 @@ drugsFormInput <- function(id) {
 
 #' UI for query/drug genes plotly
 #'
+#' @return \code{shiny.tag}
 #' @keywords internal
 drugsGenesPlotlyOutput <- function(id) {
   ns <- NS(id)
@@ -75,12 +81,13 @@ drugsGenesPlotlyOutput <- function(id) {
 
 #' Output table for Drugs Page
 #'
+#' @return \code{shiny.tag}
 #' @keywords internal
 drugsTableOutput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    hidden(downloadButton(ns('dl_drugs'), class = 'hide-btn', label = NULL)),
+    shinyjs::hidden(downloadButton(ns('dl_drugs'), class = 'hide-btn', label = NULL)),
     tags$div(class = 'dt-container',
              DT::dataTableOutput(ns("query_table"))
     ),
@@ -114,6 +121,7 @@ selectedPertSignatureInput <- function(id) {
 
 #' Input form for custom query on Drugs page
 #'
+#' @return \code{shiny.tag}
 #' @keywords internal
 customQueryFormInput <- function(id) {
   ns <- NS(id)
@@ -140,6 +148,7 @@ customQueryFormInput <- function(id) {
 #' advanced options input for drugs page
 #'
 #' @keywords internal
+#' @return \code{shiny.tag}
 advancedOptionsInput <- function(id) {
   ns <- NS(id)
 

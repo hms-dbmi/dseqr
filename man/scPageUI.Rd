@@ -19,3 +19,8 @@ shiny.tag with html for single-cell tab
 \description{
 UI for Single Cell Exploration page
 }
+\examples{
+
+scPageUI('sc', tab = 'Single Cell', active = 'Single Cell')
+
+}

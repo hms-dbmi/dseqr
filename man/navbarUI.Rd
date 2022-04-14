@@ -19,3 +19,9 @@ shiny.tag with html for navbar
 \description{
 UI for navbar
 }
+\examples{
+
+# UI with only Single-Cell page
+navbarUI('Single Cell', 'Single Cell')
+
+}

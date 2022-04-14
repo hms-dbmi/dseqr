@@ -196,9 +196,11 @@ load_custom_results <- function(res_paths, is_pert) {
 #'
 #' @param res_path Path to download file to.
 #'
-#' @return NULL
+#' @return \code{NULL}. Called for side effects.
 #' @keywords internal
+#'
 #' @examples
+#'
 #' data_dir <- tempdir()
 #' res_path <- file.path(data_dir, 'cmap_res_BRD-K45319408_PC3_5um_24h.rds')
 #' dseqr:::dl_pert_result(res_path)

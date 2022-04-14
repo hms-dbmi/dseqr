@@ -5,6 +5,10 @@
 #' @return shiny.tag with html for bulk data tab
 #'
 #' @export
+#' @examples
+#'
+#' bulkPageUI("bulk", tab = 'Bulk Data', active = 'Single Cell')
+#'
 bulkPageUI <- function(id, tab, active) {
   ns <- NS(id)
   withTags({

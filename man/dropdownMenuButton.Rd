@@ -6,6 +6,9 @@
 \usage{
 dropdownMenuButton(id, label)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 Dropdown menu button for dsLabelRowsUI
 }

@@ -154,7 +154,7 @@ toString.data.frame = function (object, ..., digits=NULL, quote=FALSE, right=TRU
             rowNames = dimnames(object)[[1]];
             if(is.null(rowNames)) {
                 # no row header available -> use row numbers
-                rowNames = as.character(1:NROW(m));
+                rowNames = as.character(seq_len(nrow(m)));
             }
             # add empty header (used with column headers)
             rowNames = c("", rowNames);

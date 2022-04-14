@@ -9,6 +9,9 @@ enableAll(ids, asis = rep(FALSE, length(ids)))
 \arguments{
 \item{ids}{Character vector of ids to enable}
 }
+\value{
+No return value. Called for side effects.
+}
 \description{
 Enable multiple ids
 }

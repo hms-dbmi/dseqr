@@ -19,3 +19,8 @@ shiny.tag with html for bulk data tab
 \description{
 UI for Bulk Data page
 }
+\examples{
+
+bulkPageUI("bulk", tab = 'Bulk Data', active = 'Single Cell')
+
+}

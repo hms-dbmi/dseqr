@@ -855,7 +855,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
     unlink(fastq_dir, recursive = TRUE)
     dir.create(fastq_dir, showWarnings = FALSE)
 
-    for (i in 1:nrow(up_df)) {
+    for (i in seq_len(nrow(up_df))) {
       dpath <- up_df$datapath[i]
       fpath <- file.path(fastq_dir, up_df$name[i])
       file.move(from = dpath, to = fpath)

@@ -15,4 +15,13 @@ list of data.frames, one for each cluster
 \description{
 Get cluster markers using presto
 }
+\examples{
+
+if (requireNamespace("SingleCellExperiment", quietly = TRUE)) {
+  data('object_sce', package = 'presto')
+  object_sce$cluster <- object_sce$cell_type
+  markers <- get_presto_markers(object_sce)
+}
+
+}
 \keyword{internal}

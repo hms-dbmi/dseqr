@@ -7,6 +7,10 @@
 #' @return shiny.tag with html for single-cell tab
 #'
 #' @export
+#' @examples
+#'
+#' scPageUI('sc', tab = 'Single Cell', active = 'Single Cell')
+#'
 scPageUI <- function(id, tab, active) {
   ns <- NS(id)
   active_class <- ifelse(tab == active, 'active', '')

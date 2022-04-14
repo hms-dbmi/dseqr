@@ -220,7 +220,7 @@ sort_query_table_clin <- function(query_table_clin, sort_by, sort_abs, direction
     dplyr::select(-min_cor, -avg_cor, -max_cor, -n)
 
   if (!remove_html) q <- q %>%
-    dplyr::mutate(Rank = paste0('<span class="rank-label label label-default" title="', rank_title, '">', 1:nrow(q), '</span>'))
+    dplyr::mutate(Rank = paste0('<span class="rank-label label label-default" title="', rank_title, '">', seq_len(nrow(q)), '</span>'))
 
   return(q)
 }

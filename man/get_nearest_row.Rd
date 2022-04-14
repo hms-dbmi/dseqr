@@ -26,7 +26,8 @@ truth <- matrix(data=runif(events, min = 0, max = 1), nrow=K)
 E <- 2
 test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 
-dseqr:::get_nearest_row(truth, test)
+get_nearest_row(truth, test)
 #[1] 4 3
+
 }
 \keyword{internal}

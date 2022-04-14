@@ -2,16 +2,21 @@
 % Please edit documentation in R/import_scseq.R
 \name{add_hvgs}
 \alias{add_hvgs}
-\title{Get top highly variable genes for subsequent dimensionality reduction}
+\title{Add top highly variable genes for subsequent dimensionality reduction}
 \usage{
 add_hvgs(sce, hvgs = NULL)
 }
 \arguments{
 \item{sce}{\code{SingleCellExperiment} object}
 
-\item{hvgs}{Character vector of genes to use. Used to specify a priori
-set of genes to use for clustering.}
+\item{hvgs}{Character vector of genes to use. Used to specify external
+set of highly variable genes.}
+}
+\value{
+\code{sce} a boolean vector added to \code{rowData(sce)$hvg} that
+indicates which rows correspond to highly variable genes.
 }
 \description{
 Runs after \code{preprocess_scseq}
 }
+\keyword{internal}

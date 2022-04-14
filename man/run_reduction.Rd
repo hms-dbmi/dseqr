@@ -20,3 +20,4 @@ runs UMAP is more than 5000 cells, otherwise TSNE.}
 \description{
 Run TSNE or UMAP
 }
+\keyword{internal}

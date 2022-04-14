@@ -26,7 +26,7 @@ WORKDIR /src/dseqr
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.14.0')" && \
+    R -e "remotes::install_github('rstudio/renv@0.15.4')" && \
     R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically

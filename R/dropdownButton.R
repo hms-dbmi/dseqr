@@ -4,6 +4,7 @@
 #'
 #' @inheritParams shinyWidgets::dropdownButton
 #' @param title title attribute for button
+#' @return \code{shiny.tag}
 #'
 #' @keywords internal
 dropdownButtonMod <- function(..., circle = TRUE, status = "default",

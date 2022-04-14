@@ -21,6 +21,7 @@ qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
 #' Disable multiple ids
 #'
 #' @param ids Character vector of ids to disable
+#' @return called for side effects
 #'
 #' @keywords internal
 disableAll <- function(ids, asis = rep(FALSE, length(ids))){
@@ -33,6 +34,7 @@ disableAll <- function(ids, asis = rep(FALSE, length(ids))){
 #'
 #' @param ids Character vector of ids to enable
 #'
+#' @return No return value. Called for side effects.
 #' @keywords internal
 enableAll <- function(ids, asis = rep(FALSE, length(ids))) {
   for (i in seq_along(ids)) shinyjs::enable(ids[i], asis = asis[i])

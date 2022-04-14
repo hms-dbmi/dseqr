@@ -2,16 +2,18 @@
 % Please edit documentation in R/import_scseq.R
 \name{run_pca}
 \alias{run_pca}
-\title{Cluster SingleCellExperiment}
+\title{Run PCA on SingleCellExperiment}
 \usage{
 run_pca(sce)
 }
 \arguments{
-\item{sce}{\code{SingleCellExperiment}}
+\item{sce}{\code{SingleCellExperiment} with \code{rowData(sce)$hvg} a boolean
+vector indicating rows (genes) to use as highly variable genes.}
 }
 \value{
-\code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
+\code{sce} with PCA reduction
 }
 \description{
-Cluster SingleCellExperiment
+Run PCA on SingleCellExperiment
 }
+\keyword{internal}

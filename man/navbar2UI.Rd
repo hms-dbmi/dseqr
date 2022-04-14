@@ -15,3 +15,8 @@ shiny.tag with html for secondary navbar
 \description{
 UI for secondary navbar
 }
+\examples{
+
+navbar2UI(hide = FALSE)
+
+}

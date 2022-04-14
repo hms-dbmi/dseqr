@@ -10,8 +10,14 @@ theme_dimgray(with_nums = TRUE)
 \item{with_nums}{Include axis ticks/text? Default is TRUE.}
 }
 \value{
-\code{theme}
+ggplot2 \code{theme} object
 }
 \description{
 Make ggplot axes and text dimgray
+}
+\examples{
+
+library(ggplot2)
+ggplot(mtcars, aes(wt, mpg)) + geom_point() + theme_dimgray()
+
 }

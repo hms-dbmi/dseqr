@@ -404,7 +404,7 @@ is_invertible <- function(pdata) {
 
   mod <- crossmeta::get_sva_mods(pdata)$mod
 
-  methods::is(try(solve.default(t(mod) %*% mod),silent=T), 'matrix')
+  methods::is(try(solve.default(t(mod) %*% mod),silent=TRUE), 'matrix')
 }
 
 
@@ -458,10 +458,10 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
   nsets <- length(de)
 
   # Ensure de gene IDs are unique and of character mode
-  for (s in 1:nsets) de[[s]] <- unique(as.character(de[[s]]))
+  for (s in seq_len(nsets)) de[[s]] <- unique(as.character(de[[s]]))
 
   # Restrict DE genes to universe
-  for (s in 1:nsets) de[[s]] <- de[[s]][de[[s]] %in% universe]
+  for (s in seq_len(nsets)) de[[s]] <- de[[s]][de[[s]] %in% universe]
 
   #	Check universe isn't empty
   NGenes <- length(universe)
@@ -478,7 +478,7 @@ run_go <- function(de, universe, species, gs_dir, genego = NULL, gonames = NULL,
   #	Create incidence matrix (X) of gene.pathway by DE sets
   X <- matrix(1, nrow(genego),nsets+1)
   colnames(X) <- c("N", names(de))
-  for (s in 1:nsets) X[, s+1] <- (genego[[1]] %in% de[[s]])
+  for (s in seq_len(nsets)) X[, s+1] <- (genego[[1]] %in% de[[s]])
 
   #	Count genes and DE genes for each pathway
   S <- rowsum(X, group=genego[[2]], reorder=FALSE)
@@ -687,6 +687,9 @@ get_group_levels <- function(pdata) {
 #' Check if newly uploaded pdata is the same as previously uploaded
 #'
 #' @keywords internal
+#' @return \code{TRUE} is \code{pdata} column 'Group name' or 'Pair' is different
+#' from \code{prev}
+#'
 check_bulk_changed <- function(prev, pdata) {
 
   # don't re-run if Group name or Pairs the same
@@ -742,7 +745,7 @@ iqr_replicates <- function(eset, keep_path, annot = "SYMBOL", rm.dup = FALSE) {
     Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
 
   } else {
-    Biobase::fData(eset)$iqr_rows <- 1:nrow(eset)
+    Biobase::fData(eset)$iqr_rows <- seq_len(nrow(eset))
     eset <- crossmeta::iqr_replicates(eset, annot, rm.dup)
     keep <- Biobase::fData(eset)$iqr_rows
     qs::qsave(keep, keep_path)

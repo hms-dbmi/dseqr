@@ -15,4 +15,17 @@ either 'Homo sapiens' or 'Mus musculus'
 \description{
 Get species for human or mouse depending on gene ids
 }
+\keyword{#}
+\keyword{'ENSG2'))}
+\keyword{'ENSMUSG2'))}
+\keyword{<-}
+\keyword{=}
+\keyword{c('ENSG1',}
+\keyword{c('ENSMUSG1',}
+\keyword{data.frame(row.names}
+\keyword{get_species(x)}
+\keyword{human}
+\keyword{identifiers}
 \keyword{internal}
+\keyword{mouse}
+\keyword{x}

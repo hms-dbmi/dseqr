@@ -9,6 +9,9 @@ dl_10x_whitelists(indices_dir)
 \arguments{
 \item{indices_dir}{Directory with kallisto indices.}
 }
+\value{
+\code{NULL}. Called for side effects.
+}
 \description{
 Download 10X whitelists for kallisto bustools correction
 }

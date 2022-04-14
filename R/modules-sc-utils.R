@@ -71,7 +71,8 @@ validate_preds <- function(preds, sc_dir) {
 #'
 #' @param obj \code{SingleCellExperiment} or count matrix
 #' @param orig.ident factor of group identities with length \code{ncol(obj)}
-#'
+#' @return \code{data.frame} with differential abundance results calculated by
+#' \link[limma]{topTable}
 #'
 #' @keywords internal
 diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, filter = TRUE) {
@@ -507,7 +508,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   dat <- dat[, match(ft, colnames(dat)), drop = FALSE]
 
   # convert features to generic (in case e.g. minus)
-  seq <- 1:ncol(dat)
+  seq <- seq_len(ncol(dat))
   ft.num <- paste0('ft', seq)
   colnames(dat) <- ft.num
 
@@ -1452,7 +1453,6 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #'
 load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = FALSE, with_counts = FALSE) {
   shell_path <- file.path(dataset_dir, 'shell.qs')
-  transition_efs(shell_path)
   scseq <- qs::qread(shell_path)
 
   if (with_logs) {
@@ -1675,12 +1675,15 @@ collapse_sorted <- function(x, collapse = ',') {
 #' E <- 2
 #' test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 #'
-#' dseqr:::get_nearest_row(truth, test)
+#' get_nearest_row(truth, test)
 #' #[1] 4 3
+#'
 get_nearest_row <- function(truth, test) {
-  diffs   <- truth[rep(1:nrow(truth), nrow(test)),] -test[rep(1:nrow(test), each=nrow(truth)),]
+  ntest <- nrow(test)
+  ntruth <- nrow(truth)
+  diffs   <- truth[rep(seq_len(ntruth), ntest),] - test[rep(seq_len(ntest), each=ntruth),]
   eucdiff <- function(x) sqrt(rowSums(x^2))
-  max.col(-matrix(eucdiff(diffs), nrow=nrow(test), byrow=TRUE), "first")
+  max.col(-matrix(eucdiff(diffs), nrow=ntest, byrow=TRUE), "first")
 }
 
 
@@ -1832,7 +1835,7 @@ load_resoln <- function(dataset_dir) {
 #' @inheritParams edgeR::calcNormFactors
 #'
 #' @return List with a fit object, model matrix, and normalized expression matrix.
-#' @export
+#' @keywords internal
 #'
 run_limma_scseq <- function(summed, meta, species, trend = FALSE, method = 'TMMwsp', with_fdata = FALSE, progress = NULL, value = 0, ...) {
 
@@ -1954,8 +1957,8 @@ get_grid <- function(scseq) {
   grid <- data.frame(xi = findInterval(points[,1], x),
                      yi = findInterval(points[,2], y))
 
-  diff.x <- diff(x[1:2])
-  diff.y <- diff(y[1:2])
+  diff.x <- diff(x[c(1, 2)])
+  diff.y <- diff(y[c(1, 2)])
 
   x2 <- x + diff.x
   y2 <- y + diff.y

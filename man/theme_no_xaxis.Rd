@@ -7,8 +7,14 @@
 theme_no_xaxis()
 }
 \value{
-\code{theme}
+ggplot2 \code{theme} object
 }
 \description{
 Remove ggplot xaxis title, text, and ticks
+}
+\examples{
+
+library(ggplot2)
+ggplot(mtcars, aes(wt, mpg)) + geom_point() + theme_no_xaxis()
+
 }

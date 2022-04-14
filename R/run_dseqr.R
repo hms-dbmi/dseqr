@@ -108,11 +108,8 @@ run_dseqr <- function(project_name,
 
   options(shiny.usecairo = FALSE)
 
-  # for moving EFS files out of IA
-  is_aws <- !is.null(logout_url)
-  if (is_aws) Sys.setenv('EFS_LIFECYCLE'=7)
-
   # auto-reload if update app files
+  is_aws <- !is.null(logout_url)
   if (!is_aws) options(shiny.autoreload = TRUE)
   shiny::runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }

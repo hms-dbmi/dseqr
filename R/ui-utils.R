@@ -10,6 +10,11 @@
 #' @return shiny.tag with html for navbar
 #'
 #' @export
+#' @examples
+#'
+#' # UI with only Single-Cell page
+#' navbarUI('Single Cell', 'Single Cell')
+#'
 navbarUI <- function(tabs, active, logout_url = NULL) {
 
   logout_li <- NULL
@@ -70,6 +75,10 @@ navbarUI <- function(tabs, active, logout_url = NULL) {
 #' @return shiny.tag with html for secondary navbar
 #'
 #' @export
+#' @examples
+#'
+#' navbar2UI(hide = FALSE)
+#'
 navbar2UI <- function(hide) {
   class <- 'action-button shiny-bound-input btn-intro btn navbar-btn'
   add <- ifelse(hide, 'disabled', '')
@@ -276,6 +285,7 @@ dsLabelRowsUI <- function(id) {
 #' Dropdown menu button for dsLabelRowsUI
 #'
 #' @keywords internal
+#' @return \code{shiny.tag}
 dropdownMenuButton <- function(id, label) {
   tags$li(
     tags$a(

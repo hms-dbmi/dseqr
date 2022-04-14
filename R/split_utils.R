@@ -11,7 +11,7 @@ split_mtx <- function(mtx, samples) {
 
 
 save_split_mtxs <- function(mtxs, features, data_dir) {
-    colnames(features)[1:2] <- c('enid', 'symbol')
+    colnames(features)[c(1, 2)] <- c('enid', 'symbol')
     fnames <- c('barcodes.tsv.gz', 'features.tsv.gz', 'matrix.mtx.gz')
 
     unique.genes <- make.unique(features$symbol)

@@ -20,3 +20,8 @@ Character vector with colour codes of \code{length(levs)}.
 \description{
 Get a pallete for cluster plots
 }
+\examples{
+levs <- c('CD14 Mono', 'CD16 Mono', 'NK Cells')
+get_palette(levs)
+
+}

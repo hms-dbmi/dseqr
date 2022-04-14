@@ -20,3 +20,9 @@ Adds cluster number to non-numeric cluster names.
 E.g. if \code{annot = c('Monocytes', '2')} then
 \code{annot = c('1: Monocytes', '2')} is returned
 }
+\examples{
+
+annot <- c('Monocytes', '2')
+add_cluster_numbers(annot)
+
+}

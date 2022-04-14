@@ -17,6 +17,10 @@ diff_abundance(
 
 \item{orig.ident}{factor of group identities with length \code{ncol(obj)}}
 }
+\value{
+\code{data.frame} with differential abundance results calculated by
+\link[limma]{topTable}
+}
 \description{
 Run differential abundance analysis
 }

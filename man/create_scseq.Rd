@@ -27,3 +27,4 @@ produced by \link[dseqr.data]{load_tx2gene}.}
 \description{
 Load kallisto/bustools quantification into a SingleCellExperiment object.
 }
+\keyword{internal}

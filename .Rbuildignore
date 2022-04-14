@@ -1,3 +1,4 @@
+^renv$
 ^\.Rprofile$
 ^.*\.Rproj$
 ^\.Rproj\.user$
@@ -6,9 +7,9 @@
 ^sync-aws\.sh$
 ^example_data\.tar\.gz$
 ^packrat/
-^renv$
 ^renv\.lock$
 ^LICENSE\.md$
 ^inst/app/tests$
 ^\.renvignore$
 ^\.dockerignore$
+^dseqr\.gif$

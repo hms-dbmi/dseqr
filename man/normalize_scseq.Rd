@@ -15,3 +15,4 @@ Normalized and log transformed \code{scseq}.
 \description{
 Utility wrapper to run normalization and log transformation
 }
+\keyword{internal}

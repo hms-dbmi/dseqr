@@ -6,6 +6,9 @@
 \usage{
 advancedOptionsInput(id)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 advanced options input for drugs page
 }

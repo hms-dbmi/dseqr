@@ -6,6 +6,10 @@
 \usage{
 check_bulk_changed(prev, pdata)
 }
+\value{
+\code{TRUE} is \code{pdata} column 'Group name' or 'Pair' is different
+from \code{prev}
+}
 \description{
 Check if newly uploaded pdata is the same as previously uploaded
 }

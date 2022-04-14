@@ -413,7 +413,8 @@ run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indic
 #' @inheritParams run_dseqr
 #'
 #' @return NULL
-#' @export
+#' @keywords internal
+#'
 process_raw_scseq <- function(scseq,
                               dataset_name,
                               sc_dir,
@@ -667,7 +668,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
     reference.reduction = "refDR",
     normalization.method = ifelse(is.sct, 'SCT', 'LogNormalize'),
     features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
-    dims = 1:50,
+    dims = seq(50),
     n.trees = 20,
     k.score = k.score,
     mapping.score.k = k.map,
@@ -683,7 +684,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   query <- Seurat::TransferData(
     reference = reference$map,
     query = query,
-    dims = 1:50,
+    dims = seq(50),
     anchorset = anchors,
     refdata = refdata,
     n.trees = 20,
@@ -772,12 +773,11 @@ save_ref_clusters <- function(meta, dataset_name, sc_dir) {
 #' @inheritParams run_dseqr
 #'
 #' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
-#' @export
+#' @keywords internal
 #'
 create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'cellranger')) {
 
   # load counts
-  #TODO suport mouse for kallisto
   if (type[1] == 'kallisto') {
     data_dir <- file.path(data_dir, 'bus_output')
     counts <- load_kallisto_counts(data_dir)
@@ -884,44 +884,6 @@ attach_meta <- function(scseq, dataset_dir = NULL, meta = NULL, groups = NULL) {
   scseq$orig.ident <- factor(cell_group, levels = c('test', 'ctrl', other))
   return(scseq)
 }
-
-#' Utility to move files on EFS from IA to SA
-#'
-#' If time since last access time is greater than \code{Sys.getenv('EFS_LIFECYCLE')},
-#' \code{fpath} to copied in order to move it out of EFS infrequent access.
-#' Ignored if EFS_LIFECYCLE not set.
-#'
-#' @param fpath Path of file
-#'
-#' @return NULL
-#' @export
-#'
-transition_efs <- function(fpath) {
-
-  # get efs lifecycle from ENV
-  efs_diff <- Sys.getenv('EFS_LIFECYCLE')
-  efs_diff <- as.difftime(as.numeric(efs_diff), units='days')
-  if (is.na(efs_diff)) return(NULL)
-
-
-  # time since last read
-  read_diff <- Sys.time() - file.info(fpath)$atime
-  if (read_diff < efs_diff) return(NULL)
-
-  # move out of IA by copying
-  message('EFS_LIFECYLCE is: ', efs_diff, ' days.')
-  message('moving: ', fpath, ' to standard access.')
-  tmp <- file.path(dirname(fpath), 'tmp.qs')
-
-  if (file.copy(fpath, tmp)) {
-    res <- try(qs::qread(tmp), silent = TRUE)
-    if (class(res) != "try-error") {
-      unlink(fpath)
-      file.move(tmp, fpath)
-    }
-  }
-}
-
 
 
 #' Read kallisto/bustools market matrix and annotations
@@ -1031,6 +993,14 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
 #' @export
 #' @keywords internal
 #'
+#' # human identifiers
+#' x <- data.frame(row.names = c('ENSG1', 'ENSG2'))
+#' get_species(x)
+#'
+#' # mouse identifiers
+#' x <- data.frame(row.names = c('ENSMUSG1', 'ENSMUSG2'))
+#' get_species(x)
+#'
 get_species <- function(x) {
 
   # remove species prefix
@@ -1123,7 +1093,8 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens', tx2gene = NULL) {
 #' @param scseq \code{SingleCellExperiment} object
 #'
 #' @return Normalized and log transformed \code{scseq}.
-#' @export
+#' @keywords internal
+#'
 normalize_scseq <- function(scseq) {
 
   set.seed(100)
@@ -1134,15 +1105,18 @@ normalize_scseq <- function(scseq) {
   return(scseq)
 }
 
-#' Get top highly variable genes for subsequent dimensionality reduction
+#' Add top highly variable genes for subsequent dimensionality reduction
 #'
 #' Runs after \code{preprocess_scseq}
 #'
 #' @param sce \code{SingleCellExperiment} object
-#' @param hvgs Character vector of genes to use. Used to specify a priori
-#' set of genes to use for clustering.
+#' @param hvgs Character vector of genes to use. Used to specify external
+#' set of highly variable genes.
+#' @return \code{sce} a boolean vector added to \code{rowData(sce)$hvg} that
+#' indicates which rows correspond to highly variable genes.
 #'
-#' @export
+#' @keywords internal
+#'
 add_hvgs <- function(sce, hvgs = NULL) {
 
   # always add bio even if supplied hvgs
@@ -1166,7 +1140,8 @@ add_hvgs <- function(sce, hvgs = NULL) {
 #' @param dimred reducedDim to run TSNE or UMAP on
 #'
 #' @return \code{sce} with \code{'TSNE'} or \code{'UMAP'} \code{reducedDim}
-#' @export
+#' @keywords internal
+#'
 run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA') {
 
   if(type[1] == 'auto') {
@@ -1182,7 +1157,7 @@ run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA')
     sce <- scater::runUMAP(sce, dimred = dimred, n_dimred = sce@metadata$npcs, min_dist=0.3)
 
   }
-  colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, 1:2)
+  colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, c(1, 2))
   return(sce)
 }
 
@@ -1247,12 +1222,14 @@ get_clusters <- function(snn_graph, type = c('leiden', 'walktrap'), resolution =
   return(factor(cluster))
 }
 
-#' Cluster SingleCellExperiment
+#' Run PCA on SingleCellExperiment
 #'
-#' @param sce \code{SingleCellExperiment}
+#' @param sce \code{SingleCellExperiment} with \code{rowData(sce)$hvg} a boolean
+#' vector indicating rows (genes) to use as highly variable genes.
 #'
-#' @return \code{sce} with column \code{cluster} in colData and \code{'npcs'} in metadata
-#' @export
+#' @return \code{sce} with PCA reduction
+#' @keywords internal
+#'
 run_pca <- function(sce) {
 
   # run PCA on HVGs
@@ -1271,8 +1248,8 @@ run_pca <- function(sce) {
 #'   and \code{npcs} in \code{metadata} slot
 #'
 #' @return \code{scseq} with column \code{doublet_score} added to \code{colData}.
-#' @export
 #' @keywords internal
+#'
 add_doublet_score <- function(scseq) {
 
   hvgs <- SingleCellExperiment::rowData(scseq)$hvg
@@ -1347,11 +1324,19 @@ add_scseq_qcplot_metrics <- function(sce) {
 #' @param scseq SingleCellExperiment object
 #'
 #' @return list of data.frames, one for each cluster
-#' @export
 #' @importFrom presto wilcoxauc
 #' @importFrom magrittr "%>%"
+#' @export
 #'
 #' @keywords internal
+#' @examples
+#'
+#' if (requireNamespace("SingleCellExperiment", quietly = TRUE)) {
+#'   data('object_sce', package = 'presto')
+#'   object_sce$cluster <- object_sce$cell_type
+#'   markers <- get_presto_markers(object_sce)
+#' }
+#'
 get_presto_markers <- function(scseq) {
   markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts', verbose = TRUE)
   markers <- markers %>%

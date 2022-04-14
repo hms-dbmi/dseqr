@@ -6,6 +6,9 @@
 \usage{
 drugsGenesPlotlyOutput(id)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 UI for query/drug genes plotly
 }

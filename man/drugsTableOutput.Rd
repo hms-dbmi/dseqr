@@ -6,6 +6,9 @@
 \usage{
 drugsTableOutput(id)
 }
+\value{
+\code{shiny.tag}
+}
 \description{
 Output table for Drugs Page
 }

@@ -19,3 +19,8 @@ shiny.tag with html for drugs tab
 \description{
 UI for Drugs page
 }
+\examples{
+
+drugsPageUI("drug", tab = 'Drugs', active = 'Single Cell')
+
+}

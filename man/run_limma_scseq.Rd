@@ -45,3 +45,4 @@ List with a fit object, model matrix, and normalized expression matrix.
 \description{
 Run limma on pseudobulk experiment
 }
+\keyword{internal}
