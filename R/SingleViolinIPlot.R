@@ -127,26 +127,37 @@ SingleViolinIPlot <- function(
     plot <- plot + jitter
   }
 
-  # add ncells/pct.cells labels
+  # set y limit and add mean value
   lim <- max(data$x)
   lim <- lim+lim*0.2
 
-  if (!is.null(ncells)) {
-    fraction.rect <- ncells/max(ncells)
-    labels <- formatC(ncells, format="d", big.mark=",")
-    subtitle <- 'Number of Cells'
-  }
+  plot <- plot +
+    ggplot2::ylim(c(NA, lim)) +
+    ggplot2::stat_summary(
+      fun = "mean",
+      geom = "crossbar",
+      width = 0.3,
+      colour = "black",
+      size = .3)
 
+  # add pct.cells/ncells labels or return
   if (!is.null(pct.cells)) {
     fraction.rect <- pct.cells/max(pct.cells)
     labels <- pct.cells
     subtitle <- 'Percent Expressed'
+
+  } else if (!is.null(ncells)) {
+    fraction.rect <- ncells/max(ncells)
+    labels <- formatC(ncells, format="d", big.mark=",")
+    subtitle <- 'Number of Cells'
+
+  } else {
+    return(plot)
   }
 
   # numbers
   nlabs <- length(labels)
   plot <- plot +
-    ggplot2::ylim(c(NA, lim)) +
     ggplot2::annotate('text',
                       label=labels,
                       y=rep(lim, nlabs),
@@ -178,15 +189,6 @@ SingleViolinIPlot <- function(
   plot <- plot +
     ggplot2::labs(subtitle = subtitle) +
     ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust = 1, color = 'dimgray', size = 14))
-
-  # add mean value
-  plot <- plot +
-    ggplot2::stat_summary(
-      fun = "mean",
-      geom = "crossbar",
-      width = 0.3,
-      colour = "black",
-      size = .3)
 
   return(plot)
 }
