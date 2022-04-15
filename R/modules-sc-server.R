@@ -1767,11 +1767,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
     # initialize names using file prefixes
     pat <- paste0(
-      '([_ -]+)?',
+      '([_ -.]+)?',
       c('barcodes[.]tsv(.+)?$',
         'features[.]tsv(.+)?$',
         'genes[.]tsv(.+)?$',
         'matrix[.]mtx(.+)?$',
+        'mtx(.+)?$',
         '[.]rds$',
         '[.]qs$',
         'filtered_feature_bc_matrix(.+)?[.]h(df)?5$',
@@ -2128,7 +2129,7 @@ detect_import_species <- function(up_df) {
   } else {
     genes <- utils::read.table(up_df$datapath[gene.file])
     genes <- genes[!is.na(genes$V1), ]
-    row.names(genes) <- genes$V1
+    row.names(genes) <- make.unique(genes$V1)
   }
 
   get_species(genes)

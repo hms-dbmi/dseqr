@@ -906,8 +906,8 @@ load_kallisto_counts <- function(data_dir) {
   row.names(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.genes.txt'))
   colnames(counts) <- readLines(file.path(data_dir, 'genecount', 'genes.barcodes.txt'))
 
-  # remove non-expressed genes
-  counts <- counts[Matrix::rowSums(counts) > 0, ]
+  # KEEP non-expressed genes
+  # counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   return(counts)
 }
@@ -977,7 +977,7 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
   no.match <- setdiff(seq_len(nrow(counts)), idx)
   row.names(counts)[no.match] <- alt_genes[no.match]
 
-  # remove non-expressed genes
+  # KEEP non-expressed genes (better for integration)
   # counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   # sum counts in rows with same gene
