@@ -1604,7 +1604,7 @@ species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
     species_tx2gene %>%
     dplyr::filter(.data$gene_name %in% symbols) %>%
     dplyr::select(.data$gene_name, .data$hsapiens_homolog_ensembl_gene) %>%
-    stats::na.omit %>%
+    stats::na.omit() %>%
     dplyr::filter(!duplicated(.data$gene_name))
 
   # ensure rows have same order as symbols
@@ -1619,7 +1619,7 @@ species_symbols_to_other <- function(symbols, species_tx2gene, other_tx2gene) {
     dplyr::select(.data$gene_name, .data$hsapiens_homolog_ensembl_gene) %>%
     dplyr::filter(!duplicated(.data$hsapiens_homolog_ensembl_gene)) %>%
     dplyr::rename('other_symbol' = 'gene_name') %>%
-    stats::na.omit
+    stats::na.omit()
 
   # join the two
   map <- dplyr::left_join(species_tx2gene, other_tx2gene)
