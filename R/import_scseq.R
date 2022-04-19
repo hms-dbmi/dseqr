@@ -56,20 +56,15 @@ import_scseq <- function(dataset_name,
     return(NULL)
   }
 
-  # check if cellranger and if so standardize file names
-  is.cellranger <- check_is_cellranger(uploaded_data_dir)
+  # standardize market matrix file names
+  is.mm <- check_is_market_matrix(uploaded_data_dir)
+  if (is.mm) standardize_cellranger(uploaded_data_dir)
 
-  if (!is.cellranger) {
-    progress$set(message = "running pseudoalignment", value = value + 1)
-    run_kallisto_scseq(indices_dir, uploaded_data_dir, recount = recount)
-  }
-
-  progress$set(message = "loading", value + 2)
-  type <- ifelse(is.cellranger, 'cellranger', 'kallisto')
-  scseq <- create_scseq(uploaded_data_dir, tx2gene_dir, dataset_name, type)
+  progress$set(message = "loading", value + 1)
+  scseq <- create_scseq(uploaded_data_dir, tx2gene_dir, dataset_name)
   gc()
 
-  progress$set(message = "running QC", value = value + 3)
+  progress$set(message = "running QC", value = value + 2)
   scseq <- add_doublet_score(scseq)
   scseq <- add_scseq_qc_metrics(scseq, for_qcplots = TRUE)
 
@@ -84,7 +79,7 @@ import_scseq <- function(dataset_name,
                     ref_name = ref_name,
                     founder = founder,
                     progress = progress,
-                    value = value + 3,
+                    value = value + 2,
                     tx2gene_dir = tx2gene_dir)
 }
 
@@ -769,31 +764,22 @@ save_ref_clusters <- function(meta, dataset_name, sc_dir) {
 #'
 #' @param data_dir Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.
 #' @param project String identifying sample.
-#' @param type Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.
 #' @inheritParams run_dseqr
 #'
 #' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
 #' @keywords internal
 #'
-create_scseq <- function(data_dir, tx2gene_dir, project, type = c('kallisto', 'cellranger')) {
+create_scseq <- function(data_dir, tx2gene_dir, project) {
 
   # load counts
-  if (type[1] == 'kallisto') {
-    data_dir <- file.path(data_dir, 'bus_output')
-    counts <- load_kallisto_counts(data_dir)
-    species <- 'Homo sapiens'
-    tx2gene <- load_tx2gene(species, tx2gene_dir)
+  counts <- load_cellranger_counts(data_dir)
+  species <- get_species(counts)
 
-  } else if (type[1] == 'cellranger') {
-    counts <- load_cellranger_counts(data_dir)
-    species <- get_species(counts)
+  # use supplied names as alternative
+  alt_genes <- load_cellranger_genes(data_dir)
 
-    # use supplied names as alternative
-    alt_genes <- load_cellranger_genes(data_dir)
-
-    tx2gene <- load_tx2gene(species, tx2gene_dir)
-    counts <- process_cellranger_counts(counts, tx2gene, alt_genes)
-  }
+  tx2gene <- load_tx2gene(species, tx2gene_dir)
+  counts <- process_cellranger_counts(counts, tx2gene, alt_genes)
 
   # get ambience expression profile/determine outlier genes
   # if pre-filtered cellranger, can't determine outliers/empty droplets
@@ -1015,13 +1001,13 @@ get_species <- function(x) {
 }
 
 
-#' Determine if the selected folder has CellRanger files
+#' Determine if the selected folder has cellranger market matrix format files
 #'
 #' @param data_dir path to directory to check.
 #'
-#' @return \code{TRUE} if CellRanger files detected, otherwise \code{FALSE}.
+#' @return \code{TRUE} if market matrix files detected, otherwise \code{FALSE}.
 #' @keywords internal
-check_is_cellranger <- function(data_dir) {
+check_is_market_matrix <- function(data_dir) {
 
   # cellranger file names
   files <- list.files(data_dir)
@@ -1032,13 +1018,8 @@ check_is_cellranger <- function(data_dir) {
   # h5 file
   h5.file <- grepl('[.]h5$|[.]hdf5$', files)
 
-  if (length(mtx.file) & length(genes.file) & length(barcodes.file)) {
-    standardize_cellranger(data_dir)
-    return(TRUE)
-  }
-
-  if (h5.file) return(TRUE)
-  return(FALSE)
+  is.mm <- length(mtx.file) & length(genes.file) & length(barcodes.file)
+  return(is.mm)
 }
 
 #' Rename CellRanger files for loading by Read10X
@@ -1338,7 +1319,7 @@ add_scseq_qcplot_metrics <- function(sce) {
 #' }
 #'
 get_presto_markers <- function(scseq) {
-  markers <- presto::wilcoxauc(scseq, group_by = 'cluster', assay = 'logcounts', verbose = TRUE)
+  markers <- presto::wilcoxauc(SingleCellExperiment::logcounts(scseq), y = scseq$cluster)
   markers <- markers %>%
     dplyr::group_by(.data$group) %>%
     dplyr::arrange(-.data$auc) %>%

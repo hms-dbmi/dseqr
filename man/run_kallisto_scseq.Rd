@@ -7,6 +7,7 @@
 run_kallisto_scseq(
   indices_dir,
   data_dir,
+  out_dir = file.path(data_dir, "bus_output"),
   bus_args = "-t 4",
   species = "homo_sapiens",
   release = "94",
@@ -15,9 +16,11 @@ run_kallisto_scseq(
 )
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices.}
+\item{indices_dir}{Directory with kallisto indices built with \code{build_kallisto_index}.}
 
 \item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
+
+\item{out_dir}{Path to save output to.}
 
 \item{bus_args}{Character vector of arguments to bustools.}
 
@@ -27,11 +30,16 @@ run_kallisto_scseq(
 AnnotationHub - needs to match with
 \code{\link[dseqr.data]{build_ensdb}}).}
 
-\item{recount}{Overwrite previous quantification?}
+\item{recount}{Overwrite previous output? Default is \code{TRUE}.}
 
 \item{threads}{Number of threads to use. Default is 1.}
+}
+\value{
+called for side effects.
 }
 \description{
 Run kallisto/bustools for quantifying 10X scRNA-seq data
 }
-\keyword{internal}
+\seealso{
+\link[rkal]{build_kallisto_index}
+}

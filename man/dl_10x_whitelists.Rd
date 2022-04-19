@@ -7,7 +7,7 @@
 dl_10x_whitelists(indices_dir)
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices.}
+\item{indices_dir}{Directory with kallisto indices built with \code{build_kallisto_index}.}
 }
 \value{
 \code{NULL}. Called for side effects.

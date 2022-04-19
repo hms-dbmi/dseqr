@@ -7,7 +7,7 @@
 get_10x_whitepath(indices_dir, bus_args)
 }
 \arguments{
-\item{indices_dir}{Directory with kallisto indices.}
+\item{indices_dir}{Directory with kallisto indices built with \code{build_kallisto_index}.}
 
 \item{bus_args}{Character vector of arguments to bustools.}
 }

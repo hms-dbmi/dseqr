@@ -37,7 +37,7 @@ produced by \link[dseqr.data]{load_tx2gene}.}
 
 \item{progress}{Optional shiny \code{Progress} object. Default will print progress.}
 
-\item{recount}{Overwrite previous quantification?}
+\item{recount}{Overwrite previous output? Default is \code{TRUE}.}
 
 \item{value}{Integer indicating step of pipeline.}
 

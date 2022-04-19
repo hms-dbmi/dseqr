@@ -1,19 +1,24 @@
 #' Run kallisto/bustools for quantifying 10X scRNA-seq data
 #'
-#' @param indices_dir Directory with kallisto indices.
+#' @param indices_dir Directory with kallisto indices built with \code{build_kallisto_index}.
 #' @param data_dir Path to folder with 10X fastq.gz scRNA-seq files
+#' @param out_dir Path to save output to.
 #' @param bus_args Character vector of arguments to bustools.
 #' @inheritParams rkal::build_kallisto_index
-#' @param recount Overwrite previous quantification?
+#' @param recount Overwrite previous output? Default is \code{TRUE}.
 #' @param threads Number of threads to use. Default is 1.
 #'
-#' @return NULL
-#' @keywords internal
+#' @return called for side effects.
+#' @seealso \link[rkal]{build_kallisto_index}
+#' @export
 #'
-run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE, threads = 1) {
-
-  out_dir <- file.path(data_dir, 'bus_output')
+run_kallisto_scseq <- function(indices_dir, data_dir, out_dir = file.path(data_dir, 'bus_output'), bus_args = '-t 4', species = 'homo_sapiens', release = '94', recount = TRUE, threads = 1) {
   if (dir.exists(out_dir) & !recount) return(NULL)
+
+  # kallisto needs expanded paths (no tilde's)
+  indices_dir <- path.expand(indices_dir)
+  data_dir <- path.expand(data_dir)
+  out_dir <- path.expand(out_dir)
 
   # make sure that have whitelist and get path
   dl_10x_whitelists(indices_dir)
@@ -38,11 +43,11 @@ run_kallisto_scseq <- function(indices_dir, data_dir, bus_args = '-t 4', species
 
   # run quantification/bustools
   bus_args <- c('bus',
-                '-i', index_path,
-                '-o', out_dir,
+                '-i', shQuote(index_path),
+                '-o', shQuote(out_dir),
                 '-x', chemistry,
                 bus_args,
-                file.path(data_dir, fqs))
+                shQuote(file.path(data_dir, fqs)))
 
   run_kallisto_scseq_commands(bus_args, whitepath, out_dir, threads = threads)
   return(NULL)
@@ -73,11 +78,11 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
     out <- system2(
       'bustools',
       args = c('correct',
-               '-w', whitepath,
-               '-p', file.path(out_dir, 'output.bus'),
-               '| bustools sort -T', tmp_dir,
+               '-w', shQuote(whitepath),
+               '-p', shQuote(file.path(out_dir, 'output.bus')),
+               '| bustools sort -T', shQuote(tmp_dir),
                '-t', threads,
-               '-p - | bustools inspect -w', whitepath,
+               '-p - | bustools inspect -w', shQuote(whitepath),
                '-p -'),
       stdout = TRUE)
     return(out)
@@ -93,14 +98,14 @@ run_kallisto_scseq_commands <- function(bus_args, whitepath, out_dir, inspection
 
     system2('bustools',
             args = c('correct',
-                     '-w', whitepath,
-                     '-p', file.path(out_dir, 'output.bus'),
-                     '| bustools sort -T', tmp_dir,
+                     '-w', shQuote(whitepath),
+                     '-p', shQuote(file.path(out_dir, 'output.bus')),
+                     '| bustools sort -T', shQuote(tmp_dir),
                      '-t', threads,
-                     '-p - | bustools count -o', gct_dir,
-                     '-g', tgmap_path,
-                     '-e', file.path(out_dir, 'matrix.ec'),
-                     '-t', file.path(out_dir, 'transcripts.txt'),
+                     '-p - | bustools count -o', shQuote(gct_dir),
+                     '-g', shQuote(tgmap_path),
+                     '-e', shQuote(file.path(out_dir, 'matrix.ec')),
+                     '-t', shQuote(file.path(out_dir, 'transcripts.txt')),
                      '--genecounts -'))
 
     unlink(tgmap_path)
@@ -132,7 +137,7 @@ detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fq
 
   # generate sample fastqs for detection
   for (i in seq_along(fqs))
-    system(paste('zcat', fqs[i], '| head -n 40000 | gzip >', fqn[i]))
+    system(paste('zcat', shQuote(fqs[i]), '| head -n 40000 | gzip >', shQuote(fqn[i])))
 
   # run kallisto on samples and get number of reads with barcode in agreement with whitelist
   nreads <- c()
@@ -140,11 +145,11 @@ detect_10x_chemistry <- function(indices_dir, index_path, data_dir, bus_args, fq
     whitepath <- file.path(indices_dir, paste0(tech, '_whitelist.txt'))
 
     bus_argsi <- c('bus',
-                   '-i', index_path,
-                   '-o', out_dir,
+                   '-i', shQuote(index_path),
+                   '-o', shQuote(out_dir),
                    '-x', tech,
                    bus_args,
-                   fqn)
+                   shQuote(fqn))
 
     out <- run_kallisto_scseq_commands(bus_argsi,
                                        whitepath,
