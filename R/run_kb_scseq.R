@@ -37,7 +37,7 @@ run_kb_scseq <- function(indices_dir, data_dir, out_dir = file.path(data_dir, 'b
   message("\nChemistry detected: ", chemistry)
 
   # run quantification/bustools
-  run_kb_count(index_dir, out_dir, file.path(data_dir, fqs), chemistry)
+  run_kb_count(index_dir, out_dir, file.path(data_dir, fqs), chemistry, threads = threads)
   return(NULL)
 }
 
