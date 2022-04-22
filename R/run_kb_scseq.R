@@ -144,3 +144,36 @@ run_kb_count <- function(index_dir, out_dir, fqs, chemistry, threads = 1, stderr
           ), stderr = stderr)
 }
 
+#' Get 10X FastQ paths for a read type and sort by increasing lane number
+#'
+#' @inheritParams run_kb_scseq
+#' @param read_type One of \code{'R1'} or \code{'R2'} for CB+UMI and read sequences respectively.
+#'
+#' @return Character vector of lane ordered paths to FastQ read type files.
+#' @keywords internal
+identify_sc_files <- function(data_dir, read_type = 'R1') {
+  # see https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/using/fastq-input for description of file name format
+
+  # get single cell files for read type
+  sc_files <- list.files(data_dir, paste0('_', read_type, '_.+?.fastq.gz'))
+
+  if (!length(sc_files))
+    stop('No fastq.gz files identified in data_dir in read type of ', read_type)
+
+  if (length(sc_files) == 1) return(sc_files)
+
+  # order by increasing lane if multiple
+  # first try format from mkfastq
+  lanes <- gsub('^.+?_L([0-9]+)_.+?.fastq.gz$', '\\1', sc_files)
+
+  # try format from (deprecated)
+  if (!length(lanes))
+    lanes <- gsub('^.+?_lane-([0-9]+)-.+?.fastq.gz$', '\\1', sc_files)
+
+  if (!length(lanes))
+    stop('10X fastq.gz file name formats not recognized. Should be output by mkfastq or possibly demux (deprecated).')
+
+  sc_files <- sc_files[order(as.integer(lanes))]
+  return(sc_files)
+}
+
