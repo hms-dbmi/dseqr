@@ -5,7 +5,7 @@
 \title{Auto Detect 10x Chemistry}
 \usage{
 detect_10x_chemistry(
-  index_path,
+  index_dir,
   data_dir,
   fqs,
   techs = c("10XV2", "10XV3"),
@@ -13,7 +13,7 @@ detect_10x_chemistry(
 )
 }
 \arguments{
-\item{index_path}{Path to kallisto index.}
+\item{index_dir}{Path to kallisto index.}
 
 \item{data_dir}{Path to folder with 10x fastq.gz files.}
 

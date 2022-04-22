@@ -18,3 +18,5 @@ dseqr.gif
 # shinytest data
 inst/app/tests/*
 inst/doc
+
+testthat-problems.rds

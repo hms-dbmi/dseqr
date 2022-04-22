@@ -3,6 +3,7 @@
 #' @param dataset_name Name of dataset
 #' @param uploaded_data_dir Directory with fastq or cellranger files
 #' @param sc_dir Single cell directory for app. Will store results in \code{dataset_name} subdirectory
+#' @param species Name of species. Used for R object imports only (detected for cellranger files).
 #' @param progress Optional shiny \code{Progress} object. Default will print progress.
 #' @param value Integer indicating step of pipeline.
 #' @param founder Name of dataset that \code{dataset_name} originates from.
@@ -15,15 +16,13 @@ import_scseq <- function(dataset_name,
                          uploaded_data_dir,
                          sc_dir,
                          tx2gene_dir,
-                         indices_dir = NULL,
+                         species = NULL,
                          progress = NULL,
-                         recount = FALSE,
                          value = 0,
                          founder = dataset_name,
                          npcs = 30,
                          cluster_alg = 'leiden',
                          resoln = 1,
-                         species = NULL,
                          ref_name = NULL,
                          metrics = c('low_lib_size',
                                      'low_n_features',
@@ -82,9 +81,6 @@ import_scseq <- function(dataset_name,
                     tx2gene_dir = tx2gene_dir)
 }
 
-check_is_robject <- function(uploaded_data_dir) {
-
-}
 
 find_robject <- function(uploaded_data_dir, load = FALSE) {
 
@@ -128,7 +124,10 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   }
 
   samples <- unique(scseq$batch)
-  multisample <- length(samples) > 1
+  have.samples <- length(samples) > 1
+  have.corrected <- 'corrected' %in% SingleCellExperiment::reducedDimNames(scseq)
+
+  unisample <- !have.samples & !have.corrected
 
   ## process the R object
   progress$set(message = "processing R object", value = value + 2)
@@ -136,10 +135,10 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   scseqs <- list()
   need <- get_need_multisample(scseq)
 
-  if (!multisample | need$process_samples)
+  if (unisample | need$process_samples)
     scseqs <- process_robject_samples(scseq, tx2gene_dir, species, metrics)
 
-  if (multisample) {
+  if (!unisample) {
     scseq <- process_robject_multisample(scseq, scseqs, need)
   } else {
     scseq <- scseqs[[1]]
@@ -156,8 +155,8 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
   is_ref <- !is.null(ref_name)
 
   snn_possible <-
-    (!multisample & 'PCA' %in% red.names) |
-    ( multisample & 'corrected' %in% red.names)
+    (unisample & 'PCA' %in% red.names) |
+    (!unisample & 'corrected' %in% red.names)
 
   if (is_ref) {
     # will grab other resolutions from scseq@colData
@@ -204,10 +203,10 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   # remove NULLs
   scseq_data <- scseq_data[!sapply(scseq_data, is.null)]
-  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = multisample)
+  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = have.samples)
 
   # save multi-sample specific data
-  if (multisample) {
+  if (have.samples) {
     args <- list()
 
     if (is_ref) {
@@ -290,11 +289,12 @@ process_robject_multisample <- function(scseq, scseqs, need) {
 
 
 process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
-  samples <- unique(scseq$batch)
-  unisample <- length(samples) == 1
-
-  rdata <- SummarizedExperiment::rowData(scseq)
   red.names <- SingleCellExperiment::reducedDimNames(scseq)
+
+  have.samples <- length(unique(scseq$batch)) > 1
+  have.corrected <- 'corrected' %in% red.names
+  unisample <- !have.samples & !have.corrected
+
 
   ## checks required for unisample ---
 
@@ -313,6 +313,7 @@ process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
   if (need_run_pca) scseq$cluster <- NULL
 
   # get HVGs and BIO if need run PCA or unisample and BIO missing
+  rdata <- SummarizedExperiment::rowData(scseq)
   need_hvgs <- need_run_pca | (unisample & !'bio' %in% names(rdata))
 
   ## checks required for uni/multi-sample ---
@@ -362,18 +363,31 @@ process_robject_samples <- function(scseq, tx2gene_dir, species, metrics) {
 #'
 #' @keywords internal
 #' @noRd
-run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, indices_dir, species, ref_name = NULL) {
+run_import_scseq <- function(opts, uploaded_data_dir, sc_dir, tx2gene_dir, species, ref_name = NULL) {
 
   for (opt in opts) {
-    import_scseq(opt$dataset_name,
-                 uploaded_data_dir,
-                 sc_dir,
-                 tx2gene_dir,
-                 indices_dir,
-                 metrics = opt$metrics,
-                 founder = opt$founder,
-                 species = species,
-                 ref_name = ref_name)
+
+    tryCatch({
+      import_scseq(opt$dataset_name,
+                   uploaded_data_dir,
+                   sc_dir,
+                   tx2gene_dir,
+                   metrics = opt$metrics,
+                   founder = opt$founder,
+                   species = species,
+                   ref_name = ref_name)
+
+    }, error = function(e) {
+      stop(
+        '\nfunction: import_scseq',
+        '\ndataset_name: ', opt$dataset_name,
+        '\nuploaded_data_dir: ', uploaded_data_dir,
+        '\nfounder: ', opt$founder,
+        '\nspecies: ', species,
+        '\nref_name: ', ref_name,
+        '\nerror message: ', e$message
+      )
+    })
 
   }
 

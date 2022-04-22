@@ -281,8 +281,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     }
 
     qc <- colnames(metrics)
-    names(qc) <- sapply(metrics, class)
-    qc <- qc[names(qc) %in% c('numeric', 'logical')]
+    names(qc) <- sapply(metrics, function(x) tail(class(x), 1))
+    qc <- qc[names(qc) %in% c('numeric', 'logical', 'outlier.filter')]
 
     samples <- unique(scseq$batch)
     nsamp <- length(samples)
@@ -1925,7 +1925,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
         opts = opts,
         uploaded_data_dir = uploaded_data_dir,
         sc_dir = sc_dir,
-        indices_dir = indices_dir,
         tx2gene_dir = tx2gene_dir,
         ref_name = ref_name,
         species = species

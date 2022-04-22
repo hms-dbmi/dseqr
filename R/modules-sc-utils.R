@@ -2080,7 +2080,7 @@ validate_scseq_import <- function(up_df, samples) {
 
     # if have matrix files, have exactly one of each type
     neach <- c(length(mtx.file), length(genes.file), length(barcodes.file))
-    if (any(neach == 1)) {
+    if (any(neach)) {
       if (!all(neach == 1) | length(files) != 3) {
         msg <- 'Need exactly one .mtx, genes.tsv, and barcodes.tsv files'
         return(msg)

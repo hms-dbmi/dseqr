@@ -43,11 +43,19 @@ test_that("a sample missing one matrix.mtx, features.tsv, or barcodes.tsv is inv
 })
 
 test_that("a sample with more than 3 files including an .mtx file is invalid", {
+
+    # different type of file
     up_df <- data.frame(name = c('matrix.mtx', 'features.tsv', 'barcodes.tsv', 'blah.txt'), datapath = NA)
     samples <- rep('a', 4)
 
     expect_type(validate_scseq_import(up_df, samples), 'character')
+
+    # two samples labeled as one
+    names <- paste0(c('GSM1_', 'GSM2_'), rep(c('matrix.mtx', 'features.tsv', 'barcodes.tsv'), each = 2))
+    up_df <- data.frame(name = names, datapath = NA)
+    expect_type(validate_scseq_import(up_df, samples), 'character')
 })
+
 
 test_that("a sample missing a name is invalid", {
     up_df <- data.frame(name = c('matrix.mtx', 'features.tsv', 'barcodes.tsv'), datapath = NA)

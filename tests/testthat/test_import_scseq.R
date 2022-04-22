@@ -106,4 +106,3 @@ test_that("cellranger .h5 files with multiple assays can be imported", {
     # cleanup
     unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
 })
-

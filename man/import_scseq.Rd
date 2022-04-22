@@ -9,15 +9,13 @@ import_scseq(
   uploaded_data_dir,
   sc_dir,
   tx2gene_dir,
-  indices_dir = NULL,
+  species = NULL,
   progress = NULL,
-  recount = FALSE,
   value = 0,
   founder = dataset_name,
   npcs = 30,
   cluster_alg = "leiden",
   resoln = 1,
-  species = NULL,
   ref_name = NULL,
   metrics = c("low_lib_size", "low_n_features", "high_subsets_mito_percent",
     "low_subsets_ribo_percent", "high_doublet_score")
@@ -33,7 +31,7 @@ import_scseq(
 \item{tx2gene_dir}{Path to directory containing transcript to gene maps
 produced by \link[dseqr.data]{load_tx2gene}.}
 
-\item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
+\item{species}{Name of species. Used for R object imports only (detected for cellranger files).}
 
 \item{progress}{Optional shiny \code{Progress} object. Default will print progress.}
 

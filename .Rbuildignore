@@ -13,3 +13,4 @@
 ^\.renvignore$
 ^\.dockerignore$
 ^dseqr\.gif$
+^\.github$

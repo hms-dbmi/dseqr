@@ -145,7 +145,7 @@ scSelectedDatasetInput <- function(id) {
           actionButton(
             ns('show_subset'), '',
             icon = icon('object-ungroup', 'far fa-fw'),
-            title = 'Toggle to subset and recluster current dataset'
+            title = 'Toggle to subset current dataset or align to reference'
           )
         ),
         downloadLink(ns("download_dataset"), '')

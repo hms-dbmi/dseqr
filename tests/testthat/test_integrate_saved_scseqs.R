@@ -18,7 +18,7 @@ mock_scseq_files <- function(sc_dir, dataset_name, sample_names = 'a', sce = NUL
     save_scseq_data(anal, dataset_subname, sc_dir, overwrite = FALSE)
 
     # save scseq
-    split_save_scseq(sce, dataset_dir)
+    suppressWarnings(split_save_scseq(sce, dataset_dir))
 
     return(sce)
 }
