@@ -4,12 +4,7 @@
 \alias{create_scseq}
 \title{Load kallisto/bustools quantification into a SingleCellExperiment object.}
 \usage{
-create_scseq(
-  data_dir,
-  tx2gene_dir,
-  project,
-  type = c("kallisto", "cellranger")
-)
+create_scseq(data_dir, tx2gene_dir, project)
 }
 \arguments{
 \item{data_dir}{Directory with raw and kallisto/bustools or CellRanger quantified single-cell RNA-Seq files.}
@@ -18,8 +13,6 @@ create_scseq(
 produced by \link[dseqr.data]{load_tx2gene}.}
 
 \item{project}{String identifying sample.}
-
-\item{type}{Quantification file type. One of either \code{'kallisto'} or \code{'cellranger'}.}
 }
 \value{
 \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.

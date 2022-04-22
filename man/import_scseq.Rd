@@ -37,13 +37,9 @@ produced by \link[dseqr.data]{load_tx2gene}.}
 
 \item{progress}{Optional shiny \code{Progress} object. Default will print progress.}
 
-\item{recount}{Overwrite previous output? Default is \code{TRUE}.}
-
 \item{value}{Integer indicating step of pipeline.}
 
 \item{founder}{Name of dataset that \code{dataset_name} originates from.}
-
-\item{species}{The species. Default is \code{'homo_sapiens'}.}
 }
 \description{
 Import raw single cell fastq or cellranger files for app

@@ -7,7 +7,6 @@
 #' @param value Integer indicating step of pipeline.
 #' @param founder Name of dataset that \code{dataset_name} originates from.
 #' @inheritParams run_dseqr
-#' @inheritParams run_kallisto_scseq
 #'
 #' @return NULL
 #' @keywords internal
