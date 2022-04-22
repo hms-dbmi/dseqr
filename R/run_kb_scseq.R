@@ -82,7 +82,7 @@ download_kb_index <- function(indices_dir, species = c('human', 'mouse')) {
 #' Creates samples of 10,000 reads per lane and then determins the number of reads
 #' with barcodes in agreement with the chemistry whitelist.
 #'
-#' @param index_path Path to kallisto index.
+#' @param index_dir Path to kallisto index.
 #' @param data_dir Path to folder with 10x fastq.gz files.
 #' @param bus_args Additional arguments to kallisto bus.
 #' @param fqs Vector of fastq file names.
@@ -91,7 +91,7 @@ download_kb_index <- function(indices_dir, species = c('human', 'mouse')) {
 #'
 #' @return one of \code{techs} corresponding to chemistry with most reads that agree with whitelist.
 #' @keywords internal
-detect_10x_chemistry <- function(index_path, data_dir, fqs, techs = c('10XV2', '10XV3'), threads = 1) {
+detect_10x_chemistry <- function(index_dir, data_dir, fqs, techs = c('10XV2', '10XV3'), threads = 1) {
 
   # run quanitification on first 10000 reads
   out_dir <- file.path(data_dir, 'tmp_output')
