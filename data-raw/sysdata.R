@@ -42,11 +42,10 @@ refs <- data.frame(
 )
 
 # constants
-gray <- '#f5f5f5'
+gray <- '#F5F5F580'
 const <- list(
     colors = list(
-        n0 = gray,
-        ft = c(gray, 'blue'),
+        ft = c(gray, "#0000FF80"),
         qc = c(gray, 'red')
     ),
     features = list(
