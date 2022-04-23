@@ -14,8 +14,6 @@
 #'  produced by \link[dseqr.data]{load_tx2gene}.
 #' @param app_dir Directory containing shiny app files. Default is to use 'app' directory of
 #'  installed dseqr package. Can be 'inst/app' if working from source code.
-#' @param test Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
-#'  If \code{TRUE} test data will be used.
 #' @param logout_url URL used to log users out. Default is \code{NULL} for local use.
 #' @param is_local Is dseqr running locally? If \code{FALSE}, uses CDNs for
 #'  some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
@@ -50,7 +48,6 @@ run_dseqr <- function(project_name,
                       indices_dir = file.path(data_dir, '.indices_dir'),
                       tx2gene_dir = file.path(data_dir, '.tx2gene_dir'),
                       app_dir = system.file('app', package = 'dseqr', mustWork = TRUE),
-                      test = FALSE,
                       host = '0.0.0.0',
                       port = 3838,
                       logout_url = NULL,
@@ -80,19 +77,6 @@ run_dseqr <- function(project_name,
     is_local = is_local,
     is_example = is_example)
 
-
-  if (test) {
-    if (!requireNamespace('shinytest'))
-      stop("package 'shinytest' required to record tests")
-
-    # TODO: run test and return
-    shinytest::recordTest(app_dir, seed = 0, loadTimeout = 100000)
-    options(shiny.testmode = TRUE)
-    return(NULL)
-
-  } else {
-    options(shiny.testmode = FALSE)
-  }
 
   # partial stack sometimes obscures errors
   options(shiny.fullstacktrace = TRUE)

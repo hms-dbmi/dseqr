@@ -14,7 +14,6 @@ run_dseqr(
   indices_dir = file.path(data_dir, ".indices_dir"),
   tx2gene_dir = file.path(data_dir, ".tx2gene_dir"),
   app_dir = system.file("app", package = "dseqr", mustWork = TRUE),
-  test = FALSE,
   host = "0.0.0.0",
   port = 3838,
   logout_url = NULL,
@@ -43,9 +42,6 @@ produced by \link[dseqr.data]{load_tx2gene}.}
 
 \item{app_dir}{Directory containing shiny app files. Default is to use 'app' directory of
 installed dseqr package. Can be 'inst/app' if working from source code.}
-
-\item{test}{Boolean indicating if \code{shinytest} should be run (default is \code{FALSE}).
-If \code{TRUE} test data will be used.}
 
 \item{host}{The IPv4 address that the application should listen on. Defaults
 to the \code{shiny.host} option, if set, or \code{"127.0.0.1"} if not. See

@@ -5,10 +5,10 @@
 on: [push, pull_request]
 
 # Name of the workflow => usethis::use_github_actions_badge("CI-CD-renv")
-name: CI-CD-renv
+name: CD-renv
 
 jobs:
-  CI-CD:
+  CD:
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
@@ -57,3 +57,5 @@ jobs:
 
       - name: Check package
         uses: r-lib/actions/check-r-package@v2
+        with:
+          error-on: '"error"'

@@ -30,17 +30,6 @@ server <- function(input, output, session) {
     if (!dir.exists(indices_dir)) dir.create(indices_dir)
     if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
 
-    # for testing don't seem to be able to pass arguments as options
-    if (isTRUE(getOption('shiny.testmode'))) {
-        # reset data for testing
-        data_dir <- 'tests/data/test/example'
-        static_dir <- 'tests/data/static/example'
-        unlink(data_dir, recursive = TRUE)
-        dir.create(data_dir, recursive = TRUE)
-        file.copy(list.files(static_dir, full.names = TRUE), data_dir, recursive = TRUE)
-    }
-
-
     sc_dir <- file.path(data_dir, 'single-cell')
     bulk_dir <- file.path(data_dir, 'bulk')
 
