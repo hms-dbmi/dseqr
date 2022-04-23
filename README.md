@@ -1,7 +1,3 @@
-<!-- badges: start -->
-[![R-CMD-check](https://github.com/hms-dbmi/drugseqr/workflows/R-CMD-check/badge.svg)](https://github.com/hms-dbmi/drugseqr/actions)
-<!-- badges: end -->
-
 ## Dseqr
 #### **End-to-End RNA-Seq Analysis**
 
