@@ -59,7 +59,7 @@ RUN mv /src/dseqr/renv/library/R-4.1/x86_64-pc-linux-gnu /src/library && \
     echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
 
 # -------
-FROM rocker/r-ver:4.1.3
+FROM rocker/r-ver:4.1.3 AS deploy
 WORKDIR /src/dseqr
 
 # get source code and R packages
