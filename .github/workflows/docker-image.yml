@@ -1,8 +1,11 @@
 name: Deploy with multi-stage Dockerfile
-on: [push]
+on:
+  push:
+    tags:
+    - '*'
 
 jobs:
-  deploy_cache_multi:
+  build_and_push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,12 +22,12 @@ jobs:
         # Use the action from the master, as we've seen some inconsistencies with @v1
         # Issue: https://github.com/docker/build-push-action/issues/286
         uses: docker/setup-buildx-action@master
-        # Only worked for us with this option on 🤷‍♂️
+        # Only worked for us with this option on 🤷
         with:
           install: true
-          
+
       - name: Login to DockerHub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -46,7 +49,7 @@ jobs:
           file: Dockerfile
           # Set the desired build target here
           target: deploy
-          push: false
+          push: true
           tags: ${{ steps.prep.outputs.tagged_image }}
           cache-from: type=local,src=/tmp/.buildx-cache
           # Note the mode=max here
