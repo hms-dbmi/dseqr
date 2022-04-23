@@ -1675,8 +1675,10 @@ collapse_sorted <- function(x, collapse = ',') {
 #' E <- 2
 #' test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 #'
-#' get_nearest_row(truth, test)
+#' \dontrun{
 #' #[1] 4 3
+#' get_nearest_row(truth, test)
+#' }
 #'
 get_nearest_row <- function(truth, test) {
   ntest <- nrow(test)

@@ -26,8 +26,10 @@ truth <- matrix(data=runif(events, min = 0, max = 1), nrow=K)
 E <- 2
 test <- matrix(data=runif(2*E, min = 0, max = 1), nrow=E)
 
-get_nearest_row(truth, test)
+\dontrun{
 #[1] 4 3
+get_nearest_row(truth, test)
+}
 
 }
 \keyword{internal}

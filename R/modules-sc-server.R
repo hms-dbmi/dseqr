@@ -281,7 +281,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     }
 
     qc <- colnames(metrics)
-    names(qc) <- sapply(metrics, function(x) tail(class(x), 1))
+    names(qc) <- sapply(metrics, function(x) utils::tail(class(x), 1))
     qc <- qc[names(qc) %in% c('numeric', 'logical', 'outlier.filter')]
 
     samples <- unique(scseq$batch)
