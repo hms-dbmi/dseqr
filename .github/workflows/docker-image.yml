@@ -31,7 +31,7 @@ jobs:
           target: deploy
           push: true
           build-args: |
-            DSEQR_VERSION=${{ github.ref_name }}
+            DSEQR_VERSION=$GITHUB_REF_NAME
           tags: ${{ env.DOCKERHUB_REPO }}:latest
           cache-from: type=registry,ref=${{ env.DOCKERHUB_REPO }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKERHUB_REPO }}:buildcache,mode=max
