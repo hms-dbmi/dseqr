@@ -5,7 +5,7 @@
 on: [push, pull_request]
 
 # Name of the workflow => usethis::use_github_actions_badge("CI-CD-renv")
-name: CD-renv
+name: R-CMD-check
 
 jobs:
   CD:
