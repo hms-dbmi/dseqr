@@ -167,7 +167,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   dataset_dir <- reactive({
     dataset <- scDataset$dataset_name()
     if (is.null(dataset)) return(NULL)
-    file.path(sc_dir, dataset)
+    file.path(sc_dir(), dataset)
   })
 
   # directory with cluster resolution dependent stuff
@@ -1487,7 +1487,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     if (is.null(prev) || is.null(sel) || sel != prev) dataset_name(sel)
   })
 
-  dataset_dir <- reactive(file.path(sc_dir, dataset_name()))
+  dataset_dir <- reactive(file.path(sc_dir(), dataset_name()))
   snn_path <- reactive(file.path(dataset_dir(), 'snn_graph.qs'))
 
   dataset_exists <- reactive(isTruthy(dataset_name()))
@@ -1532,7 +1532,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   is_integrated <- reactive({
     dataset_name <- dataset_name()
     req(dataset_name)
-    integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
+    integrated <- qread.safe(file.path(sc_dir(), 'integrated.qs'))
     return(dataset_name %in% integrated)
   })
 
@@ -1548,7 +1548,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
-    datasets <- get_sc_dataset_choices(sc_dir)
+    datasets <- get_sc_dataset_choices(sc_dir())
     prev <- isolate(prev_datasets())
     curr <- isolate(input$selected_dataset)
 
@@ -1566,7 +1566,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # update previously selected dataset on-file if changes
-  prev_path <- file.path(sc_dir, 'prev_dataset.qs')
+  prev_path <- file.path(sc_dir(), 'prev_dataset.qs')
 
   observe({
     sel <- dataset_name()
@@ -1665,7 +1665,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   observeEvent(input$delete_dataset, {
     remove_datasets <- input$remove_datasets
-    unlink(file.path(sc_dir, remove_datasets), recursive = TRUE)
+    unlink(file.path(sc_dir(), remove_datasets), recursive = TRUE)
     updateTextInput(session, 'confirm_delete', value = '')
     removeModal()
     new_dataset(paste0(remove_datasets, '_delete'))
@@ -1895,7 +1895,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     for (dataset_name in uniq_samples) {
       upi <- up[samples %in% dataset_name,, drop = FALSE]
 
-      uploaded_data_dir <- file.path(sc_dir, dataset_name)
+      uploaded_data_dir <- file.path(sc_dir(), dataset_name)
       unlink(uploaded_data_dir, recursive = TRUE)
       dir.create(uploaded_data_dir)
       file.move(upi$datapath, file.path(uploaded_data_dir, upi$name))
@@ -1924,7 +1924,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       qargs[[dataset_name]] <- list(
         opts = opts,
         uploaded_data_dir = uploaded_data_dir,
-        sc_dir = sc_dir,
+        sc_dir = sc_dir(),
         tx2gene_dir = tx2gene_dir,
         ref_name = ref_name,
         species = species
@@ -2013,7 +2013,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(input$confirm_export, {
     shinyjs::disable('confirm_export')
 
-    dataset_dir <- file.path(sc_dir, export_name())
+    dataset_dir <- file.path(sc_dir(), export_name())
 
     progress <- Progress$new(session, min = 0, max = 3)
     progress$set(message = "Preparing export:", detail = export_name(), value = 1)
@@ -2205,7 +2205,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
       preds[[pred_name]] <- qs::qread(file.path(preds_dir, pred_file))
     }
 
-    preds <- validate_preds(preds, sc_dir)
+    preds <- validate_preds(preds, sc_dir())
     return(preds)
   })
 
@@ -2234,7 +2234,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
 
 
   query <- reactive({
-    query_path <- scseq_part_path(sc_dir, resoln_name(), 'scseq_sample')
+    query_path <- scseq_part_path(sc_dir(), resoln_name(), 'scseq_sample')
     if (!file.exists(query_path)) return(NULL)
 
     qs::qread(query_path)
@@ -2266,7 +2266,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
       func = run_label_transfer,
       package = 'dseqr',
       args = list(
-        sc_dir = sc_dir,
+        sc_dir = sc_dir(),
         tx2gene_dir = tx2gene_dir,
         resoln_name = resoln_name,
         query_name = query_name,
@@ -2320,6 +2320,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     new_annot()
     ref_name <- input$ref_name
 
+    sc_dir <- sc_dir()
     ref_preds <- ref_preds()
     query_resoln_name <- resoln_name()
     req(query_resoln_name)
@@ -2372,6 +2373,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   observeEvent(input$confirm_overwrite, {
     removeModal()
     ref_name <- input$ref_name
+    sc_dir <- sc_dir()
     ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
     ref_preds <- ref_preds()
     query_resoln_name <- resoln_name()
@@ -2591,7 +2593,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
       qs::qsave(resoln, resoln_path())
 
       resoln_name <-  get_resoln_dir(resoln)
-      applied_path <- file.path(sc_dir, dataset_name(),resoln_name, 'applied.qs')
+      applied_path <- file.path(sc_dir(), dataset_name(),resoln_name, 'applied.qs')
       if (file.exists(applied_path)) {
         prev_resoln(resoln)
         return(clusters)
@@ -2622,7 +2624,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
       # transfer annotation from prev clusters to new
       qs::qsave(levels(clusters), annot_path())
-      annot <- transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir)
+      annot <- transfer_prev_annot(resoln, prev_resoln, dataset_name(), sc_dir())
       annot(annot)
     }
 
@@ -2635,7 +2637,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # add new clusters and run post clustering steps
     scseq$cluster <- clusters
-    run_post_cluster(scseq, dataset_name(), sc_dir, resoln, progress, 1, reset_annot = FALSE)
+    run_post_cluster(scseq, dataset_name(), sc_dir(), resoln, progress, 1, reset_annot = FALSE)
 
     # mark as previously applied
     prev_resoln(resoln)
@@ -2754,7 +2756,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
 
   founder <- reactive({
     from_dataset <- selected_dataset()
-    get_founder(sc_dir, from_dataset)
+    get_founder(sc_dir(), from_dataset)
   })
 
   subset_clusters <- reactive({
@@ -2817,7 +2819,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
       func = subset_saved_scseq,
       package = 'dseqr',
       args = list(
-        sc_dir = sc_dir,
+        sc_dir = sc_dir(),
         founder = founder,
         from_dataset = from_dataset,
         dataset_name = dataset_name,
@@ -2905,8 +2907,8 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
   integration_choices <- reactive({
     ds <- datasets()
     if (!nrow(ds)) return(NULL)
-    int  <- qread.safe(file.path(sc_dir, 'integrated.qs'))
-    prev <- qread.safe(file.path(sc_dir, 'prev_dataset.qs'))
+    int  <- qread.safe(file.path(sc_dir(), 'integrated.qs'))
+    prev <- qread.safe(file.path(sc_dir(), 'prev_dataset.qs'))
     ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
 
     ds <- tibble::as_tibble(ds)
@@ -2950,7 +2952,7 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
 
   # set references based on species
   species <- reactive({
-    get_integration_species(input$integration_datasets, sc_dir)
+    get_integration_species(input$integration_datasets, sc_dir())
   })
 
   species_refs <- reactive({
@@ -2999,7 +3001,7 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
     ref_name <- input$ref_name
     if (!use_reference()) ref_name <- NULL
 
-    error_msg <- validate_integration(types, name, ref_name, dataset_names, sc_dir)
+    error_msg <- validate_integration(types, name, ref_name, dataset_names, sc_dir())
     if (is.null(error_msg)) {
       removeClass('name-container', 'has-error')
       removeModal()
@@ -3008,7 +3010,7 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
         func = run_integrate_saved_scseqs,
         package = 'dseqr',
         args = list(
-          sc_dir = sc_dir,
+          sc_dir = sc_dir(),
           tx2gene_dir = tx2gene_dir,
           dataset_names = dataset_names,
           integration_name = name,
@@ -3250,7 +3252,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
       resoln_name <- paste0(dataset_name, '/', get_resoln_dir(resoln()))
 
       progress$set(message = "Saving", value = 2)
-      save_scseq_data(list(markers = markers), resoln_name, sc_dir, overwrite = FALSE)
+      save_scseq_data(list(markers = markers), resoln_name, sc_dir(), overwrite = FALSE)
       progress$set(value = 3)
       enableAll(cluster_inputs)
 

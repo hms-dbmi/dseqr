@@ -1,225 +1,272 @@
+# modal to manage projects
+projectModal <- function(session, choices, selected, options) {
+
+  modalDialog(
+    shinypanel::selectizeInputWithButtons(
+      'project_name',
+      label = '',
+      actionButton(session$ns('rename_project'), label = '', icon = tags$i(class = 'far fa-edit fa-fw'))
+    ),
+    title = "Select Your Project",
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns("confirm_project"),
+                   "Open Project",
+                   class='btn-success'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE,
+  )
+}
+
+
 server <- function(input, output, session) {
 
-    # get arguments from calling function
-    # defaults for testing
+  # get arguments from calling function
+  # defaults for testing
 
-    # base directory contains data_dir folder
-    data_dir <- getShinyOption('data_dir', 'tests/data/test/example')
+  # base directory contains data_dir folder
+  data_dir <- getShinyOption('data_dir', 'tests/data/test/example')
 
-    # path where pert queries will be stored
-    pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
+  # path where pert queries will be stored
+  pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
 
-    # path where gene set data is stored
-    gs_dir <- getShinyOption('gs_dir', '/srv/dseqr/gs_dir')
+  # path where gene set data is stored
+  gs_dir <- getShinyOption('gs_dir', '/srv/dseqr/gs_dir')
 
-    # path where pert signatures will be stored
-    pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/dseqr/pert_signature_dir')
+  # path where pert signatures will be stored
+  pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/dseqr/pert_signature_dir')
 
-    # path where kallisto index is downloaded and stored
-    indices_dir <- getShinyOption('indices_dir', '/srv/dseqr/indices')
+  # path where kallisto index is downloaded and stored
+  indices_dir <- getShinyOption('indices_dir', '/srv/dseqr/indices')
 
-    # path where save tx2genes
-    tx2gene_dir <- getShinyOption('tx2gene_dir', '/srv/dseqr/tx2gene')
+  # path where save tx2genes
+  tx2gene_dir <- getShinyOption('tx2gene_dir', '/srv/dseqr/tx2gene')
 
-    is_example <- getShinyOption('is_example', FALSE)
+  is_example <- getShinyOption('is_example', FALSE)
 
-    is_local <- getShinyOption('is_local', TRUE)
+  is_local <- getShinyOption('is_local', TRUE)
 
-    if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
-    if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
-    if (!dir.exists(indices_dir)) dir.create(indices_dir)
-    if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
+  if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
+  if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
+  if (!dir.exists(indices_dir)) dir.create(indices_dir)
+  if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
 
-    sc_dir <- file.path(data_dir, 'single-cell')
-    bulk_dir <- file.path(data_dir, 'bulk')
+  # hide tour button for docs page
+  observe(shinyjs::toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
 
+
+  # rintrojs
+  observeEvent(input$start_tour, {
+    if (input$tab == 'Bulk Data')
+      steps <- utils::read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
+    else if (input$tab == 'Drugs')
+      steps <- utils::read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
+
+    rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+  })
+
+  observeEvent(input$tour_sc_clusters, {
+    steps <- utils::read.csv('www/sc_intro_clusters.csv', stringsAsFactors = FALSE)
+    rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+  })
+
+  observeEvent(input$tour_sc_samples, {
+    steps <- utils::read.csv('www/sc_intro_samples.csv', stringsAsFactors = FALSE)
+    steps$step <- seq_len(nrow(steps))
+    rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
+  })
+
+  observe({
+    if (length(list.dirs(sc_dir(), recursive = FALSE))) return(NULL)
+    # show hints and add dataset modal if no datasets
+    shinyjs::click('add_dataset')
+    rintrojs::hintjs(session,
+                     options = list(hints =
+                                      data.frame(
+                                        element = '#docs-link',
+                                        hint = 'Read the docs for all the details.',
+                                        hintPosition = 'middle-middle')))
+  })
+
+  # open modal selectors
+  observeEvent(input$feedback, {
+    showModal(feedbackModal(session))
+  })
+
+
+  observeEvent(input$submit_feedback, {
+
+    user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+
+    project <- rev(strsplit(data_dir, '/')[[1]])[1]
+    project <- ifelse(project == user, 'private', project)
+
+    slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+
+    httr::POST(url = slack$feedback,
+               httr::add_headers('Content-Type' = 'application/json'),
+               body = sprintf(
+                 '{"text": "🧑 💬 \n\n>_%s_ \n\n *project*: %s \n *user*: %s"}',
+                 input$feedback_text,
+                 project,
+                 user
+               ))
+
+    updateTextAreaInput(session, 'feedback_text', value = '', placeholder = 'Thank you!')
+    shinyjs::delay(1000, {updateTextAreaInput(session, 'feedback', placeholder = ''); removeModal()})
+  })
+
+
+
+  observe({
+    toggle('tour_dropdown', condition = input$tab == 'Single Cell')
+    toggle('start_tour_container', condition = input$tab != 'Single Cell')
+    toggle('datasets_dropdown', condition = input$tab != 'Drugs')
+    toggle('integrate_dataset', condition = input$tab == 'Single Cell')
+    toggle('export_dataset', condition = input$tab == 'Single Cell')
+  })
+
+
+  is_mobile <- reactive(input$is_mobile)
+
+
+  add_sc <- reactiveVal(NULL)
+  remove_sc <- reactiveVal(NULL)
+  integrate_sc <- reactiveVal(NULL)
+  export_sc <- reactiveVal(NULL)
+
+  add_bulk <- reactiveVal(NULL)
+  remove_bulk <- reactiveVal(NULL)
+
+  increment <- function(rval) {
+    curr <- rval()
+    if (is.null(curr)) curr <- 0
+    rval(curr+1)
+  }
+
+  # selecting the project
+  project_choices <- reactive({
+    list.files(data_dir)
+  })
+
+  observeEvent(input$select_project, {
+    showModal(projectModal(session, options = NULL))
+    updateSelectizeInput(session, 'project_name', choices = project_choices())
+  })
+
+  project <- reactiveVal(qread.safe('prev_project.qs', .nofile = 'default'))
+  project_dir <- reactive(file.path(data_dir, project()))
+
+  sc_dir <- reactive({
+    sc_dir <- file.path(project_dir(), 'single-cell')
     dir.create(sc_dir, showWarnings = FALSE)
+    return(sc_dir)
+  })
+
+  bulk_dir <- reactive({
+    bulk_dir <- file.path(project_dir(), 'bulk')
     dir.create(bulk_dir, showWarnings = FALSE)
+    return(bulk_dir)
+  })
 
-    # hide tour button for docs page
-    observe(shinyjs::toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
-
-
-    # rintrojs
-    observeEvent(input$start_tour, {
-        if (input$tab == 'Bulk Data')
-            steps <- utils::read.csv('www/bulk_intro.csv', stringsAsFactors = FALSE)
-        else if (input$tab == 'Drugs')
-            steps <- utils::read.csv('www/drugs_intro.csv', stringsAsFactors = FALSE)
-
-        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
-    })
-
-    observeEvent(input$tour_sc_clusters, {
-        steps <- utils::read.csv('www/sc_intro_clusters.csv', stringsAsFactors = FALSE)
-        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
-    })
-
-    observeEvent(input$tour_sc_samples, {
-        steps <- utils::read.csv('www/sc_intro_samples.csv', stringsAsFactors = FALSE)
-        steps$step <- seq_len(nrow(steps))
-        rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
-    })
-
-    observe({
-        if (length(list.dirs(sc_dir, recursive = FALSE))) return(NULL)
-        # show hints and add dataset modal if no datasets
-        shinyjs::click('add_dataset')
-        rintrojs::hintjs(session,
-                         options = list(hints =
-                                            data.frame(
-                                                element = '#docs-link',
-                                                hint = 'Read the docs for all the details.',
-                                                hintPosition = 'middle-middle')))
-    })
-
-    # open modal selectors
-    observeEvent(input$feedback, {
-        showModal(feedbackModal(session))
-    })
+  observeEvent(input$confirm_project, {
+    selected <- input$project_name
+    qs::qsave(file.path(data_dir, 'prev_project.qs'))
+  })
 
 
-    observeEvent(input$submit_feedback, {
+  observeEvent(input$add_dataset, {
+    req(!is_example)
+    if (input$tab == 'Single Cell') increment(add_sc)
+    if (input$tab == 'Bulk Data') increment(add_bulk)
+  })
 
-        user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+  observeEvent(input$remove_dataset, {
+    req(!is_example)
+    if (input$tab == 'Single Cell') increment(remove_sc)
+    if (input$tab == 'Bulk Data') increment(remove_bulk)
+  })
 
-        project <- rev(strsplit(data_dir, '/')[[1]])[1]
-        project <- ifelse(project == user, 'private', project)
+  observeEvent(input$integrate_dataset, {
+    req(!is_example)
+    if (input$tab == 'Single Cell') increment(integrate_sc)
+  })
 
-        slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
-
-        httr::POST(url = slack$feedback,
-                   httr::add_headers('Content-Type' = 'application/json'),
-                   body = sprintf(
-                       '{"text": "🧑 💬 \n\n>_%s_ \n\n *project*: %s \n *user*: %s"}',
-                       input$feedback_text,
-                       project,
-                       user
-                   ))
-
-        updateTextAreaInput(session, 'feedback_text', value = '', placeholder = 'Thank you!')
-        shinyjs::delay(1000, {updateTextAreaInput(session, 'feedback', placeholder = ''); removeModal()})
-    })
-
+  observeEvent(input$export_dataset, {
+    if (input$tab == 'Single Cell') increment(export_sc)
+  })
 
 
-    observe({
-        toggle('tour_dropdown', condition = input$tab == 'Single Cell')
-        toggle('start_tour_container', condition = input$tab != 'Single Cell')
-        toggle('datasets_dropdown', condition = input$tab != 'Drugs')
-        toggle('integrate_dataset', condition = input$tab == 'Single Cell')
-        toggle('export_dataset', condition = input$tab == 'Single Cell')
-    })
+  # login notification
+  observe({
+    req(!is_local)
+    user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
+    if (user == 'alexvpickering@gmail.com') return(NULL)
+
+    project <- rev(strsplit(data_dir, '/')[[1]])[1]
+    project <- ifelse(project == user, 'private', project)
+
+    slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
+
+    httr::POST(
+      url = slack$logins,
+      httr::add_headers('Content-Type' = 'application/json'),
+      body = sprintf('{"text": "⭐⭐⭐ \n\n *project*: %s \n *user*: %s 🧑"}', project, user)
+    )
+  })
+
+  #  call each page module only on first tab visit
+  pages <- reactiveValues()
+  tabs <- reactiveValues()
+
+  observeEvent(input$tab, {
+    if (input$tab == 'Single Cell') tabs$sc <- TRUE
+    if (input$tab == 'Bulk Data') tabs$bulk <- TRUE
+    if (input$tab == 'Drugs') tabs$drugs <- TRUE
+  })
+
+  observeEvent(tabs$sc, {
+
+    pages$scPage <- callModule(
+      scPage, 'sc',
+      sc_dir = sc_dir,
+      indices_dir = indices_dir,
+      tx2gene_dir = tx2gene_dir,
+      gs_dir = gs_dir,
+      is_mobile = is_mobile,
+      add_sc = add_sc,
+      remove_sc = remove_sc,
+      integrate_sc = integrate_sc,
+      export_sc = export_sc)
+
+  }, once = TRUE)
 
 
-    is_mobile <- reactive(input$is_mobile)
+  observeEvent(tabs$bulk, {
+
+    pages$bulkPage <- callModule(
+      bulkPage, 'bulk',
+      data_dir = data_dir,
+      sc_dir = sc_dir,
+      bulk_dir = bulk_dir,
+      tx2gene_dir = tx2gene_dir,
+      gs_dir = gs_dir,
+      indices_dir = indices_dir,
+      add_bulk = add_bulk,
+      remove_bulk = remove_bulk)
 
 
-    add_sc <- reactiveVal(NULL)
-    remove_sc <- reactiveVal(NULL)
-    integrate_sc <- reactiveVal(NULL)
-    export_sc <- reactiveVal(NULL)
+  }, once = TRUE)
 
-    add_bulk <- reactiveVal(NULL)
-    remove_bulk <- reactiveVal(NULL)
+  observeEvent(tabs$drugs, {
 
-    increment <- function(rval) {
-        curr <- rval()
-        if (is.null(curr)) curr <- 0
-        rval(curr+1)
-    }
+    pages$drugsPage <- callModule(
+      drugsPage, 'drug',
+      data_dir = data_dir,
+      pert_query_dir = pert_query_dir,
+      pert_signature_dir = pert_signature_dir,
+      tx2gene_dir = tx2gene_dir)
 
-    observeEvent(input$add_dataset, {
-        req(!is_example)
-        if (input$tab == 'Single Cell') increment(add_sc)
-        if (input$tab == 'Bulk Data') increment(add_bulk)
-    })
-
-    observeEvent(input$remove_dataset, {
-        req(!is_example)
-        if (input$tab == 'Single Cell') increment(remove_sc)
-        if (input$tab == 'Bulk Data') increment(remove_bulk)
-    })
-
-    observeEvent(input$integrate_dataset, {
-        req(!is_example)
-        if (input$tab == 'Single Cell') increment(integrate_sc)
-    })
-
-    observeEvent(input$export_dataset, {
-        if (input$tab == 'Single Cell') increment(export_sc)
-    })
-
-
-    # login notification
-    observe({
-        req(!is_local)
-        user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
-        if (user == 'alexvpickering@gmail.com') return(NULL)
-
-        project <- rev(strsplit(data_dir, '/')[[1]])[1]
-        project <- ifelse(project == user, 'private', project)
-
-        slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
-
-        httr::POST(
-            url = slack$logins,
-            httr::add_headers('Content-Type' = 'application/json'),
-            body = sprintf('{"text": "⭐⭐⭐ \n\n *project*: %s \n *user*: %s 🧑"}', project, user)
-        )
-    })
-
-    #  call each page module only on first tab visit
-    pages <- reactiveValues()
-    tabs <- reactiveValues()
-
-    observeEvent(input$tab, {
-        if (input$tab == 'Single Cell') tabs$sc <- TRUE
-        if (input$tab == 'Bulk Data') tabs$bulk <- TRUE
-        if (input$tab == 'Drugs') tabs$drugs <- TRUE
-    })
-
-    observeEvent(tabs$sc, {
-
-        pages$scPage <- callModule(
-            scPage, 'sc',
-            sc_dir = sc_dir,
-            indices_dir = indices_dir,
-            tx2gene_dir = tx2gene_dir,
-            gs_dir = gs_dir,
-            is_mobile = is_mobile,
-            add_sc = add_sc,
-            remove_sc = remove_sc,
-            integrate_sc = integrate_sc,
-            export_sc = export_sc)
-
-    }, once = TRUE)
-
-
-    observeEvent(tabs$bulk, {
-
-        pages$bulkPage <- callModule(
-            bulkPage, 'bulk',
-            data_dir = data_dir,
-            sc_dir = sc_dir,
-            bulk_dir = bulk_dir,
-            tx2gene_dir = tx2gene_dir,
-            gs_dir = gs_dir,
-            indices_dir = indices_dir,
-            add_bulk = add_bulk,
-            remove_bulk = remove_bulk)
-
-
-    }, once = TRUE)
-
-    observeEvent(tabs$drugs, {
-
-        pages$drugsPage <- callModule(
-            drugsPage, 'drug',
-            data_dir = data_dir,
-            pert_query_dir = pert_query_dir,
-            pert_signature_dir = pert_signature_dir,
-            tx2gene_dir = tx2gene_dir)
-
-    }, once = TRUE)
+  }, once = TRUE)
 }

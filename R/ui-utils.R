@@ -182,7 +182,15 @@ navbar2UI <- function(hide) {
                                           class = 'action-button shiny-bound-input',
                                           tags$i(class= 'far fa-trash-alt fa-fw'),
                                           'Delete')
-                           )
+                           ),
+                           tags$li(role = 'separator', class='divider'),
+                           tags$li(class=add,
+                                   tags$a(id = 'select_project',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          tags$i(class = 'far fa-folder-open fa-fw'),
+                                          'Projects')
+                           ),
                    )
           )
         )

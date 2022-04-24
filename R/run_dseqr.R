@@ -115,12 +115,12 @@ run_dseqr <- function(project_name,
 #' data_dir <- tempdir()
 #' init_dseqr('example', data_dir)
 #'
-init_dseqr <- function(project_name, data_dir = '/srv/dseqr') {
+init_dseqr <- function(user_name, data_dir = '/srv/dseqr') {
 
-  user_dir <- file.path(data_dir, project_name)
-  dir.create(user_dir, recursive = TRUE)
-  dir.create(file.path(user_dir, 'bulk'))
-  dir.create(file.path(user_dir, 'single-cell'))
-  dir.create(file.path(user_dir, 'custom_queries'))
+  default_dir <- file.path(data_dir, user_name, 'default')
+  dir.create(default_dir, recursive = TRUE)
+  dir.create(file.path(default_dir, 'bulk'))
+  dir.create(file.path(default_dir, 'single-cell'))
+  dir.create(file.path(default_dir, 'custom_queries'))
 
 }
