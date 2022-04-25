@@ -72,6 +72,7 @@ ENV PATH="/src/miniconda/bin:$PATH"
 # set temporary directory for R
 # need dseqr in libPaths
 ENV TMP_DIR=/srv/dseqr/tmp
+ARG DSEQR_VERSION
 RUN mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
     apt-get update && apt-get install -y --no-install-recommends \
