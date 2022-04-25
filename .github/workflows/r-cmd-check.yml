@@ -1,8 +1,11 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 
-# Triggered on push and pull request events
-on: [push, pull_request]
+# Triggered on push
+on:
+  push:
+    tags-ignore:
+      - '**'
 
 # Name of the workflow => usethis::use_github_actions_badge("CI-CD-renv")
 name: R-CMD-check
