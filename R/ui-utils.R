@@ -105,7 +105,7 @@ navbar2UI <- function(hide) {
                               icon('info', 'fa-fw'),
                               'Tour',
                               tags$span(class='caret')),
-                            tags$ul(class="dropdown-menu",
+                            tags$ul(class="dropdown-menu dropdown-menu-right",
                                     tags$li(class = 'dropdown-header', 'Tour Comparison Between:'),
                                     tags$li(tags$a(
                                       id = 'tour_sc_clusters',
@@ -130,6 +130,7 @@ navbar2UI <- function(hide) {
                                        class=class,
                                        icon('info', 'fa-fw'),
                                        'Tour')
+
                    ),
 
           ),
