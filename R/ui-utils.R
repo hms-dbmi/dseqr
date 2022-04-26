@@ -132,14 +132,16 @@ navbar2UI <- function(hide) {
                                        'Tour')
                    ),
 
-                   # Feedback Button
-                   tags$li(tags$button(class = 'btn',
-                                       id = 'feedback',
-                                       class=class,
-                                       tags$i(class= 'far fa-comment-dots fa-fw'),
-                                       'Report Issue')
-                   ),
           ),
+
+          # Projects
+          tags$button(class = 'btn',
+                      id = 'select_project',
+                      class=class,
+                      tags$i(class= 'far fa-folder-open fa-fw'),
+                      tags$span(class = 'hidden-xs', 'Projects')),
+
+          tags$i(class = 'fa fa-angle-right', style = 'padding: 0 5px; color: white;'),
 
           # Dataset Management dropdown
           tags$div(class='btn-group',
@@ -150,7 +152,7 @@ navbar2UI <- function(hide) {
                      type = 'button',
                      haspopup = 'true',
                      `aria-expanded`='false',
-                     tags$i(class= 'far fa-folder-open fa-fw'),
+                     tags$i(class= 'far fa-file fa-fw'),
                      tags$span(class = 'hidden-xs', 'Dataset Management'),
                      tags$span(class='caret')),
                    tags$ul(class="dropdown-menu",
@@ -182,14 +184,6 @@ navbar2UI <- function(hide) {
                                           class = 'action-button shiny-bound-input',
                                           tags$i(class= 'far fa-trash-alt fa-fw'),
                                           'Delete')
-                           ),
-                           tags$li(role = 'separator', class='divider'),
-                           tags$li(class=add,
-                                   tags$a(id = 'select_project',
-                                          role='button',
-                                          class = 'action-button shiny-bound-input',
-                                          tags$i(class = 'far fa-folder-open fa-fw'),
-                                          'Projects')
                            ),
                    )
           )

@@ -13,13 +13,13 @@ projectModal <- function(session, choices, selected, options) {
     size = 'l',
     footer = tagList(
       actionButton(session$ns("add_project"),
-                   "Add Project"),
+                   "Add"),
       actionButton(session$ns("open_project"),
-                   "Open Selected Project",
+                   "Open Selected",
                    class='btn-success'),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
-    easyClose = FALSE
+    easyClose = TRUE
   )
 }
 
@@ -119,33 +119,6 @@ server <- function(input, output, session) {
                                         hintPosition = 'middle-middle')))
   })
 
-  # open modal selectors
-  observeEvent(input$feedback, {
-    showModal(feedbackModal(session))
-  })
-
-
-  observeEvent(input$submit_feedback, {
-
-    user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
-
-    project <- project()
-    slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
-
-    httr::POST(url = slack$feedback,
-               httr::add_headers('Content-Type' = 'application/json'),
-               body = sprintf(
-                 '{"text": "🧑 💬 \n\n>_%s_ \n\n *project*: %s \n *user*: %s"}',
-                 input$feedback_text,
-                 project,
-                 user
-               ))
-
-    updateTextAreaInput(session, 'feedback_text', value = '', placeholder = 'Thank you!')
-    shinyjs::delay(1000, {updateTextAreaInput(session, 'feedback', placeholder = ''); removeModal()})
-  })
-
-
 
   observe({
     toggle('tour_dropdown', condition = input$tab == 'Single Cell')
@@ -238,6 +211,7 @@ server <- function(input, output, session) {
     project_choices(c(project_choices(), ''))
   })
 
+  # update projects table
   observe({
     editn()
     DT::replaceData(proxy, projects_table(), rownames = FALSE)

@@ -2359,21 +2359,6 @@ confirmSubsetModal <- function(session,
   )
 }
 
-# modal to submit feedback
-feedbackModal <- function(session) {
-
-  modalDialog(
-    textAreaInput(session$ns('feedback_text'), '', width = '100%', height='200px', resize = 'vertical'),
-    title = "Describe Issue",
-    size = 'm',
-    footer = tagList(
-      actionButton(session$ns("submit_feedback"), "Submit Feedback", class='btn-success'),
-      tags$div(class='pull-left', modalButton("Cancel"))
-    ),
-    easyClose = FALSE,
-  )
-}
-
 
 # modal to export dataset
 exportModal <- function(session, choices, selected, options) {
