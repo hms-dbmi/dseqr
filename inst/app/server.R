@@ -161,7 +161,7 @@ server <- function(input, output, session) {
     choices <- project_choices()
 
     get_num_datasets <- function(x, type = 'single-cell') {
-      length(list.dirs(file.path(user_dir, x, 'single-cell'), recursive = FALSE))
+      length(list.dirs(file.path(user_dir, x, type), recursive = FALSE))
     }
 
     nsc <- sapply(choices, get_num_datasets)
