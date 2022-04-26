@@ -8,7 +8,7 @@ bulkPage(
   input,
   output,
   session,
-  data_dir,
+  project_dir,
   sc_dir,
   bulk_dir,
   tx2gene_dir,
@@ -21,11 +21,11 @@ bulkPage(
 \arguments{
 \item{input, output, session}{standard shiny module boilerplate}
 
-\item{data_dir}{path to folder with application name}
+\item{project_dir}{path to folder with project files}
 
-\item{sc_dir}{sub folder of \code{data_dir} where single-cell data is stored}
+\item{sc_dir}{sub folder of \code{project_dir} where single-cell data is stored}
 
-\item{bulk_dir}{sub folder of \code{data_dir} where bulk data is stored}
+\item{bulk_dir}{sub folder of \code{project_dir} where bulk data is stored}
 
 \item{tx2gene_dir}{Path to directory containing transcript to gene maps
 produced by \link[dseqr.data]{load_tx2gene}.}

@@ -8,7 +8,7 @@ drugsPage(
   input,
   output,
   session,
-  data_dir,
+  project_dir,
   pert_query_dir,
   pert_signature_dir,
   tx2gene_dir
@@ -21,7 +21,7 @@ drugsPage(
 
 \item{session}{standard shiny module boilerplate}
 
-\item{data_dir}{path to folder with application name}
+\item{project_dir}{path to folder with project files}
 
 \item{pert_query_dir}{Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.}
 

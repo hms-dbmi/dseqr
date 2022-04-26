@@ -26,7 +26,7 @@ scPage(
 
 \item{session}{standard shiny module boilerplate}
 
-\item{sc_dir}{sub folder of \code{data_dir} where single-cell data is stored}
+\item{sc_dir}{sub folder of \code{project_dir} where single-cell data is stored}
 
 \item{indices_dir}{Path to directory containing \code{kallisto} indices and whitelists.}
 
