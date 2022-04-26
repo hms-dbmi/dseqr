@@ -175,6 +175,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     dataset_dir <- dataset_dir()
     resoln <- resoln()
     req(dataset_dir, resoln)
+    if (!dir.exists(dataset_dir)) return(NULL)
     resoln_dir <- file.path(dataset_dir, get_resoln_dir(resoln))
     if (!dir.exists(resoln_dir)) dir.create(resoln_dir)
     return(resoln_dir)
@@ -1566,12 +1567,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
 
   # update previously selected dataset on-file if changes
-  prev_path <- file.path(sc_dir(), 'prev_dataset.qs')
+  prev_path <- reactive(file.path(sc_dir(), 'prev_dataset.qs'))
 
   observe({
     sel <- dataset_name()
     req(sel)
-    qs::qsave(sel, prev_path)
+    qs::qsave(sel, prev_path())
   })
 
   # logic for upload table modal
@@ -2373,14 +2374,13 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   observeEvent(input$confirm_overwrite, {
     removeModal()
     ref_name <- input$ref_name
-    sc_dir <- sc_dir()
-    ref_resoln_name <- get_resoln_name(sc_dir, ref_name)
+    ref_resoln_name <- get_resoln_name(sc_dir(), ref_name)
     ref_preds <- ref_preds()
     query_resoln_name <- resoln_name()
 
     req(query_resoln_name)
 
-    pred_annot <- get_pred_annot(ref_preds, ref_resoln_name, query_resoln_name, sc_dir)
+    pred_annot <- get_pred_annot(ref_preds, ref_resoln_name, query_resoln_name, sc_dir())
     annot_path <- annot_path()
     qs::qsave(pred_annot, annot_path)
 

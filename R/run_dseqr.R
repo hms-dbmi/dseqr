@@ -2,9 +2,9 @@
 #'
 #' Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 #'
-#' @param project_name Name of project folder in \code{data_dir}. Will be created if doesn't exist.
-#' @param data_dir Directory containing project sub-folders. By default also will contain sub-folders
-#'  \code{pert_query_dir}, \code{pert_signature_dir}, and \code{indices_dir}.
+#' @param user_name Name of user folder in \code{data_dir}. Will be created if doesn't exist.
+#' @param data_dir Directory containing user folders. By default also will contain folders
+#'  \code{.pert_query_dir}, \code{.pert_signature_dir}, and \code{.indices_dir}.
 #' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
 #' @param pert_signature_dir Path to directory where pert signatures for CMAP02/L1000 will be downloaded as requested.
@@ -35,11 +35,11 @@
 #' if (interactive()) {
 #'
 #'   data_dir <- tempdir()
-#'   project_name <- 'example'
-#'   run_dseqr(project_name, data_dir)
+#'   user_name <- 'example'
+#'   run_dseqr(user_name, data_dir)
 #' }
 #'
-run_dseqr <- function(project_name,
+run_dseqr <- function(user_name,
                       data_dir,
                       tabs = c('Single Cell', 'Bulk Data', 'Drugs'),
                       pert_query_dir = file.path(data_dir, '.pert_query_dir'),
@@ -61,12 +61,12 @@ run_dseqr <- function(project_name,
 
   if (missing(data_dir)) stop('data_dir not specified.')
 
-  user_dir <- file.path(data_dir, project_name)
-  if (!dir.exists(user_dir)) init_dseqr(project_name, data_dir)
+  user_dir <- file.path(data_dir, user_name)
+  if (!dir.exists(user_dir)) init_dseqr(user_name, data_dir)
 
   # pass arguments to app through options then run
   shiny::shinyOptions(
-    data_dir = normalizePath(user_dir),
+    user_dir = normalizePath(user_dir),
     pert_query_dir = normalizePath(pert_query_dir),
     pert_signature_dir = normalizePath(pert_signature_dir),
     gs_dir = normalizePath(gs_dir),

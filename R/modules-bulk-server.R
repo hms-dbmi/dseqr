@@ -3,9 +3,9 @@
 #' to be called with \link[shiny]{callModule}
 #'
 #' @param input,output,session standard shiny module boilerplate
-#' @param data_dir path to folder with application name
-#' @param sc_dir sub folder of \code{data_dir} where single-cell data is stored
-#' @param bulk_dir sub folder of \code{data_dir} where bulk data is stored
+#' @param project_dir path to folder with project files
+#' @param sc_dir sub folder of \code{project_dir} where single-cell data is stored
+#' @param bulk_dir sub folder of \code{project_dir} where bulk data is stored
 #' @param add_bulk reactive that triggers modal to upload a bulk dataset
 #' @param remove_bulk reactive that triggers modal for deleting bulk datasets
 #' @inheritParams run_dseqr
@@ -14,7 +14,7 @@
 #'   bulk dataset is added.
 #'
 #' @export
-bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene_dir, indices_dir, gs_dir, add_bulk, remove_bulk) {
+bulkPage <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2gene_dir, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   msg_quant <- reactiveVal()
 
@@ -29,7 +29,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene
 
 
   bulkForm <- callModule(bulkForm, 'form',
-                         data_dir = data_dir,
+                         project_dir = project_dir,
                          sc_dir = sc_dir,
                          bulk_dir = bulk_dir,
                          tx2gene_dir = tx2gene_dir,
@@ -88,7 +88,7 @@ bulkPage <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene
   dsExploreTable <- callModule(bulkExploreTable, 'explore',
                                eset = eset,
                                up_annot = up_annot,
-                               data_dir = data_dir,
+                               project_dir = project_dir,
                                dataset_dir = bulkForm$dataset_dir,
                                dataset_name = bulkForm$dataset_name,
                                svobj_r = bulkForm$svobj_r,
@@ -138,7 +138,7 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
   })
 
   mds_path <- reactive({
-    file.path(bulk_dir, dataset_name(), paste0('mds_', numsv(), 'svs.qs'))
+    file.path(bulk_dir(), dataset_name(), paste0('mds_', numsv(), 'svs.qs'))
   })
 
 
@@ -326,10 +326,10 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene_dir, msg_quant, explore_eset, indices_dir, gs_dir, add_bulk, remove_bulk) {
+bulkForm <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2gene_dir, msg_quant, explore_eset, indices_dir, gs_dir, add_bulk, remove_bulk) {
 
   dataset <- callModule(bulkDataset, 'selected_dataset',
-                        data_dir = data_dir,
+                        project_dir = project_dir,
                         sc_dir = sc_dir,
                         bulk_dir = bulk_dir,
                         tx2gene_dir = tx2gene_dir,
@@ -345,7 +345,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene
 
 
   anal <- callModule(bulkFormAnal, 'anal_form',
-                     data_dir = data_dir,
+                     project_dir = project_dir,
                      dataset_dir = dataset$dataset_dir,
                      gs_dir = gs_dir,
                      dataset_name = dataset$dataset_name,
@@ -376,7 +376,7 @@ bulkForm <- function(input, output, session, data_dir, sc_dir, bulk_dir, tx2gene
 #'
 #' @keywords internal
 #' @noRd
-bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, data_dir, indices_dir, explore_eset, add_bulk, remove_bulk) {
+bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, project_dir, indices_dir, explore_eset, add_bulk, remove_bulk) {
 
   new_dataset <- reactiveVal()
   options <- list(optgroupField = 'type',
@@ -396,7 +396,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
 
   datasets <- reactive({
     new_dataset()
-    load_bulk_datasets(data_dir)
+    load_bulk_datasets(project_dir())
   })
 
 
@@ -433,7 +433,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
 
   observeEvent(input$delete_dataset, {
     remove_datasets <- input$remove_datasets
-    unlink(file.path(bulk_dir, remove_datasets), recursive = TRUE)
+    unlink(file.path(bulk_dir(), remove_datasets), recursive = TRUE)
     updateTextInput(session, 'confirm_delete', value = '')
     removeModal()
     new_dataset(paste0(remove_datasets, '_deleted'))
@@ -847,7 +847,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
     pdata <- pdata()
     paired <- detected_paired()
     dataset_name <- input$import_dataset_name
-    fastq_dir <- file.path(bulk_dir, dataset_name)
+    fastq_dir <- file.path(bulk_dir(), dataset_name)
 
 
     # move files
@@ -902,7 +902,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
     req(dataset_name, datasets)
     req(dataset_name %in% datasets$dataset_name)
     dir <- datasets[datasets$dataset_name == dataset_name, 'dataset_dir']
-    file.path(data_dir, dir)
+    file.path(project_dir(), dir)
   })
 
   numsv_path <- reactive(file.path(dataset_dir(), 'numsv.qs'))
@@ -992,7 +992,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, d
 #'
 #' @keywords internal
 #' @noRd
-bulkFormAnal <- function(input, output, session, data_dir, dataset_name, dataset_dir, gs_dir, explore_eset, numsv_r, svobj_r) {
+bulkFormAnal <- function(input, output, session, project_dir, dataset_name, dataset_dir, gs_dir, explore_eset, numsv_r, svobj_r) {
 
 
   # run surrogate variable analysis if required
@@ -1112,6 +1112,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
     # reactive to new sc datasets
     new_dataset()
+    sc_dir <- sc_dir()
 
     # make sure integrated rds exists
     int_path <- file.path(sc_dir, 'integrated.qs')
@@ -1141,7 +1142,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     anal_name <- input$dtangle_dataset
     req(anal_name)
 
-    dataset_dir <- file.path(sc_dir, anal_name)
+    dataset_dir <- file.path(sc_dir(), anal_name)
     resoln_path <- file.path(dataset_dir, 'resoln.qs')
     resoln <- qs::qread(resoln_path)
     file.path(dataset_dir, get_resoln_dir(resoln))
@@ -1163,7 +1164,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   # scseq for deconvolution
   scseq <- reactive({
     dataset_name <- input$dtangle_dataset
-    dataset_dir <- file.path(sc_dir, dataset_name)
+    dataset_dir <- file.path(sc_dir(), dataset_name)
     scseq <- load_scseq_qs(dataset_dir, with_logs = TRUE)
 
     species <- scseq@metadata$species
@@ -1270,7 +1271,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 #'
 #' @keywords internal
 #' @noRd
-bulkExploreTable <- function(input, output, session, eset, up_annot, data_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
+bulkExploreTable <- function(input, output, session, eset, up_annot, project_dir, dataset_dir, dataset_name, svobj_r, numsv_r) {
 
   # things user will update and return
   pdata_r <- reactiveVal()

@@ -1,18 +1,48 @@
 # modal to manage projects
 projectModal <- function(session, choices, selected, options) {
 
+
   modalDialog(
-    shinypanel::selectizeInputWithButtons(
-      'project_name',
-      label = '',
-      actionButton(session$ns('rename_project'), label = '', icon = tags$i(class = 'far fa-edit fa-fw'))
+    DT::dataTableOutput(session$ns('projects_table'), width = '100%'),
+    tags$div(
+      id = session$ns('validate_projects'),
+      br(),
+      tags$span(class = 'help-block', id = session$ns('error_msg_projects'))
     ),
-    title = "Select Your Project",
+    title = "Manage Your Projects",
+    size = 'l',
+    footer = tagList(
+      actionButton(session$ns("add_project"),
+                   "Add Project"),
+      actionButton(session$ns("open_project"),
+                   "Open Selected Project",
+                   class='btn-success'),
+      tags$div(class='pull-left', modalButton("Cancel"))
+    ),
+    easyClose = FALSE
+  )
+}
+
+
+# modal to delete dataset
+deleteProjectModal <- function(session, project) {
+
+  modalDialog(
+    tags$div(id=session$ns('confirm_delete_container'),
+             tags$div(class='alert alert-danger',
+                      'Delete ', tags$b(project), ' and all its datasets?',
+                      br(), br(),
+                      tags$b('This action cannot be undone.')
+             ),
+             br(),
+             textInput(session$ns('confirm_delete'), HTML(paste0('<span> Type <i><span style="color: gray">',project, '</span></i> to confirm:</span>')),
+                       placeholder = project, width = '100%'
+             ),
+    ),
+    title = 'Delete Project',
     size = 'm',
     footer = tagList(
-      actionButton(session$ns("confirm_project"),
-                   "Open Project",
-                   class='btn-success'),
+      actionButton(session$ns("delete_project"), "Delete Project"),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
     easyClose = FALSE,
@@ -26,7 +56,7 @@ server <- function(input, output, session) {
   # defaults for testing
 
   # base directory contains data_dir folder
-  data_dir <- getShinyOption('data_dir', 'tests/data/test/example')
+  user_dir <- getShinyOption('user_dir', 'tests/data/test/example')
 
   # path where pert queries will be stored
   pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
@@ -99,9 +129,7 @@ server <- function(input, output, session) {
 
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
 
-    project <- rev(strsplit(data_dir, '/')[[1]])[1]
-    project <- ifelse(project == user, 'private', project)
-
+    project <- project()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
     httr::POST(url = slack$feedback,
@@ -146,33 +174,220 @@ server <- function(input, output, session) {
   }
 
   # selecting the project
-  project_choices <- reactive({
-    list.files(data_dir)
-  })
+  project_choices <- reactiveVal(
+    list.dirs(user_dir, recursive = FALSE, full.names = FALSE)
+  )
 
   observeEvent(input$select_project, {
-    showModal(projectModal(session, options = NULL))
-    updateSelectizeInput(session, 'project_name', choices = project_choices())
+    req(!is_example)
+    showModal(projectModal(session))
   })
 
-  project <- reactiveVal(qread.safe('prev_project.qs', .nofile = 'default'))
-  project_dir <- reactive(file.path(data_dir, project()))
+
+  projects_table <- reactive({
+    choices <- project_choices()
+
+    get_num_datasets <- function(x, type = 'single-cell') {
+      length(list.dirs(file.path(user_dir, x, 'single-cell'), recursive = FALSE))
+    }
+
+    nsc <- sapply(choices, get_num_datasets)
+    nbulk <- sapply(choices, get_num_datasets, type = 'bulk')
+
+    df <- data.frame(
+      ` ` = getDeleteRowButtons(session, length(choices), title = 'Delete project'),
+      'Project' = choices,
+      'Single Cell Datasets' = nsc,
+      'Bulk Datasets' = nbulk,
+      selected = ifelse(choices == project(), 'hl', 'other'),
+      check.names = FALSE,
+      row.names = NULL
+    )
+
+    return(df)
+  })
+
+  output$projects_table <- DT::renderDataTable({
+    dt <- isolate(projects_table())
+
+    DT::datatable(
+      dt,
+      class = 'cell-border',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      selection = list(mode = 'single'),
+      editable = list(target = "cell", disable = list(columns = c(0, 2, 3))),
+      options = list(
+        scrollX = TRUE,
+        ordering = FALSE,
+        dom = 't',
+        paging = FALSE,
+        columnDefs = list(list(visible = FALSE, targets = 4))
+      )) %>%
+      DT::formatStyle(
+        "selected",
+        target = "row",
+        backgroundColor = DT::styleEqual(c('hl', 'other'), values = c('#FFFFED', 'white'))
+      )
+  })
+
+
+  # add row to projects table
+  proxy <- DT::dataTableProxy('projects_table')
+  observeEvent(input$add_project, {
+    project_choices(c(project_choices(), ''))
+  })
+
+  observe({
+    editn()
+    DT::replaceData(proxy, projects_table(), rownames = FALSE)
+  })
+
+
+  validate_open_project <- function(choices, row) {
+    if (!length(row)) return('Select a project row')
+    if (choices[row] == '') return('Add project name (double click cell to edit)')
+
+    return(NULL)
+  }
+
+  error_msg <- reactiveVal()
+
+  observe({
+    msg <- error_msg()
+    toggleClass('validate_projects', class = 'has-error', condition = !is.null(msg))
+    # show error message
+    html('error_msg_projects', html = msg)
+  })
+
+  # open selected project
+  observeEvent(input$open_project, {
+    row <- input$projects_table_rows_selected
+    choices <- project_choices()
+
+    msg <- validate_open_project(choices, row)
+    error_msg(msg)
+    if (!is.null(msg)) {
+      return(NULL)
+    }
+
+    selected <- choices[row]
+    project(selected)
+    removeModal()
+  })
+
+  validate_edit_project_name <- function(choices, prev, new) {
+    msg <- NULL
+    if (new %in% choices) msg <- 'Project name already exists'
+    return(msg)
+
+  }
+
+  delete_candidate <- reactiveVal()
+
+  validate_delete_project <- function(df, row, sel) {
+    if (nrow(df) == 1) return('Need at least one project')
+    return(NULL)
+  }
+
+  # delete project
+  observeEvent(input$delete_row, {
+
+    row <- as.numeric(strsplit(input$delete_row, "_")[[1]][2])
+    df <- projects_table()
+    sel <- df$Project[row]
+
+    msg <- validate_delete_project(df, row, sel)
+    error_msg(msg)
+    if (!is.null(msg)) return(NULL)
+
+    # removing empty
+    if (sel == '') {
+      choices <- project_choices()[-row]
+      project_choices(choices)
+      return(NULL)
+    }
+
+    delete_candidate(sel)
+
+    showModal(deleteProjectModal(session, project = sel))
+  })
+
+  allow_delete <- reactive(input$confirm_delete == delete_candidate())
+
+  observe({
+    shinyjs::toggleState('delete_project', condition = allow_delete())
+    shinyjs::toggleClass('delete_project', class = 'btn-danger', condition = allow_delete())
+  })
+
+  observeEvent(input$delete_project, {
+    # remove from choices
+    del <- delete_candidate()
+    choices <- project_choices()
+    choices <- choices[choices != del]
+    project_choices(choices)
+
+    # removing selected
+    if (del == project()) {
+      project(choices[1])
+    }
+
+    # remove data
+    unlink(file.path(user_dir, del), recursive = TRUE)
+    removeModal()
+  })
+
+  # edit selected project name
+  editn <- reactiveVal(0)
+  observeEvent(input$projects_table_cell_edit, {
+    editn(editn()+1)
+    info <- input$projects_table_cell_edit
+    choices <- project_choices()
+
+    prev <- choices[info$row]
+    new <- info$value
+    msg <- validate_edit_project_name(choices, prev, new)
+    error_msg(msg)
+
+    if (!is.null(msg)) return(NULL)
+
+
+    choices[info$row] <- new
+    project_choices(choices)
+
+    new_dir <- file.path(user_dir, new)
+
+    if (prev == "") {
+      dir.create(new_dir, showWarnings = FALSE)
+      return(NULL)
+    }
+
+    prev_dir <- file.path(user_dir, prev)
+
+    if (dir.exists(prev_dir))
+      file.rename(prev_dir, new_dir)
+
+    if (prev == project()) project(new)
+
+  })
+
+  observe(qs::qsave(project(), prev_path))
+
+
+  prev_path <- file.path(user_dir, 'prev_project.qs')
+  project <- reactiveVal(qread.safe(prev_path, .nofile = 'default'))
+  project_dir <- reactive(file.path(user_dir, project()))
 
   sc_dir <- reactive({
-    sc_dir <- file.path(project_dir(), 'single-cell')
+    sc_dir <- file.path(user_dir, project(), 'single-cell')
     dir.create(sc_dir, showWarnings = FALSE)
     return(sc_dir)
   })
 
   bulk_dir <- reactive({
-    bulk_dir <- file.path(project_dir(), 'bulk')
+    bulk_dir <- file.path(user_dir, project(), 'bulk')
     dir.create(bulk_dir, showWarnings = FALSE)
     return(bulk_dir)
-  })
-
-  observeEvent(input$confirm_project, {
-    selected <- input$project_name
-    qs::qsave(file.path(data_dir, 'prev_project.qs'))
   })
 
 
@@ -204,9 +419,7 @@ server <- function(input, output, session) {
     user <- Sys.getenv('SHINYPROXY_USERNAME', 'localhost')
     if (user == 'alexvpickering@gmail.com') return(NULL)
 
-    project <- rev(strsplit(data_dir, '/')[[1]])[1]
-    project <- ifelse(project == user, 'private', project)
-
+    project <- project()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
     httr::POST(
@@ -247,7 +460,7 @@ server <- function(input, output, session) {
 
     pages$bulkPage <- callModule(
       bulkPage, 'bulk',
-      data_dir = data_dir,
+      project_dir = project_dir,
       sc_dir = sc_dir,
       bulk_dir = bulk_dir,
       tx2gene_dir = tx2gene_dir,
@@ -263,7 +476,7 @@ server <- function(input, output, session) {
 
     pages$drugsPage <- callModule(
       drugsPage, 'drug',
-      data_dir = data_dir,
+      project_dir = project_dir,
       pert_query_dir = pert_query_dir,
       pert_signature_dir = pert_signature_dir,
       tx2gene_dir = tx2gene_dir)

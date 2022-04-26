@@ -7,17 +7,17 @@
 #'   single-cell tab.
 #'
 #' @export
-drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
+drugsPage <- function(input, output, session, project_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
 
   # the form area inputs/results
   form <- callModule(drugsForm, 'form',
-                     data_dir = data_dir,
+                     project_dir = project_dir,
                      pert_query_dir = pert_query_dir,
                      pert_signature_dir = pert_signature_dir,
                      tx2gene_dir = tx2gene_dir)
 
   callModule(drugsGenesPlotly, 'genes',
-             data_dir = data_dir,
+             project_dir = project_dir,
              top_table = form$top_table,
              ambient = form$ambient,
              pert_signature = form$pert_signature,
@@ -44,7 +44,7 @@ drugsPage <- function(input, output, session, data_dir, pert_query_dir, pert_sig
 #'
 #' @keywords internal
 #' @noRd
-drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
+drugsForm <- function(input, output, session, project_dir, pert_query_dir, pert_signature_dir, tx2gene_dir) {
 
   new_custom <- reactiveVal()
 
@@ -52,9 +52,11 @@ drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_sig
   choices <- reactive({
     # reactive to new custom query, or bulk change (e.g. number of SVs)
     new_custom()
-    scseq_datasets <- load_scseq_datasets(data_dir)
-    bulk_datasets <- load_bulk_datasets(data_dir, with.explore = TRUE)
-    custom_anals <- load_custom_anals(data_dir)
+
+    project_dir <- project_dir()
+    scseq_datasets <- load_scseq_datasets(project_dir)
+    bulk_datasets <- load_bulk_datasets(project_dir, with.explore = TRUE)
+    custom_anals <- load_custom_anals(project_dir)
     pert_anals <- load_pert_anals()
 
     choices <- rbind(bulk_datasets, scseq_datasets, custom_anals, pert_anals)
@@ -69,7 +71,7 @@ drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_sig
   # the selected dataset/analysis results
   selectedAnal <- callModule(selectedAnal, 'drugs',
                              choices = choices,
-                             data_dir = data_dir,
+                             project_dir = project_dir,
                              tx2gene_dir = tx2gene_dir,
                              new_custom = new_custom,
                              pert_query_dir = pert_query_dir)
@@ -84,7 +86,7 @@ drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_sig
                              is_custom = selectedAnal$is_custom,
                              anal_name = selectedAnal$name,
                              new_custom = new_custom,
-                             data_dir = data_dir)
+                             project_dir = project_dir)
 
 
   drugStudy <- callModule(selectedDrugStudy, 'drug_study',
@@ -97,7 +99,7 @@ drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_sig
                                 show_advanced = drugStudy$show_advanced)
 
   pertSignature <- callModule(selectedPertSignature, 'genes',
-                              data_dir = data_dir,
+                              project_dir = project_dir,
                               query_res = drugStudy$query_res,
                               query_type = drugStudy$query_type,
                               pert_signature_dir = pert_signature_dir)
@@ -130,7 +132,7 @@ drugsForm <- function(input, output, session, data_dir, pert_query_dir, pert_sig
 #'
 #' @keywords internal
 #' @noRd
-customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, data_dir) {
+customQueryForm <- function(input, output, session, show_custom, is_custom, anal_name, new_custom, project_dir) {
   input_ids <- c('custom_name', 'click_custom')
 
   # show hide custom query signature stuff
@@ -141,7 +143,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
 
   res_paths <- reactive({
     custom_name <- input$custom_name
-    custom_dir <- file.path(data_dir, 'custom_queries')
+    custom_dir <- file.path(project_dir(), 'custom_queries')
     if (!dir.exists(custom_dir)) dir.create(custom_dir)
 
     res_paths <- get_drug_paths(custom_dir, custom_name)
@@ -337,7 +339,7 @@ advancedOptions <- function(input, output, session, drug_study, show_advanced) {
 #'
 #' @keywords internal
 #' @noRd
-selectedPertSignature <- function(input, output, session, data_dir, query_res, query_type, pert_signature_dir) {
+selectedPertSignature <- function(input, output, session, project_dir, query_res, query_type, pert_signature_dir) {
   pert_options <- list(render = I('{option: pertOptions, item: pertItem}'))
 
   sorted_query <- reactive({
@@ -574,7 +576,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 #' @noRd
-drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambient, drug_study, pert_signature) {
+drugsGenesPlotly <- function(input, output, session, project_dir, top_table, ambient, drug_study, pert_signature) {
 
 
   path_id <- reactive({
@@ -616,7 +618,7 @@ drugsGenesPlotly <- function(input, output, session, data_dir, top_table, ambien
 #'
 #' @keywords internal
 #' @noRd
-selectedAnal <- function(input, output, session, data_dir, choices, new_custom, tx2gene_dir, pert_query_dir = NULL) {
+selectedAnal <- function(input, output, session, project_dir, choices, new_custom, tx2gene_dir, pert_query_dir = NULL) {
   options <- list(render = I('{option: querySignatureOptions, item: querySignatureItem}'),
                   searchField = c('dataset_name', 'label'))
 
@@ -687,7 +689,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
     dataset_dir <- sel()$dataset_dir
     if (is.na(dataset_dir)) return(NULL)
 
-    file.path(data_dir, dataset_dir)
+    file.path(project_dir(), dataset_dir)
   })
 
 
@@ -772,7 +774,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
       drug_queries <- bulkAnal$drug_queries()
 
     } else if (is_custom()) {
-      custom_dir <- file.path(data_dir, 'custom_queries')
+      custom_dir <- file.path(project_dir(), 'custom_queries')
       drug_paths <- get_drug_paths(custom_dir, sel_name)
       drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) qs::qread(x))
 
@@ -797,7 +799,7 @@ selectedAnal <- function(input, output, session, data_dir, choices, new_custom, 
 
     } else if (is_custom()) {
       fname <- paste0('query_genes_', sel_name(), '.qs')
-      top_table <- qs::qread(file.path(data_dir, 'custom_queries', 'drugs', fname))
+      top_table <- qs::qread(file.path(project_dir(), 'custom_queries', 'drugs', fname))
 
     } else {
       top_table <- NULL

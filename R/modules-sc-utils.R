@@ -2120,12 +2120,13 @@ validate_scseq_import <- function(up_df, samples) {
 }
 
 
-getDeleteRowButtons <- function(session, len) {
+getDeleteRowButtons <- function(session, len, title='Delete file') {
 
   inputs <- character(len)
   for (i in seq_len(len)) {
     inputs[i] <- sprintf(
-      '<span title="Delete file" class="btn dt-btn" id="%s" onclick="Shiny.onInputChange(\'%s\', this.id, {priority: \'event\'})"><icon class="%s"></icon></span>',
+      '<span title="%s" class="btn dt-btn" id="%s" onclick="Shiny.onInputChange(\'%s\', this.id, {priority: \'event\'})"><icon class="%s"></icon></span>',
+      title,
       paste0(session$ns('delete_'), i),
       session$ns('delete_row'),
       'far fa-trash-alt'

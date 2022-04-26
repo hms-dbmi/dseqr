@@ -3,8 +3,6 @@ body {
 }
 
 
-
-
 .dropdown-menu {
   min-width: 100%;
 }
@@ -75,6 +73,7 @@ body {
 
 
 /* handsontable stuff */
+
 
 .handsontable td {
   white-space: nowrap;
