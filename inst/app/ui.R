@@ -22,7 +22,7 @@ if (!is_local) {
   )
 
   dseqrDep <- htmltools::htmlDependency(
-    'dseqr', '0.20.27',
+    'dseqr', '0.30.2',
     src = c(href = 'https://d174upwcmdw9dj.cloudfront.net/'),
     stylesheet = c('custom.css')
   )

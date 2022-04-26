@@ -294,6 +294,8 @@ server <- function(input, output, session) {
     shinyjs::toggleClass('delete_project', class = 'btn-danger', condition = allow_delete())
   })
 
+  shinyjs::toggleState('select_project', condition = !is_example)
+
   observeEvent(input$delete_project, {
     # remove from choices
     del <- delete_candidate()

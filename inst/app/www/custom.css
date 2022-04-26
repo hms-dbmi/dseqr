@@ -2,7 +2,6 @@ body {
     font-family: Raleway,Helvetica Neue,Helvetica,Arial,sans-serif;
 }
 
-
 .dropdown-menu {
   min-width: 100%;
 }
@@ -430,6 +429,7 @@ body {
 .btn-intro.disabled {
     opacity: .25;
     cursor: not-allowed;
+    color: white;
 }
 
 .btn-intro i {
