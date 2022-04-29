@@ -70,8 +70,7 @@ function contrastItem(item, escape) {
     var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 
     // for integrated dataset show number of cells in each test/ctrl sample
-    var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
-    var title = typeof item.ntest_each == 'undefined' ? '' : integratedTitle;
+    var title = item.label;
 
     var swatchClass = item.testColor == '' ? '' : 'input-swatch';
 
