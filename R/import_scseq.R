@@ -579,8 +579,7 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
   ref_species <- refs$species[refs$name == azimuth_ref]
   reference <- dseqr.data::load_data(paste0(azimuth_ref, '.qs'))
 
-  pat <- '^celltype|^annotation|^class$|^cluster$|^subclass$|^cross_species_cluster$|^ann_level_[0-9]$|^ann_finest_level$'
-  refnames <- grep(pat, colnames(reference$map@meta.data), value = TRUE)
+  refnames <- grep(const$ref$azimuth_patterns, colnames(reference$map@meta.data), value = TRUE)
 
   refdata <- lapply(refnames, function(x) {
     reference$map[[x, drop = TRUE]]
@@ -1580,16 +1579,13 @@ knn_predict <- function(query_obj, ref_obj, train_labels, k = 5, save_as = "pred
 
 
 get_ref_resoln <- function(ref_name) {
-  switch(ref_name,
-         'human_pbmc' = 'predicted.celltype.l2',
-         'human_lung' = 'predicted.annotation.l1',
-         'human_lung_v2' = 'predicted.ann_level_4',
-         'human_bonemarrow' = 'predicted.celltype.l2',
-         'human_differentiated_tcell' = 'predicted.celltype.cytokines',
-         'human_motorcortex' = 'predicted.subclass',
-         'mouse_motorcortex' = 'predicted.subclass',
-         'predicted.celltype'
-  )
+
+  initial_resolns <- const$ref$initial_resolns
+
+  if (!ref_name %in% names(initial_resolns))
+    ref_name <- 'default'
+
+  return(initial_resolns[ref_name])
 }
 
 
