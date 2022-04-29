@@ -2815,6 +2815,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
       exclude_clusters <- setdiff(cluster_choices()$value, exclude_clusters)
     }
 
+
     subsets[[dataset_name]] <- callr::r_bg(
       func = subset_saved_scseq,
       package = 'dseqr',
@@ -3709,6 +3710,15 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     return(labels)
   })
 
+  get_coordinate_cvs <- function(coords, labels) {
+    colnames(coords) <- c('x', 'y')
+    coords$label <- labels
+    coords |>
+      dplyr::group_by(label) |>
+      dplyr::summarise(cvx = cv(x), cvy = cv(y)) |>
+      dplyr::mutate(cvsum = cvx + cvy)
+  }
+
 
   label_repels <- reactive({
     coords <- coords()
@@ -3738,6 +3748,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       point.padding = 0,
       direction = 'both')
 
+    # hide labels with very spread out clusters
+    label_cvs <- get_coordinate_cvs(coords, labels)
+    label_repels$label[label_cvs$cvsum > 190] <- ''
 
     return(label_repels)
   })
@@ -3948,6 +3961,31 @@ get_scatter_props <- function(is_mobile, ncells) {
 
   return(scatter_props)
 }
+
+cv <- function(x, ..., aszero=FALSE, na.rm=FALSE) {
+  #  R function to compute the coefficient of variation (expressed as a percentage)
+  # if there is only a single value, stats::sd = NA. However, one could argue that cv =0.
+  # and NA may break the code that receives it.
+  #The function returns NA if(aszero=FALSE)   else a value of 0 is returned.
+  x <- c(x, ...)
+  z <- x[!is.na(x)]
+  if (length(z) == 0) {
+    return(NA)
+  } else if (na.rm == FALSE & (length(z) < length(x))) {
+    return(NA)
+  } else if (length(z) == 1 & aszero) {
+    return(0)
+  } else {
+    # abs to avoid very small (or zero) mean with e.g. -5:5
+    x <- mean(abs(z))
+    if (x == 0) {# all values are 0
+      return(0)
+    } else {
+      return(100 * stats::sd(z) / x)
+    }
+  }
+}
+
 
 
 hash_meta <- function(meta, groups) {
