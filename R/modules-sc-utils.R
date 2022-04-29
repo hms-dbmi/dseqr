@@ -277,6 +277,8 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
 }
 
 check_has_scseq <- function(dataset_names, sc_dir) {
+  if (!length(dataset_names)) return(FALSE)
+
   sapply(dataset_names, function(dataset_name) {
     fnames <- list.files(file.path(sc_dir, dataset_name))
     any(fnames %in% c('scseq.qs', 'shell.qs'))

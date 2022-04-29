@@ -49,6 +49,18 @@ deleteProjectModal <- function(session, project) {
   )
 }
 
+get_num_sc_datasets <- function(project, user_dir) {
+  if (project == '') return(0)
+  sc_dir <- file.path(user_dir, project, 'single-cell')
+  dataset_names <- list.files(sc_dir)
+  sum(check_has_scseq(dataset_names, sc_dir))
+}
+
+get_num_bulk_datasets <- function(project, user_dir) {
+  if (project == '') return(0)
+  bulk_dir <- file.path(user_dir, project, 'bulk')
+  length(list.dirs(bulk_dir, recursive = FALSE))
+}
 
 server <- function(input, output, session) {
 
@@ -158,21 +170,17 @@ server <- function(input, output, session) {
 
 
   projects_table <- reactive({
-    choices <- project_choices()
+    projects <- project_choices()
 
-    get_num_datasets <- function(x, type = 'single-cell') {
-      length(list.dirs(file.path(user_dir, x, type), recursive = FALSE))
-    }
-
-    nsc <- sapply(choices, get_num_datasets)
-    nbulk <- sapply(choices, get_num_datasets, type = 'bulk')
+    nsc <- sapply(projects, get_num_sc_datasets, user_dir)
+    nbulk <- sapply(projects, get_num_bulk_datasets, user_dir)
 
     df <- data.frame(
-      ` ` = getDeleteRowButtons(session, length(choices), title = 'Delete project'),
-      'Project' = choices,
+      ` ` = getDeleteRowButtons(session, length(projects), title = 'Delete project'),
+      'Project' = projects,
       'Single Cell Datasets' = nsc,
       'Bulk Datasets' = nbulk,
-      selected = ifelse(choices == project(), 'hl', 'other'),
+      selected = ifelse(projects == project(), 'hl', 'other'),
       check.names = FALSE,
       row.names = NULL
     )
