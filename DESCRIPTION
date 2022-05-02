@@ -89,7 +89,8 @@ Imports:
     viridis
 Suggests: 
     testthat,
-    scuttle
+    scuttle,
+    shinytest2
 Depends: 
     R (>= 4.1.0)
 Remotes: 

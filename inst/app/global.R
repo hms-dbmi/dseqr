@@ -8,4 +8,5 @@ suppressPackageStartupMessages({
   library(rlang)
   library(shinypanel)
   library(magrittr)
+  library(dseqr)
 })

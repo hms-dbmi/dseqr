@@ -18,6 +18,7 @@
 #' @param is_local Is dseqr running locally? If \code{FALSE}, uses CDNs for
 #'  some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
 #'  if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.
+#' @param test Create a test with shinytest2? Default is \code{FALSE}.
 #' @param is_example Is the app for demonstration purposes? If \code{TRUE}, various features
 #'  are disabled to prevent dataset changes.
 #' @inheritParams init_dseqr
@@ -52,11 +53,39 @@ run_dseqr <- function(user_name,
                       port = 3838,
                       logout_url = NULL,
                       is_local = is.null(logout_url),
+                      test = FALSE,
                       is_example = FALSE) {
 
   if (missing(data_dir) & !is_local) {
     message('Setting data_dir to /srv/dseqr for hosted application.')
     data_dir <- '/srv/dseqr'
+  }
+
+  # gather options
+  opts <- list()
+
+  # on remote: send errors to slack
+  if (!is_local) opts$shiny.error <- function() send_slack_error(project_name)
+
+  # allow up to 30GB uploads
+  opts$shiny.maxRequestSize <- 30*1024*1024^2
+
+  # for violin plot dot size
+  opts$shiny.usecairo <- FALSE
+
+  # record shinytest2
+  if (test) {
+    if (!requireNamespace("shinytest2", quietly = TRUE))
+      stop('install shinytest2')
+
+    opts$shiny.testmode <- TRUE
+
+    app <- shinytest2::AppDriver$new(app_dir, name = 'blah', options = opts)
+    shinytest2::record_test(app, allow_no_input_binding = TRUE)
+    return(NULL)
+
+  } else {
+    opts$shiny.testmode <- FALSE
   }
 
   if (missing(data_dir)) stop('data_dir not specified.')
@@ -77,24 +106,18 @@ run_dseqr <- function(user_name,
     is_local = is_local,
     is_example = is_example)
 
-
-  # partial stack sometimes obscures errors
-  options(shiny.fullstacktrace = TRUE)
-
-  # on remote: send errors to slack
-  if (!is_local) options(shiny.error = function() send_slack_error(project_name))
-
   # if developing
   # options(shiny.error = browser)
 
-  # allow up to 30GB uploads
-  options(shiny.maxRequestSize=30*1024*1024^2)
-
-  options(shiny.usecairo = FALSE)
+  # partial stack sometimes obscures errors
+  opts$shiny.fullstacktrace <- TRUE
 
   # auto-reload if update app files
   is_aws <- !is.null(logout_url)
-  if (!is_aws) options(shiny.autoreload = TRUE)
+  if (!is_aws) opts$shiny.autoreload <- TRUE
+
+  # set options and run app
+  options(opts)
   shiny::runApp(app_dir, launch.browser = TRUE, host = host, port = port)
 }
 

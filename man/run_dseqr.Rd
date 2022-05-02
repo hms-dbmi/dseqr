@@ -18,6 +18,7 @@ run_dseqr(
   port = 3838,
   logout_url = NULL,
   is_local = is.null(logout_url),
+  test = FALSE,
   is_example = FALSE
 )
 }
@@ -57,6 +58,8 @@ use a random port.}
 \item{is_local}{Is dseqr running locally? If \code{FALSE}, uses CDNs for
 some dependencies and sets up other dseqr.com specific tags. Default is \code{TRUE}
 if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.}
+
+\item{test}{Create a test with shinytest2? Default is \code{FALSE}.}
 
 \item{is_example}{Is the app for demonstration purposes? If \code{TRUE}, various features
 are disabled to prevent dataset changes.}

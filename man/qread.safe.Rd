@@ -19,4 +19,3 @@ The de-serialized object
 \description{
 Read qs file safely
 }
-\keyword{internal}

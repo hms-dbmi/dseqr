@@ -276,6 +276,15 @@ get_cluster_choices <- function(clusters, sample_comparison = FALSE, with_all = 
   return(choices)
 }
 
+#' Check if folder has single-cell files
+#'
+#' @param dataset_names Character vector of folder names to check
+#' @param sc_dir Path to directory with \code{dataset_names} folders
+#'
+#' @return Boolean vector with \code{length(dataset_names)} indicating folders that
+#' have single-cell files
+#' @export
+#'
 check_has_scseq <- function(dataset_names, sc_dir) {
   if (!length(dataset_names)) return(FALSE)
 
@@ -2122,6 +2131,17 @@ validate_scseq_import <- function(up_df, samples) {
 }
 
 
+#' Get HTML to make delete buttons in datatable rows
+#'
+#' @param session Shiny session object used for namespacing.
+#' @param len Numeric number of rows
+#' @param title Title for buttons. Default is \code{'Delete file'}
+#'
+#' @return Character vector with length \code{len} with delete buttons. Event
+#' can be observed in a reactive by \code{input$delete_row} and the row clicked
+#' will have have \code{'input$delete_row_i'} where 'i' is the row.
+#' @export
+#'
 getDeleteRowButtons <- function(session, len, title='Delete file') {
 
   inputs <- character(len)
@@ -2395,5 +2415,22 @@ exportModal <- function(session, choices, selected, options) {
     ),
     easyClose = FALSE,
   )
+}
+
+# shortest distance between cluster centroids
+# TODO: use to order clusters by similarity
+sort_clusters <- function(label_coords) {
+
+  m <- stats::dist(label_coords[, c('x', 'y')])
+
+  # solve for shortest path
+  tsp <- TSP::TSP(m)
+  tour <- TSP::solve_TSP(tsp)
+
+  # permutation vector for shortest tour
+  perm_vec <- as.integer(tour)
+
+  label_coords <- label_coords[perm_vec, ]
+  return(label_coords)
 }
 

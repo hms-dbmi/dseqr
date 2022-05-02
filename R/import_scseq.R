@@ -1091,7 +1091,7 @@ load_scseq_qcgenes <- function(species = 'Homo sapiens', tx2gene = NULL) {
 normalize_scseq <- function(scseq) {
 
   set.seed(100)
-  preclusters <- scran::quickCluster(scseq)
+  preclusters <- scran::quickCluster(scseq, min.size=50)
   scseq <- scran::computeSumFactors(scseq, cluster=preclusters)
   scseq <- scater::logNormCounts(scseq)
 
@@ -1147,7 +1147,7 @@ run_reduction <- function(sce, type = c('auto', 'TSNE', 'UMAP'), dimred = 'PCA')
     sce <- scater::runTSNE(sce, dimred = dimred, n_dimred = sce@metadata$npcs)
 
   } else if (type[1] == 'UMAP') {
-    sce <- scater::runUMAP(sce, dimred = dimred, n_dimred = sce@metadata$npcs, min_dist=0.3)
+    sce <- scater::runUMAP(sce, dimred = dimred, n_dimred = sce@metadata$npcs, min_dist=0.3, batch = TRUE)
 
   }
   colnames(SingleCellExperiment::reducedDim(sce, type)) <- paste0(type, c(1, 2))
@@ -1253,6 +1253,7 @@ add_doublet_score <- function(scseq) {
   pass.check <- Matrix::colSums(counts) > 200
   counts <- counts[, pass.check]
 
+  set.seed(100)
   # is error prone
   res <- tryCatch(
     scDblFinder::scDblFinder(counts)@colData,

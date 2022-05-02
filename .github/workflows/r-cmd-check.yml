@@ -63,3 +63,8 @@ jobs:
         uses: r-lib/actions/check-r-package@v2
         with:
           error-on: '"error"'
+
+      - name: Check shiny app
+        uses: rstudio/shinytest2/actions/test_app@v1
+        with:
+          path: "inst/app"

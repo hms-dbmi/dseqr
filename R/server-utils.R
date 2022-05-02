@@ -6,7 +6,7 @@
 #'
 #' @inherit qs::qread return
 #'
-#' @keywords internal
+#' @export
 #'
 qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
   res <- .nofile

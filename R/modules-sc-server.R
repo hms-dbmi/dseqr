@@ -1564,6 +1564,8 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     return(datasets)
   })
 
+  exportTestValues(dataset_names = datasets()$name)
+
 
 
   # update previously selected dataset on-file if changes
@@ -3718,7 +3720,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       dplyr::summarise(cvx = cv(x), cvy = cv(y)) |>
       dplyr::mutate(cvsum = cvx + cvy)
   }
-
 
   label_repels <- reactive({
     coords <- coords()

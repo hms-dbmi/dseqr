@@ -66,33 +66,43 @@ server <- function(input, output, session) {
 
   # get arguments from calling function
   # defaults for testing
+  # shiny::shinyOptions don't make it through
 
   # base directory contains data_dir folder
-  user_dir <- getShinyOption('user_dir', 'tests/data/test/example')
+  user_dir <- getShinyOption('user_dir', 'tests/testthat/test_data_dir/test_user')
+  data_dir <- dirname(user_dir)
 
   # path where pert queries will be stored
-  pert_query_dir <- getShinyOption('pert_query_dir', '/srv/dseqr/pert_query_dir')
-
-  # path where gene set data is stored
-  gs_dir <- getShinyOption('gs_dir', '/srv/dseqr/gs_dir')
+  pert_query_dir <- getShinyOption('pert_query_dir', file.path(data_dir, '.pert_query_dir'))
 
   # path where pert signatures will be stored
-  pert_signature_dir <- getShinyOption('pert_signature_dir', '/srv/dseqr/pert_signature_dir')
+  pert_signature_dir <- getShinyOption('pert_signature_dir', file.path(data_dir, '.pert_signature_dir'))
 
   # path where kallisto index is downloaded and stored
-  indices_dir <- getShinyOption('indices_dir', '/srv/dseqr/indices')
+  indices_dir <- getShinyOption('indices_dir', file.path(data_dir, '.indices_dir'))
 
   # path where save tx2genes
-  tx2gene_dir <- getShinyOption('tx2gene_dir', '/srv/dseqr/tx2gene')
+  tx2gene_dir <- getShinyOption('tx2gene_dir', file.path(data_dir, '.tx2gene_dir'))
+
+  # path where gene set data is stored
+  gs_dir <- getShinyOption('gs_dir', file.path(data_dir, '.gs_dir'))
 
   is_example <- getShinyOption('is_example', FALSE)
-
   is_local <- getShinyOption('is_local', TRUE)
+
+  # reset testing data
+  if (isTRUE(getOption('shiny.testmode'))) {
+    unlink(data_dir, recursive = TRUE)
+    user_name <- basename(user_dir)
+    dseqr::init_dseqr(user_name, data_dir)
+  }
 
   if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
   if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
   if (!dir.exists(indices_dir)) dir.create(indices_dir)
   if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
+  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+
 
   # hide tour button for docs page
   observe(shinyjs::toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))

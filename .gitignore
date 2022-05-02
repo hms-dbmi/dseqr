@@ -15,8 +15,10 @@ example_data.tar.gz
 
 dseqr.gif
 
-# shinytest data
-inst/app/tests/*
-inst/doc
+# shinytest2 generated data
+inst/app/tests/testthat/test_data_dir/*
+inst/app/Rplots.pdf
 
 testthat-problems.rds
+# {shinytest2}: Ignore new debug snapshots for `$expect_values()`
+*_.new.png
