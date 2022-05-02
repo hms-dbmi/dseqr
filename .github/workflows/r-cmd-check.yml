@@ -65,6 +65,6 @@ jobs:
           error-on: '"error"'
 
       - name: Check shiny app
-        uses: rstudio/shinytest2/actions/test-app@v1
+        uses: rstudio/shinytest2/actions/test-app
         with:
           path: "inst/app"
