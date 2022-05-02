@@ -8,6 +8,7 @@
 ^example_data\.tar\.gz$
 ^packrat/
 ^renv\.lock$
+^renv\.lock\.init$
 ^LICENSE\.md$
 ^inst/app/tests$
 ^\.renvignore$
@@ -15,3 +16,4 @@
 ^dseqr\.gif$
 ^\.github$
 _\.new\.png$
+^Dockerfile$

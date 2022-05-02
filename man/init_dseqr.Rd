@@ -7,10 +7,10 @@
 init_dseqr(user_name, data_dir = "/srv/dseqr")
 }
 \arguments{
+\item{user_name}{User name for new dseqr app.}
+
 \item{data_dir}{Path to put \code{anal_name} directory where app will be
 initialized. Default is \code{'/srv/dseqr'} (for hosting app on server).}
-
-\item{project_name}{Name for new dseqr app.}
 }
 \description{
 Creates necessary folders/files for a new dseqr app inside of /srv/shiny-server/dseqr.

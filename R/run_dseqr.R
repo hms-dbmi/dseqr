@@ -126,7 +126,7 @@ run_dseqr <- function(user_name,
 #'
 #' Creates necessary folders/files for a new dseqr app inside of /srv/shiny-server/dseqr.
 #'
-#' @param project_name Name for new dseqr app.
+#' @param user_name User name for new dseqr app.
 #' @param data_dir Path to put \code{anal_name} directory where app will be
 #' initialized. Default is \code{'/srv/dseqr'} (for hosting app on server).
 #'

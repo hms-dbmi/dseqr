@@ -2918,8 +2918,8 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
     names(ds$name) <- ds$name
 
     choices <- ds %>%
-      dplyr::group_by(type) %>%
-      dplyr::summarise(names = list(name))
+      dplyr::group_by(.data$type) %>%
+      dplyr::summarise(names = list(.data$name))
 
     names(choices$names) <- choices$type
     choices$names
@@ -3716,9 +3716,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     colnames(coords) <- c('x', 'y')
     coords$label <- labels
     coords |>
-      dplyr::group_by(label) |>
-      dplyr::summarise(cvx = cv(x), cvy = cv(y)) |>
-      dplyr::mutate(cvsum = cvx + cvy)
+      dplyr::group_by(.data$label) |>
+      dplyr::summarise(cvx = cv(.data$x), cvy = cv(.data$y)) |>
+      dplyr::mutate(cvsum = .data$cvx + .data$cvy)
   }
 
   label_repels <- reactive({
