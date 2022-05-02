@@ -21,6 +21,13 @@ runs:
         v <- paste0(version$major, ".", version$minor)
         cat(paste0("::set-output name=version::", v, "\n"))
 
+    - name: Install dseqr
+      shell: Rscript {0}
+      run: |
+        ## --------------------------------------------------------------------
+        install.packages("remotes")
+        remotes::install_local(".")
+
     - name: Test app
       shell: Rscript {0}
       working-directory: ${{ inputs.app-dir }}
