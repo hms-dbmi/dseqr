@@ -892,25 +892,25 @@ validate_up_meta <- function(res, ref) {
 #'
 #' @keywords internal
 integrate_saved_scseqs <- function(
-  sc_dir,
-  integration_name,
-  dataset_names = NULL,
-  scseqs = NULL,
-  integration_type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'),
-  exclude_clusters = NULL,
-  exclude_cells = NULL,
-  subset_metrics = NULL,
-  is_include = NULL,
-  founder = integration_name,
-  pairs = NULL,
-  hvgs = NULL,
-  ref_name = NULL,
-  npcs = 30,
-  cluster_alg = 'leiden',
-  resoln = 1,
-  progress = NULL,
-  value = 0,
-  tx2gene_dir = NULL) {
+    sc_dir,
+    integration_name,
+    dataset_names = NULL,
+    scseqs = NULL,
+    integration_type = c('harmony', 'fastMNN', 'Azimuth', 'symphony'),
+    exclude_clusters = NULL,
+    exclude_cells = NULL,
+    subset_metrics = NULL,
+    is_include = NULL,
+    founder = integration_name,
+    pairs = NULL,
+    hvgs = NULL,
+    ref_name = NULL,
+    npcs = 30,
+    cluster_alg = 'leiden',
+    resoln = 1,
+    progress = NULL,
+    value = 0,
+    tx2gene_dir = NULL) {
 
   # for save_scseq_args
   args <- c(as.list(environment()))
@@ -2417,8 +2417,27 @@ exportModal <- function(session, choices, selected, options) {
   )
 }
 
-# shortest distance between cluster centroids
-# TODO: use to order clusters by similarity
+#' shortest distance between cluster centroids
+#'
+#' TODO: use to order clusters by similarity
+#'
+#'
+#' @param label_coords data.frame with columns label, x, and y giving coordinates
+#' of cluster labels
+#'
+#' @return \code{label_coords} sorted by shortest path
+#' @keywords internal
+#' @importFrom TSP TSP solve_TSP
+#'
+#' @examples
+#'
+#' label_coords <- data.frame(
+#'   label = c('A', 'B', 'C'),
+#'   x = c(1, 5, 2),
+#'   y = c(1, 5, 2))
+#'
+#' sort_clusters(label_coords)
+#'
 sort_clusters <- function(label_coords) {
 
   m <- stats::dist(label_coords[, c('x', 'y')])

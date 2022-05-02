@@ -26,7 +26,7 @@ runs:
       run: |
         ## --------------------------------------------------------------------
         install.packages("remotes")
-        remotes::install_local(".")
+        remotes::install_local(".", upgrade = FALSE, build = TRUE, dependencies = FALSE)
 
     - name: Test app
       shell: Rscript {0}
