@@ -67,4 +67,4 @@ jobs:
       - name: Check shiny app
         uses: ./.github/actions/shinytest2
         with:
-          path: "inst/app"
+          app-dir: "inst/app"
