@@ -2429,15 +2429,6 @@ exportModal <- function(session, choices, selected, options) {
 #' @keywords internal
 #' @importFrom TSP TSP solve_TSP
 #'
-#' @examples
-#'
-#' label_coords <- data.frame(
-#'   label = c('A', 'B', 'C'),
-#'   x = c(1, 5, 2),
-#'   y = c(1, 5, 2))
-#'
-#' sort_clusters(label_coords)
-#'
 sort_clusters <- function(label_coords) {
 
   m <- stats::dist(label_coords[, c('x', 'y')])

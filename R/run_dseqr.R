@@ -65,7 +65,7 @@ run_dseqr <- function(user_name,
   opts <- list()
 
   # on remote: send errors to slack
-  if (!is_local) opts$shiny.error <- function() send_slack_error(project_name)
+  if (!is_local) opts$shiny.error <- function() send_slack_error(user_name)
 
   # allow up to 30GB uploads
   opts$shiny.maxRequestSize <- 30*1024*1024^2
