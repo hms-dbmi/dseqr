@@ -21,11 +21,11 @@ runs:
         v <- paste0(version$major, ".", version$minor)
         cat(paste0("::set-output name=version::", v, "\n"))
 
-    - name: Install dseqr
+    - name: Install dseqr and shinytest2
       shell: Rscript {0}
       run: |
         ## --------------------------------------------------------------------
-        install.packages("remotes")
+        install.packages(c("remotes", "shinytest2"))
         remotes::install_local(".", upgrade = FALSE, build = TRUE, dependencies = FALSE)
 
     - name: Test app
