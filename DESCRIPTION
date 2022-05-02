@@ -89,7 +89,7 @@ Imports:
     utils,
     viridis
 Suggests: 
-    testthat,
+    testthat (>= 3.0.0),
     scuttle,
     shinytest2
 Depends: 
@@ -100,3 +100,4 @@ Remotes:
     alexvpickering/rkal,
     alexvpickering/crossmeta,
     immunogenomics/presto
+Config/testthat/edition: 3

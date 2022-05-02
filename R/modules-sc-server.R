@@ -932,6 +932,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     qs::qread(annot_path)
   })
 
+
   # update cluster choices in UI
   cluster_choices <- reactive({
 
@@ -962,6 +963,10 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     },
     error = function(e) return(NULL))
   })
+
+  exportTestValues(
+    annot = annot()
+    )
 
   observe({
     choices <- cluster_choices()
@@ -1565,8 +1570,6 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   })
 
   exportTestValues(dataset_names = datasets()$name)
-
-
 
   # update previously selected dataset on-file if changes
   prev_path <- reactive(file.path(sc_dir(), 'prev_dataset.qs'))
@@ -3532,6 +3535,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     prev <- isolate(gene_table())
     if (!identical(res, prev)) gene_table(res)
   })
+
 
   output$gene_table <- DT::renderDataTable({
     # CRAN check fix
