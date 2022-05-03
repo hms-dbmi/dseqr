@@ -1,5 +1,7 @@
-library(shinytest2)
-library(SingleCellExperiment)
+suppressPackageStartupMessages({
+  library(shinytest2)
+  library(SingleCellExperiment)
+})
 
 # create single-cell dataset for upload
 mock_10x_files <- function(dir_name) {
@@ -22,12 +24,12 @@ mock_10x_files <- function(dir_name) {
 
 test_that("{shinytest2} recording: import_sc", {
   suppressWarnings(
-  app <- AppDriver$new(
-    name = "import_sc",
-    options = list(shiny.maxRequestSize = 30*1024*1024^2),
-    width = 1619,
-    height = 909,
-    seed = 0)
+    app <- AppDriver$new(
+      name = "import_sc",
+      options = list(shiny.maxRequestSize = 30*1024*1024^2),
+      width = 1619,
+      height = 909,
+      seed = 0)
   )
 
   app$wait_for_idle()
@@ -91,7 +93,7 @@ test_that("{shinytest2} recording: import_sc", {
   app$set_inputs(`sc-form-cluster-selected_cluster` = "1")
 
   # created markers file
-  app$wait_for_idle()
+  app$wait_for_value(export = 'sc-form-cluster-have_selected_markers', ignore = list(FALSE))
   all_prev_files <- c(init_files, dataset_files, prev_file)
   markers_file <- setdiff(list_files(), all_prev_files)
   expect_equal(markers_file, "test_data_dir/test_user/default/single-cell/mock_10x/snn1/markers.qs")

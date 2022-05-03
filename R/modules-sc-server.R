@@ -3087,6 +3087,8 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   # things that return for plotting
   selected_markers <- reactiveVal(NULL)
 
+  exportTestValues(have_selected_markers = !is.null(selected_markers()))
+
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
   show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
 

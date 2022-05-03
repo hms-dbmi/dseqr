@@ -17,6 +17,7 @@ dseqr.gif
 
 # shinytest2 generated data
 inst/app/tests/testthat/test_data_dir/*
+inst/app/tests/testthat/mock_10x/*
 inst/app/Rplots.pdf
 
 testthat-problems.rds
