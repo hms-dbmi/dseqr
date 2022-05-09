@@ -168,6 +168,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   dataset_name <- app$get_value(export = "sc-form-dataset-dataset_name")
   expect_equal(dataset_name, "mock_10x")
 
+  dataset_names <- app$get_value(export = "sc-form-dataset-dataset_names")
   app$click("sc-form-dataset-show_subset")
   app$set_inputs("sc-form-subset-subset_features" = c(1, 2, 3, 4))
   app$click("sc-form-subset-toggle_exclude")
@@ -177,17 +178,17 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   app$click("sc-form-subset-confirm_subset")
   app$click("sc-form-dataset-show_subset")
 
-  # subset dataset added
+  # subset dataset has been added
   # dataset name duplicated as also in "previous"
-  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(c("mock_10x", "mock_10x")))
-  expect_setequal(app$get_value(export = 'sc-form-dataset-dataset_names'), c('mock_10x', 'mock_10x_1234'))
+  new_dataset_names <- app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(dataset_names))
+  expect_setequal(new_dataset_names, c('mock_10x', 'mock_10x_1234'))
 
   # check that previous dataset still selected
   expect_equal(dataset_name, "mock_10x")
 
   # run label transfer from new to current
   app$click("sc-form-dataset-show_label_resoln")
-  app$set_inputs(`sc-form-dataset-selected_dataset` = 2)
+  app$set_inputs(`sc-form-dataset-selected_dataset` = 2, wait_ = FALSE)
   new_dataset_name <- app$get_value(export = "sc-form-dataset-dataset_name")
   expect_equal(new_dataset_name, 'mock_10x_1234')
 
@@ -195,12 +196,13 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   expect_equal(init_annot, as.character(1:4))
 
   app$set_inputs("sc-form-transfer-ref_name" = "mock_10x", wait_ = FALSE)
-  app$wait_for_value(export = "sc-form-transfer-pred_annot")
+  pred_annot <- app$wait_for_value(export = "sc-form-transfer-pred_annot", timeout = timeout)
+  expect_equal(pred_annot, c('CD14 Mono', 2:4))
   app$click("sc-form-transfer-overwrite_annot")
   app$wait_for_idle()
   app$click("sc-form-transfer-confirm_overwrite")
 
-  new_annot <- app$wait_for_value(export = "sc-form-sample_clusters-annot", ignore = list(init_annot))
+  new_annot <- app$wait_for_value(export = "sc-form-sample_clusters-annot", timeout = timeout, ignore = list(init_annot))
   expect_equal(new_annot, c('CD14 Mono', 2:4))
 
   # can integrate two datasets
@@ -228,7 +230,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # clusters change after selecting new dataset
   current_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
   app$set_inputs(`sc-form-dataset-selected_dataset` = "3", wait_ = FALSE)
-  app$wait_for_value(export = 'sc-form-sample_clusters-annot', ignore = list(current_clusters))
+  app$wait_for_value(export = 'sc-form-sample_clusters-annot', timeout = timeout, ignore = list(current_clusters))
 
   integrated_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
   expect_snapshot(integrated_clusters)
