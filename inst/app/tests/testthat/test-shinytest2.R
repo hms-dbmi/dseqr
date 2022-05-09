@@ -22,7 +22,7 @@ mock_10x_files <- function(dir_name) {
 }
 
 
-test_that("{shinytest2} recording: import_sc", {
+test_that("{shinytest2} recording: Single-Cell Tab", {
   suppressWarnings(
     app <- AppDriver$new(
       name = "import_sc",
@@ -120,4 +120,116 @@ test_that("{shinytest2} recording: import_sc", {
     app$get_value(export = 'sc-form-sample_clusters-annot'),
     c("CD14 Mono", as.character(2:6)))
 
+  # TODO: add input values to exports
+  # can compare one cluster vs one other cluster
+  app$click("sc-form-cluster-show_contrasts")
+  app$get_value(input = "sc-form-dataset-selected_dataset")
+  app$click("sc-form-cluster-show_contrasts")
+
+  # can set custom boolean metric
+  app$click("sc-form-gene_clusters-show_custom_metric")
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "KCNT2>0")
+  colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
+  expect_length(unique(colors), 2)
+
+  # can view expression of gene using custom metric
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "KCNT2")
+  colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
+  expect_length(unique(colors), 163)
+
+  # can use cluster for metric
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "cluster==1")
+  colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
+  expect_length(unique(colors), 2)
+
+  # TODO: check that it was added to table
+  # can add custom metric
+  prev_files <- list_files()
+  app$click("sc-form-gene_clusters-save_custom_metric")
+  expect_equal(app$get_value(input = "sc-form-gene_clusters-custom_metric"), "")
+  saved_metric_files <- setdiff(list_files(), prev_files)
+  expect_snapshot(saved_metric_files)
+
+  # TODO: check that closing custom metric input hides markers plot
+  app$click("sc-form-gene_clusters-show_custom_metric")
+
+  # can change resolution of a dataset
+  app$click("sc-form-dataset-show_label_resoln")
+  prev_files <- list_files()
+  app$set_inputs("sc-form-resolution-resoln" = 2, wait_ = FALSE)
+  app$wait_for_idle()
+  change_resoln_files <- setdiff(list_files(), prev_files)
+  expect_snapshot(change_resoln_files)
+  app$click("sc-form-dataset-show_label_resoln")
+
+  # can subset a dataset
+  dataset_name <- app$get_value(export = "sc-form-dataset-dataset_name")
+  expect_equal(dataset_name, "mock_10x")
+
+  app$click("sc-form-dataset-show_subset")
+  app$set_inputs("sc-form-subset-subset_features" = c(1, 2, 3, 4))
+  app$click("sc-form-subset-toggle_exclude")
+  app$set_inputs("sc-form-subset-subset_name" = "1234")
+  app$click("sc-form-subset-submit_subset")
+  app$wait_for_idle()
+  app$click("sc-form-subset-confirm_subset")
+  app$click("sc-form-dataset-show_subset")
+
+  # subset dataset added
+  # dataset name duplicated as also in "previous"
+  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = 1000*60*5, ignore = list(c("mock_10x", "mock_10x")))
+  expect_setequal(app$get_value(export = 'sc-form-dataset-dataset_names'), c('mock_10x', 'mock_10x_1234'))
+
+  # check that previous dataset still selected
+  expect_equal(dataset_name, "mock_10x")
+
+  # run label transfer from new to current
+  app$click("sc-form-dataset-show_label_resoln")
+  app$set_inputs(`sc-form-dataset-selected_dataset` = 2)
+  new_dataset_name <- app$get_value(export = "sc-form-dataset-dataset_name")
+  expect_equal(new_dataset_name, 'mock_10x_1234')
+
+  init_annot <- app$get_value(export = "sc-form-sample_clusters-annot")
+  expect_equal(init_annot, as.character(1:4))
+
+  app$set_inputs("sc-form-transfer-ref_name" = "mock_10x", wait_ = FALSE)
+  app$wait_for_value(export = "sc-form-transfer-pred_annot")
+  app$click("sc-form-transfer-overwrite_annot")
+  app$wait_for_idle()
+  app$click("sc-form-transfer-confirm_overwrite")
+
+  new_annot <- app$wait_for_value(export = "sc-form-sample_clusters-annot", ignore = list(init_annot))
+  expect_equal(new_annot, c('CD14 Mono', 2:4))
+
+  # can integrate two datasets
+  current_files <- list_files()
+  app$click("datasets_dropdown")
+  app$wait_for_idle()
+  app$click("integrate_dataset")
+  app$wait_for_idle()
+  app$set_inputs("sc-form-integration-integration_datasets" = c("mock_10x", "mock_10x_1234"), wait_ = FALSE)
+  app$set_inputs("sc-form-integration-integration_name" = c("mock_10x_integrated"), wait_ = FALSE)
+  app$wait_for_idle()
+  app$click("sc-form-integration-submit_integration")
+  current_datasets <- app$get_value(export = 'sc-form-dataset-dataset_names')
+  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = 1000*60*5, ignore = list(current_datasets))
+
+  integrated_dataset_name <- setdiff(app$get_value(export = 'sc-form-dataset-dataset_names'), current_datasets)
+  expect_snapshot(integrated_dataset_name)
+
+  integrated_files <- setdiff(list_files(), current_files)
+  expect_snapshot(integrated_files)
+
+  # previous dataset still selected
+  expect_equal(app$get_value(export = "sc-form-dataset-dataset_name"), "mock_10x_1234")
+
+  # clusters change after selecting new dataset
+  current_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
+  app$set_inputs(`sc-form-dataset-selected_dataset` = "3", wait_ = FALSE)
+  app$wait_for_value(export = 'sc-form-sample_clusters-annot', ignore = list(current_clusters))
+
+  integrated_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
+  expect_snapshot(integrated_clusters)
+
+  expect_equal(app$get_value(export = "sc-form-dataset-dataset_name"), "mock_10x_integrated_harmony")
 })

@@ -487,6 +487,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              ambient = scSampleClusters$ambient)
 
 
+  exportTestValues(annot = annot())
+
 
   return(list(
     scseq = scDataset$scseq,
@@ -2068,6 +2070,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     shinyjs::toggleClass('show_subset', 'btn-primary', condition = show_subset())
   })
 
+  exportTestValues(dataset_name = dataset_name())
 
   return(list(
     dataset_name = dataset_name,
@@ -2393,6 +2396,8 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   })
 
 
+
+  exportTestValues(pred_annot = pred_annot())
 
 
   return(list(

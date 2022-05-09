@@ -1,4 +1,4 @@
-# {shinytest2} recording: import_sc
+# {shinytest2} recording: Single-Cell Tab
 
     Code
       init_files
@@ -36,4 +36,61 @@
       [14] "test_data_dir/test_user/default/single-cell/mock_10x/snn_graph.qs"        
       [15] "test_data_dir/test_user/default/single-cell/mock_10x/species.qs"          
       [16] "test_data_dir/test_user/default/single-cell/mock_10x/tlogs.tenx"          
+
+---
+
+    Code
+      saved_metric_files
+    Output
+      [1] "test_data_dir/test_user/default/single-cell/mock_10x/snn1/saved_metrics.qs"
+
+---
+
+    Code
+      change_resoln_files
+    Output
+      [1] "test_data_dir/test_user/default/single-cell/mock_10x/snn2"                
+      [2] "test_data_dir/test_user/default/single-cell/mock_10x/snn2/annot.qs"       
+      [3] "test_data_dir/test_user/default/single-cell/mock_10x/snn2/applied.qs"     
+      [4] "test_data_dir/test_user/default/single-cell/mock_10x/snn2/clusters.qs"    
+      [5] "test_data_dir/test_user/default/single-cell/mock_10x/snn2/scseq_sample.qs"
+      [6] "test_data_dir/test_user/default/single-cell/mock_10x/snn2/summed.qs"      
+
+---
+
+    Code
+      integrated_dataset_name
+    Output
+      [1] "mock_10x_integrated_harmony"
+
+---
+
+    Code
+      integrated_files
+    Output
+       [1] "test_data_dir/test_user/default/single-cell/integrated.qs"                                   
+       [2] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony"                     
+       [3] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/args.json"           
+       [4] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/counts.qs"           
+       [5] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/dgclogs.qs"          
+       [6] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/founder.qs"          
+       [7] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/pairs.qs"            
+       [8] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/resoln.qs"           
+       [9] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/shell.qs"            
+      [10] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1"                
+      [11] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1/annot.qs"       
+      [12] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1/applied.qs"     
+      [13] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1/clusters.qs"    
+      [14] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1/scseq_sample.qs"
+      [15] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn1/summed.qs"      
+      [16] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/snn_graph.qs"        
+      [17] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/species.qs"          
+      [18] "test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony/tlogs.tenx"          
+
+---
+
+    Code
+      integrated_clusters
+    Output
+      [1] "1" "2" "3" "4" "5" "6" "7"
 
