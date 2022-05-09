@@ -21,6 +21,8 @@ mock_10x_files <- function(dir_name) {
   for (file in list.files(dir_name, full.names = TRUE)) R.utils::gzip(file)
 }
 
+# 10 mins
+timeout <- 1000*60*10
 
 test_that("{shinytest2} recording: Single-Cell Tab", {
   suppressWarnings(
@@ -67,7 +69,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   # creates mock_10x sample
   app$click("sc-form-dataset-confirm_import_datasets")
-  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = 1000*60*5, ignore = list(character(0)))
+  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(character(0)))
   expect_setequal(app$get_value(export = 'sc-form-dataset-dataset_names'), 'mock_10x')
 
   # didn't auto-select dataset
@@ -177,7 +179,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   # subset dataset added
   # dataset name duplicated as also in "previous"
-  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = 1000*60*5, ignore = list(c("mock_10x", "mock_10x")))
+  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(c("mock_10x", "mock_10x")))
   expect_setequal(app$get_value(export = 'sc-form-dataset-dataset_names'), c('mock_10x', 'mock_10x_1234'))
 
   # check that previous dataset still selected
@@ -202,7 +204,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   expect_equal(new_annot, c('CD14 Mono', 2:4))
 
   # can integrate two datasets
-  current_files <- list_files()
+  pre_integration_files <- list_files()
   app$click("datasets_dropdown")
   app$wait_for_idle()
   app$click("integrate_dataset")
@@ -212,12 +214,12 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   app$wait_for_idle()
   app$click("sc-form-integration-submit_integration")
   current_datasets <- app$get_value(export = 'sc-form-dataset-dataset_names')
-  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = 1000*60*5, ignore = list(current_datasets))
+  app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(current_datasets))
 
   integrated_dataset_name <- setdiff(app$get_value(export = 'sc-form-dataset-dataset_names'), current_datasets)
   expect_snapshot(integrated_dataset_name)
 
-  integrated_files <- setdiff(list_files(), current_files)
+  integrated_files <- setdiff(list_files(), pre_integration_files)
   expect_snapshot(integrated_files)
 
   # previous dataset still selected
