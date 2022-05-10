@@ -129,19 +129,24 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   app$click("sc-form-cluster-show_contrasts")
 
   # can set custom boolean metric
-  # app$click("sc-form-gene_clusters-show_custom_metric")
-  # app$set_inputs(`sc-form-gene_clusters-custom_metric` = "KCNT2>0")
-  # colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
-  # expect_length(unique(colors), 2)
+  app$click("sc-form-gene_clusters-show_custom_metric")
+  marker_plot <- app$get_value(output = 'sc-marker_plot_cluster-marker_plot')
+
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1>0")
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
+  expect_length(unique(colors), 2)
 
   # can view expression of gene using custom metric
-  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "KCNT2")
-  colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1")
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
   expect_length(unique(colors), 102)
 
   # can use cluster for metric
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "cluster==1")
-  colors <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$colors
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
   expect_length(unique(colors), 2)
 
   # TODO: check that it was added to table
