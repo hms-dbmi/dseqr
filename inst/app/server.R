@@ -142,12 +142,19 @@ server <- function(input, output, session) {
   })
 
 
+  # customize dataset management dropdown for each tab
   observe({
     toggle('tour_dropdown', condition = input$tab == 'Single Cell')
     toggle('start_tour_container', condition = input$tab != 'Single Cell')
-    toggle('datasets_dropdown', condition = input$tab != 'Drugs')
+
+    toggle('add_dataset', condition = input$tab != 'Drugs')
     toggle('integrate_dataset', condition = input$tab == 'Single Cell')
+
     toggle('export_dataset', condition = input$tab == 'Single Cell')
+    toggle('remove_dataset', condition = input$tab != 'Drugs')
+
+    toggle('dataset_management_sep1', condition = input$tab != 'Drugs')
+    toggle('dataset_management_sep2', condition = input$tab != 'Drugs')
   })
 
 

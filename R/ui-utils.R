@@ -135,15 +135,6 @@ navbar2UI <- function(hide) {
 
           ),
 
-          # Projects
-          tags$button(class = 'btn',
-                      id = 'select_project',
-                      class=class,
-                      tags$i(class= 'far fa-folder-open fa-fw'),
-                      tags$span(class = 'hidden-xs', 'Projects')),
-
-          tags$i(class = 'fa fa-angle-right', style = 'padding: 0 5px; color: white;'),
-
           # Dataset Management dropdown
           tags$div(class='btn-group',
                    tags$button(
@@ -171,7 +162,7 @@ navbar2UI <- function(hide) {
                                           tags$i(class= 'far fa-object-group fa-fw'),
                                           'Integrate')
                            ),
-                           tags$li(role = 'separator', class='divider'),
+                           tags$li(role = 'separator', class='divider', id='dataset_management_sep1'),
                            tags$li(class=add,
                                    tags$a(id = 'export_dataset',
                                           role='button',
@@ -186,6 +177,14 @@ navbar2UI <- function(hide) {
                                           tags$i(class= 'far fa-trash-alt fa-fw'),
                                           'Delete')
                            ),
+                           tags$li(role = 'separator', class='divider', id='dataset_management_sep2'),
+                           tags$li(class=add,
+                                   tags$a(id = 'select_project',
+                                          role='button',
+                                          class = 'action-button shiny-bound-input',
+                                          tags$i(class= 'far fa-folder-open fa-fw'),
+                                          'Projects')
+                           )
                    )
           )
         )

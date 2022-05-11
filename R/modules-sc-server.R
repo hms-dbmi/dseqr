@@ -4205,7 +4205,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     }
 
     if (bool.ft || all.zero) {
-      cols <- const$colors$ft
+      cols <- '#FFFFFFCC'
 
       colors <- rep(cols[1], ntot)
       colors[ft.ids] <- cols[2]
