@@ -1,5 +1,3 @@
-context("integrating single cell datasets works")
-
 mock_scseq_files <- function(sc_dir, dataset_name, sample_names = 'a', sce = NULL) {
     dataset_dir <- file.path(sc_dir, dataset_name)
     dir.create(dataset_dir, recursive = TRUE)

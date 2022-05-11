@@ -1,5 +1,3 @@
-context("import validation of single cell files works")
-
 mock_counts <- function() {
     set.seed(0)
     sce <- scater::mockSCE()

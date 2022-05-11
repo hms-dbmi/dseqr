@@ -1,5 +1,3 @@
-context("validation of uploaded bulk fastq.gz files works")
-
 test_that("files with 0 bytes are invalid", {
 
     up_df <- data.frame(size = c(0, 25, 25))

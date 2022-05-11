@@ -1,5 +1,3 @@
-context("importing single cell files works")
-
 mock_counts <- function(...) {
     set.seed(0)
     sce <- scDblFinder::mockDoubletSCE(...)

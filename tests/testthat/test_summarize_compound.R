@@ -1,4 +1,3 @@
-context("collapsing multiple results from same compound")
 library(tibble)
 
 query_res <- tibble('Correlation' = c(0.2, 0.3, 0.4),

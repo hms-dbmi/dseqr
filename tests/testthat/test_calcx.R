@@ -1,5 +1,3 @@
-context("Calculating x position of correlation value")
-
 test_that("calcx return midpoint of width when correlation is 0", {
   xpos <- calcx(0, width=200)
   expect_equal(xpos, 100)

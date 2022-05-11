@@ -1,5 +1,3 @@
-context("labels validation of bulk fastq.gz files works")
-
 test_that("three unpaired samples is valid", {
 
     up_df <- data.frame(name = c('A.fastq.gz', 'B.fastq.gz', 'C.fastq.gz'))

@@ -1,4 +1,3 @@
-context("R object import works")
 library(Seurat)
 library(SingleCellExperiment)
 

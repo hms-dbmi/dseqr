@@ -1,4 +1,3 @@
-context("linkouts can be added and merged")
 library(tibble)
 
 query_res <- tibble('Pubchem CID' = c('1234', '5678', NA),

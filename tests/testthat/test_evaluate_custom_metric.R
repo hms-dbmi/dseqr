@@ -1,5 +1,3 @@
-context("evaluating a custom metric works")
-
 mock_scseq <- function() {
 
     sce <- scuttle::mockSCE()
