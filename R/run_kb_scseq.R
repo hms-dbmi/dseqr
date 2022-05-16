@@ -2,7 +2,6 @@
 #'
 #' @param indices_dir Directory with kallisto indices built with \code{build_kallisto_index}.
 #' @param data_dir Path to folder with 10X fastq.gz scRNA-seq files
-#' @param out_dir Path to save output to.
 #' @param species Species to use index from. Currently supports 'human' or 'mouse'.
 #' @param threads Number of threads to use. Default is 1.
 #'
@@ -10,7 +9,9 @@
 #' @seealso \link{download_kb_index}
 #' @export
 #'
-run_kb_scseq <- function(indices_dir, data_dir, out_dir = file.path(data_dir, 'bus_output'), species = 'human', threads = 4) {
+run_kb_scseq <- function(indices_dir, data_dir, species = 'human', threads = 4) {
+
+  out_dir <- file.path(data_dir, 'bus_output')
 
   # kallisto needs expanded paths (no tilde's)
   indices_dir <- path.expand(indices_dir)
@@ -39,6 +40,45 @@ run_kb_scseq <- function(indices_dir, data_dir, out_dir = file.path(data_dir, 'b
   # run quantification/bustools
   run_kb_count(index_dir, out_dir, file.path(data_dir, fqs), chemistry, threads = threads)
   return(NULL)
+}
+
+#' Clean up kb output directory
+#'
+#' @param data_dir Path containing folder 'bus_output'
+#' @param sample_name Optional sample name to append to cellranger files
+#'
+#' @return Called for side effects
+#' @export
+#'
+clean_kb_scseq <- function(data_dir, sample_name = NULL) {
+  # make sure we are in bus_output (not going to delete fastq files)
+  out_dir <- file.path(data_dir, 'bus_output')
+
+  # keep json and cellranger output
+  out_files <- list.files(out_dir, recursive = TRUE)
+  del_files <- out_files[!grepl('[.]json$|cellranger|fastq', out_files)]
+  unlink(file.path(out_dir, del_files))
+
+  cellranger_files <- file.path(out_dir, out_files[grepl('cellranger', out_files)])
+
+  # add sample name
+  if (!is.null(sample_name)) {
+    base.names <- basename(cellranger_files)
+    dir.names <- dirname(cellranger_files)
+
+    new_fpaths <- file.path(dir.names, paste0(sample_name, '_', base.names))
+
+    file.move(
+      from = cellranger_files,
+      to = new_fpaths)
+
+    cellranger_files <- new_fpaths
+  }
+
+  # compress cellranger files
+  for (file in cellranger_files)
+    if (!R.utils::isGzipped(file)) R.utils::gzip(file)
+
 }
 
 # get kb-python version

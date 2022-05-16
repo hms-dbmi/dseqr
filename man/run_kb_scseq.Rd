@@ -4,20 +4,12 @@
 \alias{run_kb_scseq}
 \title{Run kallisto/bustools for quantifying 10X scRNA-seq data}
 \usage{
-run_kb_scseq(
-  indices_dir,
-  data_dir,
-  out_dir = file.path(data_dir, "bus_output"),
-  species = "human",
-  threads = 4
-)
+run_kb_scseq(indices_dir, data_dir, species = "human", threads = 4)
 }
 \arguments{
 \item{indices_dir}{Directory with kallisto indices built with \code{build_kallisto_index}.}
 
 \item{data_dir}{Path to folder with 10X fastq.gz scRNA-seq files}
-
-\item{out_dir}{Path to save output to.}
 
 \item{species}{Species to use index from. Currently supports 'human' or 'mouse'.}
 
