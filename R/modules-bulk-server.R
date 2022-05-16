@@ -1153,7 +1153,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   # update exclude cluster choices
   include_choices <- reactive({
     clusters <- annot()
-    get_cluster_choices(clusters, resoln_dir = dtangle_subdir())
+    get_cluster_choices(clusters, with_all = TRUE, resoln_dir = dtangle_subdir())
   })
 
   observe({

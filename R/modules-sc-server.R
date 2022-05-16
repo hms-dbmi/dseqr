@@ -968,7 +968,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   exportTestValues(
     annot = annot()
-    )
+  )
 
   observe({
     choices <- cluster_choices()
@@ -2702,7 +2702,8 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
     scseq <- scseq()
     annot <- annot()
     if (is.null(scseq) | is.null(annot)) return(NULL)
-    get_cluster_choices(annot, scseq = scseq)
+
+    get_cluster_choices(annot, scseq = scseq, with_all = TRUE)
   })
 
   metric_choices <- reactive({
@@ -4073,7 +4074,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scseq <- safe_set_annot(scseq, annot)
     if (is.null(scseq)) return(NULL)
 
-    cell.idx <- match(cells, colnames(scseq))
+    all.cells <- make.unique(colnames(scseq))
+    cell.idx <- match(cells, all.cells)
     scseq <- scseq[, cell.idx]
 
     labels <- unname(scseq$cluster)
@@ -4088,9 +4090,10 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scseq <- scseq()
     coords <- coords()
     cells <- cells()
-
     if (!isTruthyAll(cells, scseq, coords)) return(NULL)
-    if (!all(cells %in% colnames(scseq))) return(NULL)
+
+    all.cells <- make.unique(colnames(scseq))
+    if (!all(cells %in% all.cells)) return(NULL)
 
     # use xrange and yrange for all data
     xrange <- range(coords[,1])
@@ -4099,7 +4102,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scatter_props <- get_scatter_props(is_mobile(), nrow(coords))
 
     # now subset
-    cell.idx <- match(cells, colnames(scseq))
+    cell.idx <- match(cells, all.cells)
     coords <- coords[cell.idx, ]
 
     # show group name as plot label
@@ -4165,25 +4168,24 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     is_gene <- feature %in% row.names(scseq)
     is_feature <- feature %in% colnames(cdata)
     is_sample <- feature %in% samples()
+
     if (!is_gene && !is_feature && !is_sample) return(NULL)
 
     if (is_sample) cdata[[feature]] <- scseq$batch == feature
 
     # get feature
-    if (is_gene) {
-      ft <- h5logs()[feature, ]
+    ids <- all.ids <- make.unique(colnames(scseq))
 
-    } else {
-      ft <- cdata[[feature]]
-      names(ft) <- colnames(scseq)
-    }
+    if (is_gene) ft <- h5logs()[feature, ]
+    else ft <- cdata[[feature]]
+
+    names(ft) <- all.ids
 
     # e.g. group or sample columns
     if (is.character(ft) | is.factor(ft)) return(NULL)
 
     # get group
-    ids <- colnames(scseq)
-    if (!is.null(group)) ids <- ids[which(scseq$orig.ident == group)]
+    if (!is.null(group)) ids <- all.ids[which(scseq$orig.ident == group)]
 
     # order cell ids if logical
     bool.ft <- is.logical(ft)
@@ -4206,8 +4208,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     }
 
     if (bool.ft || all.zero) {
-      cols <- c('#FFFFFFCC', "#0000FF80")
-
+      cols <- const$colors$bool
       colors <- rep(cols[1], ntot)
       colors[ft.ids] <- cols[2]
 
@@ -4216,15 +4217,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
       # scale before subsetting to group
       ft.scaled <- scales::rescale(ft, c(0, 1))
       ft.scaled <- ft.scaled[ids]
-
-      is_qc <- feature %in% const$features$qc |
-        grepl('predicted[.].+?[.]score', feature)
-
-      cols <- viridis::plasma(10, direction = -1)[-1]
-      colors <- scales::gradient_n_pal(cols)(ft.scaled)
-
-      # zero expression is white
-      colors[ft.scaled == 0] <- '#FFFFFFCC'
+      colors <- get_expression_colors(ft.scaled)
 
       # title is group
       prev <- isolate(title())
@@ -4236,8 +4229,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     if (ncells > const$max.cells) {
       set.seed(0)
       keep <- sample(ncells, const$max.cells)
-      cells_keep <- colnames(scseq)[keep]
-      is.keep <- ids %in% cells_keep
+      ids_keep <- all.ids[keep]
+      is.keep <- ids %in% ids_keep
       ids <- ids[is.keep]
       colors <- colors[is.keep]
     }

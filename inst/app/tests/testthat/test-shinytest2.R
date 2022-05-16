@@ -1,7 +1,12 @@
-suppressPackageStartupMessages({
+# to debug:
+# 1) add browser() inside test_that()
+# 2) run devtools::test_active_file()
+
+suppressWarnings(suppressPackageStartupMessages({
   library(shinytest2)
   library(SingleCellExperiment)
-})
+  library(dseqr)
+}))
 
 # create single-cell dataset for upload
 mock_10x_files <- function(dir_name) {
@@ -191,7 +196,17 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # check that previous dataset still selected
   expect_equal(dataset_name, "mock_10x")
 
-  # run label transfer from new to current
+  # check that new dataset has cells from selected clusters
+  # load_scseq_qs so that attaches clusters from above resolution change
+  mock10x <- load_scseq_qs('test_data_dir/test_user/default/single-cell/mock_10x')
+  mock10x_ncells <- ncol(mock10x)
+  expect_ncells <- sum(mock10x$cluster %in% 1:4)
+
+  mock10x_1234 <- load_scseq_qs('test_data_dir/test_user/default/single-cell/mock_10x_1234')
+  mock10x_1234_ncells <- ncol(mock10x_1234)
+  expect_equal(mock10x_1234_ncells, expect_ncells)
+
+  # run label transfer from initial dataset to subset dataset
   app$click("sc-form-dataset-show_label_resoln")
   app$set_inputs(`sc-form-dataset-selected_dataset` = 2, wait_ = FALSE)
   new_dataset_name <- app$get_value(export = "sc-form-dataset-dataset_name")
@@ -241,4 +256,36 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   expect_snapshot(integrated_clusters)
 
   expect_equal(app$get_value(export = "sc-form-dataset-dataset_name"), "mock_10x_integrated_harmony")
+
+  # custom metric using either sample (batch) gives correct number of unique marker colors
+  # fails if duplicate cell names not accounted for
+  app$click("sc-form-gene_clusters-show_custom_metric")
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "batch=='mock_10x'")
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
+  expect_setequal(table(colors), c(mock10x_1234_ncells, mock10x_ncells))
+
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "batch=='mock_10x_1234'")
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
+  expect_setequal(table(colors), c(mock10x_1234_ncells, mock10x_ncells))
+
+  # colors from unique expression values for EFNB1 equals unique colors in marker plot
+  # fails if duplicate cell names not accounted for
+  scseq <- load_scseq_qs('test_data_dir/test_user/default/single-cell/mock_10x_integrated_harmony', with_logs = TRUE)
+  ft <- logcounts(scseq)['EFNB1', ]
+  ft.scaled <- scales::rescale(ft)
+  colors_expected <- get_expression_colors(ft.scaled)
+  expect_ncolors <- length(unique(colors_expected))
+
+  app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1")
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+
+  colors <- jsonlite::fromJSON(marker_plot)$x$colors
+  ncolors <- length(unique(colors))
+  expect_equal(ncolors, expect_ncolors)
+  expect_setequal(colors_expected, colors)
+
 })

@@ -44,11 +44,12 @@ refs <- data.frame(
 )
 
 # constants
-gray <- '#F5F5F580'
+gray <- '#FFFFFFCC'
 const <- list(
   colors = list(
-    ft = c(gray, "#0000FF80"),
-    qc = c(gray, 'red')
+    bool = c(gray, "#0000FF80"),
+    qc = c(gray, 'red'),
+    ft = viridis::plasma(10, direction = -1)[-1]
   ),
   features = list(
     qc = c('ribo_percent', 'mito_percent', 'log10_sum', 'log10_detected', 'doublet_score', 'mapping.score'),

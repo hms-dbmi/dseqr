@@ -743,7 +743,7 @@ get_qc_table <- function(qc_metrics = NULL) {
 
   html_metrics[!is.score] <- sprintf(
     "<span class='input-swatch' style='background: linear-gradient(to right, %s 50%%, %s 50%%);'></span><span title='%s'>%s</span>",
-    const$colors$ft[1], const$colors$ft[2], qc_metrics[!is.score], html_metrics[!is.score])
+    const$colors$bool[1], const$colors$bool[2], qc_metrics[!is.score], html_metrics[!is.score])
 
 
 
@@ -1458,9 +1458,18 @@ save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = F
 #' Also attaches clusters from last applied leiden resolution and stores resolution.
 #'
 #' @param dataset_dir Path to folder with scseq.qs file
+#' @param meta data.frame with column \code{group} and \code{row.names} as sample
+#' names corresponding to \code{scseq$batch}. Default (\code{NULL}) loads previous
+#' specification from file.
+#' @param groups character vector of length two. First value is test group name
+#' and second in control group name.
+#' @param with_logs should logcounts be loaded? Default is \code{FALSE} to increase
+#' speed and reduce memory usage.
+#' @param with_counts should counts be loaded? Default is \code{FALSE} to increase
+#' speed and reduce memory usage.
 #'
 #' @return SingleCellExperiment
-#' @keywords internal
+#' @export
 #'
 load_scseq_qs <- function(dataset_dir, meta = NULL, groups = NULL, with_logs = FALSE, with_counts = FALSE) {
   shell_path <- file.path(dataset_dir, 'shell.qs')
@@ -2444,3 +2453,26 @@ sort_clusters <- function(label_coords) {
   return(label_coords)
 }
 
+
+#' Get expression colors for scatterplot
+#'
+#' @param ft.scaled expression values scaled from 0 to 1
+#'
+#' @return character vector of colors
+#' @export
+#'
+#' @examples
+#'
+#' ft <- rnorm(100)
+#' ft.scaled <- scales::rescale(ft)
+#' colors <- get_expression_colors(ft.scaled)
+#'
+get_expression_colors <- function(ft.scaled) {
+  cols <- const$colors$ft
+  colors <- scales::gradient_n_pal(cols)(ft.scaled)
+
+  # zero expression same as boolean off (white)
+  colors[ft.scaled == 0] <- const$colors$bool[1]
+
+  return(colors)
+}
