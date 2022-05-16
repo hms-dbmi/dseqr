@@ -423,10 +423,13 @@ server <- function(input, output, session) {
     project <- project()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
+    workspace <- basename(user_dir)
+    workspace <- ifelse(workspace == user, 'private', workspace)
+
     httr::POST(
       url = slack$logins,
       httr::add_headers('Content-Type' = 'application/json'),
-      body = sprintf('{"text": "⭐⭐⭐ \n\n *project*: %s \n *user*: %s 🧑"}', project, user)
+      body = sprintf('{"text": "\U2B50\U2B50\U2B50 \n\n *workspace*: %s \n *project*: %s \n *user*: %s \U1F9D1"}', workspace, project, user)
     )
   })
 
