@@ -32,7 +32,11 @@ runs:
       run: |
         ## --------------------------------------------------------------------
         options(crayon.enabled = TRUE)
-        shinytest2::test_app("inst/app")
+        for (i in 1:5) {
+          res <- try(shinytest2::test_app("inst/app"))
+          if (!methods::is(res, 'try-error')) break
+          if (i==5) stop("Tests failed")
+        }
 
     - name: Show testthat output
       if: always()
