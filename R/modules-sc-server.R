@@ -1540,7 +1540,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   is_integrated <- reactive({
     dataset_name <- dataset_name()
     req(dataset_name)
-    integrated <- qread.safe(file.path(sc_dir(), 'integrated.qs'))
+    integrated <- get_integrated_datasets(sc_dir())
     return(dataset_name %in% integrated)
   })
 
@@ -2919,9 +2919,9 @@ integrationForm <- function(input, output, session, sc_dir, tx2gene_dir, dataset
   integration_choices <- reactive({
     ds <- datasets()
     if (!nrow(ds)) return(NULL)
-    int  <- qread.safe(file.path(sc_dir(), 'integrated.qs'))
+    int  <- get_integrated_datasets(sc_dir())
     prev <- qread.safe(file.path(sc_dir(), 'prev_dataset.qs'))
-    ds <- ds[!ds$name %in% int & !ds$type %in% 'Previous Session', ]
+    ds <- ds[(!ds$name %in% int) & (!ds$type %in% 'Previous Session'), ]
 
     ds <- tibble::as_tibble(ds)
     names(ds$name) <- ds$name

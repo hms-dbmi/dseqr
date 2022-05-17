@@ -1114,13 +1114,10 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     new_dataset()
     sc_dir <- sc_dir()
 
-    # make sure integrated rds exists
-    int_path <- file.path(sc_dir, 'integrated.qs')
-    if (!file.exists(int_path)) qs::qsave(NULL, int_path)
-
     # use saved anals as options
-    integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
-    individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.qs'))
+    dataset_names <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+    integrated <- get_integrated_datasets(sc_dir)
+    individual <- setdiff(dataset_names, integrated)
 
     # exclude individual without scseq (e.g. folder with fastq.gz files only)
     has.scseq <- check_has_scseq(individual, sc_dir)

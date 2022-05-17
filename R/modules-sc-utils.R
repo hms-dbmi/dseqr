@@ -306,7 +306,7 @@ get_sc_dataset_choices <- function(sc_dir) {
 
 
   # exclude missing from integrated (e.g. manual delete)
-  integrated <- qread.safe(file.path(sc_dir, 'integrated.qs'))
+  integrated <- get_integrated_datasets(sc_dir)
   has.scseq <- check_has_scseq(integrated, sc_dir)
   integrated <- integrated[has.scseq]
 
@@ -317,7 +317,8 @@ get_sc_dataset_choices <- function(sc_dir) {
   int_opt <- integrated
   int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
 
-  individual <- setdiff(list.files(sc_dir), c(integrated, 'integrated.qs'))
+  dataset_names <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+  individual <- setdiff(dataset_names, integrated)
 
   # exclude individual without scseq (e.g. folder with fastq.gz files only)
   has.scseq <- check_has_scseq(individual, sc_dir)
@@ -383,29 +384,23 @@ datasets_to_list <- function(datasets) {
 }
 
 
-#' Get single-cell directories without fastq or cellranger files
-#'
-#' Used so that all directories shown for new single-cell dataset contain
-#' raw files.
-#'
-#' @param sc_dir Path to single-cell data directory
-#'
-#' @return Character vector of directories/files to hide
-#' @keywords internal
-#'
-get_exclude_dirs <- function(sc_dir) {
-  dirs <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
-  exclude <- c()
-  for (dir in dirs) {
-    full_dir <- file.path(sc_dir, dir)
-    files <- list.files(full_dir)
-    if (!any(grepl('fastq.gz$|.mtx$|.h5$|.hdf5$', files))) {
-      exclude <- c(exclude, dir)
-    }
+get_integrated_datasets <- function(sc_dir) {
+  dataset_names <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
+
+  # will have args
+  args_paths <- file.path(sc_dir, dataset_names, 'args.json')
+  args_exists <- which(file.exists(args_paths))
+
+  # check args for integration type
+  integrated <- c()
+  for (i in args_exists) {
+    dataset_name <- dataset_names[i]
+    args <- load_args(sc_dir, dataset_name)
+    if ('integration_type' %in% names(args))
+      integrated <- c(integrated, dataset_name)
   }
 
-  exclude <- c(exclude, 'integrated.qs', 'prev_dataset.qs')
-  return(exclude)
+  return(integrated)
 }
 
 
@@ -986,7 +981,7 @@ integrate_saved_scseqs <- function(
     scseq_data$ref_name <- ref_name
     scseq_data$scseq <- combined
 
-    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+    save_scseq_data(scseq_data, dataset_name, sc_dir)
     save_ref_clusters(combined@colData, dataset_name, sc_dir)
 
   } else {
@@ -999,7 +994,7 @@ integrate_saved_scseqs <- function(
     combined$cluster <- get_clusters(scseq_data$snn_graph, cluster_alg, resoln)
 
     scseq_data$scseq <- combined
-    save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = TRUE)
+    save_scseq_data(scseq_data, dataset_name, sc_dir)
   }
 
   # run things that can change with resolution change
@@ -1419,20 +1414,12 @@ get_exclude_cells <- function(scseq, exclude_clusters) {
 #' @param scseq_data Named list with \code{scseq}, \code{markers}, and/or \code{annot}
 #' @param dataset_name The analysis name.
 #' @param sc_dir Path to directory with single-cell datasets.
-#' @param add_integrated Add analysis to integrated.qs file? Default is \code{FALSE}
 #' @param overwrite overwrite \code{dataset_name} sub-directory?
 #'
 #' @return NULL
 #' @keywords internal
-save_scseq_data <- function(scseq_data, dataset_name, sc_dir, add_integrated = FALSE, overwrite = TRUE) {
+save_scseq_data <- function(scseq_data, dataset_name, sc_dir, overwrite = TRUE) {
   dataset_dir <- file.path(sc_dir, dataset_name)
-
-  if (add_integrated) {
-    # add to integrated if new
-    int_path <- file.path(sc_dir, 'integrated.qs')
-    int_options <- c(qread.safe(int_path), dataset_name)
-    qs::qsave(unique(int_options), int_path)
-  }
 
   # remove all previous data in case overwriting
   if (overwrite) unlink(dataset_dir, recursive = TRUE)

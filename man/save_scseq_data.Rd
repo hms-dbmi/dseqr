@@ -4,13 +4,7 @@
 \alias{save_scseq_data}
 \title{Save Single Cell RNA-seq data for app}
 \usage{
-save_scseq_data(
-  scseq_data,
-  dataset_name,
-  sc_dir,
-  add_integrated = FALSE,
-  overwrite = TRUE
-)
+save_scseq_data(scseq_data, dataset_name, sc_dir, overwrite = TRUE)
 }
 \arguments{
 \item{scseq_data}{Named list with \code{scseq}, \code{markers}, and/or \code{annot}}
@@ -18,8 +12,6 @@ save_scseq_data(
 \item{dataset_name}{The analysis name.}
 
 \item{sc_dir}{Path to directory with single-cell datasets.}
-
-\item{add_integrated}{Add analysis to integrated.qs file? Default is \code{FALSE}}
 
 \item{overwrite}{overwrite \code{dataset_name} sub-directory?}
 }

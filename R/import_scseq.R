@@ -203,7 +203,7 @@ import_robject <- function(dataset_name, uploaded_data_dir, sc_dir, species, tx2
 
   # remove NULLs
   scseq_data <- scseq_data[!sapply(scseq_data, is.null)]
-  save_scseq_data(scseq_data, dataset_name, sc_dir, add_integrated = have.samples)
+  save_scseq_data(scseq_data, dataset_name, sc_dir)
 
   # save multi-sample specific data
   if (have.samples) {

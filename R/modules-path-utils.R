@@ -152,28 +152,25 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 #' @keywords internal
 load_scseq_datasets <- function(data_dir) {
   sc_dir <- file.path(data_dir, 'single-cell')
-  int_path <- file.path(sc_dir, 'integrated.qs')
 
   datasets <- data.frame(matrix(ncol = 6, nrow = 0), stringsAsFactors = FALSE)
   colnames(datasets) <- c("dataset_name", "dataset_dir", "label", "value", "type", "group")
 
-  if (file.exists(int_path)) {
-    integrated <- qread.safe(int_path)
-    has.scseq <- check_has_scseq(integrated, sc_dir)
-    integrated <- integrated[has.scseq]
+  integrated <- get_integrated_datasets(sc_dir)
+  has.scseq <- check_has_scseq(integrated, sc_dir)
+  integrated <- integrated[has.scseq]
 
-    group <- get_scdata_type(integrated, sc_dir, none = 'Integrated')
+  group <- get_scdata_type(integrated, sc_dir, none = 'Integrated')
 
-    sub <- duplicated(group) | duplicated(group, fromLast = TRUE)
-    group[!sub] <- 'Integrated'
-    opt <- integrated
-    opt[sub] <- stringr::str_replace(opt[sub], paste0(group[sub], '_'), '')
+  sub <- duplicated(group) | duplicated(group, fromLast = TRUE)
+  group[!sub] <- 'Integrated'
+  opt <- integrated
+  opt[sub] <- stringr::str_replace(opt[sub], paste0(group[sub], '_'), '')
 
-    for(i in seq_along(integrated)) {
-      ds <- integrated[i]
-      row <- c(ds, file.path('single-cell', ds), opt[i], NA, group[i], 'Single Cell')
-      datasets[nrow(datasets) + 1, ] <- row
-    }
+  for(i in seq_along(integrated)) {
+    ds <- integrated[i]
+    row <- c(ds, file.path('single-cell', ds), opt[i], NA, group[i], 'Single Cell')
+    datasets[nrow(datasets) + 1, ] <- row
   }
 
   return(datasets)

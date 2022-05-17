@@ -31,9 +31,6 @@ mock_integration_files <- function(dataset_name, sc_dir, integration_type = 'har
     # need args with previous integration type
     args <- list(integration_type = integration_type)
     save_scseq_args(args, dataset_name, sc_dir)
-
-    # need integrated.qs
-    qs::qsave(dataset_name, file.path(sc_dir, 'integrated.qs'))
 }
 
 

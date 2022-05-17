@@ -31,9 +31,6 @@ test_that("multiple scseq datasets can be integrated with harmony", {
     scseq <- mock_scseq_files(sc_dir, from_datasets[1])
     fs::dir_copy(dataset_dirs[1], dataset_dirs[2])
 
-    # need integrated.qs to store name of new integrated dataset
-    qs::qsave(NULL, file.path(sc_dir, 'integrated.qs'))
-
     integration_name <- 'test1_vs_test2'
     integration_type <- 'harmony'
 
@@ -74,9 +71,6 @@ test_that("multiple scseq datasets can be integrated with Azimuth", {
         mock_scseq_files(sc_dir, from_datasets[1], sce = sce)
     )
     fs::dir_copy(dataset_dirs[1], dataset_dirs[2])
-
-    # need integrated.qs to store name of new integrated dataset
-    qs::qsave(NULL, file.path(sc_dir, 'integrated.qs'))
 
     # run integration
     integration_name <- 'test1_vs_test2'
