@@ -3635,6 +3635,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
         initComplete = initComplete,
         deferRender = TRUE,
         scroller = TRUE,
+        scrollCollapse = TRUE,
         dom = '<"hidden"f>t',
         bInfo = 0,
         scrollY=250,
@@ -3882,7 +3883,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     point_color_polygons[clusters %in% maybe.up] <- '#FFFFD4'
     point_color_polygons[clusters %in% maybe.dn] <- '#B7FFFF'
-    return(point_color_polygons)
+    return(point_color_polygons[keep()])
   })
 
 
