@@ -3103,6 +3103,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     clusters <- annot()
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
+    if (is.null(clusters)) return(NULL)
 
     if (show_contrasts()) {
       test <- isolate(test_cluster())
