@@ -38,7 +38,7 @@ if (!is_local) {
   pickerDep <- htmltools::htmlDependency(
     'picker', '0.2.5',
     src = c(href = "https://d174upwcmdw9dj.cloudfront.net"),
-    script = c("picker3.min.js")
+    script = c("picker4.min.js")
   )
 
   deckglDep <- htmltools::htmlDependency(
