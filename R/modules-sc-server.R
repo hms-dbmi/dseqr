@@ -42,8 +42,10 @@ scPage <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     dataset_name = scForm$dataset_name,
     is_mobile = is_mobile,
     clusters_marker_view = clusters_marker_view,
+    abundances = scForm$abundances,
     grid_abundance = grid_abundance,
     grid_expression_fun = scForm$grid_expression_fun,
+    clusters_expression_fun = scForm$clusters_expression_fun,
     selected_gene = scForm$samples_gene,
     show_pbulk = scForm$show_pbulk,
     dataset_dir = scForm$dataset_dir)
@@ -465,7 +467,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                                  tx2gene_dir = tx2gene_dir,
                                  is_integrated = scDataset$is_integrated,
                                  comparison_type = comparisonType,
-                                 exclude_ambient = scSampleGene$exclude_ambient,
                                  applied = scResolution$applied,
                                  is_mobile = is_mobile)
 
@@ -483,8 +484,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              can_statistic = scSampleGroups$can_statistic,
                              selected_markers = scSampleClusters$top_table,
                              selected_cluster = scSampleClusters$selected_cluster,
-                             type = 'samples',
-                             ambient = scSampleClusters$ambient)
+                             type = 'samples')
 
 
   exportTestValues(annot = annot())
@@ -503,6 +503,8 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     show_pbulk = scSampleGene$show_pbulk,
     samples_violin_pfun = scSampleClusters$violin_pfun,
     grid_expression_fun = scSampleClusters$grid_expression_fun,
+    clusters_expression_fun = scSampleClusters$clusters_expression_fun,
+    abundances = scSampleClusters$abundances,
     clusters_cluster = scClusterComparison$selected_cluster,
     samples_cluster = scSampleClusters$selected_cluster,
     selected_cluster = selected_cluster,
@@ -847,7 +849,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
 #' @keywords internal
 #' @noRd
 #'
-scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, tx2gene_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, exclude_ambient = function()FALSE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
+scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, groups, dataset_dir, resoln_dir, resoln, plots_dir, dataset_name, sc_dir, tx2gene_dir, gs_dir = NULL, set_readonly = function()TRUE, lm_fit_grid = function()NULL, input_annot = function()NULL, is_integrated = function()TRUE, is_sc = function()TRUE, comparison_type = function()'samples', applied = function()TRUE, is_mobile = function()FALSE, h5logs = function()NULL, page = 'single-cell') {
   input_ids <- c('click_dl_anal', 'selected_cluster')
 
   cluster_options <- reactive({
@@ -1019,6 +1021,28 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     return(pfun)
   })
 
+  clusters_expression_fun <- reactive({
+    req(is_integrated())
+    scseq <- scseq()
+
+    fun <- function(gene) {
+      tts <- top_tables()
+      if (!isTruthyAll(scseq, gene, tts)) return(NULL)
+
+      tts <- lapply(tts, function(x) x[gene,, drop=FALSE])
+      tts <- tts[!is.na(tts)]
+      tt <- data.table::rbindlist(tts, fill = TRUE)
+      tt <- as.data.frame(tt)
+      row.names(tt) <- names(tts)
+      tt <- tt[!is.na(tt$logFC), ]
+      tt$cluster <- row.names(tt)
+
+      return(tt)
+    }
+
+    return(fun)
+  })
+
 
 
   grid_expression_fun <- reactive({
@@ -1039,43 +1063,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   summed <- reactive(qs::qread(file.path(resoln_dir(), 'summed.qs')))
 
-  cluster_ambient <- reactive({
-    if (length(groups()) != 2) return(NULL)
-
-    sel <- sel()
-    resoln_dir <- resoln_dir()
-    if (is.null(resoln_dir)) return(NULL)
-    ambience_path <- file.path(resoln_dir, paste0('ambience_', sel, '.qs'))
-
-    if (file.exists(ambience_path)) {
-      amb <- qs::qread(ambience_path)
-
-    } else {
-      # no cluster e.g. for 'All Clusters'
-      summed <- summed()
-      if (!sel %in% levels(summed$cluster)) return(NULL)
-
-      # check that not disabled
-      disabled <- cluster_choices()[sel, 'disabled']
-      if (is.null(disabled) || disabled) return(NULL)
-
-      scseq <- scseq()
-      if (is.null(scseq)) return(NULL)
-      amb <- get_ambience(scseq)
-      if (ncol(amb) != ncol(summed)) return(NULL)
-
-      disableAll(input_ids)
-      progress <- Progress$new(session, min = 0, max = 2)
-      on.exit(progress$close())
-      progress$set(message = "Detecting ambient genes", detail = paste('cluster', sel), value = 1)
-
-      amb <- calc_cluster_ambience(summed, amb, sel)
-      qs::qsave(amb, ambience_path)
-
-      enableAll(input_ids)
-    }
-    return(amb)
-  })
 
   # differential expression top tables for all clusters
   top_tables <- reactive({
@@ -1209,6 +1196,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     return(tts)
   })
 
+  nclus_sig <- reactive({
+    tts <- top_tables()
+    sig_genes <- lapply(tts, function(tt) row.names(tt)[tt$adj.P.Val<0.5])
+    c(table(unlist(sig_genes)))
+  })
+
 
   # top table for selected cluster only
   top_table <- reactive({
@@ -1222,12 +1215,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       return(list(tt))
     }
 
-    ambient <- cluster_ambient()
-    tt$ambient <- row.names(tt) %in% ambient
-
-    # add ambient-excluded adjusted pvals
-    tt$adj.P.Val.Amb[!tt$ambient] <- stats::p.adjust(tt$P.Value[!tt$ambient], method = 'BH')
-    if (all(tt$ambient)) tt$adj.P.Val.Amb <- NA
+    # add number of signification clusters
+    nclus_sig <- nclus_sig()
+    tt$`N<0.5` <- nclus_sig[row.names(tt)]
 
     # need as list to check validity in markers table
     tt <- list(tt)
@@ -1236,8 +1226,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
 
-  # need ambient for pathway and drugs
-  ambient <- reactive({tt <- top_table()[[1]]; row.names(tt)[tt$ambient]})
   species <- reactive(qread.safe(file.path(dataset_dir(), 'species.qs')))
 
   # indicating if 'All Clusters' selected
@@ -1343,9 +1331,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         de <- top_table()[[1]]
 
       } else {
-        # exclude ambient
-        ambient <- ambient()
-        lm_fit <- within(lm_fit, fit <- fit[!row.names(fit) %in% ambient, ])
         contrast <- paste0(groups(), collapse = '-')
 
         # no df.residual if 1v1
@@ -1354,7 +1339,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
           de <- crossmeta::fit_ebayes(lm_fit, contrast)
         } else {
           de <- top_table()[[1]]
-          de <- de[!de$ambient, ]
         }
       }
 
@@ -1374,7 +1358,13 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   pairs <- reactive(qread.safe(file.path(dataset_dir(), 'pairs.qs')))
 
-  abundances <- reactive(diff_abundance(scseq(), annot(), pairs()))
+  abundances <- reactive({
+    scseq <- scseq()
+    annot <- annot()
+    pairs <- pairs()
+    if (!isTruthyAll(scseq, annot)) return(NULL)
+    diff_abundance(scseq, annot, pairs)
+  })
 
 
 
@@ -1416,6 +1406,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     pres <- path_res()
     abundances <- abundances()
+    abundances$cluster <- NULL
+
+
     tozip <- c()
     tozip <- write.csv.safe(tt, tt_fname, tozip)
     tozip <- write.csv.safe(pres$up, goup_fname, tozip)
@@ -1445,7 +1438,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   observe(selected_cluster(input$selected_cluster))
 
   return(list(
-    ambient = ambient,
     top_table = top_table,
     cluster_choices = cluster_choices,
     drug_queries = drug_queries,
@@ -1453,6 +1445,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     selected_cluster = selected_cluster,
     annot_clusters = annot_clusters,
     grid_expression_fun = grid_expression_fun,
+    clusters_expression_fun = clusters_expression_fun,
+    abundances = abundances,
     violin_pfun = violin_pfun,
     is_integrated = is_integrated
   ))
@@ -3204,7 +3198,9 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     ref_preds <- ref_preds()
     mod_annot <- qs::qread(annot_path())
     mod_annot[sel_idx] <- ref_preds[sel_idx] <- input$new_cluster_name
+    mod_annot <- gsub(' \\(\\d+\\)$', '', mod_annot)
     mod_annot <- make.unique(mod_annot, '_')
+    mod_annot <- pretty.unique(mod_annot)
 
     # save on disc
     qs::qsave(mod_annot, annot_path())
@@ -3323,19 +3319,10 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
 #'
 #' @keywords internal
 #' @noRd
-selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, can_statistic = function()FALSE, cluster_markers = function()NULL, qc_metrics = function()NULL, ambient = function()NULL) {
+selectedGene <- function(input, output, session, dataset_name, resoln_name, resoln_dir, tx2gene_dir, scseq, h5logs, is_integrated, selected_markers, selected_cluster, type, can_statistic = function()FALSE, cluster_markers = function()NULL, qc_metrics = function()NULL) {
 
   selected_gene <- reactiveVal(NULL)
 
-  # toggle for excluding ambient
-  exclude_ambient <- reactive({
-    if (is.null(input$exclude_ambient)) return(TRUE)
-    input$exclude_ambient %% 2 != 1
-  })
-
-  observe({
-    shinyjs::toggleClass('exclude_ambient', class = 'btn-primary', condition = exclude_ambient())
-  })
 
   feature <- reactive({
     row <- input$gene_table_rows_selected
@@ -3344,9 +3331,11 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     gt[row]$feature
   })
 
+  feature_d <- feature %>% debounce(500)
+
 
   gene_selected <- reactive({
-    sel <- feature()
+    sel <- feature_d()
     scseq <- scseq()
     if (!isTruthyAll(sel, scseq)) return(FALSE)
     sel %in% row.names(scseq)
@@ -3354,7 +3343,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # toggle for violin plot
   have_biogps <- reactive({
-    toupper(feature()) %in% biogps$SYMBOL
+    toupper(feature_d()) %in% biogps$SYMBOL
   })
 
   sel_violin <- reactive(input$show_biogps %% 2 != 1)
@@ -3488,7 +3477,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # reset selected gene if dataset or cluster changes
   observe({
-    sel <- feature()
+    sel <- feature_d()
     if (!isTruthy(sel)| !isTruthy(dataset_name())) return(NULL)
     else selected_gene(sel)
   })
@@ -3544,57 +3533,113 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     if (!identical(res, prev)) gene_table(res)
   })
 
-
-  output$gene_table <- DT::renderDataTable({
+  formatted_gene_table <- reactive({
     # CRAN check fix
     .SD <- NULL
 
     gene_table <- gene_table()
     if (is.null(gene_table)) return(NULL)
 
-    # non-html feature column is hidden and used for search
-    # different ncol if contrast
     cols <- colnames(gene_table)
-    ncols <- length(cols)
     pct_targs <- grep('%', cols)
     frac_targs <- grep('AUC|logFC', cols)
     pval_targs <- grep('FDR', cols)
-
-    vis_targ <- (length(cols)-1)
-    search_targs <- 0
-
-    # prevent sort/filter when qc_first
-    sort_targs <- 0
-    filter <- list(position='top', clear = FALSE, vertical = TRUE, opacity = 0.85)
-
-    qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
-    if (qc_first) {
-      sort_targs <- '_all'
-      filter = list(position='none')
-    }
 
     if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols = pct_targs]
     if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols = frac_targs]
     if (length(pval_targs)) gene_table[, (pval_targs) := round(.SD, 3), .SDcols = pval_targs]
 
+    # used to select correct row in callback
+    gene_table$row <- seq_len(nrow(gene_table))
+
+
+
+    return(gene_table)
+  })
+
+
+  js <- c(
+    # select row with up/down key
+    "table.on('key-focus', function(e, dt, cell, originalEvent){",
+    "  if(originalEvent.type === 'keydown'){",
+    "    table.rows().deselect();",
+    "    table.row(cell[0][0].row).select();",
+    "  }",
+    "});",
+
+    # pass selection to input
+    # uses added row column because index off if filtered
+    # fixes server-side 'Select' extension
+    "table.on('select', function(e, dt, type, indexes){",
+    "  var row = table.rows({selected: true});",
+    "  var data = row.data()[0];",
+    "  var selected = data[data.length-1];",
+    "  var id = $(table.table().node()).closest('.datatables').attr('id');",
+    "  Shiny.setInputValue(id + '_rows_selected', selected);",
+    "});"
+  )
+
+  output$gene_table <- DT::renderDataTable({
+
+    gene_table <- formatted_gene_table()
+    if (is.null(gene_table)) return(NULL)
+
+    # non-html feature column is hidden and used for search
+    # different ncol if contrast
+    cols <- colnames(gene_table)
+    ncols <- length(cols)
+
+    pval_targs <- grep('FDR', cols)
+    vis_targ <- (length(cols)-c(1, 2))
+    search_targs <- 0
+
+    # prevent sort/filter when qc_first
+    sort_targs <- 0
+    filter <- list(position='top', clear = TRUE, vertical = TRUE, opacity = 0.85)
+
+    qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature', 'row'))
+    if (qc_first) {
+      sort_targs <- '_all'
+      filter = list(position='none')
+    }
+
     regex <- input$gene_search
     if (grepl(', ', regex)) regex <- format_comma_regex(regex)
+
+    # maintain previously selected feature
+    selection <- which(gene_table$feature == isolate(selected_gene()))-1
+    initComplete <- DT::JS(
+      "function(settings, json){",
+      "  var table = this.api().table();",
+      "  setTimeout(function(){",
+      sprintf("    table.row(%s).select();", selection),
+      "  }, 0);",
+      "}"
+    )
+
+    search_cols <- isolate(input$gene_table_search_columns)
+    search_cols <- lapply(search_cols, function(str) if (str == '') return(NULL) else list(search = str))
 
     dt <- DT::datatable(
       gene_table,
       class = 'cell-border',
       rownames = FALSE,
       escape = FALSE, # to allow HTML in table
-      selection = 'single',
-      extensions = 'Scroller',
+      selection = 'none',
+      callback = DT::JS(js),
+      extensions = c('Select', 'Scroller', 'KeyTable'),
       filter = filter,
       options = list(
+        keys = TRUE,
+        select = list(style = "single", items = "row"),
+        initComplete = initComplete,
         deferRender = TRUE,
         scroller = TRUE,
         dom = '<"hidden"f>t',
         bInfo = 0,
         scrollY=250,
         search = list(regex = TRUE, search = regex),
+        searchCols = search_cols,
         language = list(search = 'Select feature to plot:'),
         columnDefs = list(
           list(visible = FALSE, targets = vis_targ),
@@ -3608,6 +3653,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   }, server = TRUE)
 
+
   DTproxy <- DT::dataTableProxy("gene_table")
 
   observe({
@@ -3619,9 +3665,9 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   # fixes bug where changing dataset didn't update genes table until play with scrollbar
   observe({
-    gene_table <- gene_table()
+    gene_table <- formatted_gene_table()
     if (is.null(gene_table)) return(NULL)
-    DT::replaceData(DTproxy, gene_table, rownames = FALSE)
+    DT::replaceData(DTproxy, gene_table, rownames = FALSE, clearSelection = FALSE)
   })
 
   observe({
@@ -3632,7 +3678,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
   return(list(
     selected_gene = selected_gene,
-    exclude_ambient = exclude_ambient,
     show_biogps = show_biogps,
     show_pbulk = show_pbulk,
     custom_metrics = custom_metrics,
@@ -3675,7 +3720,7 @@ safe_set_meta <- function(scseq, meta, groups) {
 #'
 #' @keywords internal
 #' @noRd
-scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, selected_gene, show_pbulk, dataset_dir) {
+scClusterPlot <- function(input, output, session, scseq, annot, clusters, dataset_name, is_mobile, clusters_marker_view, grid_abundance, grid_expression_fun, clusters_expression_fun, abundances, selected_gene, show_pbulk, dataset_dir) {
 
 
   show_plot <- reactive(!is.null(scseq()))
@@ -3724,14 +3769,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     return(labels)
   })
 
-  get_coordinate_cvs <- function(coords, labels) {
-    colnames(coords) <- c('x', 'y')
-    coords$label <- labels
-    coords |>
-      dplyr::group_by(.data$label) |>
-      dplyr::summarise(cvx = cv(.data$x), cvy = cv(.data$y)) |>
-      dplyr::mutate(cvsum = .data$cvx + .data$cvy)
-  }
 
   label_repels <- reactive({
     coords <- coords()
@@ -3739,8 +3776,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (!isTruthyAll(coords, labels)) return(NULL)
     if (nrow(coords) != length(labels)) return(NULL)
 
-    levels(labels) <- stringr::str_trunc(levels(labels), width = 25, side = 'center')
-    labels <- as.character(labels)
+    label_levels <- stringr::str_trunc(levels(labels), width = 25, side = 'center')
+    levels(labels) <- label_levels
 
     # show nums if too many labels/mobile
     label_coords <- get_label_coords(coords, labels)
@@ -3761,9 +3798,6 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       point.padding = 0,
       direction = 'both')
 
-    # hide labels with very spread out clusters
-    label_cvs <- get_coordinate_cvs(coords, labels)
-    label_repels$label[label_cvs$cvsum > 190] <- ''
 
     return(label_repels)
   })
@@ -3781,6 +3815,11 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     label_repels$baseline <- 'center'
     label_repels$size <- label_size
 
+    annot <- label_repels$label
+    pal <- get_palette(annot, with_all = TRUE)[seq_along(annot)]
+    pal <- t(grDevices::col2rgb(pal))
+    label_repels <- cbind(label_repels, pal)
+
     # hide cluster labels if showing grid
     if (show_grid)
       label_repels$label <- ''
@@ -3795,7 +3834,9 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
   text_props <- list(getSize=htmlwidgets::JS("d => d.size"),
                      getTextAnchor = htmlwidgets::JS("d => d.anchor"),
-                     getAlignmentBaseline = htmlwidgets::JS("d => d.baseline"))
+                     getAlignmentBaseline = htmlwidgets::JS("d => d.baseline"),
+                     getBackgroundColor = htmlwidgets::JS("d => [d.red, d.green, d.blue, 70]")
+  )
 
   title <- reactiveVal()
 
@@ -3818,6 +3859,32 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     return(polygons)
   })
 
+  point_color_polygons <- reactive({
+    gene <- selected_gene()
+    clusters <- clusters()
+    if (!isTruthy(clusters)) return(NULL)
+    point_color_polygons <- rep('white', length(clusters))
+
+    if (show_pbulk()) tt <- clusters_expression_fun()(gene)
+    else tt <- abundances()
+    if (is.null(tt)) return(point_color_polygons)
+
+    sig <- tt$adj.P.Val < 0.05
+    maybe.sig <- tt$adj.P.Val < 0.5 & !sig
+    up <- tt$logFC > 0
+    sig.up <- tt$cluster[sig & up]
+    sig.dn <- tt$cluster[sig & !up]
+    maybe.up <- tt$cluster[maybe.sig & up]
+    maybe.dn <- tt$cluster[maybe.sig & !up]
+
+    point_color_polygons[clusters %in% sig.up] <- '#FFFF00'
+    point_color_polygons[clusters %in% sig.dn] <- '#00FFFF'
+
+    point_color_polygons[clusters %in% maybe.up] <- '#FFFFD4'
+    point_color_polygons[clusters %in% maybe.dn] <- '#B7FFFF'
+    return(point_color_polygons)
+  })
+
 
   colors <- reactive({
     labels <- labels()
@@ -3830,6 +3897,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     return(colors)
   })
 
+  # cells to plot (downsampled to max.cells)
   keep <- reactive({
     scseq <- scseq()
     if (is.null(scseq)) return(NULL)
@@ -3859,10 +3927,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   }, priority = 100)
 
   grid_legend_items = list(
-    list(color = '#FF0000', label = '\U2191'), # up-arrow
-    list(color = '#0000FF', label = '\U2193'), # down-arrow
-    list(color = '#989898', label = 'p \U003C .05'),# lt
-    list(color = '#EAEAEA', label = 'p \U2265 .05') # gte
+    list(color = 'linear-gradient(to bottom left, #FF0000 50%, #FFFF00 50%)', label = '\U2191'), # up-arrow
+    list(color = 'linear-gradient(to bottom left, #0000FF 50%, #00FFFF 50%)', label = '\U2193') # down-arrow
   )
 
   output$cluster_plot <- picker::renderPicker({
@@ -3905,6 +3971,13 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
   proxy <- picker::picker_proxy('cluster_plot')
   observe(picker::update_picker(proxy, clusters_marker_view()))
   observe(picker::update_picker(proxy, labels = labels()))
+
+  observe({
+    have <- rendered_dataset()
+    sel <- dataset_name()
+    if (!is.null(have) && !is.null(sel) && have != sel) return(NULL)
+    picker::update_picker(proxy, point_color_polygons = point_color_polygons())
+  })
 
   observe({
     have <- rendered_dataset()
@@ -3975,29 +4048,6 @@ get_scatter_props <- function(is_mobile, ncells) {
   return(scatter_props)
 }
 
-cv <- function(x, ..., aszero=FALSE, na.rm=FALSE) {
-  #  R function to compute the coefficient of variation (expressed as a percentage)
-  # if there is only a single value, stats::sd = NA. However, one could argue that cv =0.
-  # and NA may break the code that receives it.
-  #The function returns NA if(aszero=FALSE)   else a value of 0 is returned.
-  x <- c(x, ...)
-  z <- x[!is.na(x)]
-  if (length(z) == 0) {
-    return(NA)
-  } else if (na.rm == FALSE & (length(z) < length(x))) {
-    return(NA)
-  } else if (length(z) == 1 & aszero) {
-    return(0)
-  } else {
-    # abs to avoid very small (or zero) mean with e.g. -5:5
-    x <- mean(abs(z))
-    if (x == 0) {# all values are 0
-      return(0)
-    } else {
-      return(100 * stats::sd(z) / x)
-    }
-  }
-}
 
 
 
@@ -4407,4 +4457,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-

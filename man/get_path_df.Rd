@@ -4,13 +4,7 @@
 \alias{get_path_df}
 \title{Get data.frame for plotting gene expression values of a pathway}
 \usage{
-get_path_df(
-  top_table,
-  path_id = NULL,
-  pert_signature = NULL,
-  nmax = 200,
-  ambient = NULL
-)
+get_path_df(top_table, path_id = NULL, pert_signature = NULL, nmax = 200)
 }
 \arguments{
 \item{path_id}{String with KEGG pathway id.}

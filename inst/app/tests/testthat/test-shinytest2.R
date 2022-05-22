@@ -108,8 +108,18 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   # clusters and markers plot have same coordinates
   app$set_inputs(`sc-form-gene_clusters-gene_table_rows_selected` = 1, allow_no_input_binding_ = TRUE)
-  cluster_coords <- jsonlite::fromJSON(app$get_value(output = 'sc-cluster_plot-cluster_plot'))$x$coords
-  markers_coords <- jsonlite::fromJSON(app$get_value(output = 'sc-marker_plot_cluster-marker_plot'))$x$coords
+  cluster_coords <- jsonlite::fromJSON(app$wait_for_value(output = 'sc-cluster_plot-cluster_plot'))$x$coords
+
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot')
+  markers_coords <- jsonlite::fromJSON(marker_plot)$x$coords
+
+  if (is.null(markers_coords)) {
+    markers_coords <- jsonlite::fromJSON(
+      app$wait_for_value(
+        output = 'sc-marker_plot_cluster-marker_plot',
+        ignore = list(marker_plot))
+      )$x$coords
+  }
 
   cluster_x_ord <- order(cluster_coords$x)
   markers_x_ord <- order(markers_coords$x)

@@ -15,7 +15,7 @@ produced by \link[dseqr.data]{load_tx2gene}.}
 \item{project}{String identifying sample.}
 }
 \value{
-\code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
+\code{SingleCellExperiment} object with empty droplets removed and ambience in rowData.
 }
 \description{
 Load kallisto/bustools quantification into a SingleCellExperiment object.

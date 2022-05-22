@@ -19,7 +19,6 @@ drugsPage <- function(input, output, session, project_dir, pert_query_dir, pert_
   callModule(drugsGenesPlotly, 'genes',
              project_dir = project_dir,
              top_table = form$top_table,
-             ambient = form$ambient,
              pert_signature = form$pert_signature,
              drug_study = form$drug_study)
 
@@ -113,7 +112,6 @@ drugsForm <- function(input, output, session, project_dir, pert_query_dir, pert_
 
   return(list(
     top_table = selectedAnal$top_table,
-    ambient = selectedAnal$ambient,
     is_pert = selectedAnal$is_pert,
     anal_name = selectedAnal$name,
     query_res = drugStudy$query_res,
@@ -576,8 +574,7 @@ drugsTable <- function(input, output, session, query_res, sorted_query, drug_stu
 #' @keywords internal
 #' @importFrom magrittr "%>%"
 #' @noRd
-drugsGenesPlotly <- function(input, output, session, project_dir, top_table, ambient, drug_study, pert_signature) {
-
+drugsGenesPlotly <- function(input, output, session, project_dir, top_table, drug_study, pert_signature) {
 
   path_id <- reactive({
     study <- drug_study()
@@ -585,18 +582,14 @@ drugsGenesPlotly <- function(input, output, session, project_dir, top_table, amb
     if (grepl('^L1000', study)) return('L1000')
   })
 
-
-
-
   # the gene plot
   pl <- reactive({
     top_table <- top_table()
-    ambient <- ambient()
     path_id <- path_id()
     if (is.null(path_id) | is.null(top_table)) return(NULL)
 
     pert_signature <- pert_signature()
-    path_df <- get_path_df(top_table, path_id, pert_signature, ambient = ambient)
+    path_df <- get_path_df(top_table, path_id, pert_signature)
     if (nrow(path_df) == 0) return(NULL)
 
     plot_dprimes(path_df)
@@ -807,14 +800,6 @@ selectedAnal <- function(input, output, session, project_dir, choices, new_custo
     return(top_table)
   })
 
-  ambient <- reactive({
-    if (is_sc()) {
-      ambient <- scSampleClusters$ambient()
-
-    } else if (is_bulk()) {
-      ambient <- NULL
-    }
-  })
 
   path_res <- reactive({
     if (is_sc()) {
@@ -849,7 +834,6 @@ selectedAnal <- function(input, output, session, project_dir, choices, new_custo
     bulk_eset = bulk_eset,
     contrast_groups = bulkAnal$contrast_groups,
     top_table = top_table,
-    ambient = ambient,
     path_res = path_res,
     show_custom = show_custom,
     drug_queries = drug_queries,

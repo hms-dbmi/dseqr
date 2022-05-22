@@ -778,7 +778,7 @@ save_ref_clusters <- function(meta, dataset_name, sc_dir) {
 #' @param project String identifying sample.
 #' @inheritParams run_dseqr
 #'
-#' @return \code{SingleCellExperiment} object with empty droplets removed and ambient outliers recorded.
+#' @return \code{SingleCellExperiment} object with empty droplets removed and ambience in rowData.
 #' @keywords internal
 #'
 create_scseq <- function(data_dir, tx2gene_dir, project) {
@@ -1591,15 +1591,15 @@ get_ref_resoln <- function(ref_name) {
 
 
 
-#' Get genes that are ambient in at least one test and control sample
+#' Get sample ambience profiles
 #'
-#' @param scseqs List of \code{SingleCellExperiment} objects.
+#' @param combined \code{SingleCellExperiment} object.
 #'
-#' @return List with test and control ambient genes
+#' @return matrix of ambience profiles for each sample
 #' @keywords internal
 get_ambience <- function(combined) {
 
-  # ambient call for each gene in each cluster
+  # ambience profile for each sample
   ambience <- SummarizedExperiment::rowData(combined)
   ambience <- ambience[, grepl('ambience$', colnames(ambience)), drop=FALSE]
   ambience <- as.matrix(ambience)
@@ -1608,33 +1608,28 @@ get_ambience <- function(combined) {
 
 }
 
-calc_cluster_ambience <- function(summed, ambience, clus) {
-  counts <- SingleCellExperiment::counts(summed)
-  counts <- counts[, summed$cluster == clus]
-  if (ncol(counts) != ncol(ambience)) return(NULL)
-  amb <- DropletUtils::maximumAmbience(counts, ambience, mode = 'proportion')
-  amb <- rowMeans(amb, na.rm=TRUE)
-  amb <- amb[!is.na(amb)]
-  amb <- names(amb)[amb > 0.1]
-  return(amb)
+calculate_cluster_ambience <- function(scseq, summed, cluster) {
+
+  # no ambience for 'All Clusters'
+  stopifnot(cluster %in% levels(summed$cluster))
+  summed_cluster <- summed[, summed$cluster == cluster]
+
+  amb <- get_ambience(scseq)
+  amb.samples <- gsub('_ambience$', '', colnames(amb))
+
+  # only have ambience for unfiltered samples
+  # only have summed for samples with cells in cluster
+  common.samples <- intersect(summed_cluster$batch, amb.samples)
+  stopifnot(length(common.samples))
+
+  summed_cluster <- summed_cluster[, summed_cluster$batch %in% common.samples]
+  amb_cluster <- amb[, amb.samples %in% common.samples]
+
+  counts <- SingleCellExperiment::counts(summed_cluster)
+  cluster_ambience <- DropletUtils::maximumAmbience(counts, amb_cluster, mode = 'proportion')
+  return(cluster_ambience)
+
 }
 
 
-#' Mark ambient outliers in combined dataset
-#'
-#' A gene is marked as an ambient outlier if it is an ambient outlier in at least one of the datasets.
-#'
-#' @param scseqs the original scseqs
-#' @param combined the combined scseqs
-#'
-#' @return \code{combined} with \code{out_ambient} column added to \code{meta.features} slot of \code{SCT} assay.
-#' @keywords internal
-add_integrated_ambient <- function(combined, ambient) {
-
-  genes <- row.names(combined)
-  SummarizedExperiment::rowData(combined)$test_ambient <- genes %in% ambient$test
-  SummarizedExperiment::rowData(combined)$ctrl_ambient <- genes %in% ambient$ctrl
-
-  return(combined)
-}
 

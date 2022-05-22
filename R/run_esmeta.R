@@ -109,8 +109,6 @@ es_to_tt <- function(es, enids, cols) {
   es$AveExpr <- es$B <- NA
   es$logFC <- es$dprime
   es$ENTREZID <- enids[row.names(es)]
-  es$adj.P.Val.Amb <- es$adj.P.Val
-  es$ambient <- FALSE
 
   return(es[, cols])
 }

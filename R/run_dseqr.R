@@ -110,7 +110,7 @@ run_dseqr <- function(user_name,
   # options(shiny.error = browser)
 
   # partial stack sometimes obscures errors
-  opts$shiny.fullstacktrace <- TRUE
+  opts$shiny.fullstacktrace <- FALSE
 
   # auto-reload if update app files
   is_aws <- !is.null(logout_url)

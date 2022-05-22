@@ -440,7 +440,7 @@ get_grid_expression <- function(gene, tts, grid) {
   # get points in grid with cells
   pt.dat <- grid %>%
     dplyr::add_count(.data$xi, .data$yi) %>%
-    dplyr::left_join(tt) %>%
+    dplyr::left_join(tt, by = 'cluster') %>%
     dplyr::distinct() %>%
     dplyr::filter(.data$n > 3) %>% # at least n cells
     dplyr::mutate(logFC = ifelse(is.na(.data$logFC), 0, .data$logFC)) %>%

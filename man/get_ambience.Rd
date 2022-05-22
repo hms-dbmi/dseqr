@@ -2,17 +2,17 @@
 % Please edit documentation in R/import_scseq.R
 \name{get_ambience}
 \alias{get_ambience}
-\title{Get genes that are ambient in at least one test and control sample}
+\title{Get sample ambience profiles}
 \usage{
 get_ambience(combined)
 }
 \arguments{
-\item{scseqs}{List of \code{SingleCellExperiment} objects.}
+\item{combined}{\code{SingleCellExperiment} object.}
 }
 \value{
-List with test and control ambient genes
+matrix of ambience profiles for each sample
 }
 \description{
-Get genes that are ambient in at least one test and control sample
+Get sample ambience profiles
 }
 \keyword{internal}

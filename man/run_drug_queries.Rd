@@ -11,8 +11,6 @@ run_drug_queries(top_table, drug_paths, es, ngenes = 200)
 saved cmap, l1000, and differential expression analysis results.}
 
 \item{session}{Shiny session object used for progress bar.}
-
-\item{ambient}{Character vector of ambient genes to exclude from drug queries.}
 }
 \value{
 \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.

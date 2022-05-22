@@ -208,19 +208,14 @@ body {
     padding-top: 6px;
 }
 
-.ambience-swatch {
-    height: 8px;
-    width: 8px;
-    display: inline-block;
-    border-radius: 50%;
-    background-color: #f0ad4e;
-    margin-top: 6px;
-    padding-top: 6px;
-}
-
 .form-control {
     /* remove ugly box shadow from inputs */
     box-shadow: inset 0px 0px 0px 0px red;
+}
+
+/* remove box-shadow from KeyTable DT extension */
+table.dataTable tbody th.focus, table.dataTable tbody td.focus {
+  box-shadow: none;
 }
 
 

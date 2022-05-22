@@ -641,7 +641,6 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
     text <- path_df$Gene
     dprime <- path_df$Dprime
     logfc <- path_df$logfc
-    ambient <- path_df$ambient
     direction <- path_df$direction
     description <- path_df$description
 
@@ -652,7 +651,6 @@ plot_dprimes <- function(path_df, drugs = TRUE) {
     text <- '%{text}'
     dprime <- '%{x:.2f}'
     logfc <- '%{customdata.logfc:.2f}'
-    ambient <- '%{customdata.ambient}'
     direction <- '%{customdata.direction}'
     description <- '%{customdata.description}'
   }

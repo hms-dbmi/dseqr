@@ -2630,9 +2630,14 @@
     "picker": {
       "Package": "picker",
       "Version": "0.2.6",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "0b61270842cbb349406cff8ca4473bc5",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "picker",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "3cd1a7b00760d95213df7918c3218fe5e447310d",
+      "Hash": "fd3abd3068a492ace39a5df9f5f08bdf",
       "Requirements": [
         "htmlwidgets"
       ]

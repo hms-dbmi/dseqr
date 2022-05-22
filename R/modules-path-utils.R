@@ -97,11 +97,7 @@ safe.fun <- function(fun, x, ...) {
 #' }
 #'
 #' @keywords internal
-get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200, ambient = NULL) {
-
-  # single cell ambient genes excluded from query
-  is.ambient <- row.names(top_table) %in% ambient
-  top_table <- top_table[!is.ambient,, drop=FALSE]
+get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax = 200) {
 
   path_df <- construct_path_df(top_table)
   path_df$color <- 'black'

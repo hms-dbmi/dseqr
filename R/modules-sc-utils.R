@@ -16,6 +16,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
 
   if (ref_name %in% ls(senv)) {
     pred_annot <- make.unique(ref_preds, '_')
+    pred_annot <- pretty.unique(pred_annot)
 
   } else if (ref_name == 'reset') {
     # reset annotation
@@ -28,11 +29,22 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
     ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
     ref_annot <- qs::qread(ref_annot_path)
     ref_annot <- gsub('_\\d+$', '', ref_annot)
+    ref_annot <- gsub(' \\(\\d+\\)$', '', ref_annot)
 
     ref_preds <- ref_annot[as.numeric(ref_preds)]
     pred_annot <- make.unique(ref_preds, '_')
+    pred_annot <- pretty.unique(pred_annot)
   }
   return(pred_annot)
+}
+
+pretty.unique <- function(annot) {
+  is.dup <- grepl('_\\d+$', annot)
+  dup.num <- gsub('^.+?_(\\d+)$', '\\1', annot[is.dup])
+  dup.num <- as.integer(dup.num)
+  annot <- gsub('_\\d+$', '', annot)
+  annot[is.dup] <- paste0(annot[is.dup], ' (', dup.num+1, ')')
+  return(annot)
 }
 
 #' Check that label predictions aren't from overwritten datasets
@@ -81,15 +93,17 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
     abundances <- table(obj$cluster, obj$batch)
     abundances <- unclass(abundances)
     row.names(abundances) <- annot
+    genes <- data.frame(cluster = levels(obj$cluster))
 
     extra.info <- obj@colData[match(colnames(abundances), obj$batch),]
 
   } else {
+    genes <- data.frame(row.names = row.names(obj))
     abundances <- obj
     extra.info <- data.frame(orig.ident)
   }
 
-  y.ab <- edgeR::DGEList(abundances, samples=extra.info)
+  y.ab <- edgeR::DGEList(abundances, samples=extra.info, genes = genes)
 
   # adjusted counts for calculating logFC if two samples
   adj <- edgeR::equalizeLibSizes(y.ab)$pseudo.counts
@@ -117,7 +131,10 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
   }
 
   # setup eset so that it will work with run_limma
-  eset <- Biobase::ExpressionSet(y.ab$counts, Biobase::AnnotatedDataFrame(y.ab$samples))
+  eset <- Biobase::ExpressionSet(y.ab$counts,
+                                 Biobase::AnnotatedDataFrame(y.ab$samples),
+                                 Biobase::AnnotatedDataFrame(y.ab$genes))
+
   Biobase::assayDataElement(eset, 'vsd') <- Biobase::exprs(eset)
   Biobase::fData(eset)[, c('SYMBOL', 'ENTREZID')] <- row.names(eset)
 
@@ -126,8 +143,11 @@ diff_abundance <- function(obj, annot = NULL, pairs = NULL, orig.ident = NULL, f
   lm_fit <- crossmeta::run_limma(eset, filter = filter)
 
   tt <- crossmeta::get_top_table(lm_fit, with.es = FALSE)
-
   tt$ENTREZID <- NULL
+
+  # add cluster number
+  tt$cluster <- Biobase::fData(eset[row.names(tt), ])$cluster
+
   return(tt)
 }
 
@@ -644,7 +664,7 @@ get_cluster_stats <- function(resoln_dir = NULL, scseq = NULL, top_tables = NULL
     stats$nsig <- nsig
   }
 
-  # show number of non-ambient with logFC > 1
+  # show number of significant with logFC > 1
   if (sample_comparison) {
     nbig <- rep(0, nbins)
     names(nbig) <- seq_len(nbins)
@@ -785,15 +805,12 @@ get_gene_table <- function(markers,
   }
 
   if (is.tt) {
-    html_features[markers$ambient] <- paste0(
-      html_features[markers$ambient],
-      "<span title='ambient' class='ambience-swatch pull-right'></span>")
 
     table <- data.table::data.table(
       Feature = html_features,
       'logFC' = markers$logFC,
-      # non-ambient removed pvals
       'FDR' = markers$adj.P.Val,
+      'N<0.5' = markers$`N<0.5`,
       feature = features
     )
 
@@ -959,7 +976,7 @@ integrate_saved_scseqs <- function(
   # retain original QC metrics
   combined <- add_combined_metrics(combined, scseqs)
 
-  # add ambient outlier info
+  # add ambience info
   combined <- add_combined_ambience(combined, scseqs)
   rm(scseqs); gc()
 
@@ -1557,7 +1574,6 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' @param res_paths List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to
 #' saved cmap, l1000, and differential expression analysis results.
 #' @param session Shiny session object used for progress bar.
-#' @param ambient Character vector of ambient genes to exclude from drug queries.
 #'
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #'
@@ -2015,15 +2031,19 @@ format_comma_regex <- function(regex) {
   return(regex)
 }
 
-# get median coordinates for cluster labels
+
+# get point with central x value cluster labels
 get_label_coords <- function(coords, labels) {
   colnames(coords) <- c('x', 'y')
   coords$label <- labels
 
+  # get point
   coords %>%
     dplyr::group_by(.data$label) %>%
-    dplyr::summarize(x = stats::median(.data$x),
-                     y = stats::median(.data$y))
+    dplyr::summarise(
+      x = median(.data$x),
+      y = median(.data$y)) %>%
+    dplyr::mutate(label = as.character(.data$label))
 }
 
 
@@ -2371,7 +2391,7 @@ confirmSubsetModal <- function(session,
     title = 'Create new single-cell dataset?',
     size = 'm',
     footer = tagList(
-      actionButton(session$ns('confirm_subset'), 'Subset', class = 'btn-warning'),
+      actionButton(session$ns('confirm_subset'), 'Submit', class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))
     )
   )
@@ -2409,7 +2429,7 @@ exportModal <- function(session, choices, selected, options) {
                    class='btn-success'),
       tags$div(class='pull-left', modalButton("Cancel"))
     ),
-    easyClose = FALSE,
+    easyClose = TRUE
   )
 }
 
