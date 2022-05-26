@@ -144,7 +144,7 @@ scSelectedDatasetInput <- function(id) {
           ),
           actionButton(
             ns('show_subset'), '',
-            icon = icon('object-ungroup', 'far fa-fw'),
+            icon = icon('project-diagram', 'fa-fw'),
             title = 'Toggle to subset current dataset or align to reference'
           )
         ),

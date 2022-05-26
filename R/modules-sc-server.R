@@ -4243,8 +4243,8 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     bool.ft <- is.logical(ft)
 
     set.seed(0)
-    if (bool.ft) ids <- ids[order(ft)]
-    else ids <- sample(ids)
+    ids <- sample(ids)
+    # if (bool.ft) ids <- ids[order(ft)]
 
     # get title and colors
     ft.ids <- ft[ids]

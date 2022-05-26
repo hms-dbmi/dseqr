@@ -365,6 +365,19 @@ td.dt-nopad span {
     overflow-y: hidden !important;
 }
 
+/* more room for clear button in datatables */
+.has-feedback .form-control {
+  font-size: 12px;
+  padding-right: 15px;
+  padding-left: 5px;
+}
+
+.form-control-feedback {
+  text-align: right;
+  padding-right: 4px;
+  font-size: 12px;
+}
+
 
 /* for contrast in bulk data */
 .selectize-input>.bulk-item .contrast {

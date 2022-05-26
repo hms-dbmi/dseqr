@@ -488,7 +488,7 @@ validate_metric <- function(metric, scseq) {
 #' @keywords internal
 get_metric_features <- function(metric) {
 
-  ft <- strsplit(metric, '[|><=\\)\\(&!*]')[[1]]
+  ft <- strsplit(metric, '[|><=\\)\\(&!*%/]')[[1]]
   ft <- gsub(' ', '', ft)
   ft <- ft[ft != '']
   not.num <- is.na(suppressWarnings(as.numeric(ft)))
