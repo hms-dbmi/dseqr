@@ -34,7 +34,7 @@ data_dir <- './dseqr'
 run_dseqr(project_name, data_dir)
 ```
 
-If using fastq.gz files, build a `kallisto` index for quantification. To do so run:
+For importing bulk fastq.gz files, first build a `kallisto` index for quantification. To do so run:
 
 ```R
 # default as used by run_dseqr
@@ -42,6 +42,30 @@ indices_dir <- file.path(data_dir, '.indices_dir')
 
 rkal::build_kallisto_index(indices_dir)
 ```
+
+To use scRNA-seq fastq.gz files, first run pseudo-quantification with `kb-python`:
+
+```console
+# install kallisto|bustools wrapper (required)
+pip install kb-python
+```
+
+```R
+# download pre-built index (mouse or human)
+dseqr::download_kb_index(indices_dir, species = 'human')
+
+# run pseudo-quantification
+data_dir <- 'path/to/folder/with/fastqs'
+dseqr::run_kb_scseq(indices_dir, data_dir, species = 'human')
+
+# clean intermediate files produced by kb
+dseqr::clean_kb_scseq(data_dir)
+```
+
+The resulting `cellranger` formatted count matrices will be in the `data_dir`
+subdirectory `bus_output/counts_unfiltered/cellranger`. They can be directly 
+imported into the app.
+
 
 ### Prefer docker?
 
