@@ -97,11 +97,10 @@ server <- function(input, output, session) {
     dseqr::init_dseqr(user_name, data_dir)
   }
 
-  if (!dir.exists(pert_query_dir)) dir.create(pert_query_dir)
-  if (!dir.exists(pert_signature_dir)) dir.create(pert_signature_dir)
-  if (!dir.exists(indices_dir)) dir.create(indices_dir)
-  if (!dir.exists(tx2gene_dir)) dir.create(tx2gene_dir)
-  if (!dir.exists(gs_dir)) dir.create(gs_dir)
+  # ensure various directories exist
+  # duplicated here and in run_dseqr for tests
+  app_dirs <- c(pert_query_dir, pert_signature_dir, indices_dir, tx2gene_dir, gs_dir)
+  for (dir in app_dirs) dir.create(dir, showWarnings = FALSE)
 
 
   # hide tour button for docs page

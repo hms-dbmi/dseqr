@@ -95,6 +95,11 @@ run_dseqr <- function(user_name,
   user_dir <- file.path(data_dir, user_name)
   if (!dir.exists(user_dir)) init_dseqr(user_name, data_dir)
 
+  # ensure various directories exist
+  # duplicated in server.R for tests
+  app_dirs <- c(pert_query_dir, pert_signature_dir, indices_dir, tx2gene_dir, gs_dir)
+  for (dir in app_dirs) dir.create(dir, showWarnings = FALSE)
+
   # pass arguments to app through options then run
   shiny::shinyOptions(
     user_dir = normalizePath(user_dir),

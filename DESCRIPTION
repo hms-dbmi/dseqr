@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.31.3
+Version: 0.31.4
 Authors@R: person("Alex", "Pickering", email="alexvpickering@gmail.com", role=c("cre", "aut"))
 BugReports: https://github.com/hms-dbmi/dseqr/issues
 URL: https://github.com/hms-dbmi/dseqr
@@ -96,6 +96,7 @@ Suggests:
 Depends: 
     R (>= 4.1.0)
 Remotes: 
+    plger/scDblFinder,
     hms-dbmi/dseqr.data,
     hms-dbmi/repel,
     hms-dbmi/picker,

@@ -2041,8 +2041,8 @@ get_label_coords <- function(coords, labels) {
   coords %>%
     dplyr::group_by(.data$label) %>%
     dplyr::summarise(
-      x = median(.data$x),
-      y = median(.data$y)) %>%
+      x = stats::median(.data$x),
+      y = stats::median(.data$y)) %>%
     dplyr::mutate(label = as.character(.data$label))
 }
 
