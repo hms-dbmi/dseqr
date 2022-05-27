@@ -90,7 +90,6 @@ run_dseqr <- function(user_name,
   }
 
   if (missing(data_dir)) stop('data_dir not specified.')
-  data_dir <- normalizePath(data_dir)
 
   user_dir <- file.path(data_dir, user_name)
   if (!dir.exists(user_dir)) init_dseqr(user_name, data_dir)
