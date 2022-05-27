@@ -3087,8 +3087,6 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   # things that return for plotting
   selected_markers <- reactiveVal(NULL)
 
-  exportTestValues(have_selected_markers = !is.null(selected_markers()))
-
   show_contrasts <- reactive({ input$show_contrasts %% 2 != 0 })
   show_rename <- reactive((input$rename_cluster + input$show_rename) %% 2 != 0)
 
@@ -3304,6 +3302,11 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
         selected_markers(new)
     }
   })
+
+  exportTestValues(
+    have_selected_markers = !is.null(selected_markers()),
+    choices = choices()
+    )
 
 
   return(list(
@@ -4308,6 +4311,12 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     if (!update_colors_proxy()) return(NULL)
     picker::update_picker(proxy, colors = colors())
   })
+
+  exportTestValues(
+    colors = colors(),
+    title = title(),
+    labels = labels()
+  )
 
   return(reactive(input$marker_plot_view_state))
 }

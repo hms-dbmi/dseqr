@@ -11,6 +11,7 @@ suppressWarnings(suppressPackageStartupMessages({
 # create single-cell dataset for upload
 mock_10x_files <- function(dir_name) {
 
+  unlink(dir_name, recursive = TRUE)
   set.seed(0)
   ngenes <- 3000
   sce <- scDblFinder::mockDoubletSCE(ncells = c(50, 75, 25, 50, 75), ngenes = ngenes)
@@ -20,7 +21,7 @@ mock_10x_files <- function(dir_name) {
     path = dir_name,
     x = counts,
     gene.id = t2g$gene_id[seq_len(ngenes)],
-    gene.symbol = t2g$gene_name[seq_len(ngenes)]
+    gene.symbol = t2g$gene_name[seq_len(ngenes)],
   )
 
   for (file in list.files(dir_name, full.names = TRUE)) R.utils::gzip(file)
@@ -30,6 +31,11 @@ mock_10x_files <- function(dir_name) {
 timeout <- 1000*60*20
 
 test_that("{shinytest2} recording: Single-Cell Tab", {
+  sample_dir <- 'mock_10x'
+  data_dir <- 'test_data_dir'
+  unlink(sample_dir, recursive = TRUE)
+  unlink(data_dir, recursive = TRUE)
+
   suppressWarnings(
     app <- AppDriver$new(
       name = "import_sc",
@@ -41,8 +47,6 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   app$wait_for_idle()
 
-  sample_dir <- 'mock_10x'
-  data_dir <- 'test_data_dir'
 
   list_files <- function()
     file.path(data_dir, list.files(data_dir, recursive = TRUE, all.files = TRUE, include.dirs = TRUE))
@@ -104,21 +108,18 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   all_prev_files <- c(init_files, dataset_files, prev_file)
   markers_file <- setdiff(list_files(), all_prev_files)
   expect_equal(markers_file, "test_data_dir/test_user/default/single-cell/mock_10x/snn1/markers.qs")
-  expect_equal(unname(tools::md5sum(markers_file)), "07156aa76266bb04aed0af65230fe996")
+  expect_equal(unname(tools::md5sum(markers_file)), "fadb32f7c1c082fdefc057158e30e5eb")
 
   # clusters and markers plot have same coordinates
   app$set_inputs(`sc-form-gene_clusters-gene_table_rows_selected` = 1, allow_no_input_binding_ = TRUE)
   cluster_coords <- jsonlite::fromJSON(app$wait_for_value(output = 'sc-cluster_plot-cluster_plot'))$x$coords
 
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot')
+  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout)
   markers_coords <- jsonlite::fromJSON(marker_plot)$x$coords
 
   if (is.null(markers_coords)) {
-    markers_coords <- jsonlite::fromJSON(
-      app$wait_for_value(
-        output = 'sc-marker_plot_cluster-marker_plot',
-        ignore = list(marker_plot))
-      )$x$coords
+    marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
+    markers_coords <- jsonlite::fromJSON(marker_plot)$x$coords
   }
 
   cluster_x_ord <- order(cluster_coords$x)
@@ -137,34 +138,50 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
     app$get_value(export = 'sc-form-sample_clusters-annot'),
     c("CD14 Mono", as.character(2:5)))
 
-  # TODO: add input values to exports
   # can compare one cluster vs one other cluster
   app$click("sc-form-cluster-show_contrasts")
-  app$get_value(input = "sc-form-dataset-selected_dataset")
+  contrast_choices <- app$get_value(export = "sc-form-cluster-choices")
+  expect_snapshot(contrast_choices)
+
+  app$set_inputs(`sc-form-cluster-selected_cluster` = '1-vs-2')
+  expect_equal(
+    app$get_value(input = 'sc-form-cluster-selected_cluster'),
+    '1-vs-2'
+  )
+  app$set_inputs(`sc-form-cluster-selected_cluster` = '1')
   app$click("sc-form-cluster-show_contrasts")
+
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout)
+  expect_length(unique(marker_colors), 94)
 
   # can set custom boolean metric
   app$click("sc-form-gene_clusters-show_custom_metric")
-  marker_plot <- app$get_value(output = 'sc-marker_plot_cluster-marker_plot')
-
+  app$wait_for_idle()
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1>0")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  expect_length(unique(colors), 2)
+
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_length(unique(marker_colors), 2)
 
   # can view expression of gene using custom metric
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  expect_length(unique(colors), 102)
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_length(unique(marker_colors), 94)
 
   # can use cluster for metric
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "cluster==1")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  expect_length(unique(colors), 2)
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_length(unique(marker_colors), 2)
 
-  # TODO: check that it was added to table
+  # closing custom metric plots previously selected gene
+  app$click("sc-form-gene_clusters-show_custom_metric")
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_length(unique(marker_colors), 94)
+
+  # re-opening custom metric plots previous specified metric
+  app$click("sc-form-gene_clusters-show_custom_metric")
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_length(unique(marker_colors), 2)
+
   # can add custom metric
   prev_files <- list_files()
   app$click("sc-form-gene_clusters-save_custom_metric")
@@ -172,8 +189,14 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   saved_metric_files <- setdiff(list_files(), prev_files)
   expect_snapshot(saved_metric_files)
 
-  # TODO: check that closing custom metric input hides markers plot
+  # custom metric was saved
+  saved_metrics <- qs::qread(saved_metric_files)
+  expect_equal(colnames(saved_metrics), "cluster==1")
+
+  # closing custom metric after save shows no marker plot
   app$click("sc-form-gene_clusters-show_custom_metric")
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_null(marker_colors)
 
   # can change resolution of a dataset
   app$click("sc-form-dataset-show_label_resoln")
@@ -271,16 +294,12 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # fails if duplicate cell names not accounted for
   app$click("sc-form-gene_clusters-show_custom_metric")
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "batch=='mock_10x'")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  expect_setequal(table(colors), c(mock10x_1234_ncells, mock10x_ncells))
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_setequal(table(marker_colors), c(mock10x_1234_ncells, mock10x_ncells))
 
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "batch=='mock_10x_1234'")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  expect_setequal(table(colors), c(mock10x_1234_ncells, mock10x_ncells))
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  expect_setequal(table(marker_colors), c(mock10x_1234_ncells, mock10x_ncells))
 
   # colors from unique expression values for EFNB1 equals unique colors in marker plot
   # fails if duplicate cell names not accounted for
@@ -291,11 +310,9 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   expect_ncolors <- length(unique(colors_expected))
 
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1")
-  marker_plot <- app$wait_for_value(output = 'sc-marker_plot_cluster-marker_plot', timeout = timeout, ignore = list(marker_plot))
-
-  colors <- jsonlite::fromJSON(marker_plot)$x$colors
-  ncolors <- length(unique(colors))
+  marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
+  ncolors <- length(unique(marker_colors))
   expect_equal(ncolors, expect_ncolors)
-  expect_setequal(colors_expected, colors)
+  expect_setequal(colors_expected, marker_colors)
 
 })

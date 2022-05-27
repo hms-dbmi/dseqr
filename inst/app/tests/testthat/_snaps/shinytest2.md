@@ -40,6 +40,18 @@
 ---
 
     Code
+      contrast_choices
+    Output
+        test ctrl      name  value testColor ctrlColor            title
+      1    1  all CD14 Mono      1   #CDCC5D     white CD14 Mono vs all
+      2    1    2 CD14 Mono 1-vs-2   #CDCC5D   #ED665D   CD14 Mono vs 2
+      3    1    3 CD14 Mono 1-vs-3   #CDCC5D   #ED97CA   CD14 Mono vs 3
+      4    1    4 CD14 Mono 1-vs-4   #CDCC5D   #729ECE   CD14 Mono vs 4
+      5    1    5 CD14 Mono 1-vs-5   #CDCC5D   #FF9E4A   CD14 Mono vs 5
+
+---
+
+    Code
       saved_metric_files
     Output
       [1] "test_data_dir/test_user/default/single-cell/mock_10x/snn1/saved_metrics.qs"
@@ -91,5 +103,5 @@
     Code
       integrated_clusters
     Output
-      [1] "1" "2" "3" "4" "5" "6"
+      [1] "1" "2" "3" "4" "5"
 

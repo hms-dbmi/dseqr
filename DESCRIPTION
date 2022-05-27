@@ -18,6 +18,7 @@ Description: GUI to import and explore single-cell and bulk RNA-seq datasets
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.2
+BiocViews:
 SystemRequirements:
   kallisto (0.46.0)
 Imports:
