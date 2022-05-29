@@ -80,7 +80,9 @@ scFormInput <- function(id) {
             div(id = ns('label-resolution-form'), class = 'hidden-form', style = 'display: none;',
                 labelTransferFormInput(ns('transfer')),
                 hr(),
-                resolutionFormInput(ns('resolution'))
+                resolutionFormInput(ns('resolution')),
+                hr(),
+                mergeClustersInput(ns('merge_clusters'))
             ),
             subsetFormInput(ns('subset'))
         ),
@@ -209,6 +211,46 @@ resolutionFormInput <- function(id) {
 
 
 
+#' Input form for specifying leiden resolution parameter
+#'
+#' @keywords internal
+#' @noRd
+mergeClustersInput <- function(id) {
+  ns <- NS(id)
+  withTags({
+    shinypanel::selectizeInputWithButtons(
+      ns('selected_clusters'),
+      label = 'Clusters to merge:',
+      actionButton(
+        ns('undo_merge'),
+        label = '',
+        icon = tags$i(
+          id = ns('toggle_icon'),
+          class = 'fa fa-trash-alt fa-fw',
+          tags$i(class='fa fa-ban fa-fw fa-hide')
+        ),
+        title = 'Undo all merges'),
+      actionButton(
+        ns('submit_merge'),
+        label = '',
+        icon = tags$i(
+          id =ns('toggle_icon'),
+          class = 'fa fa-object-group fa-fw',
+          tags$i(class='fa fa-ban fa-fw fa-hide')
+          ),
+        title = 'Merge selected clusters'),
+      options = list(multiple = TRUE,
+                     optgroupField = 'type',
+                     placeholder = '')
+
+    )
+
+  })
+}
+
+icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide'))
+
+
 #' Input form for subsetting single cell datasets
 #'
 #' @keywords internal
@@ -306,6 +348,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
     btn2 <- custom_btn
   }
 
+
   div(id = 'sc-intro-feature',
       tags$label(class='control-label', `for`=ns('gene_table'), 'Select feature to plot:'),
       div(class = 'normal-header',
@@ -320,7 +363,7 @@ selectedGeneInput <- function(id, sample_comparison = FALSE) {
             placeholder = 'type regex to search gene'
           )
       ),
-      div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none',
+      div(id = ns('custom_metric_panel'), class = 'hidden-form', style = 'display: none; border-style: none;',
           shinypanel::textAreaInputWithButtons(
             inputId = ns('custom_metric'),
             label = 'Custom metric:',
@@ -454,4 +497,3 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
-

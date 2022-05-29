@@ -15,8 +15,7 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
   senv <- loadNamespace('SingleR')
 
   if (ref_name %in% ls(senv)) {
-    pred_annot <- make.unique(ref_preds, '_')
-    pred_annot <- pretty.unique(pred_annot)
+    pred_annot <- pretty.unique(ref_preds)
 
   } else if (ref_name == 'reset') {
     # reset annotation
@@ -28,17 +27,23 @@ get_pred_annot <- function(ref_preds, ref_name, dataset_name, sc_dir) {
   } else {
     ref_annot_path <- scseq_part_path(sc_dir, ref_name, 'annot')
     ref_annot <- qs::qread(ref_annot_path)
-    ref_annot <- gsub('_\\d+$', '', ref_annot)
-    ref_annot <- gsub(' \\(\\d+\\)$', '', ref_annot)
+    ref_annot <- remove.unique(ref_annot)
 
     ref_preds <- ref_annot[as.numeric(ref_preds)]
-    pred_annot <- make.unique(ref_preds, '_')
-    pred_annot <- pretty.unique(pred_annot)
+    pred_annot <- pretty.unique(ref_preds)
   }
   return(pred_annot)
 }
 
+remove.unique <- function(annot) {
+  annot <- gsub('_\\d+$', '', annot)
+  annot <- gsub(' \\(\\d+\\)$', '', annot)
+  return(annot)
+}
+
 pretty.unique <- function(annot) {
+  annot <- make.unique(annot, '_')
+
   is.dup <- grepl('_\\d+$', annot)
   dup.num <- gsub('^.+?_(\\d+)$', '\\1', annot[is.dup])
   dup.num <- as.integer(dup.num)

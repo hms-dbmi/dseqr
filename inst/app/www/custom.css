@@ -444,6 +444,11 @@ body {
     text-align: center;
 }
 
+.hidden-form {
+  border-color: gray;
+  border-style: dashed;
+}
+
 @media (max-width: 460px) {
     .hidden-xxs {
         display: none!important;

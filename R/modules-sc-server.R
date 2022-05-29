@@ -172,6 +172,12 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     file.path(sc_dir(), dataset)
   })
 
+  resoln <- reactive({
+    # trigger update if merge
+    scClustersMerge$merge_count()
+    scResolution$resoln()
+  })
+
   # directory with cluster resolution dependent stuff
   resoln_dir <- reactive({
     dataset_dir <- dataset_dir()
@@ -234,7 +240,6 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     qs::qread(file.path(dataset_dir, 'counts.qs'))
   })
 
-  resoln <- reactive(scResolution$resoln())
 
   # update scseq with cluster changes (from resolution)
   scseq_clusts <- reactive({
@@ -376,6 +381,18 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
                              show_label_resoln = scDataset$show_label_resoln,
                              compare_groups = scSampleGroups$groups,
                              annot = annot)
+
+  # adjust resolution of dataset
+  scClustersMerge <- callModule(clustersMergeForm, 'merge_clusters',
+                                sc_dir = sc_dir,
+                                set_readonly = set_readonly,
+                                scseq = scseq_clusts,
+                                annot = annot,
+                                selected_dataset = scDataset$dataset_name,
+                                dataset_dir = dataset_dir,
+                                resoln_dir = resoln_dir,
+                                compare_groups = scSampleGroups$groups)
+
 
   # dataset integration
   scIntegration <- callModule(integrationForm, 'integration',
@@ -975,6 +992,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   observe({
     choices <- cluster_choices()
     if (is.null(choices)) return(NULL)
+
     updateSelectizeInput(session, 'selected_cluster',
                          choices = rbind(NA, cluster_choices()),
                          options = cluster_options(), server = TRUE)
@@ -1146,17 +1164,21 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
 
   # differential expression top tables for all 'grid' clusters
+  # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
     meta <- meta()
     groups <- groups()
-    if (is.null(groups) | is.null(meta)) return(NULL)
+    dataset_dir <- dataset_dir()
+    if (is.null(groups) | is.null(meta) | is.null(dataset_dir)) return(NULL)
+
     meta <- meta[meta$group %in% groups, ]
     if (nrow(meta) < 3) return(NULL)
 
-    contrast_dir <- contrast_dir()
-    if (is.null(contrast_dir)) return(NULL)
+    tohash <- list(meta = meta, groups = groups)
+    tts_hash <- digest::digest(tohash, algo = 'murmur32')
 
-    tts_path <- file.path(contrast_dir, 'top_tables_grid.qs')
+    tts_file <- paste0('top_tables_grid_0svs_', tts_hash, '.qs')
+    tts_path <- file.path(dataset_dir, tts_file)
 
     if (file.exists(tts_path)) {
       tts <- qs::qread(tts_path)
@@ -1195,6 +1217,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     }
     return(tts)
   })
+
 
   nclus_sig <- reactive({
     tts <- top_tables()
@@ -2175,11 +2198,24 @@ scSamplePlot <- function(input, output, session, selected_gene, plot_fun) {
 #' @keywords internal
 #' @noRd
 labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_readonly, dataset_dir, resoln_dir, resoln_name, annot_path, datasets, dataset_name, scseq, species, clusters, show_label_resoln) {
-  label_transfer_inputs <- c('overwrite_annot', 'ref_name', 'sc-form-resolution-resoln', 'sc-form-resolution-resoln_ref')
-  asis <- c(FALSE, FALSE, TRUE, TRUE)
-
   disabled_demo <- getShinyOption('is_example', FALSE)
   observe(if (disabled_demo) addClass('overwrite_annot', 'disabled fa-disabled'))
+
+  # prevent these actions while predicting labels
+  label_transfer_inputs <- c(
+    'overwrite_annot',
+    'ref_name',
+    'sc-form-resolution-resoln',
+    'sc-form-resolution-resoln_ref',
+    'sc-form-merge_clusters-selected_clusters',
+    'sc-form-merge_clusters-submit_merge',
+    'sc-form-merge_clusters-undo_merge')
+
+  # for demo: prevents re-enable of rest after label transfer
+  if (disabled_demo) label_transfer_inputs <- c('ref_name', 'sc-form-resolution-resoln_ref')
+
+  # ignore module nature for external ids
+  asis <- grepl('sc-form', label_transfer_inputs)
 
   options <-  reactive({
     on_init <- NULL
@@ -2345,19 +2381,6 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     return(annot)
   })
 
-  # overwrite annotation
-  transferModal <- function() {
-    modalDialog(
-      tags$div('Saved annotation will be overwriten. This action cannot be undone.'),
-      title = 'Are you sure?',
-      size = 's',
-      easyClose = TRUE,
-      footer = tagList(
-        modalButton("Cancel"),
-        actionButton(session$ns("confirm_overwrite"), "Overwrite", class = 'pull-left btn-warning')
-      )
-    )
-  }
 
   # Show modal when button is clicked.
   observeEvent(input$overwrite_annot, {
@@ -2369,7 +2392,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     req(resoln_name)
     req(ref_name)
 
-    showModal(transferModal())
+    showModal(transferModal(session))
   })
 
 
@@ -2397,6 +2420,20 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   return(list(
     pred_annot = pred_annot
   ))
+}
+
+# overwrite annotation
+transferModal <- function(session) {
+  modalDialog(
+    tags$div('Saved annotation will be overwriten. This action cannot be undone.'),
+    title = 'Are you sure?',
+    size = 's',
+    easyClose = TRUE,
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(session$ns("confirm_overwrite"), "Overwrite", class = 'pull-left btn-warning')
+    )
+  )
 }
 
 
@@ -2893,6 +2930,147 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
 }
 
 
+clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, selected_dataset, dataset_dir, set_readonly, resoln_dir, compare_groups) {
+
+  disabled_demo <- getShinyOption('is_example', FALSE)
+  observe(if (disabled_demo) addClass('submit_merge', 'disabled fa-disabled'))
+  observe(if (disabled_demo) addClass('undo_merge', 'disabled fa-disabled'))
+
+  contrastOptions <- reactive({
+    on_init <- NULL
+    if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('submit_subset'))
+
+    list(render = I('{option: contrastOptions, item: contrastItem}'),
+         onInitialize = on_init)
+  })
+
+  cluster_choices <- reactive({
+    scseq <- scseq()
+    annot <- annot()
+    if (is.null(scseq) | is.null(annot)) return(NULL)
+
+    get_cluster_choices(annot, scseq = scseq, with_all = TRUE)
+  })
+
+
+  # update clusters
+  observe({
+    updateSelectizeInput(session, 'selected_clusters',
+                         choices = cluster_choices(),
+                         options = contrastOptions(),
+                         server = TRUE)
+  })
+
+  observeEvent(input$submit_merge, {
+    if (disabled_demo) return(NULL)
+    sel <- input$selected_clusters
+    req(length(sel) > 0)
+
+    choices <- cluster_choices()
+    merge_clusters <- choices[sel, 'name']
+    cluster_colors <- choices[sel, 'testColor']
+
+    showModal(confirmMergeModal(session, merge_clusters, cluster_colors))
+  })
+
+  merge_count <- reactiveVal(0)
+  observeEvent(input$confirm_merge, {
+    removeModal()
+    merge_list <- list(input$selected_clusters)
+    merge_clusters(dataset_dir(), merge_list)
+
+    updateSelectizeInput(session, 'selected_clusters', selected = NULL)
+    merge_count(merge_count() + 1)
+
+    # prevent update to DE results after change resolution
+    compare_groups('reset')
+  })
+
+  orig_path <- reactive({
+    resoln_dir <- resoln_dir()
+    if (!isTruthy(resoln_dir)) return(NULL)
+    paste0(resoln_dir, '_orig')
+  })
+
+  is_modified <- reactive({
+    orig_path <- orig_path()
+    if (is.null(orig_path)) return(FALSE)
+    dir.exists(orig_path)
+  })
+
+  observe({
+    toggleClass('undo_merge', class = 'disabled', condition = !is_modified() | disabled_demo)
+  })
+
+  observeEvent(input$undo_merge, {
+    if (disabled_demo | !is_modified()) return(NULL)
+    showModal(confirmUndoMergeModal(session))
+  })
+
+  observeEvent(input$confirm_undo_merge, {
+    removeModal()
+    orig_path <- orig_path()
+    resoln_dir <- resoln_dir()
+    unlink(resoln_dir, recursive = TRUE)
+    file.rename(orig_path, resoln_dir)
+    merge_count(merge_count() + 1)
+  })
+
+
+  return(list(merge_count = merge_count))
+
+}
+
+# modal to confirm adding single-cell dataset
+confirmMergeModal <- function(session, merge_clusters, cluster_colors) {
+
+  clusters_ui <- tags$div(
+    tags$div(tags$b("Selected clusters:")),
+    tags$div(lapply(seq_along(merge_clusters),
+                    function(i) tags$div(
+                      tags$div(
+                        tags$span(
+                          class = 'input-swatch',
+                          style=paste0('background-color:', cluster_colors[i])
+                        ),
+                        merge_clusters[i]
+                      )
+                    )))
+  )
+
+  UI <- tags$div(
+    class='alert alert-info', role = 'alert',
+    clusters_ui,
+    hr(),
+    '\U1F331 Click cancel to change settings'
+  )
+
+  modalDialog(
+    UI,
+    title = 'Merge selected clusters?',
+    size = 'm',
+    footer = tagList(
+      actionButton(session$ns('confirm_merge'), 'Merge', class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    )
+  )
+}
+
+confirmUndoMergeModal <- function(session) {
+
+  modalDialog(
+    tags$div('All merges for the current resolution will be undone.'),
+    title = 'Are you sure?',
+    size = 's',
+    easyClose = TRUE,
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton(session$ns("confirm_undo_merge"), "Undo All Merges", class = 'pull-left btn-danger')
+    )
+  )
+}
+
+
 #' Logic for integration form toggled by showIntegration
 #'
 #' @keywords internal
@@ -3197,8 +3375,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     ref_preds <- ref_preds()
     mod_annot <- qs::qread(annot_path())
     mod_annot[sel_idx] <- ref_preds[sel_idx] <- input$new_cluster_name
-    mod_annot <- gsub(' \\(\\d+\\)$', '', mod_annot)
-    mod_annot <- make.unique(mod_annot, '_')
+    mod_annot <- remove.unique(mod_annot)
     mod_annot <- pretty.unique(mod_annot)
 
     # save on disc
@@ -3306,7 +3483,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
   exportTestValues(
     have_selected_markers = !is.null(selected_markers()),
     choices = choices()
-    )
+  )
 
 
   return(list(
@@ -3791,7 +3968,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
       label_coords$label <- gsub('^(\\d+):.+?$', '\\1', label_coords$label)
 
     nlab <- nrow(label_coords)
-    fontsize <- ifelse(nlab > 15, 14, 18)
+    fontsize <- ifelse(nlab > 15, 15, 18)
 
     label_repels <- repel::repel_text(
       label_coords,
@@ -3814,11 +3991,14 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
 
     if (!isTruthyAll(label_repels, coords)) return(NULL)
 
-    label_size <- ifelse(nrow(label_repels) > 15, 14, 18)
+    nlab <- nrow(label_repels)
+    if (nlab < 15) lsize <- 18
+    else if (nlab < 30) lsize <- 16
+    else lsize <- 14
 
     label_repels$anchor <- 'middle'
     label_repels$baseline <- 'center'
-    label_repels$size <- label_size
+    label_repels$size <- lsize
 
     annot <- label_repels$label
     pal <- get_palette(annot, with_all = TRUE)[seq_along(annot)]
@@ -3837,10 +4017,11 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     ifelse(is.null(show_grid), FALSE, show_grid)
   })
 
-  text_props <- list(getSize=htmlwidgets::JS("d => d.size"),
-                     getTextAnchor = htmlwidgets::JS("d => d.anchor"),
-                     getAlignmentBaseline = htmlwidgets::JS("d => d.baseline"),
-                     getBackgroundColor = htmlwidgets::JS("d => [d.red, d.green, d.blue, 70]")
+  text_props <- list(
+    getSize=htmlwidgets::JS("d => d.size"),
+    getTextAnchor = htmlwidgets::JS("d => d.anchor"),
+    getAlignmentBaseline = htmlwidgets::JS("d => d.baseline"),
+    getBackgroundColor = htmlwidgets::JS("d => [d.red, d.green, d.blue, 70]")
   )
 
   title <- reactiveVal()
