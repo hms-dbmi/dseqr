@@ -100,11 +100,12 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   expect_equal(qs::qread(prev_file), sample_dir)
 
   # didn't auto-select cluster
+  app$wait_for_idle()
   expect_equal(app$get_value(input = 'sc-form-cluster-selected_cluster'), '')
   app$set_inputs(`sc-form-cluster-selected_cluster` = "1")
 
   # created markers file
-  app$wait_for_value(export = 'sc-form-cluster-have_selected_markers', timeout = timeout, ignore = list(FALSE))
+  app$wait_for_value(export = 'sc-form-cluster-have_selected_markers', timeout = timeout, ignore = list(FALSE, NULL))
   all_prev_files <- c(init_files, dataset_files, prev_file)
   markers_file <- setdiff(list_files(), all_prev_files)
   expect_equal(markers_file, "test_data_dir/test_user/default/single-cell/mock_10x/snn1/markers.qs")
@@ -145,7 +146,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   app$set_inputs(`sc-form-cluster-selected_cluster` = '1-vs-2')
   expect_equal(
-    app$get_value(input = 'sc-form-cluster-selected_cluster'),
+    app$wait_for_value(input = 'sc-form-cluster-selected_cluster', timeout = timeout, ignore = list('1')),
     '1-vs-2'
   )
   app$set_inputs(`sc-form-cluster-selected_cluster` = '1')
