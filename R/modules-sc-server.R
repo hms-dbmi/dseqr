@@ -2967,7 +2967,7 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
     req(length(sel) > 0)
 
     choices <- cluster_choices()
-    merge_clusters <- choices[sel, 'name']
+    merge_clusters <- choices[sel, 'label']
     cluster_colors <- choices[sel, 'testColor']
 
     showModal(confirmMergeModal(session, merge_clusters, cluster_colors))
