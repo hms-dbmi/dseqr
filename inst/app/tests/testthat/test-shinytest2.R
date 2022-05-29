@@ -58,6 +58,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   mock_10x_files(sample_dir)
   on.exit(unlink(sample_dir, recursive = TRUE), add = TRUE)
   on.exit(unlink(data_dir, recursive = TRUE), add = TRUE)
+  on.exit(app$stop(), add = TRUE)
 
 
   app$upload_file(`sc-form-dataset-up_raw` = file.path(sample_dir, "barcodes.tsv.gz"))
