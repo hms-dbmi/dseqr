@@ -45,9 +45,6 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
       seed = 0)
   )
 
-  app$wait_for_idle()
-
-
   list_files <- function()
     file.path(data_dir, list.files(data_dir, recursive = TRUE, all.files = TRUE, include.dirs = TRUE))
 

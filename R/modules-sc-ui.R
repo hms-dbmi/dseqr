@@ -248,9 +248,6 @@ mergeClustersInput <- function(id) {
   })
 }
 
-icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide'))
-
-
 #' Input form for subsetting single cell datasets
 #'
 #' @keywords internal
