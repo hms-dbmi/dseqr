@@ -455,6 +455,22 @@ body {
     }
 }
 
+.selectize-dropdown .optgroup-header {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+}
+
+.optgroup-subheader {
+  color: gray;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.optgroup.main:before {
+  background-color: black;
+}
+
 
 /*secondary navbar */
 
@@ -501,6 +517,8 @@ and (max-device-width : 1024px) {
     color: #aaa;
     cursor: not-allowed !important;
 }
+
+
 
 
 /*always show numeric input arrows*/

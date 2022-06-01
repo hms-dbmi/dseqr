@@ -1493,7 +1493,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   dataset_inputs <- c('selected_dataset', 'show_label_resoln', 'show_subset')
 
   options <- list(
-    render = I('{option: scDatasetOptions, item: scDatasetItem}'),
+    render = I('{option: scDatasetOptions, item: scDatasetItem, optgroup_header: scDatasetOptGroup}'),
     searchField = c('optgroup', 'label'))
 
   dataset_name <- reactiveVal()
@@ -1568,12 +1568,15 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     scseq@metadata$species
   })
 
+
+  prev_dataset <- reactive(qread.safe(file.path(sc_dir(), 'prev_dataset.qs')))
+
   prev_datasets <- reactiveVal()
   curr_selected <- reactiveVal()
   datasets <- reactive({
     # reactive to new single cell datasets
     new_dataset()
-    datasets <- get_sc_dataset_choices(sc_dir())
+    datasets <- get_sc_dataset_choices(sc_dir(), prev_dataset())
     prev <- isolate(prev_datasets())
     curr <- isolate(input$selected_dataset)
 
@@ -4615,7 +4618,7 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
       HTML('Select <a href="https://docs.dseqr.com/docs/single-cell/quality-control/" target="_blank">QC</a> metrics:'),
       width = '100%',
       choices = c('all', 'all and none', 'none', metric_choices),
-      selected = 'all',
+      selected = 'all and none',
       multiple = TRUE),
     div(
       id = session$ns('ref_name_container'),
@@ -4649,3 +4652,7 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
+
+
+

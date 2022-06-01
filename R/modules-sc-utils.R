@@ -327,7 +327,7 @@ check_has_scseq <- function(dataset_names, sc_dir) {
 #' @return data.frame of single-cell dataset choices for selectizeInput
 #'
 #' @keywords internal
-get_sc_dataset_choices <- function(sc_dir) {
+get_sc_dataset_choices <- function(sc_dir, prev = NULL) {
 
 
   # exclude missing from integrated (e.g. manual delete)
@@ -336,9 +336,9 @@ get_sc_dataset_choices <- function(sc_dir) {
   integrated <- integrated[has.scseq]
 
   int_type <- get_scdata_type(integrated, sc_dir, none = 'Integrated')
-
   sub <- duplicated(int_type) | duplicated(int_type, fromLast = TRUE)
   int_type[!sub] <- 'Integrated'
+
   int_opt <- integrated
   int_opt[sub] <- stringr::str_replace(int_opt[sub], paste0(int_type[sub], '_'), '')
 
@@ -358,14 +358,14 @@ get_sc_dataset_choices <- function(sc_dir) {
   ind_opt[sub] <- stringr::str_replace(ind_opt[sub], paste0(ind_type[sub], '_?'), '')
   ind_opt[ind_opt == ""] <- individual[ind_opt == ""]
 
+
   label <- c(integrated, individual)
   type <- c(int_type, ind_type)
   opt <- c(int_opt, ind_opt)
 
-  # get previously selected
-  if (length(individual)) {
-    prev <- qread.safe(file.path(sc_dir, 'prev_dataset.qs'), .nullfile = individual[1])
-    if (!prev %in% label) prev <- individual[1]
+  # set previously selected
+  if (length(label)) {
+    if (is.null(prev) || !prev %in% label) prev <- label[1]
 
     prev_type <- type[label == prev]
     founder <- get_founder(sc_dir, prev)
@@ -384,7 +384,20 @@ get_sc_dataset_choices <- function(sc_dir) {
                         optionLabel = opt,
                         stringsAsFactors = FALSE)
 
+  idx <- index_last(type, last = c('Integrated', 'Individual'))
+  choices <- choices[idx, ]
   return(choices)
+}
+
+index_last <- function(values, last) {
+  is.last <- numeric()
+  for (val in last)
+    is.last <- c(is.last, which(values == val))
+
+
+  idx <- seq_along(values)
+  not.last <- setdiff(idx, is.last)
+  c(not.last, is.last)
 }
 
 #' Convert single-cell datasets data.frame to list
@@ -2069,7 +2082,7 @@ keep_curr_selected <- function(datasets, prev, curr) {
   curr_name <- prev[curr, 'name']
 
   # position in new datasets
-  new_posn <- which(curr_name == datasets$name)[1]
+  new_posn <- tail(which(curr_name == datasets$name), 1)
   ndata <- nrow(datasets)
 
   # in case delete current that is last

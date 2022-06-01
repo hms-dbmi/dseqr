@@ -152,6 +152,12 @@ function scDatasetItem(item, escape) {
     return clustEl;
 }
 
+function scDatasetOptGroup(data, escape) {
+  var main = ['Integrated','Individual'].indexOf(data.label) > -1;
+  var subheader = main ? ' - NO GROUP' : '';
+  return '<div class="optgroup-header">' + escape(data.label) + '<span class="optgroup-subheader">' + subheader + '</span></div>';
+}
+
 
 function scDatasetItemDF(item, escape) {
 
