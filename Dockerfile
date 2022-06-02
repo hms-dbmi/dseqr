@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.1.3
+FROM rocker/r-ver:4.2.0
 
 # install Ubuntu packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,7 +26,7 @@ WORKDIR /src/dseqr
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.15.4')" && \
+    R -e "remotes::install_github('rstudio/renv@0.15.5')" && \
     R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically
@@ -53,13 +53,13 @@ COPY ./renv.lock .
 RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
 
 # move library and delete renv
-RUN mv /src/dseqr/renv/library/R-4.1/x86_64-pc-linux-gnu /src/library && \
+RUN mv /src/dseqr/renv/library/R-4.2/x86_64-pc-linux-gnu /src/library && \
     rm -rf /src/dseqr && \
     mkdir /src/dseqr && \
     echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
 
 # -------
-FROM rocker/r-ver:4.1.3 AS deploy
+FROM rocker/r-ver:4.2.0 AS deploy
 WORKDIR /src/dseqr
 
 # get source code and R packages
