@@ -15,11 +15,7 @@ drugsPage(
 )
 }
 \arguments{
-\item{input}{standard shiny module boilerplate}
-
-\item{output}{standard shiny module boilerplate}
-
-\item{session}{standard shiny module boilerplate}
+\item{input, output, session}{standard shiny module boilerplate}
 
 \item{project_dir}{path to folder with project files}
 
