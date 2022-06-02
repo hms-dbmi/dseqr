@@ -677,7 +677,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   first_set <- reactiveVal(TRUE)
   observe({
     groups <- groups()
-    if (is.null(groups) || groups != 'reset') return(NULL)
+    if (is.null(groups) || groups[1] != 'reset') return(NULL)
     first <- isolate(first_set())
     if (!first) {
       updateSelectizeInput(session, 'compare_groups', selected = '')
@@ -2565,6 +2565,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   })
 
   observeEvent(input[[rname()]], {
+
     set <- input[[rname()]]
     if (set == '') return(NULL)
     if (!is.numstring(set) || set >= 0.1 & set <= 5.1) {
@@ -2618,7 +2619,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     } else {
       rname('resoln')
-      updateSliderInput(session, 'resoln', value = init)
+      updateSliderInput(session, 'resoln', value = init, min = 0.1, max = 5.1)
     }
 
   }, priority = 1)
@@ -4142,7 +4143,8 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     labels <- isolate(labels())
     if (is.null(labels)) return(NULL)
 
-    rendered_dataset(isolate(dataset_name()))
+    # reactive to dataset (in case coords identical)
+    rendered_dataset(dataset_name())
 
     picker::picker(coords,
                    colors = colors,
@@ -4652,7 +4654,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-
-
-
-

@@ -134,7 +134,7 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
   df <- df %>%
     dplyr::group_by(.data$y) %>%
     dplyr::mutate(nsamp = min(.data$n, 1000)) %>%
-    dplyr::sample_n(.data$nsamp)
+    dplyr::sample_n(.data$nsamp[1])
 
   res <- list(
     df = df,
@@ -513,7 +513,7 @@ get_grid_abundance <- function(scseq, group = scseq$orig.ident, sample = scseq$b
     dplyr::group_by(.data$group) %>%
     dplyr::mutate(nmin=min(.data$n)) %>%
     dplyr::group_by(.data$sample) %>%
-    dplyr::sample_n(.data$nmin) %>%
+    dplyr::sample_n(.data$nmin[1]) %>%
     dplyr::ungroup() %>%
     dplyr::select(-.data$n, -.data$nmin)
 

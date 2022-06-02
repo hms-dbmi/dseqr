@@ -192,7 +192,7 @@ resolutionFormInput <- function(id) {
           sliderInput(
             ns('resoln'),
             label = HTML(paste0('Cluster resolution [n=<span id="', ns('nclus'),'">0</span>]:')),
-            min=0.1, value=1, max=5.1, step = 0.1, width = '100%'),
+            min=0, value=0, max=5, step = 0.1, width = '100%'),
           span(
             id = ns('provided_clusters_warning'),
             style='color: grey; font-style: italic; display: none;',
@@ -237,7 +237,7 @@ mergeClustersInput <- function(id) {
           id =ns('toggle_icon'),
           class = 'fa fa-object-group fa-fw',
           tags$i(class='fa fa-ban fa-fw fa-hide')
-          ),
+        ),
         title = 'Merge selected clusters'),
       options = list(multiple = TRUE,
                      optgroupField = 'type',
@@ -494,3 +494,4 @@ scSampleGroupsInput <- function(id) {
     )
   )
 }
+
