@@ -74,6 +74,14 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   app$wait_for_idle()
   expect_equal(app$get_value(input = 'sc-form-dataset-import_species'), 'Homo sapiens')
 
+  # auto selected 'all and none'
+  metrics <- app$wait_for_value(input = 'sc-form-dataset-qc_metrics')
+  expect_equal(metrics, 'all and none')
+
+  # switch to 'all'
+  app$set_inputs(`sc-form-dataset-qc_metrics` = 'all')
+  app$wait_for_idle()
+
   # creates mock_10x sample
   app$click("sc-form-dataset-confirm_import_datasets")
   app$wait_for_value(export = 'sc-form-dataset-dataset_names', timeout = timeout, ignore = list(character(0)))
@@ -279,9 +287,12 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # previous dataset still selected
   expect_equal(app$get_value(export = "sc-form-dataset-dataset_name"), "mock_10x_1234")
 
+  dataset_names <- app$get_value(export = 'sc-form-dataset-dataset_names')
+  is.int <- grep('mock_10x_integrated', dataset_names)[1]
+
   # clusters change after selecting new dataset
   current_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
-  app$set_inputs(`sc-form-dataset-selected_dataset` = "3", wait_ = FALSE)
+  app$set_inputs(`sc-form-dataset-selected_dataset` = as.character(is.int), wait_ = FALSE)
   app$wait_for_value(export = 'sc-form-sample_clusters-annot', timeout = timeout, ignore = list(current_clusters))
 
   integrated_clusters <- app$get_value(export = 'sc-form-sample_clusters-annot')
