@@ -1,20 +1,18 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 
-# Triggered on push, PR, but not tags
+# Triggered on PR
 on:
-  push:
-    branches:
-      - "*"
   pull_request:
+    branches:
+      - master
 
-# Name of the workflow => usethis::use_github_actions_badge("CI-CD-renv")
+# Name of the workflow => usethis::use_github_actions_badge("R-CMD-check")
 name: R-CMD-check
 
 jobs:
   CD:
     runs-on: ${{ matrix.config.os }}
-
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
