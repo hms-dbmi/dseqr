@@ -1,14 +1,20 @@
 name: Build and push image
 on:
-  push:
-    tags:
-    - '*'
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   DOCKERHUB_REPO: alexvpickering/dseqr
 
 jobs:
   build-push:
+    if: github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,8 +36,6 @@ jobs:
           context: .
           target: deploy
           push: true
-          build-args: |
-            DSEQR_VERSION=${{ github.ref_name }}
           tags: ${{ env.DOCKERHUB_REPO }}:latest
           cache-from: type=registry,ref=${{ env.DOCKERHUB_REPO }}:buildcache
           cache-to: type=registry,ref=${{ env.DOCKERHUB_REPO }}:buildcache,mode=max
