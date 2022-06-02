@@ -139,7 +139,7 @@ function scDatasetItem(item, escape) {
     if (opt === item.label) {
         opt = ''
     } else {
-        opt = typeof opt == 'undefined' ? '' : opt;
+        opt = typeof opt == 'undefined' ? '' : opt.replace(/_in[td]$/, "");
         opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
     }
 
@@ -153,9 +153,12 @@ function scDatasetItem(item, escape) {
 }
 
 function scDatasetOptGroup(data, escape) {
-  var main = ['Integrated','Individual'].indexOf(data.label) > -1;
+  var indClass = /_ind$/.test(data.label) ? ' individual' : '';
+  var label = data.label.replace(/_in[td]$/, "");
+
+  var main = ['Integrated','Individual'].indexOf(label) > -1;
   var subheader = main ? ' - NO GROUP' : '';
-  return '<div class="optgroup-header">' + escape(data.label) + '<span class="optgroup-subheader">' + subheader + '</span></div>';
+  return '<div class="optgroup-header' + indClass + '">' + escape(label) + '<span class="optgroup-subheader">' + subheader + '</span></div>';
 }
 
 

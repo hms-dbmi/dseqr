@@ -187,12 +187,14 @@ get_label_transfer_choices <- function(anal_options, selected_anal, preds) {
                 'NovershternHematopoieticData')
 
   external_type <- rep('External Reference', length(external))
+  external_is.int <- rep(TRUE, length(external))
 
   choices <- data.frame(
     label = c('Reset Labels', external, anal_options$name),
     value = c('reset', gsub(' ', '', external), anal_options$name),
     optionLabel = c('Reset Labels', external, anal_options$optionLabel),
     type = factor(c(type, external_type, anal_options$type), ordered = TRUE),
+    is.int = c(TRUE, external_is.int, anal_options$is.int),
     stringsAsFactors = FALSE
   )
 
@@ -323,6 +325,7 @@ check_has_scseq <- function(dataset_names, sc_dir) {
 #' Get data.frame of single-cell dataset choices
 #'
 #' @param sc_dir Directory containing single-cell datasets
+#' @param prev name of previously selected dataset
 #'
 #' @return data.frame of single-cell dataset choices for selectizeInput
 #'
@@ -362,6 +365,8 @@ get_sc_dataset_choices <- function(sc_dir, prev = NULL) {
   label <- c(integrated, individual)
   type <- c(int_type, ind_type)
   opt <- c(int_opt, ind_opt)
+  is.int <- c(rep(TRUE, length(integrated)),
+              rep(FALSE, length(individual)))
 
   # set previously selected
   if (length(label)) {
@@ -373,6 +378,8 @@ get_sc_dataset_choices <- function(sc_dir, prev = NULL) {
       prev <- label[type %in% founder]
 
     type <- c(rep('Previous Session', length(prev)), type)
+    is.int_prev <- is.int[label %in% prev]
+    is.int <- c(is.int_prev, is.int)
     label <- c(prev, label)
     opt <- c(prev, opt)
   }
@@ -381,6 +388,7 @@ get_sc_dataset_choices <- function(sc_dir, prev = NULL) {
                         name = label,
                         label = label,
                         type = type,
+                        is.int = is.int,
                         optionLabel = opt,
                         stringsAsFactors = FALSE)
 
@@ -2082,7 +2090,7 @@ keep_curr_selected <- function(datasets, prev, curr) {
   curr_name <- prev[curr, 'name']
 
   # position in new datasets
-  new_posn <- tail(which(curr_name == datasets$name), 1)
+  new_posn <- utils::tail(which(curr_name == datasets$name), 1)
   ndata <- nrow(datasets)
 
   # in case delete current that is last

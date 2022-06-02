@@ -15,6 +15,7 @@ body {
   border: none;
 }
 
+
 .dashed-upload input[type="text"] {
   background: white;
   border: none;
@@ -458,7 +459,11 @@ body {
 .selectize-dropdown .optgroup-header {
   font-weight: bold;
   font-size: 14px;
-  color: #333;
+  color: #333333;
+}
+
+.selectize-dropdown .optgroup-header.individual {
+  color: #717171;
 }
 
 .optgroup-subheader {
