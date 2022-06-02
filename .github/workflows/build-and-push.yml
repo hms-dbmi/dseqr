@@ -1,4 +1,4 @@
-name: Deploy
+name: Build and push image
 on:
   pull_request:
     types: [closed]
@@ -6,7 +6,7 @@ on:
       - master
 
 concurrency:
-  group: ${{ github.ref }}
+  group: build-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
