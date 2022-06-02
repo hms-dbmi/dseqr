@@ -4,6 +4,11 @@ on:
     types: [closed]
     branches:
       - master
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOCKERHUB_REPO: alexvpickering/dseqr
 

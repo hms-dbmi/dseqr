@@ -7,6 +7,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 # Name of the workflow => usethis::use_github_actions_badge("R-CMD-check")
 name: R-CMD-check
 
