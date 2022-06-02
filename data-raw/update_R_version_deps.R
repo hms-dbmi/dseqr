@@ -54,6 +54,7 @@ done <- FALSE
 updated <- NULL
 
 while (!done) {
+
   tryCatch({
     renv::restore(packages = not.updated, prompt = FALSE)
     done <- TRUE
@@ -62,7 +63,7 @@ while (!done) {
     message(e$message)
     message('Updating failed package')
     failed.pkg <- gsub("^install of package '(.+?)' failed .+?$", "\\1", e$message)
-    updated <- c(updated, failed.pkg)
+    updated <<- c(updated, failed.pkg)
 
     renv::install(failed.pkg, prompt = FALSE)
     renv::snapshot(packages = failed.pkg, update = TRUE, prompt = FALSE)
@@ -73,7 +74,5 @@ if (length(updated)) {
   warning('The following packages were updated:\n', paste(updated, collapse = '\n'))
 }
 
-# need to update something else? (e.g. old version won't build with new R)
-# renv::install('qs')
-# renv::snapshot(packages = 'qs', update = TRUE)
-# re-run line 52
+# should be up to date
+renv::status()
