@@ -707,7 +707,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
   # save groups as previous
   observe({
     groups <- groups()
-    if (!is.null(groups) && groups == 'reset') return(NULL)
+    if (!is.null(groups) && groups[1] == 'reset') return(NULL)
     prev_path <- isolate(prev_path())
     if (is.null(prev_path)) return(NULL)
     qs::qsave(groups, prev_path)
@@ -2013,6 +2013,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     removed.curr <- !is.null(curr_selected()) && !curr_selected() %in% datasets$name
     if (removed.curr) sel <- ''
 
+    datasets <- add_optgroup_type(datasets)
     datasets <- datasets_to_list(datasets)
     updateSelectizeInput(session, 'selected_dataset', selected = sel, choices = datasets, options = options)
   })
@@ -2103,6 +2104,12 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     dataset_exists = dataset_exists,
     species = species
   ))
+}
+
+add_optgroup_type <- function(datasets) {
+  optgroup_type <- ifelse(datasets$is.int, '_int', '_ind')
+  datasets$type <- paste0(datasets$type, optgroup_type)
+  return(datasets)
 }
 
 get_refs_list <- function(species) {
@@ -2224,7 +2231,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     on_init <- NULL
     if (set_readonly()) on_init <- disableMobileKeyboard(session$ns('ref_name'))
 
-    list(render = I('{option: transferLabelOption, item: scDatasetItemDF}'), onInitialize = on_init)
+    list(render = I('{option: transferLabelOption, item: scDatasetItemDF, optgroup_header: scDatasetOptGroup}'), onInitialize = on_init)
   })
 
   ref_preds <- reactiveVal()
@@ -2265,6 +2272,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
     selected <- get_selected_from_transfer_name(transfer_name, dataset_name)
 
     choices <- get_label_transfer_choices(datasets, dataset_name, preds)
+    choices <- add_optgroup_type(choices)
     updateSelectizeInput(session,
                          'ref_name',
                          choices = choices,

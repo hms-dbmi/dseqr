@@ -7,14 +7,14 @@
 qread.safe(file, .nofile = NULL, .nullfile = NULL)
 }
 \arguments{
-\item{file}{the file name/path}
+\item{file}{The file name/path.}
 
 \item{.nofile}{return value when file doesn't exist}
 
 \item{.nullfile}{return value when file value is \code{NULL}}
 }
 \value{
-The de-serialized object
+The de-serialized object.
 }
 \description{
 Read qs file safely

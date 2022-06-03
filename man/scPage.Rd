@@ -20,11 +20,7 @@ scPage(
 )
 }
 \arguments{
-\item{input}{standard shiny module boilerplate}
-
-\item{output}{standard shiny module boilerplate}
-
-\item{session}{standard shiny module boilerplate}
+\item{input, output, session}{standard shiny module boilerplate}
 
 \item{sc_dir}{sub folder of \code{project_dir} where single-cell data is stored}
 

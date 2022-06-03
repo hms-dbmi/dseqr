@@ -114,8 +114,8 @@ es_to_tt <- function(es, enids, cols) {
 }
 
 tt_to_es <- function(tt) {
-  keep <- c('ENTREZID', 'dprime', 'vardprime', 't', 'P.Value', 'adj.P.Val')
-  new <- c('ENTREZID', 'mu', 'var', 'z', 'pval', 'fdr')
+  keep <- c('ENTREZID', 'dprime', 'vardprime', 't', 'P.Value', 'adj.P.Val', 'N<0.5')
+  new <- c('ENTREZID', 'mu', 'var', 'z', 'pval', 'fdr', 'N<0.5')
 
   # has replicates
   if (all(keep %in% colnames(tt))) {
