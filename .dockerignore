@@ -1,8 +1,6 @@
 /data-raw/*
 .git/*
 .Rproj.user/*
-inst/extdata/*
-inst/app/*
 man/*
 renv/*
 tests/*

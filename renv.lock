@@ -1714,11 +1714,11 @@
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteUsername": "hms-dbmi",
       "RemoteRepo": "dseqr.data",
-      "RemoteRef": "master",
-      "RemoteSha": "62ae5d6384c534efa9a7ef512f11e18c064fc3f0",
-      "Hash": "35b224f69f9d70721db76f429cde3250",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "35f73ae57ab593d018f537b008d36f8e04689eac",
+      "Hash": "c09ce9213e5e048f1c32352e6cbeca07",
       "Requirements": [
         "AnnotationDbi",
         "AnnotationHub",
@@ -2441,6 +2441,16 @@
       "Repository": "CRAN",
       "Hash": "7ce2733a9826b3aeb1775d56fd305472",
       "Requirements": []
+    },
+    "maketools": {
+      "Package": "maketools",
+      "Version": "1.2.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1621cb95007b3e1626bb5597c5faf799",
+      "Requirements": [
+        "sys"
+      ]
     },
     "matrixStats": {
       "Package": "matrixStats",

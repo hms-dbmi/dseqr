@@ -1,28 +1,14 @@
-FROM rocker/r-ver:4.2.0
-
-# install Ubuntu packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-pkg-config \
-libcurl4-openssl-dev \
-libv8-dev \
-libxml2-dev \
-libssl-dev \
-libbz2-dev \
-liblzma-dev \
-libhdf5-dev \
-zlib1g-dev \
-libpng-dev \
-libjpeg-dev \
-libcairo2-dev \
-libxt-dev \
-libharfbuzz-dev \
-libfribidi-dev \
-libfreetype6-dev \
-libtiff5-dev \
-git \
-wget && rm -rf /var/lib/apt/lists/*
-
+FROM rocker/r-ver:4.2.0 AS build
 WORKDIR /src/dseqr
+
+# install required debian packages to install R packages
+COPY setup/install_debian_packages.sh .
+COPY setup/sysdeps_build_debian.txt .
+RUN cat sysdeps_build_debian.txt | xargs ./install_debian_packages.sh
+
+# add renv library to .libPaths
+ENV RENV_LIB=/src/lib
+RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.site
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
@@ -30,60 +16,71 @@ RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.
     R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically
+# delete renv cache
+# strip debug from shared libraries
+# see http://dirk.eddelbuettel.com/blog/2017/08/20/#010_stripping_shared_libraries
 COPY ./renv.lock.init .
-RUN R -e 'renv::restore(lockfile="renv.lock.init")'
+RUN R -e "renv::restore(lockfile='renv.lock.init', library = '$RENV_LIB')" && \
+    R -e 'root <- renv::paths$root(); unlink(root, recursive = TRUE)' && \
+    strip --strip-debug $RENV_LIB/*/libs/*.so
 
-# Download miniconda and kallisto/bustools
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O /src/miniconda.sh && \
-bash /src/miniconda.sh -b -p /src/miniconda
+RUN R -e "renv::deactivate()"
 
 # this sets path for current (root) user
 ENV PATH="/src/miniconda/bin:$PATH"
 
-RUN conda config --add channels bioconda && \
-conda config --add channels conda-forge && \
-conda install kallisto=0.46.0 -y && \
-conda install -c bioconda bustools=0.39.3 -y
+# Download miniconda and kallisto/bustools
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh -O /src/miniconda.sh && \
+  bash /src/miniconda.sh -b -p /src/miniconda && \
+  conda config --add channels bioconda && \
+  conda config --add channels conda-forge && \
+  conda install kallisto=0.46.0 -y && \
+  conda clean --force-pkgs-dirs -y
 
-# download drug effect size data
-RUN R -e "dseqr.data::dl_data()"
-
-# lockfile: use this until slow
+# current lockfile: use this until slow
 COPY ./renv.lock .
-RUN R -e 'renv::restore(lockfile="renv.lock", clean = TRUE)'
+RUN R -e "renv::restore(lockfile='renv.lock', library = '$RENV_LIB', clean = TRUE)" && \
+    R -e 'root <- renv::paths$root(); unlink(root, recursive = TRUE)' && \
+    strip --strip-debug $RENV_LIB/*/libs/*.so
 
-# move library and delete renv
-RUN mv /src/dseqr/renv/library/R-4.2/x86_64-pc-linux-gnu /src/library && \
-    rm -rf /src/dseqr && \
-    mkdir /src/dseqr && \
-    echo ".libPaths(c('/src/library', .libPaths()))" >> $R_HOME/etc/Rprofile.site
+
+# remove unecessary R packages
+RUN R -e "remove.packages(c('remotes', 'renv'), .libPaths())"
+
+# determine system run-time deps
+COPY setup/get_sysdeps_run.R .
+RUN Rscript get_sysdeps_run.R
 
 # -------
 FROM rocker/r-ver:4.2.0 AS deploy
 WORKDIR /src/dseqr
 
-# get source code and R packages
-COPY --from=0 /src /src
-COPY --from=0 $R_HOME/etc/Rprofile.site $R_HOME/etc/Rprofile.site
-
 # add conda to path
 ENV PATH="/src/miniconda/bin:$PATH"
+
+# get source code and R packages
+COPY --from=build /src /src
+
+# add renv library to .libPaths
+ENV RENV_LIB=/src/lib
+RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.site
+
+# install runtime system deps
+RUN cat sysdeps_run.txt | xargs ./install_debian_packages.sh
 
 # set temporary directory for R
 # need dseqr in libPaths
 ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
-    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev libhdf5-dev libcairo2-dev && \
-    rm -rf /var/lib/apt/lists/* && \
-    R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('hms-dbmi/dseqr', dependencies = FALSE, upgrade = FALSE)" && \
-    R -e "remove.packages('remotes')"
+    echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
-# add source files
+# need dseqr installed for callr::r_bg
+ADD R ./R
 COPY inst/run.R .
-COPY R/* R/
+ADD inst ./inst
+COPY DESCRIPTION .
+COPY NAMESPACE .
+RUN R -e "install.packages(repos=NULL, '.')"
 
 # docker build -t alexvpickering/dseqr:latest .
 # docker push alexvpickering/dseqr
