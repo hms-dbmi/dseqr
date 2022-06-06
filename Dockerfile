@@ -51,8 +51,10 @@ RUN R -e "remove.packages(c('remotes', 'renv'), .libPaths())"
 COPY setup/get_sysdeps_run.R .
 RUN Rscript get_sysdeps_run.R
 
-# -------
-FROM rocker/r-ver:4.2.0 AS deploy
+# ----------
+# COMMON
+#-----------
+FROM rocker/r-ver:4.2.0 AS common
 WORKDIR /src/dseqr
 
 # add conda to path
@@ -69,18 +71,47 @@ RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.sit
 RUN cat sysdeps_run.txt | xargs ./install_debian_packages.sh
 
 # set temporary directory for R
-# need dseqr in libPaths
 ENV TMP_DIR=/srv/dseqr/tmp
 RUN mkdir -p $TMP_DIR && \
     echo "TMPDIR = $TMP_DIR" > ${HOME}/.Renviron
 
-# need dseqr installed for callr::r_bg
+# install dseqr for callr::r_bg
+# delete all except R/ directory
 ADD R ./R
-COPY inst/run.R .
 ADD inst ./inst
-COPY DESCRIPTION .
-COPY NAMESPACE .
-RUN R -e "install.packages(repos=NULL, '.')"
+COPY DESCRIPTION NAMESPACE ./
+RUN R -e "install.packages(repos=NULL, '.')" && \
+    find . -maxdepth 1 ! -name R -exec rm -r "{}" \;
+
+# ----------
+# PRODUCTION
+#-----------
+from common AS production
+
+# add runner
+COPY inst/run.R .
+
+# ----------
+# TESTING
+#-----------
+from common AS testing
+
+# google-chrome: to run shinytest2
+# textlive-*: to build docs for rcmdcheck
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends wget && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get -y install --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
+    rm ./google-chrome-stable_current_amd64.deb && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ADD tests ./tests
+ADD man ./man
+ADD inst ./inst
+COPY DESCRIPTION NAMESPACE LICENSE setup/run_ci_tests.R ./
+
+CMD ["Rscript", "run_ci_tests.R"]
+
 
 # docker build -t alexvpickering/dseqr:latest .
-# docker push alexvpickering/dseqr
