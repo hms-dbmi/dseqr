@@ -13,7 +13,7 @@ env:
   DOCKERHUB_REPO: alexvpickering/dseqr
 
 jobs:
-  docker:
+  build-test-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,7 +42,7 @@ jobs:
         run: |
           docker run --rm ${{ env.DOCKERHUB_REPO }}:testing
 
-      - name: Build and push
+      - name: Push production on merge
         uses: docker/build-push-action@v2
         if: github.event.pull_request.merged == true
         with:
@@ -52,7 +52,7 @@ jobs:
           tags: ${{ env.DOCKERHUB_REPO }}:latest
 
       # push cache that includes production and testing
-      - name: Build and push
+      - name: Push build cache on merge
         uses: docker/build-push-action@v2
         if: github.event.pull_request.merged == true
         with:
