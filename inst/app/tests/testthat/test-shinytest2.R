@@ -43,7 +43,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
       width = 1619,
       height = 909,
       seed = 0,
-      loadTimeout = timeout)
+      load_timeout = timeout)
   )
 
   list_files <- function()
