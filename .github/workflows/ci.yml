@@ -42,7 +42,7 @@ jobs:
         run: |
           docker run --rm ${{ env.DOCKERHUB_REPO }}:testing
 
-      - name: Push production on merge
+      - name: Push production to DockerHub on merge
         uses: docker/build-push-action@v2
         if: github.event.pull_request.merged == true
         with:
@@ -52,7 +52,7 @@ jobs:
           tags: ${{ env.DOCKERHUB_REPO }}:latest
 
       # push cache that includes production and testing
-      - name: Push build cache on merge
+      - name: Push buildcache to DockerHub on merge
         uses: docker/build-push-action@v2
         if: github.event.pull_request.merged == true
         with:
