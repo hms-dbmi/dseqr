@@ -42,7 +42,8 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
       options = list(shiny.maxRequestSize = 30*1024*1024^2),
       width = 1619,
       height = 909,
-      seed = 0)
+      seed = 0,
+      loadTimeout = timeout)
   )
 
   list_files <- function()

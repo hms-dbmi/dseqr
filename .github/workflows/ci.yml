@@ -54,7 +54,7 @@ jobs:
       # push cache that includes production and testing
       - name: Push buildcache to DockerHub on merge
         uses: docker/build-push-action@v2
-        if: github.event.pull_request.merged == true
+      #  if: github.event.pull_request.merged == true
         with:
           context: .
           cache-to: type=registry,ref=${{ env.DOCKERHUB_REPO }}:buildcache,mode=max
