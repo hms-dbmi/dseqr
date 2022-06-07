@@ -1,9 +1,5 @@
 /data-raw/*
 .git/*
 .Rproj.user/*
-inst/extdata/*
-inst/app/*
-man/*
 renv/*
-tests/*
 example_data.tar.gz

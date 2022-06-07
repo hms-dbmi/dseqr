@@ -13,6 +13,9 @@ message('project_name: ', project_name)
 message('is_example: ', is_example)
 message('logout_url: ', logout_url)
 
+# where to download/load drug and reference data from dseqr.data
+Sys.setenv('DSEQR_DATA_PATH' = '/srv/dseqr/.data')
+
 run_dseqr(project_name,
           logout_url = logout_url,
           is_example = is_example)
