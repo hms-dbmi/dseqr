@@ -173,7 +173,8 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # can view expression of gene using custom metric
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "EFNB1")
   marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
-  expect_length(unique(marker_colors), 94)
+  ncols_efnb1 <- length(unique(marker_colors))
+  expect_gt(ncols_efnb1, 2)
 
   # can use cluster for metric
   app$set_inputs(`sc-form-gene_clusters-custom_metric` = "cluster==1")
@@ -183,7 +184,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   # closing custom metric plots previously selected gene
   app$click("sc-form-gene_clusters-show_custom_metric")
   marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout, ignore = list(marker_colors))
-  expect_length(unique(marker_colors), 94)
+  expect_length(unique(marker_colors), ncols_efnb1)
 
   # re-opening custom metric plots previous specified metric
   app$click("sc-form-gene_clusters-show_custom_metric")
