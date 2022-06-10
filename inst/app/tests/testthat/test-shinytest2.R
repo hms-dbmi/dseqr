@@ -266,6 +266,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
 
   new_annot <- app$wait_for_value(export = "sc-form-sample_clusters-annot", timeout = timeout, ignore = list(init_annot))
   expect_equal(new_annot, c('CD14 Mono', 2:4))
+  app$click("sc-form-dataset-show_label_resoln")
 
   # can integrate two datasets
   pre_integration_files <- list_files()
@@ -326,5 +327,62 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   ncolors <- length(unique(marker_colors))
   expect_equal(ncolors, expect_ncolors)
   expect_setequal(colors_expected, marker_colors)
+
+  # names of datasets in default project
+  default_datasets <- app$get_value(export = 'sc-form-dataset-dataset_names')
+
+  # create a project
+  app$click("datasets_dropdown")
+  app$wait_for_idle()
+  app$click("select_project")
+  app$wait_for_idle()
+  app$click("add_project")
+  app$wait_for_idle()
+
+  # need to select a row
+  app$click("open_project")
+  app$wait_for_idle()
+  help_msg <- app$get_html('#error_msg_projects', outer_html = FALSE)
+  expect_equal(help_msg, "Select a project row")
+
+  # need a project name
+  app$set_inputs(`projects_table_rows_selected` = 2, allow_no_input_binding_ = TRUE)
+  app$click("open_project")
+  app$wait_for_idle()
+  help_msg <- app$get_html('#error_msg_projects', outer_html = FALSE)
+  expect_equal(help_msg, "Add project name (double click cell to edit)")
+
+  # can't use existing project name
+  app$set_inputs(`projects_table_cell_edit` = list(row=2, value='default'), allow_no_input_binding_ = TRUE)
+  app$wait_for_idle()
+  help_msg <- app$get_html('#error_msg_projects', outer_html = FALSE)
+  expect_equal(help_msg, "Project name already exists")
+
+  # can switch to new project
+  app$set_inputs(`projects_table_cell_edit` = list(row=2, value='project2'), allow_no_input_binding_ = TRUE)
+  app$wait_for_idle()
+  help_msg <- app$get_html('#error_msg_projects', outer_html = FALSE)
+  expect_equal(help_msg, "")
+  app$click("open_project")
+  app$wait_for_idle()
+
+  # new project has no datasets
+  dataset_names <- app$get_value(export = 'sc-form-dataset-dataset_names')
+  expect_length(dataset_names, 0)
+
+  # can switch back to default project
+  app$click("datasets_dropdown")
+  app$wait_for_idle()
+  app$click("select_project")
+  app$wait_for_idle()
+  app$set_inputs(`projects_table_rows_selected` = 1, allow_no_input_binding_ = TRUE)
+  app$wait_for_idle()
+  app$click("open_project")
+  app$wait_for_idle()
+
+  # selected project has all of default datasets
+  dataset_names <- app$get_value(export = 'sc-form-dataset-dataset_names')
+  expect_setequal(dataset_names, default_datasets)
+
 
 })
