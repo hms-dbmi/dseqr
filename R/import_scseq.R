@@ -1381,6 +1381,9 @@ run_fastmnn <- function(logcounts, subset.row, scseqs) {
   SummarizedExperiment::assay(cor.out, 'reconstructed') <- NULL
   SummarizedExperiment::rowData(cor.out)$rotation <- NULL
 
+  # add HVGs
+  SummarizedExperiment::rowData(cor.out)$hvg <- subset.row
+
   return(cor.out)
 }
 
@@ -1403,7 +1406,6 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
     meta_data$pairs <- factor(pairs[batch, 'pair'])
   }
 
-
   set.seed(100)
   pcs <- scater::calculatePCA(logcounts, subset_row = subset_row)
   emb <- harmony::HarmonyMatrix(pcs, meta_data, vars_use, do_pca = FALSE, max.iter.harmony = 40)
@@ -1412,6 +1414,9 @@ run_harmony <- function(logcounts, subset_row, batch, pairs = NULL) {
     assays = list(logcounts = logcounts),
     reducedDims = list(corrected = emb),
     colData =  S4Vectors::DataFrame(batch = batch))
+
+  # add HVGs
+  SummarizedExperiment::rowData(cor.out)$hvg <- subset_row
 
   return(cor.out)
 }
@@ -1446,7 +1451,7 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
 
   # feature selection
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
-  if (!is.null(hvgs)) hvgs <- hvgs %in% universe
+  if (!is.null(hvgs)) hvgs <- universe %in% hvgs
   else hvgs <- decs$bio > 0
 
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
