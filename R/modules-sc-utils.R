@@ -2094,7 +2094,7 @@ keep_curr_selected <- function(datasets, prev, curr) {
   ndata <- nrow(datasets)
 
   # in case delete current that is last
-  if (curr > ndata | is.na(new_posn)) return(datasets)
+  if (!length(new_posn) || curr > ndata) return(datasets)
 
   # move so that row at new_posn is at curr
   idx <- seq_len(nrow(datasets))
