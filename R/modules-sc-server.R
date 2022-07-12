@@ -555,7 +555,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     if (!is.null(scseq)) return(scseq)
 
     dataset_dir <- dataset_dir()
-    if (!isTruthy(dataset_dir)) return(NULL)
+    if (!isTruthy(dataset_dir) || !dir.exists(dataset_dir)) return(NULL)
 
     scseq <- load_scseq_qs(dataset_dir)
     attach_clusters(scseq, resoln_dir())
@@ -1519,7 +1519,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   scseq <- reactive({
     dataset_dir <- dataset_dir()
-    if (!isTruthy(dataset_dir)) return(NULL)
+    if (!isTruthy(dataset_dir) || !dir.exists(dataset_dir)) return(NULL)
     disableAll(dataset_inputs)
 
     scseq <- load_scseq_qs(dataset_dir)
@@ -4004,9 +4004,7 @@ scClusterPlot <- function(input, output, session, scseq, annot, clusters, datase
     if (!isTruthyAll(label_repels, coords)) return(NULL)
 
     nlab <- nrow(label_repels)
-    if (nlab < 15) lsize <- 18
-    else if (nlab < 30) lsize <- 16
-    else lsize <- 14
+    lsize <- ifelse(nlab < 15, 18, 16)
 
     label_repels$anchor <- 'middle'
     label_repels$baseline <- 'center'
@@ -4241,7 +4239,9 @@ get_scatter_props <- function(is_mobile, ncells) {
   scatter_props <- list(
     radiusMinPixels = pt.size,
     radiusMaxPixels = max(6, pt.size*2),
-    stroked = pt.size >= 3
+    stroked = pt.size >= 3,
+    lineWidthMaxPixels = 1,
+    getLineColor=htmlwidgets::JS("d => [51, 51, 51, 80]")
   )
 
   return(scatter_props)
