@@ -13,7 +13,9 @@ detect_cells <- function(counts, qcgenes) {
 
   set.seed(100)
   e.out <- DropletUtils::emptyDrops(counts[keep.genes, ], retain = Inf)
+
   keep.cells <- which(e.out$FDR <= 0.001)
+  if (!length(keep.cells)) stop('No non-empty cells')
 
   return(keep.cells)
 }
