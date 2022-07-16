@@ -4241,7 +4241,8 @@ get_scatter_props <- function(is_mobile, ncells) {
   scatter_props <- list(
     radiusMinPixels = pt.size,
     radiusMaxPixels = max(6, pt.size*2),
-    stroked = pt.size >= 3
+    stroked = pt.size >= 3,
+    lineWidthMaxPixels = 1
   )
 
   return(scatter_props)
@@ -4564,6 +4565,7 @@ scViolinPlot <- function(input, output, session, selected_gene, selected_cluster
 
     h5logs <- if (is.gene) h5logs() else NULL
     if (is.null(scseq)) return(NULL)
+
     vdat <- get_violin_data(gene, scseq, cluster, with_all = TRUE, h5logs=h5logs)
 
     return(vdat)
