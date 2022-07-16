@@ -80,9 +80,9 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
 
   # either highlight test group or selected cluster
   if (by.sample) {
-    keep <- scseq$cluster %in% sel
-    y <- factor(scseq$batch[keep])
-    hl <- scseq$orig.ident[keep]
+    keep.cells <- scseq$cluster %in% sel
+    y <- factor(scseq$batch[keep.cells])
+    hl <- scseq$orig.ident[keep.cells]
 
     # cluster name get's appended by VlnPlot
     title <- paste(title.type, 'by Sample:', feature, 'in')
@@ -103,7 +103,8 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
     } else {
       x <- as.numeric(SingleCellExperiment::logcounts(scseq[feature, ]))
     }
-    if (exists('keep')) x <- x[keep]
+
+    if ('keep.cells' %in% ls()) x <- x[keep.cells]
 
   } else {
     x <- scseq[[feature]]
