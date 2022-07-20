@@ -1,10 +1,34 @@
-# samples_merge_list <- list(
-#   'SJIALD_20200716' = c('SJIALD_1-20200716_QC2.0', 'SJIALD_2-20200716_QC3'),
-#   'SJIALD_FID12518' = c('SJIALD_FID12518_Diseased_QC1.5', 'SJIALD_FID12518_Normal_QC3.5')
-# )
-
-# merge samples that are from the sample subject
-merge_samples <- function(data_dir, merge_list) {
+#' Merge samples that are from the sample subject
+#'
+#' @param subdirectory of single-cell
+#' @param merge_list Names are new name, values are current names to merge
+#' @param new_founder Name of new founder for dataset for grouping in select menu.
+#' Default (\code{NULL}) keeps previous founder.
+#'
+#' @return called for side effects
+#'
+#' @examples
+#'
+#' if (interactive()) {
+#'
+#'   dataset_names <- c('SJIALD_VS_HEALTHY_lungv1_merged_Azimuth',
+#'                      'SJIALD_VS_HEALTHY_merged_fastMNN')
+#'
+#'   merge_list <- list(
+#'     'SJIALD_20200716' = c('SJIALD_1-20200716_QC3.0', 'SJIALD_2-20200716_QC3.0'),
+#'     'SJIALD_FID12518' = c('SJIALD_FID12518_Diseased_QC2.0'))
+#'
+#'   new_founder <- 'SJIALD_VS_HEALTHY_merged'
+#'   sc_dir <- '~/Documents/Data/dseqr/cincinnati/sjiald-sc-lung/single-cell'
+#'
+#'   for (dataset_name in dataset_names) {
+#'     data_dir <- file.path(sc_dir, dataset_name)
+#'     merge_samples(data_dir, samples_merge_list, new_founder)
+#'   }
+#'
+#' }
+#'
+merge_samples <- function(data_dir, merge_list, new_founder = NULL) {
   # open shell and merge batch and ambience
   shell <- qs::qread(file.path(data_dir, 'shell.qs'))
   rdata <- SummarizedExperiment::rowData(shell)
@@ -38,6 +62,11 @@ merge_samples <- function(data_dir, merge_list) {
   resoln_basenames <- basename(resoln_files)
   keep <- resoln_basenames %in% c('annot.qs', 'clusters.qs')
   unlink(resoln_files[!keep])
+
+  # change founder
+  if (!is.null(new_founder)) {
+    qs::qsave(new_founder, file.path(data_dir, 'founder.qs'))
+  }
 }
 
 # merge clusters that want to analyze together
