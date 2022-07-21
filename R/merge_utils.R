@@ -111,3 +111,77 @@ merge_clusters <- function(data_dir, merge_list, resoln_dir = NULL) {
   qs::qsave(annot, file.path(resoln_path, 'annot.qs'))
 }
 
+find_merged_clusters <- function(orig_dir, resoln_dir, sel) {
+
+  # check if any of selected clusters differ from original
+  orig_clusters <- qs::qread(file.path(orig_dir, 'clusters.qs'))
+  curr_clusters <- qs::qread(file.path(resoln_dir, 'clusters.qs'))
+
+  merged_clusters <- c()
+  for (cluster in sel) {
+
+    # merged if selected cells form more than one cluster in orig
+    is.sel <- curr_clusters == cluster
+    nclus.orig <- length(unique(orig_clusters[is.sel]))
+
+    if (nclus.orig > 1)
+      merged_clusters <- c(merged_clusters, cluster)
+  }
+  return(merged_clusters)
+}
+
+
+
+# unmerge previously merged clusters
+unmerge_clusters <- function(resoln_dir, selected) {
+
+  orig_path <- file.path(paste0(resoln_dir, '_orig'), 'clusters.qs')
+  orig_clusters <- qs::qread(orig_path)
+
+  clusters_path <- file.path(resoln_dir, 'clusters.qs')
+  clusters <- qs::qread(clusters_path)
+
+  annot_path <- file.path(resoln_dir, 'annot.qs')
+  annot <- qs::qread(annot_path)
+
+  next_clus <- length(annot) + 1
+  for (cluster in selected) {
+
+    # original values of cluster to undo
+    is.cluster <- clusters == cluster
+    orig <- orig_clusters[is.cluster]
+
+    # convert to next available integers
+    orig.levels <- unique(orig)
+    new_next_clus <- next_clus + length(orig.levels)
+    new.levels <- as.character(seq(next_clus, new_next_clus-1))
+    new <- plyr::mapvalues(orig, from = orig.levels, new.levels)
+
+    # use to overwrite current merged cluster
+    levels(clusters) <- c(levels(clusters), new.levels)
+    clusters[is.cluster] <- new
+
+    # use annotation of previously merged cluster for restored clusters
+    cluster_name <- annot[as.numeric(cluster)]
+    annot <- c(annot, rep(cluster_name, length(new.levels)))
+
+    next_clus <- new_next_clus
+  }
+
+  # drop unused levels (previously merged)
+  clusters <- droplevels(clusters)
+
+  # remove annotation for previously merged clusters
+  keep_clusters <- levels(clusters)
+  annot <- annot[as.numeric(keep_clusters)]
+
+  # relevel
+  annot <- remove.unique(annot)
+  annot <- pretty.unique(annot)
+  levels(clusters) <- seq_along(annot)
+
+  # save
+  qs::qsave(clusters, clusters_path)
+  qs::qsave(annot, annot_path)
+}
+
