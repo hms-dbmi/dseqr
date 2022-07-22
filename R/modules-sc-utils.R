@@ -1826,7 +1826,7 @@ transfer_prev_annot <- function(resoln, prev_resoln, dataset_name, sc_dir) {
   annot_nums <- as.character(seq_along(annot))
 
   # keep ordered nums where prediction is numeric
-  suppressWarnings(is.num <- !is.na(as.numeric(gsub('_\\d+$', '', annot))))
+  suppressWarnings(is.num <- !is.na(as.numeric(remove.unique(annot))))
   annot[is.num] <- annot_nums[is.num]
 
   qs::qsave(annot, file.path(sc_dir, query_resoln_name, 'annot.qs'))
