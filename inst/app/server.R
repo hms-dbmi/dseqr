@@ -1,3 +1,5 @@
+#---- server
+
 # modal to manage projects
 projectModal <- function(session, choices, selected, options) {
 

@@ -2961,7 +2961,11 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
     annot <- annot()
     if (is.null(scseq) | is.null(annot)) return(NULL)
 
-    get_cluster_choices(annot, scseq = scseq, with_all = TRUE)
+    # add merged clusters boolean for indicator
+    merged_clusters <- merged_clusters()
+    choices <- get_cluster_choices(annot, scseq = scseq, with_all = TRUE)
+    choices$merged <- choices$value %in% merged_clusters
+    return(choices)
   })
 
 
@@ -3004,19 +3008,29 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
     paste0(resoln_dir, '_orig')
   })
 
-  selected_merged_clusters <- reactive({
+  merged_clusters <- reactive({
 
-    # not modified if orig hasn't been saved
+    # no merged clusters if orig hasn't been saved
     resoln_dir <- resoln_dir()
     orig_dir <- paste0(resoln_dir, '_orig')
     if (!dir.exists(orig_dir)) return(NULL)
 
-    # not modified unless a cluster selected
+    find_merged_clusters(orig_dir, resoln_dir)
+  })
+
+  selected_merged_clusters <- reactive({
+
+    # not modified unless cluster(s) selected
     sel <- input$selected_clusters
     if (!length(sel)) return(NULL)
 
-    find_merged_clusters(orig_dir, resoln_dir, sel)
+    # not modified if no merged clusters
+    merged_clusters <- merged_clusters()
+    if (is.null(merged_clusters)) return(NULL)
+
+    intersect(merged_clusters, sel)
   })
+
 
   is_modified <- reactive(!is.null(selected_merged_clusters()))
 
@@ -4677,3 +4691,4 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
+
