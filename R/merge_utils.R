@@ -111,18 +111,18 @@ merge_clusters <- function(data_dir, merge_list, resoln_dir = NULL) {
   qs::qsave(annot, file.path(resoln_path, 'annot.qs'))
 }
 
-find_merged_clusters <- function(orig_dir, resoln_dir, sel) {
+find_merged_clusters <- function(orig_dir, resoln_dir) {
 
   # check if any of selected clusters differ from original
   orig_clusters <- qs::qread(file.path(orig_dir, 'clusters.qs'))
   curr_clusters <- qs::qread(file.path(resoln_dir, 'clusters.qs'))
 
   merged_clusters <- c()
-  for (cluster in sel) {
+  for (cluster in unique(curr_clusters)) {
 
     # merged if selected cells form more than one cluster in orig
-    is.sel <- curr_clusters == cluster
-    nclus.orig <- length(unique(orig_clusters[is.sel]))
+    is.cluster <- curr_clusters == cluster
+    nclus.orig <- length(unique(orig_clusters[is.cluster]))
 
     if (nclus.orig > 1)
       merged_clusters <- c(merged_clusters, cluster)

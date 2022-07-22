@@ -29,6 +29,7 @@ function contrastOptions(item, escape) {
     item.ntest +
     "</div>";
 
+
     // for integrated dataset show number of cells in each test/ctrl sample as title element
     // otherwise show potentially truncated label
     var integratedTitle = item.ntest_each + " :: " + item.nctrl_each;
@@ -37,6 +38,13 @@ function contrastOptions(item, escape) {
     var info = typeof item.ntest == 'undefined' ? infoContrasts : infoSampleNsig;
 
     var swatchClass = item.testColor == '' ? '' : 'input-swatch';
+    var bgStyle = item.testColor
+
+    // if merged cluster, swatch has diagonal line as hint
+    if (item.merged) {
+      bgStyle = `linear-gradient(to top right, white 50%, ${item.testColor} 50%)`;
+      title = `${title}  <merged>`;
+    }
 
     // disable when no top_table
     var disabled = item.disabled ? 'disabled-option': '';
@@ -44,7 +52,7 @@ function contrastOptions(item, escape) {
     var clustEl =
     "<div style='columns: 2;' title='" + title + "' class='" + disabled + "'>" +
     "<div style='margin-right: -80px'>" +
-    "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
+    "<div class='" + swatchClass +"' style='background:" + bgStyle + "'></div>" +
     escape(item.name) +
     "</div>" + info + "</div>";
 
@@ -77,9 +85,17 @@ function contrastItem(item, escape) {
     // disable when no top_table
     var disabled = item.disabled ? 'disabled-option': '';
 
+    var bgStyle = item.testColor
+
+    // if merged cluster, swatch has diagonal line as hint
+    if (item.merged) {
+      bgStyle = `linear-gradient(to top right, white 50%, ${item.testColor} 50%)`;
+      title = `${title}  <merged>`;
+    }
+
     // styling if looking at cluster
     var clustEl = "<div title='" + title + "' class='" + disabled + "'>" +
-    "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
+    "<div class='" + swatchClass +"' style='background:" + bgStyle + "'></div>" +
     escape(item.name) +
     info +
     "</div>";
