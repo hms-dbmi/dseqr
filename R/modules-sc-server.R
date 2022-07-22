@@ -3004,11 +3004,21 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
     paste0(resoln_dir, '_orig')
   })
 
-  is_modified <- reactive({
-    orig_path <- orig_path()
-    if (is.null(orig_path)) return(FALSE)
-    dir.exists(orig_path)
+  selected_merged_clusters <- reactive({
+
+    # not modified if orig hasn't been saved
+    resoln_dir <- resoln_dir()
+    orig_dir <- paste0(resoln_dir, '_orig')
+    if (!dir.exists(orig_dir)) return(NULL)
+
+    # not modified unless a cluster selected
+    sel <- input$selected_clusters
+    if (!length(sel)) return(NULL)
+
+    find_merged_clusters(orig_dir, resoln_dir, sel)
   })
+
+  is_modified <- reactive(!is.null(selected_merged_clusters()))
 
   observe({
     toggleClass('undo_merge', class = 'disabled', condition = !is_modified() | disabled_demo)
@@ -3016,28 +3026,46 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
 
   observeEvent(input$undo_merge, {
     if (disabled_demo | !is_modified()) return(NULL)
-    showModal(confirmUndoMergeModal(session))
+
+    sel <- selected_merged_clusters()
+
+    choices <- cluster_choices()
+    undo_clusters <- choices[sel, 'label']
+    cluster_colors <- choices[sel, 'testColor']
+
+    showModal(confirmMergeModal(session, undo_clusters, cluster_colors, is.merge = FALSE))
   })
 
   observeEvent(input$confirm_undo_merge, {
     removeModal()
-    orig_path <- orig_path()
     resoln_dir <- resoln_dir()
-    unlink(resoln_dir, recursive = TRUE)
-    file.rename(orig_path, resoln_dir)
+    sel <- selected_merged_clusters()
+    unmerge_clusters(resoln_dir, sel)
+
     merge_count(merge_count() + 1)
   })
 
-
   return(list(merge_count = merge_count))
-
 }
 
 # modal to confirm adding single-cell dataset
-confirmMergeModal <- function(session, merge_clusters, cluster_colors) {
+confirmMergeModal <- function(session, merge_clusters, cluster_colors, is.merge = TRUE) {
+
+  if (is.merge) {
+    clusters_title <- "Selected clusters:"
+    modal_title <- 'Merge selected clusters?'
+    confirm_id <- 'confirm_merge'
+    confirm_text <- 'Merge'
+  } else {
+    clusters_title <- "Clusters to undo merges:"
+    modal_title <- 'Undo merges for selected clusters?'
+    confirm_id <- 'confirm_undo_merge'
+    confirm_text <- 'Undo Merges'
+
+  }
 
   clusters_ui <- tags$div(
-    tags$div(tags$b("Selected clusters:")),
+    tags$div(tags$b(clusters_title)),
     tags$div(lapply(seq_along(merge_clusters),
                     function(i) tags$div(
                       tags$div(
@@ -3059,25 +3087,11 @@ confirmMergeModal <- function(session, merge_clusters, cluster_colors) {
 
   modalDialog(
     UI,
-    title = 'Merge selected clusters?',
+    title = modal_title,
     size = 'm',
     footer = tagList(
-      actionButton(session$ns('confirm_merge'), 'Merge', class = 'btn-warning'),
+      actionButton(session$ns(confirm_id), confirm_text, class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))
-    )
-  )
-}
-
-confirmUndoMergeModal <- function(session) {
-
-  modalDialog(
-    tags$div('All merges for the current resolution will be undone.'),
-    title = 'Are you sure?',
-    size = 's',
-    easyClose = TRUE,
-    footer = tagList(
-      modalButton("Cancel"),
-      actionButton(session$ns("confirm_undo_merge"), "Undo All Merges", class = 'pull-left btn-danger')
     )
   )
 }

@@ -220,7 +220,7 @@ mergeClustersInput <- function(id) {
   withTags({
     shinypanel::selectizeInputWithButtons(
       ns('selected_clusters'),
-      label = 'Clusters to merge:',
+      label = 'Clusters to merge or unmerge:',
       actionButton(
         ns('undo_merge'),
         label = '',
@@ -229,7 +229,7 @@ mergeClustersInput <- function(id) {
           class = 'fa fa-trash-alt fa-fw',
           tags$i(class='fa fa-ban fa-fw fa-hide')
         ),
-        title = 'Undo all merges'),
+        title = 'Undo merges for selected clusters'),
       actionButton(
         ns('submit_merge'),
         label = '',
