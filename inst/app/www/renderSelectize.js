@@ -85,9 +85,17 @@ function contrastItem(item, escape) {
     // disable when no top_table
     var disabled = item.disabled ? 'disabled-option': '';
 
+    var bgStyle = item.testColor
+
+    // if merged cluster, swatch has diagonal line as hint
+    if (item.merged) {
+      bgStyle = `linear-gradient(to top right, white 50%, ${item.testColor} 50%)`;
+      title = `${title}  <merged>`;
+    }
+
     // styling if looking at cluster
     var clustEl = "<div title='" + title + "' class='" + disabled + "'>" +
-    "<div class='" + swatchClass +"' style='background-color:" + item.testColor + "'></div>" +
+    "<div class='" + swatchClass +"' style='background:" + bgStyle + "'></div>" +
     escape(item.name) +
     info +
     "</div>";
