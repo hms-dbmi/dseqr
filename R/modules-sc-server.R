@@ -3032,7 +3032,7 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
   })
 
 
-  is_modified <- reactive(!is.null(selected_merged_clusters()))
+  is_modified <- reactive(length(selected_merged_clusters()))
 
   observe({
     toggleClass('undo_merge', class = 'disabled', condition = !is_modified() | disabled_demo)
