@@ -134,7 +134,7 @@ function scDatasetOptions(item, escape) {
     if (opt === item.label) {
         opt = ''
     } else {
-        opt = typeof opt == 'undefined' ? '' : opt;
+        opt = typeof opt == 'undefined' ? '' : opt.replace(/_in[td]$/, "");
         opt = (opt == 'Previous Session' || opt == 'Integrated' || opt =='Individual') ? '' : opt + '_';
     }
 

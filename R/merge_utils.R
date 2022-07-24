@@ -11,19 +11,20 @@
 #'
 #' if (interactive()) {
 #'
-#'   dataset_names <- c('SJIALD_VS_HEALTHY_lungv1_merged_Azimuth',
-#'                      'SJIALD_VS_HEALTHY_merged_fastMNN')
+#'   # FILL THIS IN
+#'   sc_dir <- ''
+#'
+#'   dataset_names <- c('SJIALD_VS_HEALTHY_merged_QC1.0_fastMNN')
 #'
 #'   merge_list <- list(
 #'     'SJIALD_20200716' = c('SJIALD_1-20200716_QC3.0', 'SJIALD_2-20200716_QC3.0'),
 #'     'SJIALD_FID12518' = c('SJIALD_FID12518_Diseased_QC2.0'))
 #'
 #'   new_founder <- 'SJIALD_VS_HEALTHY_merged'
-#'   sc_dir <- '~/Documents/Data/dseqr/cincinnati/sjiald-sc-lung/single-cell'
 #'
 #'   for (dataset_name in dataset_names) {
 #'     data_dir <- file.path(sc_dir, dataset_name)
-#'     merge_samples(data_dir, samples_merge_list, new_founder)
+#'     merge_samples(data_dir, merge_list, new_founder)
 #'   }
 #'
 #' }
