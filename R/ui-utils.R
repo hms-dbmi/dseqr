@@ -153,7 +153,7 @@ navbar2UI <- function(hide) {
                                           role='button',
                                           class = 'action-button shiny-bound-input',
                                           icon('plus', 'fa-fw'),
-                                          'Import')
+                                          'Upload')
                            ),
                            tags$li(class=add,
                                    tags$a(id = 'integrate_dataset',
@@ -168,7 +168,7 @@ navbar2UI <- function(hide) {
                                           role='button',
                                           class = 'action-button shiny-bound-input',
                                           tags$i(class = 'fab fa-r-project'),
-                                          'Export')
+                                          'Download')
                            ),
                            tags$li(class=add,
                                    tags$a(id = 'remove_dataset',

@@ -2869,7 +2869,6 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
       exclude_clusters <- setdiff(cluster_choices()$value, exclude_clusters)
     }
 
-
     subsets[[dataset_name]] <- callr::r_bg(
       func = subset_saved_scseq,
       package = 'dseqr',

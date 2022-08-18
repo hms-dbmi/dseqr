@@ -1541,6 +1541,8 @@ validate_integration <- function(types, name, ref_name, dataset_names, sc_dir) {
     msg <- 'Select one or more integration types'
   } else if (name == '') {
     msg <- 'Enter name for integrated dataset'
+  } else if (grepl('/', name)) {
+    msg <- "Remove '/' from dataset name"
   } else if (length(dataset_names) < 2) {
     msg <- 'Select atleast two datasets'
   } else if (length(species) > 1) {
@@ -1573,6 +1575,8 @@ validate_subset <- function(from_dataset, subset_name, subset_features, is_inclu
   } else if (all.excluded) {
     msg <- 'All excluded'
 
+  } else if (grepl('/', subset_name)) {
+    msg <- "Remove '/' from name"
   }
 
   return(msg)
