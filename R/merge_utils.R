@@ -17,7 +17,7 @@
 #'   dataset_names <- c('SJIALD_VS_HEALTHY_merged_QC1.0_fastMNN')
 #'
 #'   merge_list <- list(
-#'     'SJIALD_20200716' = c('SJIALD_1-20200716_QC3.0', 'SJIALD_2-20200716_QC3.0'),
+#'     'SJIALD_20200716' = c('SJIALD_1-20200716_QC3.0_NO_NEUTRO', 'SJIALD_2-20200716_QC3.0_NO_NEUTRO'),
 #'     'SJIALD_FID12518' = c('SJIALD_FID12518_Diseased_QC2.0'))
 #'
 #'   new_founder <- 'SJIALD_VS_HEALTHY_merged'
