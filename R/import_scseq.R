@@ -979,7 +979,7 @@ process_cellranger_counts <- function(counts, tx2gene, alt_genes) {
   # counts <- counts[Matrix::rowSums(counts) > 0, ]
 
   # sum counts in rows with same gene
-  counts <- Matrix.utils::aggregate.Matrix(counts, row.names(counts), fun = 'sum')
+  counts <- aggregate.Matrix(counts, row.names(counts), fun = 'sum')
   return(counts)
 }
 

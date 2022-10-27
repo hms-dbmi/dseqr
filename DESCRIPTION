@@ -52,7 +52,6 @@ Imports:
     jsonlite,
     limma (>= 3.40.2),
     magrittr (>= 1.5),
-    Matrix.utils (>= 0.9.7),
     Matrix,
     methods,
     MASS,
