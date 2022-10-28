@@ -7,12 +7,12 @@
 merge_samples(data_dir, merge_list, new_founder = NULL)
 }
 \arguments{
+\item{data_dir}{of single-cell}
+
 \item{merge_list}{Names are new name, values are current names to merge}
 
 \item{new_founder}{Name of new founder for dataset for grouping in select menu.
 Default (\code{NULL}) keeps previous founder.}
-
-\item{subdirectory}{of single-cell}
 }
 \value{
 called for side effects

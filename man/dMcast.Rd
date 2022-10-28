@@ -35,7 +35,7 @@ in contrast to \code{\link{model.matrix}}}
 a sparse \code{Matrix}
 }
 \description{
-Similar in function to \code{\link[reshape2]{dcast}}, but produces a sparse
+Similar in function to \code{dcast}, but produces a sparse
 \code{\link{Matrix}} as an output. Sparse matrices are beneficial for this
 application because such outputs are often very wide and sparse. Conceptually
 similar to a \code{pivot} operation.

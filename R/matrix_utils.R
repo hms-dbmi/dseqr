@@ -25,11 +25,6 @@
 #'   \code{cbind(attr(x,"crosswalk"),x)} to combine the groupings and the
 #'   aggregates.
 #'
-#' @seealso \code{\link[dplyr]{summarise}}
-#' @seealso \code{\link[plyr]{summarise}}
-#' @seealso \code{\link[stats]{aggregate}}
-#' @export
-#' @export aggregate.Matrix
 #' @examples
 #' skus <- Matrix::Matrix(as.matrix(data.frame(
 #'   orderNum = sample(1000, 10000, TRUE),
@@ -92,7 +87,7 @@ aggregate.Matrix <- function(x, groupings = NULL, form = NULL, fun = "sum", ...)
 
 #' Casts or pivots a long \code{data frame} into a wide sparse matrix
 #'
-#' Similar in function to \code{\link[reshape2]{dcast}}, but produces a sparse
+#' Similar in function to \code{dcast}, but produces a sparse
 #' \code{\link{Matrix}} as an output. Sparse matrices are beneficial for this
 #' application because such outputs are often very wide and sparse. Conceptually
 #' similar to a \code{pivot} operation.

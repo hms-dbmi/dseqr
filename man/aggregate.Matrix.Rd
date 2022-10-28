@@ -68,10 +68,3 @@ system.time(d <- aggregate.Matrix(orders[, "amount", drop = FALSE], orders$order
 system.time(e <- aggregate.Matrix(orders[, "amount", drop = FALSE], orders[, c("customer", "state")]))
 }
 }
-\seealso{
-\code{\link[dplyr]{summarise}}
-
-\code{\link[plyr]{summarise}}
-
-\code{\link[stats]{aggregate}}
-}
