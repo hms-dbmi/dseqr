@@ -41,19 +41,19 @@ Warning: groupings will be made dense if it is sparse, though data will not.
 be passed a string in the \code{fun} argument.
 }
 \examples{
-skus <- Matrix(as.matrix(data.frame(
+skus <- Matrix::Matrix(as.matrix(data.frame(
   orderNum = sample(1000, 10000, TRUE),
   sku = sample(1000, 10000, TRUE),
   amount = runif(10000)
 )), sparse = TRUE)
 # Calculate sums for each sku
-a <- aggregate.Matrix(skus[, "amount"], skus[, "sku", drop = FALSE], fun = "sum")
+a <- aggregate.Matrix(skus[, "amount"], skus[, "sku"], fun = "sum")
 # Calculate counts for each sku
-b <- aggregate.Matrix(skus[, "amount"], skus[, "sku", drop = FALSE], fun = "count")
+b <- aggregate.Matrix(skus[, "amount"], skus[, "sku"], fun = "count")
 # Calculate mean for each sku
-c <- aggregate.Matrix(skus[, "amount"], skus[, "sku", drop = FALSE], fun = "mean")
+c <- aggregate.Matrix(skus[, "amount"], skus[, "sku"], fun = "mean")
 
-m <- rsparsematrix(1000000, 100, .001)
+m <- Matrix::rsparsematrix(1000000, 100, .001)
 labels <- as.factor(sample(1e4, 1e6, TRUE))
 b <- aggregate.Matrix(m, labels)
 
