@@ -1,6 +1,6 @@
 #' Merge samples that are from the sample subject
 #'
-#' @param subdirectory of single-cell
+#' @param data_dir of single-cell
 #' @param merge_list Names are new name, values are current names to merge
 #' @param new_founder Name of new founder for dataset for grouping in select menu.
 #' Default (\code{NULL}) keeps previous founder.
