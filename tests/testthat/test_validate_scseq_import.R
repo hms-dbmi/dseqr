@@ -148,3 +148,18 @@ test_that("one sample in MEX format and one in h5 is valid", {
     unlink(c(sc_dir, uploaded_data_dir), recursive = TRUE)
 })
 
+test_that("sc samples cannot have invalid names", {
+
+  invalid_start_period <- '.sample_name'
+  msg_name <- validate_scseq_add_sample(rows = 1:3, invalid_start_period)
+  expect_true(grepl('not start with a period', msg_name))
+
+  invalid_has_path <- '/etc'
+  msg_name <- validate_scseq_add_sample(rows = 1:3, invalid_has_path)
+  expect_true(grepl('not form a path', msg_name))
+
+  valid_name <- 'sample_name'
+  msg_name <- validate_scseq_add_sample(rows= 1:3, valid_name)
+  expect_null(msg_name)
+})
+

@@ -105,3 +105,18 @@ test_that("fastq files cannot have the same name", {
 
     unlink(c(fq1_path, fq2_path, fq3_path, fq4_path))
 })
+
+test_that("bulk datasets cannot have invalid names", {
+
+  invalid_start_period <- '.dataset_name'
+  msg_name <- validate_bulk_name(invalid_start_period)
+  expect_true(grepl('not start with a period', msg_name))
+
+  invalid_path <- '/etc'
+  msg_name <- validate_bulk_name(invalid_path)
+  expect_true(grepl('not form a path', msg_name))
+
+  valid_name <- 'dataset_name'
+  msg_name <- validate_bulk_name(valid_name)
+  expect_null(msg_name)
+})
