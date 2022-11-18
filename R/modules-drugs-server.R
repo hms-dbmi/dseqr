@@ -160,18 +160,14 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
     shinyjs::toggleClass('validate', 'has-error', condition = isTruthy(msg))
   })
 
+  observe(shinyjs::toggleState('click_custom', condition = isTruthy(input$custom_name)))
+
   observeEvent(input$click_custom, {
-    if (!isTruthy(input$custom_name)) {
-      error_msg('Need name for query')
-      return(NULL)
-    }
     error_msg(NULL)
-    shinyjs::click('up_custom')
   })
 
 
   observeEvent(input$up_custom, {
-
 
     infile <- input$up_custom
     if (!isTruthy(infile)){

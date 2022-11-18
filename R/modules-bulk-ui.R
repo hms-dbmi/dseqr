@@ -52,21 +52,75 @@ bulkAnnotInput <- function(id) {
   ns <- NS(id)
   tagList(
     tags$div(id=ns('validate-up'), class='validate-wrapper',
-             shinyWidgets::actionGroupButtons(
+             actionGroupButtonsWithClickHandlers(
                inputIds = c(ns('click_dl'), ns('click_up')),
+               onclicks = c(sprintf('$("#%s").click()', ns('dl_annot')),
+                            sprintf('$("#%s").click()', ns('up_annot'))),
                labels = list(icon('download', 'fa-fw'), icon('upload', 'fa-fw'))
              ),
              tags$div(class='help-block', id = ns('error_msg'))
 
     ),
     # hidden dl/upload buttons
-    div(style = 'display: none',
+    div(style = 'display: none;',
         fileInput(ns('up_annot'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
     ),
     downloadLink(ns('dl_annot'), ''),
 
     shinyBS::bsTooltip(id = ns('click_dl'), title = 'Download metadata to fill: <b>Group name</b> and <b>Pair</b> (optional)', options = list(container = 'body')),
     shinyBS::bsTooltip(id = ns('click_up'), title = 'Upload filled metadata', options = list(container = 'body'))
+  )
+}
+
+actionGroupButtonsWithClickHandlers <- function(inputIds,
+                                                labels,
+                                                onclicks,
+                                                status = "default",
+                                                size = "normal",
+                                                direction = "horizontal",
+                                                fullwidth = FALSE) {
+  stopifnot(length(inputIds) == length(labels))
+  size <- match.arg(
+    arg = size,
+    choices = c("xs", "sm", "normal", "lg")
+  )
+  direction <- match.arg(
+    arg = direction,
+    choices = c("horizontal", "vertical")
+  )
+  status <- rep(status, length.out = length(labels))
+  tags$div(
+    class = "btn-group",
+    class = if (direction == "vertical") "btn-group-vertical",
+    class = paste0("btn-group-", size),
+    class = if(fullwidth) "btn-group-justified",
+    role = "group",
+    lapply(
+      X = seq_along(labels),
+      FUN = function(i) {
+        value <- shiny::restoreInput(id = inputIds[i], default = NULL)
+        if (fullwidth) {
+          tags$div(
+            class = "btn-group", role = "group",
+            class = paste0("btn-group-", size),
+            tags$button(
+              id = inputIds[i],
+              type = "button",`data-val` = value,
+              class = paste0("btn action-button btn-", status[i]),
+              labels[i]
+            )
+          )
+        } else {
+          tags$button(
+            id = inputIds[i],
+            type = "button",`data-val` = value,
+            class = paste0("btn action-button btn-", status[i]),
+            onclick = onclicks[i],
+            labels[i]
+          )
+        }
+      }
+    )
   )
 }
 

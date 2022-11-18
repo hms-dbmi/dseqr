@@ -130,19 +130,6 @@ server <- function(input, output, session) {
     rintrojs::introjs(session, options = list(showStepNumbers = 'false', steps = steps))
   })
 
-  observe({
-    if (length(list.dirs(sc_dir(), recursive = FALSE))) return(NULL)
-    # show hints and add dataset modal if no datasets
-    shinyjs::click('add_dataset')
-    rintrojs::hintjs(session,
-                     options = list(hints =
-                                      data.frame(
-                                        element = '#docs-link',
-                                        hint = 'Read the docs for all the details.',
-                                        hintPosition = 'middle-middle')))
-  })
-
-
   # customize dataset management dropdown for each tab
   observe({
     toggle('tour_dropdown', condition = input$tab == 'Single Cell')
