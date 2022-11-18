@@ -103,5 +103,6 @@ Remotes:
     hms-dbmi/picker,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
+    alexvpickering/shinydlplot,
     immunogenomics/presto
 Config/testthat/edition: 3
