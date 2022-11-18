@@ -1716,6 +1716,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
       return(msg)
     }
 
+    msg <- validate_not_path(sample)
     return(msg)
   }
 

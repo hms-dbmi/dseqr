@@ -763,17 +763,43 @@ attrib_replace <- function(x, cond, ...) {
   x
 }
 
+getUploadBulkInfo <- function(is_local) {
+
+  local_info <- tags$div(
+    class='alert alert-warning', role = 'alert',
+    tags$div(tags$b("For each sample upload file types:")),
+    tags$br(),
+    tags$div("- ", tags$code('fastq.gz'), "or"),
+    tags$br(),
+    tags$div("- ", tags$code('eset.qs'), "/", tags$code('eset.rds'), 'files produced with', tags$a(href = 'https://github.com/alexvpickering/rkal', tags$code('rkal::import_quants'))),
+    tags$hr(),
+    tags$div('\U1F331 Only human fastq.gz files are currently supported.')
+  )
+
+  server_info <- tags$div(
+    class='alert alert-warning', role = 'alert',
+    tags$div(tags$b("For each sample upload file types:")),
+    tags$br(),
+    tags$div("- ", tags$code('eset.qs'), "/", tags$code('eset.rds'), 'files produced with', tags$a(href = 'https://github.com/alexvpickering/rkal', tags$code('rkal::import_quants'))),
+    tags$hr(),
+    tags$div('\U1F331 fastq.gz files can only be imported locally.')
+  )
+
+  if (is_local) {
+    return(local_info)
+  } else {
+    return(server_info)
+  }
+}
+
 # modal to upload bulk fastq.gz files
-uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
+uploadBulkModal <- function(session, show_init, is_eset, import_dataset_name, paired) {
+
+  is_local <- getShinyOption('is_local', TRUE)
+  test_string <- ifelse(is_local, 'rds$|qs$|fastq.gz$', 'rds$|qs$')
 
   modalDialog(
-    tags$div(
-      class='alert alert-warning', role = 'alert',
-      tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.')),
-      tags$hr(),
-      tags$div('\U1F331 Only human fastq.gz files are currently supported.')
-    ),
-
+    getUploadBulkInfo(is_local),
     div(class='upload-validation dashed-upload',
         attrib_replace(
           fileInput(
@@ -782,15 +808,15 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
             label = '',
             width='100%',
             buttonLabel = 'upload',
-            accept = c('.qs', '.fastq.gz'),
+            accept = c('.qs', '.fastq.gz', '.eset'),
             multiple = TRUE
           ),
           list(id = session$ns("up_raw"), type = "file"),
-          onchange = sprintf("checkBulkFileName(this, '%s');", session$ns("up_raw_errors"))
+          onchange = sprintf("checkBulkFileName(this, '%s' ,'%s');", session$ns("up_raw_errors"), test_string)
         ),
         tags$div(
           id = session$ns('validate-up-fastq'),
-          tags$span(class = 'help-block', id = session$ns('error_msg_fastq'))
+          tags$span(class = 'help-block', id = session$ns('error_msg_bulk_file'))
         )
     ),
     tags$div(
@@ -807,7 +833,7 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
     ),
     tags$div(
       id = session$ns('fastq_labels_container'),
-      style = ifelse(show_init, '', 'display: none;'),
+      style = ifelse(show_init & !is_eset, '', 'display: none;'),
       justifiedButtonGroup(
         container_id = session$ns('fastq_labels'),
         label = 'Label selected rows as:',
@@ -871,7 +897,7 @@ confirmImportBulkModal <- function(session) {
 }
 
 # validation when upload bulk files
-validate_bulk_uploads <- function(up_df) {
+validate_bulk_uploads <- function(up_df, is_eset) {
   msg <- NULL
 
   sizes <- up_df$size
@@ -879,6 +905,9 @@ validate_bulk_uploads <- function(up_df) {
     msg <- 'Files with 0 bytes. Remove and re-upload.'
     return(msg)
   }
+
+  # only check file size if eset
+  if (is_eset) return(msg)
 
   # try to get a line from fastq files
   id1s <- rkal::get_fastq_id1s(up_df$datapath)
@@ -908,6 +937,34 @@ validate_bulk_uploads <- function(up_df) {
   }
 
   return(msg)
+}
+
+validate_bulk_name <- function(import_name) {
+
+  if (!isTruthy(import_name)) {
+    msg <- 'Provide dataset name.'
+    return(msg)
+  }
+
+  msg <- validate_not_path(import_name)
+  return(msg)
+}
+
+validate_not_path <- function(import_name) {
+
+  is_path <- basename(import_name) != import_name
+  if (is_path) {
+    msg <- 'Name must not form a path.'
+    return(msg)
+  }
+
+  starts_with_period <- grepl('^[.]', import_name)
+  if (starts_with_period) {
+    msg <- 'Name must not start with a period.'
+    return(msg)
+  }
+
+  return(NULL)
 }
 
 # validation run after click "Import"

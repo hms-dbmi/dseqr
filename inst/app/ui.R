@@ -79,17 +79,22 @@ if (!is_local) {
   )
 }
 
-checkBulkFileName <- 'function checkBulkFileName(fieldObj, shinyId) {
+checkBulkFileName <- 'function checkBulkFileName(fieldObj, shinyId, testString) {
     var fileName  = fieldObj.value;
     var fileBase = fileName.split(/[\\\\/]/).pop();
 
-    if (!fileBase.endsWith(".fastq.gz")) {
+    const re = new RegExp(testString);
+
+    console.log(fileBase)
+    if (!re.test(fileBase)) {
         fieldObj.value = "";
         Shiny.setInputValue(shinyId, "", {priority: "event"})
         return false;
     }
     return true;
 }'
+
+
 
 checkSingleCellFileName <- 'function checkSingleCellFileName(fieldObj, shinyId) {
     var fileName  = fieldObj.value;

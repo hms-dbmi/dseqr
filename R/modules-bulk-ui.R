@@ -60,7 +60,7 @@ bulkAnnotInput <- function(id) {
 
     ),
     # hidden dl/upload buttons
-    div(style = 'display: none',
+    div(style = 'width: 0;height: 0; visibility: collapse',
         fileInput(ns('up_annot'), '', accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
     ),
     downloadLink(ns('dl_annot'), ''),
