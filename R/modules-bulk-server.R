@@ -447,7 +447,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   pairs <- reactiveVal()
   reps <- reactiveVal()
 
-  error_msg_fastq <- reactiveVal()
+  error_msg_bulk_file <- reactiveVal()
   error_msg_labels <- reactiveVal()
 
 
@@ -458,6 +458,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   observe({
     prev <- empty_table()
     df <- isolate(uploads_table_html())
+    is_eset <- is_eset()
 
     if (is.null(df)) {
       df <- data.frame(
@@ -471,9 +472,11 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
 
     prev_paired <- !is.null(prev$Pair)
     curr_paired <- detected_paired()
+    prev_eset <- !'Replicate' %in% colnames(prev)
     if (!curr_paired) df$Pair <- NULL
+    if (is_eset) df$Pair <- df$Replicate <- NULL
 
-    if (is.null(prev) || prev_paired != curr_paired) empty_table(df)
+    if (is.null(prev) || prev_paired != curr_paired || prev_eset != is_eset) empty_table(df)
   })
 
 
@@ -484,6 +487,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     if (is.null(df)) return(NULL)
     targets <- 1
     if ('Pair' %in% colnames(df)) targets <- c(1, 2)
+    if (!'Replicate' %in% colnames(df)) targets <- NULL
     DT::datatable(df,
                   class = 'cell-border dt-fake-height',
                   rownames = FALSE,
@@ -505,6 +509,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   observe({
     table <- uploads_table_html()
     if (!detected_paired()) table$Pair <- NULL
+    if (is_eset()) table$Pair <- table$Replicate <- NULL
     DT::replaceData(proxy, table, rownames = FALSE)
   })
 
@@ -512,34 +517,40 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   # open add dataset modal
   observeEvent(add_bulk(), {
 
+
+
     showModal(uploadBulkModal(
       session,
       have_uploads(),
+      is_eset(),
       input$import_dataset_name,
       detected_paired()
     ))
   })
 
 
-  # set message if tried to upload anything but fastq.gz
+  # set message if tried to upload anything but specified
   observeEvent(input$up_raw_errors, {
-    msg <- 'Only fastq.gz files can be uploaded.'
-    error_msg_fastq(msg)
+    msg <- 'Only specified file types can be uploaded.'
+    error_msg_bulk_file(msg)
   })
 
   # validate uploaded files
   observeEvent(uploads_table(), {
     up_df <- uploads_table()
-    msg <- validate_bulk_uploads(up_df)
-    error_msg_fastq(msg)
+
+    msg <- validate_bulk_uploads(up_df, is_eset())
+    error_msg_bulk_file(msg)
   })
 
   # show any errors with uploads
   observe({
-    msg <- error_msg_fastq()
-    html('error_msg_fastq', html = msg)
+    msg <- error_msg_bulk_file()
+    html('error_msg_bulk_file', html = msg)
     shinyjs::toggleClass('validate-up-fastq', 'has-error', condition = isTruthy(msg))
   })
+
+  is_eset <- reactiveVal(FALSE)
 
   # append to uploads table
   # also add placeholder for pairs and replicates
@@ -548,12 +559,25 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     new <- input$up_raw
     new <- new[file.exists(new$datapath), ]
 
-    # extend reps/pairs
-    placeholder <- rep(NA, nrow(new))
-    reps(c(reps(), placeholder))
-    pairs(c(pairs(), placeholder))
+    is.eset <- grep('[.]qs$|[.]rds$', new$name)
 
-    uploads_table(rbind.data.frame(prev, new))
+    if (length(is.eset)) {
+      # take first eset
+      is_eset(TRUE)
+      reps(NULL)
+      pairs(NULL)
+      uploads_table(new[is.eset[1], ])
+    } else {
+      is_eset(FALSE)
+      # extend reps/pairs
+      placeholder <- rep(NA, nrow(new))
+      reps(c(reps(), placeholder))
+      pairs(c(pairs(), placeholder))
+
+      uploads_table(rbind.data.frame(prev, new))
+
+    }
+
   })
 
   # handle delete row button
@@ -589,6 +613,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
 
   observe({
     df <- uploads_table()
+    is_eset <- is_eset()
     if (is.null(df)) {
       uploads_table_html(NULL)
       return()
@@ -598,7 +623,11 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     df$size <- sapply(df$size, utils:::format.object_size, units = 'auto')
     colnames(df) <- c('File', 'Size')
 
-    df <- dplyr::mutate(df, ' ' = NA, Pair = NA, Replicate = NA,  .before = 1)
+    if (!is_eset)
+      df <- dplyr::mutate(df, ' ' = NA, Pair = NA, Replicate = NA,  .before = 1)
+    else
+      df <- dplyr::mutate(df, ' ' = NA,  .before = 1)
+
     df$` ` <- getDeleteRowButtons(session, nrow(df))
 
     uploads_table_html(df)
@@ -609,6 +638,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   detected_paired <- reactive({
     up_df <- uploads_table()
     if (is.null(up_df)) return(FALSE)
+    if (is_eset()) return(FALSE)
 
     fastqs <- up_df$datapath
     fastqs <- fastqs[file.exists(fastqs)]
@@ -744,19 +774,12 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     shinyjs::toggleCssClass('rep', class = 'radius-left', condition = !detected_paired())
   })
 
-  # clear name error msg if type
-  observe({
-    req(error_msg_name())
-    if (isTruthy(input$import_dataset_name)) error_msg_name(NULL)
-  })
-
-
   observe({
     shinyjs::toggleCssClass('uploads_table_container', 'invisible-height', condition = !have_uploads())
   })
 
   observe({
-    shinyjs::toggle('fastq_labels_container', condition = have_uploads())
+    shinyjs::toggle('fastq_labels_container', condition = have_uploads() & !is_eset())
   })
 
   observe({
@@ -790,26 +813,56 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     up_df <- uploads_table()
     paired <- detected_paired()
     import_name <- input$import_dataset_name
+    is_eset <- is_eset()
 
     # need a name
-    msg_name <- NULL
-    if (!isTruthy(import_name)) msg_name <- 'Provide dataset name.'
 
-    msg_labels <- validate_bulk_labels(up_df, reps, pairs, paired)
-    msg_fastq <- validate_bulk_uploads(up_df)
+    msg_labels <- NULL
+    if (!is_eset) msg_labels <- validate_bulk_labels(up_df, reps, pairs, paired)
+    msg_bulk_uploads <- validate_bulk_uploads(up_df, is_eset)
+
+    msg_name <- validate_bulk_name(import_name)
 
     error_msg_name(msg_name)
     error_msg_labels(msg_labels)
-    error_msg_fastq(msg_fastq)
+    error_msg_bulk_file(msg_bulk_uploads)
 
-    if (is.null(msg_name) && is.null(msg_labels) && is.null(msg_fastq)) {
+    if (is.null(msg_name) && is.null(msg_labels) && is.null(msg_bulk_uploads)) {
 
       removeModal()
       Sys.sleep(1)
 
-      showModal(confirmImportBulkModal(session))
+      if (!is_eset) {
+        showModal(confirmImportBulkModal(session))
+
+      } else {
+        progress <- Progress$new(session, min=0, max = 2)
+        on.exit(progress$close())
+        progress$set(message = "Importing ExpressionSet", value = 1)
+        import_bulk_eset(up_df, import_name, bulk_dir())
+        new_dataset(import_name)
+        uploads_table(NULL)
+        progress$set(value = 2)
+      }
     }
   })
+
+  import_bulk_eset <- function(up_df, import_name, bulk_dir) {
+    data_dir <- file.path(bulk_dir, import_name)
+    unlink(data_dir, recursive = TRUE)
+    dir.create(data_dir)
+
+    new_fpath <- file.path(data_dir, 'eset.qs')
+    rds_upload <- grepl('[.]rds$', up_df$name)
+
+    if (rds_upload) {
+      eset <- readRDS(up_df$datapath)
+      qs::qsave(eset, new_fpath)
+
+    } else {
+      file.move(up_df$datapath, new_fpath)
+    }
+  }
 
 
 
@@ -848,7 +901,6 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     paired <- detected_paired()
     dataset_name <- input$import_dataset_name
     fastq_dir <- file.path(bulk_dir(), dataset_name)
-
 
     # move files
     up_df <- uploads_table()

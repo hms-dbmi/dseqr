@@ -1703,26 +1703,10 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
     shinyjs::toggle('sample_name_container', condition = isTruthy(up_table()))
   })
 
-  validate_add_sample <- function(sample, rows) {
-    msg <- NULL
-
-    if (is.null(rows)) {
-      msg <- 'No rows selected.'
-      return(msg)
-    }
-
-    if (!isTruthy(sample)) {
-      msg <- 'No sample name provided'
-      return(msg)
-    }
-
-    return(msg)
-  }
-
   observeEvent(input$add_sample, {
     sample <- input$sample_name
     rows <- input$up_table_rows_selected
-    msg <- validate_add_sample(sample, rows)
+    msg <- validate_scseq_add_sample(sample, rows)
 
     html('error_msg', html = msg)
     shinyjs::toggleClass('validate-up', 'has-error', condition = isTruthy(msg))

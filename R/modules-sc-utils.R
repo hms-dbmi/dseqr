@@ -1559,27 +1559,24 @@ get_integration_species <- function(integration_datasets, sc_dir) {
 }
 
 validate_subset <- function(from_dataset, subset_name, subset_features, is_include, hvgs) {
-  msg <- NULL
 
-  have.dataset <- isTruthy(from_dataset)
-  have.name <- isTruthy(subset_name)
-  all.excluded <- is_include & !isTruthy(subset_features)
-  no.hvgs <- !isTruthy(hvgs)
-
+  have.dataset <- shiny::isTruthy(from_dataset)
   if (!have.dataset) {
-    msg <- 'No dataset selected'
-
-  } else if (!have.name) {
-    msg <- 'No name given'
-
-  } else if (all.excluded) {
-    msg <- 'All excluded'
-
-  } else if (grepl('/', subset_name)) {
-    msg <- "Remove '/' from name"
+    return('No dataset selected')
   }
 
-  return(msg)
+  have.name <- shiny::isTruthy(subset_name)
+  if (!have.name) {
+    return('No name given')
+  }
+
+
+  all.excluded <- is_include & !shiny::isTruthy(subset_features)
+  if (all.excluded) {
+    return('All excluded')
+  }
+
+  return(validate_not_path(subset_name))
 }
 
 
@@ -2173,6 +2170,23 @@ validate_scseq_import <- function(up_df, samples) {
     }
   }
 
+  return(msg)
+}
+
+validate_scseq_add_sample <- function(sample, rows) {
+  msg <- NULL
+
+  if (is.null(rows)) {
+    msg <- 'No rows selected.'
+    return(msg)
+  }
+
+  if (!shiny::isTruthy(sample)) {
+    msg <- 'No sample name provided'
+    return(msg)
+  }
+
+  msg <- validate_not_path(sample)
   return(msg)
 }
 

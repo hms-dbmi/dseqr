@@ -763,17 +763,43 @@ attrib_replace <- function(x, cond, ...) {
   x
 }
 
+getUploadBulkInfo <- function(is_local) {
+
+  local_info <- tags$div(
+    class='alert alert-warning', role = 'alert',
+    tags$div(tags$b("For each sample upload file types:")),
+    tags$br(),
+    tags$div("- ", tags$code('fastq.gz'), "or"),
+    tags$br(),
+    tags$div("- ", tags$code('eset.qs'), "/", tags$code('eset.rds'), 'files produced with', tags$a(href = 'https://github.com/alexvpickering/rkal', tags$code('rkal::import_quants'))),
+    tags$hr(),
+    tags$div('\U1F331 Only human fastq.gz files are currently supported.')
+  )
+
+  server_info <- tags$div(
+    class='alert alert-warning', role = 'alert',
+    tags$div(tags$b("For each sample upload file types:")),
+    tags$br(),
+    tags$div("- ", tags$code('eset.qs'), "/", tags$code('eset.rds'), 'files produced with', tags$a(href = 'https://github.com/alexvpickering/rkal', tags$code('rkal::import_quants'))),
+    tags$hr(),
+    tags$div('\U1F331 fastq.gz files can only be imported locally.')
+  )
+
+  if (is_local) {
+    return(local_info)
+  } else {
+    return(server_info)
+  }
+}
+
 # modal to upload bulk fastq.gz files
-uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
+uploadBulkModal <- function(session, show_init, is_eset, import_dataset_name, paired) {
+
+  is_local <- getShinyOption('is_local', TRUE)
+  test_string <- ifelse(is_local, 'rds$|qs$|fastq.gz$', 'rds$|qs$')
 
   modalDialog(
-    tags$div(
-      class='alert alert-warning', role = 'alert',
-      tags$div(tags$b("For each sample upload "), tags$code('fastq.gz'), tags$b(' files.')),
-      tags$hr(),
-      tags$div('\U1F331 Only human fastq.gz files are currently supported.')
-    ),
-
+    getUploadBulkInfo(is_local),
     div(class='upload-validation dashed-upload',
         attrib_replace(
           fileInput(
@@ -782,15 +808,15 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
             label = '',
             width='100%',
             buttonLabel = 'upload',
-            accept = c('.qs', '.fastq.gz'),
+            accept = c('.qs', '.fastq.gz', '.eset'),
             multiple = TRUE
           ),
           list(id = session$ns("up_raw"), type = "file"),
-          onchange = sprintf("checkBulkFileName(this, '%s');", session$ns("up_raw_errors"))
+          onchange = sprintf("checkBulkFileName(this, '%s' ,'%s');", session$ns("up_raw_errors"), test_string)
         ),
         tags$div(
           id = session$ns('validate-up-fastq'),
-          tags$span(class = 'help-block', id = session$ns('error_msg_fastq'))
+          tags$span(class = 'help-block', id = session$ns('error_msg_bulk_file'))
         )
     ),
     tags$div(
@@ -807,7 +833,7 @@ uploadBulkModal <- function(session, show_init, import_dataset_name, paired) {
     ),
     tags$div(
       id = session$ns('fastq_labels_container'),
-      style = ifelse(show_init, '', 'display: none;'),
+      style = ifelse(show_init & !is_eset, '', 'display: none;'),
       justifiedButtonGroup(
         container_id = session$ns('fastq_labels'),
         label = 'Label selected rows as:',
@@ -871,14 +897,16 @@ confirmImportBulkModal <- function(session) {
 }
 
 # validation when upload bulk files
-validate_bulk_uploads <- function(up_df) {
+validate_bulk_uploads <- function(up_df, is_eset = FALSE) {
   msg <- NULL
 
   sizes <- up_df$size
   if (any(sizes == 0)) {
-    msg <- 'Files with 0 bytes. Remove and re-upload.'
-    return(msg)
+    return('Files with 0 bytes. Remove and re-upload.')
   }
+
+  # only check file size if eset
+  if (is_eset) return(NULL)
 
   # try to get a line from fastq files
   id1s <- rkal::get_fastq_id1s(up_df$datapath)
@@ -886,28 +914,49 @@ validate_bulk_uploads <- function(up_df) {
 
   if (any(not.fastqs)) {
     msg <- paste('Invalid files:', paste(up_df$name[not.fastqs], collapse = ', '))
-    return(msg)
   }
 
   # check pairs
   pairs <- rkal::get_fastq_pairs(id1s)
   if (is.null(pairs)) {
-    msg <- "Format of fastq.gz files must be from older/newer Illumina software."
-    return(msg)
+    return("Format of fastq.gz files must be from older/newer Illumina software.")
   }
 
   paired <- '2' %in% unique(pairs)
   each.paired <- sum(pairs == '1') == sum(pairs == '2')
   if (paired && !each.paired) {
-    msg <- "Upload both files for pair-ended fastq.gz files."
+    return("Upload both files for pair-ended fastq.gz files.")
   }
 
   if (length(up_df$name) != length(unique(up_df$name))) {
-    msg <- 'Files must have unique names.'
-    return(msg)
+    return('Files must have unique names.')
   }
 
-  return(msg)
+  return(NULL)
+}
+
+validate_bulk_name <- function(import_name) {
+
+  if (!isTruthy(import_name)) {
+    return('Provide dataset name.')
+  }
+
+  return(validate_not_path(import_name))
+}
+
+validate_not_path <- function(import_name) {
+
+  is_path <- basename(import_name) != import_name
+  if (is_path) {
+    return('Name must not form a path.')
+  }
+
+  starts_with_period <- grepl('^[.]', import_name)
+  if (starts_with_period) {
+    return('Name must not start with a period.')
+  }
+
+  return(NULL)
 }
 
 # validation run after click "Import"

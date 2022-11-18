@@ -115,9 +115,11 @@ validate_custom_query <- function(dn_genes, up_genes, custom_name) {
 #'
 #' @keywords internal
 validate_up_custom <- function(top_table, custom_name) {
-  msg <- NULL
 
-  if (is.null(top_table)) return('Need two columns: unique HGNC and effect size')
+  if (is.null(top_table)) {
+    msg <- 'Need two columns: unique HGNC and effect size'
+    return(msg)
+  }
 
   # need at least one L1000/CMAP gene
   genes <- unique(unlist(genes))
@@ -125,6 +127,7 @@ validate_up_custom <- function(top_table, custom_name) {
 
   if (!length(common)) {
     msg <- 'First column: HGNC symbols in L1000/CMAP02'
+    return(msg)
   }
 
   # need logFC/dprimes effect size as second column
@@ -134,10 +137,11 @@ validate_up_custom <- function(top_table, custom_name) {
 
   if (is.character(es)) {
     msg <- 'Second column: numeric logFC or dprime values'
+    return(msg)
   }
 
+  msg <- validate_not_path(custom_name)
   return(msg)
-
 }
 
 #' Format uploaded custom query signature
