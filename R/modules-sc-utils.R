@@ -2176,6 +2176,23 @@ validate_scseq_import <- function(up_df, samples) {
   return(msg)
 }
 
+validate_scseq_add_sample <- function(sample, rows) {
+  msg <- NULL
+
+  if (is.null(rows)) {
+    msg <- 'No rows selected.'
+    return(msg)
+  }
+
+  if (!shiny::isTruthy(sample)) {
+    msg <- 'No sample name provided'
+    return(msg)
+  }
+
+  msg <- validate_not_path(sample)
+  return(msg)
+}
+
 
 #' Get HTML to make delete buttons in datatable rows
 #'

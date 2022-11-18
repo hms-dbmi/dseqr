@@ -897,7 +897,7 @@ confirmImportBulkModal <- function(session) {
 }
 
 # validation when upload bulk files
-validate_bulk_uploads <- function(up_df, is_eset) {
+validate_bulk_uploads <- function(up_df, is_eset = FALSE) {
   msg <- NULL
 
   sizes <- up_df$size
