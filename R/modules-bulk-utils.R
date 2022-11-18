@@ -898,16 +898,14 @@ confirmImportBulkModal <- function(session) {
 
 # validation when upload bulk files
 validate_bulk_uploads <- function(up_df, is_eset) {
-  msg <- NULL
 
   sizes <- up_df$size
   if (any(sizes == 0)) {
-    msg <- 'Files with 0 bytes. Remove and re-upload.'
-    return(msg)
+    return('Files with 0 bytes. Remove and re-upload.')
   }
 
   # only check file size if eset
-  if (is_eset) return(msg)
+  if (is_eset) return(NULL)
 
   # try to get a line from fastq files
   id1s <- rkal::get_fastq_id1s(up_df$datapath)
@@ -915,53 +913,46 @@ validate_bulk_uploads <- function(up_df, is_eset) {
 
   if (any(not.fastqs)) {
     msg <- paste('Invalid files:', paste(up_df$name[not.fastqs], collapse = ', '))
-    return(msg)
   }
 
   # check pairs
   pairs <- rkal::get_fastq_pairs(id1s)
   if (is.null(pairs)) {
-    msg <- "Format of fastq.gz files must be from older/newer Illumina software."
-    return(msg)
+    return("Format of fastq.gz files must be from older/newer Illumina software.")
   }
 
   paired <- '2' %in% unique(pairs)
   each.paired <- sum(pairs == '1') == sum(pairs == '2')
   if (paired && !each.paired) {
-    msg <- "Upload both files for pair-ended fastq.gz files."
+    return("Upload both files for pair-ended fastq.gz files.")
   }
 
   if (length(up_df$name) != length(unique(up_df$name))) {
-    msg <- 'Files must have unique names.'
-    return(msg)
+    return('Files must have unique names.')
   }
 
-  return(msg)
+  return(NULL)
 }
 
 validate_bulk_name <- function(import_name) {
 
   if (!isTruthy(import_name)) {
-    msg <- 'Provide dataset name.'
-    return(msg)
+    return('Provide dataset name.')
   }
 
-  msg <- validate_not_path(import_name)
-  return(msg)
+  return(validate_not_path(import_name))
 }
 
 validate_not_path <- function(import_name) {
 
   is_path <- basename(import_name) != import_name
   if (is_path) {
-    msg <- 'Name must not form a path.'
-    return(msg)
+    return('Name must not form a path.')
   }
 
   starts_with_period <- grepl('^[.]', import_name)
   if (starts_with_period) {
-    msg <- 'Name must not start with a period.'
-    return(msg)
+    return('Name must not start with a period.')
   }
 
   return(NULL)
