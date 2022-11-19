@@ -3487,14 +3487,9 @@
     "shinydlplot": {
       "Package": "shinydlplot",
       "Version": "0.1.4",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "alexvpickering",
-      "RemoteRepo": "shinydlplot",
-      "RemoteRef": "master",
-      "RemoteSha": "c80b2e9d9039a8e5c281ad697e3b1eb800dd5be0",
-      "Hash": "a91ab4db2ef80bf99b2c4cbbf6765c2f",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4bdc131718dedb1c32e649404660d044",
       "Requirements": [
         "htmltools",
         "htmlwidgets",
