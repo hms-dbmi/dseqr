@@ -59,6 +59,8 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   on.exit(app$stop(), add = TRUE)
 
 
+  app$click("add_dataset")
+  app$wait_for_idle()
   app$upload_file(`sc-form-dataset-up_raw` = file.path(sample_dir, "barcodes.tsv.gz"))
   app$upload_file(`sc-form-dataset-up_raw` = file.path(sample_dir, "genes.tsv.gz"))
   app$upload_file(`sc-form-dataset-up_raw` = file.path(sample_dir, "matrix.mtx.gz"))
