@@ -132,7 +132,10 @@ customQueryFormInput <- function(id) {
            shinypanel::textInputWithButtons(
              inputId = ns('custom_name'),
              label = 'Name for custom query:',
-             actionButton(ns('click_custom'), '', icon('upload', 'fa-fw'), title = 'Upload csv with gene names and effect size'),
+             actionButton(ns('click_custom'), '',
+                          icon('upload', 'fa-fw'),
+                          title = 'Upload csv with gene names and effect size',
+                          onclick = sprintf('$("#%s").click()', ns('up_custom'))),
              container_id = ns('validate'),
              help_id = ns('error_msg')),
 

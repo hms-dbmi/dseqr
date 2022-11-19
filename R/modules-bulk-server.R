@@ -1455,12 +1455,10 @@ bulkAnnot <- function(input, output, session, dataset_name, annot) {
 
 
   observeEvent(input$click_up, {
-    shinyjs::click('up_annot')
     error_msg(NULL)
   })
 
   observeEvent(input$click_dl, {
-    shinyjs::click('dl_annot')
     error_msg(NULL)
   })
 
