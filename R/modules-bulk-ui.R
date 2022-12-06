@@ -54,7 +54,7 @@ bulkAnnotInput <- function(id) {
     tags$div(id=ns('validate-up'), class='validate-wrapper',
              actionGroupButtonsWithClickHandlers(
                inputIds = c(ns('click_dl'), ns('click_up')),
-               onclicks = c(sprintf('$("#%s").click()', ns('dl_annot')),
+               onclicks = c(sprintf('$("#%s").get(0).click()', ns('dl_annot')),
                             sprintf('$("#%s").click()', ns('up_annot'))),
                labels = list(icon('download', 'fa-fw'), icon('upload', 'fa-fw'))
              ),
