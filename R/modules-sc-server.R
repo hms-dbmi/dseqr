@@ -3791,9 +3791,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    ncols <- length(cols)
-
-    pval_targs <- grep('FDR', cols)
     vis_targ <- (length(cols)-c(1, 2))
     search_targs <- 0
 

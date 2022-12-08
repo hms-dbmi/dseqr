@@ -1104,20 +1104,86 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     tt <- bulkAnal$top_table()
 
     if (!is.null(tt)) {
-      choices <- c(NA, row.names(tt))
+      features <- row.names(tt)
+
+      choices <- data.table::data.table(
+        Feature = get_html_features(features),
+        logFC = round(tt$logFC, 2),
+        FDR = round(tt$adj.P.Val, 4),
+        feature = features
+      )
 
     } else {
       eset <- explore_eset()
-      choices <- c(NA, row.names(eset))
+      features <- row.names(eset)
+
+      choices <- data.table::data.table(
+        Feature = get_html_features(features),
+        feature = features
+      )
     }
 
     return(choices)
   })
 
-  observe({
-    dataset_name()
-    updateSelectizeInput(session, 'explore_genes', choices = gene_choices(), server = TRUE)
-  })
+
+  output$gene_table <- DT::renderDataTable({
+
+    gene_table <- gene_choices()
+    if (is.null(gene_table)) return(NULL)
+
+    # non-html feature column is hidden and used for search
+    # different ncol if contrast
+    cols <- colnames(gene_table)
+    vis_targ <- (length(cols)-1)
+    search_targs <- 0
+
+    # prevent sort/filter when qc_first
+    sort_targs <- 0
+    filter <- list(position='top', clear = TRUE, vertical = TRUE, opacity = 0.85)
+
+    qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
+    if (qc_first) {
+      sort_targs <- '_all'
+      filter = list(position='none')
+    }
+
+    regex <- input$gene_search
+    if (grepl(', ', regex)) regex <- format_comma_regex(regex)
+
+    search_cols <- isolate(input$gene_table_search_columns)
+    search_cols <- lapply(search_cols, function(str) if (str == '') return(NULL) else list(search = str))
+
+    dt <- DT::datatable(
+      gene_table,
+      class = 'cell-border',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      extensions = c('Scroller'),
+      filter = filter,
+      options = list(
+        keys = TRUE,
+        select = list(style = "multiple", items = "row"),
+        deferRender = TRUE,
+        scroller = TRUE,
+        scrollCollapse = TRUE,
+        dom = '<"hidden"f>t',
+        bInfo = 0,
+        scrollY=250,
+        search = list(regex = TRUE, search = regex),
+        searchCols = search_cols,
+        language = list(search = 'Select feature to plot:'),
+        columnDefs = list(
+          list(visible = FALSE, targets = vis_targ),
+          list(searchable = FALSE, targets = search_targs),
+          list(sortable = FALSE, targets = sort_targs)
+        )
+      )
+    )
+
+    return(dt)
+
+  }, server = TRUE)
 
   # Comparison Groups and Differential Analyses
   # ---
@@ -1125,6 +1191,13 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
   pdata <- reactive({
     req(explore_eset())
     Biobase::pData(explore_eset())
+  })
+
+  explore_genes <- reactive({
+    rows <- input$gene_table_rows_selected
+
+    choices <- gene_choices()
+    return(choices$feature[rows])
   })
 
 
@@ -1139,7 +1212,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
 
 
   return(list(
-    explore_genes = reactive(input$explore_genes)
+    explore_genes = explore_genes
   ))
 }
 
@@ -1853,4 +1926,5 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
 

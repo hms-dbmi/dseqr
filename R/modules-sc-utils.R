@@ -802,18 +802,8 @@ get_gene_table <- function(markers,
   # top markers uses features as genes and group as type
   features <- if (is.tt) row.names(markers) else markers$feature
 
-  # add gene description
-  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
-
-  idx <- match(features, tx2gene$gene_name)
-  desc <- tx2gene$description[idx]
-  desc[is.na(desc)] <- features[is.na(desc)]
-
   # gene choices
-  html_features <- sprintf('<span title="%s"><a target="_blank" href="%s%s">%s</a></span>',
-                           desc,
-                           'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
-                           features, stringr::str_trunc(features, width=14))
+  html_features <- get_html_features(features, tx2gene, species)
 
   # swatch indicates group that is marker for
   group <- markers$group
@@ -859,6 +849,24 @@ get_gene_table <- function(markers,
     }
   }
   return(table)
+}
+
+get_html_features <- function(features, tx2gene = NULL, species = 'Homo sapiens') {
+
+  # add gene description
+  if (is.null(tx2gene)) tx2gene <- dseqr.data::load_tx2gene(species)
+
+  idx <- match(features, tx2gene$gene_name)
+  desc <- tx2gene$description[idx]
+  desc[is.na(desc)] <- features[is.na(desc)]
+
+  # gene choices
+  html_features <- sprintf('<span title="%s"><a target="_blank" href="%s%s">%s</a></span>',
+                           desc,
+                           'https://www.genecards.org/cgi-bin/carddisp.pl?gene=',
+                           features, stringr::str_trunc(features, width=14))
+
+  return(html_features)
 }
 
 get_leftover_table <- function(features, species = 'Homo sapiens', tx2gene = NULL) {
