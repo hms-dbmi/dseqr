@@ -275,7 +275,7 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
       shinypanel::selectizeInputWithButtons(
         ns('contrast_groups'),
         label,
-        actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
+        actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
         options = options,
         container_id = ns('run_anal_container')
       ),

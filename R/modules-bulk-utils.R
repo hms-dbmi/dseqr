@@ -51,6 +51,12 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
     bordercolor = "#e7e7e7",
     borderwidth = 1)
 
+  # make size smaller if many points
+  size <- NULL
+  genes <- unique(df$x)
+  npts.grp <- table(df$name[df$x == genes[1]])
+
+  if (length(genes) > 3 & max(npts.grp) > 15) size <- 3
 
   df %>%
     plotly::plot_ly() %>%
@@ -67,7 +73,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
                       fillcolor = 'transparent',
                       hoverinfo = 'text',
                       hoveron = 'points',
-                      marker = list(color = "rgba(0, 0, 0, 0.6)")) %>%
+                      marker = list(color = "rgba(0, 0, 0, 0.6)", size = size)) %>%
     plotly::layout(violinmode = 'group', violingroupgap = boxgroupgap, violingap = boxgap,
                    xaxis = list(fixedrange=TRUE, title = xtitle),
                    yaxis = list(fixedrange=TRUE, title = ytitle),
@@ -419,31 +425,33 @@ is_invertible <- function(pdata) {
 #' @return List with GO and KEGG results
 #'
 #' @keywords internal
-get_path_res <- function(de, goana_path, gs_dir, species = 'Hs', genego = NULL, gonames = NULL, coef = ncol(de), nmin = 50, cutoff = 0.05) {
+get_path_res <- function(de, goana_path, gs_dir, species = 'Hs', genego = NULL, gonames = NULL, coef = ncol(de), nmin = 50, max_fdr = 0.05, min_abs_logfc = 0) {
 
   is.marray <- methods::is(de, 'MArrayLM')
   if (!is.marray) {
     universe <- de$ENTREZID
-    is.up <- de$logFC > 0
-    is.sig <- de$adj.P.Val < cutoff
+    is.up <- de$logFC > min_abs_logfc
+    is.dn <- de$logFC < -min_abs_logfc
+    is.sig <- de$adj.P.Val < max_fdr
 
   } else {
     # order by pvals
     de <- de[order(de$p.value[, coef]), ]
 
     universe <- de$genes$ENTREZID
-    is.up <- de$coefficients[, coef] > 0
-    is.sig <- stats::p.adjust(de$p.value[,coef], method = "BH") < 0.05
+    is.up <- de$coefficients[, coef] > min_abs_logfc
+    is.dn <- de$coefficients[, coef] < -min_abs_logfc
+    is.sig <- stats::p.adjust(de$p.value[,coef], method = "BH") < max_fdr
   }
 
   names(universe) <- row.names(de)
 
   # keep at least nmin up and down genes
   nsig.up <- sum(is.sig & is.up)
-  nsig.dn <- sum(is.sig & !is.up)
+  nsig.dn <- sum(is.sig & is.dn)
 
-  up <- utils::head(universe[is.up], max(nmin, nsig.up))
-  dn <- utils::head(universe[!is.up], max(nmin, nsig.dn))
+  up <- utils::head(universe[is.up], nsig.up)
+  dn <- utils::head(universe[is.dn], nsig.dn)
 
   de <- list(Up = up, Down = dn)
 
@@ -791,6 +799,32 @@ getUploadBulkInfo <- function(is_local) {
     return(server_info)
   }
 }
+
+# used to set filter options for pathway analysis
+downloadResultsModal <- function(session) {
+  ns <- session$ns
+
+  modalDialog(
+    withTags({
+      div(
+        numericInput(ns('min_abs_logfc'), 'Min absolute logFC:', value = 0, min = 0, step = 0.1, max = 3, width = '100%'),
+        numericInput(ns('max_fdr'), 'Max FDR:', value = 0.05, min = 0, step = 0.01, max = 1, width = '100%'),
+        tags$b('Up:'), textOutput(ns('ngenes_up'), inline = TRUE),
+        br(),
+        tags$b('Down:'), textOutput(ns('ngenes_dn'), inline = TRUE),
+        br()
+      )
+    }),
+    title = 'Pathway Filter Options',
+    size = 'm',
+    footer = tagList(
+      actionButton(ns("confirm_dl_anal"), "Download Results", class = 'btn-warning'),
+      tags$div(class='pull-left', modalButton('Cancel'))
+    ),
+    easyClose = TRUE
+  )
+}
+
 
 # modal to upload bulk fastq.gz files
 uploadBulkModal <- function(session, show_init, is_eset, import_dataset_name, paired) {

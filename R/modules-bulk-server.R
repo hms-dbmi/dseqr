@@ -1673,7 +1673,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   goana_path <- reactive({
-    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.qs')
+    fname <- paste0('goana_', anal_name(), '_',
+                    numsv_str(), '_', input$min_abs_logfc, '_', input$max_fdr, '.qs')
     file.path(dataset_dir(), fname)
   })
 
@@ -1771,6 +1772,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       res <- qs::qread(goana_path)
 
     } else {
+      max_fdr <- input$max_fdr
+      min_abs_logfc <- input$min_abs_logfc
+
       lm_fit <- lm_fit()
 
       # visual that running
@@ -1787,7 +1791,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- crossmeta::fit_ebayes(lm_fit, contrast)
-      res <- get_path_res(ebfit, goana_path, gs_dir)
+      res <- get_path_res(ebfit, goana_path, gs_dir, max_fdr = max_fdr, min_abs_logfc = min_abs_logfc)
       qs::qsave(res, goana_path)
 
       progress$inc(1)
@@ -1806,9 +1810,11 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   dl_fname <- reactive({
     date <- paste0(Sys.Date(), '.zip')
+    fdr_str <- paste0('FDR', input$max_fdr)
+    logfc_str <- paste0('logFC', input$min_abs_logfc)
 
     numsv_str <- paste0(numsv(), 'SV')
-    paste('bulk', dataset_name(), anal_name(), numsv_str, date , sep='_')
+    paste('bulk', dataset_name(), anal_name(), numsv_str, logfc_str, fdr_str, date , sep='_')
   })
 
   data_fun <- function(file) {
@@ -1821,7 +1827,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     godn_fname <- 'go_dn.csv'
 
     path_res <- path_res()
-    utils::write.csv(top_table(), tt_fname)
+    utils::write.csv(filtered_tt(), tt_fname)
     utils::write.csv(path_res$up, goup_fname)
     utils::write.csv(path_res$dn, godn_fname)
 
@@ -1836,9 +1842,35 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     content = data_fun
   )
 
-  # download can timeout so get objects before clicking
   observeEvent(input$click_dl, {
+    showModal(downloadResultsModal(session))
+  })
+
+  filtered_tt <- reactive({
     tt <- top_table()
+    min_abs_logfc <- input$min_abs_logfc
+    max_fdr <- input$max_fdr
+
+    tt <- tt[tt$adj.P.Val < max_fdr, ]
+    tt <- tt[abs(tt$logFC) > min_abs_logfc, ]
+    return(tt)
+  })
+
+  output$ngenes_up <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC > 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  output$ngenes_dn <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC < 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  # download can timeout so get objects before clicking
+  observeEvent(input$confirm_dl_anal, {
+    removeModal()
     pres <- path_res()
     shinyjs::click("download")
   })
