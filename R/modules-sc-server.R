@@ -1415,15 +1415,18 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
   # name for  downloading
-  dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.zip')
+  fname_str <- reactive({
     clusts <- annot_clusters()
     snn <- basename(resoln_dir())
 
-    fdr <- paste0('FDR', input$max_fdr)
-    logfc <- paste0('logFC', input$min_abs_logfc)
+    paste('single-cell', dataset_name(), clusts, snn, sep='_')
+  })
 
-    paste('single-cell', dataset_name(), clusts, snn, logfc, fdr, date , sep='_')
+  filter_str <- reactive({
+    fdr_str <- paste0('FDR', input$max_fdr)
+    logfc_str <- paste0('logFC', input$min_abs_logfc)
+
+    paste(fdr_str, logfc_str, sep='_')
   })
 
   data_fun <- function(file) {
@@ -1455,15 +1458,35 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   output$dl_anal <- downloadHandler(
     filename = function() {
-      dl_fname()
+      paste0(fname_str(), '_', filter_str(), '_', Sys.Date(), '.zip')
     },
     content = data_fun
   )
 
+  prev_max_fdr <- reactiveVal(0.05)
+  prev_min_abs_logfc <- reactiveVal(0)
 
   observeEvent(input$click_dl_anal, {
-    showModal(downloadResultsModal(session))
+    showModal(downloadResultsModal(session, prev_max_fdr(), prev_min_abs_logfc()))
   })
+
+  observe({
+    max_fdr <- input$max_fdr
+    req(is.numeric(max_fdr))
+    prev_max_fdr(input$max_fdr)
+  })
+
+  observe({
+    min_abs_logfc <- input$min_abs_logfc
+    req(is.numeric(min_abs_logfc))
+    prev_min_abs_logfc(input$min_abs_logfc)
+  })
+
+  callModule(volcanoPlotOutput, 'volcano_plot',
+             top_table = reactive(top_table()[[1]]),
+             max_fdr = reactive(input$max_fdr),
+             min_abs_logfc = reactive(input$min_abs_logfc))
+
 
   filtered_tt <- reactive({
     tt <- top_table()[[1]]

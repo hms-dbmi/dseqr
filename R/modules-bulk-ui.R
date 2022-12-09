@@ -129,9 +129,9 @@ actionGroupButtonsWithClickHandlers <- function(inputIds,
 #'
 #' @keywords internal
 #' @noRd
-bulkPlotlyUI <- function(id) {
+bulkPlotlyUI <- function(id, height = 'auto') {
   ns <- NS(id)
-  shinydlplot::downloadablePlotlyUI(ns('plotly'))
+  shinydlplot::downloadablePlotlyUI(ns('plotly'), height = height)
 }
 
 #' Input form for Bulk Data page

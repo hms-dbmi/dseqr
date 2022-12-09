@@ -1808,14 +1808,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     shinyjs::toggleState('download', condition = valid_contrast())
   })
 
-  dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.zip')
+  fname_str <- reactive({
+    numsv_str <- paste0(numsv(), 'SV')
+    paste('bulk', dataset_name(), anal_name(), numsv_str, sep='_')
+  })
+
+  filter_str <- reactive({
     fdr_str <- paste0('FDR', input$max_fdr)
     logfc_str <- paste0('logFC', input$min_abs_logfc)
 
-    numsv_str <- paste0(numsv(), 'SV')
-    paste('bulk', dataset_name(), anal_name(), numsv_str, logfc_str, fdr_str, date , sep='_')
+    paste(fdr_str, logfc_str, sep='_')
   })
+
 
   data_fun <- function(file) {
     #go to a temp dir to avoid permission issues
@@ -1837,14 +1841,34 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   output$download <- downloadHandler(
     filename = function() {
-      dl_fname()
+      paste0(fname_str(), '_', filter_str(), '_', Sys.Date(), '.zip')
     },
     content = data_fun
   )
 
+  prev_max_fdr <- reactiveVal(0.05)
+  prev_min_abs_logfc <- reactiveVal(0)
+
   observeEvent(input$click_dl, {
-    showModal(downloadResultsModal(session))
+    showModal(downloadResultsModal(session, prev_max_fdr(), prev_min_abs_logfc()))
   })
+
+  observe({
+    max_fdr <- input$max_fdr
+    req(is.numeric(max_fdr))
+    prev_max_fdr(input$max_fdr)
+  })
+
+  observe({
+    min_abs_logfc <- input$min_abs_logfc
+    req(is.numeric(min_abs_logfc))
+    prev_min_abs_logfc(input$min_abs_logfc)
+  })
+
+  callModule(volcanoPlotOutput, 'volcano_plot',
+             top_table = top_table,
+             max_fdr = reactive(input$max_fdr),
+             min_abs_logfc = reactive(input$min_abs_logfc))
 
   filtered_tt <- reactive({
     tt <- top_table()
@@ -1885,6 +1909,41 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   ))
 }
 
+
+
+volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_abs_logfc) {
+
+
+  output$plot <- shiny::renderPlot({
+    tt <- top_table()
+    min_abs_logfc <- min_abs_logfc()
+    max_fdr <- max_fdr()
+
+    tt$gene_name <- row.names(tt)
+
+    tt$color <- rgb(0.76, 0.76, 0.76, .3)
+    dn <- tt$logFC < -min_abs_logfc & tt$adj.P.Val < max_fdr
+    up <- tt$logFC >  min_abs_logfc & tt$adj.P.Val < max_fdr
+    tt$color[dn] <- rgb(0, 0, 1, .3)
+    tt$color[up] <- rgb(1, 0, 0, .3)
+
+    tt$gene_name[!dn & !up] <- NA
+
+    max_abs_logfc <- max(abs(tt$logFC))
+    xlims <- c(-max_abs_logfc-0.25, max_abs_logfc+0.25)
+
+    plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
+         ylab="-log10(FDR)",  xlab= "logFC", bty="l")
+
+    abline(h = -log10(max_fdr), lty=2)
+    abline(v = -min_abs_logfc, lty=2)
+    abline(v = min_abs_logfc, lty=2)
+
+  }, width = 560, height = 500)
+
+
+
+}
 
 #' Logic to setup explore_eset for Bulk Data plots
 #'
@@ -1958,5 +2017,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-
 

@@ -801,22 +801,28 @@ getUploadBulkInfo <- function(is_local) {
 }
 
 # used to set filter options for pathway analysis
-downloadResultsModal <- function(session) {
+downloadResultsModal <- function(session, max_fdr, min_abs_logfc) {
   ns <- session$ns
 
   modalDialog(
     withTags({
       div(
-        numericInput(ns('min_abs_logfc'), 'Min absolute logFC:', value = 0, min = 0, step = 0.1, max = 3, width = '100%'),
-        numericInput(ns('max_fdr'), 'Max FDR:', value = 0.05, min = 0, step = 0.01, max = 1, width = '100%'),
+        div(style = 'margin-bottom: -30px',
+        numericInput(ns('min_abs_logfc'), 'Min absolute logFC:', value = min_abs_logfc, min = 0, step = 0.1, max = 3, width = '100%'),
+        ),
+        div(style = 'margin-bottom: -30px',
+          numericInput(ns('max_fdr'), 'Max FDR:', value = max_fdr, min = 0, step = 0.01, max = 1, width = '100%'),
+        ),
+        hr(),
         tags$b('Up:'), textOutput(ns('ngenes_up'), inline = TRUE),
         br(),
         tags$b('Down:'), textOutput(ns('ngenes_dn'), inline = TRUE),
-        br()
+        br(),
+        volcanoPlotUI(ns('volcano_plot'))
       )
     }),
     title = 'Pathway Filter Options',
-    size = 'm',
+    size = 'l',
     footer = tagList(
       actionButton(ns("confirm_dl_anal"), "Download Results", class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))
@@ -824,6 +830,12 @@ downloadResultsModal <- function(session) {
     easyClose = TRUE
   )
 }
+
+volcanoPlotUI <- function(id) {
+  ns <- NS(id)
+  shiny::plotOutput(ns('plot'), width = 560, height = 500)
+}
+
 
 
 # modal to upload bulk fastq.gz files
