@@ -822,7 +822,7 @@ downloadResultsModal <- function(session, max_fdr, min_abs_logfc) {
       )
     }),
     title = 'Pathway Filter Options',
-    size = 'l',
+    size = 'm',
     footer = tagList(
       actionButton(ns("confirm_dl_anal"), "Download Results", class = 'btn-warning'),
       tags$div(class='pull-left', modalButton('Cancel'))
@@ -833,7 +833,7 @@ downloadResultsModal <- function(session, max_fdr, min_abs_logfc) {
 
 volcanoPlotUI <- function(id) {
   ns <- NS(id)
-  shiny::plotOutput(ns('plot'), width = 560, height = 500)
+  shiny::plotOutput(ns('plot'), width = 380, height = 300)
 }
 
 

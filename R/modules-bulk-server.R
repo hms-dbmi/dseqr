@@ -1932,6 +1932,10 @@ volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_ab
     max_abs_logfc <- max(abs(tt$logFC))
     xlims <- c(-max_abs_logfc-0.25, max_abs_logfc+0.25)
 
+    mar <- par()$mar
+    mar[3] <- 1
+    par(mar=mar)
+
     plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
          ylab="-log10(FDR)",  xlab= "logFC", bty="l")
 
@@ -1939,7 +1943,7 @@ volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_ab
     abline(v = -min_abs_logfc, lty=2)
     abline(v = min_abs_logfc, lty=2)
 
-  }, width = 560, height = 500)
+  }, width = 380, height = 300)
 
 
 
