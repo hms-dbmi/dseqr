@@ -1104,20 +1104,86 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     tt <- bulkAnal$top_table()
 
     if (!is.null(tt)) {
-      choices <- c(NA, row.names(tt))
+      features <- row.names(tt)
+
+      choices <- data.table::data.table(
+        Feature = get_html_features(features),
+        logFC = round(tt$logFC, 2),
+        FDR = round(tt$adj.P.Val, 4),
+        feature = features
+      )
 
     } else {
       eset <- explore_eset()
-      choices <- c(NA, row.names(eset))
+      features <- row.names(eset)
+
+      choices <- data.table::data.table(
+        Feature = get_html_features(features),
+        feature = features
+      )
     }
 
     return(choices)
   })
 
-  observe({
-    dataset_name()
-    updateSelectizeInput(session, 'explore_genes', choices = gene_choices(), server = TRUE)
-  })
+
+  output$gene_table <- DT::renderDataTable({
+
+    gene_table <- gene_choices()
+    if (is.null(gene_table)) return(NULL)
+
+    # non-html feature column is hidden and used for search
+    # different ncol if contrast
+    cols <- colnames(gene_table)
+    vis_targ <- (length(cols)-1)
+    search_targs <- 0
+
+    # prevent sort/filter when qc_first
+    sort_targs <- 0
+    filter <- list(position='top', clear = TRUE, vertical = TRUE, opacity = 0.85)
+
+    qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
+    if (qc_first) {
+      sort_targs <- '_all'
+      filter = list(position='none')
+    }
+
+    regex <- input$gene_search
+    if (grepl(', ', regex)) regex <- format_comma_regex(regex)
+
+    search_cols <- isolate(input$gene_table_search_columns)
+    search_cols <- lapply(search_cols, function(str) if (str == '') return(NULL) else list(search = str))
+
+    dt <- DT::datatable(
+      gene_table,
+      class = 'cell-border',
+      rownames = FALSE,
+      escape = FALSE, # to allow HTML in table
+      extensions = c('Scroller'),
+      filter = filter,
+      options = list(
+        keys = TRUE,
+        select = list(style = "multiple", items = "row"),
+        deferRender = TRUE,
+        scroller = TRUE,
+        scrollCollapse = TRUE,
+        dom = '<"hidden"f>t',
+        bInfo = 0,
+        scrollY=250,
+        search = list(regex = TRUE, search = regex),
+        searchCols = search_cols,
+        language = list(search = 'Select feature to plot:'),
+        columnDefs = list(
+          list(visible = FALSE, targets = vis_targ),
+          list(searchable = FALSE, targets = search_targs),
+          list(sortable = FALSE, targets = sort_targs)
+        )
+      )
+    )
+
+    return(dt)
+
+  }, server = TRUE)
 
   # Comparison Groups and Differential Analyses
   # ---
@@ -1125,6 +1191,13 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
   pdata <- reactive({
     req(explore_eset())
     Biobase::pData(explore_eset())
+  })
+
+  explore_genes <- reactive({
+    rows <- input$gene_table_rows_selected
+
+    choices <- gene_choices()
+    return(choices$feature[rows])
   })
 
 
@@ -1139,7 +1212,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
 
 
   return(list(
-    explore_genes = reactive(input$explore_genes)
+    explore_genes = explore_genes
   ))
 }
 
@@ -1600,7 +1673,8 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   goana_path <- reactive({
-    fname <- paste0('goana_', anal_name(), '_', numsv_str(), '.qs')
+    fname <- paste0('goana_', anal_name(), '_',
+                    numsv_str(), '_', input$min_abs_logfc, '_', input$max_fdr, '.qs')
     file.path(dataset_dir(), fname)
   })
 
@@ -1698,6 +1772,9 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
       res <- qs::qread(goana_path)
 
     } else {
+      max_fdr <- input$max_fdr
+      min_abs_logfc <- input$min_abs_logfc
+
       lm_fit <- lm_fit()
 
       # visual that running
@@ -1714,7 +1791,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
       contrast <- paste0(groups[1], '-', groups[2])
       ebfit <- crossmeta::fit_ebayes(lm_fit, contrast)
-      res <- get_path_res(ebfit, goana_path, gs_dir)
+      res <- get_path_res(ebfit, goana_path, gs_dir, max_fdr = max_fdr, min_abs_logfc = min_abs_logfc)
       qs::qsave(res, goana_path)
 
       progress$inc(1)
@@ -1731,12 +1808,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     shinyjs::toggleState('download', condition = valid_contrast())
   })
 
-  dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.zip')
-
+  fname_str <- reactive({
     numsv_str <- paste0(numsv(), 'SV')
-    paste('bulk', dataset_name(), anal_name(), numsv_str, date , sep='_')
+    paste('bulk', dataset_name(), anal_name(), numsv_str, sep='_')
   })
+
+  filter_str <- reactive({
+    fdr_str <- paste0('FDR', input$max_fdr)
+    logfc_str <- paste0('logFC', input$min_abs_logfc)
+
+    paste(fdr_str, logfc_str, sep='_')
+  })
+
 
   data_fun <- function(file) {
     #go to a temp dir to avoid permission issues
@@ -1748,7 +1831,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     godn_fname <- 'go_dn.csv'
 
     path_res <- path_res()
-    utils::write.csv(top_table(), tt_fname)
+    utils::write.csv(filtered_tt(), tt_fname)
     utils::write.csv(path_res$up, goup_fname)
     utils::write.csv(path_res$dn, godn_fname)
 
@@ -1758,14 +1841,60 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
 
   output$download <- downloadHandler(
     filename = function() {
-      dl_fname()
+      paste0(fname_str(), '_', filter_str(), '_', Sys.Date(), '.zip')
     },
     content = data_fun
   )
 
-  # download can timeout so get objects before clicking
+  prev_max_fdr <- reactiveVal(0.05)
+  prev_min_abs_logfc <- reactiveVal(0)
+
   observeEvent(input$click_dl, {
+    showModal(downloadResultsModal(session, prev_max_fdr(), prev_min_abs_logfc()))
+  })
+
+  observe({
+    max_fdr <- input$max_fdr
+    req(is.numeric(max_fdr))
+    prev_max_fdr(input$max_fdr)
+  })
+
+  observe({
+    min_abs_logfc <- input$min_abs_logfc
+    req(is.numeric(min_abs_logfc))
+    prev_min_abs_logfc(input$min_abs_logfc)
+  })
+
+  callModule(volcanoPlotOutput, 'volcano_plot',
+             top_table = top_table,
+             max_fdr = reactive(input$max_fdr),
+             min_abs_logfc = reactive(input$min_abs_logfc))
+
+  filtered_tt <- reactive({
     tt <- top_table()
+    min_abs_logfc <- input$min_abs_logfc
+    max_fdr <- input$max_fdr
+
+    tt <- tt[tt$adj.P.Val < max_fdr, ]
+    tt <- tt[abs(tt$logFC) > min_abs_logfc, ]
+    return(tt)
+  })
+
+  output$ngenes_up <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC > 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  output$ngenes_dn <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC < 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  # download can timeout so get objects before clicking
+  observeEvent(input$confirm_dl_anal, {
+    removeModal()
     pres <- path_res()
     shinyjs::click("download")
   })
@@ -1780,6 +1909,45 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   ))
 }
 
+
+
+volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_abs_logfc) {
+
+
+  output$plot <- shiny::renderPlot({
+    tt <- top_table()
+    min_abs_logfc <- min_abs_logfc()
+    max_fdr <- max_fdr()
+
+    tt$gene_name <- row.names(tt)
+
+    tt$color <- rgb(0.76, 0.76, 0.76, .3)
+    dn <- tt$logFC < -min_abs_logfc & tt$adj.P.Val < max_fdr
+    up <- tt$logFC >  min_abs_logfc & tt$adj.P.Val < max_fdr
+    tt$color[dn] <- rgb(0, 0, 1, .3)
+    tt$color[up] <- rgb(1, 0, 0, .3)
+
+    tt$gene_name[!dn & !up] <- NA
+
+    max_abs_logfc <- max(abs(tt$logFC))
+    xlims <- c(-max_abs_logfc-0.25, max_abs_logfc+0.25)
+
+    mar <- par()$mar
+    mar[3] <- 1
+    par(mar=mar)
+
+    plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
+         ylab="-log10(FDR)",  xlab= "logFC", bty="l")
+
+    abline(h = -log10(max_fdr), lty=2)
+    abline(v = -min_abs_logfc, lty=2)
+    abline(v = min_abs_logfc, lty=2)
+
+  }, width = 380, height = 300)
+
+
+
+}
 
 #' Logic to setup explore_eset for Bulk Data plots
 #'

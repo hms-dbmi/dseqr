@@ -1008,7 +1008,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   clusters_str <- reactive(collapse_sorted(input$selected_cluster))
   pathways_dir <- reactive(file.path(contrast_dir(), 'pathways'))
-  goana_path <- reactive(file.path(pathways_dir(), paste0('goana_', clusters_str(), '.qs')))
+  goana_path <- reactive({
+    fname <- paste0('goana_', clusters_str(), '_',
+                    input$min_abs_logfc, '_', input$max_fdr, '.qs')
+
+    file.path(pathways_dir(), fname)
+  })
   top_tables_paths <- reactive(file.path(pathways_dir(), 'top_tables.qs'))
 
 
@@ -1338,6 +1343,9 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       res <- qs::qread(goana_path)
 
     } else {
+      max_fdr <- input$max_fdr
+      min_abs_logfc <- input$min_abs_logfc
+
       disableAll(input_ids)
       progress <- Progress$new(session, min = 0, max = 2)
       progress$set(message = "Running pathway analysis", value = 1)
@@ -1369,7 +1377,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       dir.create(pathways_dir, showWarnings = FALSE)
 
       # TODO: run for all clusters at same time
-      res <- get_path_res(de, goana_path, gs_dir, species)
+      res <- get_path_res(de, goana_path, gs_dir, species, max_fdr = max_fdr, min_abs_logfc = min_abs_logfc)
       qs::qsave(res, goana_path)
 
       progress$inc(1)
@@ -1407,11 +1415,18 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
   # name for  downloading
-  dl_fname <- reactive({
-    date <- paste0(Sys.Date(), '.zip')
+  fname_str <- reactive({
     clusts <- annot_clusters()
     snn <- basename(resoln_dir())
-    paste('single-cell', dataset_name(), clusts, snn, date , sep='_')
+
+    paste('single-cell', dataset_name(), clusts, snn, sep='_')
+  })
+
+  filter_str <- reactive({
+    fdr_str <- paste0('FDR', input$max_fdr)
+    logfc_str <- paste0('logFC', input$min_abs_logfc)
+
+    paste(fdr_str, logfc_str, sep='_')
   })
 
   data_fun <- function(file) {
@@ -1424,13 +1439,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     goup_fname <- 'go_up.csv'
     godn_fname <- 'go_down.csv'
 
-    tt <- top_table()[[1]]
+    tt <- filtered_tt()
     if (is.meta()) tt <- tt_to_es(tt)
 
     pres <- path_res()
     abundances <- abundances()
     abundances$cluster <- NULL
-
 
     tozip <- c()
     tozip <- write.csv.safe(tt, tt_fname, tozip)
@@ -1444,13 +1458,62 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
   output$dl_anal <- downloadHandler(
     filename = function() {
-      dl_fname()
+      paste0(fname_str(), '_', filter_str(), '_', Sys.Date(), '.zip')
     },
     content = data_fun
   )
 
-  # download can timeout so get objects before clicking
+  prev_max_fdr <- reactiveVal(0.05)
+  prev_min_abs_logfc <- reactiveVal(0)
+
   observeEvent(input$click_dl_anal, {
+    showModal(downloadResultsModal(session, prev_max_fdr(), prev_min_abs_logfc()))
+  })
+
+  observe({
+    max_fdr <- input$max_fdr
+    req(is.numeric(max_fdr))
+    prev_max_fdr(input$max_fdr)
+  })
+
+  observe({
+    min_abs_logfc <- input$min_abs_logfc
+    req(is.numeric(min_abs_logfc))
+    prev_min_abs_logfc(input$min_abs_logfc)
+  })
+
+  callModule(volcanoPlotOutput, 'volcano_plot',
+             top_table = reactive(top_table()[[1]]),
+             max_fdr = reactive(input$max_fdr),
+             min_abs_logfc = reactive(input$min_abs_logfc))
+
+
+  filtered_tt <- reactive({
+    tt <- top_table()[[1]]
+    min_abs_logfc <- input$min_abs_logfc
+    max_fdr <- input$max_fdr
+
+    tt <- tt[tt$adj.P.Val < max_fdr, ]
+    tt <- tt[abs(tt$logFC) > min_abs_logfc, ]
+    return(tt)
+  })
+
+  output$ngenes_up <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC > 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  output$ngenes_dn <- renderText({
+    tt <- filtered_tt()
+    tt <- tt[tt$logFC < 0,]
+    return(format(nrow(tt), big.mark =','))
+  })
+
+  # download can timeout so get objects before clicking
+  observeEvent(input$confirm_dl_anal, {
+    removeModal()
+
     tt <- top_table()[[1]]
     pres <- path_res()
     shinyjs::click("dl_anal")
@@ -3791,9 +3854,6 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    ncols <- length(cols)
-
-    pval_targs <- grep('FDR', cols)
     vis_targ <- (length(cols)-c(1, 2))
     search_targs <- 0
 

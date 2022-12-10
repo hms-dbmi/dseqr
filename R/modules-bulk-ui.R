@@ -129,9 +129,9 @@ actionGroupButtonsWithClickHandlers <- function(inputIds,
 #'
 #' @keywords internal
 #' @noRd
-bulkPlotlyUI <- function(id) {
+bulkPlotlyUI <- function(id, height = 'auto') {
   ns <- NS(id)
-  shinydlplot::downloadablePlotlyUI(ns('plotly'))
+  shinydlplot::downloadablePlotlyUI(ns('plotly'), height = height)
 }
 
 #' Input form for Bulk Data page
@@ -187,9 +187,21 @@ bulkFormAnalInput <- function(id) {
   tagList(
     bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
     div(id = ns('explore_genes_container'),
-        selectizeInput(ns('explore_genes'), choices = NULL, width = "100%",
-                       'Show expression for genes:',
-                       options = list(maxItems = 6, multiple = TRUE))
+        div(id = 'bulk-intro-feature',
+            tags$label(class='control-label', `for`=ns('gene_table'), 'Select features to plot:'),
+            div(class = 'normal-header',
+                DT::dataTableOutput(ns('gene_table'), width='100%', height='330px'),
+            ),
+            div(id=ns('gene_search_input'),
+                style = 'height: 60px',
+                textInput(
+                  inputId = ns('gene_search'),
+                  width = '100%',
+                  label = '',
+                  placeholder = 'type regex to search gene'
+                )
+            )
+        )
     )
   )
 }
@@ -263,7 +275,7 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
       shinypanel::selectizeInputWithButtons(
         ns('contrast_groups'),
         label,
-        actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download differential expression analysis'),
+        actionButton(ns('click_dl'), label = NULL, icon = icon('download', 'fa-fw'), title = 'Download results'),
         options = options,
         container_id = ns('run_anal_container')
       ),
@@ -285,3 +297,4 @@ bulkAnalInput <- function(id, with_dl = TRUE, label = 'Select groups to compare:
 
   return(input)
 }
+
