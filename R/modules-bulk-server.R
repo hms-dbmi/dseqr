@@ -1110,6 +1110,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
         Feature = get_html_features(features),
         logFC = round(tt$logFC, 2),
         FDR = round(tt$adj.P.Val, 4),
+        fdr =  signif(tt$adj.P.Val, digits = 3),
         feature = features
       )
 
@@ -1135,12 +1136,24 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    vis_targ <- (length(cols)-1)
+    vis_targ <- (length(cols)-c(1, 2))
     search_targs <- 0
 
     # prevent sort/filter when qc_first
     sort_targs <- 0
     filter <- list(position='top', clear = TRUE, vertical = TRUE, opacity = 0.85)
+
+    fdr_col_idx <- which(cols == 'FDR')-1
+    fdr_val_idx <- which(cols == 'fdr')-1
+
+    fdr_title_js <- DT::JS(
+      sprintf(paste0(
+        "function (row, data, rowIndex) {",
+        "  const cells = $('td', row);",
+        "  $(cells[%s]).attr('title', data[%s]);",
+        "}"), fdr_col_idx, fdr_val_idx
+      )
+    )
 
     qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
     if (qc_first) {
@@ -1177,7 +1190,8 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
           list(visible = FALSE, targets = vis_targ),
           list(searchable = FALSE, targets = search_targs),
           list(sortable = FALSE, targets = sort_targs)
-        )
+        ),
+        rowCallback = fdr_title_js
       )
     )
 
@@ -2021,4 +2035,5 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
+
 

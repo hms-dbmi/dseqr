@@ -3814,12 +3814,13 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
 
     if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols = pct_targs]
     if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols = frac_targs]
-    if (length(pval_targs)) gene_table[, (pval_targs) := round(.SD, 3), .SDcols = pval_targs]
+    if (length(pval_targs)) {
+      gene_table$fdr <- signif(gene_table$FDR, 3)
+      gene_table[, (pval_targs) := round(.SD, 3), .SDcols = pval_targs]
+    }
 
     # used to select correct row in callback
     gene_table$row <- seq_len(nrow(gene_table))
-
-
 
     return(gene_table)
   })
@@ -3854,8 +3855,26 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    vis_targ <- (length(cols)-c(1, 2))
+
+    vis_targ <- which(cols %in% c('fdr', 'row', 'feature'))-1
     search_targs <- 0
+
+    # title fdr column
+    has.fdr <- 'fdr' %in% cols
+    row_callback <- NULL
+    if (has.fdr) {
+      fdr_col_idx <- which(cols == 'FDR')-1
+      fdr_val_idx <- which(cols == 'fdr')-1
+
+      row_callback <- DT::JS(
+        sprintf(paste0(
+          "function (row, data, rowIndex) {",
+          "  const cells = $('td', row);",
+          "  $(cells[%s]).attr('title', data[%s]);",
+          "}"), fdr_col_idx, fdr_val_idx
+        )
+      )
+    }
 
     # prevent sort/filter when qc_first
     sort_targs <- 0
@@ -3910,7 +3929,8 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
           list(visible = FALSE, targets = vis_targ),
           list(searchable = FALSE, targets = search_targs),
           list(sortable = FALSE, targets = sort_targs)
-        )
+        ),
+        rowCallback = row_callback
       )
     )
 
@@ -4734,4 +4754,3 @@ confirmImportSingleCellModal <- function(session, metric_choices, detected_speci
     )
   )
 }
-
