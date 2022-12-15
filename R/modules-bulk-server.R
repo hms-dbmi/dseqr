@@ -103,7 +103,8 @@ bulkPage <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2g
   callModule(bulkCellsPlotly, 'cells_plotly',
              dtangle_est = bulkForm$dtangle_est,
              pdata = dsExploreTable$pdata,
-             dataset_name = bulkForm$dataset_name)
+             dataset_name = bulkForm$dataset_name,
+             contrast_groups = bulkForm$contrast_groups)
 
 
 
@@ -275,10 +276,11 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name) {
+bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name, contrast_groups) {
 
   boxplotly_args <- reactive({
     # need at least two groups
+
     pdata <- pdata()
     pdata <- pdata[!is.na(pdata$Group), ]
     req(length(unique(pdata$Group)) > 1)
@@ -286,18 +288,25 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
     dtangle_est <- dtangle_est()
     req(dtangle_est)
 
-    get_boxplotly_cell_args(pdata, dtangle_est, dataset_name())
+    contrast <- contrast_groups()
+
+    get_boxplotly_cell_args(pdata, dtangle_est, dataset_name(), contrast)
   })
 
   plot <- reactive({
 
     args <- boxplotly_args()
+    contrast <- contrast_groups()
+    is.comparison <- length(contrast) == 2
+    ytitle <- 'Estimated Proportion'
+    if (is.comparison) ytitle <- paste(ytitle, '(FDR)')
 
     boxPlotlyCells(df = args$df,
                    boxgap = args$boxgap,
                    boxgroupgap = args$boxgroupgap,
+                   pvals = args$pvals,
                    plot_fname = args$plot_fname,
-                   ytitle = 'Estimated Proportion',
+                   ytitle = ytitle,
                    xtitle = 'Cluster')
   })
 
@@ -366,7 +375,8 @@ bulkForm <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2g
     dtangle_est = dataset$dtangle_est,
     show_dtangle = dataset$show_dtangle,
     numsv_r = dataset$numsv_r,
-    svobj_r = dataset$svobj_r
+    svobj_r = dataset$svobj_r,
+    contrast_groups = anal$contrast_groups
   ))
 
 }
@@ -1110,6 +1120,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
         Feature = get_html_features(features),
         logFC = round(tt$logFC, 2),
         FDR = round(tt$adj.P.Val, 4),
+        fdr =  signif(tt$adj.P.Val, digits = 3),
         feature = features
       )
 
@@ -1135,12 +1146,24 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    vis_targ <- (length(cols)-1)
+    vis_targ <- which(cols %in% c('fdr', 'feature'))-1
     search_targs <- 0
 
     # prevent sort/filter when qc_first
     sort_targs <- 0
     filter <- list(position='top', clear = TRUE, vertical = TRUE, opacity = 0.85)
+
+    fdr_col_idx <- which(cols == 'FDR')-1
+    fdr_val_idx <- which(cols == 'fdr')-1
+
+    fdr_title_js <- DT::JS(
+      sprintf(paste0(
+        "function (row, data, rowIndex) {",
+        "  const cells = $('td', row);",
+        "  $(cells[%s]).attr('title', data[%s]);",
+        "}"), fdr_col_idx, fdr_val_idx
+      )
+    )
 
     qc_first <- all(colnames(gene_table) %in% c('Feature', 'feature'))
     if (qc_first) {
@@ -1177,7 +1200,8 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
           list(visible = FALSE, targets = vis_targ),
           list(searchable = FALSE, targets = search_targs),
           list(sortable = FALSE, targets = sort_targs)
-        )
+        ),
+        rowCallback = fdr_title_js
       )
     )
 
@@ -1212,7 +1236,8 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
 
 
   return(list(
-    explore_genes = explore_genes
+    explore_genes = explore_genes,
+    contrast_groups = bulkAnal$contrast_groups
   ))
 }
 
@@ -1232,36 +1257,58 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     toggle(id = "dtangle_form", anim = TRUE, condition = show_dtangle())
   })
 
+  prev_dataset <- reactive(qread.safe(file.path(sc_dir(), 'prev_dataset.qs')))
+
   # available single cell datasets for deconvolution
-  ref_anals <- reactive({
+  prev_datasets <- reactiveVal()
+  curr_selected <- reactiveVal()
 
-    # reactive to new sc datasets
-    new_dataset()
-    sc_dir <- sc_dir()
+  ref_datasets <- reactive({
 
-    # use saved anals as options
-    dataset_names <- list.dirs(sc_dir, full.names = FALSE, recursive = FALSE)
-    integrated <- get_integrated_datasets(sc_dir)
-    individual <- setdiff(dataset_names, integrated)
+    datasets <- get_sc_dataset_choices(sc_dir(), prev_dataset())
+    prev <- isolate(prev_datasets())
+    curr <- isolate(input$dtangle_dataset)
 
-    # exclude individual without scseq (e.g. folder with fastq.gz files only)
-    has.scseq <- check_has_scseq(individual, sc_dir)
-    individual <- individual[unlist(has.scseq)]
-    return(individual)
+    if (isTruthy(prev) && isTruthy(curr)) {
+      datasets <- keep_curr_selected(datasets, prev, curr)
+
+      # set currently selected name
+      curr_selected(prev[as.numeric(curr), 'name'])
+    }
+
+    prev_datasets(datasets)
+    return(datasets)
   })
 
 
-
   # update reference dataset choices
+  options <- list(
+    render = I('{option: scDatasetOptions, item: scDatasetItem, optgroup_header: scDatasetOptGroup}'),
+    searchField = c('optgroup', 'label'))
+
   observe({
-    ref_anals <- ref_anals()
-    req(ref_anals)
-    updateSelectizeInput(session, 'dtangle_dataset', choices = c('', ref_anals))
+    datasets <- ref_datasets()
+    sel <- isolate(input$dtangle_dataset)
+
+    # for when delete current dataset
+    removed.curr <- !is.null(curr_selected()) && !curr_selected() %in% datasets$name
+    if (removed.curr) sel <- ''
+
+    datasets <- add_optgroup_type(datasets)
+    datasets <- datasets_to_list(datasets)
+    updateSelectizeInput(session, 'dtangle_dataset', selected = sel, choices = datasets, options = options)
+  })
+
+
+  dtangle_dataset <- reactive({
+    sel_idx <- input$dtangle_dataset
+    ds <- ref_datasets()
+    ds$name[ds$value == sel_idx]
   })
 
   # get path to resolution subdir being used
   dtangle_subdir <- reactive({
-    anal_name <- input$dtangle_dataset
+    anal_name <- dtangle_dataset()
     req(anal_name)
 
     dataset_dir <- file.path(sc_dir(), anal_name)
@@ -1283,11 +1330,13 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     updateSelectizeInput(session, 'include_clusters', choices = choices, options = include_options, server = TRUE)
   })
 
-  # scseq for deconvolution
+  # down-sampled scseq for deconvolution
   scseq <- reactive({
-    dataset_name <- input$dtangle_dataset
+    dataset_name <- dtangle_dataset()
     dataset_dir <- file.path(sc_dir(), dataset_name)
+
     scseq <- load_scseq_qs(dataset_dir, with_logs = TRUE)
+    scseq <- downsample_clusters(scseq)
 
     species <- scseq@metadata$species
     if (species != 'Homo sapiens')
@@ -1299,7 +1348,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
   observeEvent(input$submit_dtangle, {
 
     eset <- explore_eset()
-    dtangle_dataset <- input$dtangle_dataset
+    dtangle_dataset <- dtangle_dataset()
     if (!isTruthyAll(eset, dtangle_dataset)) return(NULL)
 
     # disable inputs
@@ -1368,7 +1417,7 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
       )
     })
 
-    # run deconvolution and get get proportion estimates
+    # run deconvolution and get proportion estimates
     marks <- marker_list$L
     dc <- dtangle::dtangle(y,
                            pure_samples = pure_samples,
@@ -1827,16 +1876,18 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
+    tt_fname_all <- 'top_table_all.csv'
     goup_fname <- 'go_up.csv'
     godn_fname <- 'go_dn.csv'
 
     path_res <- path_res()
     utils::write.csv(filtered_tt(), tt_fname)
+    utils::write.csv(top_table(), tt_fname_all)
     utils::write.csv(path_res$up, goup_fname)
     utils::write.csv(path_res$dn, godn_fname)
 
     #create the zip file
-    utils::zip(file, c(tt_fname, goup_fname, godn_fname))
+    utils::zip(file, c(tt_fname, tt_fname_all, goup_fname, godn_fname))
   }
 
   output$download <- downloadHandler(
@@ -1937,7 +1988,7 @@ volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_ab
     par(mar=mar)
 
     plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
-         ylab="-log10(FDR)",  xlab= "logFC", bty="l")
+         ylab=bquote(~-log[10] ~ FDR),  xlab= "logFC", bty="l")
 
     abline(h = -log10(max_fdr), lty=2)
     abline(v = -min_abs_logfc, lty=2)

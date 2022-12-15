@@ -451,7 +451,10 @@ process_raw_scseq <- function(scseq,
   species <- scseq@metadata$species
 
   is_ref <- !is.null(ref_name)
-  if (is_ref) ref_type <- get_ref_type(ref_name)
+  if (is_ref) {
+    ref_type <- get_ref_type(ref_name)
+    dataset_name <- paste0(dataset_name, '_', ref_type)
+  }
 
   if (!is_ref) {
     progress$set(message = "reducing", value = value + 1)
@@ -1487,6 +1490,7 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
   } else if (type[1] == 'symphony') {
     all.counts <- do.call(no_correct('counts'), scseqs)
     all.counts <- SummarizedExperiment::assay(all.counts, 'merged')
+
     cor.out <- run_symphony(all.counts, logcounts, ref_name, combined$batch, species, tx2gene_dir)
   }
 
@@ -1527,8 +1531,8 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
 
   # get uwot model
   uwot_name <- paste0(ref_name, '_uwot_model')
-  dl_dir <- system.file(package = "dseqr.data", mustWork = TRUE)
-  uwot_path <- file.path(dl_dir, 'extdata', uwot_name)
+  dl_dir <- Sys.getenv('DSEQR_DATA_PATH')
+  uwot_path <- file.path(dl_dir, uwot_name)
   if (!file.exists(uwot_path)) dseqr.data::dl_data(uwot_name)
 
   # indicate model path for mapQuery
@@ -1549,10 +1553,9 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
     reducedDims = list(corrected = t(query$Z), UMAP = query$umap),
     colData =  S4Vectors::DataFrame(
       batch = batch,
-      cluster = meta$predicted.celltype,
+      cluster = factor(as.numeric(meta$predicted.celltype)),
       predicted.celltype = meta$predicted.celltype,
       predicted.celltype.score = meta$predicted.celltype.score))
-
 
 
   return(cor.out)
