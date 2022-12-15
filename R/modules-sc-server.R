@@ -2903,6 +2903,7 @@ subsetForm <- function(input, output, session, sc_dir, set_readonly, scseq, save
     from_dataset <- selected_dataset()
     founder <- founder()
     dataset_name <- new_dataset_name()
+
     is_integrated <- is_integrated()
     hvgs <- hvgs()
     subset_metrics <- subset_metrics()

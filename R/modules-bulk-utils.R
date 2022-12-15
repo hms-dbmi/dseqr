@@ -107,7 +107,7 @@ boxPlotly <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
 #' @return plotly
 #'
 #' @keywords internal
-boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) {
+boxPlotlyCells <- function(df, boxgap, boxgroupgap, pvals, plot_fname, ytitle, xtitle) {
 
   # legend styling
   l <- list(
@@ -123,6 +123,22 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) 
   nx <- length(unique(df$x))
   ng <- length(unique(df$name))
   plot_width <- max(923, (ng+2)*25*nx)
+
+  if (!is.null(pvals)) {
+    pval_text <- signif(pvals$adj.P.Val, 2)
+    is.sig <- pval_text < 0.05
+    pval_text[is.sig] <- sprintf('<span style="color:black">%s</span>', pval_text[is.sig])
+
+    annotations <- list(
+      x = row.names(pvals),
+      y = pvals$ymax,
+      text = pval_text,
+      showarrow = FALSE,
+      xanchor = "middle",
+      yanchor = 'bottom',
+      font = list(color = 'darkgray')
+    )
+  }
 
 
   df %>%
@@ -146,7 +162,8 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle) 
                    height = 620,
                    xaxis = list(fixedrange=TRUE, title = xtitle),
                    yaxis = list(fixedrange=TRUE, title = ytitle),
-                   legend = l) %>%
+                   legend = l,
+                   annotations = annotations) %>%
     plotly::config(displaylogo = FALSE,
                    displayModeBar = 'hover',
                    modeBarButtonsToRemove = c('lasso2d',
@@ -213,7 +230,7 @@ get_boxplotly_gene_args <- function(eset, explore_genes, dataset_name) {
 #' @return List with items \code{'df'}, \code{'boxgap'}, \code{'boxgroupgap'}, and \code{'plot_fname'}.
 #' @keywords internal
 #'
-get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
+get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name, contrast) {
 
   common <- intersect(row.names(dtangle_est), row.names(pdata))
   dtangle_est <- as.data.frame(dtangle_est)[common, ]
@@ -235,6 +252,9 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
   df$color <- factor(df$color, levels = group_levels)
   df$x <- factor(df$x, levels = clus_levels)
 
+  # calculate significance if contrast
+  dtangle_pvals <- get_dtangle_pvals(df, contrast)
+
   # name for saving plot
   fname <- paste(clus_levels, collapse = '_')
   fname <- gsub(' ', '', fname)
@@ -243,7 +263,35 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name) {
   return(list(df = df,
               boxgap = boxgap,
               boxgroupgap = boxgroupgap,
-              plot_fname = fname))
+              plot_fname = fname,
+              pvals = dtangle_pvals))
+}
+
+get_dtangle_pvals <- function(df, contrast) {
+  if (is.null(contrast)) return(NULL)
+
+  df <- df[df$name %in% contrast, ]
+
+  cell_types <- levels(df$x)
+  pvals <- ymaxs <- c()
+
+  for (cell_type in cell_types) {
+    df_cell <- df[df$x == cell_type, ]
+    is.test <- df_cell$name == contrast[1]
+
+    res_cell <- t.test(df_cell$y[is.test], df_cell$y[!is.test])
+    pvals <- c(pvals, res_cell$p.value)
+    ymaxs <- c(ymaxs, max(df_cell$y))
+  }
+
+  dtangle_pvals <- data.frame(
+    pval = pvals,
+    ymax = ymaxs,
+    adj.P.Val = stats::p.adjust(pvals, method = 'BH'),
+    row.names = cell_types
+  )
+
+  return(dtangle_pvals)
 }
 
 
