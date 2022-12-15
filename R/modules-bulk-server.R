@@ -1887,7 +1887,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     utils::write.csv(path_res$dn, godn_fname)
 
     #create the zip file
-    utils::zip(file, c(tt_fname, goup_fname, godn_fname))
+    utils::zip(file, c(tt_fname, tt_fname_all, goup_fname, godn_fname))
   }
 
   output$download <- downloadHandler(
