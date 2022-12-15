@@ -1988,7 +1988,7 @@ volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_ab
     par(mar=mar)
 
     plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
-         ylab="-log10(FDR)",  xlab= "logFC", bty="l")
+         ylab=bquote(~-log[10] ~ FDR),  xlab= "logFC", bty="l")
 
     abline(h = -log10(max_fdr), lty=2)
     abline(v = -min_abs_logfc, lty=2)
