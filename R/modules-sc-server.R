@@ -1435,10 +1435,12 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
+    tt_fname_all <- 'top_table_all.csv'
     ab_fname <- 'abundances.csv'
     goup_fname <- 'go_up.csv'
     godn_fname <- 'go_down.csv'
 
+    tt_all <- top_table()[[1]]
     tt <- filtered_tt()
     if (is.meta()) tt <- tt_to_es(tt)
 
@@ -1448,6 +1450,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     tozip <- c()
     tozip <- write.csv.safe(tt, tt_fname, tozip)
+    tozip <- write.csv.safe(tt_all, tt_fname_all, tozip)
     tozip <- write.csv.safe(pres$up, goup_fname, tozip)
     tozip <- write.csv.safe(pres$dn, godn_fname, tozip)
     tozip <- write.csv.safe(abundances, ab_fname, tozip)

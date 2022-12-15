@@ -296,13 +296,17 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
   plot <- reactive({
 
     args <- boxplotly_args()
+    contrast <- contrast_groups()
+    is.comparison <- length(contrast) == 2
+    ytitle <- 'Estimated Proportion'
+    if (is.comparison) ytitle <- paste(ytitle, '(FDR)')
 
     boxPlotlyCells(df = args$df,
                    boxgap = args$boxgap,
                    boxgroupgap = args$boxgroupgap,
                    pvals = args$pvals,
                    plot_fname = args$plot_fname,
-                   ytitle = 'Estimated Proportion',
+                   ytitle = ytitle,
                    xtitle = 'Cluster')
   })
 
@@ -1142,7 +1146,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     # non-html feature column is hidden and used for search
     # different ncol if contrast
     cols <- colnames(gene_table)
-    vis_targ <- (length(cols)-c(1, 2))
+    vis_targ <- which(cols %in% c('fdr', 'feature'))-1
     search_targs <- 0
 
     # prevent sort/filter when qc_first
@@ -1872,11 +1876,13 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     on.exit(setwd(owd))
 
     tt_fname <- 'top_table.csv'
+    tt_fname_all <- 'top_table_all.csv'
     goup_fname <- 'go_up.csv'
     godn_fname <- 'go_dn.csv'
 
     path_res <- path_res()
     utils::write.csv(filtered_tt(), tt_fname)
+    utils::write.csv(top_table(), tt_fname_all)
     utils::write.csv(path_res$up, goup_fname)
     utils::write.csv(path_res$dn, godn_fname)
 
@@ -2066,6 +2072,4 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
   })
   return(explore_eset)
 }
-
-
 
