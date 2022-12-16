@@ -185,7 +185,7 @@ bulkFormAnalInput <- function(id) {
   ns <- NS(id)
 
   tagList(
-    bulkAnalInput(ns('ds'), label = 'Download two-group comparison:'),
+    bulkAnalInput(ns('ds'), label = 'Groups to compare:'),
     div(id = ns('explore_genes_container'),
         div(id = 'bulk-intro-feature',
             tags$label(class='control-label', `for`=ns('gene_table'), 'Select features to plot:'),
