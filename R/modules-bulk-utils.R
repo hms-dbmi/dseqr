@@ -478,6 +478,7 @@ validate_up_annot <- function(up, ref) {
 #' @keywords internal
 is_invertible <- function(pdata) {
   pdata <- pdata[!is.na(pdata$`Group name`), ]
+  pdata <- pdata[pdata$`Group name` != "", ]
 
   pair <- pdata$Pair
   if (length(unique(pair)) > 1) pdata$pair <- pair
