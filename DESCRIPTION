@@ -54,6 +54,7 @@ Imports:
     limma (>= 3.40.2),
     magrittr (>= 1.5),
     Matrix,
+    MuSiC,
     methods,
     MASS,
     plyr,
@@ -103,5 +104,6 @@ Remotes:
     hms-dbmi/picker,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
-    immunogenomics/presto
+    immunogenomics/presto,
+    xuranw/MuSiC
 Config/testthat/edition: 3

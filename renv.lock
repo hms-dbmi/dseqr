@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.1",
+    "Version": "4.2.2",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -388,6 +388,25 @@
         "scuttle"
       ]
     },
+    "EpiDISH": {
+      "Package": "EpiDISH",
+      "Version": "2.12.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/EpiDISH",
+      "git_branch": "RELEASE_3_15",
+      "git_last_commit": "fdb7688",
+      "git_last_commit_date": "2022-04-26",
+      "Hash": "5cd8015df633b3948a8ac76b4e77a0f4",
+      "Requirements": [
+        "MASS",
+        "Matrix",
+        "e1071",
+        "locfdr",
+        "matrixStats",
+        "quadprog",
+        "stringr"
+      ]
+    },
     "ExperimentHub": {
       "Package": "ExperimentHub",
       "Version": "2.4.0",
@@ -435,6 +454,27 @@
         "readr",
         "tidyr",
         "xml2"
+      ]
+    },
+    "GGally": {
+      "Package": "GGally",
+      "Version": "2.1.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "022f78c8698724b326f1838b1a98cafa",
+      "Requirements": [
+        "RColorBrewer",
+        "dplyr",
+        "forcats",
+        "ggplot2",
+        "gtable",
+        "lifecycle",
+        "plyr",
+        "progress",
+        "reshape",
+        "rlang",
+        "scales",
+        "tidyr"
       ]
     },
     "GO.db": {
@@ -600,12 +640,26 @@
       "Hash": "af0e1955cb80bb36b7988cc657db261e",
       "Requirements": []
     },
-    "Matrix": {
-      "Package": "Matrix",
-      "Version": "1.4-1",
+    "MCMCpack": {
+      "Package": "MCMCpack",
+      "Version": "1.6-3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "699c47c606293bdfbc9fd78a93c9c8fe",
+      "Hash": "520335edba1c95a90eec54d693727723",
+      "Requirements": [
+        "MASS",
+        "coda",
+        "lattice",
+        "mcmc",
+        "quantreg"
+      ]
+    },
+    "Matrix": {
+      "Package": "Matrix",
+      "Version": "1.5-3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4006dffe49958d2dd591c17e61e60591",
       "Requirements": [
         "lattice"
       ]
@@ -621,6 +675,38 @@
       "Hash": "68a6ed57fd9a1d0d6beea73507b3ff59",
       "Requirements": [
         "matrixStats"
+      ]
+    },
+    "MatrixModels": {
+      "Package": "MatrixModels",
+      "Version": "0.5-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "963ab8fbaf980a5b081ed40419081439",
+      "Requirements": [
+        "Matrix"
+      ]
+    },
+    "MuSiC": {
+      "Package": "MuSiC",
+      "Version": "1.0.0",
+      "Source": "GitHub",
+      "Remotes": "",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "MuSiC",
+      "RemoteUsername": "xuranw",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "0a3e3af45d4bd018939013660a3e83e580fa3bac",
+      "Hash": "a5b52856c098fd961df4595770b4e17b",
+      "Requirements": [
+        "Biobase",
+        "MCMCpack",
+        "Matrix",
+        "SingleCellExperiment",
+        "TOAST",
+        "ggplot2",
+        "nnls"
       ]
     },
     "NCmisc": {
@@ -1042,6 +1128,14 @@
         "beachmat"
       ]
     },
+    "SparseM": {
+      "Package": "SparseM",
+      "Version": "1.81",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2042cd9759cc89a453c4aefef0ce9aae",
+      "Requirements": []
+    },
     "SummarizedExperiment": {
       "Package": "SummarizedExperiment",
       "Version": "1.26.1",
@@ -1061,6 +1155,28 @@
         "Matrix",
         "MatrixGenerics",
         "S4Vectors"
+      ]
+    },
+    "TOAST": {
+      "Package": "TOAST",
+      "Version": "1.10.1",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/TOAST",
+      "git_branch": "RELEASE_3_15",
+      "git_last_commit": "acbb0d2",
+      "git_last_commit_date": "2022-08-24",
+      "Hash": "94d8ba859fa9942b89a99bebdb6d250f",
+      "Requirements": [
+        "EpiDISH",
+        "GGally",
+        "SummarizedExperiment",
+        "corpcor",
+        "doParallel",
+        "ggplot2",
+        "limma",
+        "nnls",
+        "quadprog",
+        "tidyr"
       ]
     },
     "TSP": {
@@ -1478,6 +1594,16 @@
       "Hash": "c5f8447373ec2a0f593c694024e5b7ee",
       "Requirements": []
     },
+    "coda": {
+      "Package": "coda",
+      "Version": "0.19-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "24b6d006b8b2343876cf230687546932",
+      "Requirements": [
+        "lattice"
+      ]
+    },
     "codetools": {
       "Package": "codetools",
       "Version": "0.2-18",
@@ -1500,6 +1626,14 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "2ba81b120c1655ab696c935ef33ea716",
+      "Requirements": []
+    },
+    "corpcor": {
+      "Package": "corpcor",
+      "Version": "1.6.10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "17ebe3b6d75d09c5bab3891880b34237",
       "Requirements": []
     },
     "cowplot": {
@@ -1666,6 +1800,17 @@
       "Hash": "cf6b206a045a684728c3267ef7596190",
       "Requirements": []
     },
+    "doParallel": {
+      "Package": "doParallel",
+      "Version": "1.0.17",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "451e5edf411987991ab6a5410c45011f",
+      "Requirements": [
+        "foreach",
+        "iterators"
+      ]
+    },
     "dplyr": {
       "Package": "dplyr",
       "Version": "1.0.9",
@@ -1725,6 +1870,17 @@
       "Hash": "fe53d2ea110c7772eb382bf058190d66",
       "Requirements": [
         "DEoptimR"
+      ]
+    },
+    "e1071": {
+      "Package": "e1071",
+      "Version": "1.7-12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0d776df7577206e100c2c4b508208b10",
+      "Requirements": [
+        "class",
+        "proxy"
       ]
     },
     "edgeR": {
@@ -1858,6 +2014,23 @@
       "Requirements": [
         "htmltools",
         "rlang"
+      ]
+    },
+    "forcats": {
+      "Package": "forcats",
+      "Version": "0.5.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9d95bc88206321cd1bc98480ecfd74bb",
+      "Requirements": [
+        "cli",
+        "ellipsis",
+        "glue",
+        "lifecycle",
+        "magrittr",
+        "rlang",
+        "tibble",
+        "withr"
       ]
     },
     "foreach": {
@@ -2413,6 +2586,14 @@
         "zoo"
       ]
     },
+    "locfdr": {
+      "Package": "locfdr",
+      "Version": "1.1-8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2698cbc879db321e87ee97aa5c9abacd",
+      "Requirements": []
+    },
     "locfit": {
       "Package": "locfit",
       "Version": "1.5-9.5",
@@ -2447,6 +2628,14 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "36ad89a805c436c5316c22490079da67",
+      "Requirements": []
+    },
+    "mcmc": {
+      "Package": "mcmc",
+      "Version": "0.9-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "aab79cde1fef3861c9eed1cbc3f931fb",
       "Requirements": []
     },
     "memoise": {
@@ -2486,10 +2675,10 @@
     },
     "mgcv": {
       "Package": "mgcv",
-      "Version": "1.8-40",
+      "Version": "1.8-41",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c6b2fdb18cf68ab613bd564363e1ba0d",
+      "Hash": "6b3904f13346742caa3e82dd0303d4ad",
       "Requirements": [
         "Matrix",
         "nlme"
@@ -2533,6 +2722,14 @@
       "Requirements": [
         "lattice"
       ]
+    },
+    "nnls": {
+      "Package": "nnls",
+      "Version": "1.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e451f3c2946bae5c3e5b8d63f09d186e",
+      "Requirements": []
     },
     "oligo": {
       "Package": "oligo",
@@ -2863,6 +3060,14 @@
         "rlang"
       ]
     },
+    "proxy": {
+      "Package": "proxy",
+      "Version": "0.4-27",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e0ef355c12942cf7a6b91a6cfaea8b3e",
+      "Requirements": []
+    },
     "ps": {
       "Package": "ps",
       "Version": "1.6.0",
@@ -2892,6 +3097,28 @@
         "RApiSerialize",
         "Rcpp",
         "stringfish"
+      ]
+    },
+    "quadprog": {
+      "Package": "quadprog",
+      "Version": "1.5-8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5f919ae5e7f83a6f91dcf2288943370d",
+      "Requirements": []
+    },
+    "quantreg": {
+      "Package": "quantreg",
+      "Version": "5.94",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "b8b2b861526c344a7e16e5991fa5a4ab",
+      "Requirements": [
+        "MASS",
+        "Matrix",
+        "MatrixModels",
+        "SparseM",
+        "survival"
       ]
     },
     "ragg": {
@@ -3018,6 +3245,16 @@
         "Rcpp",
         "rlang",
         "scales"
+      ]
+    },
+    "reshape": {
+      "Package": "reshape",
+      "Version": "0.8.9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "603d56041d7d4fa3ceb1864b3f6ee6b1",
+      "Requirements": [
+        "plyr"
       ]
     },
     "reshape2": {
