@@ -130,8 +130,9 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, pvals, plot_fname, ytitle, x
     is.sig <- pval_text < 0.05
     pval_text[is.sig] <- sprintf('<span style="color:black">%s</span>', pval_text[is.sig])
 
+    # x set up to work with numeric or non-numeric cluster names
     annotations <- list(
-      x = seq_len(nrow(pvals))-1,
+      x = match(row.names(pvals), levels(df$x))-1,
       y = pvals$ymax,
       text = pval_text,
       showarrow = FALSE,

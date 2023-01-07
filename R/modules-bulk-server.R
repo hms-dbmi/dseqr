@@ -1405,7 +1405,7 @@ calc_deconv_hash <- function(dataset_name, sc_dir, exclude_clusters) {
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
   clusters <- qs::qread(clusters_path)
 
-  deconv_hash <- digest::digest(list(clusters, exclude_clusters, dataset_name))
+  deconv_hash <- digest::digest(list(clusters, sort(exclude_clusters), dataset_name))
   return(deconv_hash)
 
 }
