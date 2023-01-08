@@ -166,11 +166,11 @@ bulkDatasetInput <- function(id) {
           container_id = 'dataset_name_container',
           options = list(optgroupField = 'type'),
           svaButton(inputId = ns('show_nsv'), sliderId = ns('selected_nsv')),
-          actionButton(ns('show_dtangle'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
+          actionButton(ns('show_deconv'), '', icon = icon('object-ungroup', 'far fa-fw'), title = 'Toggle cell-type deconvolution'),
           hide_btns = TRUE
         ),
         div(class = 'hidden-forms',
-            dtangleFormInput(ns('dtangle'))
+            deconvFormInput(ns('deconv'))
         )
     )
   })
@@ -243,18 +243,18 @@ bulkTable <- function(id) {
 #'
 #' @keywords internal
 #' @noRd
-dtangleFormInput <- function(id) {
+deconvFormInput <- function(id) {
   ns <- NS(id)
 
   withTags({
-    div(id = ns('dtangle_form'), class = 'hidden-form', style = 'display: none;',
-        selectizeInput(ns('dtangle_dataset'), 'Reference single-cell dataset:', choices = '', width = '100%'),
+    div(id = ns('deconv_form'), class = 'hidden-form', style = 'display: none;',
+        selectizeInput(ns('deconv_dataset'), 'Reference single-cell dataset:', choices = '', width = '100%'),
         shinypanel::selectizeInputWithButtons(
-          ns('include_clusters'),
-          label = 'Clusters to include:',
-          label_title = 'Select cell types that are expected in the bulk dataset',
+          ns('exclude_clusters'),
+          label = 'Clusters to exclude:',
+          label_title = 'Exclude cell types that are not expected in the bulk dataset',
           options = list(multiple = TRUE, placeholder = 'Select none to include all'),
-          actionButton(ns('submit_dtangle'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
+          actionButton(ns('submit_deconv'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
         )
     )
   })

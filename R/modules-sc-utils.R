@@ -1765,12 +1765,12 @@ get_tsne_coords <- function(plot_data) {
 #'
 #' @param bgs \code{reactivevalues} of \link[callr]{r_bg}
 #' @param progs \code{reactivevalues} of \link[shiny]{Progress}
-#' @param new_dataset \code{reactive} that triggers update of available datasets.
+#' @param reactive_result \code{reactive} that is updated when bg completes.
 #'
 #' @return NULL
 #' @keywords internal
 #'
-handle_sc_progress <- function(bgs, progs, new_dataset) {
+handle_sc_progress <- function(bgs, progs, reactive_result) {
   bg_names <- names(bgs)
   if (!length(bg_names)) return(NULL)
 
@@ -1798,7 +1798,11 @@ handle_sc_progress <- function(bgs, progs, new_dataset) {
     if (!bg$is_alive()) {
       res <- bg$get_result()
       progress$close()
-      if (res) new_dataset(name)
+
+      if (isTRUE(res)) {
+        reactive_result(name)
+      }
+
       todel <- c(todel, name)
     }
   }

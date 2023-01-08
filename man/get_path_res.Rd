@@ -13,7 +13,8 @@ get_path_res(
   gonames = NULL,
   coef = ncol(de),
   nmin = 50,
-  cutoff = 0.05
+  max_fdr = 0.05,
+  min_abs_logfc = 0
 )
 }
 \arguments{

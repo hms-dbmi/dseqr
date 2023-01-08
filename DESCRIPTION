@@ -1,7 +1,7 @@
 Package: dseqr
 Type: Package
 Title: GUI to Explore Single-Cell and Bulk RNA-Seq from Fastq to Pathways and Perturbations
-Version: 0.34.0
+Version: 0.35.0
 Authors@R: person("Alex", "Pickering", email="alexvpickering@gmail.com", role=c("cre", "aut"))
 BugReports: https://github.com/hms-dbmi/dseqr/issues
 URL: https://github.com/hms-dbmi/dseqr
@@ -17,7 +17,7 @@ Description: GUI to import and explore single-cell and bulk RNA-seq datasets
     CMAP02 and L1000 perturbation signatures.
 License: MIT + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 BiocViews:
 SystemRequirements:
   kallisto (0.46.0)
@@ -54,6 +54,7 @@ Imports:
     limma (>= 3.40.2),
     magrittr (>= 1.5),
     Matrix,
+    MuSiC,
     methods,
     MASS,
     plyr,
@@ -103,5 +104,6 @@ Remotes:
     hms-dbmi/picker,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
-    immunogenomics/presto
+    immunogenomics/presto,
+    xuranw/MuSiC
 Config/testthat/edition: 3

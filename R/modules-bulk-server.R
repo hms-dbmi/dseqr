@@ -74,9 +74,9 @@ bulkPage <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2g
   sel_genes <- reactive(length(bulkForm$explore_genes() > 0))
 
   observe({
-    toggle('mds_plotly_container', condition = !sel_genes() & !bulkForm$show_dtangle())
-    toggle('gene_plotly_container', condition = sel_genes() & !bulkForm$show_dtangle())
-    toggle('cells_plotly_container', condition = bulkForm$show_dtangle())
+    toggle('mds_plotly_container', condition = !sel_genes() & !bulkForm$show_deconv())
+    toggle('gene_plotly_container', condition = sel_genes() & !bulkForm$show_deconv())
+    toggle('cells_plotly_container', condition = bulkForm$show_deconv())
   })
 
 
@@ -101,7 +101,7 @@ bulkPage <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2g
              dataset_name = bulkForm$dataset_name)
 
   callModule(bulkCellsPlotly, 'cells_plotly',
-             dtangle_est = bulkForm$dtangle_est,
+             est_prop = bulkForm$est_prop,
              pdata = dsExploreTable$pdata,
              dataset_name = bulkForm$dataset_name,
              contrast_groups = bulkForm$contrast_groups)
@@ -276,7 +276,7 @@ bulkGenePlotly <- function(input, output, session, eset, explore_genes, dataset_
 #'
 #' @keywords internal
 #' @noRd
-bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_name, contrast_groups) {
+bulkCellsPlotly <- function(input, output, session, est_prop, pdata, dataset_name, contrast_groups) {
 
   boxplotly_args <- reactive({
     # need at least two groups
@@ -285,12 +285,12 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
     pdata <- pdata[!is.na(pdata$Group), ]
     req(length(unique(pdata$Group)) > 1)
 
-    dtangle_est <- dtangle_est()
-    req(dtangle_est)
+    est_prop <- est_prop()
+    req(est_prop)
 
     contrast <- contrast_groups()
 
-    get_boxplotly_cell_args(pdata, dtangle_est, dataset_name(), contrast)
+    get_boxplotly_cell_args(pdata, est_prop, dataset_name(), contrast)
   })
 
   plot <- reactive({
@@ -311,7 +311,7 @@ bulkCellsPlotly <- function(input, output, session, dtangle_est, pdata, dataset_
   })
 
   filename <- function() {
-    clusters <- colnames(dtangle_est())
+    clusters <- colnames(est_prop())
     clusters <- gsub(' ', '', clusters)
     paste(dataset_name(), '_', paste(clusters, collapse = '_'), '_', Sys.Date(), ".csv", sep = "")
   }
@@ -372,8 +372,8 @@ bulkForm <- function(input, output, session, project_dir, sc_dir, bulk_dir, tx2g
     dataset_dir = dataset$dataset_dir,
     show_anal = show_anal,
     is.explore = anal$is.explore,
-    dtangle_est = dataset$dtangle_est,
-    show_dtangle = dataset$show_dtangle,
+    est_prop = dataset$est_prop,
+    show_deconv = dataset$show_deconv,
     numsv_r = dataset$numsv_r,
     svobj_r = dataset$svobj_r,
     contrast_groups = anal$contrast_groups
@@ -394,12 +394,12 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
 
 
 
-  # only show nsv/dtangle toggle if dataset with groups
+  # only show nsv/deconv toggle if dataset with groups
   have_groups <- reactive(isTruthy(explore_eset()))
 
   observe({
     shinypanel::toggleSelectizeButtons('dataset_name',
-                                       button_ids = c('show_nsv', 'show_dtangle'),
+                                       button_ids = c('show_nsv', 'show_deconv'),
                                        condition = have_groups())
   })
 
@@ -1020,27 +1020,26 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   })
 
   # toggle cell-type deconvolution
-  show_dtangle <- reactive(input$show_dtangle %% 2 != 0)
+  show_deconv <- reactive(input$show_deconv %% 2 != 0)
 
   observe({
-    shinyjs::toggleClass(id = "show_dtangle", 'btn-primary', condition = show_dtangle())
+    shinyjs::toggleClass(id = "show_deconv", 'btn-primary', condition = show_deconv())
   })
 
-  dtangleForm <- callModule(
-    dtangleForm, 'dtangle',
-    show_dtangle = show_dtangle,
+  deconvForm <- callModule(
+    deconvForm, 'deconv',
+    show_deconv = show_deconv,
     new_dataset = new_dataset,
     sc_dir = sc_dir,
     bulk_dir = bulk_dir,
     tx2gene_dir = tx2gene_dir,
-    explore_eset = explore_eset,
     dataset_dir = dataset_dir)
 
   return(list(
     dataset_name = reactive(input$dataset_name),
     dataset_dir = dataset_dir,
-    dtangle_est = dtangleForm$dtangle_est,
-    show_dtangle = show_dtangle,
+    est_prop = deconvForm$est_prop,
+    show_deconv = show_deconv,
     selected_nsv = reactive(input$selected_nsv),
     numsv_r = numsv_r,
     svobj_r = svobj_r
@@ -1245,38 +1244,23 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
 #'
 #' @keywords internal
 #' @noRd
-dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_dir, bulk_dir, tx2gene_dir, explore_eset, dataset_dir) {
+deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir, bulk_dir, tx2gene_dir, dataset_dir) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('include_clusters', 'dtangle_dataset', 'submit_dtangle')
+  input_ids <- c('exclude_clusters', 'deconv_dataset', 'submit_deconv')
 
-  dtangle_est <- reactiveVal()
-  observeEvent(dataset_dir(), dtangle_est(NULL))
+  est_prop <- reactiveVal()
+  observeEvent(dataset_dir(), est_prop(NULL))
 
   # show deconvolution form toggle
   observe({
-    toggle(id = "dtangle_form", anim = TRUE, condition = show_dtangle())
+    toggle(id = "deconv_form", anim = TRUE, condition = show_deconv())
   })
 
   prev_dataset <- reactive(qread.safe(file.path(sc_dir(), 'prev_dataset.qs')))
 
   # available single cell datasets for deconvolution
-  prev_datasets <- reactiveVal()
-  curr_selected <- reactiveVal()
-
   ref_datasets <- reactive({
-
     datasets <- get_sc_dataset_choices(sc_dir(), prev_dataset())
-    prev <- isolate(prev_datasets())
-    curr <- isolate(input$dtangle_dataset)
-
-    if (isTruthy(prev) && isTruthy(curr)) {
-      datasets <- keep_curr_selected(datasets, prev, curr)
-
-      # set currently selected name
-      curr_selected(prev[as.numeric(curr), 'name'])
-    }
-
-    prev_datasets(datasets)
     return(datasets)
   })
 
@@ -1288,27 +1272,23 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
 
   observe({
     datasets <- ref_datasets()
-    sel <- isolate(input$dtangle_dataset)
-
-    # for when delete current dataset
-    removed.curr <- !is.null(curr_selected()) && !curr_selected() %in% datasets$name
-    if (removed.curr) sel <- ''
+    sel <- isolate(input$deconv_dataset)
 
     datasets <- add_optgroup_type(datasets)
     datasets <- datasets_to_list(datasets)
-    updateSelectizeInput(session, 'dtangle_dataset', selected = sel, choices = datasets, options = options)
+    updateSelectizeInput(session, 'deconv_dataset', selected = sel, choices = datasets, options = options)
   })
 
 
-  dtangle_dataset <- reactive({
-    sel_idx <- input$dtangle_dataset
+  deconv_dataset <- reactive({
+    sel_idx <- input$deconv_dataset
     ds <- ref_datasets()
     ds$name[ds$value == sel_idx]
   })
 
   # get path to resolution subdir being used
-  dtangle_subdir <- reactive({
-    anal_name <- dtangle_dataset()
+  deconv_subdir <- reactive({
+    anal_name <- deconv_dataset()
     req(anal_name)
 
     dataset_dir <- file.path(sc_dir(), anal_name)
@@ -1317,125 +1297,154 @@ dtangleForm <- function(input, output, session, show_dtangle, new_dataset, sc_di
     file.path(dataset_dir, get_resoln_dir(resoln))
   })
 
-  annot <- reactive(qs::qread(file.path(dtangle_subdir(), 'annot.qs')))
+  annot <- reactive(qs::qread(file.path(deconv_subdir(), 'annot.qs')))
 
   # update exclude cluster choices
   include_choices <- reactive({
     clusters <- annot()
-    get_cluster_choices(clusters, with_all = TRUE, resoln_dir = dtangle_subdir())
+    get_cluster_choices(clusters, with_all = TRUE, resoln_dir = deconv_subdir())
   })
 
   observe({
     choices <- include_choices()
-    updateSelectizeInput(session, 'include_clusters', choices = choices, options = include_options, server = TRUE)
+    updateSelectizeInput(session, 'exclude_clusters', choices = choices, options = include_options, server = TRUE)
   })
 
-  # down-sampled scseq for deconvolution
-  scseq <- reactive({
-    dataset_name <- dtangle_dataset()
-    dataset_dir <- file.path(sc_dir(), dataset_name)
+  new_deconv <- reactiveVal()
+  is_disabled <- reactiveVal(FALSE)
+  deconvs <- reactiveValues()
+  pdeconvs <- reactiveValues()
 
-    scseq <- load_scseq_qs(dataset_dir, with_logs = TRUE)
-    scseq <- downsample_clusters(scseq)
-
-    species <- scseq@metadata$species
-    if (species != 'Homo sapiens')
-      scseq <- convert_species(scseq, tx2gene_dir, species)
-
-    return(scseq)
+  deconv_path <- reactive({
+    deconv_hash <- calc_deconv_hash(deconv_dataset(), sc_dir(), input$exclude_clusters)
+    deconv_fname <- paste0('deconv_', deconv_hash, '.qs')
+    file.path(dataset_dir(), deconv_fname)
   })
 
-  observeEvent(input$submit_dtangle, {
+  observeEvent(input$submit_deconv, {
 
-    eset <- explore_eset()
-    dtangle_dataset <- dtangle_dataset()
-    if (!isTruthyAll(eset, dtangle_dataset)) return(NULL)
+    bulk_dataset_dir <- dataset_dir()
+    scseq_dataset_name <- deconv_dataset()
+    scseq_dataset_dir <- file.path(sc_dir(), scseq_dataset_name)
+    exclude_clusters <- input$exclude_clusters
 
-    # disable inputs
-    disableAll(input_ids)
+    if (!isTruthyAll(bulk_dataset_dir, scseq_dataset_name)) return(NULL)
 
-    # Create a Progress object
-    progress <- Progress$new(session, min=0, max = 4)
-    # Close the progress when this reactive exits (even if there's an error)
-    on.exit(progress$close())
+    # check if already have
+    deconv_path <- deconv_path()
 
-    progress$set(message = "Deconvoluting", value = 0)
-    progress$set(value = 1)
+    if (file.exists(deconv_path)) {
+      new_deconv(deconv_path)
+
+    } else {
+
+      # disable inputs
+      disableAll(input_ids)
+      is_disabled(TRUE)
+
+      deconvs[[deconv_path]] <- callr::r_bg(
+        deconv_bulk,
+        package = 'dseqr',
+        args = list(
+          bulk_dataset_dir = bulk_dataset_dir,
+          scseq_dataset_dir = scseq_dataset_dir,
+          exclude_clusters = exclude_clusters,
+          tx2gene_dir = tx2gene_dir,
+          deconv_path = deconv_path
+        ))
+
+      progress <- Progress$new(max=3)
+      progress$set(message = "Deconvoluting", value = 1)
+      pdeconvs[[deconv_path]] <- progress
+
+    }
+  })
+
+  observeEvent(new_deconv(), {
+
+    deconv_path <- deconv_path()
+    req(deconv_path)
+
+    est <- qs::qread(deconv_path)
+    est_cols <- as.numeric(colnames(est))
+
+    annot <- annot()
+    colnames(est) <- annot[est_cols]
+
+    est_prop(est)
+  })
 
 
-    # get names of clusters
-    include_clusters <- input$include_clusters
-    include_choices <- include_choices()
+  observe({
+    invalidateLater(5000, session)
+    handle_sc_progress(deconvs, pdeconvs, new_deconv)
+  })
 
-    # if select none deconvolute using all clusters
-    if (!length(include_clusters))
-      include_clusters <- as.character(include_choices$value)
+  # enable when complete (only one transfer at a time)
+  observe({
+    invalidateLater(1000, session)
+    doing <- reactiveValuesToList(deconvs)
+    doing <- names(doing)[!sapply(doing, is.null)]
 
-    include_names <- include_choices$name[as.numeric(include_clusters)]
-
-    pdata <- Biobase::pData(eset)
-
-    # subset to selected clusters
-    scseq <- scseq()
-    scseq <- scseq[, scseq$cluster %in% include_clusters]
-
-    # get normalized/adjusted values
-    adj <- Biobase::assayDataElement(eset, 'adjusted')
-
-    # common genes only
-    commongenes <- intersect(rownames(adj), rownames(scseq))
-    adj <- adj[commongenes, ]
-    scseq <- scseq[commongenes, ]
-
-    # quantile normalize scseq and rnaseq dataset
-    progress$set(value = 2)
-    y <- cbind(as.matrix(SingleCellExperiment::logcounts(scseq)), adj)
-
-    y <- limma::normalizeBetweenArrays(y)
-    y <- t(y)
-
-    progress$set(value = 3)
-    # indicies for cells in each included cluster
-    pure_samples <- list()
-    for (i in seq_along(include_clusters))
-      pure_samples[[include_names[i]]] <- which(scseq$cluster == include_clusters[i])
-
-    # markers for each included cluster
-    marker_list = dtangle::find_markers(y,
-                                        pure_samples = pure_samples,
-                                        data_type = "rna-seq",
-                                        marker_method='ratio')
-
-    # use markers in top 10th quantile with a minimum of 3
-    q = 0.1
-    quantiles = lapply(marker_list$V,function(x) stats::quantile(x,1-q))
-    K = length(pure_samples)
-    n_markers = sapply(seq_len(K),function(i){
-      min(
-        length(marker_list$L[[i]]),
-        max(3, which(marker_list$V[[i]] > quantiles[[i]]))
-      )
-    })
-
-    # run deconvolution and get proportion estimates
-    marks <- marker_list$L
-    dc <- dtangle::dtangle(y,
-                           pure_samples = pure_samples,
-                           n_markers = n_markers,
-                           data_type = 'rna-seq',
-                           markers = marks)
-
-    dc <- dc$estimates[colnames(eset), ]
-    dtangle_est(dc)
-    enableAll(input_ids)
-    progress$set(value = 4)
+    if (!length(doing) && is_disabled()) {
+      enableAll(input_ids)
+      is_disabled(FALSE)
+    }
   })
 
 
   return(list(
-    dtangle_est = dtangle_est
+    est_prop = est_prop
   ))
 }
+
+calc_deconv_hash <- function(dataset_name, sc_dir, exclude_clusters) {
+  dataset_dir <- file.path(sc_dir, dataset_name)
+  resoln_name <- load_resoln(dataset_dir)
+  resoln_dir <- file.path(dataset_dir, resoln_name)
+  clusters_path <- file.path(resoln_dir, 'clusters.qs')
+  clusters <- qs::qread(clusters_path)
+
+  deconv_hash <- digest::digest(list(clusters, sort(exclude_clusters), dataset_name))
+  return(deconv_hash)
+
+}
+
+deconv_bulk <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, tx2gene_dir, deconv_path) {
+  # MuSiC doesn't seem to properly import SingleCellExperiment::counts
+  require('SingleCellExperiment')
+
+  # load scseq (reference data)
+  scseq <- load_scseq_qs(scseq_dataset_dir, with_logs = FALSE, with_counts = TRUE)
+
+  species <- scseq@metadata$species
+  if (species != 'Homo sapiens')
+    scseq <- convert_species(scseq, tx2gene_dir, species)
+
+
+  # subset to selected clusters
+  if (length(exclude_clusters)) {
+    all_clusters <- levels(scseq$cluster)
+    keep_clusters <- setdiff(all_clusters, exclude_clusters)
+    scseq <- scseq[, scseq$cluster %in% keep_clusters]
+    scseq$cluster <- droplevels(scseq$cluster)
+  }
+
+  # load bulk ExpressionSet (to deconvolute)
+  eset <- qs::qread(file.path(bulk_dataset_dir, 'eset.qs'))
+
+  # MuSiC deconvolution
+  bulk.mtx <- Biobase::exprs(eset)
+  est.prop <- MuSiC::music_prop(bulk.mtx, sc.sce = scseq, clusters = 'cluster', samples = 'batch')
+  est.prop <- est.prop$Est.prop.weighted
+  all.zero <- apply(est.prop, 2, function(x) all(x == 0))
+  est.prop <- est.prop[, !all.zero]
+
+  qs::qsave(est.prop, deconv_path)
+
+  return(TRUE)
+}
+
 
 
 #' Logic for differential expression analysis table

@@ -2309,6 +2309,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
   })
 
   observeEvent(resoln_name(), new_preds(NULL))
+  observeEvent(clusters(), new_preds(NULL))
 
   # update annotation transfer choices
   observe({
@@ -2390,7 +2391,6 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
       enableAll(label_transfer_inputs, asis)
       is_disabled(FALSE)
     }
-
   })
 
   observe({

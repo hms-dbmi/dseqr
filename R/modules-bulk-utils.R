@@ -130,8 +130,9 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, pvals, plot_fname, ytitle, x
     is.sig <- pval_text < 0.05
     pval_text[is.sig] <- sprintf('<span style="color:black">%s</span>', pval_text[is.sig])
 
+    # x set up to work with numeric or non-numeric cluster names
     annotations <- list(
-      x = row.names(pvals),
+      x = match(row.names(pvals), levels(df$x))-1,
       y = pvals$ymax,
       text = pval_text,
       showarrow = FALSE,
@@ -140,7 +141,6 @@ boxPlotlyCells <- function(df, boxgap, boxgroupgap, pvals, plot_fname, ytitle, x
       font = list(color = 'darkgray')
     )
   }
-
 
   df %>%
     plotly::plot_ly() %>%
@@ -295,14 +295,16 @@ get_dtangle_pvals <- function(df, contrast) {
     pvals <- c(pvals, pval)
   }
 
-  dtangle_pvals <- data.frame(
+  na.pval <- is.na(pvals)
+
+  res <- data.frame(
     pval = pvals,
     ymax = ymaxs,
-    adj.P.Val = stats::p.adjust(pvals, method = 'BH'),
     row.names = cell_types
-  )
+  )[!na.pval, ]
 
-  return(dtangle_pvals)
+  res$adj.P.Val <- stats::p.adjust(res$pval, method = 'BH')
+  return(res)
 }
 
 get_paired_pval <- function(df_cell, contrast) {

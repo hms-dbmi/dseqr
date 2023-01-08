@@ -4,14 +4,14 @@
 \alias{handle_sc_progress}
 \title{Update Progress from Background Processes}
 \usage{
-handle_sc_progress(bgs, progs, new_dataset)
+handle_sc_progress(bgs, progs, reactive_result)
 }
 \arguments{
 \item{bgs}{\code{reactivevalues} of \link[callr]{r_bg}}
 
 \item{progs}{\code{reactivevalues} of \link[shiny]{Progress}}
 
-\item{new_dataset}{\code{reactive} that triggers update of available datasets.}
+\item{reactive_result}{\code{reactive} that is updated when bg completes.}
 }
 \description{
 Update Progress from Background Processes

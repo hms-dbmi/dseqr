@@ -4,7 +4,7 @@
 \alias{boxPlotlyCells}
 \title{Generate boxplotly for cell type deconvolution plots.}
 \usage{
-boxPlotlyCells(df, boxgap, boxgroupgap, plot_fname, ytitle, xtitle)
+boxPlotlyCells(df, boxgap, boxgroupgap, pvals, plot_fname, ytitle, xtitle)
 }
 \arguments{
 \item{df}{\code{data.frame} with columns: \itemize{

@@ -4,7 +4,7 @@
 \alias{get_boxplotly_cell_args}
 \title{Get arguments for cells boxplotly}
 \usage{
-get_boxplotly_cell_args(pdata, dtangle_est, dataset_name)
+get_boxplotly_cell_args(pdata, dtangle_est, dataset_name, contrast)
 }
 \arguments{
 \item{pdata}{data.frame of phenotype data.}
