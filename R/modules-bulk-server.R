@@ -320,7 +320,7 @@ bulkCellsPlotly <- function(input, output, session, est_prop, pdata, dataset_nam
   content <- function(file) {
     args <- boxplotly_args()
     df <- args$df
-    df$color <- NULL
+    df$color <- df$pair <- NULL
     colnames(df) <- c('Sample', 'Group', 'Proportion', 'Cluster')
     utils::write.csv(df, file, row.names = FALSE)
   }
@@ -1437,8 +1437,6 @@ deconv_bulk <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, t
   bulk.mtx <- Biobase::exprs(eset)
   est.prop <- MuSiC::music_prop(bulk.mtx, sc.sce = scseq, clusters = 'cluster', samples = 'batch')
   est.prop <- est.prop$Est.prop.weighted
-  all.zero <- apply(est.prop, 2, function(x) all(x == 0))
-  est.prop <- est.prop[, !all.zero]
 
   qs::qsave(est.prop, deconv_path)
 
