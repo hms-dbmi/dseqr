@@ -1246,10 +1246,11 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
 #' @noRd
 deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir, bulk_dir, tx2gene_dir, dataset_dir) {
   include_options <- list(render = I('{option: contrastOptions, item: contrastItem}'))
-  input_ids <- c('exclude_clusters', 'deconv_dataset', 'submit_deconv')
+  input_ids <- c('exclude_clusters', 'deconv_dataset', 'submit_deconv', 'deconv_method')
 
   est_prop <- reactiveVal()
-  observeEvent(dataset_dir(), est_prop(NULL))
+  observeEvent(dataset_dir(), {new_deconv(NULL); est_prop(NULL)})
+  observeEvent(input$deconv_method, {new_deconv(NULL); est_prop(NULL)})
 
   # show deconvolution form toggle
   observe({
@@ -1289,6 +1290,7 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
   # get path to resolution subdir being used
   deconv_subdir <- reactive({
     anal_name <- deconv_dataset()
+    if (is.null(anal_name)) return(NULL)
     req(anal_name)
 
     dataset_dir <- file.path(sc_dir(), anal_name)
@@ -1317,8 +1319,21 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
 
   deconv_path <- reactive({
     deconv_hash <- calc_deconv_hash(deconv_dataset(), sc_dir(), input$exclude_clusters)
-    deconv_fname <- paste0('deconv_', deconv_hash, '.qs')
+    deconv_fname <- paste0('deconv_', input$deconv_method, '_', deconv_hash, '.qs')
     file.path(dataset_dir(), deconv_fname)
+  })
+
+  is_integrated <- reactive({
+    dataset_name <- deconv_dataset()
+    req(dataset_name)
+    integrated <- get_integrated_datasets(sc_dir())
+    return(dataset_name %in% integrated)
+  })
+
+  observe({
+    is.int <- is_integrated()
+    choices <- c('MuSiC', 'DWLS')[c(is.int, TRUE)]
+    updateSelectizeInput(session, 'deconv_method', choices = choices)
   })
 
   observeEvent(input$submit_deconv, {
@@ -1327,8 +1342,9 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
     scseq_dataset_name <- deconv_dataset()
     scseq_dataset_dir <- file.path(sc_dir(), scseq_dataset_name)
     exclude_clusters <- input$exclude_clusters
+    method <- input$deconv_method
 
-    if (!isTruthyAll(bulk_dataset_dir, scseq_dataset_name)) return(NULL)
+    if (!isTruthyAll(bulk_dataset_dir, scseq_dataset_name, method)) return(NULL)
 
     # check if already have
     deconv_path <- deconv_path()
@@ -1342,8 +1358,11 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
       disableAll(input_ids)
       is_disabled(TRUE)
 
+      # get method function
+      method_fun <- c('MuSiC' = deconv_bulk_music, 'DWLS' = deconv_bulk_dwls)[[method]]
+
       deconvs[[deconv_path]] <- callr::r_bg(
-        deconv_bulk,
+        method_fun,
         package = 'dseqr',
         args = list(
           bulk_dataset_dir = bulk_dataset_dir,
@@ -1398,19 +1417,77 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
   ))
 }
 
-calc_deconv_hash <- function(dataset_name, sc_dir, exclude_clusters) {
+format_markers_for_dwls <- function(markers) {
+  for (i in seq_along(markers)) {
+    df <- markers[[i]]
+    row.names(df) <- df$feature
+    df <- dplyr::rename(df, avg_log2FC = .data$logFC, p_val_adj = .data$pval)
+    markers[[i]] <- df
+  }
+
+  return(markers)
+}
+
+deconv_bulk_dwls <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, tx2gene_dir, deconv_path) {
+
+  # load markers
+  resoln_dir <- load_resoln(scseq_dataset_dir)
+  markers_path <- file.path(scseq_dataset_dir, resoln_dir, 'markers.qs')
+  have.markers <- file.exists(markers_path)
+
+  # need logs to get markers, counts for deconvolution
+  scseq <- load_scseq_qs(scseq_dataset_dir, with_logs = !have.markers, with_counts = TRUE)
+
+  species <- scseq@metadata$species
+  is.human <- species == 'Homo sapiens'
+  if (!is.human) scseq <- convert_species(scseq, tx2gene_dir, species)
+
+  # subset to selected clusters
+  if (length(exclude_clusters)) {
+    all_clusters <- levels(scseq$cluster)
+    keep_clusters <- setdiff(all_clusters, exclude_clusters)
+    scseq <- scseq[, scseq$cluster %in% keep_clusters]
+    scseq$cluster <- droplevels(scseq$cluster)
+  }
+
+  if (have.markers & is.human) {
+    markers <- qs::qread(markers_path)
+  } else {
+    markers <- get_presto_markers(scseq)
+  }
+
+  markers <- markers[!names(markers) %in% exclude_clusters]
+  markers <- format_markers_for_dwls(markers)
+
+  # create signature for DWLS
+  counts <- SingleCellExperiment::counts(scseq)
+  sig <- DWLS::buildSignatureMatrix(counts, scseq$cluster, markers)
+
+  eset <- qs::qread(file.path(bulk_dataset_dir, 'eset.qs'))
+  bulk <- Biobase::exprs(eset)
+
+  # trim to common genes
+  tr <- DWLS::trimData(sig, bulk)
+
+  # deconvolution
+  res <- apply(tr$bulk, 2, function(x) DWLS::solveDampenedWLS(tr$sig, x))
+  qs::qsave(t(res), deconv_path)
+  return(TRUE)
+}
+
+calc_deconv_hash <- function(dataset_name, sc_dir, exclude_clusters, method = 'MuSiC') {
   dataset_dir <- file.path(sc_dir, dataset_name)
   resoln_name <- load_resoln(dataset_dir)
   resoln_dir <- file.path(dataset_dir, resoln_name)
   clusters_path <- file.path(resoln_dir, 'clusters.qs')
   clusters <- qs::qread(clusters_path)
 
-  deconv_hash <- digest::digest(list(clusters, sort(exclude_clusters), dataset_name))
+  deconv_hash <- digest::digest(list(clusters, sort(exclude_clusters), dataset_name, method))
   return(deconv_hash)
 
 }
 
-deconv_bulk <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, tx2gene_dir, deconv_path) {
+deconv_bulk_music <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, tx2gene_dir, deconv_path) {
   # MuSiC doesn't seem to properly import SingleCellExperiment::counts
   require('SingleCellExperiment')
 
@@ -1439,6 +1516,91 @@ deconv_bulk <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, t
   est.prop <- est.prop$Est.prop.weighted
 
   qs::qsave(est.prop, deconv_path)
+
+  return(TRUE)
+}
+
+deconv_bulk_dtangle <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_clusters, tx2gene_dir, deconv_path) {
+
+  # load scseq (reference data)
+  scseq <- load_scseq_qs(scseq_dataset_dir, with_logs = TRUE)
+  scseq <- downsample_clusters(scseq)
+
+  species <- scseq@metadata$species
+  if (species != 'Homo sapiens')
+    scseq <- convert_species(scseq, tx2gene_dir, species)
+
+
+  # subset to selected clusters
+  if (length(exclude_clusters)) {
+    all_clusters <- levels(scseq$cluster)
+    keep_clusters <- setdiff(all_clusters, exclude_clusters)
+    scseq <- scseq[, scseq$cluster %in% keep_clusters]
+    scseq$cluster <- droplevels(scseq$cluster)
+  }
+
+  # load bulk ExpressionSet (to deconvolute)
+  eset <- qs::qread(file.path(bulk_dataset_dir, 'eset.qs'))
+  pdata <- qs::qread(file.path(bulk_dataset_dir, 'pdata_explore.qs'))
+  vsd_path <- file.path(bulk_dataset_dir, 'vsd.qs')
+  eset <- normalize_eset(eset, pdata, vsd_path)
+
+  svobj <- qs::qread(file.path(bulk_dataset_dir, 'svobj.qs'))
+  numsv <- qs::qread(file.path(bulk_dataset_dir, 'numsv.qs'))
+  adj_path <- file.path(bulk_dataset_dir, paste0('adjusted_', numsv, 'svs.qs'))
+  keep_path <- file.path(bulk_dataset_dir, paste0('iqr_keep_', numsv, 'svs.qs'))
+
+  # adjust for pairs/surrogate variables
+  eset <- add_adjusted(eset, adj_path, svobj, numsv)
+
+  # use SYMBOL as annotation
+  # keep unique symbol based on row IQRs
+  eset <- iqr_replicates(eset, keep_path)
+
+  # get normalized values
+  adj <- Biobase::assayDataElement(eset, 'adjusted')
+
+  # common genes only
+  commongenes <- intersect(rownames(adj), rownames(scseq))
+  adj <- adj[commongenes, ]
+  scseq <- scseq[commongenes, ]
+
+  y <- cbind(as.matrix(SingleCellExperiment::logcounts(scseq)), adj)
+  y <- limma::normalizeBetweenArrays(y)
+  y <- t(y)
+
+  include_clusters <- levels(scseq$cluster)
+  pure_samples <- list()
+  for (i in seq_along(include_clusters))
+    pure_samples[[include_clusters[i]]] <- which(scseq$cluster == include_clusters[i])
+
+  # markers for each included cluster
+  marker_list = dtangle::find_markers(y,
+                                      pure_samples = pure_samples,
+                                      data_type = "rna-seq",
+                                      marker_method='ratio')
+
+  # use markers in top 10th quantile with a minimum of 3
+  q = 0.1
+  quantiles = lapply(marker_list$V,function(x) stats::quantile(x,1-q))
+  K = length(pure_samples)
+  n_markers = sapply(seq_len(K),function(i){
+    min(
+      length(marker_list$L[[i]]),
+      max(3, which(marker_list$V[[i]] > quantiles[[i]]))
+    )
+  })
+
+  # run deconvolution and get proportion estimates
+  marks <- marker_list$L
+  dc <- dtangle::dtangle(y,
+                         pure_samples = pure_samples,
+                         n_markers = n_markers,
+                         data_type = 'rna-seq',
+                         markers = marks)
+
+  dc <- dc$estimates[colnames(eset), ]
+  qs::qsave(dc, deconv_path)
 
   return(TRUE)
 }
@@ -2019,39 +2181,11 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
 
 
   norm_eset <- reactive({
-    # pdata and eset lose sync when switch datasets
     eset <- eset()
     pdata <- explore_pdata()
-    in.sync <- identical(colnames(eset), row.names(pdata))
-    if (!in.sync) return(NULL)
-
-    # need that pdata_explore has more than two groups
-    keep <- row.names(pdata)[!is.na(pdata$Group)]
-    pdata <- pdata[keep, ]
-    if (!length(unique(pdata$Group)) > 1) return(NULL)
-    if (!length(keep) > 2) return(NULL)
-
-    # determine if this is rna seq data
-    rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
-
-    # subset eset and add group/pair
-    eset <- eset[, keep]
-    pdata$group <- pdata$`Group name`
-
-    pair <- pdata$Pair
-    if (any(!is.na(pair))) pdata$pair <- pair
-
-    Biobase::pData(eset) <- pdata
-
-    # filter rows by expression
-    if (rna_seq) eset <- rkal::filter_genes(eset)
-
-    # cpm normalize
-    eset <- add_vsd(eset, vsd_path(), rna_seq)
-    return(eset)
+    vsd_path <- vsd_path()
+    normalize_eset(eset, pdata, vsd_path)
   })
-
-
 
   # explore_eset used for all plots
   explore_eset <- reactive({
@@ -2078,5 +2212,37 @@ exploreEset <- function(eset, dataset_dir, explore_pdata, numsv, svobj) {
     return(eset)
   })
   return(explore_eset)
+}
+
+normalize_eset <- function(eset, pdata, vsd_path) {
+
+  # pdata and eset lose sync when switch datasets
+  in.sync <- identical(colnames(eset), row.names(pdata))
+  if (!in.sync) return(NULL)
+
+  # need that pdata_explore has more than two groups
+  keep <- row.names(pdata)[!is.na(pdata$Group)]
+  pdata <- pdata[keep, ]
+  if (!length(unique(pdata$Group)) > 1) return(NULL)
+  if (!length(keep) > 2) return(NULL)
+
+  # determine if this is rna seq data
+  rna_seq <- 'norm.factors' %in% colnames(Biobase::pData(eset))
+
+  # subset eset and add group/pair
+  eset <- eset[, keep]
+  pdata$group <- pdata$`Group name`
+
+  pair <- pdata$Pair
+  if (any(!is.na(pair))) pdata$pair <- pair
+
+  Biobase::pData(eset) <- pdata
+
+  # filter rows by expression
+  if (rna_seq) eset <- rkal::filter_genes(eset)
+
+  # cpm normalize
+  eset <- add_vsd(eset, vsd_path, rna_seq)
+  return(eset)
 }
 

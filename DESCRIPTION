@@ -37,6 +37,7 @@ Imports:
     data.table (>= 1.12.8),
     dtangle (>= 2.0.9),
     dseqr.data,
+    DWLS,
     edgeR (>= 3.28.0),
     fs,
     FNN,
@@ -104,6 +105,7 @@ Remotes:
     hms-dbmi/picker,
     alexvpickering/rkal,
     alexvpickering/crossmeta,
+    alexvpickering/DWLS,
     immunogenomics/presto,
     xuranw/MuSiC
 Config/testthat/edition: 3
