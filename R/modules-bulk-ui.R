@@ -249,12 +249,13 @@ deconvFormInput <- function(id) {
   withTags({
     div(id = ns('deconv_form'), class = 'hidden-form', style = 'display: none;',
         selectizeInput(ns('deconv_dataset'), 'Reference single-cell dataset:', choices = '', width = '100%'),
+        selectizeInput(ns('deconv_method'), 'Deconvolution method:', choices = c('MuSiC', 'DWLS'), width = '100%'),
         shinypanel::selectizeInputWithButtons(
           ns('exclude_clusters'),
           label = 'Clusters to exclude:',
           label_title = 'Exclude cell types that are not expected in the bulk dataset',
           options = list(multiple = TRUE, placeholder = 'Select none to include all'),
-          actionButton(ns('submit_deconv'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution')
+          actionButton(ns('submit_deconv'), '', icon = icon('chevron-right', 'fa-fw'), title = 'Submit cell-type deconvolution', class = 'btn-warning')
         )
     )
   })

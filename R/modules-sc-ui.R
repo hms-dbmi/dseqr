@@ -273,7 +273,7 @@ subsetFormInput <- function(id) {
           label = 'Suffix for new dataset:',
           actionButton(ns('click_up'), '', icon = icon('upload', 'fa-fw'), title = 'Upload custom genes for clustering (optional)'),
           actionButton(ns('submit_subset'), '',
-                       icon = tags$i(class = 'fa fa-plus fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')), title = 'Submit'),
+                       icon = tags$i(class = 'fa fa-chevron-right fa-fw', tags$i(class='fa fa-ban fa-fw fa-hide')), title = 'Create new dataset', class = 'btn-warning'),
           help_id = ns('error_msg'),
           placeholder = 'eg: QC2 (appended to founder name)'),
 

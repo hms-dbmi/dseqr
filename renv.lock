@@ -320,6 +320,24 @@
         "promises"
       ]
     },
+    "DWLS": {
+      "Package": "DWLS",
+      "Version": "0.1",
+      "Source": "GitHub",
+      "Repository": "CRAN",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "DWLS",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "daf86e16ef4d069e0612b52d99a32f30ae5c064c",
+      "Hash": "a3d141dc634e4ebf37dc1c2eef3b7175",
+      "Requirements": [
+        "Matrix",
+        "e1071",
+        "quadprog"
+      ]
+    },
     "DelayedArray": {
       "Package": "DelayedArray",
       "Version": "0.22.0",
