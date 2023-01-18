@@ -546,6 +546,15 @@ transfer_azimuth <- function(azres, scseq, resoln) {
   azi_cols <- get_ref_cols(cols)
   for (col in azi_cols) scseq[[col]] <- get_meta(azres, col)
 
+  # has.adt <- 'impADT' %in% names(azres[[1]]@assays)
+  #
+  # if (has.adt) {
+  #   adts <- lapply(azres, function(x) x@assays$impADT@data)
+  #   adt <- do.call(cbind, adts)
+  #   adtse <- SummarizedExperiment::SummarizedExperiment(assays = list(logcounts = adt))
+  #   SingleCellExperiment::altExp(scseq, 'impADT') <- adtse
+  # }
+
   clus <- factor(scseq[[resoln]])
   scseq$cluster <- factor(as.numeric(clus))
   return(scseq)
