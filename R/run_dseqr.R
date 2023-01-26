@@ -113,7 +113,7 @@ run_dseqr <- function(user_name,
     is_example = is_example)
 
   # if developing
-  options(shiny.error = browser)
+  # options(shiny.error = browser)
 
   # partial stack sometimes obscures errors
   opts$shiny.fullstacktrace <- FALSE

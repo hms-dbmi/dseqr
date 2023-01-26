@@ -1362,7 +1362,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
         de <- top_table()[[1]]
 
       } else {
-        contrast <- paste0(groups(), collapse = '-')
+        contrast <- paste0(make.names(groups()), collapse = '-')
 
         # no df.residual if 1v1
         have.df <- max(lm_fit$fit$df.residual) > 0
