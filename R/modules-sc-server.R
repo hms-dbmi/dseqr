@@ -1161,7 +1161,8 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       unlink(contrast_dir, recursive = TRUE)
       dir.create(contrast_dir)
       qs::qsave(tts, tts_path)
-      enableAll(input_ids)
+      # keep download results disabled (will be enable once cluster selected)
+      enableAll('selected_cluster')
     }
 
     return(tts)
