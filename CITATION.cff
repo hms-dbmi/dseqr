@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Pickering"
+  given-names: "Alex"
+  orcid: "https://orcid.org/0000-0002-0002-6759"
+title: "dseqr"
+version: 0.35.0
+date-released: 2023-01-18
+url: "https://github.com/hms-dbmi/dseqr"
