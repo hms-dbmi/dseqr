@@ -1,5 +1,6 @@
 <!-- badges: start -->
 [![CI](https://github.com/hms-dbmi/dseqr/actions/workflows/ci.yml/badge.svg)](https://github.com/hms-dbmi/dseqr/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/182834359.svg)](https://zenodo.org/badge/latestdoi/182834359)
 <!-- badges: end -->
 
 ## Dseqr
