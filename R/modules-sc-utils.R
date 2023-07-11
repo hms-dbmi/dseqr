@@ -1269,7 +1269,6 @@ subset_saved_scseq <- function(sc_dir,
 
   } else {
 
-
     # for save_scseq_args
     args <- c(as.list(environment()))
     args$progress <- args$sc_dir <- args$scseq <- NULL
@@ -1289,7 +1288,14 @@ subset_saved_scseq <- function(sc_dir,
       ref_name = ref_name,
       tx2gene_dir = tx2gene_dir)
 
+    # need ref_type appended directory to save args to
+    is_ref <- !is.null(ref_name)
+    if (is_ref) {
+      ref_type <- get_ref_type(ref_name)
+      dataset_name <- paste0(dataset_name, '_', ref_type)
+    }
     save_scseq_args(args, dataset_name, sc_dir)
+
   }
 
   return(TRUE)
