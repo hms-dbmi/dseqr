@@ -17,11 +17,12 @@ meta <- scseq@metadata$meta
 sdata$Group <- meta[sdata$batch, 'group']
 
 # add variable features and pca (needed for Cellenics)
+sdata <- SeuratObject::RenameAssays(sdata, 'originalexp' = 'RNA')
+
 sdata <- FindVariableFeatures(sdata)
 sdata <- ScaleData(sdata)
 sdata <- RunPCA(sdata)
 
-sdata <- SeuratObject::RenameAssays(sdata, 'originalexp' = 'RNA')
 
 # save for Cellenics
-saveRDS(sdata, 'cellenics_sjia_example.rds')
+saveRDS(sdata, 'scseq_cellenics.rds')
