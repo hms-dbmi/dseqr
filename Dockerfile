@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.2.0 AS build
+FROM rocker/r-ver:4.2.2 AS build
 WORKDIR /src/dseqr
 
 # install required debian packages to install R packages
