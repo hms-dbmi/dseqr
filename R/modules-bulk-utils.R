@@ -270,7 +270,7 @@ get_boxplotly_cell_args <- function(pdata, dtangle_est, dataset_name, contrast) 
 
 get_dtangle_pvals <- function(df, contrast) {
   if (length(contrast) != 2) return(NULL)
-  df <- df |> dplyr::arrange(name, pair)
+  df <- df |> dplyr::arrange(.data$name, .data$pair)
 
   cell_types <- levels(df$x)
   pvals <- ymaxs <- c()
@@ -315,14 +315,14 @@ get_paired_pval <- function(df_cell, contrast) {
 
   is.test <- df_cell$name == contrast[1]
 
-  res_cell <- t.test(df_cell$y[is.test], df_cell$y[!is.test], paired = TRUE)
+  res_cell <- stats::t.test(df_cell$y[is.test], df_cell$y[!is.test], paired = TRUE)
   return(res_cell$p.value)
 }
 
 get_unpaired_pval <- function(df_cell, contrast) {
 
   is.test <- df_cell$name == contrast[1]
-  res_cell <- t.test(df_cell$y[is.test], df_cell$y[!is.test])
+  res_cell <- stats::t.test(df_cell$y[is.test], df_cell$y[!is.test])
   return(res_cell$p.value)
 }
 

@@ -2141,27 +2141,27 @@ volcanoPlotOutput <- function(input, output, session, top_table, max_fdr, min_ab
 
     tt$gene_name <- row.names(tt)
 
-    tt$color <- rgb(0.76, 0.76, 0.76, .3)
+    tt$color <- grDevices::rgb(0.76, 0.76, 0.76, .3)
     dn <- tt$logFC < -min_abs_logfc & tt$adj.P.Val < max_fdr
     up <- tt$logFC >  min_abs_logfc & tt$adj.P.Val < max_fdr
-    tt$color[dn] <- rgb(0, 0, 1, .3)
-    tt$color[up] <- rgb(1, 0, 0, .3)
+    tt$color[dn] <- grDevices::rgb(0, 0, 1, .3)
+    tt$color[up] <- grDevices::rgb(1, 0, 0, .3)
 
     tt$gene_name[!dn & !up] <- NA
 
     max_abs_logfc <- max(abs(tt$logFC))
     xlims <- c(-max_abs_logfc-0.25, max_abs_logfc+0.25)
 
-    mar <- par()$mar
+    mar <- graphics::par()$mar
     mar[3] <- 1
-    par(mar=mar)
+    graphics::par(mar=mar)
 
     plot(tt$logFC, -log10(tt$adj.P.Val), pch=19, col=tt$color, xlim=xlims,
          ylab=bquote(~-log[10] ~ FDR),  xlab= "logFC", bty="l")
 
-    abline(h = -log10(max_fdr), lty=2)
-    abline(v = -min_abs_logfc, lty=2)
-    abline(v = min_abs_logfc, lty=2)
+    graphics::abline(h = -log10(max_fdr), lty=2)
+    graphics::abline(v = -min_abs_logfc, lty=2)
+    graphics::abline(v = min_abs_logfc, lty=2)
 
   }, width = 380, height = 300)
 
