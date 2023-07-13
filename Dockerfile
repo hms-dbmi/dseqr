@@ -54,7 +54,7 @@ RUN Rscript get_sysdeps_run.R
 # ----------
 # COMMON
 #-----------
-FROM rocker/r-ver:4.2.0 AS common
+FROM rocker/r-ver:4.2.2 AS common
 WORKDIR /src/dseqr
 
 # add conda to path
