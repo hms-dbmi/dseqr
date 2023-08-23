@@ -130,12 +130,10 @@ get_violin_data <- function(feature, scseq, selected_cluster, by.sample = FALSE,
     ncells <- ncells[levels(df$y)]
   }
 
-
   # down sample to reduce plot size
   df <- df %>%
     dplyr::group_by(.data$y) %>%
-    dplyr::mutate(nsamp = min(.data$n, 1000)) %>%
-    dplyr::sample_n(.data$nsamp[1])
+    dplyr::mutate(nsamp = min(.data$n, 1000))
 
   res <- list(
     df = df,
