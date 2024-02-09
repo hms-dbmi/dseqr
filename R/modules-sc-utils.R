@@ -825,6 +825,7 @@ get_gene_table <- function(markers,
     table <- data.table::data.table(
       Feature = html_features,
       'logFC' = markers$logFC,
+      'PVal' = markers$P.Value,
       'FDR' = markers$adj.P.Val,
       'N<0.5' = markers$`N<0.5`,
       feature = features
