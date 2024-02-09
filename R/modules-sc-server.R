@@ -774,7 +774,8 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
                              trend = FALSE,
                              with_fdata = TRUE,
                              min.total.count = 15,
-                             min.count = 10)
+                             min.count = 7,
+                             large.n = 4)
 
       progress$set(message = "Saving fits", detail = "", value = 5)
       qs::qsave(fit, fit_path)
@@ -1169,7 +1170,6 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   })
 
 
-  # differential expression top tables for all 'grid' clusters
   # differential expression top tables for all 'grid' clusters
   top_tables_grid <- reactive({
     meta <- meta()
@@ -3815,7 +3815,7 @@ selectedGene <- function(input, output, session, dataset_name, resoln_name, reso
     cols <- colnames(gene_table)
     pct_targs <- grep('%', cols)
     frac_targs <- grep('AUC|logFC', cols)
-    pval_targs <- grep('FDR', cols)
+    pval_targs <- grep('FDR|PVal', cols)
 
     if (length(pct_targs)) gene_table[, (pct_targs) := lapply(.SD, as.integer), .SDcols = pct_targs]
     if (length(frac_targs)) gene_table[, (frac_targs) := round(.SD, 2), .SDcols = frac_targs]
