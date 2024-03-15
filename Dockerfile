@@ -12,7 +12,7 @@ RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.sit
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@1.0.5')" && \
+    R -e "remotes::install_github('rstudio/renv@v1.0.5')" && \
     R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically
