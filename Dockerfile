@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.2.2 AS build
+FROM rocker/r-ver:4.3.3 AS build
 WORKDIR /src/dseqr
 
 # install required debian packages to install R packages
@@ -12,7 +12,7 @@ RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.sit
 
 # install dseqr dependencies from renv.lock file
 RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))" && \
-    R -e "remotes::install_github('rstudio/renv@0.15.5')" && \
+    R -e "remotes::install_github('rstudio/renv@1.0.5')" && \
     R -e "renv::init(bare = TRUE, settings = list(use.cache = FALSE))"
 
 # initial lockfile: sync periodically
@@ -54,7 +54,7 @@ RUN Rscript get_sysdeps_run.R
 # ----------
 # COMMON
 #-----------
-FROM rocker/r-ver:4.2.2 AS common
+FROM rocker/r-ver:4.3.3 AS common
 WORKDIR /src/dseqr
 
 # add conda to path
