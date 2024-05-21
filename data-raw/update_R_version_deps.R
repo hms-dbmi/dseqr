@@ -6,7 +6,7 @@ renv::upgrade(reload = TRUE)
 
 # start with clean renv package cache
 # only keep renv
-renv_lib <- grep('renv', .libPaths(), value = TRUE)
+renv_lib <- grep('renv', .libPaths(), value = TRUE)[1]
 
 del_pkgs <- list.files(renv_lib)
 del_pkgs <- del_pkgs[del_pkgs != 'renv']

@@ -15,7 +15,8 @@ azimuth_refs <- c('human_pbmc',
                   'mouse_virus_cd4_tcells',
                   'human_motorcortex',
                   'mouse_motorcortex',
-                  'human_stimulated_pbmc')
+                  'human_stimulated_pbmc',
+                  'human_fetus')
 
 azimuth_labels <- c('PBMC - Human',
                     'Lung V1 - Human',
@@ -27,7 +28,8 @@ azimuth_labels <- c('PBMC - Human',
                     'Virus-Specific CD4 T-cells - Mouse',
                     'Motor Cortex - Human',
                     'Motor Cortex - Mouse',
-                    'PBMC Stimulated - Human')
+                    'PBMC Stimulated - Human',
+                    'Fetal Development - Human')
 
 azimuth_species <- ifelse(grepl('human_', azimuth_refs), 'Homo sapiens', 'Mus musculus')
 
@@ -79,6 +81,7 @@ const <- list(
       'human_motorcortex' = 'predicted.subclass',
       'human_stimulated_pbmc' = 'predicted.condition',
       'mouse_motorcortex' = 'predicted.subclass',
+      'human_fetus' = 'annotation.l1',
       'default' = 'predicted.celltype'
     )
   )
