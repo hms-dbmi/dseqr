@@ -89,13 +89,6 @@ test_that("cellranger .h5 files with multiple assays can be imported", {
     tx2gene_dir <- file.path(tempdir(), 'tx2gene')
     dir.create(tx2gene_dir)
 
-    mock_uploaded_data(dataset_name,
-                       sc_dir,
-                       uploaded_data_dir,
-                       type = 'h5',
-                       version = '3',
-                       gene.type = c(rep('Gene Expression', 199), 'Antibody Capture'))
-
     expect_error(
         suppressWarnings(import_scseq(dataset_name, uploaded_data_dir, sc_dir, tx2gene_dir)),
         NA
@@ -103,4 +96,134 @@ test_that("cellranger .h5 files with multiple assays can be imported", {
 
     # cleanup
     unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
+})
+
+
+test_that("Seurat files with RNA Assay5 can be imported", {
+  # setup
+  dataset_name <- 'test'
+  sc_dir <- file.path(tempdir(), 'single-cell')
+  dir.create(sc_dir)
+  uploaded_data_dir <- file.path(tempdir(), 'uploads')
+  dir.create(uploaded_data_dir)
+
+  tx2gene_dir <- file.path(tempdir(), 'tx2gene')
+  dir.create(tx2gene_dir)
+
+  # create Seurat object
+  pbmc_raw <- read.table(
+    file = system.file("extdata", "pbmc_raw.txt", package = "Seurat"),
+    as.is = TRUE
+  )
+
+  # can upload non-split Assay5
+  pbmc_raw <- as(as.matrix(pbmc_raw), 'dgCMatrix')
+  scdata <- Seurat::CreateSeuratObject(counts = pbmc_raw)
+  expect_true(methods::is(scdata[['RNA']], 'Assay5'))
+
+
+  qs::qsave(scdata, file.path(uploaded_data_dir, 'scdata.qs'))
+
+  expect_error(
+    suppressWarnings(import_scseq(
+      dataset_name,
+      species = 'Homo sapiens',
+      uploaded_data_dir,
+      sc_dir,
+      tx2gene_dir,
+      metrics = NULL)),
+    NA
+  )
+
+  # cleanup
+  unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
+})
+
+test_that("Seurat files with split RNA Assay5 can be imported", {
+  # setup
+  dataset_name <- 'test'
+  sc_dir <- file.path(tempdir(), 'single-cell')
+  dir.create(sc_dir)
+  uploaded_data_dir <- file.path(tempdir(), 'uploads')
+  dir.create(uploaded_data_dir)
+
+  tx2gene_dir <- file.path(tempdir(), 'tx2gene')
+  dir.create(tx2gene_dir)
+
+  # create Seurat object
+  pbmc_raw <- read.table(
+    file = system.file("extdata", "pbmc_raw.txt", package = "Seurat"),
+    as.is = TRUE
+  )
+
+  # can upload non-split Assay5
+  pbmc_raw <- as(as.matrix(pbmc_raw), 'dgCMatrix')
+  scdata <- Seurat::CreateSeuratObject(counts = pbmc_raw)
+  expect_true(methods::is(scdata[['RNA']], 'Assay5'))
+
+  scdata$batch <- c('a', 'b', 'c')
+  scdata[["RNA"]] <- split(scdata[["RNA"]], f = scdata$batch)
+
+  expect_equal(SeuratObject::Layers(scdata), c("counts.a", "counts.b", "counts.c"))
+
+
+  qs::qsave(scdata, file.path(uploaded_data_dir, 'scdata.qs'))
+
+  expect_error(
+    suppressWarnings(import_scseq(
+      dataset_name,
+      species = 'Homo sapiens',
+      uploaded_data_dir,
+      sc_dir,
+      tx2gene_dir,
+      metrics = NULL)),
+    NA
+  )
+
+  # cleanup
+  unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
+})
+
+
+test_that("Seurat object with RNA Assay v3 can be imported", {
+
+  options(Seurat.object.assay.version = "v3")
+  # setup
+  dataset_name <- 'test'
+  sc_dir <- file.path(tempdir(), 'single-cell')
+  dir.create(sc_dir)
+  uploaded_data_dir <- file.path(tempdir(), 'uploads')
+  dir.create(uploaded_data_dir)
+
+  tx2gene_dir <- file.path(tempdir(), 'tx2gene')
+  dir.create(tx2gene_dir)
+
+  # create Seurat object
+  pbmc_raw <- read.table(
+    file = system.file("extdata", "pbmc_raw.txt", package = "Seurat"),
+    as.is = TRUE
+  )
+
+  # can upload Assay
+  pbmc_raw <- as(as.matrix(pbmc_raw), 'dgCMatrix')
+  scdata <- Seurat::CreateSeuratObject(counts = pbmc_raw)
+  expect_true(methods::is(scdata[['RNA']], 'Assay'))
+
+
+  qs::qsave(scdata, file.path(uploaded_data_dir, 'scdata.qs'))
+
+  expect_error(
+    suppressWarnings(import_scseq(
+      dataset_name,
+      species = 'Homo sapiens',
+      uploaded_data_dir,
+      sc_dir,
+      tx2gene_dir,
+      metrics = NULL)),
+    NA
+  )
+
+  # cleanup
+  options(Seurat.object.assay.version = "v5")
+  unlink(c(sc_dir, uploaded_data_dir, tx2gene_dir), recursive = TRUE)
 })

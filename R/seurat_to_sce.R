@@ -5,8 +5,13 @@ seurat_to_sce <- function(sdata, dataset_name) {
   Seurat::DefaultAssay(sdata) <- 'RNA'
 
   # join layers if v5
-  if (methods::is(sdata[['RNA']], 'Assay5')) {
+  # use meta.features (v3) or meta.data (v5)
+  meta_name <- 'meta.features'
+  is.v5 <- methods::is(sdata[['RNA']], 'Assay5')
+
+  if (is.v5) {
     sdata[['RNA']] <- SeuratObject::JoinLayers(sdata[['RNA']])
+    meta_name <- 'meta.data'
   }
 
   # normalize if need to
@@ -20,7 +25,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
   # meta.features need to have same row.names as assay
   for (assay_name in Seurat::Assays(sdata)) {
     assay <- sdata[[assay_name]]
-    assay@meta.features <- assay@meta.features[row.names(assay), ]
+    slot(assay, meta_name) <- slot(assay, meta_name)[row.names(assay), ]
     sdata[[assay_name]] <- assay
   }
 
@@ -51,14 +56,14 @@ seurat_to_sce <- function(sdata, dataset_name) {
   sce$cluster <- unname(Seurat::Idents(sdata))
 
   # default HVGs unless integrated assay
-  hvgs <- sdata[['RNA']]@var.features
+  hvgs <- SeuratObject::VariableFeatures(sdata, assay = 'RNA')
 
   is.integrated <- have.samples | have.integrated
   if (is.integrated) {
 
     # get HVGs and transfer reductions from integrated assay if present
     if (have.integrated) {
-      hvgs <- sdata[['integrated']]@var.features
+      hvgs <- SeuratObject::VariableFeatures(sdata, assay = 'integrated')
       SingleCellExperiment::reducedDims(sce) <-
         SingleCellExperiment::reducedDims(SingleCellExperiment::altExp(sce, 'integrated'))
     }
