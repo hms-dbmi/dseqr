@@ -25,7 +25,7 @@ seurat_to_sce <- function(sdata, dataset_name) {
   # meta.features need to have same row.names as assay
   for (assay_name in Seurat::Assays(sdata)) {
     assay <- sdata[[assay_name]]
-    slot(assay, meta_name) <- slot(assay, meta_name)[row.names(assay), ]
+    methods::slot(assay, meta_name) <- methods::slot(assay, meta_name)[row.names(assay), ]
     sdata[[assay_name]] <- assay
   }
 

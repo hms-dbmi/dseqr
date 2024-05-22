@@ -12,8 +12,8 @@
 #' @param pt.size size parameter for geom_jitter
 #' @param pt.shape shape parameter for geom_jitter
 #' @param pct.cells Vector specifying percent of cells that express the marker,
-#' once for each {levels(idents)}. If specified, an annotated bar plot is drawn.
-#' @param ncells Vector specifying number of cells in each {levels(idents)}.
+#' once for each \code{levels(idents)}. If specified, an annotated bar plot is drawn.
+#' @param ncells Vector specifying number of cells in each \code{levels(idents)}.
 #' If specified, an annotated bar plot is drawn to indicate number of cells.
 #' @param color Colors to use for fill with length equal to one less than
 #' \code{length(levels(hl))}. The last level of \code{hl} is filled with gray.
