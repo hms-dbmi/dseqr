@@ -850,7 +850,7 @@ load_tx2gene <- function(species, tx2gene_dir) {
   fname <- paste0(ensdb_species, '_tx2gene.qs')
   fpath <- file.path(tx2gene_dir,  fname)
 
-  if (file.exists(fpath)) {
+  if (file_exists(fpath)) {
     tx2gene <- qs::qread(fpath)
   } else {
     tx2gene <- dseqr.data::load_tx2gene(species, release = NULL, with_hgnc = TRUE)
@@ -947,7 +947,7 @@ load_cellranger_counts <- function(data_dir) {
   ensids <- gsub('^[^_]+[_]+(ENS.+?)$', '\\1', row.names(counts))
 
   enids <- gsub('[.]\\d+', '', ensids)
-  row.names(counts) <- make.unique(enids)
+  row.names(counts) <- make_unique(enids)
 
   return(counts)
 }
@@ -1542,7 +1542,7 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
   uwot_name <- paste0(ref_name, '_uwot_model')
   dl_dir <- Sys.getenv('DSEQR_DATA_PATH')
   uwot_path <- file.path(dl_dir, uwot_name)
-  if (!file.exists(uwot_path)) dseqr.data::dl_data(uwot_name)
+  if (!file_exists(uwot_path)) dseqr.data::dl_data(uwot_name)
 
   # indicate model path for mapQuery
   reference$save_uwot_path <- uwot_path

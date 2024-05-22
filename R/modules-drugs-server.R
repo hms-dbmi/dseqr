@@ -142,7 +142,7 @@ customQueryForm <- function(input, output, session, show_custom, is_custom, anal
   res_paths <- reactive({
     custom_name <- input$custom_name
     custom_dir <- file.path(project_dir(), 'custom_queries')
-    if (!dir.exists(custom_dir)) dir.create(custom_dir)
+    if (!dir_exists(custom_dir)) dir.create(custom_dir)
 
     res_paths <- get_drug_paths(custom_dir, custom_name)
     res_paths$query_genes <- file.path(custom_dir, 'drugs', paste0('query_genes_', custom_name, '.qs'))
@@ -691,7 +691,7 @@ selectedAnal <- function(input, output, session, project_dir, choices, new_custo
   numsv_path <- reactive(file.path(dataset_dir(), 'numsv.qs'))
   numsv <- reactive({
     numsv_path <- numsv_path()
-    if (!file.exists(numsv_path)) qs::qsave(0, numsv_path)
+    if (!file_exists(numsv_path)) qs::qsave(0, numsv_path)
     qs::qread(numsv_path)
   })
 
@@ -765,7 +765,7 @@ selectedAnal <- function(input, output, session, project_dir, choices, new_custo
     } else if (is_custom()) {
       custom_dir <- file.path(project_dir(), 'custom_queries')
       drug_paths <- get_drug_paths(custom_dir, sel_name)
-      drug_queries <- lapply(drug_paths, function(x) if (file.exists(x)) qs::qread(x))
+      drug_queries <- lapply(drug_paths, function(x) if (file_exists(x)) qs::qread(x))
 
     } else if (is_pert()) {
       drug_paths <- get_drug_paths(pert_query_dir, fs::path_sanitize(sel_name), ftype = '.rds')

@@ -148,7 +148,7 @@ bulkMDS <- function(input, output, session, explore_eset, dataset_name, numsv, b
     req(eset)
 
     mds_path <- isolate(mds_path())
-    if (file.exists(mds_path)) {
+    if (file_exists(mds_path)) {
       mds <- qs::qread(mds_path)
 
     } else {
@@ -567,7 +567,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
   observeEvent(input$up_raw, {
     prev <- uploads_table()
     new <- input$up_raw
-    new <- new[file.exists(new$datapath), ]
+    new <- new[file_exists(new$datapath), ]
 
     is.eset <- grep('[.]qs$|[.]rds$', new$name)
 
@@ -651,7 +651,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     if (is_eset()) return(FALSE)
 
     fastqs <- up_df$datapath
-    fastqs <- fastqs[file.exists(fastqs)]
+    fastqs <- fastqs[file_exists(fastqs)]
 
     # auto-detect if paired
     fastq_id1s <- rkal::get_fastq_id1s(fastqs)
@@ -977,7 +977,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     svobj <- NULL
     svobj_path <- svobj_path()
 
-    if (file.exists(svobj_path)) {
+    if (file_exists(svobj_path)) {
       svobj <- qs::qread(svobj_path)
     }
 
@@ -996,7 +996,7 @@ bulkDataset <- function(input, output, session, sc_dir, bulk_dir, tx2gene_dir, p
     if (!is.null(svobj$n.sv)) maxsv <- svobj$n.sv
 
     numsv_path <- numsv_path()
-    if (file.exists(numsv_path)) numsv <- qs::qread(numsv_path)
+    if (file_exists(numsv_path)) numsv <- qs::qread(numsv_path)
     else qs::qsave(0, numsv_path)
 
     maxsv_r(maxsv)
@@ -1066,7 +1066,7 @@ bulkFormAnal <- function(input, output, session, project_dir, dataset_name, data
     prev_path <- file.path(dataset_dir(), 'pdata_explore_prev.qs')
     pdata_path <- file.path(dataset_dir(), 'pdata_explore.qs')
 
-    if (file.exists(prev_path)) {
+    if (file_exists(prev_path)) {
       prev <- qs::qread(prev_path)
       saved <- qs::qread(pdata_path)
       changed <- check_bulk_changed(prev, saved)
@@ -1349,7 +1349,7 @@ deconvForm <- function(input, output, session, show_deconv, new_dataset, sc_dir,
     # check if already have
     deconv_path <- deconv_path()
 
-    if (file.exists(deconv_path)) {
+    if (file_exists(deconv_path)) {
       new_deconv(deconv_path)
 
     } else {
@@ -1433,7 +1433,7 @@ deconv_bulk_dwls <- function(bulk_dataset_dir, scseq_dataset_dir, exclude_cluste
   # load markers
   resoln_dir <- load_resoln(scseq_dataset_dir)
   markers_path <- file.path(scseq_dataset_dir, resoln_dir, 'markers.qs')
-  have.markers <- file.exists(markers_path)
+  have.markers <- file_exists(markers_path)
 
   # need logs to get markers, counts for deconvolution
   scseq <- load_scseq_qs(scseq_dataset_dir, with_logs = !have.markers, with_counts = TRUE)
@@ -1634,7 +1634,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, project_dir
     req(up)
 
 
-    if (file.exists(pdata_path)) {
+    if (file_exists(pdata_path)) {
       prev <- qs::qread(pdata_path)
       changed <- check_bulk_changed(prev, up)
 
@@ -1657,7 +1657,7 @@ bulkExploreTable <- function(input, output, session, eset, up_annot, project_dir
     req(pdata, pdata_path)
 
     # load pdata from previous if available
-    if (file.exists(pdata_path)) {
+    if (file_exists(pdata_path)) {
       pdata <- qs::qread(pdata_path)
 
       # TODO remove
@@ -1897,12 +1897,12 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
   })
 
   # do we have drug query results?
-  saved_drugs <- reactive(file.exists(drug_paths()$cmap))
+  saved_drugs <- reactive(file_exists(drug_paths()$cmap))
 
   # load lm_fit if saved or run limma
   lm_fit <- reactive({
 
-    if (file.exists(lmfit_path())) {
+    if (file_exists(lmfit_path())) {
       lm_fit <- qs::qread(lmfit_path())
 
     } else {
@@ -1986,7 +1986,7 @@ bulkAnal <- function(input, output, session, pdata, dataset_name, eset, numsv, s
     req(valid_contrast())
     goana_path <- goana_path()
 
-    if (file.exists(goana_path)) {
+    if (file_exists(goana_path)) {
       res <- qs::qread(goana_path)
 
     } else {

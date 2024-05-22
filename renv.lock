@@ -296,20 +296,19 @@
     },
     "DT": {
       "Package": "DT",
-      "Version": "0.33",
+      "Version": "0.23",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "crosstalk",
         "htmltools",
         "htmlwidgets",
-        "httpuv",
         "jquerylib",
         "jsonlite",
         "magrittr",
         "promises"
       ],
-      "Hash": "64ff3427f559ce3f2597a4fe13255cb6"
+      "Hash": "d8f1498dc47763ce4647c8d03214d30b"
     },
     "DWLS": {
       "Package": "DWLS",
@@ -1622,18 +1621,6 @@
         "xtable"
       ],
       "Hash": "659c0a3bfad51dc798e4b4eb0f2cdedc"
-    },
-    "anytime": {
-      "Package": "anytime",
-      "Version": "0.3.9",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "BH",
-        "R",
-        "Rcpp"
-      ],
-      "Hash": "74a64813f17b492da9c6afda6b128e3d"
     },
     "askpass": {
       "Package": "askpass",
@@ -3560,13 +3547,18 @@
     "picker": {
       "Package": "picker",
       "Version": "0.2.6",
-      "Source": "Repository",
-      "Repository": "CRAN",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "hms-dbmi",
+      "RemoteRepo": "picker",
+      "RemoteRef": "master",
+      "RemoteSha": "3cd1a7b00760d95213df7918c3218fe5e447310d",
       "Requirements": [
         "R",
         "htmlwidgets"
       ],
-      "Hash": "0b61270842cbb349406cff8ca4473bc5"
+      "Hash": "901be678f11fa8676cd7702ca3bdfc52"
     },
     "pillar": {
       "Package": "pillar",
@@ -4146,7 +4138,7 @@
     },
     "rintrojs": {
       "Package": "rintrojs",
-      "Version": "0.3.4",
+      "Version": "0.2.2",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -4154,7 +4146,7 @@
         "jsonlite",
         "shiny"
       ],
-      "Hash": "e01800bef019328509364ab655fbcca6"
+      "Hash": "15a8768183fd609cee75e4789da27621"
     },
     "rjson": {
       "Package": "rjson",
@@ -4488,7 +4480,7 @@
     },
     "shiny": {
       "Package": "shiny",
-      "Version": "1.7.0",
+      "Version": "1.7.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -4518,36 +4510,34 @@
         "withr",
         "xtable"
       ],
-      "Hash": "72bf551406bb75a182df55090dc5a25a"
+      "Hash": "00344c227c7bd0ab5d78052c5d736c44"
     },
     "shinyBS": {
       "Package": "shinyBS",
-      "Version": "0.61",
+      "Version": "0.61.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "htmltools",
         "shiny"
       ],
-      "Hash": "f895dafd39733c4a70d425f605a832e7"
+      "Hash": "e44255f073ecdc26ba6bc2ce3fcf174d"
     },
     "shinyWidgets": {
       "Package": "shinyWidgets",
-      "Version": "0.8.6",
+      "Version": "0.6.0",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R",
-        "anytime",
         "bslib",
         "grDevices",
         "htmltools",
         "jsonlite",
-        "rlang",
         "sass",
         "shiny"
       ],
-      "Hash": "bc918b6911c4e928e24a9928295de834"
+      "Hash": "7dd5f3ee96c64a47fdbc6e437ff1c7e1"
     },
     "shinydlplot": {
       "Package": "shinydlplot",

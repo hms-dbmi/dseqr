@@ -187,10 +187,10 @@ load_custom_results <- function(res_paths, is_pert) {
     res_name <- names(res_paths)[i]
 
     # download requested pert result
-    if (!file.exists(res_path) && is_pert && !grepl('diff_expr_symbol_.+?.rds$', res_path))
+    if (!file_exists(res_path) && is_pert && !grepl('diff_expr_symbol_.+?.rds$', res_path))
       dl_pert_result(res_path)
 
-    if (file.exists(res_path))
+    if (file_exists(res_path))
       res[[res_name]] <- readRDS(res_path)
   }
   return(res)
@@ -211,7 +211,7 @@ load_custom_results <- function(res_paths, is_pert) {
 #'
 dl_pert_result <- function(res_path) {
   # name of the file being requested
-  if (file.exists(res_path)) return(NULL)
+  if (file_exists(res_path)) return(NULL)
   dl_url <- paste0('https://s3.us-east-2.amazonaws.com/dseqr/pert_query_dir/', basename(res_path))
   dl_url <- utils::URLencode(dl_url)
   dl_url <- gsub('+', '%2B', dl_url, fixed = TRUE)
@@ -229,7 +229,7 @@ load_custom_anals <- function(data_dir) {
   custom_dir <- file.path(data_dir, 'custom_queries', 'drugs')
 
   anals <- NULL
-  if (dir.exists(custom_dir)) {
+  if (dir_exists(custom_dir)) {
     custom_names <- list.files(custom_dir, pattern = '^cmap_res_.+?.qs')
     custom_names <- gsub('^cmap_res_(.+?).qs$', '\\1', custom_names)
 

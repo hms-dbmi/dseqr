@@ -92,7 +92,7 @@ run_dseqr <- function(user_name,
   if (missing(data_dir)) stop('data_dir not specified.')
 
   user_dir <- file.path(data_dir, user_name)
-  if (!dir.exists(user_dir)) init_dseqr(user_name, data_dir)
+  if (!dir_exists(user_dir)) init_dseqr(user_name, data_dir)
 
   # ensure various directories exist
   # duplicated in server.R for tests
@@ -113,7 +113,7 @@ run_dseqr <- function(user_name,
     is_example = is_example)
 
   # if developing
-  # options(shiny.error = browser)
+  options(shiny.error = browser)
 
   # partial stack sometimes obscures errors
   opts$shiny.fullstacktrace <- FALSE

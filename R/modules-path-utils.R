@@ -10,13 +10,13 @@
 load_pert_signature <- function(pert, pert_type, pert_signature_dir, pvals = FALSE) {
   sig <- NULL
   type_dir <- file.path(pert_signature_dir, pert_type)
-  if (!file.exists(type_dir)) dir.create(type_dir)
+  if (!file_exists(type_dir)) dir.create(type_dir)
 
 
   fname <- paste0(pert, '.rds')
   sig_path <- file.path(type_dir, fs::path_sanitize(fname))
-  if (!file.exists(sig_path)) dl_pert_signature(sig_path, pert_type)
-  if (file.exists(sig_path)) sig <- readRDS(sig_path)
+  if (!file_exists(sig_path)) dl_pert_signature(sig_path, pert_type)
+  if (file_exists(sig_path)) sig <- readRDS(sig_path)
   return(sig)
 }
 
@@ -209,7 +209,7 @@ get_cluster_markers <- function(selected_clusters, dataset_dir) {
   fname <- paste0("markers_", clusters_name, '.qs')
   fpath <- file.path(dataset_dir, fname)
 
-  if (file.exists(fpath)) {
+  if (file_exists(fpath)) {
     cluster_markers <- qs::qread(fpath)
 
   }
@@ -293,12 +293,12 @@ get_genego <- function(species = 'Hs', gs_dir = NULL) {
   PathwayID <- GeneID <- SYMBOL <- NULL
 
   persist <- !is.null(gs_dir)
-  if (persist && !dir.exists(gs_dir)) dir.create(gs_dir)
+  if (persist && !dir_exists(gs_dir)) dir.create(gs_dir)
 
   fname <- paste('genego', species, 'qs', sep = '.')
   genego_path <- file.path(gs_dir, fname)
 
-  if (file.exists(genego_path)) {
+  if (file_exists(genego_path)) {
     genego <- qs::qread(genego_path)
 
   } else {
@@ -350,12 +350,12 @@ get_genego <- function(species = 'Hs', gs_dir = NULL) {
 #'
 get_gonames <- function(genego, gs_dir = NULL) {
   persist <- !is.null(gs_dir)
-  if (persist && !dir.exists(gs_dir)) dir.create(gs_dir)
+  if (persist && !dir_exists(gs_dir)) dir.create(gs_dir)
 
   fname <- paste('genego.names', 'qs', sep = '.')
   gonames_path <- file.path(gs_dir, fname)
 
-  if (file.exists(gonames_path)) {
+  if (file_exists(gonames_path)) {
     gonames <- qs::qread(gonames_path)
 
   } else {

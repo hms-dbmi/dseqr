@@ -183,9 +183,9 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     dataset_dir <- dataset_dir()
     resoln <- resoln()
     req(dataset_dir, resoln)
-    if (!dir.exists(dataset_dir)) return(NULL)
+    if (!dir_exists(dataset_dir)) return(NULL)
     resoln_dir <- file.path(dataset_dir, get_resoln_dir(resoln))
-    if (!dir.exists(resoln_dir)) dir.create(resoln_dir)
+    if (!dir_exists(resoln_dir)) dir.create(resoln_dir)
     return(resoln_dir)
   })
 
@@ -193,7 +193,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
   plots_dir <- reactive({
     req(resoln_dir())
     dir <- file.path(resoln_dir(), 'plots')
-    if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+    if (!dir_exists(dir)) dir.create(dir, recursive = TRUE)
     return(dir)
   })
 
@@ -201,7 +201,7 @@ scForm <- function(input, output, session, sc_dir, indices_dir, tx2gene_dir, gs_
     dataset_dir <- dataset_dir()
     if (is.null(dataset_dir)) return(NULL)
     dplots_dir <- file.path(dataset_dir, 'plots')
-    if (!dir.exists(dplots_dir)) dir.create(dplots_dir)
+    if (!dir_exists(dplots_dir)) dir.create(dplots_dir)
     return(dplots_dir)
   })
 
@@ -555,7 +555,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     if (!is.null(scseq)) return(scseq)
 
     dataset_dir <- dataset_dir()
-    if (!isTruthy(dataset_dir) || !dir.exists(dataset_dir)) return(NULL)
+    if (!isTruthy(dataset_dir) || !dir_exists(dataset_dir)) return(NULL)
 
     scseq <- load_scseq_qs(dataset_dir)
     attach_clusters(scseq, resoln_dir())
@@ -718,7 +718,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     # grid sum is cluster (aka resolution) independent
     summed_path <- file.path(dataset_dir(), 'summed_grid.qs')
 
-    if (!file.exists(summed_path)){
+    if (!file_exists(summed_path)){
       # need counts to aggregate
       scseq <- scseq()
       SingleCellExperiment::counts(scseq) <- counts()
@@ -753,7 +753,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     fit_file <- paste0('lm_fit_0svs_', meta_hash, '.qs')
     fit_path <- file.path(resoln_dir, fit_file)
 
-    if (file.exists(fit_path)) {
+    if (file_exists(fit_path)) {
       fit <- qs::qread(fit_path)
 
     } else {
@@ -806,7 +806,7 @@ scSampleGroups <- function(input, output, session, dataset_dir, resoln_dir, data
     fit_file <- paste0('lm_fit_grid_0svs_', meta_hash, '.qs')
     fit_path <- file.path(dataset_dir(), fit_file)
 
-    if (file.exists(fit_path)) {
+    if (file_exists(fit_path)) {
       lm_fit <- qs::qread(fit_path)
 
     } else {
@@ -950,7 +950,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     if (!is.null(annot)) return(annot)
 
     annot_path <- file.path(resoln_dir(), 'annot.qs')
-    if (!file.exists(annot_path)) return(NULL)
+    if (!file_exists(annot_path)) return(NULL)
     qs::qread(annot_path)
   })
 
@@ -1097,7 +1097,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
     tts_path <- file.path(contrast_dir, 'top_tables.qs')
 
-    if (file.exists(tts_path)) {
+    if (file_exists(tts_path)) {
       tts <- qs::qread(tts_path)
 
     } else {
@@ -1186,7 +1186,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
     tts_file <- paste0('top_tables_grid_0svs_', tts_hash, '.qs')
     tts_path <- file.path(dataset_dir, tts_file)
 
-    if (file.exists(tts_path)) {
+    if (file_exists(tts_path)) {
       tts <- qs::qread(tts_path)
 
     } else {
@@ -1303,7 +1303,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
       res <- NULL
 
     } else if (saved_drugs) {
-      if (!file.exists(dpaths$cmap)) res <- NULL
+      if (!file_exists(dpaths$cmap)) res <- NULL
       else res <- lapply(dpaths, qs::qread)
 
     } else {
@@ -1327,7 +1327,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
 
       progress$inc(1)
       enableAll(input_ids)
-      if (!file.exists(dpaths$cmap)) res <- NULL
+      if (!file_exists(dpaths$cmap)) res <- NULL
       else res <- lapply(dpaths, qs::qread)
 
     }
@@ -1340,7 +1340,7 @@ scSampleClusters <- function(input, output, session, input_scseq, meta, lm_fit, 
   path_res <- reactive({
     goana_path <- goana_path()
 
-    if (file.exists(goana_path)) {
+    if (file_exists(goana_path)) {
       res <- qs::qread(goana_path)
 
     } else {
@@ -1586,7 +1586,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   scseq <- reactive({
     dataset_dir <- dataset_dir()
-    if (!isTruthy(dataset_dir) || !dir.exists(dataset_dir)) return(NULL)
+    if (!isTruthy(dataset_dir) || !dir_exists(dataset_dir)) return(NULL)
     disableAll(dataset_inputs)
 
     scseq <- load_scseq_qs(dataset_dir)
@@ -1600,13 +1600,13 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   snn_graph <- reactive({
     snn_path <- snn_path()
 
-    if (file.exists(snn_path)) {
+    if (file_exists(snn_path)) {
       snn_graph <- qs::qread(snn_path)
 
     } else {
       scseq <- scseq()
       if (!isTruthy(scseq)) return(NULL)
-      is.ref <- file.exists(file.path(dataset_dir(), 'ref_name.qs'))
+      is.ref <- file_exists(file.path(dataset_dir(), 'ref_name.qs'))
       if (is.ref) return(NULL)
 
       types <- SingleCellExperiment::reducedDimNames(scseq)
@@ -1676,7 +1676,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   observeEvent(input$up_raw, {
     prev <- up_all()
     new <- input$up_raw
-    new <- new[file.exists(new$datapath), ]
+    new <- new[file_exists(new$datapath), ]
 
     up_all(rbind.data.frame(prev, new))
   })
@@ -1793,6 +1793,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
 
   # open modal selectors
   observeEvent(add_sc(), {
+
     showModal(importSingleCellModal(session, isTruthy(up_table())))
   })
 
@@ -1840,7 +1841,7 @@ scSelectedDataset <- function(input, output, session, sc_dir, new_dataset, indic
   # get auto sample names
   observeEvent(input$up_raw, {
     new <- input$up_raw
-    new <- new[file.exists(new$datapath), ]
+    new <- new[file_exists(new$datapath), ]
 
     prev <- up_samples()
 
@@ -2215,7 +2216,7 @@ detect_import_species <- function(up_df) {
   } else {
     genes <- utils::read.table(up_df$datapath[gene.file])
     genes <- genes[!is.na(genes$V1), ]
-    row.names(genes) <- make.unique(genes$V1)
+    row.names(genes) <- make_unique(genes$V1)
   }
 
   get_species(genes)
@@ -2337,7 +2338,7 @@ labelTransferForm <- function(input, output, session, sc_dir, tx2gene_dir, set_r
 
   query <- reactive({
     query_path <- scseq_part_path(sc_dir(), resoln_name(), 'scseq_sample')
-    if (!file.exists(query_path)) return(NULL)
+    if (!file_exists(query_path)) return(NULL)
 
     qs::qread(query_path)
   })
@@ -2553,7 +2554,7 @@ run_label_transfer <- function(sc_dir, tx2gene_dir, resoln_name, query_name, ref
       # aggregation removes metadata
       ref_species <- ref@metadata$species
 
-      if (file.exists(ref_path)) {
+      if (file_exists(ref_path)) {
         ref <- qs::qread(ref_path)
 
       } else {
@@ -2647,7 +2648,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   observeEvent(resoln_dir(), {
 
     fpath <- file.path(resoln_dir(), 'provided_clusters.qs')
-    shinyjs::toggle('provided_clusters_warning', condition = file.exists(fpath))
+    shinyjs::toggle('provided_clusters_warning', condition = file_exists(fpath))
   })
 
   observeEvent(dataset_dir(),  {
@@ -2657,7 +2658,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
     # restrict resolutions if reference
     ref_path <- file.path(dataset_dir(), 'ref_name.qs')
-    is.ref <- file.exists(ref_path)
+    is.ref <- file_exists(ref_path)
     is_reference(is.ref)
 
     rpath <- file.path(dataset_dir(), 'resoln.qs')
@@ -2689,6 +2690,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
   clusters_path <- reactive(file.path(resoln_dir(), 'clusters.qs'))
 
   clusters <- reactive({
+
     resoln <- resoln()
     clusters_path <- clusters_path()
     clusters <- qread.safe(clusters_path)
@@ -2698,7 +2700,7 @@ resolutionForm <- function(input, output, session, sc_dir, resoln_dir, dataset_d
 
       resoln_name <-  get_resoln_dir(resoln)
       applied_path <- file.path(sc_dir(), dataset_name(),resoln_name, 'applied.qs')
-      if (file.exists(applied_path)) {
+      if (file_exists(applied_path)) {
         prev_resoln(resoln)
         return(clusters)
       }
@@ -3064,7 +3066,7 @@ clustersMergeForm <- function(input, output, session, sc_dir, scseq, annot, sele
     # no merged clusters if orig hasn't been saved
     resoln_dir <- resoln_dir()
     orig_dir <- paste0(resoln_dir, '_orig')
-    if (!dir.exists(orig_dir)) return(NULL)
+    if (!dir_exists(orig_dir)) return(NULL)
 
     find_merged_clusters(orig_dir, resoln_dir)
   })
@@ -3388,7 +3390,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     ref_preds <- ref_preds()
     annot_path <- annot_path()
     if (!isTruthy(annot_path)) annot(NULL)
-    if (!file.exists(annot_path)) return(NULL)
+    if (!file_exists(annot_path)) return(NULL)
     else if (!is.null(ref_preds)) annot(ref_preds)
     else annot(qs::qread(annot_path))
   })
@@ -3507,7 +3509,7 @@ clusterComparison <- function(input, output, session, sc_dir, set_readonly, data
     resoln_dir <- resoln_dir()
     markers_path <- file.path(resoln_dir, 'markers.qs')
 
-    if (!file.exists(markers_path)) {
+    if (!file_exists(markers_path)) {
       scseq <- scseq()
       if (is.null(scseq)) return(NULL)
       levs <- levels(scseq$cluster)
@@ -4369,7 +4371,7 @@ scGridAbundance <- function(input, output, session, scseq, sc_dir, groups, dplot
     meta_hash <- hash_meta(meta, groups)
 
     apath <- file.path(dplots_dir(), paste0('grid_abundance_', meta_hash, '.qs'))
-    if (file.exists(apath)) {
+    if (file_exists(apath)) {
       grid_abundance <- qs::qread(apath)
 
     } else {
@@ -4419,7 +4421,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     scseq <- safe_set_annot(scseq, annot)
     if (is.null(scseq)) return(NULL)
 
-    all.cells <- make.unique(colnames(scseq))
+    all.cells <- make_unique(colnames(scseq))
     cell.idx <- match(cells, all.cells)
     scseq <- scseq[, cell.idx]
 
@@ -4437,7 +4439,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     cells <- cells()
     if (!isTruthyAll(cells, scseq, coords)) return(NULL)
 
-    all.cells <- make.unique(colnames(scseq))
+    all.cells <- make_unique(colnames(scseq))
     if (!all(cells %in% all.cells)) return(NULL)
 
     # use xrange and yrange for all data
@@ -4519,7 +4521,7 @@ scMarkerPlot <- function(input, output, session, scseq, annot, clusters, selecte
     if (is_sample) cdata[[feature]] <- scseq$batch == feature
 
     # get feature
-    ids <- all.ids <- make.unique(colnames(scseq))
+    ids <- all.ids <- make_unique(colnames(scseq))
 
     if (is_gene) ft <- h5logs()[feature, ]
     else ft <- cdata[[feature]]
