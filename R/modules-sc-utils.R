@@ -2598,8 +2598,8 @@ req <- function(..., cancelOutput = FALSE) {
     invisible()
 }
 
-make_unique <- function(x) {
+make_unique <- function(x, sep = ".") {
   x <- as.character(x)
-  make.unique(x)
+  make.unique(x, sep = sep)
 }
 
