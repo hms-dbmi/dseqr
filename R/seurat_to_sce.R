@@ -4,9 +4,14 @@ seurat_to_sce <- function(sdata, dataset_name) {
   # set to RNA to get the counts and logcounts from RNA assay
   Seurat::DefaultAssay(sdata) <- 'RNA'
 
+  # join layers if v5
+  if (methods::is(sdata[['RNA']], 'Assay5')) {
+    sdata[['RNA']] <- SeuratObject::JoinLayers(sdata[['RNA']])
+  }
+
   # normalize if need to
-  if (identical(sdata[['RNA']]@counts,
-                sdata[['RNA']]@data)) {
+  if (identical(sdata[['RNA']]$counts,
+                sdata[['RNA']]$data)) {
 
     # NOTE: identical if normalize each sample or all together
     sdata <- Seurat::NormalizeData(sdata, assay = 'RNA')
