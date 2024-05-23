@@ -89,6 +89,13 @@ test_that("cellranger .h5 files with multiple assays can be imported", {
     tx2gene_dir <- file.path(tempdir(), 'tx2gene')
     dir.create(tx2gene_dir)
 
+    mock_uploaded_data(dataset_name,
+                       sc_dir,
+                       uploaded_data_dir,
+                       type = 'h5',
+                       version = '3',
+                       gene.type = c(rep('Gene Expression', 199), 'Antibody Capture'))
+
     expect_error(
         suppressWarnings(import_scseq(dataset_name, uploaded_data_dir, sc_dir, tx2gene_dir)),
         NA

@@ -33,8 +33,6 @@ subset_saved_scseq(
 \item{subset_metrics}{Character vector of metrics for excluding cells.}
 
 \item{progress}{Optional shiny progress object.}
-
-\item{exclude_cells}{Character vector of cells to exclude. Used for integrated datasets to exclude clusters.}
 }
 \value{
 TRUE is successful, otherwise FALSE

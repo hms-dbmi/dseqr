@@ -571,7 +571,7 @@ merge_linkouts <- function(query_res, cols) {
   # remove cols that pasted
   query_res <- query_res %>%
     tibble::add_column(`External Links` = new_vals, .before = cols[1]) %>%
-    dplyr::select(-cols)
+    dplyr::select(!dplyr::all_of(cols))
 
   return(query_res)
 }

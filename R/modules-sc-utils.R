@@ -247,7 +247,6 @@ sc_dl_filename <- function(cluster, anal, comparison_type) {
 #' Get cluster choices data.frame for selectize dropdown
 #'
 #' @param clusters Character vector of cluster names
-#' @param dataset_dir Directory with single cell dataset.
 #' @param ... Named arguments to \code{\link{get_cluster_stats}}.
 #' @param sample_comparison is this for test vs control comparion? Default is \code{FALSE}.
 #'
@@ -748,7 +747,6 @@ get_contrast_choices <- function(clusters, test) {
 #' Get markers for one cluster against one other cluster
 #'
 #' @param con String identifying clusters to compare e.g. \code{'1vs2'}
-#' @param dataset_dir Path to folder for dataset
 #'
 #' @return Named list with data.frames for each comparison direction
 #'
@@ -923,8 +921,6 @@ validate_up_meta <- function(res, ref) {
 #' Used by \code{explore_scseq_clusters} shiny app.
 #'
 #' @param sc_dir Directory with saved single-cell datasets.
-#' @param test Character vector of test analysis names.
-#' @param ctrl Character vector of control analysis names.
 #' @param exclude_clusters Charactor vector of clusters for excluding cells. Only included to save to args.
 #' @param exclude_cells Character vector of cell names to exclude.
 #' @param integration_name Name for new integrated analysis.
@@ -1194,7 +1190,6 @@ get_ref_type <- function(ref_name) {
 #' @param from_dataset Name of parent dataset.
 #' @param dataset_name Name for new subset dataset.
 #' @param exclude_clusters Charactor vector of clusters for excluding cells.
-#' @param exclude_cells Character vector of cells to exclude. Used for integrated datasets to exclude clusters.
 #' @param subset_metrics Character vector of metrics for excluding cells.
 #' @param progress Optional shiny progress object.
 #'
@@ -1402,7 +1397,6 @@ add_combined_ambience <- function(combined, scseqs) {
 #'
 #' @param dataset_names Character vector of single cell analysis names to load.
 #' @param sc_dir The directory with single-cell datasets
-#' @param ident Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.
 #'
 #' @return List of \code{SingleCellExperiment} objects.
 #'
@@ -1613,10 +1607,6 @@ scseq_part_path <- function(data_dir, dataset_name, part) {
 #' Run drug queries
 #'
 #' Used by run_comparison
-#'
-#' @param res_paths List of paths with names \code{'cmap'} \code{'l1000'} and \code{'anal'} to
-#' saved cmap, l1000, and differential expression analysis results.
-#' @param session Shiny session object used for progress bar.
 #'
 #' @return \code{res} with drug query results added to \code{'cmap'} \code{'l1000'} slots.
 #'

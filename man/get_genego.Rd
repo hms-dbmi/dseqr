@@ -10,8 +10,6 @@ get_genego(species = "Hs", gs_dir = NULL)
 \item{species}{Species identifier}
 
 \item{gs_dir}{Directory to save genego to}
-
-\item{type}{either 'go' or 'kegg'}
 }
 \value{
 genego

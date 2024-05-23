@@ -5,13 +5,8 @@ seurat_to_sce <- function(sdata, dataset_name) {
   Seurat::DefaultAssay(sdata) <- 'RNA'
 
   # join layers if v5
-  # use meta.features (v3) or meta.data (v5)
-  meta_name <- 'meta.features'
-  is.v5 <- methods::is(sdata[['RNA']], 'Assay5')
-
-  if (is.v5) {
+  if (methods::is(sdata[['RNA']], 'Assay5')) {
     sdata[['RNA']] <- SeuratObject::JoinLayers(sdata[['RNA']])
-    meta_name <- 'meta.data'
   }
 
   # normalize if need to
@@ -22,9 +17,34 @@ seurat_to_sce <- function(sdata, dataset_name) {
     sdata <- Seurat::NormalizeData(sdata, assay = 'RNA')
   }
 
+  # remove layers with fewer ncols (SCT integration bug?)
+  rna_assay <- sdata[['RNA']]
+  layers <- SeuratObject::Layers(rna_assay)
+  ncol <- sapply(layers, function(x) ncol(SeuratObject::LayerData(rna_assay, x)))
+  discard <- names(ncol)[ncol < ncol(rna_assay)]
+
+  if (length(discard)) {
+    for (layer in discard)
+      SeuratObject::LayerData(rna_assay, layer) <- NULL
+
+    # get normalized and scaled data
+    sdata[['RNA']] <- rna_assay
+    sdata <- Seurat::NormalizeData(sdata)
+    sdata <- Seurat::ScaleData(sdata)
+  }
+
+
   # meta.features need to have same row.names as assay
+  # assays need to have same nrows
+
   for (assay_name in Seurat::Assays(sdata)) {
     assay <- sdata[[assay_name]]
+
+    meta_name <- 'meta.features'
+    if(methods::is(assay, 'Assay5')) {
+      assay <- SeuratObject::JoinLayers(assay)
+      meta_name <- 'meta.data'
+    }
     methods::slot(assay, meta_name) <- methods::slot(assay, meta_name)[row.names(assay), ]
     sdata[[assay_name]] <- assay
   }

@@ -312,24 +312,23 @@
     },
     "DWLS": {
       "Package": "DWLS",
-      "Version": "0.1.0",
-      "Source": "Repository",
+      "Version": "0.1",
+      "Source": "GitHub",
       "Repository": "CRAN",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "alexvpickering",
+      "RemoteRepo": "DWLS",
+      "RemoteRef": "master",
+      "RemoteSha": "daf86e16ef4d069e0612b52d99a32f30ae5c064c",
       "Requirements": [
-        "MAST",
+        "Matrix",
         "R",
-        "ROCR",
-        "Seurat",
-        "SummarizedExperiment",
-        "dplyr",
         "e1071",
-        "quadprog",
-        "reshape",
-        "stats",
-        "utils",
-        "varhandle"
+        "parallel",
+        "quadprog"
       ],
-      "Hash": "8e12d31fb16f7eb8d86d315c5c1d8dd2"
+      "Hash": "fb09b7994d007cced490136180896048"
     },
     "DelayedArray": {
       "Package": "DelayedArray",
@@ -671,35 +670,6 @@
         "utils"
       ],
       "Hash": "2f342c46163b0b54d7b64d1f798e2c78"
-    },
-    "MAST": {
-      "Package": "MAST",
-      "Version": "1.30.0",
-      "Source": "Bioconductor",
-      "Repository": "Bioconductor 3.19",
-      "Requirements": [
-        "Biobase",
-        "BiocGenerics",
-        "Matrix",
-        "R",
-        "S4Vectors",
-        "SingleCellExperiment",
-        "SummarizedExperiment",
-        "abind",
-        "data.table",
-        "ggplot2",
-        "graphics",
-        "methods",
-        "parallel",
-        "plyr",
-        "progress",
-        "reshape2",
-        "stats",
-        "stats4",
-        "stringr",
-        "utils"
-      ],
-      "Hash": "0346ae4687222cc5699296fe5245eecf"
     },
     "MCMCpack": {
       "Package": "MCMCpack",
@@ -2769,6 +2739,32 @@
       ],
       "Hash": "02cdab34154e9e70dac279afbb20d34b"
     },
+    "glmGamPoi": {
+      "Package": "glmGamPoi",
+      "Version": "1.16.0",
+      "Source": "Bioconductor",
+      "Repository": "Bioconductor 3.19",
+      "Requirements": [
+        "BiocGenerics",
+        "DelayedArray",
+        "DelayedMatrixStats",
+        "HDF5Array",
+        "MatrixGenerics",
+        "Rcpp",
+        "RcppArmadillo",
+        "SingleCellExperiment",
+        "SummarizedExperiment",
+        "beachmat",
+        "matrixStats",
+        "methods",
+        "rlang",
+        "splines",
+        "stats",
+        "utils",
+        "vctrs"
+      ],
+      "Hash": "21e305cf5faebb13bee698a5a1c4bced"
+    },
     "globals": {
       "Package": "globals",
       "Version": "0.16.3",
@@ -4037,17 +4033,6 @@
       ],
       "Hash": "c50167cbdc7a00815cc7ad905df143dd"
     },
-    "reshape": {
-      "Package": "reshape",
-      "Version": "0.8.9",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "plyr"
-      ],
-      "Hash": "603d56041d7d4fa3ceb1864b3f6ee6b1"
-    },
     "reshape2": {
       "Package": "reshape2",
       "Version": "1.4.4",
@@ -5094,18 +5079,6 @@
         "methods"
       ],
       "Hash": "f693a0ca6d34b02eb432326388021805"
-    },
-    "varhandle": {
-      "Package": "varhandle",
-      "Version": "2.0.6",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Requirements": [
-        "R",
-        "graphics",
-        "utils"
-      ],
-      "Hash": "e4f5f4e4bd5925183a7014afdc3e9848"
     },
     "vctrs": {
       "Package": "vctrs",

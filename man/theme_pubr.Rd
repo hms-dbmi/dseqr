@@ -33,9 +33,6 @@ instance use legend = c(0.8, 0.2).}
 
 \item{x.text.angle}{Rotation angle of x axis tick labels. Default value is 0.
 Use 90 for vertical text.}
-
-\item{flip}{logical. If TRUE, grid lines are added to y axis instead of x
-axis.}
 }
 \description{
 Create a publication ready theme. From package ggpubr.

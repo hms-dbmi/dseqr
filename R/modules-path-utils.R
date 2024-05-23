@@ -85,7 +85,6 @@ safe.fun <- function(fun, x, ...) {
 #' Get data.frame for plotting gene expression values of a pathway
 #'
 #' @param path_id String with KEGG pathway id.
-#' @param path_genes Character vector of custom genes to construct pathway data.frame for.
 #' @param nmax Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200
 #'  so that all drug and genetic query genes are shown.
 #'
@@ -135,8 +134,6 @@ get_path_df <- function(top_table, path_id = NULL, pert_signature = NULL, nmax =
 #' for selectizeInput choices.
 #'
 #' @param data_dir Directory to folder with single-cell analysis folders.
-#' @param with_type if \code{TRUE} include column \code{'type'} with values \code{'Single Cell'}. Used for optgroupField in
-#'  selectizeInput's. Default is \code{FALSE}
 #'
 #' @return data.frame with columns: \itemize{
 #'  \item dataset_name \code{NA} included for consistency with \code{load_bulk_anals}.
@@ -284,7 +281,6 @@ construct_pbulk_subsets <- function(summed, method = 'TMMwsp', ...) {
 #' Get gene to GO map for pathway analysis
 #'
 #' @param species Species identifier
-#' @param type either 'go' or 'kegg'
 #' @param gs_dir Directory to save genego to
 #'
 #' @return genego

@@ -42,10 +42,6 @@ integrate_saved_scseqs(
 \item{is_include}{Boolean - are cells that match \code{subset_metrics} included or excluded?}
 
 \item{progress}{optional Shiny \code{Progress} object.}
-
-\item{test}{Character vector of test analysis names.}
-
-\item{ctrl}{Character vector of control analysis names.}
 }
 \value{
 TRUE is successful, otherwise FALSE

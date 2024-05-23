@@ -124,7 +124,6 @@ download_kb_index <- function(indices_dir, species = c('human', 'mouse')) {
 #'
 #' @param index_dir Path to kallisto index.
 #' @param data_dir Path to folder with 10x fastq.gz files.
-#' @param bus_args Additional arguments to kallisto bus.
 #' @param fqs Vector of fastq file names.
 #' @param techs 10x chemistries to check. Passed to kallisto -x argument.
 #' @param threads Number of threads to use. Default is 1.
