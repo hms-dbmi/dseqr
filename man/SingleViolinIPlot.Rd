@@ -55,11 +55,11 @@ expression of the attribute being potted}
 
 \item{nsel}{Number of selected \code{idents}. Default is 1.}
 
-\item{ncells}{Vector specifying number of cells in each {levels(idents)}.
+\item{ncells}{Vector specifying number of cells in each \code{levels(idents)}.
 If specified, an annotated bar plot is drawn to indicate number of cells.}
 
 \item{pct.cells}{Vector specifying percent of cells that express the marker,
-once for each {levels(idents)}. If specified, an annotated bar plot is drawn.}
+once for each \code{levels(idents)}. If specified, an annotated bar plot is drawn.}
 }
 \value{
 A ggplot-based Violin-by-Identity plot

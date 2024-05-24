@@ -12,8 +12,6 @@ get_cluster_choices(clusters, sample_comparison = FALSE, with_all = FALSE, ...)
 \item{sample_comparison}{is this for test vs control comparion? Default is \code{FALSE}.}
 
 \item{...}{Named arguments to \code{\link{get_cluster_stats}}.}
-
-\item{dataset_dir}{Directory with single cell dataset.}
 }
 \value{
 data.frame with columns for rendering selectizeInput cluster choices

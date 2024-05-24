@@ -16,8 +16,6 @@ load_scseq_subsets(
 \item{dataset_names}{Character vector of single cell analysis names to load.}
 
 \item{sc_dir}{The directory with single-cell datasets}
-
-\item{ident}{Either \code{'test'} \code{'ctrl'} for integration. The from dataset for subsetting.}
 }
 \value{
 List of \code{SingleCellExperiment} objects.

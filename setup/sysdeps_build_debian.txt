@@ -14,6 +14,7 @@ libxt-dev
 libharfbuzz-dev
 libfribidi-dev
 libfreetype6-dev
-libtiff5-dev
+libtiff-dev
+patch
 git
 wget

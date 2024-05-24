@@ -8,9 +8,6 @@ load_scseq_datasets(data_dir)
 }
 \arguments{
 \item{data_dir}{Directory to folder with single-cell analysis folders.}
-
-\item{with_type}{if \code{TRUE} include column \code{'type'} with values \code{'Single Cell'}. Used for optgroupField in
-selectizeInput's. Default is \code{FALSE}}
 }
 \value{
 data.frame with columns: \itemize{

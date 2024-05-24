@@ -8,8 +8,6 @@ get_contrast_markers(con, markers)
 }
 \arguments{
 \item{con}{String identifying clusters to compare e.g. \code{'1vs2'}}
-
-\item{dataset_dir}{Path to folder for dataset}
 }
 \value{
 Named list with data.frames for each comparison direction

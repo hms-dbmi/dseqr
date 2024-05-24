@@ -26,8 +26,6 @@ will plot \code{feature} for each \code{scseq$cluster}.}
 
 \item{decreasing}{if \code{TRUE}, violinlines with smaller mean values of \code{feature} will show up on top.
 Used to show features where smaller values indicate potential QC issues.}
-
-\item{with.height}{Whether to return height of plot. See value for details.}
 }
 \value{
 list used by \link{VlnPlot}

@@ -10,7 +10,7 @@
 #'
 qread.safe <- function(file, .nofile = NULL, .nullfile = NULL) {
   res <- .nofile
-  if (isTruthy(file) && file.exists(file))
+  if (isTruthy(file) && file_exists(file))
     res <- tryCatch(qs::qread(file), error = function(e) NULL)
 
   if (is.null(res)) return(.nullfile)
@@ -47,6 +47,6 @@ enableAll <- function(ids, asis = rep(FALSE, length(ids))) {
 #' @keywords internal
 isTruthyAll <- function(...) {
   x <- list(...)
-  for (xi in x) if (!shiny::isTruthy(xi)) return(FALSE)
+  for (xi in x) if (!isTruthy(xi)) return(FALSE)
   return(TRUE)
 }

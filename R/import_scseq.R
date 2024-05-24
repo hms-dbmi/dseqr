@@ -602,7 +602,7 @@ run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
   if ('ADT' %in% names(reference$map@assays)) {
     refdata[["impADT"]] <- Seurat::GetAssayData(
       object = reference$map[['ADT']],
-      slot = 'data'
+      layer = 'data'
     )
   }
 
@@ -677,8 +677,9 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   k.score <- min(30, ncells-1)
 
   # Find anchors between query and reference
+  reference_map <- Seurat::UpdateSeuratObject(reference$map)
   anchors <- Seurat::FindTransferAnchors(
-    reference = reference$map,
+    reference = reference_map,
     query = query,
     k.filter = NA,
     reference.neighbors = "refdr.annoy.neighbors",
@@ -686,7 +687,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
     query.assay = "refAssay",
     reference.reduction = "refDR",
     normalization.method = ifelse(is.sct, 'SCT', 'LogNormalize'),
-    features = intersect(rownames(reference$map), Seurat::VariableFeatures(query)),
+    features = intersect(rownames(reference_map), Seurat::VariableFeatures(query)),
     dims = seq(50),
     n.trees = 20,
     k.score = k.score,
@@ -701,7 +702,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   # The prediction scores for each class are in an assay named "prediction.score.*"
   # The imputed assay is named "impADT" if computed
   query <- Seurat::TransferData(
-    reference = reference$map,
+    reference = reference_map,
     query = query,
     dims = seq(50),
     anchorset = anchors,
@@ -715,7 +716,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   # Calculate the embeddings of the query data on the reference SPCA
   query <- Seurat::IntegrateEmbeddings(
     anchorset = anchors,
-    reference = reference$map,
+    reference = reference_map,
     query = query,
     reductions = "pcaproject",
     reuse.weights.matrix = TRUE,
@@ -725,7 +726,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   # Calculate the query neighbors in the reference
   # with respect to the integrated embeddings
   query[["query_ref.nn"]] <- Seurat::FindNeighbors(
-    object = Seurat::Embeddings(reference$map[["refDR"]]),
+    object = Seurat::Embeddings(reference_map[["refDR"]]),
     query = Seurat::Embeddings(query[["integrated_dr"]]),
     return.neighbor = TRUE,
     l2.norm = TRUE,
@@ -736,18 +737,18 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   # The reference used in the app is downsampled compared to the reference on which
   # the UMAP model was computed. This step, using the helper function NNTransform,
   # corrects the Neighbors to account for the downsampling.
-  meta.data <- reference$map[[]]
+  meta.data <- reference_map[[]]
   if ("ori.index" %in% colnames(meta.data)) {
     query <- NNTransform(
       object = query,
-      meta.data = reference$map[[]]
+      meta.data = reference_map[[]]
     )
   }
 
   # Project the query to the reference UMAP.
   query[["proj.umap"]] <- Seurat::RunUMAP(
     object = query[["query_ref.nn"]],
-    reduction.model = reference$map[["refUMAP"]],
+    reduction.model = reference_map[["refUMAP"]],
     reduction.key = 'UMAP_',
     verbose = FALSE
   )
@@ -850,7 +851,7 @@ load_tx2gene <- function(species, tx2gene_dir) {
   fname <- paste0(ensdb_species, '_tx2gene.qs')
   fpath <- file.path(tx2gene_dir,  fname)
 
-  if (file.exists(fpath)) {
+  if (file_exists(fpath)) {
     tx2gene <- qs::qread(fpath)
   } else {
     tx2gene <- dseqr.data::load_tx2gene(species, release = NULL, with_hgnc = TRUE)
@@ -947,7 +948,7 @@ load_cellranger_counts <- function(data_dir) {
   ensids <- gsub('^[^_]+[_]+(ENS.+?)$', '\\1', row.names(counts))
 
   enids <- gsub('[.]\\d+', '', ensids)
-  row.names(counts) <- make.unique(enids)
+  row.names(counts) <- make_unique(enids)
 
   return(counts)
 }
@@ -1463,8 +1464,10 @@ integrate_scseqs <- function(scseqs, species, tx2gene_dir, type = c('harmony', '
 
   # feature selection
   decs <- do.call('combineVar', decs, envir = loadNamespace('scran'))
-  if (!is.null(hvgs)) hvgs <- universe %in% hvgs
-  else hvgs <- decs$bio > 0
+  if (!is.null(hvgs))
+    hvgs <- universe %in% hvgs
+  else
+    hvgs <- decs$bio > 0
 
   no_correct <- function(assay.type) function(...) batchelor::noCorrect(..., assay.type = assay.type)
   combined <- do.call(no_correct('logcounts'), scseqs)
@@ -1542,7 +1545,7 @@ run_symphony <- function(counts, logcounts, ref_name, batch, species, tx2gene_di
   uwot_name <- paste0(ref_name, '_uwot_model')
   dl_dir <- Sys.getenv('DSEQR_DATA_PATH')
   uwot_path <- file.path(dl_dir, uwot_name)
-  if (!file.exists(uwot_path)) dseqr.data::dl_data(uwot_name)
+  if (!file_exists(uwot_path)) dseqr.data::dl_data(uwot_name)
 
   # indicate model path for mapQuery
   reference$save_uwot_path <- uwot_path

@@ -31,7 +31,6 @@ downsample_clusters <- function(scseq, max.cells = 200) {
 #' @param selected_cluster Name of the selected cluster.
 #' @param by.sample if \code{TRUE} plot \code{feature} violin for each \code{scseq$batch}. Default (\code{FALSE})
 #'  will plot \code{feature} for each \code{scseq$cluster}.
-#' @param with.height Whether to return height of plot. See value for details.
 #' @param decreasing if \code{TRUE}, violinlines with smaller mean values of \code{feature} will show up on top.
 #'  Used to show features where smaller values indicate potential QC issues.
 #'

@@ -14,7 +14,7 @@ save_split_mtxs <- function(mtxs, features, data_dir) {
     colnames(features)[c(1, 2)] <- c('enid', 'symbol')
     fnames <- c('barcodes.tsv.gz', 'features.tsv.gz', 'matrix.mtx.gz')
 
-    unique.genes <- make.unique(features$symbol)
+    unique.genes <- make_unique(features$symbol)
 
     out_dir <- file.path(data_dir, 'split')
     dir.create(out_dir)

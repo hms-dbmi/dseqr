@@ -11,8 +11,6 @@ get_path_df(top_table, path_id = NULL, pert_signature = NULL, nmax = 200)
 
 \item{nmax}{Maximum number of genes to keep from CMAP02/L1000 common and CMAP02 only genes for Drug and genetic query genes. Default is 200
 so that all drug and genetic query genes are shown.}
-
-\item{path_genes}{Character vector of custom genes to construct pathway data.frame for.}
 }
 \value{
 \code{data.frame} with columns: \itemize{

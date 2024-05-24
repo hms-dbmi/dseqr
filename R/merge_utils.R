@@ -97,7 +97,7 @@ merge_clusters <- function(data_dir, merge_list, resoln_dir = NULL) {
   annot <- pretty.unique(annot)
 
   orig_path <- file.path(data_dir, paste0(resoln_dir, '_orig'))
-  if (!dir.exists(orig_path)) {
+  if (!dir_exists(orig_path)) {
     # store original resolution
     file.rename(resoln_path, orig_path)
     dir.create(resoln_path)

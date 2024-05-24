@@ -11,10 +11,16 @@ get_seurat_object_list <- function() {
   ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
   ref$sample <- 'ref'
 
+  colnames(ref) <- paste0(colnames(ref), '_ref')
+
+
   query <- CreateSeuratObject(
-    counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1)
+    counts = as(
+      pbmc_small[['RNA']]$counts + rpois(n = ncol(pbmc_small), lambda = 1),
+      'CsparseMatrix')
   )
   query$sample <- 'query'
+  colnames(query) <- paste0(colnames(query), '_query')
 
   query.list <- list(ref, query)
   return(query.list)
@@ -30,7 +36,7 @@ mock_default_integration <- function() {
   query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
 
   anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = query.list, k.filter = NA, verbose = FALSE)))
-  int <- IntegrateData(anchorset = anchors, k.weight = 50, verbose = FALSE)
+  int <- suppressWarnings(IntegrateData(anchorset = anchors, k.weight = 50, verbose = FALSE))
 
   # run the standard workflow for visualization and clustering
   int <- ScaleData(int, verbose = FALSE)
@@ -38,6 +44,7 @@ mock_default_integration <- function() {
   int <- suppressWarnings(RunUMAP(int, reduction = "pca", dims = 1:30))
   int <- FindNeighbors(int, reduction = "pca", dims = 1:30)
   int <- FindClusters(int, resolution = 0.5)
+  int[['RNA']] <- SeuratObject::JoinLayers(int[['RNA']])
 
   # add annotation
   levels(Idents(int)) <- letters[seq_along(levels(Idents(int)))]
@@ -47,8 +54,8 @@ mock_default_integration <- function() {
 
 mock_sct_integration <- function() {
   query.list <- get_seurat_object_list()
-
   query.list <- lapply(X = query.list, FUN = SCTransform, verbose = FALSE)
+
   features <- SelectIntegrationFeatures(object.list = query.list, nfeatures = 100, verbose = FALSE)
   query.list <- PrepSCTIntegration(object.list = query.list, anchor.features = features, verbose = FALSE)
 
@@ -56,19 +63,20 @@ mock_sct_integration <- function() {
     object.list = query.list,
     normalization.method = "SCT",
     anchor.features = features,
-    k.filter = NA,
     verbose = FALSE))
 
-  int <- IntegrateData(
+  int <- suppressWarnings(IntegrateData(
     anchorset = anchors,
     normalization.method = "SCT",
     k.weight = 50,
-    verbose = FALSE)
+    verbose = FALSE))
+
 
   int <- RunPCA(int, npcs = 30, verbose = FALSE)
   int <- suppressWarnings(RunUMAP(int, reduction = "pca", dims = 1:30, verbose = FALSE))
   int <- FindNeighbors(int, reduction = "pca", dims = 1:30)
   int <- FindClusters(int, resolution = 0.5)
+  int[['RNA']] <- SeuratObject::JoinLayers(int[['RNA']])
 
   # add cluster annotation
   levels(Idents(int)) <- letters[seq_along(levels(Idents(int)))]
@@ -90,6 +98,8 @@ test_that("a unisample Seurat object can be imported", {
     file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
     as.is = TRUE
   )
+
+  pbmc_raw <- as(as.matrix(pbmc_raw), 'dgCMatrix')
 
   pbmc_small <- Seurat::CreateSeuratObject(counts = pbmc_raw)
   qs::qsave(pbmc_small, file.path(uploaded_data_dir, 'test.qs'))
@@ -145,7 +155,7 @@ test_that("a multisample Seurat object can be imported", {
   expect_equal(pca.imported, pca.original)
 
   # counts preserved
-  expect_equal(int[['RNA']]@counts, counts(scseq))
+  expect_equal(int[['RNA']]$counts, counts(scseq))
 
   # have clusters and annotation
   expect_length(levels(scseq$cluster), length(levels(int$seurat_clusters)))
@@ -207,7 +217,7 @@ test_that("a multisample Seurat object without samples specified can be imported
   expect_equal(pca.imported, pca.original)
 
   # counts preserved
-  expect_equal(int[['RNA']]@counts, counts(scseq))
+  expect_equal(int[['RNA']]$counts, counts(scseq))
 
   # have clusters and annotation
   expect_length(levels(scseq$cluster), length(levels(int$seurat_clusters)))
@@ -265,7 +275,7 @@ test_that("a multisample Seurat object integrated with SCTransform can be import
   expect_equal(pca.imported, pca.original)
 
   # counts preserved
-  expect_equal(int[['RNA']]@counts, counts(scseq))
+  expect_equal(int[['RNA']]$counts, counts(scseq))
 
   # have clusters and annotation
   expect_length(levels(scseq$cluster), length(levels(int$seurat_clusters)))

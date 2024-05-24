@@ -117,7 +117,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   all_prev_files <- c(init_files, dataset_files, prev_file)
   markers_file <- setdiff(list_files(), all_prev_files)
   expect_equal(markers_file, "test_data_dir/test_user/default/single-cell/mock_10x/snn1/markers.qs")
-  expect_equal(unname(tools::md5sum(markers_file)), "fadb32f7c1c082fdefc057158e30e5eb")
+  expect_equal(unname(tools::md5sum(markers_file)), "c62b82b13cf26250de7b1951f47e193a")
 
   # clusters and markers plot have same coordinates
   app$set_inputs(`sc-form-gene_clusters-gene_table_rows_selected` = 1, allow_no_input_binding_ = TRUE)
@@ -161,7 +161,7 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
   app$click("sc-form-cluster-show_contrasts")
 
   marker_colors <- app$wait_for_value(export = 'sc-marker_plot_cluster-colors', timeout = timeout)
-  expect_length(unique(marker_colors), 94)
+  expect_length(unique(marker_colors), 104)
 
   # can set custom boolean metric
   app$click("sc-form-gene_clusters-show_custom_metric")

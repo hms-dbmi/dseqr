@@ -4,18 +4,48 @@ seurat_to_sce <- function(sdata, dataset_name) {
   # set to RNA to get the counts and logcounts from RNA assay
   Seurat::DefaultAssay(sdata) <- 'RNA'
 
+  # join layers if v5
+  if (methods::is(sdata[['RNA']], 'Assay5')) {
+    sdata[['RNA']] <- SeuratObject::JoinLayers(sdata[['RNA']])
+  }
+
   # normalize if need to
-  if (identical(sdata[['RNA']]@counts,
-                sdata[['RNA']]@data)) {
+  if (identical(sdata[['RNA']]$counts,
+                sdata[['RNA']]$data)) {
 
     # NOTE: identical if normalize each sample or all together
     sdata <- Seurat::NormalizeData(sdata, assay = 'RNA')
   }
 
+  # remove layers with fewer ncols (SCT integration bug?)
+  rna_assay <- sdata[['RNA']]
+  layers <- SeuratObject::Layers(rna_assay)
+  ncol <- sapply(layers, function(x) ncol(SeuratObject::LayerData(rna_assay, x)))
+  discard <- names(ncol)[ncol < ncol(rna_assay)]
+
+  if (length(discard)) {
+    for (layer in discard)
+      SeuratObject::LayerData(rna_assay, layer) <- NULL
+
+    # get normalized and scaled data
+    sdata[['RNA']] <- rna_assay
+    sdata <- Seurat::NormalizeData(sdata)
+    sdata <- Seurat::ScaleData(sdata)
+  }
+
+
   # meta.features need to have same row.names as assay
+  # assays need to have same nrows
+
   for (assay_name in Seurat::Assays(sdata)) {
     assay <- sdata[[assay_name]]
-    assay@meta.features <- assay@meta.features[row.names(assay), ]
+
+    meta_name <- 'meta.features'
+    if(methods::is(assay, 'Assay5')) {
+      assay <- SeuratObject::JoinLayers(assay)
+      meta_name <- 'meta.data'
+    }
+    methods::slot(assay, meta_name) <- methods::slot(assay, meta_name)[row.names(assay), ]
     sdata[[assay_name]] <- assay
   }
 
@@ -46,14 +76,14 @@ seurat_to_sce <- function(sdata, dataset_name) {
   sce$cluster <- unname(Seurat::Idents(sdata))
 
   # default HVGs unless integrated assay
-  hvgs <- sdata[['RNA']]@var.features
+  hvgs <- SeuratObject::VariableFeatures(sdata, assay = 'RNA')
 
   is.integrated <- have.samples | have.integrated
   if (is.integrated) {
 
     # get HVGs and transfer reductions from integrated assay if present
     if (have.integrated) {
-      hvgs <- sdata[['integrated']]@var.features
+      hvgs <- SeuratObject::VariableFeatures(sdata, assay = 'integrated')
       SingleCellExperiment::reducedDims(sce) <-
         SingleCellExperiment::reducedDims(SingleCellExperiment::altExp(sce, 'integrated'))
     }

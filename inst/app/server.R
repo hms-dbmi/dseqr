@@ -353,7 +353,7 @@ server <- function(input, output, session) {
 
     prev_dir <- file.path(user_dir, prev)
 
-    if (dir.exists(prev_dir))
+    if (dir_exists(prev_dir))
       file.rename(prev_dir, new_dir)
 
     if (prev == project()) project(new)

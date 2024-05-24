@@ -339,12 +339,12 @@ load_bulk_datasets <-function(data_dir, with.explore = FALSE) {
 
   dataset_names <- list.dirs(file.path(data_dir, 'bulk'), full.names = FALSE, recursive = FALSE)
 
-  has.eset <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
+  has.eset <- file_exists(file.path(data_dir, 'bulk', dataset_names, 'eset.qs'))
   dataset_names <- dataset_names[has.eset]
 
   # for excluding datasets without a contrast
   if (with.explore) {
-    has.explore <- file.exists(file.path(data_dir, 'bulk', dataset_names, 'pdata_explore.qs'))
+    has.explore <- file_exists(file.path(data_dir, 'bulk', dataset_names, 'pdata_explore.qs'))
     dataset_names <- dataset_names[has.explore]
   }
 
@@ -798,7 +798,7 @@ add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE) {
     # for microarray use exprs
     vsd <- Biobase::assayDataElement(eset, 'exprs')
 
-  } else if (!is.null(vsd_path) && file.exists(vsd_path)) {
+  } else if (!is.null(vsd_path) && file_exists(vsd_path)) {
     vsd <- qs::qread(vsd_path)
 
   } else {
@@ -812,7 +812,7 @@ add_vsd <- function(eset, vsd_path = NULL, rna_seq = TRUE) {
 
 add_adjusted <- function(eset, adj_path, svobj = list(sv = NULL), numsv = 0) {
 
-  if (file.exists(adj_path)) {
+  if (file_exists(adj_path)) {
     Biobase::assayDataElement(eset, 'adjusted') <- qs::qread(adj_path)
 
   } else {
@@ -826,7 +826,7 @@ add_adjusted <- function(eset, adj_path, svobj = list(sv = NULL), numsv = 0) {
 
 iqr_replicates <- function(eset, keep_path, annot = "SYMBOL", rm.dup = FALSE) {
 
-  if (file.exists(keep_path)) {
+  if (file_exists(keep_path)) {
     keep <- qs::qread(keep_path)
     eset <- eset[keep, ]
     Biobase::featureNames(eset) <- Biobase::fData(eset)[, annot]
@@ -1153,7 +1153,7 @@ handle_bulk_progress <- function(bgs, progs, new_dataset) {
 }
 
 file.move <- function(from, to) {
-  if (any(file.exists(to))) unlink(to)
+  if (any(file_exists(to))) unlink(to)
   tryCatch(
     file.rename(from, to),
     warning = function(w) {
