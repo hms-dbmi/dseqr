@@ -23,7 +23,9 @@ run_dseqr(
 )
 }
 \arguments{
-\item{data_dir}{Directory containing user folders. By default also will contain folders
+\item{app_name}{Name of user folder in \code{data_dir}. Will be created if doesn't exist.}
+
+\item{data_dir}{Directory containing app folders. By default also will contain folders
 \code{.pert_query_dir}, \code{.pert_signature_dir}, and \code{.indices_dir}.}
 
 \item{tabs}{Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.}
@@ -64,8 +66,6 @@ if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.}
 
 \item{is_example}{Is the app for demonstration purposes? If \code{TRUE}, various features
 are disabled to prevent dataset changes.}
-
-\item{user_name}{Name of user folder in \code{data_dir}. Will be created if doesn't exist.}
 }
 \value{
 Runs dseqr app

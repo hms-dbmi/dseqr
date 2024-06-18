@@ -66,13 +66,14 @@ get_num_bulk_datasets <- function(project, user_dir) {
 
 server <- function(input, output, session) {
 
+
   # get arguments from calling function
   # defaults for testing
   # shiny::shinyOptions don't make it through
 
   # base directory contains data_dir folder
   app_name <- getShinyOption('app_name', 'test_app')
-  data_dir <- getShinyOption('data_dir', 'tests/testthat/test_data_dir/')
+  data_dir <- getShinyOption('data_dir', 'tests/testthat/test_data_dir')
 
   # path where pert queries will be stored
   pert_query_dir <- getShinyOption('pert_query_dir', file.path(data_dir, '.pert_query_dir'))
@@ -92,10 +93,25 @@ server <- function(input, output, session) {
   is_example <- getShinyOption('is_example', FALSE)
   is_local <- getShinyOption('is_local', TRUE)
 
+  # reset testing data
+  if (isTRUE(getOption('shiny.testmode'))) {
+    unlink(data_dir, recursive = TRUE)
+    dir.create(data_dir, recursive = TRUE)
+  }
+
   # ensure various directories exist
-  # duplicated here and in run_dseqr for tests
   app_dirs <- c(pert_query_dir, pert_signature_dir, indices_dir, tx2gene_dir, gs_dir)
   for (dir in app_dirs) dir.create(dir, showWarnings = FALSE)
+
+  # on remote: send errors to slack
+  if (!is_local) {
+    options(shiny.error = function() {
+      observe({
+        user_name <- user_name()
+        send_slack_error(app_name, user_name)
+      })
+    })
+  }
 
 
   # hide tour button for docs page
@@ -106,18 +122,12 @@ server <- function(input, output, session) {
 
     # app_name is 'private'
     user_name <- session$request$HTTP_X_SP_USERID
-    print('user_name!!!!')
-    print(user_name)
     return(user_name)
   })
 
   user_dir <- reactive({
     user_name <- user_name()
     user_dir <- file.path(data_dir, user_name)
-
-    # reset testing data
-    if (isTRUE(getOption('shiny.testmode')))
-      unlink(data_dir, recursive = TRUE)
 
     if (!dir_exists(user_dir))
       init_dseqr(user_name, data_dir)

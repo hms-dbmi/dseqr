@@ -2,8 +2,8 @@
 #'
 #' Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 #'
-#' @param user_name Name of user folder in \code{data_dir}. Will be created if doesn't exist.
-#' @param data_dir Directory containing user folders. By default also will contain folders
+#' @param app_name Name of user folder in \code{data_dir}. Will be created if doesn't exist.
+#' @param data_dir Directory containing app folders. By default also will contain folders
 #'  \code{.pert_query_dir}, \code{.pert_signature_dir}, and \code{.indices_dir}.
 #' @param tabs Character vector of tabs to include in order desired. Must be subset of 'Single Cell', 'Bulk Data', and 'Drugs'.
 #' @param pert_query_dir Path to directory where pert query results (using CMAP02/L1000 as query signature) will be downloaded as requested.
@@ -61,12 +61,8 @@ run_dseqr <- function(app_name,
     data_dir <- '/srv/dseqr'
   }
 
-
   # gather options
   opts <- list()
-
-  # on remote: send errors to slack
-  if (!is_local) opts$shiny.error <- function() send_slack_error(app_name)
 
   # allow up to 30GB uploads
   opts$shiny.maxRequestSize <- 30*1024*1024^2
@@ -90,14 +86,6 @@ run_dseqr <- function(app_name,
   }
 
   if (missing(data_dir)) stop('data_dir not specified.')
-
-  # user_dir <- file.path(data_dir, app_name)
-  # if (!dir_exists(user_dir)) init_dseqr(app_name, data_dir)
-
-  # ensure various directories exist
-  # duplicated in server.R for tests
-  app_dirs <- c(pert_query_dir, pert_signature_dir, indices_dir, tx2gene_dir, gs_dir)
-  for (dir in app_dirs) dir.create(dir, showWarnings = FALSE)
 
   # pass arguments to app through options then run
   shiny::shinyOptions(
