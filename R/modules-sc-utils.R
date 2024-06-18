@@ -41,6 +41,7 @@ remove.unique <- function(annot) {
   return(annot)
 }
 
+#' @export
 pretty.unique <- function(annot) {
   annot <- make_unique(annot, '_')
 
@@ -574,6 +575,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   return(dat)
 }
 
+#' @export
 cbind.safe <- function(prev, res) {
   res <- cbind(prev, res)
   row.names(res) <- row.names(prev)
@@ -2538,17 +2540,38 @@ get_expression_colors <- function(ft.scaled) {
   return(colors)
 }
 
+#' Safe file.exists
+#'
+#' @param x file path
+#'
+#' @return a logical vector of TRUE or FALSE values
+#' @export
+#'
 file_exists <- function(x) {
   if (!length(x)) return(FALSE)
   file.exists(x)
 }
 
+#' Safe dir.exists
+#'
+#' @param x directory path
+#'
+#' @return a logical vector of TRUE or FALSE values
+#' @export
+#'
 dir_exists <- function(x) {
   if (!length(x)) return(FALSE)
   dir.exists(x)
 }
 
 
+#' Truthy and falsy values
+#'
+#' @param x An expression whose truthiness value we want to determine
+#'
+#' @return a logical vector of TRUE or FALSE values
+#' @export
+#'
 isTruthy <- function(x) {
   if (inherits(x, 'try-error'))
     return(FALSE)
@@ -2571,6 +2594,15 @@ isTruthy <- function(x) {
   return(TRUE)
 }
 
+#' Check for required values
+#'
+#' @param ... Values to check for truthiness.
+#' @param cancelOutput If TRUE and an output is being evaluated, stop processing
+#'  as usual but instead of clearing the output, leave it in whatever state it happens to be in.
+#'
+#' @return The first value that was passed in.
+#' @export
+#'
 req <- function(..., cancelOutput = FALSE) {
   shiny:::dotloop(function(item) {
     if (!isTruthy(item)) {
@@ -2588,8 +2620,16 @@ req <- function(..., cancelOutput = FALSE) {
     invisible()
 }
 
-make_unique <- function(x, sep = ".") {
-  x <- as.character(x)
-  make.unique(x, sep = sep)
+#' Make Character Strings Unique
+#'
+#' @param names a character vector.
+#' @param sep a character string used to separate a duplicate name from its sequence number.
+#'
+#' @return A character vector of same length as names with duplicates changed, in the current locale's encoding.
+#' @export
+#'
+make_unique <- function(names, sep = ".") {
+  names <- as.character(names)
+  make.unique(names, sep = sep)
 }
 

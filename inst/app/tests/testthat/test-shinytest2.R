@@ -46,8 +46,9 @@ test_that("{shinytest2} recording: Single-Cell Tab", {
       load_timeout = timeout)
   )
 
-  list_files <- function()
+  list_files <- function() {
     file.path(data_dir, list.files(data_dir, recursive = TRUE, all.files = TRUE, include.dirs = TRUE))
+  }
 
   # created expected files/folders
   init_files <- list_files()

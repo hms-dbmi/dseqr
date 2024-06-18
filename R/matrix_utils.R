@@ -1,4 +1,5 @@
-# Compute summary statistics of a Matrix
+#' Compute summary statistics of a Matrix
+#' @export
 aggregate.Matrix <- function(x, groupings = NULL, form = NULL, fun = "sum", ...) {
   if (!methods::is(x, "Matrix")) {
     x <- Matrix::Matrix(as.matrix(x), sparse = TRUE)
