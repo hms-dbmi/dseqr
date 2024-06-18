@@ -72,7 +72,7 @@ server <- function(input, output, session) {
   # shiny::shinyOptions don't make it through
 
   # base directory contains data_dir folder
-  app_name <- getShinyOption('app_name', 'test_app')
+  app_name <- getShinyOption('app_name', 'test_user')
   data_dir <- getShinyOption('data_dir', 'tests/testthat/test_data_dir')
 
   # path where pert queries will be stored
