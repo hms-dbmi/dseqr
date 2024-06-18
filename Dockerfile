@@ -88,9 +88,6 @@ RUN R -e "install.packages(repos=NULL, '.')" && \
 #-----------
 from common AS production
 
-# add runner
-COPY inst/run.R .
-
 # ----------
 # TESTING
 #-----------

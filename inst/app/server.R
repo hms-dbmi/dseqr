@@ -71,8 +71,8 @@ server <- function(input, output, session) {
   # shiny::shinyOptions don't make it through
 
   # base directory contains data_dir folder
-  user_dir <- getShinyOption('user_dir', 'tests/testthat/test_data_dir/test_user')
-  data_dir <- dirname(user_dir)
+  app_name <- getShinyOption('app_name', 'test_app')
+  data_dir <- getShinyOption('data_dir', 'tests/testthat/test_data_dir/')
 
   # path where pert queries will be stored
   pert_query_dir <- getShinyOption('pert_query_dir', file.path(data_dir, '.pert_query_dir'))
@@ -92,13 +92,6 @@ server <- function(input, output, session) {
   is_example <- getShinyOption('is_example', FALSE)
   is_local <- getShinyOption('is_local', TRUE)
 
-  # reset testing data
-  if (isTRUE(getOption('shiny.testmode'))) {
-    unlink(data_dir, recursive = TRUE)
-    user_name <- basename(user_dir)
-    dseqr::init_dseqr(user_name, data_dir)
-  }
-
   # ensure various directories exist
   # duplicated here and in run_dseqr for tests
   app_dirs <- c(pert_query_dir, pert_signature_dir, indices_dir, tx2gene_dir, gs_dir)
@@ -108,6 +101,29 @@ server <- function(input, output, session) {
   # hide tour button for docs page
   observe(shinyjs::toggleClass('start_tour', 'invisible', condition = input$tab == 'Docs'))
 
+  user_name <- reactive({
+    if (app_name == 'example' || is_local) return(app_name)
+
+    # app_name is 'private'
+    user_name <- session$request$HTTP_X_SP_USERID
+    print('user_name!!!!')
+    print(user_name)
+    return(user_name)
+  })
+
+  user_dir <- reactive({
+    user_name <- user_name()
+    user_dir <- file.path(data_dir, user_name)
+
+    # reset testing data
+    if (isTRUE(getOption('shiny.testmode')))
+      unlink(data_dir, recursive = TRUE)
+
+    if (!dir_exists(user_dir))
+      init_dseqr(user_name, data_dir)
+
+    return(user_dir)
+  })
 
   # rintrojs
   observeEvent(input$start_tour, {
@@ -164,9 +180,12 @@ server <- function(input, output, session) {
   }
 
   # selecting the project
-  project_choices <- reactiveVal(
-    list.dirs(user_dir, recursive = FALSE, full.names = FALSE)
-  )
+  project_choices <- reactiveVal()
+
+  observe({
+    choices <- list.dirs(user_dir(), recursive = FALSE, full.names = FALSE)
+    project_choices(choices)
+  })
 
   observeEvent(input$select_project, {
     req(!is_example)
@@ -176,16 +195,18 @@ server <- function(input, output, session) {
 
   projects_table <- reactive({
     projects <- project_choices()
+    project <- project()
+    req(project)
 
-    nsc <- sapply(projects, get_num_sc_datasets, user_dir)
-    nbulk <- sapply(projects, get_num_bulk_datasets, user_dir)
+    nsc <- sapply(projects, get_num_sc_datasets, user_dir())
+    nbulk <- sapply(projects, get_num_bulk_datasets, user_dir())
 
     df <- data.frame(
       ` ` = getDeleteRowButtons(session, length(projects), title = 'Delete project'),
       'Project' = projects,
       'Single Cell Datasets' = nsc,
       'Bulk Datasets' = nbulk,
-      selected = ifelse(projects == project(), 'hl', 'other'),
+      selected = ifelse(projects == project, 'hl', 'other'),
       check.names = FALSE,
       row.names = NULL
     )
@@ -322,7 +343,7 @@ server <- function(input, output, session) {
     }
 
     # remove data
-    unlink(file.path(user_dir, del), recursive = TRUE)
+    unlink(file.path(user_dir(), del), recursive = TRUE)
     removeModal()
   })
 
@@ -344,14 +365,14 @@ server <- function(input, output, session) {
     choices[info$row] <- new
     project_choices(choices)
 
-    new_dir <- file.path(user_dir, new)
+    new_dir <- file.path(user_dir(), new)
 
     if (prev == "") {
       dir.create(new_dir, showWarnings = FALSE)
       return(NULL)
     }
 
-    prev_dir <- file.path(user_dir, prev)
+    prev_dir <- file.path(user_dir(), prev)
 
     if (dir_exists(prev_dir))
       file.rename(prev_dir, new_dir)
@@ -360,21 +381,36 @@ server <- function(input, output, session) {
 
   })
 
-  observe(qs::qsave(project(), prev_path))
+  observe({
+    project <- project()
+    req(project)
+    qs::qsave(project, prev_path())
+  })
 
 
-  prev_path <- file.path(user_dir, 'prev_project.qs')
-  project <- reactiveVal(qread.safe(prev_path, .nofile = 'default'))
-  project_dir <- reactive(file.path(user_dir, project()))
+  project_dir <- reactive(file.path(user_dir(), project()))
+  prev_path <- reactive(file.path(user_dir(), 'prev_project.qs'))
+
+  project <- reactiveVal()
+
+  observe({
+    project(qread.safe(prev_path(), .nofile = 'default'))
+  })
 
   sc_dir <- reactive({
-    sc_dir <- file.path(user_dir, project(), 'single-cell')
+    project <- project()
+    req(project)
+
+    sc_dir <- file.path(user_dir(), project, 'single-cell')
     dir.create(sc_dir, showWarnings = FALSE)
     return(sc_dir)
   })
 
   bulk_dir <- reactive({
-    bulk_dir <- file.path(user_dir, project(), 'bulk')
+    project <- project()
+    req(project)
+
+    bulk_dir <- file.path(user_dir(), project, 'bulk')
     dir.create(bulk_dir, showWarnings = FALSE)
     return(bulk_dir)
   })
@@ -411,7 +447,7 @@ server <- function(input, output, session) {
     project <- project()
     slack <- readRDS(system.file('extdata/slack.rds', package = 'dseqr'))
 
-    workspace <- basename(user_dir)
+    workspace <- basename(user_dir())
     workspace <- ifelse(workspace == user, 'private', workspace)
 
     httr::POST(

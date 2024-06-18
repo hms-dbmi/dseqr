@@ -5,7 +5,7 @@
 \title{Run dseqr app}
 \usage{
 run_dseqr(
-  user_name,
+  app_name,
   data_dir,
   tabs = c("Single Cell", "Bulk Data", "Drugs"),
   pert_query_dir = file.path(data_dir, ".pert_query_dir"),
@@ -23,8 +23,6 @@ run_dseqr(
 )
 }
 \arguments{
-\item{user_name}{Name of user folder in \code{data_dir}. Will be created if doesn't exist.}
-
 \item{data_dir}{Directory containing user folders. By default also will contain folders
 \code{.pert_query_dir}, \code{.pert_signature_dir}, and \code{.indices_dir}.}
 
@@ -66,6 +64,8 @@ if \code{logout_url} is \code{NULL}, otherwise \code{FALSE}.}
 
 \item{is_example}{Is the app for demonstration purposes? If \code{TRUE}, various features
 are disabled to prevent dataset changes.}
+
+\item{user_name}{Name of user folder in \code{data_dir}. Will be created if doesn't exist.}
 }
 \value{
 Runs dseqr app
@@ -78,8 +78,8 @@ Run dseqr application to explore single-cell and bulk RNA-seq datasets.
 if (interactive()) {
 
   data_dir <- tempdir()
-  user_name <- 'example'
-  run_dseqr(user_name, data_dir)
+  app_name <- 'example'
+  run_dseqr(app_name, data_dir)
 }
 
 }
