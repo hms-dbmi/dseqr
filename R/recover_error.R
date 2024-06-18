@@ -143,6 +143,7 @@ getError <- function (cond,
     return(res)
 }
 
+#' @export
 toString.data.frame = function (object, ..., digits=NULL, quote=FALSE, right=TRUE, row.names=TRUE) {
     nRows = length(row.names(object));
     if (length(object)==0) {

@@ -9,7 +9,8 @@ req(..., cancelOutput = FALSE)
 \arguments{
 \item{...}{Values to check for truthiness.}
 
-\item{cancelOutput}{}
+\item{cancelOutput}{If TRUE and an output is being evaluated, stop processing
+as usual but instead of clearing the output, leave it in whatever state it happens to be in.}
 }
 \value{
 The first value that was passed in.

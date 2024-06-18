@@ -41,6 +41,7 @@ remove.unique <- function(annot) {
   return(annot)
 }
 
+#' @export
 pretty.unique <- function(annot) {
   annot <- make_unique(annot, '_')
 
@@ -574,6 +575,7 @@ evaluate_custom_metric <- function(metric, scseq) {
   return(dat)
 }
 
+#' @export
 cbind.safe <- function(prev, res) {
   res <- cbind(prev, res)
   row.names(res) <- row.names(prev)
@@ -2595,7 +2597,8 @@ isTruthy <- function(x) {
 #' Check for required values
 #'
 #' @param ... Values to check for truthiness.
-#' @param cancelOutput
+#' @param cancelOutput If TRUE and an output is being evaluated, stop processing
+#'  as usual but instead of clearing the output, leave it in whatever state it happens to be in.
 #'
 #' @return The first value that was passed in.
 #' @export
