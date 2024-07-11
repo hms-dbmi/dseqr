@@ -52,8 +52,18 @@ seurat_to_sce <- function(sdata, dataset_name) {
   # transfer QC features
   sdata@meta.data$mito_percent <- sdata@meta.data$percent.mt
   sdata@meta.data$ribo_percent <- sdata@meta.data$percent.ribo
-  sdata@meta.data$log10_sum <- log10(sdata@meta.data$nCount_RNA)
-  sdata@meta.data$log10_detected <- log10(sdata$nFeature_RNA)
+
+  meta_cols <- colnames(sdata@meta.data)
+  ncount_cols <- c('nCount_RNA', 'nCount_SCT')
+  nfeatr_cols <- c('nFeature_RNA', 'nFeature_SCT')
+  ncount_col <- ncount_cols[(ncount_cols %in% meta_cols)][1]
+  nfeatr_col <- nfeatr_cols[(nfeatr_cols %in% meta_cols)][1]
+
+  if (length(ncount_col))
+    sdata@meta.data$log10_sum <- log10(sdata@meta.data[[ncount_col]])
+
+  if (length(nfeatr_col))
+    sdata@meta.data$log10_detected <- log10(sdata@meta.data[[nfeatr_col]])
 
   sce <- Seurat::as.SingleCellExperiment(sdata)
 
