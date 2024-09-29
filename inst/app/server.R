@@ -107,7 +107,7 @@ server <- function(input, output, session) {
   if (!is_local) {
     options(shiny.error = function() {
       observe({
-        user_name <- user_name()
+        user_name <- session$request$HTTP_X_SP_USERID
         send_slack_error(app_name, user_name)
       })
     })
@@ -206,7 +206,6 @@ server <- function(input, output, session) {
   projects_table <- reactive({
     projects <- project_choices()
     project <- project()
-    req(project)
 
     nsc <- sapply(projects, get_num_sc_datasets, user_dir())
     nbulk <- sapply(projects, get_num_bulk_datasets, user_dir())
@@ -401,7 +400,7 @@ server <- function(input, output, session) {
   project_dir <- reactive(file.path(user_dir(), project()))
   prev_path <- reactive(file.path(user_dir(), 'prev_project.qs'))
 
-  project <- reactiveVal()
+  project <- reactiveVal('default')
 
   observe({
     project(qread.safe(prev_path(), .nofile = 'default'))

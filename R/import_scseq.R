@@ -583,6 +583,7 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 
 
 run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
+  require('Seurat')
 
   # prevents error about it being 500MB
   old <- options(future.globals.maxSize = 30*1024*1024^2)

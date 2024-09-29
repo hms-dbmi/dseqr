@@ -89,20 +89,20 @@ run_dseqr <- function(app_name,
 
   # pass arguments to app through options then run
   shiny::shinyOptions(
-    data_dir = normalizePath(data_dir),
+    data_dir = normalizePath(data_dir, mustWork = FALSE),
     app_name = app_name,
-    pert_query_dir = normalizePath(pert_query_dir),
-    pert_signature_dir = normalizePath(pert_signature_dir),
-    gs_dir = normalizePath(gs_dir),
-    indices_dir = normalizePath(indices_dir),
-    tx2gene_dir = normalizePath(tx2gene_dir),
+    pert_query_dir = normalizePath(pert_query_dir, mustWork = FALSE),
+    pert_signature_dir = normalizePath(pert_signature_dir, mustWork = FALSE),
+    gs_dir = normalizePath(gs_dir, mustWork = FALSE),
+    indices_dir = normalizePath(indices_dir, mustWork = FALSE),
+    tx2gene_dir = normalizePath(tx2gene_dir, mustWork = FALSE),
     tabs = tabs,
     logout_url = logout_url,
     is_local = is_local,
     is_example = is_example)
 
   # if developing
-  options(shiny.error = browser)
+  # options(shiny.error = browser)
 
   # partial stack sometimes obscures errors
   opts$shiny.fullstacktrace <- FALSE
