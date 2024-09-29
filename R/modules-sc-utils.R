@@ -1652,6 +1652,9 @@ convert_species <- function(x, tx2gene_dir, species, other_species = 'Homo sapie
   x <- x[!na.other, ]
   row.names(x) <- other[!na.other]
 
+  # remove duplicated rownames
+  x <- x[!duplicated(row.names(x)), ]
+
   return(x)
 }
 
