@@ -83,6 +83,11 @@ COPY DESCRIPTION NAMESPACE ./
 RUN R -e "install.packages(repos=NULL, '.')" && \
     find . -maxdepth 1 ! -name R -exec rm -r "{}" \;
 
+# switch to default blas (fixes 'Error in if (any(above.noise))' from scran::quickCluster)
+RUN ARCH=$(uname -m) && \
+    update-alternatives --set "libblas.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/blas/libblas.so.3" && \
+    update-alternatives --set "liblapack.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/lapack/liblapack.so.3"
+
 # ----------
 # PRODUCTION
 #-----------
