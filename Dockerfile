@@ -68,7 +68,11 @@ ENV RENV_LIB=/src/lib
 RUN echo ".libPaths(c('$RENV_LIB', .libPaths()))" >> $(R RHOME)/etc/Rprofile.site
 
 # install runtime system deps
-RUN cat sysdeps_run.txt | xargs ./install_debian_packages.sh
+RUN echo "intel-mkl" >> sysdeps_run.txt && cat sysdeps_run.txt | xargs ./install_debian_packages.sh
+
+# flags for intel-mkl
+ENV MKL_INTERFACE_LAYER=GNU,LP64
+ENV MKL_THREADING_LAYER=GNU
 
 # set temporary directory for R
 ENV TMP_DIR=/srv/dseqr/tmp
@@ -83,10 +87,10 @@ COPY DESCRIPTION NAMESPACE ./
 RUN R -e "install.packages(repos=NULL, '.')" && \
     find . -maxdepth 1 ! -name R -exec rm -r "{}" \;
 
-# switch to default blas (fixes 'Error in if (any(above.noise))' from scran::quickCluster)
+# switch to intel mkl blas (fixes 'Error in if (any(above.noise))' from scran::quickCluster with open blas)
 RUN ARCH=$(uname -m) && \
-    update-alternatives --set "libblas.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/blas/libblas.so.3" && \
-    update-alternatives --set "liblapack.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/lapack/liblapack.so.3"
+    update-alternatives --set "libblas.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/libmkl_rt.so" && \
+    update-alternatives --set "liblapack.so.3-${ARCH}-linux-gnu" "/usr/lib/${ARCH}-linux-gnu/libmkl_rt.so"
 
 # ----------
 # PRODUCTION
