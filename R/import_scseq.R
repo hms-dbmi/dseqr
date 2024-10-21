@@ -583,7 +583,7 @@ get_ref_cols <- function(cols, type = c('both', 'score', 'cluster')) {
 
 
 run_azimuth <- function(scseqs, azimuth_ref, species, tx2gene_dir) {
-  require('Seurat')
+  library(Seurat)
 
   # prevents error about it being 500MB
   old <- options(future.globals.maxSize = 30*1024*1024^2)
@@ -646,7 +646,18 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
   query <- Seurat::CreateSeuratObject(counts = counts,
                                       min.cells = 1, min.features = 1)
 
+  if (inherits(x = query[["RNA"]], what = "Assay5")) {
+    query[["RNA"]]$data <- query[["RNA"]]$counts
+  }
+
+  # https://github.com/satijalab/azimuth/issues/194
+  query@meta.data['log_umi'] <- log10(query$nCount_RNA)
+
   is.sct <- 'SCTModel.list' %in% methods::slotNames(reference$map[['refAssay']])
+
+  # fix for Error in .subscript.2ary(x, i, j, drop = TRUE) : subscript out of bounds
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
 
   if (is.sct) {
     # Preprocess with SCTransform
@@ -664,6 +675,7 @@ run_azimuth_sample <- function(scseq, species, ref_species, tx2gene_dir, referen
       do.center = TRUE,
       verbose = FALSE
     )
+    options(op)
   } else {
     # log normalize
     query <- Seurat::NormalizeData(object = query)
