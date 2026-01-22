@@ -11,7 +11,7 @@ Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq a
 💡 [Read the Docs →](https://docs.dseqr.com)
 
 
-### Local setup with Docker
+## Local setup with Docker
 
 ```bash
 # pull image
