@@ -18,64 +18,11 @@ Dseqr is a web application that helps you run 10X single-cell and bulk RNA-seq a
 <h2></h2>
   
 
-### Local setup
-
-```R
-# install
-install.packages('remotes')
-remotes::install_github('hms-dbmi/dseqr')
-
-# initialize and run new project
-library(dseqr)
-project_name <- 'example'
-
-# directory to store application and project files in
-data_dir <- './dseqr'
-
-run_dseqr(project_name, data_dir)
-```
-
-To enable bulk fastq.gz import, first build a `kallisto` index for quantification. To do so run:
-
-```R
-# default as used by run_dseqr
-indices_dir <- file.path(data_dir, '.indices_dir')
-
-rkal::build_kallisto_index(indices_dir)
-```
-
-### scRNA-seq fastqs
-`dseqr` can directly import `cellranger` formatted count matrices. If you are starting
-from fastq files, first install `kb-python`:
-
-```console
-# install kallisto|bustools wrapper (required)
-pip install kb-python
-```
-
-Then run pseudo-quantification:
-
-```R
-# download pre-built index (mouse or human)
-dseqr::download_kb_index(indices_dir, species = 'human')
-
-# run pseudo-quantification
-data_dir <- 'path/to/folder/with/fastqs'
-dseqr::run_kb_scseq(indices_dir, data_dir, species = 'human')
-
-# clean intermediate files produced by kb
-dseqr::clean_kb_scseq(data_dir)
-```
-
-The resulting `cellranger` formatted count matrix files will be in the `data_dir`
-subdirectory `bus_output/counts_unfiltered/cellranger`.
-
-
-### Prefer docker?
+### Local setup with Docker
 
 ```bash
 # pull image
-docker pull alexvpickering/dseqr
+docker pull alexvpickering/dseqr --platform linux/amd64
 
 # run at http://0.0.0.0:3838/ and keep data on exit
 docker run -v /full/path/to/data_dir:/srv/dseqr \
@@ -83,7 +30,3 @@ docker run -v /full/path/to/data_dir:/srv/dseqr \
 alexvpickering/dseqr R -e 'library(dseqr); run_dseqr("example", "/srv/dseqr")'
 ```
 
-
-### Host it
-
-To spin up your own AWS infrastructure to host `dseqr`, see [dseqr.aws →](https://github.com/hms-dbmi/dseqr.aws)
